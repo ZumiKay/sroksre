@@ -1,0 +1,156 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  USER
+  EDITOR
+}
+
+model User {
+  id               Int         @id @default(autoincrement())
+  firstname        String
+  lastname         String
+  email            String      @unique
+  role             Role        @default(USER)
+  phonenumber      String?     @unique
+  password         String      @unique
+  shipping_address String?
+  whislist         Json?
+  reviews          Reviews[]
+  questions        Questions[]
+  answers          Answers[]
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+}
+
+model Usersession {
+  session_id String   @id @default(uuid())
+  user_id    Int
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Categories {
+  id       Int        @id @default(autoincrement())
+  name     String
+  products Products[]
+}
+
+model Products {
+  id           Int        @id @default(autoincrement())
+  name         String
+  price        Decimal    @default(0.0)
+  buyer_id     Int?
+  seller_id    Int
+  stock        Int        @default(0)
+  cover        String
+  details      Info[]
+  category_id  Int
+  order_id     String
+  review_id    Int
+  reviews      Reviews[]
+  promotion_id Int
+  promotion    Promotion  @relation(fields: [promotion_id], references: [id])
+  order        Orders     @relation(fields: [order_id], references: [id])
+  category     Categories @relation(fields: [category_id], references: [id])
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+model Status {
+  id         Int      @id @default(autoincrement())
+  name       String
+  orders     Orders[]
+  descrition String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Orders {
+  id         String     @id @default(uuid())
+  product_id Int
+  seller_id  Int
+  buyer_id   Int
+  status_id  Int
+  products   Products[]
+  status     Status     @relation(fields: [status_id], references: [id])
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+}
+
+model Reviews {
+  id          Int      @id @default(autoincrement())
+  value       Int      @default(0)
+  description String   @default("No comment")
+  user_id     Int
+  product_id  Int
+  product     Products @relation(fields: [product_id], references: [id])
+  user        User     @relation(fields: [user_id], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Banner {
+  id           Int       @id @default(autoincrement())
+  name         String
+  type         String
+  color        String    @default("#00000")
+  image        String
+  promotion_id Int       @unique
+  promotion    Promotion @relation(fields: [promotion_id], references: [id])
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model Promotion {
+  id          Int        @id @default(autoincrement())
+  name        String
+  description String?
+  productsID  Products[]
+  banner_id   Int
+  banner      Banner?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+model Answers {
+  id          Int       @id @default(autoincrement())
+  answer      String
+  user_id     Int
+  question_id Int
+  question    Questions @relation(fields: [question_id], references: [id])
+  user        User      @relation(fields: [user_id], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Questions {
+  id        Int       @id @default(autoincrement())
+  question  String
+  answer_id Int
+  user_id   Int
+  user      User      @relation(fields: [user_id], references: [id])
+  answers   Answers[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Info {
+  id         Int      @id @default(autoincrement())
+  info_title String
+  info_value String
+  product_id Int
+  product    Products @relation(fields: [product_id], references: [id])
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
