@@ -76,46 +76,5 @@ export const verfyUserLoginInput = z.object({
   email: z.string().email(),
   password: z.string(),
 });
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.EMAIL,
-    pass: process.env.EMAIL_APPKEY,
-  },
-});
 
-export const sendEmail = async (
-  to: string,
-  subject: string,
-  message: string,
-  link: string,
-) => {
-  const mailoptions = {
-    from: process.env.EMAIL,
-    to,
-    subject,
-    message,
-    html: `
-<!doctype html>
-    <html ⚡4email>
-      <head>
-        <meta charset="utf-8">
-        <style amp4email-boilerplate>body{visibility:hidden}</style>
-      </head>
-      <body>
-          <h1>Logo </h1>
-          <h1>Please Click the link to reset password</h1>
-          <a href="${link}">${link}</a>
-</body>
-    </html
-    `,
-  };
-  try {
-    const info = await transporter.sendMail(mailoptions);
-
-    return info;
-  } catch (error) {
-    console.log(error);
-    throw error;
-  }
-};
+export const handleEmail = () => {};

@@ -16,6 +16,17 @@ enum Role {
   EDITOR
 }
 
+enum InfoType {
+  COLOR
+  TEXT
+  SELECT
+}
+
+enum bannertype {
+  BANNER
+  PROMOTION
+}
+
 model User {
   id               Int         @id @default(autoincrement())
   firstname        String
@@ -27,6 +38,7 @@ model User {
   shipping_address String?
   whislist         Json?
   reviews          Reviews[]
+  products         Products[]
   questions        Questions[]
   answers          Answers[]
   createdAt        DateTime    @default(now())
@@ -56,13 +68,14 @@ model Products {
   cover        String
   details      Info[]
   category_id  Int
-  order_id     String
-  review_id    Int
+  order_id     String?
+  review_id    Int?
   reviews      Reviews[]
-  promotion_id Int
-  promotion    Promotion  @relation(fields: [promotion_id], references: [id])
-  order        Orders     @relation(fields: [order_id], references: [id])
-  category     Categories @relation(fields: [category_id], references: [id])
+  promotion_id Int?
+  seller       User       @relation(fields: [seller_id], references: [id], onDelete: SetDefault)
+  promotion    Promotion? @relation(fields: [promotion_id], references: [id], onDelete: SetNull)
+  order        Orders?    @relation(fields: [order_id], references: [id], onDelete: SetNull)
+  category     Categories @relation(fields: [category_id], references: [id], onDelete: SetDefault)
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 }
@@ -83,7 +96,8 @@ model Orders {
   buyer_id   Int
   status_id  Int
   products   Products[]
-  status     Status     @relation(fields: [status_id], references: [id])
+  quantity   Int
+  status     Status     @relation(fields: [status_id], references: [id], onDelete: SetDefault)
   createdAt  DateTime   @default(now())
   updatedAt  DateTime   @updatedAt
 }
@@ -94,33 +108,34 @@ model Reviews {
   description String   @default("No comment")
   user_id     Int
   product_id  Int
-  product     Products @relation(fields: [product_id], references: [id])
-  user        User     @relation(fields: [user_id], references: [id])
+  product     Products @relation(fields: [product_id], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
 
 model Banner {
-  id           Int       @id @default(autoincrement())
+  id           Int        @id @default(autoincrement())
   name         String
   type         String
-  color        String    @default("#00000")
+  color        String     @default("#00000")
   image        String
-  promotion_id Int       @unique
-  promotion    Promotion @relation(fields: [promotion_id], references: [id])
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  promotion_id Int?       @unique
+  promotion    Promotion? @relation(fields: [promotion_id], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
 }
 
 model Promotion {
   id          Int        @id @default(autoincrement())
   name        String
   description String?
-  productsID  Products[]
-  banner_id   Int
+  product_id  Int[]
+  banner_id   Int?
   banner      Banner?
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
+  Products    Products[]
 }
 
 model Answers {
@@ -128,8 +143,8 @@ model Answers {
   answer      String
   user_id     Int
   question_id Int
-  question    Questions @relation(fields: [question_id], references: [id])
-  user        User      @relation(fields: [user_id], references: [id])
+  question    Questions @relation(fields: [question_id], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [user_id], references: [id], onDelete: SetDefault)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 }
@@ -139,7 +154,7 @@ model Questions {
   question  String
   answer_id Int
   user_id   Int
-  user      User      @relation(fields: [user_id], references: [id])
+  user      User      @relation(fields: [user_id], references: [id], onDelete: SetDefault)
   answers   Answers[]
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -149,8 +164,9 @@ model Info {
   id         Int      @id @default(autoincrement())
   info_title String
   info_value String
+  info_type  InfoType
   product_id Int
-  product    Products @relation(fields: [product_id], references: [id])
+  product    Products @relation(fields: [product_id], references: [id], onDelete: Cascade)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 }

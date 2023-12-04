@@ -23,7 +23,7 @@ export const verifySession = async (sessionid: string) => {
   });
   if (session) {
     return true;
-  } else {
+  } else { 
     return true;
   }
 };

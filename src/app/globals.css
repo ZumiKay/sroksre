@@ -1,7 +1,79 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
 :root {
   width: 100%;
 }
+
+@media screen and (max-width: 768px) {
+  .Home__Container .second_section {
+    flex-wrap: wrap;
+  }
+}
+
+.categories__container {
+  animation: fadein 0.5s ease forwards;
+}
+.categories__container .category .category_subheader .subcategory {
+  height: fit-content;
+  width: 100%;
+  transition: 0.5s;
+  padding: 10px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+.categories__container .category .category_subheader .subcategory:hover, .categories__container .category .category_subheader .subcategory:active {
+  background-color: white;
+}
+@keyframes fadein {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.primary__button {
+  transition: 0.5s;
+  background-color: #495464;
+}
+.primary__button:hover, .primary__button:active {
+  background-color: white;
+  color: black;
+}
+
+.select__container select {
+  background-image: url("./Asset/Image/Arrow_down.svg");
+  background-repeat: no-repeat;
+  background-position: center right;
+  background-size: 22px;
+  appearance: none;
+}
+
+.Account__container {
+  animation: slidein 0.3s linear forwards;
+}
+.Account__container .menu_container li {
+  cursor: pointer;
+  transition: 0.5s;
+}
+.Account__container .menu_container li:hover, .Account__container .menu_container li :active {
+  background-color: white;
+  color: black;
+}
+
+.Cart__Sidemenu {
+  animation: slidein 0.3s linear forwards;
+}
+
+@keyframes slidein {
+  from {
+    right: -400px;
+  }
+  to {
+    right: 0px;
+  }
+}
+
+/*# sourceMappingURL=globals.css.map */
