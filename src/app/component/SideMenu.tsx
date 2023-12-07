@@ -4,12 +4,13 @@ import DefaultProfile from "../Asset/Image/profile.svg";
 import PrimaryButton from "./Button";
 import { SetStateAction } from "react";
 import { SecondayCard } from "./Card";
+import { signOut } from "next-auth/react";
+import Link from "next/link";
 interface accountmenuprops {
   setProfile: (value: SetStateAction<boolean>) => void;
 }
 export default function AccountMenu(props: accountmenuprops) {
-  const handleLogout = () => {};
-
+  const handleLogout = async () => {};
   return (
     <aside
       onMouseEnter={() => props.setProfile(true)}
@@ -33,7 +34,7 @@ export default function AccountMenu(props: accountmenuprops) {
       <ul className="menu_container flex flex-col items-center w-full gap-y-10 mt-[10vh] mb-[10vh]">
         <li className="side_link w-[80%] p-2 text-white text-center bg-[#495464] font-bold text-lg rounded-md ">
           {" "}
-          My Profile{" "}
+          <Link href={"/dashboard"}>My Profile</Link>{" "}
         </li>
         <li className="side_link w-[80%] p-2 text-white text-center bg-[#495464] font-bold text-lg rounded-md ">
           {" "}
@@ -50,6 +51,7 @@ export default function AccountMenu(props: accountmenuprops) {
         color="#F08080"
         width="80%"
         radius="10px"
+        onClick={() => signOut()}
       />
     </aside>
   );
@@ -60,13 +62,13 @@ interface cardmenuprops {
 }
 
 export function CartMenu(props: cardmenuprops) {
-  
   return (
     <aside
       onMouseEnter={() => (document.body.style.overflow = "hidden")}
       onMouseLeave={() => {
-        document.body.style.overflow = "auto"
-        props.setcart(false)}}
+        document.body.style.overflow = "auto";
+        props.setcart(false);
+      }}
       className="Cart__Sidemenu fixed h-full w-[500px] right-0 bg-white z-40 flex flex-col items-center gap-y-5"
     >
       <h1 className="heading text-xl font-bold text-center w-full">
@@ -87,8 +89,13 @@ export function CartMenu(props: cardmenuprops) {
         </h5>
         <h3 className="text-xl font-bold">Total: </h3>
       </div>
-      <PrimaryButton text="Check Out" width="80%" height="50px" radius="10px" />
+      <PrimaryButton
+        type="button"
+        text="Check Out"
+        width="80%"
+        height="50px"
+        radius="10px"
+      />
     </aside>
   );
 }
-

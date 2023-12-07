@@ -1,5 +1,6 @@
 import * as jose from "jose";
-import { prisma, secretkey } from "./userlib";
+import { secretkey } from "./userlib";
+import Prisma from "./prisma";
 export const protectedRoutes = {
   user: {
     routes: ["logout"],
@@ -16,14 +17,14 @@ export const verifyToken = async (token: string) => {
   return payload;
 };
 export const verifySession = async (sessionid: string) => {
-  const session = await prisma.usersession.findUnique({
+  const session = await Prisma.usersession.findUnique({
     where: {
       session_id: sessionid,
     },
   });
   if (session) {
     return true;
-  } else { 
+  } else {
     return true;
   }
 };

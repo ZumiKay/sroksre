@@ -1,11 +1,18 @@
 import NextAuth from "next-auth/next";
 import GoogleProvider from "next-auth/providers/google";
 import DiscordProvider from "next-auth/providers/discord";
-import CredentialProvider from 'next-auth/providers/credentials'
-
-const handler = NextAuth({
+import CredentialProvider from "next-auth/providers/credentials";
+import { userdata } from "@/src/app/account/actions";
+import { userlogin } from "@/src/lib/userlib";
+import { NextAuthOptions } from "next-auth";
+import { User } from "@prisma/client";
+export const authOptions: NextAuthOptions = {
   pages: {
     signIn: "../../../account/page.tsx",
+  },
+  session: {
+    strategy: "jwt",
+    maxAge: 60 * 60 * 24 * 7,
   },
   providers: [
     GoogleProvider({
@@ -17,27 +24,46 @@ const handler = NextAuth({
       clientSecret: process.env.DISCORD_CLIENTSECRET as string,
     }),
     CredentialProvider({
-      name: "Credentials" ,
+      name: "Credentials",
       credentials: {
-        email: {label: "Email" , type:"text" , placeholder:"Email"},
-        password: {label:"Password" , type:"password" , placeholder:"Password"}
+        email: { label: "Email", type: "text", placeholder: "Email" },
+        password: {
+          label: "Password",
+          type: "password",
+          placeholder: "Password",
+        },
       },
-      async authorize(credentails , req) {
-        console.log("Credential: " , credentails)
-        return null
-      }
-    })
+      async authorize(credentails: userdata | any): Promise<any> {
+        const login = await userlogin(credentails);
+        return login;
+      },
+    }),
   ],
   callbacks: {
-    async jwt({ token, account, profile }) {
+    async jwt(params) {
+      const user = params.user as unknown as User;
       // Persist the OAuth access_token and or the user id to the token right after signin
-      if (account) {
-        console.log("token", token);
-        console.warn("profile", profile);
+      if (user && user.firstname && user.lastname && user.role) {
+        params.token.userid = user.id;
+        params.token.role = user.role;
+        params.token.name = user.firstname + "," + user.lastname;
+      } else {
+        console.log("UserToken", params.user);
       }
 
-      return token;
+      return params.token;
+    },
+    async session({ session, token }) {
+      if (session.user && session.user.name) {
+        session.user.name = token.name;
+      }
+      console.log(" Discord Session", session);
+      return session;
     },
   },
-});
-export { handler as GET, handler as POST };
+  jwt: {
+    maxAge: 60 * 60,
+  },
+};
+const Nextauth = NextAuth(authOptions);
+export { Nextauth as GET, Nextauth as POST };

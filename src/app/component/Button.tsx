@@ -2,6 +2,7 @@
 
 import { MouseEventHandler, useState } from "react";
 import "../globals.css";
+import LoadingIcon from "./Loading";
 interface buttonpros {
   type: "submit" | "reset" | "button" | undefined;
   text: string;
@@ -12,6 +13,7 @@ interface buttonpros {
   radius?: string;
   border?: string;
   onClick?: MouseEventHandler<HTMLButtonElement>;
+  status?: "authenticated" | "loading" | "unauthenticated";
 }
 export default function PrimaryButton(props: buttonpros) {
   const [hover, sethover] = useState(false);
@@ -26,13 +28,13 @@ export default function PrimaryButton(props: buttonpros) {
       style={{
         width: props.width ?? "150px",
         height: props.height ?? "40px",
-        backgroundColor: hover ? "white" : (props.color ? props.color : ""),
+        backgroundColor: hover ? "white" : props.color ? props.color : "",
         borderRadius: props.radius ?? "0px",
         border: props.border ?? "0px",
-        color: hover ? "black" : (props.textcolor ? props.textcolor : "white"),
+        color: hover ? "black" : props.textcolor ? props.textcolor : "white",
       }}
     >
-      {props.text}
+      {props.status === "loading" ? <LoadingIcon /> : props.text}
     </button>
   );
 }
