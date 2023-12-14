@@ -196,4 +196,51 @@
       color: white;
     }
   }
+  .activelink {
+    background-color: black;
+    color: white;
+  }
+}
+
+.user_dashboard__container {
+  .profile__section {
+    .profile {
+      border-radius: 50%;
+    }
+  }
+}
+
+.modal__container {
+  background-color: rgba($color: #000000, $alpha: 0.5);
+  overflow: hidden;
+}
+
+.size__contianer {
+  .size_list {
+    .size {
+      cursor: pointer;
+      transition: 0.5s;
+      &:hover {
+        background-color: black;
+        color: white;
+      }
+    }
+  }
+}
+
+.details_modal {
+  .color_form {
+    .colorlist {
+      .colorcircle {
+        transition: 0.3s;
+        &:hover,
+        &:active {
+          outline: 5px solid white;
+        }
+      }
+      .colorcircleactive {
+        outline: 5px solid white;
+      }
+    }
+  }
 }

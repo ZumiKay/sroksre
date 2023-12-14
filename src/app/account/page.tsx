@@ -197,14 +197,31 @@ export default function AuthenticatePage() {
                 radius="10px"
                 onClick={() => settype("register")}
               />
-              <PrimaryButton
-                type="button"
-                text="Signin with Discord"
-                width="100%"
-                height="70px"
-                radius="10px"
-                onClick={() => signIn("discord")}
-              />
+              <div className="signinWith__container w-full flex flex-row justify-between items-center gap-x-2">
+                <PrimaryButton
+                  type="button"
+                  text="Signin with Discord"
+                  width="50%"
+                  color="black"
+                  height="70px"
+                  radius="10px"
+                  Icon={<i className="fa-brands fa-discord text-blue-900"></i>}
+                  onClick={() => signIn("discord")}
+                />
+                <PrimaryButton
+                  type="button"
+                  text="Signin with Gmail"
+                  hoverColor="black"
+                  hoverTextColor="white"
+                  width="50%"
+                  height="70px"
+                  color="white"
+                  textcolor="black"
+                  radius="10px"
+                  onClick={() => signIn("google")}
+                  Icon={<i className="fa-brands fa-google text-red-600"></i>}
+                />
+              </div>
             </div>
           </>
         )}

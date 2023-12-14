@@ -7,7 +7,7 @@ import Cart from "../Asset/Image/cart.svg";
 import Profile from "../Asset/Image/profile.svg";
 import DefaultImage from "../Asset/Image/default.png";
 import { useEffect, useRef, useState } from "react";
-import { redirect, useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import AccountMenu, { CartMenu } from "./SideMenu";
 import { useSession } from "next-auth/react";
 import "../globals.css";
@@ -31,7 +31,7 @@ export default function Navbar() {
     };
   }, []);
   return (
-    <nav className="navbar__container sticky top-0 z-30 w-full h-[60px] bg-[#F3F3F3] flex flex-row justify-between item-center">
+    <nav className="navbar__container sticky top-0 z-[99] w-full h-[60px] bg-[#F3F3F3] flex flex-row justify-between item-center">
       <div ref={navref} className="first_section  w-1/2 h-fit p-1">
         <Image
           className="menu_icon w-[50px] h-[50px] object-contain transition rounded-md"
@@ -83,7 +83,7 @@ export default function Navbar() {
 }
 const Categories_Container = () => {
   return (
-    <div className="categories__container grid md:grid-cols-6 sm:grid-cols-4  place-items-start w-full h-fit absolute top-[57px] z-30 bg-[#F3F3F3] ">
+    <div className="categories__container grid md:grid-cols-6 sm:grid-cols-4  place-items-start w-full h-fit absolute top-[57px] z-[99] bg-[#F3F3F3] ">
       {[1, 2, 3, 4, 5, 6].map((i) => (
         <div
           key={i}
@@ -105,15 +105,33 @@ const Categories_Container = () => {
   );
 };
 export function DashboordNavBar() {
+  const route = usePathname();
+  const Router = useRouter();
   return (
     <nav className="dashboardNav__container flex flex-row w-full items-center justify-evenly bg-[#F3F3F3] h-[70px]">
-      <h1 className="navlink text-lg font-bold bg-white w-[150px] p-2 transition text-center rounded-md">
-        My Profile
+      <h1
+        className={`navlink ${
+          route === "/dashboard" ? "activelink" : ""
+        } text-lg font-bold bg-white w-[150px] p-2 transition text-center rounded-md`}
+        onClick={() => Router.push("/dashboard")}
+      >
+        {" "}
+        My Profile{" "}
       </h1>
-      <h1 className="navlink text-lg font-bold bg-white w-[150px] p-2 transition text-center rounded-md">
+      <h1
+        className={`navlink ${
+          route === "/dashboard/order" ? "activelink" : ""
+        } text-lg font-bold bg-white w-[150px] p-2 transition text-center rounded-md`}
+        onClick={() => Router.push("/dashboard/order")}
+      >
         My Order
       </h1>
-      <h1 className="navlink text-lg font-bold bg-white w-[150px] p-2 transition text-center rounded-md">
+      <h1
+        className={`navlink ${
+          route === "/dashboard/products" ? "activelink" : ""
+        } text-lg font-bold bg-white w-[150px] p-2 transition text-center rounded-md`}
+        onClick={() => Router.push("/dashboard/products")}
+      >
         My Products
       </h1>
     </nav>

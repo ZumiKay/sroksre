@@ -163,12 +163,12 @@ model Questions {
 }
 
 model Info {
-  id         Int      @id @default(autoincrement())
+  id         Int       @id @default(autoincrement())
   info_title String
   info_value String
   info_type  InfoType
-  product_id Int
-  product    Products @relation(fields: [product_id], references: [id], onDelete: Cascade)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  product_id Int?
+  product    Products? @relation(fields: [product_id], references: [id], onDelete: Cascade)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 }

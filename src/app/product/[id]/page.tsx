@@ -40,10 +40,15 @@ export default function ProductDetail(props: productdetailprops) {
           </h1>
           <p className="product_price text-lg font-semibold"> Price </p>
           <div className="product_rating text-lg font-semibold"> Rating </div>
-          <Selection label="ProductDetail" />
-          <Selection label="Quantity" />
+          <Selection default="Select" label="ProductDetail" />
+
+          <Selection label="Quantity" default="Select" />
           <h3 className="product_comment text-red-500"> Special Comment </h3>
-          <ToggleMenu name="ProductDetail" />
+          <ToggleMenu
+            handleDelete={() => {}}
+            handleEdit={() => {}}
+            name="ProductDetail"
+          />
           <div className="product_action flex flex-col items-center gap-y-2">
             <PrimaryButton
               type="button"
@@ -56,7 +61,11 @@ export default function ProductDetail(props: productdetailprops) {
             />
             <PrimaryButton type="button" text="Buy" radius="10px" width="99%" />
           </div>
-          <ToggleMenu name="Shipping & Return" />
+          <ToggleMenu
+            name="Shipping & Return"
+            handleEdit={() => {}}
+            handleDelete={() => {}}
+          />
         </div>
       </section>
       <section className="relatedproduct__section w-full mt-5">

@@ -48,7 +48,7 @@ export const authOptions: NextAuthOptions = {
         params.token.role = user.role;
         params.token.name = user.firstname + "," + user.lastname;
       } else {
-        console.log("UserToken", params.user);
+        params.token.role = "USER";
       }
 
       return params.token;
@@ -57,7 +57,8 @@ export const authOptions: NextAuthOptions = {
       if (session.user && session.user.name) {
         session.user.name = token.name;
       }
-      console.log(" Discord Session", session);
+
+     
       return session;
     },
   },

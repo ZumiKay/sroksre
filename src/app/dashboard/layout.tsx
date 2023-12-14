@@ -1,15 +1,14 @@
+import Modal from "../component/Modals";
 import { DashboordNavBar } from "../component/Navbar";
 
-export default function DashboardLayout({
-  children, // will be a page or nested layout
-}: {
-  children: React.ReactNode;
-}) {
+const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   return (
-    <section>
-      {/* Include shared UI here e.g. a header or sidebar */}
+    <section className="min-h-screen w-full">
       <DashboordNavBar />
       {children}
+      
     </section>
   );
-}
+};
+
+export default DashboardLayout;

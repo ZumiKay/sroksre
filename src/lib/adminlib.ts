@@ -1,4 +1,5 @@
-import { Role, prisma } from "./userlib";
+import { Role} from "./userlib";
+import prisma from '../lib/prisma'
 
 export const adminRoutes: string[] = ["adminRoutes"];
 export const isAdmin = async (id: number) => {

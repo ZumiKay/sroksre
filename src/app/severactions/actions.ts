@@ -1,6 +1,6 @@
 "use server";
 
-import { prisma } from "@/src/lib/userlib";
+import prisma from '../../lib/prisma'
 
 export enum infotype {
   COLOR = "COLOR",

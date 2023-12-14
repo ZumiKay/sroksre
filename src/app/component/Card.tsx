@@ -2,9 +2,8 @@
 import Image, { StaticImageData } from "next/image";
 import PrimaryButton, { Selection } from "./Button";
 import "../globals.css";
-import { Key, MouseEvent, useState } from "react";
+import { Key, useState } from "react";
 import ToggleMenu from "./ToggleMenu";
-import { Toolbar } from "@mui/material";
 interface cardprops {
   name: string;
   price: string;
@@ -16,10 +15,6 @@ export default function Card(props: cardprops) {
   const [state, setstate] = useState({
     detail: false,
   });
-  const handleNavigate = (e: MouseEvent) => {
-    e.preventDefault();
-    alert("Redirect");
-  };
   return (
     <div key={props.Key} className="card__container w-[400px] h-[550px]">
       <div
@@ -32,10 +27,9 @@ export default function Card(props: cardprops) {
           src={props.img}
           alt="card_image"
         />
-       
-        <span className="relative bottom-[95%] left-[90%]">
-        <i className="fa-solid fa-heart "></i>
 
+        <span className="relative bottom-[95%] left-[90%]">
+          <i className="fa-solid fa-heart "></i>
         </span>
       </div>
       <section className="card_detail w-full h-[90px] font-semibold bg-white border-[0.5px] border-t-0 border-solid border-gray-400 pl-2 rounded-b-md text-sm">
@@ -45,27 +39,69 @@ export default function Card(props: cardprops) {
         </h4>
         <h4 className="card_info"> Prices</h4>
       </section>
-      {props.button && <PrimaryButton type="button" text="Add To Cart" width={"100%"} />}
+      {props.button && (
+        <PrimaryButton type="button" text="Add To Cart" width={"100%"} />
+      )}
     </div>
   );
 }
 interface SecondayCardprops {
-  img: string | StaticImageData
+  img: string | StaticImageData;
+  width?: string;
+  name?: string;
+  price?: string;
+  action?: boolean;
 }
-export function SecondayCard (props:SecondayCardprops) {
+export function SecondayCard(props: SecondayCardprops) {
   return (
-    <div className="secondarycard__container flex flex-row items-center bg-[#BBBFCA] justify-between w-full gap-x-2">
-      <Image src={props.img} alt="cover" className="cardimage w-[200px] h-[300px] object-cover" />
-      <div className="product_detail flex flex-col items-start jusët gap-y-5 w-full">
-        <div className="product_info">
-          <h2 className="text-md font-black"> Product Name </h2>
-          <h4>Price</h4>
+    <div className="w-full h-fit flex flex-col  items-end gap-y-5">
+      <div
+        style={{ width: props.width }}
+        className="secondarycard__container flex flex-row items-center bg-[#F4FAFF] justify-between w-full gap-x-2"
+      >
+        <Image
+          src={props.img}
+          alt="cover"
+          className="cardimage w-[250px] h-[350px] object-cover"
+        />
+        <div className="product_detail flex flex-col items-start gap-y-5 w-full">
+          <div className="product_info">
+            <h2 className="text-md font-black"> Product Name </h2>
+            <h4>Price</h4>
+          </div>
+          <Selection default="Select" label="Size" data={["S", "M"]} />
+          <label className="w-fit flex flex-row justify-between items-center gap-x-5">
+            {" "}
+            Quantity <input className="w-full border border-black rounded-md text-center" type="number" />{" "}
+          </label>
+          <ToggleMenu name="Product Details" />
+          <i className="fa-solid fa-trash relative -top-2"></i>
         </div>
-        <Selection label="Size" />
-        <Selection label="Quantity" />
-        <ToggleMenu name="Product Details"/>
-        <i className="fa-solid fa-trash relative -top-2"></i>
       </div>
+      {props.action && (
+        <div className="actions w-[75%] flex flex-row items-center justify-start gap-x-5">
+          <PrimaryButton
+            type="button"
+            text="Returns"
+            width="20%"
+            height="30px"
+            radius="5px"
+            color="#0097FA"
+            textcolor="white"
+            hoverColor="black"
+          />
+          <PrimaryButton
+            type="button"
+            text="Delete"
+            width="20%"
+            height="30px"
+            radius="5px"
+            color="#F08080"
+            textcolor="white"
+            hoverColor="black"
+          />
+        </div>
+      )}
     </div>
   );
 }

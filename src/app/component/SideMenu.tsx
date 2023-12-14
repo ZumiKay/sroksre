@@ -5,12 +5,12 @@ import PrimaryButton from "./Button";
 import { SetStateAction } from "react";
 import { SecondayCard } from "./Card";
 import { signOut } from "next-auth/react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 interface accountmenuprops {
   setProfile: (value: SetStateAction<boolean>) => void;
 }
 export default function AccountMenu(props: accountmenuprops) {
-  const handleLogout = async () => {};
+  const Router = useRouter();
   return (
     <aside
       onMouseEnter={() => props.setProfile(true)}
@@ -32,15 +32,23 @@ export default function AccountMenu(props: accountmenuprops) {
       </div>
 
       <ul className="menu_container flex flex-col items-center w-full gap-y-10 mt-[10vh] mb-[10vh]">
-        <li className="side_link w-[80%] p-2 text-white text-center bg-[#495464] font-bold text-lg rounded-md ">
-          {" "}
-          <Link href={"/dashboard"}>My Profile</Link>{" "}
+        <li
+          onClick={() => Router.push("/dashboard")}
+          className="side_link w-[80%] p-2 text-white text-center bg-[#495464] font-bold text-lg rounded-md "
+        >
+          My Profile
         </li>
-        <li className="side_link w-[80%] p-2 text-white text-center bg-[#495464] font-bold text-lg rounded-md ">
+        <li
+          onClick={() => Router.push("/dashboard/order")}
+          className="side_link w-[80%] p-2 text-white text-center bg-[#495464] font-bold text-lg rounded-md "
+        >
           {" "}
           My Order{" "}
         </li>
-        <li className="side_link w-[80%] p-2 text-white text-center bg-[#495464] font-bold text-lg rounded-md">
+        <li
+          onClick={() => Router.push("/dashboard/myproduct")}
+          className="side_link w-[80%] p-2 text-white text-center bg-[#495464] font-bold text-lg rounded-md"
+        >
           {" "}
           My Product{" "}
         </li>
@@ -69,12 +77,12 @@ export function CartMenu(props: cardmenuprops) {
         document.body.style.overflow = "auto";
         props.setcart(false);
       }}
-      className="Cart__Sidemenu fixed h-full w-[500px] right-0 bg-white z-40 flex flex-col items-center gap-y-5"
+      className="Cart__Sidemenu fixed h-full w-[fit] right-0 bg-white z-40 flex flex-col items-center gap-y-5"
     >
       <h1 className="heading text-xl font-bold text-center w-full">
         Shopping Cart <span>( 2 items )</span>
       </h1>
-      <div className="card_container flex flex-col w-[90%] gap-y-5 max-h-[90%] overflow-y-auto">
+      <div className="card_container flex flex-col w-[95%] gap-y-5 max-h-[75vh] overflow-y-auto">
         <SecondayCard img={props.img} />
         <SecondayCard img={props.img} />
         <SecondayCard img={props.img} />
@@ -99,3 +107,18 @@ export function CartMenu(props: cardmenuprops) {
     </aside>
   );
 }
+interface infocontainerprops {
+  container?: string;
+  title: string;
+  content: string;
+}
+export const InfoContainer = (props: infocontainerprops) => {
+  return (
+    <div className="info__container w-[300px] max-w-[400px] h-fit flex flex-col items-start justify-start gap-y-5 p-2 bg-white rounded-lg">
+      <div className="info__header text-lg font-bold">{props.title}</div>
+      <p className="info__body text-md font-normal max-w-[350px] break-words text-left">
+        {props.content}
+      </p>
+    </div>
+  );
+};

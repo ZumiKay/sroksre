@@ -6,6 +6,7 @@ import Footer from "./component/Footer";
 import Provider from "./provider";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { GlobalContextProvider } from "../context/GlobalContext";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -28,13 +29,15 @@ export default function RootLayout({
         ></script>
       </head>
       <body className={inter.className}>
-        <Provider>
-          <Navbar />
-          <ToastContainer />
+        <GlobalContextProvider>
+          <Provider>
+            <Navbar />
+            <ToastContainer />
 
-          {children}
-          <Footer />
-        </Provider>
+            {children}
+            <Footer />
+          </Provider>
+        </GlobalContextProvider>
       </body>
     </html>
   );
