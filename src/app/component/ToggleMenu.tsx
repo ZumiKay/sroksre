@@ -63,7 +63,7 @@ export default function ToggleMenu(props: toggleprops) {
                 key={index}
                 className="color__container flex flex-row w-fit gap-x-5 "
               >
-                <h3 className="text-base font-semibold"> Color </h3>
+                <h3 className="text-base font-semibold"> {obj.info_title} </h3>
                 <div className="color_list flex flex-row items-center gap-x-2 w-full">
                   {obj?.info_value?.map((i: any) => (
                     <div

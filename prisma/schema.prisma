@@ -57,6 +57,7 @@ model Usersession {
 model Categories {
   id       Int        @id @default(autoincrement())
   name     String
+  gender   String?
   products Products[]
 }
 

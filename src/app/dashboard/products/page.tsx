@@ -2,8 +2,9 @@
 import PrimaryButton from "../../component/Button";
 import Card from "../../component/Card";
 import Default from "../../Asset/Image/default.png";
-import { CreateProducts } from "../../component/Modals";
+import Modal, { Category, CreateProducts } from "../../component/Modals";
 import { useGlobalContext } from "@/src/context/GlobalContext";
+import { SubInventoryMenu } from "../../component/Navbar";
 
 export enum INVENTORYENUM {
   size = "SIZE",
@@ -14,20 +15,25 @@ export enum INVENTORYENUM {
 export default function Inventory() {
   const { openmodal, setopenmodal } = useGlobalContext();
 
-  const handleOpen = (type: string) => {
-    setopenmodal({ ...openmodal, [type]: true });
-  };
   return (
     <main className="inventory__container w-full flex flex-col gap-y-14">
       <div className="inventory_header bg-white sticky z-30 top-[6vh] flex flex-row justify-start items-center w-full gap-x-20 p-2 border-b border-black">
-        <PrimaryButton
-          color="#6FCF97"
-          radius="10px"
-          type="button"
-          text="CREATE"
-          onClick={() => handleOpen("createProduct")}
-          Icon={<i className="fa-solid fa-plus text-sm text-black"></i>}
-        />
+        <div className="createbtn_container flex flex-col justify-center items-start">
+          <PrimaryButton
+            color="#6FCF97"
+            radius="10px"
+            type="button"
+            text="CREATE"
+            onClick={() =>
+              setopenmodal({
+                ...openmodal,
+                subcreatemenu_ivt: !openmodal.subcreatemenu_ivt,
+              })
+            }
+            Icon={<i className="fa-solid fa-plus text-sm text-black"></i>}
+          />
+          {openmodal.subcreatemenu_ivt && <SubInventoryMenu />}
+        </div>
 
         <PrimaryButton
           color="#60513C"
@@ -55,8 +61,13 @@ export default function Inventory() {
         <Card img={Default} name="ProductName" price="$20.00" />
         <Card img={Default} name="ProductName" price="$20.00" />
       </div>
-      //action modal
+      /*action modal*/
       {openmodal.createProduct && <CreateProducts />}
+      {openmodal.createCategory && (
+        <Modal>
+          <Category />
+        </Modal>
+      )}
     </main>
   );
 }

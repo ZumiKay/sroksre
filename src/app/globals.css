@@ -218,4 +218,16 @@
   outline: 5px solid white;
 }
 
+.primaryphoto__container .imagecontainer {
+  animation: fadephoto 0.5s ease forwards;
+}
+@keyframes fadephoto {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 /*# sourceMappingURL=globals.css.map */

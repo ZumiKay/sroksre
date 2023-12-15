@@ -11,6 +11,8 @@ import { usePathname, useRouter } from "next/navigation";
 import AccountMenu, { CartMenu } from "./SideMenu";
 import { useSession } from "next-auth/react";
 import "../globals.css";
+import Link from "next/link";
+import { useGlobalContext } from "@/src/context/GlobalContext";
 
 export default function Navbar() {
   const [categories, setcategories] = useState(false);
@@ -106,34 +108,62 @@ const Categories_Container = () => {
 };
 export function DashboordNavBar() {
   const route = usePathname();
-  const Router = useRouter();
   return (
     <nav className="dashboardNav__container flex flex-row w-full items-center justify-evenly bg-[#F3F3F3] h-[70px]">
-      <h1
-        className={`navlink ${
-          route === "/dashboard" ? "activelink" : ""
-        } text-lg font-bold bg-white w-[150px] p-2 transition text-center rounded-md`}
-        onClick={() => Router.push("/dashboard")}
-      >
-        {" "}
-        My Profile{" "}
-      </h1>
-      <h1
-        className={`navlink ${
-          route === "/dashboard/order" ? "activelink" : ""
-        } text-lg font-bold bg-white w-[150px] p-2 transition text-center rounded-md`}
-        onClick={() => Router.push("/dashboard/order")}
-      >
-        My Order
-      </h1>
-      <h1
-        className={`navlink ${
-          route === "/dashboard/products" ? "activelink" : ""
-        } text-lg font-bold bg-white w-[150px] p-2 transition text-center rounded-md`}
-        onClick={() => Router.push("/dashboard/products")}
-      >
-        My Products
-      </h1>
+      <Link href={"/dashboard"}>
+        <h1
+          className={`navlink ${
+            route === "/dashboard" ? "activelink" : ""
+          } text-lg font-bold bg-white w-[150px] p-2 transition text-center rounded-md`}
+        >
+          My Profile{" "}
+        </h1>
+      </Link>{" "}
+      <Link href={"/dashboard/order"}>
+        <h1
+          className={`navlink ${
+            route === "/dashboard/order" ? "activelink" : ""
+          } text-lg font-bold bg-white w-[150px] p-2 transition text-center rounded-md`}
+        >
+          My Order
+        </h1>
+      </Link>
+      <Link href={"/dashboard/products"}>
+        <h1
+          className={`navlink ${
+            route === "/dashboard/products" ? "activelink" : ""
+          } text-lg font-bold bg-white w-[150px] p-2 transition text-center rounded-md`}
+        >
+          My Products
+        </h1>
+      </Link>
     </nav>
   );
 }
+
+export const SubInventoryMenu = () => {
+  const { openmodal, setopenmodal } = useGlobalContext();
+  return (
+    <div
+      onMouseLeave={() =>
+        setopenmodal({ ...openmodal, subcreatemenu_ivt: false })
+      }
+      className="subinventorymenu flex flex-col w-[149px] rounded-b-xl absolute top-[100%] h-fit p-1 bg-[#6FCF97]"
+    >
+      <h3
+        onClick={() => setopenmodal({ ...openmodal, createProduct: true })}
+        className="font-bold cursor-pointer text-[17px] w-full p-2 transition text-white hover:bg-black"
+      >
+        Product
+      </h3>
+      <h3
+        onClick={() => {
+          setopenmodal({ ...openmodal, createCategory: true });
+        }}
+        className="font-bold cursor-pointer text-[17px] w-full p-2 transition hover:bg-black text-white"
+      >
+        Category
+      </h3>
+    </div>
+  );
+};

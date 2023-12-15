@@ -1,31 +1,38 @@
 "use client";
 import Image from "next/image";
-import { ChangeEvent, FormEvent, ReactNode, useEffect, useState } from "react";
-import Default from "../Asset/Image/default.png";
+import {
+  ChangeEvent,
+  Dispatch,
+  FormEvent,
+  ReactNode,
+  SetStateAction,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import CloseIcon from "../Asset/Image/Close.svg";
 import TinyColor from "tinycolor2";
 import PrimaryButton, { InputFileUpload, Selection } from "./Button";
-import Addimage from "../Asset/Image/addimage.svg";
 import "../globals.css";
 import ToggleMenu from "./ToggleMenu";
 import { DefaultSize, useGlobalContext } from "@/src/context/GlobalContext";
 import { INVENTORYENUM } from "../dashboard/products/page";
+import { PrimaryPhoto } from "./PhotoComponent";
 
 export default function Modal({ children }: { children: ReactNode }) {
   return (
-    <div className="modal__container z-[99] fixed left-0 top-0 w-full h-screen backdrop-blur-sm">
+    <dialog className="modal__container z-[100] fixed flex flex-col items-center justify-center left-0 top-0 w-full h-screen backdrop-blur-md">
       {children}
-    </div>
+    </dialog>
   );
 }
 
 export function CreateProducts() {
-  const { openmodal, setopenmodal, product, setproduct, globalindex } =
-    useGlobalContext();
+  const { openmodal, setopenmodal, product, setproduct } = useGlobalContext();
   const [edit, setedit] = useState({
     productdetail: false,
   });
-  const [editindex, seteditindex] = useState<number | null>(null);
+  const [productcover, setproductcover] = useState<File[]>([]);
   const [show, setshow] = useState({
     size: false,
     productdetail: false,
@@ -54,26 +61,33 @@ export function CreateProducts() {
       >
         <div className="product__form w-[100%] flex flex-row gap-x-16 max-h-[550px] overflow-y-auto items-start justify-center">
           <div className="image__contianer sticky top-0 w-fit h-fit">
-            <Image
-              src={Default}
-              alt="cover"
-              className="img w-[350px] h-[500px] pl-1 object-cover"
+            <PrimaryPhoto
+              data={
+                product.cover.length > 1
+                  ? product.cover
+                  : [
+                      "https://img.freepik.com/free-photo/painting-mountain-lake-with-mountain-background_188544-9126.jpg?w=2000",
+                      "https://i.pinimg.com/564x/dd/8b/05/dd8b050d5ba58b21dab8c39471a34f6f.jpg",
+                      "https://i.pinimg.com/564x/0d/a1/12/0da112537939b3265145dc9293b069fd.jpg",
+                    ]
+              }
             />
             <PrimaryButton
               type="button"
-              text="Upload Image"
+              text={product.cover.length > 1 ? "Edit Photo" : "Upload Photo"}
               width="100%"
-              onClick={() => setshow({ ...show, uploadImg: true })}
-              Icon={
-                <Image
-                  src={Addimage}
-                  alt="upload"
-                  className="w-[20px] h-[20px]"
-                />
-              }
+              onClick={() => {
+                setshow({ ...show, uploadImg: true });
+              }}
+              Icon={<i className="fa-regular fa-image text-lg text-white"></i>}
             />
             {show.uploadImg && (
-              <ImageUpload open={show.uploadImg} setopen={setshow} />
+              <ImageUpload
+                coverfile={productcover}
+                setcoverfile={setproductcover}
+                open={show.uploadImg}
+                setopen={setshow}
+              />
             )}
           </div>
           <div className="productinfo flex flex-col justify-center items-end w-1/2 h-fit gap-y-5">
@@ -121,7 +135,6 @@ export function CreateProducts() {
                     info_value: DefaultSize,
                     info_type: INVENTORYENUM.size,
                   });
-                  seteditindex(-1);
                   setproduct({ ...product, details: updatearr });
                 }}
                 height="50px"
@@ -298,11 +311,13 @@ export const DetailsModal = (props: {
 
   const alltype = [INVENTORYENUM.normal, INVENTORYENUM.color];
   const [index, setindex] = useState(0);
-  const [type, settype] = useState(
-    globalindex.productdetailindex !== -1
-      ? product.details[globalindex.productdetailindex].info_type
-      : "",
-  );
+  const [type, settype] = useState("");
+  useEffect(() => {
+    const idx = globalindex.productdetailindex;
+    if (idx !== -1) {
+      settype(product.details[idx].info_type);
+    }
+  }, [globalindex]);
 
   const handleSelect = (e: ChangeEvent<HTMLSelectElement>) => {
     let newDetail = [...product.details];
@@ -387,27 +402,49 @@ export const DetailsModal = (props: {
   );
 };
 
-const Category = () => {
+export const Category = () => {
+  const { openmodal, setopenmodal, category, setcategory } = useGlobalContext();
+  const [data, setdata] = useState({
+    name: "",
+    gender: "",
+  });
+  const allgender = ["Men", "Women"];
+  const handleAdd = () => {
+    const updatecategory = [...category];
+    updatecategory.push(data);
+    alert("Category Added");
+  };
   return (
-    <div className="category w-full h-full flex flex-col gap-y-5 justify-center">
+    <div className="category rounded-md p-2 w-1/2 h-1/2 flex flex-col bg-white gap-y-5 justify-center items-start">
       <input
         placeholder="name"
+        onChange={(e) => setdata({ ...data, name: e.target.value })}
         type="text"
         name="categoryname"
-        className="name w-full h-[50px] text-lg font-bold rounded-md bg-white"
+        className="name w-full h-[50px] text-lg font-bold border border-gray-400 pl-1 rounded-md bg-white"
       />
-      <input
-        placeholder="gender (optional)"
-        type="text"
-        name="gender"
-        className="name w-full h-[50px] text-lg font-bold rounded-md bg-white"
+      <Selection
+        onChange={(e) => setdata({ ...data, gender: e.target.value })}
+        style={{ height: "50px" }}
+        default="Select Gender (Optional)"
+        data={allgender}
       />
       <PrimaryButton
         width="100%"
         height="50px"
         radius="10px"
+        onClick={() => handleAdd()}
         text="Add Category"
         color="#35C191"
+        type="button"
+      />
+      <PrimaryButton
+        width="100%"
+        height="50px"
+        radius="10px"
+        text="Cancel"
+        onClick={() => setopenmodal({ ...openmodal, createCategory: false })}
+        color="#CE9EAD"
         type="button"
       />
     </div>
@@ -437,6 +474,13 @@ const NormalDetail = (props: normaldetailprops) => {
   }, [globalindex]);
   const handleAdd = () => {
     const updatedetail = [...product.details];
+    const isExist = updatedetail.some(
+      (obj) => obj.info_title === normaldetail.info_title,
+    );
+    if (isExist) {
+      alert("Name Already Exist");
+      return;
+    }
     updatedetail[props.index].info_title = normaldetail.info_title;
     updatedetail[props.index].info_value[0] = normaldetail.info_value;
     updatedetail[props.index].info_type = INVENTORYENUM.normal;
@@ -513,17 +557,22 @@ const Color = (props: { index: number }) => {
     const hexRegex = /^#[0-9A-Fa-f]{6}$/;
     return hexRegex.test(hexCode);
   }
-  const handleSave = () => {
-    //save to databases
-    //Empty State
-  };
   const handleConfirm = () => {
     let value = colorvalue.value;
+    let updatecolor = [...product.details];
+    let updatevalue = [...colorvalueedit];
+    const isExist = updatecolor.some(
+      (obj, idx) => idx !== index && obj.info_title === colorvalue.title,
+    );
+
+    if (isExist) {
+      alert("Name Already Existed");
+      return;
+    }
+
+    updatecolor[index].info_title = colorvalue.title;
     if (isvalidColor(value) && isValidHexCode(value)) {
-      let updatecolor = [...product.details];
-      let updatevalue = [...colorvalueedit];
       let editing = { isEdit: false, index: 0 };
-      updatecolor[index].info_title = colorvalue.title;
       updatevalue.forEach((obj, i) => {
         if (obj.isEdit) {
           editing.isEdit = true;
@@ -621,22 +670,13 @@ const Color = (props: { index: number }) => {
       </div>
       <PrimaryButton
         type="button"
-        text="Confirm"
+        text="ADD"
         onClick={() => handleConfirm()}
         width="100%"
         height="50px"
         color="#4688A0"
         radius="10px"
-        disable={colorvalue.value === ""}
-      />
-      <PrimaryButton
-        type="button"
-        text="Save"
-        width="100%"
-        height="50px"
-        color="#44C3A0"
-        radius="10px"
-        disable={product.details[props.index].info_type.length > 0}
+        disable={colorvalue.value === "" || colorvalue.title === ""}
       />
     </div>
   );
@@ -645,9 +685,14 @@ const Color = (props: { index: number }) => {
 interface imageuploadprops {
   open: boolean;
   setopen: any;
+  coverfile: File[];
+  setcoverfile: Dispatch<SetStateAction<File[]>>;
 }
 export const ImageUpload = (props: imageuploadprops) => {
-  const [Imgfile, setfile] = useState<File[]>([]);
+  const { product, setproduct } = useGlobalContext();
+  const [Imgfile, setfile] = useState<File[]>(
+    props.coverfile.length > 0 ? props.coverfile : [],
+  );
   const handleFile = (e: ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files;
     if (selectedFile) {
@@ -670,7 +715,17 @@ export const ImageUpload = (props: imageuploadprops) => {
     updateFiles.splice(index, 1);
     setfile(updateFiles);
   };
+  const filetourl = (file: File[]) => {
+    let url = [""];
+    file.map((obj) => url.push(URL.createObjectURL(obj)));
+    return url.filter((i) => i !== "");
+  };
   const handleSave = () => {
+    const urls = filetourl(Imgfile);
+    props.setcoverfile(Imgfile);
+
+    setproduct({ ...product, cover: urls });
+    alert("File Save");
     //save to google firebase
     //return as link to save in products database sperate by cgoogle firebase
     //return as link to save in products database sperate by commas
@@ -687,7 +742,7 @@ export const ImageUpload = (props: imageuploadprops) => {
           setfile([]);
           props.setopen((prev: any) => ({ ...prev, uploadImg: false }));
         }}
-        className="w-[50px] h-[50px] absolute top-5 right-10 object-contain"
+        className="w-[50px] h-[50px] absolute top-5 right-10 object-contain transition hover:-translate-y-2 active:-translate-y-2"
       />
       <div className="uploadImage__container w-[80%] max-h-[600px] flex flex-row justify-start items-center gap-x-5">
         <div className="previewImage__container w-[50%] border-[1px] border-black grid grid-cols-2 gap-x-5 p-3  min-h-[400px] max-h-[500px] overflow-y-auto">
@@ -712,6 +767,7 @@ export const ImageUpload = (props: imageuploadprops) => {
         <div className="action__container w-1/2 flex flex-col items-center gap-y-5 h-fit">
           <InputFileUpload onChange={handleFile} />
           <PrimaryButton
+            onClick={() => handleSave()}
             type="button"
             text="SAVE"
             width="100%"

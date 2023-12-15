@@ -1,6 +1,5 @@
 "use client";
 import React, { useContext, useState } from "react";
-import { number } from "zod";
 
 export interface ProductInfo {
   info_title: string;
@@ -15,18 +14,25 @@ interface ProductState {
   price: number;
   seller_id: number;
   stock: number;
-  cover: string;
+  cover: string[];
   category_id: number;
   details: ProductInfo[];
 }
 
 interface OpenModalState {
   createProduct: boolean;
+  createCategory: boolean;
   productdetail: boolean;
+  subcreatemenu_ivt: boolean;
 }
 
 interface GlobalIndexState {
   productdetailindex: number;
+  productcovereditindex: number;
+}
+interface CateogoryState {
+  name: string;
+  gender?: string;
 }
 
 interface ContextType {
@@ -36,6 +42,8 @@ interface ContextType {
   setglobalindex: React.Dispatch<React.SetStateAction<GlobalIndexState>>;
   product: ProductState;
   setproduct: React.Dispatch<React.SetStateAction<ProductState>>;
+  category: CateogoryState[];
+  setcategory: React.Dispatch<React.SetStateAction<CateogoryState[]>>;
 }
 
 const GlobalContext = React.createContext<ContextType | null>(null);
@@ -47,17 +55,25 @@ export const GlobalContextProvider = ({
 }) => {
   const [openmodal, setopenmodal] = useState({
     createProduct: false,
+    createCategory: false,
     productdetail: false,
+    subcreatemenu_ivt: false,
   });
+  const [category, setcategory] = useState([
+    {
+      name: "",
+    },
+  ]);
   const [globalindex, setglobalindex] = useState({
     productdetailindex: -1,
+    productcovereditindex: -1,
   });
   const [product, setproduct] = useState({
     name: "",
     price: 0.0,
     seller_id: 0,
     stock: 0,
-    cover: "",
+    cover: [""],
     category_id: 0,
     details: [
       {
@@ -77,6 +93,8 @@ export const GlobalContextProvider = ({
         setproduct,
         globalindex,
         setglobalindex,
+        category,
+        setcategory,
       }}
     >
       {children}
