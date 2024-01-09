@@ -30,6 +30,7 @@ export default function RootLayout({
       </head>
       <body className={inter.className}>
         <GlobalContextProvider>
+          {" "}
           <Provider>
             <Navbar />
             <ToastContainer />

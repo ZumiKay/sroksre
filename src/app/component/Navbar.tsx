@@ -6,7 +6,13 @@ import Search from "../Asset/Image/Search.svg";
 import Cart from "../Asset/Image/cart.svg";
 import Profile from "../Asset/Image/profile.svg";
 import DefaultImage from "../Asset/Image/default.png";
-import { useEffect, useRef, useState } from "react";
+import {
+  CSSProperties,
+  MutableRefObject,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { usePathname, useRouter } from "next/navigation";
 import AccountMenu, { CartMenu } from "./SideMenu";
 import { useSession } from "next-auth/react";
@@ -48,7 +54,7 @@ export default function Navbar() {
         <Image
           src={Logo}
           alt="logo"
-          className="Logo w-[100px] h-[50px] object-contain"
+          className="Logo w-[100px] h-[50px] object-contain grayscale"
           onClick={() => router.push("/")}
         />
       </div>
@@ -140,30 +146,92 @@ export function DashboordNavBar() {
     </nav>
   );
 }
+interface Subinventorymenuprops {
+  data: {
+    value: string;
+    opencon: string;
+  }[];
+  open?: string;
+  type?: "product" | "banner" | "promotion";
+  index?: number;
+  style?: CSSProperties;
+  ref?: MutableRefObject<HTMLDivElement | null>;
+}
+enum actiontype {
+  EDIT = "Edit",
+  STOCK = "Stock",
+  DELETE = "DELETE",
+}
 
-export const SubInventoryMenu = () => {
-  const { openmodal, setopenmodal } = useGlobalContext();
+export const SubInventoryMenu = (props: Subinventorymenuprops) => {
+  const {
+    openmodal,
+    setopenmodal,
+    allData,
+    setproduct,
+    setbanner,
+    setglobalindex,
+  } = useGlobalContext();
+
+  const handleClick = (obj: { value: string; opencon: string }) => {
+    const index = props.index as number;
+
+    if (
+      props.type === "product" ||
+      props.type === "banner" ||
+      props.type === "promotion"
+    ) {
+      const isProduct = props.type === "product";
+      const itemList = isProduct ? allData.product : allData.banner;
+      const setItem = isProduct ? setproduct : setbanner;
+
+      if (obj.value === actiontype.EDIT) {
+        const editItem = itemList[index];
+        setItem(
+          (prevItem: any) => ({ ...prevItem, ...editItem }) as typeof prevItem,
+        );
+        setglobalindex((previndex) => ({
+          ...previndex,
+          [props.type === "product"
+            ? "producteditindex"
+            : props.type === "banner"
+              ? "bannereditindex"
+              : "promotioneditindex"]: index,
+        }));
+
+        setopenmodal({ ...openmodal, [obj.opencon as string]: true });
+      } else if (obj.value === actiontype.STOCK) {
+        setglobalindex((prev) => ({ ...prev, producteditindex: index }));
+        setopenmodal({ ...openmodal, [obj.opencon as string]: true });
+      } else {
+        setopenmodal((prev) => ({
+          ...prev,
+          confirmmodal: {
+            ...prev.confirmmodal,
+            index: index,
+            type: props.type,
+            open: true,
+          },
+        }));
+      }
+    } else {
+      setopenmodal({ ...openmodal, [obj.opencon as string]: true });
+    }
+  };
   return (
     <div
-      onMouseLeave={() =>
-        setopenmodal({ ...openmodal, subcreatemenu_ivt: false })
-      }
-      className="subinventorymenu flex flex-col w-[149px] rounded-b-xl absolute top-[100%] h-fit p-1 bg-[#6FCF97]"
+      style={props.style}
+      className="subinventorymenu flex flex-col w-[149px] rounded-b-xl absolute h-fit p-1 bg-white"
     >
-      <h3
-        onClick={() => setopenmodal({ ...openmodal, createProduct: true })}
-        className="font-bold cursor-pointer text-[17px] w-full p-2 transition text-white hover:bg-black"
-      >
-        Product
-      </h3>
-      <h3
-        onClick={() => {
-          setopenmodal({ ...openmodal, createCategory: true });
-        }}
-        className="font-bold cursor-pointer text-[17px] w-full p-2 transition hover:bg-black text-white"
-      >
-        Category
-      </h3>
+      {props.data.map((obj, index) => (
+        <h3
+          key={index}
+          onClick={() => handleClick(obj)}
+          className="font-bold cursor-pointer text-[17px] w-full p-2 transition text-black hover:bg-black hover:text-white"
+        >
+          {obj.value}
+        </h3>
+      ))}
     </div>
   );
 };

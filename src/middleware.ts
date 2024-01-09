@@ -5,9 +5,10 @@ import { NextRequest, NextResponse } from "next/server";
 
 export default async function middleware(req: NextRequest) {
   const requestURL = (path: string) => req.nextUrl.pathname.endsWith(path);
+  const url = req.nextUrl.pathname;
   const token = await getToken({ req });
 
-  if (requestURL("dashboard")) {
+  if (url.includes("dashboard")) {
     if (token) {
       return NextResponse.next();
     } else {

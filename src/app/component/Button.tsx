@@ -2,10 +2,12 @@
 
 import { CSSProperties, MouseEventHandler, ReactNode, useState } from "react";
 import "../globals.css";
-import LoadingIcon from "./Loading";
+import LoadingIcon from "../Asset/Image/Loading.svg";
 import * as React from "react";
 import { styled } from "@mui/material/styles";
 import Button from "@mui/material/Button";
+import { useGlobalContext } from "@/src/context/GlobalContext";
+import Image from "next/image";
 
 interface buttonpros {
   type: "submit" | "reset" | "button" | undefined;
@@ -37,9 +39,10 @@ export default function PrimaryButton(props: buttonpros) {
   return (
     <button
       type={props.type}
-      className="primary__button rounded-sm border-0 font-bold p-1"
-      onClick={props.onClick}
-      disabled={props.disable ?? false}
+      className="primary__button relative rounded-sm border-0 font-bold p-1"
+      onClick={
+        props.disable || props.status === "loading" ? () => {} : props.onClick
+      }
       onMouseEnter={() => sethover(true)}
       onMouseLeave={() => sethover(false)}
       style={{
@@ -70,7 +73,7 @@ export default function PrimaryButton(props: buttonpros) {
       }}
     >
       {props.status === "loading" ? (
-        <LoadingIcon />
+        <h3 className="loading-text font-bold w-full h-fit"> Loading...</h3>
       ) : (
         <h3 className="flex flex-row items-center justify-center">
           {" "}
@@ -87,12 +90,25 @@ interface selectprops {
   option?: HTMLOptionElement;
   default: string;
   defaultValue?: string;
-  data?: string[] | number[];
+  data?: string[] | number[] | any[];
+  subcategory?:
+    | []
+    | {
+        id?: number | undefined;
+        name: string;
+      }[];
   state?: any;
   onChange?: React.ChangeEventHandler<HTMLSelectElement>;
+  required?: boolean;
+  name?: string;
+  value?: number | string;
+  type?: "category" | "subcategory";
+  parent_id?: number;
 }
 
 export function Selection(props: selectprops) {
+  const { allData } = useGlobalContext();
+
   return (
     <div
       style={props.style}
@@ -110,9 +126,27 @@ export function Selection(props: selectprops) {
           props.label ? "w-1/2" : "w-full"
         } h-full p-2`}
         onChange={props.onChange}
+        required={props.required}
+        value={props.value}
+        name={props.name}
       >
-        <option value={props.defaultValue ?? ""}>{props.default}</option>
-        {props.data?.map((data) => <option value={data}>{data} </option>)}
+        <option value={props.defaultValue?.toLowerCase() ?? ""}>
+          {props.default}
+        </option>
+        {props.type
+          ? (props.type === "category"
+              ? allData.category
+              : props.subcategory ?? []
+            ).map((obj) => (
+              <option key={obj.id} value={obj.id}>
+                {obj.name}{" "}
+              </option>
+            ))
+          : props.data?.map((data, index) => (
+              <option key={index} value={data.value ? data.value : data}>
+                {data.label ? data.label : data}
+              </option>
+            ))}
       </select>
     </div>
   );
@@ -132,6 +166,7 @@ const VisuallyHiddenInput = styled("input")({
 
 interface Inputfileuploadprops {
   onChange: React.ChangeEventHandler<HTMLInputElement>;
+  multiple: boolean;
 }
 export function InputFileUpload(props: Inputfileuploadprops) {
   return (
@@ -144,8 +179,8 @@ export function InputFileUpload(props: Inputfileuploadprops) {
     >
       Upload Image
       <VisuallyHiddenInput
-        multiple
-        accept=".jpg, .png, .svg"
+        multiple={props.multiple}
+        accept=".jpg, .png"
         onChange={props.onChange}
         type="file"
       />

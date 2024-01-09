@@ -113,9 +113,9 @@ export default function UserDashboard() {
           />
           <ToggleDownMenu open={userdata.open.whilist}>
             <div className="products grid grid-cols-2 gap-x-[80%]">
-              <Card name="Products name" price="$20.00" img={Default} />
-              <Card name="Products name" price="$20.00" img={Default} />
-              <Card name="Products name" price="$20.00" img={Default} />
+              <Card name="Products name" price="$20.00" img={[]} />
+              <Card name="Products name" price="$20.00" img={[]} />
+              <Card name="Products name" price="$20.00" img={[]} />
             </div>
           </ToggleDownMenu>
         </div>
@@ -148,9 +148,9 @@ export default function UserDashboard() {
           />
           <ToggleDownMenu open={userdata.open.rating}>
             <div className="products grid grid-cols-2 gap-x-[80%]">
-              <Card name="Products name" price="$20.00" img={Default} />
-              <Card name="Products name" price="$20.00" img={Default} />
-              <Card name="Products name" price="$20.00" img={Default} />
+              <Card name="Products name" price="$20.00" img={[]} />
+              <Card name="Products name" price="$20.00" img={[]} />
+              <Card name="Products name" price="$20.00" img={[]} />
             </div>
           </ToggleDownMenu>
         </div>

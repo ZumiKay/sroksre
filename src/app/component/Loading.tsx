@@ -2,10 +2,8 @@ import { toast } from "react-toastify";
 import "../globals.css";
 export default function LoadingIcon() {
   return (
-    <div className="loadingio-spinner-ellipsis-65iic2fxbb5">
-      <div className="ldio-kyh2taiys5r">
-        <div></div>
-        <div></div>
+    <div className="loadingio-spinner-double-ring-op62hjn5ktc">
+      <div className="ldio-jhvhak8eufc">
         <div></div>
         <div></div>
         <div></div>
@@ -13,9 +11,12 @@ export default function LoadingIcon() {
     </div>
   );
 }
+export const LoadingLogo = () => {
+  return <div></div>;
+};
 export const successToast = (message: string) => {
   toast.success(message, {
-    autoClose: 2000,
+    autoClose: 1000,
     closeOnClick: true,
     pauseOnHover: true,
     draggable: true,
@@ -30,6 +31,16 @@ export const errorToast = (message: string) => {
     pauseOnHover: true,
     draggable: true,
     position: "top-right",
+    theme: "dark",
+  });
+};
+
+export const infoToast = (message: string) => {
+  toast.info(message, {
+    autoClose: 3000,
+    closeOnClick: true,
+    pauseOnHover: true,
+    position: "top-center",
     theme: "dark",
   });
 };

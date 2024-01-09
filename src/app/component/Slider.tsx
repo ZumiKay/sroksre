@@ -1,9 +1,8 @@
 "use client";
 
 import Card from "./Card";
-import Default from "../Asset/Image/default.png";
 import "../globals.css";
-import { EventHandler, MouseEvent, useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 interface sliderprops {
   name: string;
 }
@@ -27,11 +26,9 @@ export default function SliderContainer(props: sliderprops) {
   };
   const handleHover = () => {
     document.body.style.overflowY = "hidden";
-    console.log("hover");
     isHovered = true;
   };
   const handleLeave = () => {
-    console.log("Leave");
     document.body.style.overflowY = "auto";
     isHovered = false;
   };
@@ -48,8 +45,8 @@ export default function SliderContainer(props: sliderprops) {
         onMouseLeave={() => handleLeave()}
         className="slider_card__contianer max-w-[95vw] overflow-x-auto flex flex-row justify-start gap-x-10 scrollbar-hide "
       >
-        {[1, 2, 3, 4, 9].map((i) => (
-          <Card Key={i} name="Baggy T-shirt" price="100.00$" img={Default} />
+        {[1, 2, 3, 4, 9].map((i, index) => (
+          <Card index={index} name="Baggy T-shirt" price="100.00$" img={[]} />
         ))}
       </div>
     </div>

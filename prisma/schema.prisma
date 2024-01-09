@@ -16,21 +16,10 @@ enum Role {
   EDITOR
 }
 
-enum InfoType {
-  COLOR
-  TEXT
-  SELECT
-}
-
-enum bannertype {
-  BANNER
-  PROMOTION
-}
-
 model User {
   id               Int           @id @default(autoincrement())
   firstname        String
-  lastname         String
+  lastname         String?
   email            String        @unique
   role             Role          @default(USER)
   phonenumber      String?       @unique
@@ -54,33 +43,55 @@ model Usersession {
   updatedAt  DateTime @updatedAt
 }
 
-model Categories {
-  id       Int        @id @default(autoincrement())
-  name     String
-  gender   String?
-  products Products[]
+model Parentcategories {
+  id          Int               @id @default(autoincrement())
+  name        String
+  description String?
+  sub         Childcategories[]
+  products    Products[]
+}
+
+model Childcategories {
+  id                 Int               @id @default(autoincrement())
+  name               String
+  Parentcategories   Parentcategories? @relation(fields: [parentcategoriesId], references: [id])
+  parentcategoriesId Int?
+  Products           Products[]
 }
 
 model Products {
-  id           Int        @id @default(autoincrement())
-  name         String
-  price        Decimal    @default(0.0)
-  buyer_id     Int?
-  seller_id    Int
-  stock        Int        @default(0)
-  cover        String
-  details      Info[]
-  category_id  Int
-  order_id     String?
-  review_id    Int?
-  reviews      Reviews[]
-  promotion_id Int?
-  seller       User       @relation(fields: [seller_id], references: [id], onDelete: SetDefault)
-  promotion    Promotion? @relation(fields: [promotion_id], references: [id], onDelete: SetNull)
-  order        Orders?    @relation(fields: [order_id], references: [id], onDelete: SetNull)
-  category     Categories @relation(fields: [category_id], references: [id], onDelete: SetDefault)
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  id                Int              @id @default(autoincrement())
+  name              String
+  price             Decimal          @default(0.00)
+  description       String           @default("")
+  stock             Int              @default(0)
+  covers            Productcover[]
+  details           Info[]
+  parentcategory_id Int
+  childcategory_id  Int?
+  order_id          String?
+  review_id         Int?
+  reviews           Reviews[]
+  promotion_id      Int?
+  discount          Decimal?
+  promotion         Promotion?       @relation(fields: [promotion_id], references: [id], onDelete: SetNull)
+  order             Orders?          @relation(fields: [order_id], references: [id], onDelete: SetNull)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  User              User?            @relation(fields: [userId], references: [id])
+  userId            Int?
+  parentcateogries  Parentcategories @relation(fields: [parentcategory_id], references: [id])
+  childcategories   Childcategories? @relation(fields: [childcategory_id], references: [id])
+}
+
+model Productcover {
+  id        Int      @id @default(autoincrement())
+  url       String
+  name      String
+  type      String
+  isSaved   Boolean? @default(true)
+  Products  Products @relation(fields: [productId], references: [id])
+  productId Int
 }
 
 model Status {
@@ -118,24 +129,23 @@ model Reviews {
 }
 
 model Banner {
-  id           Int        @id @default(autoincrement())
-  name         String
-  type         String
-  color        String     @default("#00000")
-  image        String
-  promotion_id Int?       @unique
-  promotion    Promotion? @relation(fields: [promotion_id], references: [id], onDelete: Cascade)
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  id        Int         @id @default(autoincrement())
+  name      String
+  type      String
+  image     Json
+  show      Boolean     @default(false)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  Promotion Promotion[]
 }
 
 model Promotion {
   id          Int        @id @default(autoincrement())
   name        String
   description String?
-  product_id  Int[]
   banner_id   Int?
-  banner      Banner?
+  banner      Banner?    @relation(fields: [banner_id], references: [id])
+  expireAt    DateTime
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
   Products    Products[]
@@ -166,8 +176,8 @@ model Questions {
 model Info {
   id         Int       @id @default(autoincrement())
   info_title String
-  info_value String
-  info_type  InfoType
+  info_value String[]
+  info_type  String
   product_id Int?
   product    Products? @relation(fields: [product_id], references: [id], onDelete: Cascade)
   createdAt  DateTime  @default(now())
