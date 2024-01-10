@@ -31,13 +31,13 @@ export async function POST(request: NextRequest) {
 }
 
 interface Updatebannerprops extends BannerState {
-  Ids?: number[];
+  Ids?: { id: number; show: boolean }[];
 }
 
 export async function PUT(request: NextRequest) {
   try {
     const updatedata: Updatebannerprops = await request.json();
-    if (!updatedata.Ids) {
+    if (updatedata.id) {
       const isBanner = await Prisma.banner.findUnique({
         where: {
           id: updatedata.id,
@@ -56,30 +56,16 @@ export async function PUT(request: NextRequest) {
           image: updatedata.image,
         },
       });
-    } else {
-      const banner = await Prisma.banner.findMany({
-        where: { id: { in: updatedata.Ids } },
-      });
-
+    } else if (updatedata.Ids) {
       await Promise.all(
-        banner.map((i) => {
+        updatedata.Ids.map((i) =>
           Prisma.banner.update({
             where: { id: i.id },
-            data: i.show
-              ? {
-                  show: false,
-                }
-              : { show: true },
-          });
-          Prisma.banner.updateMany({
-            where: {
-              id: {
-                not: i.id,
-              },
+            data: {
+              show: i.show,
             },
-            data: { show: false },
-          });
-        }),
+          }),
+        ),
       );
     }
     return Response.json({ message: "Banner Updated" }, { status: 200 });
@@ -158,7 +144,9 @@ export async function GET(request: NextRequest) {
           ? {}
           : {
               name: {
-                contains: param.q,
+                contains: decodeURIComponent(param.q as string)
+                  .toString()
+                  .toLowerCase(),
                 mode: "insensitive",
               },
             },
@@ -175,7 +163,9 @@ export async function GET(request: NextRequest) {
           ? {}
           : {
               name: {
-                contains: param.q,
+                contains: decodeURIComponent(param.q as string)
+                  .toString()
+                  .toLowerCase(),
                 mode: "insensitive",
               },
             },
@@ -186,7 +176,8 @@ export async function GET(request: NextRequest) {
     return Response.json(
       {
         data: banner,
-        total: Math.ceil(total / itemperpage),
+        total: total,
+        totalpage: Math.ceil(total / itemperpage),
       },
       { status: 200 },
     );

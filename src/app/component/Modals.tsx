@@ -18,11 +18,13 @@ import {
   CateogoryInitailizestate,
   CateogoryState,
   DefaultSize,
+  FiltervalueInitialize,
   Productinitailizestate,
   PromotionInitialize,
   SaveCheck,
   SpecificAccess,
   SubcategoriesState,
+  UserState,
   useGlobalContext,
 } from "@/src/context/GlobalContext";
 import { INVENTORYENUM } from "../dashboard/products/page";
@@ -31,12 +33,18 @@ import { toast } from "react-toastify";
 import { ApiRequest, useRequest } from "@/src/context/CustomHook";
 import { errorToast, infoToast, successToast } from "./Loading";
 import { DateTimePicker } from "@mui/x-date-pickers";
-import dayjs, { Dayjs } from "dayjs";
-import { parse } from "path";
-import { Checkbox, FormControl, FormControlLabel, Radio } from "@mui/material";
-import { global } from "styled-jsx/css";
-import { createBanner } from "../severactions/actions";
-
+import dayjs from "dayjs";
+import {
+  Checkbox,
+  FormControl,
+  FormControlLabel,
+  IconButton,
+  InputAdornment,
+  InputLabel,
+  OutlinedInput,
+} from "@mui/material";
+import Visibility from "@mui/icons-material/Visibility";
+import VisibilityOff from "@mui/icons-material/VisibilityOff";
 export default function Modal({
   children,
   customZIndex,
@@ -55,6 +63,7 @@ export default function Modal({
     | "createBanner"
     | "createCategory"
     | "createPromotion"
+    | "createUser"
     | "addsubcategory"
     | "updatestock"
     | "confirmmodal"
@@ -1723,7 +1732,8 @@ export const UpdateStockModal = () => {
   } = useGlobalContext();
   return (
     <Modal closestate="updatestock">
-      <div className="updatestock w-[30%] h-[30%] rounded-lg flex flex-col items-center justify-center gap-y-5 bg-white p-1">
+      <div className="updatestock w-[100%] h-[100%] rounded-lg flex flex-col items-center justify-center gap-y-5 bg-white p-1">
+        <label className="text-lg font-bold">Update Stock </label>
         <input
           type="number"
           placeholder="Stock"
@@ -1766,6 +1776,7 @@ export const UpdateStockModal = () => {
             setalldata((prev) => ({ ...prev, product: updatestock }));
             setproduct(Productinitailizestate);
             setglobalindex((prev) => ({ ...prev, producteditindex: -1 }));
+            setopenmodal((prev) => ({ ...prev, updatestock: false }));
             successToast("Stock Updated");
           }}
           radius="10px"
@@ -1811,6 +1822,8 @@ export const CreatePromotionModal = () => {
     allData,
     globalindex,
     setglobalindex,
+    allfiltervalue,
+    setallfilterval,
   } = useGlobalContext();
   useEffect(() => {
     if (globalindex.promotioneditindex !== -1) {
@@ -1845,10 +1858,7 @@ export const CreatePromotionModal = () => {
       promo,
     );
     if (!createpromo.success) {
-      errorToast(
-        "Failed To " +
-          (globalindex.promotioneditindex === -1 ? "Create" : "Update"),
-      );
+      errorToast(createpromo.error ?? "Error Occured");
       return;
     }
     if (globalindex.promotioneditindex === -1) {
@@ -1880,6 +1890,11 @@ export const CreatePromotionModal = () => {
           }
         });
       });
+      setglobalindex((prev) => ({ ...prev, promotioneditindex: -1 }));
+      setopenmodal((prev) => ({ ...prev, createPromotion: false }));
+      setpromotion(PromotionInitialize);
+
+      setinventoryfilter("promotion");
     }
 
     setalldata((prev) => ({
@@ -1887,26 +1902,19 @@ export const CreatePromotionModal = () => {
       promotion: allPromo,
       product: allProduct,
     }));
-    console.log(allProduct);
 
     successToast(
       `Promotion ${
         globalindex.promotioneditindex === -1 ? "Created" : "Updated"
       }`,
     );
-    if (globalindex.promotioneditindex !== -1) {
-      setglobalindex((prev) => ({ ...prev, promotioneditindex: -1 }));
-      setopenmodal((prev) => ({ ...prev, createPromotion: false }));
-      setpromotion(PromotionInitialize);
-
-      setinventoryfilter("promotion");
-    }
   };
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     setpromotion((prev) => ({ ...prev, [e.target.name]: e.target.value }));
     setopenmodal(SaveCheck(false, "createPromotion", openmodal));
   };
   const handleCancel = () => {
+    const allfilter = [...allfiltervalue];
     if (openmodal.confirmmodal.confirm) {
       setpromotion(PromotionInitialize);
       globalindex.promotioneditindex === -1 && setinventoryfilter("product");
@@ -1923,10 +1931,42 @@ export const CreatePromotionModal = () => {
         },
       }));
     }
+    allfilter.forEach((i) => {
+      if (i.page === "product") {
+        i.filter = { ...i.filter, promotionid: undefined };
+      }
+    });
+    setallfilterval(allfilter);
     setinventoryfilter("promotion");
   };
   const handleSelectProduct = (type: "product" | "banner") => {
     const isSelect = promotion.products.every((i) => i.id !== 0);
+    const allfilter = [...allfiltervalue];
+    const Isfilterexist = allfilter.findIndex((i) => i.page === type);
+    if (Isfilterexist === -1) {
+      allfilter.push({
+        page: type,
+        filter:
+          globalindex.promotioneditindex === -1
+            ? FiltervalueInitialize
+            : globalindex.promotioneditindex !== -1 && type === "product"
+              ? {
+                  ...FiltervalueInitialize,
+                  promotionid: promotion.id,
+                }
+              : FiltervalueInitialize,
+      });
+    } else {
+      if (globalindex.promotioneditindex !== -1) {
+        allfilter[Isfilterexist].filter.promotionid = promotion.id;
+      }
+    }
+
+    setopenmodal(SaveCheck(false, "createPromotion", openmodal));
+    setinventoryfilter(type);
+
+    setallfilterval(allfilter);
+
     setpromotion((prev) => ({
       ...prev,
       products: !isSelect ? [] : prev.products,
@@ -1935,9 +1975,6 @@ export const CreatePromotionModal = () => {
     infoToast(
       "Start selection by click on " + type + " click again to remove discount",
     );
-
-    setopenmodal(SaveCheck(false, "createPromotion", openmodal));
-    setinventoryfilter(type);
 
     setopenmodal((prev) => ({ ...prev, createPromotion: false }));
   };
@@ -2133,6 +2170,173 @@ export const DiscountModals = () => {
           radius="10px"
         />
       </form>
+    </Modal>
+  );
+};
+
+//User Mangement
+//
+//
+//
+//
+export const Createusermodal = () => {
+  const { setopenmodal, setisLoading, isLoading } = useGlobalContext();
+  const [data, setdata] = useState<UserState>({
+    firstname: "",
+    lastname: "",
+    email: "",
+    password: "",
+    confirmpassword: "",
+  });
+  const [showpass, setshowpass] = useState({
+    passowrd: false,
+    confirmpassword: false,
+  });
+
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const { firstname, lastname, email, password, confirmpassword } = data;
+    if (password === confirmpassword) {
+      //register User
+      console.log(data);
+    } else {
+      errorToast("Confirm Password Not Match");
+    }
+  };
+  const handleCancel = () => {
+    setopenmodal((prev) => ({ ...prev, createUser: false }));
+  };
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setdata((prev) => ({ ...prev, [name]: value }));
+  };
+  return (
+    <Modal closestate="createUser">
+      <div className=" w-full h-fit bg-white p-5 flex flex-col items-end gap-y-5 rounded-lg">
+        <Image
+          src={CloseIcon}
+          alt="closeicon"
+          onClick={() => handleCancel()}
+          width={1000}
+          height={1000}
+          className="w-[50px] h-[50px] object-cover"
+        />
+        <form
+          onSubmit={handleSubmit}
+          className="form_container w-full h-full flex flex-col items-center gap-y-5"
+        >
+          <input
+            type="text"
+            className="w-full h-[50px] rounded-lg border border-gray-300 pl-2 text-lg font-bold"
+            placeholder="Fistname (Username if it prefered)"
+            name="firstname"
+            onChange={handleChange}
+            required
+          />
+          <input
+            type="text"
+            className="w-full h-[50px] rounded-lg border border-gray-300 pl-2 text-lg font-bold"
+            name="lastname"
+            onChange={handleChange}
+            placeholder="Lastname (optional)"
+          />
+          <input
+            type="email"
+            className="w-full h-[50px] rounded-lg border border-gray-300 pl-2 text-lg font-bold"
+            placeholder="Email Address"
+            onChange={handleChange}
+            name="email"
+            required
+          />
+          <input
+            type="text"
+            className="w-full h-[50px] rounded-lg border border-gray-300 pl-2 text-lg font-bold"
+            placeholder="Phone Number"
+            onChange={handleChange}
+            name="phonenumber"
+          />
+          <FormControl
+            sx={{ m: 1, width: "100%", height: "50px", borderRadius: "10px" }}
+            variant="outlined"
+          >
+            <InputLabel
+              className="font-bold"
+              htmlFor="outlined-adornment-password"
+            >
+              Password
+            </InputLabel>
+            <OutlinedInput
+              id="outlined-adornment-password"
+              name="password"
+              type={showpass.passowrd ? "text" : "password"}
+              onChange={handleChange}
+              endAdornment={
+                <InputAdornment position="end">
+                  <IconButton
+                    aria-label="toggle password visibility"
+                    onClick={() =>
+                      setshowpass((prev) => ({
+                        ...prev,
+                        passowrd: !prev.passowrd,
+                      }))
+                    }
+                    edge="end"
+                  >
+                    {showpass.passowrd ? <VisibilityOff /> : <Visibility />}
+                  </IconButton>
+                </InputAdornment>
+              }
+              label="Password"
+              required
+            />
+          </FormControl>
+          <FormControl
+            sx={{ m: 1, width: "100%", height: "50px", borderRadius: "10px" }}
+            variant="outlined"
+          >
+            <InputLabel htmlFor="outlined-adornment-password">
+              Confirm Passoword
+            </InputLabel>
+            <OutlinedInput
+              id="outlined-adornment-password"
+              type={showpass.confirmpassword ? "text" : "password"}
+              name="confirmpassword"
+              onChange={handleChange}
+              endAdornment={
+                <InputAdornment position="end">
+                  <IconButton
+                    aria-label="toggle password visibility"
+                    onClick={() =>
+                      setshowpass((prev) => ({
+                        ...prev,
+                        confirmpassword: !prev.confirmpassword,
+                      }))
+                    }
+                    edge="end"
+                  >
+                    {showpass.confirmpassword ? (
+                      <VisibilityOff />
+                    ) : (
+                      <Visibility />
+                    )}
+                  </IconButton>
+                </InputAdornment>
+              }
+              label="Confirm Password"
+              required
+            />
+          </FormControl>
+
+          <PrimaryButton
+            color="#0097FA"
+            text="Create"
+            type="submit"
+            width="100%"
+            height="50px"
+            radius="10px"
+          />
+        </form>
+      </div>
     </Modal>
   );
 };

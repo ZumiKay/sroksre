@@ -21,13 +21,14 @@ interface paramsType {
   cc?: number;
   sk?: string;
   p?: number;
+  pid?: number;
 }
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { f: string } },
 ) {
-  const { ty, limit, q, pc, sk, cc, p } = queryStringToObject(
+  const { ty, limit, q, pc, sk, cc, p, pid } = queryStringToObject(
     params.f,
   ) as paramsType;
 
@@ -41,13 +42,17 @@ export async function GET(
       pc,
       sk,
       cc,
+      pid,
     );
+    const total = await Prisma.products.count();
 
     if (allProduct.success) {
       response = Response.json(
         {
           data: allProduct.data,
-          total: allProduct.total,
+          total: total,
+          totalpage: allProduct.total,
+          lowstock: allProduct.lowstock,
         },
         { status: 200 },
       );

@@ -2,7 +2,10 @@ import { PromotionState } from "@/src/context/GlobalContext";
 import Prisma from "@/src/lib/prisma";
 import { NextRequest } from "next/server";
 import { extractQueryParams } from "../banner/route";
-import { calculatePagination } from "@/src/lib/utilities";
+import {
+  calculatePagination,
+  removeSpaceAndToLowerCase,
+} from "@/src/lib/utilities";
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,8 +15,9 @@ export async function POST(request: NextRequest) {
         name: promodata.name,
       },
     });
+
     if (isExist) {
-      return Response.json({ message: "Promotion Exist" }, { status: 200 });
+      return Response.json({ message: "Promotion Exist" }, { status: 500 });
     }
     const products = await Prisma.products.findMany({
       where: { id: { in: promodata.products.map((i) => i.id) } },
@@ -27,7 +31,7 @@ export async function POST(request: NextRequest) {
         name: promodata.name,
         description: promodata.description,
         banner_id: promodata.banner_id,
-        expireAt: promodata.expiredAt as unknown as Date,
+        expireAt: new Date(promodata.expiredAt.toString()),
       },
     });
     const updateproduct = await Promise.all(
@@ -140,7 +144,26 @@ export async function GET(request: NextRequest) {
     const URL = request.nextUrl.toString();
     const param: customparamPromotion = extractQueryParams(URL);
     let modified;
-    const total = await Prisma.promotion.count();
+
+    const total = await Prisma.promotion.count({
+      where:
+        param.q || param.exp
+          ? {
+              name: param.q
+                ? {
+                    contains: decodeURIComponent(param.q)
+                      .toString()
+                      .toLowerCase(),
+                  }
+                : {},
+              expireAt: param.exp
+                ? {
+                    lt: new Date(param.exp as string),
+                  }
+                : {},
+            }
+          : {},
+    });
     const { startIndex, endIndex } = calculatePagination(
       total,
       param.lt as number,
@@ -151,17 +174,26 @@ export async function GET(request: NextRequest) {
       where:
         param.q || param.exp
           ? {
-              name: {
-                contains: param.q,
-                mode: "insensitive",
-              },
-              expireAt: new Date(param.exp as string),
+              name: param.q
+                ? {
+                    contains: decodeURIComponent(param.q)
+                      .toString()
+                      .toLowerCase(),
+                    mode: "insensitive",
+                  }
+                : undefined,
+              expireAt: param.exp
+                ? {
+                    lt: new Date(param.exp as string),
+                  }
+                : undefined,
             }
           : {},
       take: endIndex - startIndex + 1,
       skip: startIndex,
       include: { Products: { orderBy: { id: "asc" } }, banner: true },
     });
+
     modified = promotion.map((i) => {
       const modifiedproduct = i.Products.map((j) => {
         const price = parseFloat(j.price.toString());
@@ -178,8 +210,12 @@ export async function GET(request: NextRequest) {
       });
       return { ...i, Products: modifiedproduct };
     });
+    const totalpromo = param.lt && Math.ceil(total / param.lt);
 
-    return Response.json({ data: modified, total: total }, { status: 200 });
+    return Response.json(
+      { data: modified, total: total, totalpage: totalpromo },
+      { status: 200 },
+    );
   } catch (error) {
     console.log("Get Promotion", error);
     return Response.json({ message: "Failed To Fetch" }, { status: 500 });

@@ -2,7 +2,13 @@
 import Image, { StaticImageData } from "next/image";
 import DefaultProfile from "../Asset/Image/profile.svg";
 import PrimaryButton, { Selection } from "./Button";
-import { ChangeEvent, SetStateAction, useEffect, useState } from "react";
+import {
+  ChangeEvent,
+  SetStateAction,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { SecondayCard } from "./Card";
 import { signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -250,6 +256,8 @@ export const ConfirmModal = () => {
 
         itemlist.splice(index as number, 1);
         setalldata((prev) => ({ ...prev, [type as string]: itemlist }));
+        if (type === "promotion") {
+        }
         successToast("Delete Successfully");
       }
     }
@@ -320,11 +328,11 @@ export const FilterMenu = () => {
     allfiltervalue,
     setallfilterval,
     inventoryfilter,
+    promotion,
   } = useGlobalContext();
   const isFilter = allfiltervalue.find((i) => i.page === inventoryfilter);
-  const [filtervalue, setfilter] = useState<FilterValue>(
-    isFilter?.filter ?? FiltervalueInitialize,
-  );
+  const [selectdate, setselectdate] = useState(false);
+  const [filtervalue, setfilter] = useState<FilterValue>(FiltervalueInitialize);
 
   const fetchcate = async () => {
     const categories = await ApiRequest("/api/categories", setisLoading, "GET");
@@ -335,6 +343,7 @@ export const FilterMenu = () => {
     setalldata((prev) => ({ ...prev, category: categories.data }));
   };
   useEffect(() => {
+    setfilter(isFilter?.filter ?? FiltervalueInitialize);
     inventoryfilter === "product" && fetchcate();
   }, []);
   const handleFilter = () => {
@@ -352,7 +361,6 @@ export const FilterMenu = () => {
       };
     }
     setallfilterval(Allfilterdata);
-    console.log(filtervalue);
 
     setopenmodal((prev) => ({ ...prev, filteroption: false }));
   };
@@ -382,22 +390,20 @@ export const FilterMenu = () => {
   const handleClear = () => {
     const Allfilterdata = [...allfiltervalue];
     const idx = Allfilterdata.findIndex((i) => i.page === inventoryfilter);
-    Allfilterdata.splice(idx, 1);
+    Allfilterdata[idx].filter = FiltervalueInitialize;
     setallfilterval(Allfilterdata);
-    setfilter(FiltervalueInitialize);
+    setfilter({
+      ...FiltervalueInitialize,
+      status: "",
+    });
   };
   return (
     <Modal
       customwidth="fit-content"
       customheight="fit-content"
-      closestate="discount"
+      closestate={selectdate ? "discount" : "filteroption"}
     >
-      <div
-        onMouseLeave={() =>
-          setopenmodal((prev) => ({ ...prev, filteroption: false }))
-        }
-        className="filtermenu w-[40vw] h-fit bg-white p-5 rounded-md flex flex-col justify-center gap-y-5"
-      >
+      <div className="filtermenu w-[50vw] h-fit bg-white p-5 rounded-md flex flex-col justify-center gap-y-5">
         <input
           type="text"
           name="name"
@@ -409,15 +415,28 @@ export const FilterMenu = () => {
           className="search w-full pl-2 h-[50px] rounded-md border border-gray-300"
         />
         {inventoryfilter === "promotion" && (
-          <DateTimePicker
-            sx={{ width: "100%" }}
-            onChange={(e) =>
-              setfilter((prev) => ({
-                ...prev,
-                expiredate: dayjs(e as Dayjs).toISOString(),
-              }))
-            }
-          />
+          <>
+            <div
+              onMouseEnter={() => setselectdate(true)}
+              onMouseLeave={() => setselectdate(false)}
+              className="w-full h-[50px] relative z-[100]"
+            >
+              <DateTimePicker
+                sx={{ width: "100%" }}
+                value={
+                  filtervalue.expiredate ? dayjs(filtervalue.expiredate) : null
+                }
+                onChange={(e) => {
+                  if (e) {
+                    setfilter((prev) => ({
+                      ...prev,
+                      expiredate: dayjs(e),
+                    }));
+                  }
+                }}
+              />{" "}
+            </div>
+          </>
         )}
         {inventoryfilter === "product" && (
           <>
@@ -439,12 +458,15 @@ export const FilterMenu = () => {
               />
             )}
             <Selection
-              default="Status"
+              default="Stock"
               onChange={handleSelect}
               name="status"
               value={filtervalue.status}
               data={statusFilter}
             />
+            {promotion.selectproduct && (
+              <Selection default="Discount" name="discount" />
+            )}
           </>
         )}
         <PrimaryButton

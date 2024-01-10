@@ -9,7 +9,6 @@ import {
   DiscountModals,
 } from "../../component/Modals";
 import {
-  BannerInitialize,
   FiltervalueInitialize,
   PromotionProductInitialize,
   SpecificAccess,
@@ -17,14 +16,12 @@ import {
   useGlobalContext,
 } from "@/src/context/GlobalContext";
 import { SubInventoryMenu } from "../../component/Navbar";
-import { use, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ApiRequest } from "@/src/context/CustomHook";
 import LoadingIcon, { errorToast, successToast } from "../../component/Loading";
 import { FilterMenu } from "../../component/SideMenu";
-import { removeSpaceAndToLowerCase } from "@/src/lib/utilities";
 import dayjs from "dayjs";
 import { Pagination } from "@mui/material";
-import { isString } from "util";
 export enum INVENTORYENUM {
   size = "SIZE",
   normal = "NORMAL",
@@ -74,8 +71,6 @@ export default function Inventory() {
     setisLoading,
     promotion,
     setpromotion,
-    banner,
-    setbanner,
     inventoryfilter,
     setinventoryfilter,
     globalindex,
@@ -86,25 +81,32 @@ export default function Inventory() {
   const [loaded, setloaded] = useState(false);
   const [show, setshow] = useState(1);
   const [page, setpage] = useState(1);
-  const [itemslength, setlength] = useState(0);
+  const [itemslength, setlength] = useState({
+    total: 0,
+    lowstock: 0,
+    totalpage: 0,
+  });
   const fetchdata = async () => {
     setloaded(false);
     try {
       let apiUrl: string = "";
       let transformFunction: (item: any) => any = () => {};
-      const { status, name, category, expiredate, page } =
+      const { status, name, category, expiredate, page, promotionid } =
         allfiltervalue.find((i) => i.page === inventoryfilter)?.filter ?? {};
       if (inventoryfilter === "product") {
         apiUrl =
           status?.length !== 0 ||
           name?.length !== 0 ||
           category?.parent_id !== 0 ||
-          category.child_id !== 0
+          category.child_id !== 0 ||
+          promotionid
             ? `/api/products/ty=filter_p=${page}_limit=${show}${
                 status ? `_sk=${status}` : ""
-              }${name ? `_q=${removeSpaceAndToLowerCase(name)}` : ""}${
+              }${name ? `_q=${name}` : ""}${
                 category?.parent_id ? `_pc=${category?.parent_id}` : ""
-              }${category?.child_id ? `_cc=${category?.child_id}` : ""}`
+              }${category?.child_id ? `_cc=${category?.child_id}` : ""}${
+                promotionid ? `_pid=${promotionid}` : ""
+              }`
             : `/api/products/ty=all_limit=${show}_p=${page}`;
         transformFunction = (item: any) => ({
           ...item,
@@ -118,7 +120,7 @@ export default function Inventory() {
       } else if (inventoryfilter === "banner") {
         apiUrl = `/api/banner?limit=${show}&ty=${!name ? "all" : "filter"}&p=${
           page ?? "1"
-        }&p=${page}${name ? `&q=${removeSpaceAndToLowerCase(name)}` : ""}`;
+        }&p=${page}${name ? `&q=${name}` : ""}`;
         transformFunction = (item: any) => ({
           ...item,
           createdAt: undefined,
@@ -127,7 +129,7 @@ export default function Inventory() {
       } else {
         apiUrl = `/api/promotion?lt=${show}&p=${page ?? "1"}${
           name ? `&q=${name}` : ""
-        }${expiredate ? `&exp=${expiredate}` : ""}`;
+        }${expiredate ? `&exp=${expiredate.toISOString()}` : ""}`;
         transformFunction = (item: any) => ({
           ...item,
           products: item.Products,
@@ -146,7 +148,19 @@ export default function Inventory() {
           ...prev,
           [inventoryfilter]: modifieddata,
         }));
-        setlength(allfetchdata.total as number);
+        if (inventoryfilter === "promotion") {
+          let tempromoproduct = [...(promotion.tempproductstate ?? [])];
+          tempromoproduct = modifieddata.map((i: any) => i.products);
+          setpromotion((prev) => ({
+            ...prev,
+            tempproductstate: tempromoproduct,
+          }));
+        }
+        setlength({
+          total: allfetchdata.total ?? 0,
+          lowstock: allfetchdata.lowstock ?? 0,
+          totalpage: allfetchdata.totalpage ?? 0,
+        });
       } else {
         errorToast("Error Connection");
       }
@@ -156,10 +170,6 @@ export default function Inventory() {
       errorToast("Error Occrued, Relaod is Required");
     }
   };
-
-  useEffect(() => {
-    fetchdata();
-  }, [inventoryfilter, allfiltervalue, show]);
   useEffect(() => {
     const isExist = allfiltervalue.findIndex((i) => i.page === inventoryfilter);
     if (isExist !== -1) {
@@ -171,6 +181,10 @@ export default function Inventory() {
       });
     }
   }, [inventoryfilter]);
+
+  useEffect(() => {
+    fetchdata();
+  }, [inventoryfilter, allfiltervalue, show]);
 
   useEffect(() => {
     const handleLoad = async () => {
@@ -279,14 +293,14 @@ export default function Inventory() {
               color="#60513C"
               radius="10px"
               type="button"
-              text={"Total: " + allData.product.length}
+              text={"Total: " + itemslength.total}
             />
             {inventoryfilter === "product" ? (
               <PrimaryButton
                 color="#F08080"
                 radius="10px"
                 type="button"
-                text={"Low Stock: 0"}
+                text={`Low Stock: ${itemslength.lowstock ?? 0} `}
               />
             ) : (
               inventoryfilter === "banner" && (
@@ -317,7 +331,10 @@ export default function Inventory() {
             )}
           </>
         )}
-        {(promotion.selectproduct ||
+        {((promotion.selectproduct &&
+          promotion.products.every(
+            (i) => i.discount && i.discount.percent.length !== 0,
+          )) ||
           promotion.selectbanner ||
           openmodal.managebanner) && (
           <>
@@ -327,51 +344,86 @@ export default function Inventory() {
               radius="10px"
               onClick={async () => {
                 if (promotion.selectbanner || promotion.selectproduct) {
+                  if (promotion.selectproduct) {
+                    const allfilter = [...allfiltervalue];
+                    allfilter.forEach((i) => {
+                      if (i.page === "product") {
+                        i.filter = { ...i.filter, promotionid: undefined };
+                      }
+                    });
+                    setallfilterval(allfilter);
+                  }
                   setopenmodal((prev) => ({ ...prev, createPromotion: true }));
                 } else {
                   //update banner in databases
                   const allbanner = [...allData.banner];
-                  const isShow = allbanner
-                    .filter((i) => i.show)
-                    .map((i) => i.id);
-                  const isNull = isShow.some((i) => i);
-                  console.log(isShow);
-                  if (isNull) {
-                    const update = await ApiRequest(
-                      "/api/banner",
-                      setisLoading,
-                      "PUT",
-                      "JSON",
-                      isShow,
-                    );
-                    if (!update.success) {
-                      errorToast(update.error ?? "Error Occrued");
-                      return;
-                    }
-                    successToast("Banner Updated");
+                  const isShow = allbanner.map((i) => ({
+                    id: i.id,
+                    show: i.show,
+                  }));
+
+                  const update = await ApiRequest(
+                    "/api/banner",
+                    setisLoading,
+                    "PUT",
+                    "JSON",
+                    { Ids: isShow },
+                  );
+                  if (!update.success) {
+                    errorToast(update.error ?? "Error Occrued");
+                    return;
                   }
+                  successToast("Banner Updated");
+
                   setopenmodal((prev) => ({ ...prev, managebanner: false }));
                 }
               }}
             />
-            <PrimaryButton
-              color="red"
-              radius="10px"
-              type="button"
-              text={"Cancel"}
-              onClick={() => {
-                if (promotion.selectproduct || promotion.selectbanner) {
-                  let promo = { ...promotion };
-                  promotion.selectproduct
-                    ? (promo.products = [PromotionProductInitialize])
-                    : (promo.banner_id = 0);
-                  setpromotion(promo);
-                  setopenmodal((prev) => ({ ...prev, createPromotion: true }));
-                } else {
-                  window.location.reload();
+            {openmodal.managebanner && (
+              <PrimaryButton
+                color="red"
+                radius="10px"
+                type="button"
+                text={"Cancel"}
+                disable={
+                  openmodal.managebanner
+                    ? allData.tempbanner
+                      ? allData.tempbanner?.length === 0
+                      : !allData.tempbanner
+                    : null
                 }
-              }}
-            />
+                onClick={() => {
+                  if (promotion.selectproduct || promotion.selectbanner) {
+                    let promo = { ...promotion };
+                    promotion.selectproduct
+                      ? (promo.products = promo.tempproductstate ?? [])
+                      : (promo.banner_id = 0);
+                    setpromotion(promo);
+                    setopenmodal((prev) => ({
+                      ...prev,
+                      createPromotion: true,
+                    }));
+                  } else {
+                    let tempbanner = [...(allData.tempbanner ?? [])];
+                    const allbanner = [...allData.banner];
+                    if (tempbanner.length > 0) {
+                      allbanner.forEach((i) => {
+                        tempbanner.forEach((j) => {
+                          if (i.id === j.id) {
+                            i.show = j.show;
+                          }
+                        });
+                      });
+                      setalldata((prev) => ({
+                        ...prev,
+                        banner: allbanner,
+                        tempbanner: undefined,
+                      }));
+                    }
+                  }
+                }}
+              />
+            )}
           </>
         )}
 
@@ -392,10 +444,7 @@ export default function Inventory() {
           </div>
         )}
         {inventoryfilter === "product" &&
-          (promotion.selectproduct && globalindex.promotioneditindex === -1
-            ? allData.product.filter((i) => !i.discount)
-            : allData.product
-          ).map((obj, index) => (
+          allData.product.map((obj, index) => (
             <Card
               index={index}
               img={obj.covers}
@@ -404,6 +453,7 @@ export default function Inventory() {
               price={parseFloat(obj.price.toString()).toFixed(2)}
               id={obj.id ?? 0}
               discount={obj.discount}
+              stock={obj.stock}
             />
           ))}
         {inventoryfilter === "banner" &&
@@ -464,7 +514,7 @@ export default function Inventory() {
       {openmodal.discount && <DiscountModals />}
       <div className="pagination_container  w-full h-fit absolute -bottom-[5%] flex flex-row justify-center  ">
         <Pagination
-          count={itemslength}
+          count={itemslength.totalpage}
           page={page}
           color="primary"
           onChange={(_, value) => {

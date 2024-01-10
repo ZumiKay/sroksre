@@ -70,6 +70,8 @@ export const ApiRequest = async (
   error?: string;
   data?: any;
   total?: number;
+  totalpage?: number;
+  lowstock?: number;
 }> => {
   try {
     setloading((prev) => ({ ...prev, [method]: true }));
@@ -85,7 +87,7 @@ export const ApiRequest = async (
     const responseJson = await response.json();
 
     if (!response.ok) {
-      throw new Error(responseJson.message || "Error Occured");
+      throw new Error(responseJson.message ?? "Error Occured");
     }
     setloading((prev) => ({ ...prev, [method]: false }));
 
@@ -94,6 +96,8 @@ export const ApiRequest = async (
         success: true,
         data: responseJson.data,
         total: method === "GET" && responseJson.total,
+        lowstock: method === "GET" && responseJson.lowstock,
+        totalpage: method === "GET" && responseJson.totalpage,
       };
     } else {
       return { success: true };

@@ -6,7 +6,6 @@ import { useEffect, useRef, useState } from "react";
 import ToggleMenu from "./ToggleMenu";
 import { PrimaryPhoto } from "./PhotoComponent";
 import {
-  PromotionProductState,
   PromotionState,
   productcoverstype,
   useGlobalContext,
@@ -26,6 +25,7 @@ interface cardprops {
     percent: string;
     newPrice: string;
   };
+  stock?: number;
 }
 const editactionMenu = [
   {
@@ -69,14 +69,15 @@ export default function Card(props: cardprops) {
     if (type == "create") {
       if (!props.discount) {
         if (!isProduct) {
-          promo.push({
+          const option = {
             id: id,
             discount: {
               percent: "",
               newPrice: "",
               oldPrice: parseFloat(props.price),
             },
-          });
+          };
+          promo.push(option);
         } else {
           promo.splice(index, 1);
         }
@@ -214,10 +215,26 @@ export default function Card(props: cardprops) {
           onClick={() => handleSelectDiscount(isProduct?.id ?? 0, "edit")}
           type="button"
           text={
-            isProduct?.discount?.percent.length === 0 ? "Set Discount" : "Edit"
+            isProduct?.discount?.percent?.length === 0 ? "Set Discount" : "Edit"
           }
           width="50%"
           radius="10px"
+        />
+      )}
+      {!promotion.selectproduct && props.stock && props.stock <= 1 && (
+        <PrimaryButton
+          type="button"
+          text="Low Stock"
+          onClick={() => {
+            setglobalindex((prev) => ({
+              ...prev,
+              producteditindex: props.index as number,
+            }));
+            setopenmodal((prev) => ({ ...prev, updatestock: true }));
+          }}
+          width="100%"
+          radius="10px"
+          color="lightcoral"
         />
       )}
     </div>
@@ -338,13 +355,26 @@ export const BannerCard = ({ data, index, id, type }: Bannercardprops) => {
           //set banner as show
 
           let allbanner = [...allData.banner];
+          let tempbanner = [...(allData.tempbanner ?? [])];
+          const isTemp = tempbanner.findIndex((i) => i.id === id);
+          if (isTemp === -1) {
+            tempbanner.push({
+              id: allbanner[index].id as number,
+              show: allbanner[index].show as boolean,
+            });
+          } else {
+            tempbanner.splice(isTemp, 1);
+          }
           if (allbanner[index].show) {
             allbanner[index].show = false;
           } else {
             allbanner[index].show = true;
           }
-
-          setalldata((prev) => ({ ...prev, banner: allbanner }));
+          setalldata((prev) => ({
+            ...prev,
+            banner: allbanner,
+            tempbanner: tempbanner,
+          }));
         }
       }}
       className={`Banner__container relative w-full h-full flex flex-col justify-start transition rounded-t-lg border-t border-l border-r border-gray-300 `}
@@ -399,7 +429,7 @@ export const BannerCard = ({ data, index, id, type }: Bannercardprops) => {
               className="w-[30px] h-[30px] object-contain"
             />
           ))}{" "}
-        {(!promotion.selectbanner || !openmodal.managebanner) && (
+        {!promotion.selectbanner && !openmodal.managebanner && (
           <i className="fa-solid fa-ellipsis-vertical text-lg bg-white w-fit h-fit p-2 transition hover:bg-gray-300"></i>
         )}
       </span>
@@ -412,6 +442,19 @@ export const BannerCard = ({ data, index, id, type }: Bannercardprops) => {
           index={index}
         />
       )}
+    </div>
+  );
+};
+
+export const UserCard = () => {
+  return (
+    <div className="usercard_container w-[330px] h-[100px] rounded-lg border-2 border-black flex flex-col justify-center items-center gap-y-5 p-2">
+      <h3 className="text-md font-bold w-full text-center break-words">
+        User Name #userid
+      </h3>
+      <h3 className="text-md text-center font-bold w-full break-words">
+        Email Address
+      </h3>
     </div>
   );
 };

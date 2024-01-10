@@ -1,6 +1,6 @@
 "use client";
 import dayjs, { Dayjs } from "dayjs";
-import React, { useContext, useState } from "react";
+import React, { MutableRefObject, useContext, useRef, useState } from "react";
 
 export interface ProductInfo {
   id?: number;
@@ -41,7 +41,8 @@ export interface FilterValue {
   };
   status: string;
   name: string;
-  expiredate?: string;
+  expiredate?: dayjs.Dayjs;
+  promotionid?: number;
 }
 export const FiltervalueInitialize: FilterValue = {
   page: 1,
@@ -64,6 +65,15 @@ export interface BannerState {
   };
   show?: boolean;
 }
+export interface UserState {
+  id?: number;
+  lastname?: string;
+  password?: string;
+  confirmpassword?: string;
+  phonenumber?: string;
+  firstname: string;
+  email: string;
+}
 
 export interface PromotionProductState {
   id: number;
@@ -85,9 +95,14 @@ export interface PromotionState {
 
   banner?: BannerState;
   tempproduct?: number[];
+  tempproductstate?: Array<PromotionProductState>;
 }
 
 export type filterinventorytype = "product" | "banner" | "promotion";
+
+export interface Allrefstate {
+  filterref: HTMLDivElement | null;
+}
 
 interface AllDataState {
   product: ProductState[] | [];
@@ -95,6 +110,10 @@ interface AllDataState {
   promotion: PromotionState[] | [];
   category: CateogoryState[] | [];
   filteredData: ProductState[] | BannerState[] | PromotionState[] | [];
+  tempbanner?: {
+    id: number;
+    show: boolean;
+  }[];
 }
 
 type confirmmodaltype = {
@@ -110,6 +129,7 @@ interface OpenModalState {
   productdetail: boolean;
   createBanner: boolean;
   createPromotion: boolean;
+  createUser: boolean;
   updatestock: boolean;
   addsubcategory: boolean;
   subcreatemenu_ivt: boolean;
@@ -164,6 +184,7 @@ const OpenmodalinitialState: OpenModalState = {
   createCategory: false,
   createBanner: false,
   createPromotion: false,
+  createUser: false,
   productdetail: false,
   addsubcategory: false,
   subcreatemenu_ivt: false,
@@ -180,6 +201,9 @@ const OpenmodalinitialState: OpenModalState = {
     confirm: true,
     closecon: "",
   },
+};
+export const Allrefinitialize: Allrefstate = {
+  filterref: null,
 };
 export const CateogoryInitailizestate: CateogoryState = {
   name: "",

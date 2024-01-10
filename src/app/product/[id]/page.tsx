@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Default from "../../Asset/Image/default.png";
 import PrimaryButton, { Selection } from "../../component/Button";
-import Card, { ToggleContainer } from "../../component/Card";
+import Card from "../../component/Card";
 import ToggleMenu from "../../component/ToggleMenu";
 
 interface productdetailprops {
@@ -44,11 +44,7 @@ export default function ProductDetail(props: productdetailprops) {
 
           <Selection label="Quantity" default="Select" />
           <h3 className="product_comment text-red-500"> Special Comment </h3>
-          <ToggleMenu
-            handleDelete={() => {}}
-            handleEdit={() => {}}
-            name="ProductDetail"
-          />
+          <ToggleMenu name="ProductDetail" />
           <div className="product_action flex flex-col items-center gap-y-2">
             <PrimaryButton
               type="button"
@@ -61,11 +57,7 @@ export default function ProductDetail(props: productdetailprops) {
             />
             <PrimaryButton type="button" text="Buy" radius="10px" width="99%" />
           </div>
-          <ToggleMenu
-            name="Shipping & Return"
-            handleEdit={() => {}}
-            handleDelete={() => {}}
-          />
+          <ToggleMenu name="Shipping & Return" />
         </div>
       </section>
       <section className="relatedproduct__section w-full mt-5">
@@ -77,7 +69,7 @@ export default function ProductDetail(props: productdetailprops) {
             <Card
               name="Related Product"
               price="$10.00"
-              img={Default}
+              img={[]}
               button={true}
             />
           ))}

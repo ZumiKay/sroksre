@@ -3,9 +3,11 @@ import prisma from "./prisma";
 import { ProductState } from "../context/GlobalContext";
 import {
   DeleteImageFromStorage,
+  caculateArrayPagination,
   calculatePagination,
   removeSpaceAndToLowerCase,
 } from "./utilities";
+import { decode } from "punycode";
 
 export const adminRoutes: string[] = ["adminRoutes"];
 export const isAdmin = async (id: number) => {
@@ -296,7 +298,12 @@ export const DeleteProduct = async (id: number) => {
   }
 };
 
-type GetProductReturnType = { success: boolean; data?: any; total?: number };
+type GetProductReturnType = {
+  success: boolean;
+  data?: any;
+  total?: number;
+  lowstock?: number;
+};
 export const GetAllProduct = async (
   limit: number,
   ty: string,
@@ -305,61 +312,96 @@ export const GetAllProduct = async (
   parent_cate?: number,
   sk?: string,
   child_cate?: number,
+  promotionid?: number,
 ): Promise<GetProductReturnType> => {
   try {
     let totalproduct: number = 0;
     let filteroptions = {};
+    let allproduct: Array<any> = [];
 
-    if (ty === "all") {
-      totalproduct = await prisma.products.count();
-      filteroptions = {};
-    } else if (ty === "filter") {
-      filteroptions = {
-        name: query
-          ? {
-              contains: removeSpaceAndToLowerCase(query ?? ""),
-            }
-          : undefined,
-        parentcategory_id: parent_cate ?? undefined,
-        childcategory_id: child_cate ?? undefined,
-        stock:
-          sk && sk === "Low"
+    const lowstock = await prisma.products.count({
+      where: {
+        stock: {
+          lte: 1,
+        },
+      },
+    });
+    if (!promotionid) {
+      if (ty === "all") {
+        totalproduct = await prisma.products.count();
+        filteroptions = {};
+      } else if (ty === "filter") {
+        const namequery = decodeURIComponent(query ?? "")
+          .toString()
+          .toLowerCase();
+        filteroptions = {
+          name: query
             ? {
-                lte: 1,
+                contains: namequery,
+                mode: "insensitive",
               }
-            : {},
-      };
-      totalproduct = await prisma.products.count({
+            : undefined,
+          parentcategory_id: parent_cate ?? undefined,
+          childcategory_id: child_cate ?? undefined,
+          stock:
+            sk && sk === "Low"
+              ? {
+                  lte: 1,
+                }
+              : {},
+        };
+        totalproduct = await prisma.products.count({
+          where: {
+            ...filteroptions,
+          },
+        });
+      }
+      const { startIndex, endIndex } = calculatePagination(
+        totalproduct,
+        limit,
+        ty === "filter" ? 1 : page,
+      );
+      allproduct = await prisma.products.findMany({
         where: {
           ...filteroptions,
         },
+        include: {
+          details: {
+            orderBy: {
+              id: "asc",
+            },
+          },
+          covers: {
+            orderBy: {
+              id: "asc",
+            },
+          },
+        },
+        take: endIndex - startIndex + 1,
+        skip: startIndex,
       });
-    }
-    const { startIndex, endIndex } = calculatePagination(
-      totalproduct,
-      limit,
-      page,
-    );
+    } else {
+      let product = await prisma.products.findMany({
+        include: {
+          details: {
+            orderBy: {
+              id: "asc",
+            },
+          },
+          covers: {
+            orderBy: { id: "asc" },
+          },
+        },
+      });
 
-    const allproduct = await prisma.products.findMany({
-      where: {
-        ...filteroptions,
-      },
-      include: {
-        details: {
-          orderBy: {
-            id: "asc",
-          },
-        },
-        covers: {
-          orderBy: {
-            id: "asc",
-          },
-        },
-      },
-      take: endIndex - startIndex + 1,
-      skip: startIndex,
-    });
+      const filterproduct = product.filter(
+        (i) => i.promotion_id === promotionid || i.promotion_id === null,
+      );
+
+      totalproduct = filterproduct.length;
+      allproduct = caculateArrayPagination(filterproduct, page, limit);
+    }
+
     const result = allproduct.map((i) => {
       if (i.discount) {
         const price = parseFloat(i.price.toString());
@@ -379,6 +421,7 @@ export const GetAllProduct = async (
     return {
       success: true,
       data: result || [],
+      lowstock: lowstock,
       total: Math.ceil(totalproduct / limit),
     };
   } catch (error) {

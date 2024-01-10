@@ -140,7 +140,16 @@ export function DashboordNavBar() {
             route === "/dashboard/products" ? "activelink" : ""
           } text-lg font-bold bg-white w-[150px] p-2 transition text-center rounded-md`}
         >
-          My Products
+          Inventory
+        </h1>
+      </Link>
+      <Link href={"/dashboard/usermanagement"}>
+        <h1
+          className={`navlink ${
+            route === "/dashboard/usermanagement" ? "activelink" : ""
+          } text-lg font-bold bg-white w-[200px] p-2 transition text-center rounded-md`}
+        >
+          User Management
         </h1>
       </Link>
     </nav>

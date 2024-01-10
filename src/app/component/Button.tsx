@@ -31,7 +31,7 @@ interface buttonpros {
   bottom?: string;
   right?: string;
   zI?: string;
-  disable?: boolean;
+  disable?: boolean | null;
 }
 export default function PrimaryButton(props: buttonpros) {
   const [hover, sethover] = useState(false);
@@ -50,7 +50,7 @@ export default function PrimaryButton(props: buttonpros) {
         width: props.width ?? "150px",
         height: props.height ?? "40px",
         fontSize: props.textsize ?? "15px",
-        opacity: props.disable ? 0.3 : 1,
+        opacity: props.disable ? (props.disable ? 0.3 : 1) : 1,
         backgroundColor: hover
           ? props.hoverColor ?? "white"
           : props.color
@@ -69,7 +69,11 @@ export default function PrimaryButton(props: buttonpros) {
         right: props.right,
         bottom: props.bottom,
         zIndex: props.zI,
-        cursor: props.disable ? "not-allowed" : "pointer",
+        cursor: props.disable
+          ? props.disable
+            ? "not-allowed"
+            : "pointer"
+          : "pointer",
       }}
     >
       {props.status === "loading" ? (

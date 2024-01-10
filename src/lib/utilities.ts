@@ -66,3 +66,13 @@ export const calculatePagination = (
     endIndex,
   };
 };
+
+export const caculateArrayPagination = (
+  arr: Array<any>,
+  page: number,
+  limit: number,
+) => {
+  const startIndex = (page - 1) * limit;
+  const endIndex = startIndex + limit;
+  return arr.slice(startIndex, endIndex);
+};
