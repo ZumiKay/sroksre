@@ -4,13 +4,21 @@ import Banner from "../component/Banner";
 import PrimaryButton from "../component/Button";
 import { Checkbox, FormControlLabel } from "@mui/material";
 import { signIn } from "next-auth/react";
-import { userdata } from "./actions";
+
 import { postRequest } from "@/src/lib/utilities";
-import { errorToast, successToast } from "../component/Loading";
-import { redirect } from "next/navigation";
+import { errorToast, infoToast, successToast } from "../component/Loading";
+import { useRouter } from "next/navigation";
+
+import {
+  SpecificAccess,
+  useGlobalContext,
+  userdata,
+} from "@/src/context/GlobalContext";
+import { ApiRequest } from "@/src/context/CustomHook";
 
 export default function AuthenticatePage() {
-  const [type, settype] = useState("login");
+  const { setisLoading, isLoading } = useGlobalContext();
+  const [type, settype] = useState<"login" | "register" | "forget">("login");
   const [loading, setloading] = useState<
     "authenticated" | "loading" | "unauthenticated"
   >("unauthenticated");
@@ -19,6 +27,11 @@ export default function AuthenticatePage() {
     password: "",
     agreement: false,
   });
+  const [verify, setverify] = useState({
+    email: false,
+    cid: false,
+  });
+  const router = useRouter();
   const handleSumbit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (type === "login") {
@@ -31,11 +44,13 @@ export default function AuthenticatePage() {
         setloading("authenticated");
         if (res?.ok) {
           successToast("Logged In");
-          redirect("/dashboard");
+          router.replace("/dashboard");
         }
         if (res?.error) {
-          console.log(res);
-          errorToast(res.error);
+          if (res.status === 401) {
+            errorToast("Incorrect Informations");
+            return;
+          }
         }
       });
     } else {
@@ -43,7 +58,6 @@ export default function AuthenticatePage() {
         setloading("loading");
 
         const request = await postRequest("/api/auth/register", data);
-        console.log(request);
         request && setloading("authenticated");
 
         if (request.status === 500) {
@@ -68,6 +82,52 @@ export default function AuthenticatePage() {
     const { value, name, checked } = e.target;
     setdata({ ...data, [name]: name === "agreement" ? checked : value });
   };
+  const handleConfirm = async (types: "email" | "cid") => {
+    const URL = `/api/auth/users/vfy${
+      types === "cid" ? `?cid=${data.cid}` : ""
+    }`;
+    const verifyreq = await ApiRequest(
+      URL,
+      setisLoading,
+      types === "email" ? "POST" : "GET",
+      "JSON",
+      types === "email"
+        ? type === "register"
+          ? { email: data.email }
+          : { email: data.email, type: type }
+        : undefined,
+    );
+    if (verifyreq.success) {
+      if (type === "register") {
+        setverify((prev) => ({ ...prev, [type]: true }));
+        if (verifyreq.data) {
+          setdata((prev) => ({ ...prev, id: verifyreq.data.id }));
+        }
+      }
+      successToast("Please Check You Email");
+      setdata((prev) => ({ ...prev, email: "" }));
+    } else {
+      errorToast(verifyreq.error ?? "Error Occured");
+      type === "register" && setverify((prev) => ({ ...prev, [type]: false }));
+    }
+  };
+  const handleBack = async () => {
+    if (verify.email) {
+      const deletecid = await ApiRequest(
+        "/api/auth/users/vfy",
+        setisLoading,
+        "DELETE",
+        "JSON",
+        { type: "email", email: data.email },
+      );
+      if (!deletecid.success) {
+        errorToast("Error Occured");
+        return;
+      }
+    }
+    settype("login");
+    setverify({ cid: false, email: false });
+  };
 
   return (
     <div className="authentication__container flex flex-row gap-x-4 justify-between w-full min-h-[90vh] mt-4">
@@ -79,150 +139,243 @@ export default function AuthenticatePage() {
         onSubmit={handleSumbit}
         className="from__container bg-[#495464] flex text-lg flex-col justify-center items-center gap-y-10 w-full h-[100vh]"
       >
-        <input
-          type="email"
-          className="email w-[80%] p-3 rounded-md"
-          placeholder="Email Address"
-          name="email"
-          onChange={handleChange}
-          required
-        />
-        <div className="w-full flex flex-col items-center justify-center ">
-          {type === "register" &&
-            data.password &&
-            data.password?.length < 8 && (
-              <span className="text-sm font-bold text-red-300">
-                {" "}
-                Password Need to contains at least one Uppercase, Special
-                Character and has 8 in length{" "}
-              </span>
+        {type === "register" && (!verify.cid || !verify.email) && (
+          <div className="w-[80%] flex flex-col gap-y-5">
+            {!verify.email && (
+              <input
+                type="email"
+                name="email"
+                placeholder="Email Address"
+                className="email w-full p-3 rounded-md"
+                value={data.email}
+                onChange={handleChange}
+              />
             )}
-          <input
-            type="password"
-            name="password"
-            className="password w-[80%] p-3 rounded-md"
-            placeholder="Password"
-            onChange={handleChange}
-            required
-          />
-        </div>
-
+            {verify.email && (
+              <input
+                type="number"
+                name="cid"
+                value={data.cid}
+                placeholder="Verify Code"
+                className="email w-full p-3 rounded-md"
+                onChange={handleChange}
+              />
+            )}
+          </div>
+        )}
         {type === "register" ? (
           <>
-            <input
-              type="password"
-              name="confirmpassword"
-              className="confirm_password w-[80%] p-3 rounded-md"
-              placeholder="Confirm Password"
-              onChange={handleChange}
-              required
-            />
-            <input
-              type="text"
-              className="username w-[80%] p-3 rounded-md"
-              placeholder="Firstname"
-              name="firstname"
-              onChange={handleChange}
-              required
-            />
-            <input
-              type="text"
-              className="username w-[80%] p-3 rounded-md"
-              placeholder="Lastname"
-              name="lastname"
-              onChange={handleChange}
-              required
-            />
-
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={data.agreement}
+            {verify.email && verify.cid && (
+              <>
+                <input
+                  type="text"
+                  className="username w-[80%] p-3 rounded-md"
+                  placeholder="Firstname"
+                  name="firstname"
+                  value={data.firstname}
                   onChange={handleChange}
-                  className="checkbox w-fit"
-                  name="agreement"
+                  required
                 />
-              }
-              label=<h3
-                className="text-white"
-                style={{ color: data.agreement ? "white" : "pink" }}
-              >
-                {" "}
-                Agree to policy and agreement{" "}
-              </h3>
-            />
+                <input
+                  type="text"
+                  className="username w-[80%] p-3 rounded-md"
+                  placeholder="Lastname"
+                  name="lastname"
+                  value={data.lastname}
+                  onChange={handleChange}
+                  required
+                />
+                <div className="w-full flex flex-col gap-y-2 items-center justify-center ">
+                  {type === "register" &&
+                    data.password &&
+                    data.password?.length < 8 && (
+                      <span className="text-sm font-bold text-red-300">
+                        {" "}
+                        Password Need to contains at least one Uppercase,
+                        Special Character and has 8 in length{" "}
+                      </span>
+                    )}
+                  <input
+                    type="password"
+                    name="password"
+                    value={data.password}
+                    className="password w-[80%] p-3 rounded-md"
+                    placeholder="Password"
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+                <input
+                  type="password"
+                  value={data.confirmpassword}
+                  name="confirmpassword"
+                  className="confirm_password w-[80%] p-3 rounded-md"
+                  placeholder="Confirm Password"
+                  onChange={handleChange}
+                  required
+                />
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={data.agreement}
+                      onChange={handleChange}
+                      className="checkbox w-fit"
+                      name="agreement"
+                    />
+                  }
+                  label=<h3
+                    className="text-white"
+                    style={{ color: data.agreement ? "white" : "pink" }}
+                  >
+                    {" "}
+                    Agree to policy and agreement{" "}
+                  </h3>
+                />{" "}
+              </>
+            )}
             <div className="form_actions flex flex-col gap-y-5 w-[80%] ">
-              <PrimaryButton
-                text="Create Account"
-                type="submit"
-                color="#3D788E"
-                width="100%"
-                height="70px"
-                radius="10px"
-                status={loading}
-              />
+              {verify.cid && verify.email ? (
+                <PrimaryButton
+                  text="Create Account"
+                  type="submit"
+                  color="#3D788E"
+                  width="100%"
+                  height="70px"
+                  radius="10px"
+                  status={loading}
+                />
+              ) : (
+                <PrimaryButton
+                  type="button"
+                  text={"Next"}
+                  color="#3D788E"
+                  status={
+                    isLoading.POST || isLoading.GET
+                      ? "loading"
+                      : "authenticated"
+                  }
+                  width="100%"
+                  height="70px"
+                  radius="10px"
+                  onClick={() => handleConfirm(!verify.email ? "email" : "cid")}
+                />
+              )}
               <PrimaryButton
                 type="button"
                 text="Back"
                 color="#F08080"
                 width="100%"
+                disable={SpecificAccess(isLoading)}
                 height="70px"
                 radius="10px"
-                onClick={() => settype("login")}
+                onClick={() => handleBack()}
               />
             </div>
           </>
         ) : (
           <>
-            <label className="text-md font-normal text-sm relative -right-[28%] underline text-white hover:text-black">
-              Forget Password?
-            </label>
-            <div className="form_actions flex flex-col gap-y-5 w-[80%] ">
-              <PrimaryButton
-                type="submit"
-                text="Login"
-                color="#438D86"
-                width="100%"
-                height="70px"
-                radius="10px"
-                status={loading}
-              />
+            <input
+              type="email"
+              name="email"
+              placeholder="Email Address"
+              className="email w-[80%] p-3 rounded-md"
+              value={data.email}
+              onChange={handleChange}
+            />
+            {type === "login" && (
+              <>
+                <input
+                  type="password"
+                  name="password"
+                  placeholder="Password"
+                  className="email w-[80%] p-3 rounded-md"
+                  onChange={handleChange}
+                />
 
-              <PrimaryButton
-                type="button"
-                text="Register"
-                color="#3D788E"
-                width="100%"
-                height="70px"
-                radius="10px"
-                onClick={() => settype("register")}
-              />
-              <div className="signinWith__container w-full flex flex-row justify-between items-center gap-x-2">
+                <label
+                  onClick={() => {
+                    settype("forget");
+                  }}
+                  className="text-md font-normal text-sm relative -right-[28%] underline text-white hover:text-black"
+                >
+                  Forget Password?
+                </label>
+                <div className="form_actions flex flex-col gap-y-5 w-[80%] ">
+                  <PrimaryButton
+                    type="submit"
+                    text="Login"
+                    color="#438D86"
+                    width="100%"
+                    height="70px"
+                    radius="10px"
+                    status={loading}
+                  />
+
+                  <PrimaryButton
+                    type="button"
+                    text="Register"
+                    color="#3D788E"
+                    width="100%"
+                    height="70px"
+                    radius="10px"
+                    onClick={() => settype("register")}
+                  />
+                  <div className="signinWith__container w-full flex flex-row justify-between items-center gap-x-2">
+                    <PrimaryButton
+                      type="button"
+                      text="Signin with Discord"
+                      width="50%"
+                      color="black"
+                      height="70px"
+                      radius="10px"
+                      Icon={
+                        <i className="fa-brands fa-discord text-lg text-blue-900"></i>
+                      }
+                      onClick={() => signIn("discord")}
+                    />
+                    <PrimaryButton
+                      type="button"
+                      text="Signin with Gmail"
+                      hoverColor="black"
+                      hoverTextColor="white"
+                      width="50%"
+                      height="70px"
+                      color="white"
+                      textcolor="black"
+                      radius="10px"
+                      onClick={() => signIn("google")}
+                      Icon={
+                        <i className="fa-brands fa-google text-lg text-red-600"></i>
+                      }
+                    />
+                  </div>
+                </div>
+              </>
+            )}
+            {type === "forget" && (
+              <>
                 <PrimaryButton
                   type="button"
-                  text="Signin with Discord"
-                  width="50%"
-                  color="black"
+                  text="Verify"
+                  color="#3D788E"
+                  width="80%"
                   height="70px"
                   radius="10px"
-                  Icon={<i className="fa-brands fa-discord text-blue-900"></i>}
-                  onClick={() => signIn("discord")}
+                  onClick={() => handleConfirm("email")}
+                  status={isLoading.POST ? "loading" : "authenticated"}
                 />
                 <PrimaryButton
                   type="button"
-                  text="Signin with Gmail"
-                  hoverColor="black"
-                  hoverTextColor="white"
-                  width="50%"
+                  text="Back"
+                  color="lightcoral"
+                  width="80%"
                   height="70px"
-                  color="white"
-                  textcolor="black"
                   radius="10px"
-                  onClick={() => signIn("google")}
-                  Icon={<i className="fa-brands fa-google text-red-600"></i>}
+                  disable={SpecificAccess(isLoading)}
+                  onClick={() => settype("login")}
                 />
-              </div>
-            </div>
+              </>
+            )}
           </>
         )}
       </form>

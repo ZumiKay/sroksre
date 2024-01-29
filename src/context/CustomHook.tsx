@@ -1,6 +1,7 @@
-import { Dispatch, SetStateAction, cache, useState } from "react";
+import { SetStateAction, useState } from "react";
 import { LoadingState, useGlobalContext } from "./GlobalContext";
 import Error from "next/error";
+import next from "next";
 
 type RequestMethod = "GET" | "POST" | "PUT" | "DELETE"; // Add other request methods as needed
 
@@ -8,7 +9,7 @@ export const useRequest = (
   url: string,
   method: RequestMethod = "GET",
   data: any = null,
-  alldatastate?: string,
+  alldatastate?: string
 ) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -60,11 +61,11 @@ export const useRequest = (
 
 export const ApiRequest = async (
   url: string,
-  setloading: React.Dispatch<SetStateAction<LoadingState>>,
+  setloading?: React.Dispatch<SetStateAction<LoadingState>>,
   method: RequestMethod = "DELETE",
-
   datatype: "JSON" | "FILE" = "JSON",
   data?: any,
+  revalidate?: string
 ): Promise<{
   success: boolean;
   error?: string;
@@ -72,11 +73,14 @@ export const ApiRequest = async (
   total?: number;
   totalpage?: number;
   lowstock?: number;
+  valid?: boolean;
+  totalfilter?: number;
 }> => {
   try {
-    setloading((prev) => ({ ...prev, [method]: true }));
+    setloading && setloading((prev) => ({ ...prev, [method]: true }));
     const requestOptions: RequestInit = {
       method,
+      next: { tags: [revalidate ?? ""] },
     };
     if (data) {
       requestOptions.body = datatype === "JSON" ? JSON.stringify(data) : data;
@@ -89,7 +93,7 @@ export const ApiRequest = async (
     if (!response.ok) {
       throw new Error(responseJson.message ?? "Error Occured");
     }
-    setloading((prev) => ({ ...prev, [method]: false }));
+    setloading && setloading((prev) => ({ ...prev, [method]: false }));
 
     if (method === "GET" || method === "POST") {
       return {
@@ -98,13 +102,15 @@ export const ApiRequest = async (
         total: method === "GET" && responseJson.total,
         lowstock: method === "GET" && responseJson.lowstock,
         totalpage: method === "GET" && responseJson.totalpage,
+        totalfilter: method === "GET" && responseJson.totalfilter,
+        valid: responseJson.valid ?? undefined,
       };
     } else {
       return { success: true };
     }
-  } catch (error) {
-    setloading((prev) => ({ ...prev, [method]: false }));
+  } catch (error: any) {
+    setloading && setloading((prev) => ({ ...prev, [method]: false }));
 
-    return { success: false, error: "Error Occured" };
+    return { success: false, error: error.props ?? "Error Occured" };
   }
 };

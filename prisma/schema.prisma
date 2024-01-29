@@ -17,27 +17,41 @@ enum Role {
 }
 
 model User {
-  id               Int           @id @default(autoincrement())
-  firstname        String
-  lastname         String?
-  email            String        @unique
-  role             Role          @default(USER)
-  phonenumber      String?       @unique
-  password         String        @unique
-  shipping_address String?
-  whislist         Json?
-  reviews          Reviews[]
-  products         Products[]
-  questions        Questions[]
-  sessions         Usersession[]
-  answers          Answers[]
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
+  id          String        @id @default(uuid())
+  firstname   String
+  lastname    String?
+  email       String        @unique
+  role        Role          @default(USER)
+  phonenumber String?       @unique
+  password    String        @unique
+  whislist    Json?
+  vfy         String?
+  reviews     Reviews[]
+  products    Products[]
+  questions   Questions[]
+  sessions    Usersession[]
+  answers     Answers[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  addresses   Address[]
+}
+
+model Address {
+  id         Int      @id @default(autoincrement())
+  houseId    String
+  province   String
+  district   String
+  songkhat   String
+  postalcode String
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
 
 model Usersession {
   session_id String   @id @default(uuid())
-  user_id    Int
+  user_id    String
   user       User     @relation(fields: [user_id], references: [id])
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
@@ -75,13 +89,13 @@ model Products {
   promotion_id      Int?
   discount          Decimal?
   promotion         Promotion?       @relation(fields: [promotion_id], references: [id], onDelete: SetNull)
-  order             Orders?          @relation(fields: [order_id], references: [id], onDelete: SetNull)
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt
   User              User?            @relation(fields: [userId], references: [id])
-  userId            Int?
+  userId            String?
   parentcateogries  Parentcategories @relation(fields: [parentcategory_id], references: [id])
   childcategories   Childcategories? @relation(fields: [childcategory_id], references: [id])
+  Orderproduct      Orderproduct[]
 }
 
 model Productcover {
@@ -94,33 +108,33 @@ model Productcover {
   productId Int
 }
 
-model Status {
-  id         Int      @id @default(autoincrement())
-  name       String
-  orders     Orders[]
-  descrition String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+model Orders {
+  id           Int            @id @default(autoincrement())
+  buyer_id     String
+  quantity     Int
+  status       String
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  Orderproduct Orderproduct[]
 }
 
-model Orders {
-  id         String     @id @default(uuid())
-  product_id Int
-  seller_id  Int
-  buyer_id   Int
-  status_id  Int
-  products   Products[]
-  quantity   Int
-  status     Status     @relation(fields: [status_id], references: [id], onDelete: SetDefault)
-  createdAt  DateTime   @default(now())
-  updatedAt  DateTime   @updatedAt
+model Orderproduct {
+  id        Int      @id @default(autoincrement())
+  productId Int
+  orderId   Int
+  qunatity  Int
+  details   Json
+  product   Products @relation(fields: [productId], references: [id])
+  order     Orders   @relation(fields: [orderId], references: [id])
+
+  @@unique([productId, orderId])
 }
 
 model Reviews {
   id          Int      @id @default(autoincrement())
   value       Int      @default(0)
   description String   @default("No comment")
-  user_id     Int
+  user_id     String
   product_id  Int
   product     Products @relation(fields: [product_id], references: [id], onDelete: Cascade)
   user        User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
@@ -154,7 +168,7 @@ model Promotion {
 model Answers {
   id          Int       @id @default(autoincrement())
   answer      String
-  user_id     Int
+  user_id     String
   question_id Int
   question    Questions @relation(fields: [question_id], references: [id], onDelete: Cascade)
   user        User      @relation(fields: [user_id], references: [id], onDelete: SetDefault)
@@ -166,8 +180,8 @@ model Questions {
   id        Int       @id @default(autoincrement())
   question  String
   answer_id Int
-  user_id   Int
-  user      User      @relation(fields: [user_id], references: [id], onDelete: SetDefault)
+  user_id   String
+  user      User      @relation(fields: [user_id], references: [id])
   answers   Answers[]
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -176,10 +190,10 @@ model Questions {
 model Info {
   id         Int       @id @default(autoincrement())
   info_title String
-  info_value String[]
+  info_value Json
   info_type  String
   product_id Int?
-  product    Products? @relation(fields: [product_id], references: [id], onDelete: Cascade)
+  product    Products? @relation(fields: [product_id], references: [id])
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
 }

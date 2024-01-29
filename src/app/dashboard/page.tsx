@@ -1,84 +1,146 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-import Image from "next/image";
-import { use, useEffect, useState } from "react";
+
+import { useEffect, useState } from "react";
 import Default from "../Asset/Image/default.png";
 import PrimaryButton from "../component/Button";
 import { ToggleDownMenu } from "../component/ToggleMenu";
 import Card from "../component/Card";
+import { Userdatastate, useGlobalContext } from "@/src/context/GlobalContext";
+import { EditProfile } from "../component/Modals";
+import { ApiRequest } from "@/src/context/CustomHook";
+import LoadingIcon, { BlurLoading, LoadingText } from "../component/Loading";
+import { loadavg } from "os";
 
-function extractNames(fullName: string) {
-  const nameParts = fullName.split(" ");
-
-  const firstName = nameParts[0];
-  const lastName = nameParts.slice(1).join(" "); // Join the remaining parts to get the last name
-
-  return {
-    firstName,
-    lastName,
-  };
-}
-interface userdata {
-  email?: string;
-  firstname?: string;
-  lastname?: string;
-  picture?: any;
+interface userdata extends Userdatastate {
   open: {
     whilist: boolean;
     rating: boolean;
+    edit: boolean;
+    edittype: "email" | "password" | "shipping" | "name" | "none";
   };
 }
 export default function UserDashboard() {
-  const session = useSession();
+  const {
+    openmodal,
+    setopenmodal,
+    setisLoading,
+    isLoading,
+    userinfo,
+    setuserinfo,
+  } = useGlobalContext();
   const [userdata, setdata] = useState<userdata>({
     open: {
       whilist: true,
       rating: true,
+      edit: false,
+      edittype: "none",
     },
   });
-  useEffect(() => {
-    if (session.data?.user) {
-      const name = extractNames(session.data?.user?.name as string);
-
-      setdata({
-        ...userdata,
-        email: session.data.user.email as string,
-        firstname: name.firstName,
-        lastname: name.lastName,
-        picture: session.data.user.image ?? Default,
-      });
+  const [loading, setloading] = useState(true);
+  const fetchuser = async () => {
+    const URL = `/api/auth/users/info?ty=userinfo`;
+    const userreq = await ApiRequest(
+      URL,
+      setisLoading,
+      "GET",
+      undefined,
+      undefined,
+      "userinfo"
+    );
+    setloading(false);
+    if (userreq.success) {
+      setuserinfo(userreq.data);
     }
-  }, [session]);
+  };
+  useEffect(() => {
+    fetchuser();
+  }, []);
 
+  const handleEdit = (type: typeof userdata.open.edittype) => {
+    setdata((prev) => ({ ...prev, open: { ...prev.open, edittype: type } }));
+    setopenmodal((prev) => ({ ...prev, editprofile: true }));
+  };
   return (
     <main className="user_dashboard__container flex flex-col items-center gap-y-28  w-full mt-20">
       <div className="profile__section w-[80%] flex flex-row items-center justify-evenly">
-        <Image
-          src={Default}
-          alt="profile"
-          className="profile object-cover border-2 border-gray-400 w-[220px] h-[220px]"
-        />
-        <div className="profiledetail__section w-full flex flex-row items-start justify-evenly">
-          <div className="profileheader grid gap-y-10">
-            <h3 className="header font-bold text-lg">Fullname</h3>
-            <h3 className="header font-bold text-lg">Email Address</h3>
-            <h3 className="header font-bold text-lg">Shipping Address</h3>
-            <h3 className="header font-bold text-lg">Password</h3>
-          </div>
-          <div className="profiledetail grid gap-y-10">
-            <h3 className="detail font-normal text-lg">
-              {" "}
-              {userdata.firstname} {userdata.lastname}{" "}
-            </h3>
-            <h3 className="detail font-normal text-lg"> {userdata.email} </h3>
-          </div>
+        <div className="profiledetail__section relative w-full min-h-[350px] flex flex-row items-start justify-evenly bg-gray-100 rounded-lg p-10">
+          {loading ? (
+            <LoadingIcon />
+          ) : (
+            <>
+              <div className="profileheader grid gap-y-10">
+                <h3 className="header font-bold text-lg">Fullname</h3>
+                <h3 className="header font-bold text-lg">Email Address</h3>
+                <h3 className="header font-bold text-lg">Shipping Address</h3>
+                <h3 className="header font-bold text-lg">Password</h3>
+              </div>
+              <div className="profiledetail  grid gap-y-10">
+                <h3 className="detail font-normal text-lg">
+                  {" "}
+                  {userinfo.firstname} {userinfo.lastname}{" "}
+                </h3>
+                <h3 className="detail font-normal text-lg">
+                  {" "}
+                  {userinfo.email}{" "}
+                </h3>
+                <h3
+                  onClick={() => handleEdit("shipping")}
+                  className="detail font-bold bg-[#495464] text-white rounded-lg text-center transition hover:bg-black active:bg-black p-2 cursor-pointer"
+                >
+                  {" "}
+                  View{" "}
+                </h3>
+                <h3 className="detail font-normal text-lg"> ******** </h3>
+              </div>
+              {userdata.open.edit && (
+                <div className="profileedit_container w-fit grid gap-y-10">
+                  <h3
+                    onClick={() => handleEdit("name")}
+                    className="edit text-lg text-red-400 font-bold cursor-pointer transition hover:text-black active:text-black"
+                  >
+                    Edit
+                  </h3>
+                  <h3
+                    onClick={() => handleEdit("email")}
+                    className="edit text-lg text-red-400 font-bold cursor-pointer transition hover:text-black active:text-black"
+                  >
+                    Edit
+                  </h3>
+
+                  <h3
+                    onClick={() => handleEdit("shipping")}
+                    className="edit text-lg text-red-400 font-bold cursor-pointer transition hover:text-black active:text-black"
+                  >
+                    Edit
+                  </h3>
+                  <h3
+                    onClick={() => handleEdit("password")}
+                    className="edit text-lg text-red-400 font-bold cursor-pointer transition hover:text-black active:text-black"
+                  >
+                    Edit
+                  </h3>
+                </div>
+              )}
+            </>
+          )}
           <PrimaryButton
             type="button"
-            text="Edit"
+            postion="absolute"
+            top="10px"
+            right="2%"
+            disable={loading}
+            text={`${userdata.open.edit ? "Done" : "Edit"}`}
             radius="10px"
-            color="#495464"
+            color={userdata.open.edit ? "lightcoral" : "#495464"}
             width="70px"
+            onClick={() =>
+              setdata((prev) => ({
+                ...prev,
+                open: { ...prev.open, edit: !prev.open.edit },
+              }))
+            }
             height="41px"
           />
         </div>
@@ -168,6 +230,7 @@ export default function UserDashboard() {
           textsize="20px"
         />
       </div>
+      {openmodal.editprofile && <EditProfile type={userdata.open.edittype} />}
     </main>
   );
 }

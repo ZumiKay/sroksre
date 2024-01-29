@@ -1,15 +1,50 @@
 "use client";
 import dayjs, { Dayjs } from "dayjs";
-import React, { MutableRefObject, useContext, useRef, useState } from "react";
+import React, { useContext, useState } from "react";
+import { Role } from "@prisma/client";
+import { info } from "../app/severactions/actions";
 
+export interface userdata {
+  id?: number;
+  email?: string;
+  password?: string;
+  confirmpassword?: string;
+  firstname?: string;
+  lastname?: string;
+  sessionid?: string;
+  role?: Role;
+  agreement?: boolean;
+  cid?: string;
+}
+export interface infovaluetype {
+  qty: number;
+  val: string;
+}
 export interface ProductInfo {
   id?: number;
   info_title: string;
-  info_value: string[];
+  info_value: Array<string> | Array<infovaluetype>;
   info_type: string;
 }
 
-export const DefaultSize = ["S", "M", "L", "XL"];
+export const DefaultSize: Array<infovaluetype> = [
+  {
+    val: "S",
+    qty: 1,
+  },
+  {
+    val: "M",
+    qty: 1,
+  },
+  {
+    val: "XL",
+    qty: 1,
+  },
+  {
+    val: "2XL",
+    qty: 1,
+  },
+];
 
 export interface productcoverstype {
   url: string;
@@ -41,8 +76,17 @@ export interface FilterValue {
   };
   status: string;
   name: string;
+  firstname?: string;
+  lastname?: string;
+  email?: string;
   expiredate?: dayjs.Dayjs;
   promotionid?: number;
+}
+
+interface Listproductfilter {
+  size: Array<string>;
+  color: Array<string>;
+  order?: string;
 }
 export const FiltervalueInitialize: FilterValue = {
   page: 1,
@@ -52,7 +96,9 @@ export const FiltervalueInitialize: FilterValue = {
   },
   status: "",
   name: "",
+  email: "",
 };
+
 export interface BannerState {
   id?: number;
   name: string;
@@ -66,13 +112,28 @@ export interface BannerState {
   show?: boolean;
 }
 export interface UserState {
-  id?: number;
+  id?: string;
   lastname?: string;
   password?: string;
   confirmpassword?: string;
+  newpassword?: string;
   phonenumber?: string;
   firstname: string;
   email: string;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+export interface Userdatastate {
+  firstname?: string;
+  lastname?: string;
+  email?: string;
+  oldpassword?: string;
+  newpassword?: string;
+}
+export interface ItemLength {
+  total: number;
+  lowstock?: number;
+  totalpage: number;
 }
 
 export interface PromotionProductState {
@@ -89,16 +150,21 @@ export interface PromotionState {
   description: string;
   selectproduct: boolean;
   selectbanner: boolean;
-  products: Array<PromotionProductState>;
+  Products: Array<PromotionProductState>;
   expiredAt: Dayjs;
   banner_id?: number;
 
   banner?: BannerState;
   tempproduct?: number[];
   tempproductstate?: Array<PromotionProductState>;
+  type?: string;
 }
 
-export type filterinventorytype = "product" | "banner" | "promotion";
+export type filterinventorytype =
+  | "product"
+  | "banner"
+  | "promotion"
+  | "usermanagement";
 
 export interface Allrefstate {
   filterref: HTMLDivElement | null;
@@ -110,10 +176,12 @@ interface AllDataState {
   promotion: PromotionState[] | [];
   category: CateogoryState[] | [];
   filteredData: ProductState[] | BannerState[] | PromotionState[] | [];
+  user: UserState[] | [];
   tempbanner?: {
     id: number;
     show: boolean;
   }[];
+  [x: string]: any;
 }
 
 type confirmmodaltype = {
@@ -121,7 +189,7 @@ type confirmmodaltype = {
   confirm: boolean;
   closecon: string;
   index?: number;
-  type?: "product" | "banner" | "promotion" | "promotioncancel";
+  type?: "product" | "banner" | "promotion" | "promotioncancel" | "user";
 };
 interface OpenModalState {
   createProduct: boolean;
@@ -137,13 +205,20 @@ interface OpenModalState {
   subeditmenu_banner: boolean;
   imageupload: boolean;
   filteroption: boolean;
+  addproductvariant: boolean;
   confirmmodal: confirmmodaltype;
   discount: boolean;
-  toasted: boolean;
+  loaded: boolean;
   managebanner: boolean;
+  editprofile: boolean;
+  alert: {
+    open: boolean;
+    text: string;
+    action?: () => Promise<void> | void;
+  };
 }
 
-interface GlobalIndexState {
+export interface GlobalIndexState {
   productdetailindex: number;
   productcovereditindex: number;
   producteditindex: number;
@@ -151,10 +226,11 @@ interface GlobalIndexState {
   categoryeditindex: number[];
   promotioneditindex: number;
   promotionproductedit: number;
+  useredit: number;
 }
 
 export interface AllFilterValueState {
-  page: "product" | "banner" | "promotion";
+  page: "product" | "banner" | "promotion" | "usermanagement" | "listproduct";
   filter: FilterValue;
 }
 export interface CateogoryState {
@@ -175,6 +251,33 @@ export interface LoadingState {
   DELETE: boolean;
   IMAGE: any;
 }
+export interface Sessiontype {
+  id?: string;
+  email?: string;
+  name?: string;
+  image?: string;
+  role?: "USER" | "ADMIN" | "EDITOR";
+}
+
+export interface ProductOrderType {
+  id: number;
+  quantity: number;
+  details: Array<ProductInfo>;
+  price: string;
+}
+export type OrderStatus =
+  | "Unpaid"
+  | "Paid"
+  | "Preparing"
+  | "Shipping"
+  | "Shipped"
+  | "Arrived";
+
+export interface Ordertype {
+  id?: string;
+  products: Array<ProductOrderType>;
+  status: OrderStatus;
+}
 
 //Initail State
 //
@@ -190,12 +293,18 @@ const OpenmodalinitialState: OpenModalState = {
   subcreatemenu_ivt: false,
   subeditmenu_ivt: false,
   subeditmenu_banner: false,
+  addproductvariant: false,
   updatestock: false,
   imageupload: false,
   filteroption: false,
   discount: false,
-  toasted: false,
+  loaded: false,
   managebanner: false,
+  editprofile: false,
+  alert: {
+    open: false,
+    text: "",
+  },
   confirmmodal: {
     open: false,
     confirm: true,
@@ -227,6 +336,11 @@ export const AllDataInitialize: AllDataState = {
   category: [],
   promotion: [],
   filteredData: [],
+  user: [],
+};
+export const ItemlengthInitialize: ItemLength = {
+  total: 0,
+  totalpage: 0,
 };
 export const BannerInitialize: BannerState = {
   name: "",
@@ -243,7 +357,7 @@ export const PromotionProductInitialize: PromotionProductState = {
 export const PromotionInitialize: PromotionState = {
   name: "",
   description: "",
-  products: [PromotionProductInitialize],
+  Products: [PromotionProductInitialize],
   selectbanner: false,
   selectproduct: false,
   expiredAt: dayjs(),
@@ -262,13 +376,22 @@ const GlobalIndexInitializeState: GlobalIndexState = {
   categoryeditindex: [],
   promotioneditindex: -1,
   promotionproductedit: -1,
+  useredit: -1,
 };
 const LoadingStateInitialized: LoadingState = {
-  GET: false,
+  GET: true,
   POST: false,
   PUT: false,
   DELETE: false,
   IMAGE: {},
+};
+
+export const Userinitialize: UserState = {
+  firstname: "",
+  lastname: "",
+  email: "",
+  password: "",
+  confirmpassword: "",
 };
 
 //
@@ -294,12 +417,26 @@ interface ContextType {
   setisLoading: React.Dispatch<React.SetStateAction<LoadingState>>;
   subcate: Array<SubcategoriesState>;
   setsubcate: React.Dispatch<React.SetStateAction<Array<SubcategoriesState>>>;
+  itemlength: ItemLength;
+  setitemlength: React.Dispatch<React.SetStateAction<ItemLength>>;
   inventoryfilter: filterinventorytype;
   setinventoryfilter: React.Dispatch<React.SetStateAction<filterinventorytype>>;
   allfiltervalue: Array<AllFilterValueState>;
+  userinfo: Userdatastate;
+  page: number;
+  setpage: React.Dispatch<React.SetStateAction<number>>;
+  setuserinfo: React.Dispatch<React.SetStateAction<Userdatastate>>;
   setallfilterval: React.Dispatch<
     React.SetStateAction<Array<AllFilterValueState>>
   >;
+  user: UserState;
+  setuser: React.Dispatch<React.SetStateAction<UserState>>;
+  listproductfilter: Listproductfilter;
+  setlistprodfil: React.Dispatch<React.SetStateAction<Listproductfilter>>;
+  listproductfilval: Listproductfilter;
+  setproductfilval: React.Dispatch<React.SetStateAction<Listproductfilter>>;
+  error: boolean;
+  seterror: React.Dispatch<React.SetStateAction<boolean>>;
 }
 const GlobalContext = React.createContext<ContextType | null>(null);
 
@@ -317,6 +454,20 @@ export const GlobalContextProvider = ({
   const [promotion, setpromotion] = useState(PromotionInitialize);
   const [allData, setalldata] = useState(AllDataInitialize);
   const [isLoading, setisLoading] = useState(LoadingStateInitialized);
+  const [itemlength, setitemlength] = useState(ItemlengthInitialize);
+  const [user, setuser] = useState(Userinitialize);
+  const [page, setpage] = useState(1);
+  const [userinfo, setuserinfo] = useState({});
+  const [error, seterror] = useState<boolean>(false);
+  const [listproductfilter, setlistprodfil] = useState<Listproductfilter>({
+    size: [],
+    color: [],
+  });
+  const [listproductfilval, setproductfilval] = useState<Listproductfilter>({
+    size: [],
+    color: [],
+    order: "",
+  });
   const [inventoryfilter, setinventoryfilter] =
     useState<filterinventorytype>("product");
   const [allfiltervalue, setallfilterval] = useState<AllFilterValueState[]>([
@@ -326,8 +477,18 @@ export const GlobalContextProvider = ({
   return (
     <GlobalContext.Provider
       value={{
+        listproductfilter,
+        setlistprodfil,
+        listproductfilval,
+        setproductfilval,
+        error,
+        seterror,
         promotion,
         setpromotion,
+        userinfo,
+        setuserinfo,
+        page,
+        setpage,
         subcate,
         setsubcate,
         banner,
@@ -344,10 +505,14 @@ export const GlobalContextProvider = ({
         setalldata,
         isLoading,
         setisLoading,
+        itemlength,
+        setitemlength,
         inventoryfilter,
         setinventoryfilter,
         allfiltervalue,
         setallfilterval,
+        user,
+        setuser,
       }}
     >
       {children}
@@ -367,13 +532,14 @@ type closecontype =
   | "createBanner"
   | "createPromotion"
   | "createCategory"
-  | "addsubcategory";
+  | "addsubcategory"
+  | "createUser";
 export const SaveCheck = (
   confirm: boolean,
   closecon: closecontype,
   openmodal: OpenModalState,
   open?: boolean,
-  deletecallback?: any,
+  deletecallback?: any
 ) => {
   return {
     ...openmodal,

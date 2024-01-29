@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "Address" ALTER COLUMN "houseId" SET DATA TYPE TEXT;

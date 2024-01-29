@@ -60,9 +60,10 @@ export const PrimaryPhoto = (props: Primaryphotoprops) => {
             src={obj.url}
             alt={`${obj.name}`}
             className="min-w-[400px] min-h-[550px] object-contain"
-            width={1000}
-            height={1000}
-            loading="eager"
+            width={500}
+            height={600}
+            quality={80}
+            loading="lazy"
           />
         ))}
       </div>

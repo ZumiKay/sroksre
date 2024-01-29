@@ -1,13 +1,28 @@
+import Prisma from "@/src/lib/prisma";
 import { NextRequest } from "next/server";
+import { extractQueryParams } from "../banner/route";
 
-export async function POST(req: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
+    const URL = request.nextUrl.toString();
+    const params: { pc?: number; cc?: number; lt?: number; p?: number } =
+      extractQueryParams(URL);
+
+    const product = await Prisma.products.findMany({
+      where: {
+        parentcategory_id: params.pc,
+        childcategory_id: params.cc,
+      },
+      include: {
+        covers: true,
+      },
+    });
+
+    return Response.json({ data: product }, { status: 200 });
   } catch (error) {
-    console.error("Creat Product", error);
-    return Response.json({ message: "Error Occured" }, { status: 500 });
+    console.log("Fetch Product", error);
+    return Response.error();
+  } finally {
+    await Prisma.$disconnect();
   }
 }
-export async function PUT() {}
-export async function GET() {}
-
-export async function DELETE() {}

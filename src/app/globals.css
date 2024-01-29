@@ -273,4 +273,8 @@
   }
 }
 
+.toggleselect[data-isopen=true] {
+  height: 100%;
+}
+
 /*# sourceMappingURL=globals.css.map */

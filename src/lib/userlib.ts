@@ -1,8 +1,10 @@
 import * as jose from "jose";
-import { z } from "zod";
+import { date, z } from "zod";
 import { compare, genSaltSync, hashSync } from "bcryptjs";
 import Prisma from "./prisma";
 import { userdata } from "../app/account/actions";
+import nodemailer from "nodemailer";
+import { checkpassword, normalemailtemplate } from "./utilities";
 
 export enum Role {
   USER = "USER",
@@ -10,13 +12,17 @@ export enum Role {
   EDITOR = "EDITOR",
 }
 export interface RegisterUser {
+  id?: string;
   firstname: string;
-  lastname: string;
   email: string;
   password: string;
+  lastname?: string;
+  role?: Role;
+
+  phonenumber?: string;
 }
 export const secretkey = new TextEncoder().encode(
-  process.env.JWT_SECRET as string,
+  process.env.JWT_SECRET as string
 );
 export async function createToken(payload: {
   userid: number;
@@ -34,24 +40,6 @@ export async function createToken(payload: {
   return token;
 }
 
-export const checkpassword = (password: string) => {
-  const error: string[] = [];
-  let isValid = true;
-  if (password.length < 8) {
-    isValid = false;
-    error.push("Password Need to be aleast 8 characters");
-  }
-  if (!/[A-Z]/.test(password)) {
-    isValid = false;
-    error.push("Password Need to contains aleast on upppercase letter");
-  }
-  if (!/[!@#$%^&*()_+{}\[\]:;<>,.?~\\/-]/.test(password)) {
-    isValid = false;
-    error.push("Password need to contain at least one special characters");
-  }
-  return { isValid, error };
-};
-
 export const validateUserInput = z.object({
   firstname: z.string().max(50),
   lastname: z.string().max(50),
@@ -67,7 +55,9 @@ export const verfyUserLoginInput = z.object({
   email: z.string().email(),
   password: z.string(),
 });
-export const userlogin = async (credentail: userdata) => {
+export const userlogin = async (
+  credentail: userdata
+): Promise<{ success: boolean; data?: userdata; message?: string }> => {
   try {
     const user = await Prisma.user.findUnique({
       where: {
@@ -77,7 +67,7 @@ export const userlogin = async (credentail: userdata) => {
     if (user) {
       const isValid = await compare(
         credentail.password as string,
-        user.password,
+        user.password
       );
       if (isValid) {
         const session = await Prisma.usersession.create({
@@ -87,25 +77,27 @@ export const userlogin = async (credentail: userdata) => {
         });
         if (session) {
           return {
-            firstname: user.firstname,
-            lastname: user.lastname,
-            email: user.email,
-            role: user.role,
-            id: user.id,
-            sessionid: session.session_id,
+            success: true,
+            data: {
+              id: user.id as string,
+              role: user.role,
+              sessionid: session.session_id,
+            },
           };
         } else {
-          throw new Error("Can't Create Session");
+          console.log("Can't Create Session");
+          return { success: false };
         }
       } else {
-        throw new Error("Incorrect Credential");
+        console.log("Can't Find User");
+        return { success: false, message: "Incorrect Information" };
       }
     } else {
-      throw new Error("User Not Found");
+      return { success: false, message: "Incorrect Information" };
     }
   } catch (error: any) {
-    console.log(error);
-    throw new Error(error.message);
+    console.log("Login", error);
+    return { success: false, message: "Error Occured" };
   } finally {
     await Prisma.$disconnect();
   }
@@ -132,30 +124,27 @@ export const registerUser = async (data: RegisterUser) => {
     const isValid = checkpassword(data.password);
     if (isValid.isValid) {
       const password = hashedpassword(data.password);
-      const isUser = await Prisma.user.findUnique({
-        where: { email: data.email },
+      const datatosave = {
+        email: data.email,
+        firstname: data.firstname,
+        lastname: data.lastname ?? null,
+        password: password,
+      };
+      //verify email
+      const user = await Prisma.user.update({
+        where: { id: data.id },
+        data: { ...datatosave, vfy: null },
       });
-      if (!isUser) {
-        const user = await Prisma.user.create({
-          data: {
-            email: data.email,
-            firstname: data.firstname,
-            lastname: data.lastname,
-            password: password,
-          },
-        });
-        if (user) {
-          return true;
-        } else {
-          return new Error("Error Occured");
-        }
+      if (user) {
+        return true;
       } else {
-        return new Error("Email Already Been Used");
+        return new Error("Error Occured");
       }
     } else {
-      return new Error(JSON.stringify(isValid.isValid));
+      return new Error(isValid.error);
     }
   } catch (error: any) {
+    console.log("Register", error);
     if (error.issues) {
       return new Error(error.issues[0].message);
     } else {
@@ -165,5 +154,83 @@ export const registerUser = async (data: RegisterUser) => {
     await Prisma.$disconnect();
   }
 };
+interface Emaildata {
+  to: string;
+  subject: string;
+  message: string;
+  warn: string;
+  title?: string;
+}
+export const handleEmail = async (data: Emaildata) => {
+  const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: process.env.EMAIL,
+      pass: process.env.EMAIL_APPKEY,
+    },
+  });
+  const mailoptions = {
+    from: `SrokSre <${process.env.EMAIL}>`,
+    to: `<${data.to}>`,
+    subject: data.subject,
+    html: normalemailtemplate(data.warn, data.title ?? "", data.message),
+  };
+  try {
+    await transporter.sendMail(mailoptions);
+    return { sucess: true };
+  } catch (error) {
+    console.log("Send Email", error);
+    return { success: true };
+  }
+};
 
-export const handleEmail = () => {};
+export const handleCheckandRegisterUser = async ({
+  id,
+  data,
+}: {
+  id: string;
+  data: RegisterUser;
+}): Promise<{ success: boolean; message?: string }> => {
+  try {
+    const existingUser = await Prisma.user.findUnique({ where: { id } });
+
+    if (existingUser) {
+      return { success: true, message: "User already exists" };
+    }
+    let plainpassword = data.password;
+
+    const hashedPassword = hashedpassword(data.password);
+    data.password = hashedPassword;
+
+    const createdUser = await Prisma.user.create({
+      data: {
+        ...data,
+        id: id,
+        sessions: {
+          create: {},
+        },
+      },
+    });
+
+    if (!createdUser) {
+      return { success: false, message: "Failed to create user" };
+    }
+    await handleEmail({
+      warn: "Your email will be only use for this time unless you subscribe to our newletter",
+      to: createdUser.email,
+      subject: "Login Information",
+      title: "For Login As Credentials",
+      message: `Password: ${plainpassword} <br/>`,
+    });
+
+    return { success: true, message: "User created successfully" };
+  } catch (error) {
+    console.error("Register User", error);
+    return {
+      success: false,
+      message: "An error occurred during user registration",
+    };
+  } finally {
+    await Prisma.$disconnect();
+  }
+};

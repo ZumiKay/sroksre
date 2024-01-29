@@ -2,13 +2,7 @@
 import Image, { StaticImageData } from "next/image";
 import DefaultProfile from "../Asset/Image/profile.svg";
 import PrimaryButton, { Selection } from "./Button";
-import {
-  ChangeEvent,
-  SetStateAction,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { ChangeEvent, SetStateAction, useEffect, useState } from "react";
 import { SecondayCard } from "./Card";
 import { signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -19,16 +13,15 @@ import {
   FiltervalueInitialize,
   Productinitailizestate,
   PromotionInitialize,
-  PromotionProductInitialize,
   SpecificAccess,
-  SubcategoriesState,
   useGlobalContext,
 } from "@/src/context/GlobalContext";
 import { ApiRequest } from "@/src/context/CustomHook";
 import { errorToast, successToast } from "./Loading";
-import { removeSpaceAndToLowerCase } from "@/src/lib/utilities";
+
 import { DateTimePicker } from "@mui/x-date-pickers";
-import dayjs, { Dayjs } from "dayjs";
+import dayjs from "dayjs";
+import { ToggleSelect } from "./ToggleMenu";
 interface accountmenuprops {
   setProfile: (value: SetStateAction<boolean>) => void;
 }
@@ -160,6 +153,7 @@ export const ConfirmModal = () => {
     setpromotion,
     setinventoryfilter,
     globalindex,
+    setglobalindex,
   } = useGlobalContext();
   const handleConfirm = async (confirm: boolean) => {
     if (confirm) {
@@ -175,7 +169,7 @@ export const ConfirmModal = () => {
           setisLoading,
           "DELETE",
           "JSON",
-          { names: images },
+          { names: images }
         );
         if (!deleteimage.success) {
           errorToast("Error Occured Reload Required");
@@ -193,7 +187,7 @@ export const ConfirmModal = () => {
           setisLoading,
           "DELETE",
           "JSON",
-          { name: image },
+          { name: image }
         );
         if (!deleteImage.success) {
           errorToast("Error Occured Reload Required");
@@ -201,6 +195,8 @@ export const ConfirmModal = () => {
         }
         setbanner(BannerInitialize);
       }
+      setproduct(Productinitailizestate);
+      setglobalindex({ ...globalindex, producteditindex: -1 });
       setopenmodal({
         ...openmodal,
         [openmodal.confirmmodal.closecon]: false,
@@ -231,8 +227,10 @@ export const ConfirmModal = () => {
       type === "product"
         ? "/api/products/crud"
         : type === "banner"
-          ? "/api/banner"
-          : "/api/promotion";
+        ? "/api/banner"
+        : type === "promotion"
+        ? "/api/promotion"
+        : "/api/auth/users";
 
     if (confirm) {
       if (type === "promotioncancel") {
@@ -246,7 +244,7 @@ export const ConfirmModal = () => {
           setisLoading,
           "DELETE",
           "JSON",
-          { id },
+          { id }
         );
 
         if (!deleteRequest.success) {
@@ -255,8 +253,11 @@ export const ConfirmModal = () => {
         }
 
         itemlist.splice(index as number, 1);
+
         setalldata((prev) => ({ ...prev, [type as string]: itemlist }));
-        if (type === "promotion") {
+        if (type === "user") {
+          setglobalindex((prev) => ({ ...prev, useredit: -1 }));
+          setopenmodal((prev) => ({ ...prev, createUser: false }));
         }
         successToast("Delete Successfully");
       }
@@ -316,7 +317,13 @@ export const ConfirmModal = () => {
 };
 
 const statusFilter = ["Low"];
-export const FilterMenu = () => {
+export const FilterMenu = ({
+  type,
+  totalproduct,
+}: {
+  type?: "usermanagement" | "listproduct";
+  totalproduct?: number;
+}) => {
   const {
     isLoading,
     setisLoading,
@@ -329,10 +336,19 @@ export const FilterMenu = () => {
     setallfilterval,
     inventoryfilter,
     promotion,
+    listproductfilter,
+    setlistprodfil,
+    listproductfilval,
   } = useGlobalContext();
-  const isFilter = allfiltervalue.find((i) => i.page === inventoryfilter);
+  const isFilter = allfiltervalue.find((i) =>
+    type ? i.page === type : i.page === inventoryfilter
+  );
   const [selectdate, setselectdate] = useState(false);
   const [filtervalue, setfilter] = useState<FilterValue>(FiltervalueInitialize);
+  const [filterdata, setdata] = useState<{
+    size?: Array<String>;
+    color?: Array<String>;
+  }>({});
 
   const fetchcate = async () => {
     const categories = await ApiRequest("/api/categories", setisLoading, "GET");
@@ -342,25 +358,36 @@ export const FilterMenu = () => {
     }
     setalldata((prev) => ({ ...prev, category: categories.data }));
   };
+
   useEffect(() => {
+    if (type === "listproduct") {
+      setdata(listproductfilval);
+
+      return;
+    }
     setfilter(isFilter?.filter ?? FiltervalueInitialize);
-    inventoryfilter === "product" && fetchcate();
+    inventoryfilter === "product" && !type && fetchcate();
   }, []);
   const handleFilter = () => {
-    const Allfilterdata = [...allfiltervalue];
-    if (!isFilter) {
-      Allfilterdata.push({
-        page: inventoryfilter,
-        filter: filtervalue,
-      });
-    } else {
-      const idx = Allfilterdata.findIndex((i) => i.page === inventoryfilter);
-      Allfilterdata[idx] = {
-        page: inventoryfilter,
-        filter: filtervalue,
-      };
+    if (type !== "listproduct") {
+      const Allfilterdata = [...allfiltervalue];
+
+      if (!isFilter) {
+        Allfilterdata.push({
+          page: inventoryfilter,
+          filter: filtervalue,
+        });
+      } else {
+        const idx = Allfilterdata.findIndex((i) =>
+          type ? i.page === type : i.page === inventoryfilter
+        );
+        Allfilterdata[idx] = {
+          page: type ? type : inventoryfilter,
+          filter: filtervalue,
+        };
+      }
+      setallfilterval(Allfilterdata);
     }
-    setallfilterval(Allfilterdata);
 
     setopenmodal((prev) => ({ ...prev, filteroption: false }));
   };
@@ -370,7 +397,7 @@ export const FilterMenu = () => {
 
     if (name === "parent_cateogory") {
       const findsubcate = allData.category.find(
-        (i) => i.id === parseInt(value),
+        (i) => i.id === parseInt(value)
       );
       filterdata = {
         ...filtervalue,
@@ -388,14 +415,23 @@ export const FilterMenu = () => {
     setfilter(filterdata);
   };
   const handleClear = () => {
-    const Allfilterdata = [...allfiltervalue];
-    const idx = Allfilterdata.findIndex((i) => i.page === inventoryfilter);
-    Allfilterdata[idx].filter = FiltervalueInitialize;
-    setallfilterval(Allfilterdata);
-    setfilter({
-      ...FiltervalueInitialize,
-      status: "",
-    });
+    if (type !== "listproduct") {
+      const Allfilterdata = [...allfiltervalue];
+      const idx = Allfilterdata.findIndex((i) =>
+        type ? i.page === type : i.page === inventoryfilter
+      );
+      Allfilterdata[idx].filter = FiltervalueInitialize;
+      setallfilterval(Allfilterdata);
+      setfilter({
+        ...FiltervalueInitialize,
+        status: "",
+      });
+    } else {
+      setlistprodfil({
+        color: [],
+        size: [],
+      });
+    }
   };
   return (
     <Modal
@@ -413,79 +449,166 @@ export const FilterMenu = () => {
             setfilter((prev) => ({ ...prev, name: e.target.value }))
           }
           className="search w-full pl-2 h-[50px] rounded-md border border-gray-300"
+          hidden={type === "listproduct"}
         />
-        {inventoryfilter === "promotion" && (
+        {type === "listproduct" && (filterdata.color || filterdata.size) && (
           <>
-            <div
-              onMouseEnter={() => setselectdate(true)}
-              onMouseLeave={() => setselectdate(false)}
-              className="w-full h-[50px] relative z-[100]"
-            >
-              <DateTimePicker
-                sx={{ width: "100%" }}
-                value={
-                  filtervalue.expiredate ? dayjs(filtervalue.expiredate) : null
-                }
-                onChange={(e) => {
-                  if (e) {
-                    setfilter((prev) => ({
-                      ...prev,
-                      expiredate: dayjs(e),
-                    }));
-                  }
-                }}
-              />{" "}
-            </div>
-          </>
-        )}
-        {inventoryfilter === "product" && (
-          <>
-            <Selection
-              name="parent_cateogory"
-              type="category"
-              default="Parent Category"
-              value={filtervalue.category.parent_id}
-              onChange={handleSelect}
+            <ToggleSelect
+              type="size"
+              title="Size"
+              data={filterdata.size as string[]}
             />
-            {filtervalue.category.parent_id !== 0 && (
-              <Selection
-                type="subcategory"
-                subcategory={subcate}
-                name="sub_category"
-                default="Sub Category"
-                value={filtervalue.category.child_id}
-                onChange={handleSelect}
+            {filterdata.color && filterdata.color.length > 0 && (
+              <ToggleSelect
+                type="color"
+                title="Color"
+                data={filterdata.color?.filter((i) => i.length > 0) as string[]}
               />
             )}
-            <Selection
-              default="Stock"
-              onChange={handleSelect}
-              name="status"
-              value={filtervalue.status}
-              data={statusFilter}
-            />
-            {promotion.selectproduct && (
-              <Selection default="Discount" name="discount" />
-            )}
           </>
         )}
-        <PrimaryButton
-          type="button"
-          onClick={() => handleFilter()}
-          text="Filter"
-          status={SpecificAccess(isLoading) ? "loading" : "authenticated"}
-          radius="10px"
-          width="100%"
-        />
+        {type === "usermanagement" && (
+          <input
+            type="text"
+            name="email"
+            placeholder="Email"
+            value={filtervalue.email}
+            onChange={(e) =>
+              setfilter((prev) => ({ ...prev, email: e.target.value }))
+            }
+            className="search w-full pl-2 h-[50px] rounded-md border border-gray-300"
+          />
+        )}
+        {type !== "usermanagement" && (
+          <>
+            {inventoryfilter === "promotion" && (
+              <>
+                <div
+                  onMouseEnter={() => setselectdate(true)}
+                  onMouseLeave={() => setselectdate(false)}
+                  className="w-full h-[50px] relative z-[100]"
+                >
+                  <DateTimePicker
+                    sx={{ width: "100%" }}
+                    value={
+                      filtervalue.expiredate
+                        ? dayjs(filtervalue.expiredate)
+                        : null
+                    }
+                    onChange={(e) => {
+                      if (e) {
+                        setfilter((prev) => ({
+                          ...prev,
+                          expiredate: dayjs(e),
+                        }));
+                      }
+                    }}
+                  />{" "}
+                </div>
+              </>
+            )}
+            {type !== "listproduct" && inventoryfilter === "product" && (
+              <>
+                <Selection
+                  name="parent_cateogory"
+                  type="category"
+                  default="Parent Category"
+                  value={filtervalue.category.parent_id}
+                  onChange={handleSelect}
+                />
+                {filtervalue.category.parent_id !== 0 && (
+                  <Selection
+                    type="subcategory"
+                    subcategory={subcate}
+                    name="sub_category"
+                    default="Sub Category"
+                    value={filtervalue.category.child_id}
+                    onChange={handleSelect}
+                  />
+                )}
+                <Selection
+                  default="Stock"
+                  onChange={handleSelect}
+                  name="status"
+                  value={filtervalue.status}
+                  data={statusFilter}
+                />
+                {promotion.selectproduct && (
+                  <Selection default="Discount" name="discount" />
+                )}
+              </>
+            )}{" "}
+          </>
+        )}
+        {type !== "listproduct" ? (
+          <PrimaryButton
+            type="button"
+            onClick={() => handleFilter()}
+            text="Filter"
+            status={SpecificAccess(isLoading) ? "loading" : "authenticated"}
+            radius="10px"
+            width="100%"
+          />
+        ) : (
+          <PrimaryButton
+            type="button"
+            text={`Show Product ${totalproduct === 0 ? "" : totalproduct}`}
+            onClick={() =>
+              setopenmodal((prev) => ({ ...prev, filteroption: false }))
+            }
+            radius="10px"
+            width="100%"
+          />
+        )}
+
         <PrimaryButton
           type="button"
           onClick={() => handleClear()}
           text="Clear"
           color="lightcoral"
-          disable={!isFilter ? true : false}
+          disable={
+            type !== "listproduct"
+              ? !isFilter
+                ? true
+                : false
+              : listproductfilter.color.length === 0 &&
+                listproductfilter.size.length === 0
+          }
           radius="10px"
           width="100%"
         />
+      </div>
+    </Modal>
+  );
+};
+
+export const Alertmodal = () => {
+  const { openmodal, setopenmodal } = useGlobalContext();
+  const handleClose = async () => {
+    openmodal.alert.action && (await openmodal.alert.action());
+    setopenmodal((prev) => ({
+      ...prev,
+      alert: { ...prev.alert, open: false },
+    }));
+  };
+  return (
+    <Modal closestate="discount">
+      <div className="alertmodal_container flex flex-col items-center  gap-y-10 w-fit h-fit min-w-[300px] p-5 bg-white rounded-lg">
+        <h1 className="text-xl font-bold text-center w-full break-all">
+          {openmodal.alert.text}
+        </h1>
+
+        <div className="flex flex-row w-full h-[50px] justify-between">
+          <PrimaryButton
+            type="button"
+            text="Close"
+            color="lightcoral"
+            radius="10px"
+            width="100%"
+            height="50px"
+            onClick={() => handleClose()}
+          />
+        </div>
       </div>
     </Modal>
   );

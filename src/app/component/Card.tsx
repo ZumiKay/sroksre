@@ -2,7 +2,7 @@
 import Image, { StaticImageData } from "next/image";
 import PrimaryButton, { Selection } from "./Button";
 import "../globals.css";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import ToggleMenu from "./ToggleMenu";
 import { PrimaryPhoto } from "./PhotoComponent";
 import {
@@ -13,10 +13,13 @@ import {
 import Checkmark from "../Asset/Image/Checkmark.svg";
 import { SubInventoryMenu } from "./Navbar";
 import LoadingIcon from "./Loading";
+import { useRouter } from "next/navigation";
+
 interface cardprops {
   name: string;
   price: string;
   img: productcoverstype[];
+  isAdmin?: boolean;
   button?: boolean;
   index?: number;
   hover?: boolean;
@@ -46,13 +49,17 @@ export default function Card(props: cardprops) {
     setopenmodal,
     globalindex,
     openmodal,
+    setalldata,
+    allData,
   } = useGlobalContext();
-  const isProduct = promotion.products.find((i) => i.id === props.id);
+  const route = useRouter();
+  const isProduct = promotion.Products.find((i) => i.id === props.id);
   const [state, setstate] = useState({
     detail: false,
     editaction: false,
     hover: false,
   });
+
   const handeMouseEvent = (type: "enter" | "leave") =>
     setstate({
       ...state,
@@ -61,8 +68,8 @@ export default function Card(props: cardprops) {
     });
   const ref = useRef<HTMLDivElement | null>(null);
   const handleSelectDiscount = (id: number, type: "create" | "edit") => {
-    const promo = [...promotion.products];
-    const temp = promotion.tempproduct;
+    const promo = [...promotion.Products];
+    let temp: Array<number> = [];
 
     const index = promo.findIndex((i) => i.id === id);
 
@@ -83,8 +90,9 @@ export default function Card(props: cardprops) {
         }
       } else if (props.discount) {
         if (isProduct) {
-          const isExist = temp?.includes(id);
-          !isExist && temp?.push(id);
+          const isExist = promotion.tempproduct?.includes(id);
+          !isExist && temp.push(id);
+          console.log(temp);
 
           promo.splice(index, 1);
         } else {
@@ -98,12 +106,14 @@ export default function Card(props: cardprops) {
           });
         }
       }
+
       setpromotion((prev) => ({
         ...prev,
-        products: promo,
+        Products: promo,
+        tempproduct: temp,
       }));
     } else {
-      setglobalindex((prev) => ({ ...prev, promotionproductedit: index }));
+      setglobalindex((prev) => ({ ...prev, promotionproductedit: id }));
       setopenmodal((prev) => ({ ...prev, discount: true }));
     }
   };
@@ -120,10 +130,13 @@ export default function Card(props: cardprops) {
        }`}
     >
       <div
-        onClick={() =>
-          promotion.selectproduct &&
-          handleSelectDiscount(props.id as number, "create")
-        }
+        onClick={() => {
+          if (promotion.selectproduct) {
+            handleSelectDiscount(props.id as number, "create");
+          } else if (!props.isAdmin) {
+            route.push(`/product/detail/${props.id}`);
+          }
+        }}
         className="cardimage__container flex flex-col justify-center items-center relative w-full h-full border border-gray-300"
       >
         <PrimaryPhoto showcount={false} data={props.img} />
@@ -140,7 +153,7 @@ export default function Card(props: cardprops) {
               height={1000}
               className="w-[30px] h-[30px] object-contain"
             />
-          ) : state.hover ? (
+          ) : state.hover && props.isAdmin ? (
             <i
               onClick={() => setstate({ ...state, editaction: true })}
               className="fa-solid fa-ellipsis-vertical text-xl transition rounded-lg p-2 hover:bg-gray-300 "
@@ -153,7 +166,7 @@ export default function Card(props: cardprops) {
           <SubInventoryMenu
             ref={ref}
             data={editactionMenu}
-            index={props.index}
+            index={props.id}
             type="product"
             style={{ right: "0", top: 0 }}
             open="createProduct"
@@ -185,10 +198,10 @@ export default function Card(props: cardprops) {
                     : ""
                   : `-${props.discount?.percent}%`
                 : promotion.selectproduct || openmodal.createPromotion
-                  ? isProduct?.discount?.percent
-                    ? `-${isProduct?.discount?.percent}%`
-                    : ""
-                  : `-${props.discount?.percent}%`}{" "}
+                ? isProduct?.discount?.percent
+                  ? `-${isProduct?.discount?.percent}%`
+                  : ""
+                : `-${props.discount?.percent}%`}{" "}
             </h4>
 
             <h4 className="text-sm font-semibold">
@@ -199,8 +212,8 @@ export default function Card(props: cardprops) {
                     : ""
                   : `$${props.discount?.newPrice}`
                 : isProduct?.discount
-                  ? `$${isProduct?.discount?.newPrice}`
-                  : ""}
+                ? `$${isProduct?.discount?.newPrice}`
+                : ""}
             </h4>
           </div>
         ) : (
@@ -212,7 +225,7 @@ export default function Card(props: cardprops) {
       )}
       {promotion.selectproduct && isProduct?.discount && (
         <PrimaryButton
-          onClick={() => handleSelectDiscount(isProduct?.id ?? 0, "edit")}
+          onClick={() => handleSelectDiscount(isProduct.id ?? 0, "edit")}
           type="button"
           text={
             isProduct?.discount?.percent?.length === 0 ? "Set Discount" : "Edit"
@@ -221,7 +234,10 @@ export default function Card(props: cardprops) {
           radius="10px"
         />
       )}
-      {!promotion.selectproduct && props.stock && props.stock <= 1 && (
+      {!promotion.selectproduct &&
+      props.stock &&
+      props.stock <= 1 &&
+      props.isAdmin ? (
         <PrimaryButton
           type="button"
           text="Low Stock"
@@ -233,9 +249,10 @@ export default function Card(props: cardprops) {
             setopenmodal((prev) => ({ ...prev, updatestock: true }));
           }}
           width="100%"
-          radius="10px"
           color="lightcoral"
         />
+      ) : (
+        <></>
       )}
     </div>
   );
@@ -273,7 +290,7 @@ export function SecondayCard(props: SecondayCardprops) {
               type="number"
             />{" "}
           </label>
-          <ToggleMenu name="Product Details" />
+          <ToggleMenu name="Product Details" isAdmin={false} />
           <i className="fa-solid fa-trash relative -top-2"></i>
         </div>
       </div>
@@ -439,21 +456,42 @@ export const BannerCard = ({ data, index, id, type }: Bannercardprops) => {
           data={actionMenu}
           type={type}
           style={{ top: "0", right: "0" }}
-          index={index}
+          index={id}
         />
       )}
     </div>
   );
 };
 
-export const UserCard = () => {
+export const UserCard = ({
+  uid,
+  firstname,
+  lastname,
+  email,
+  index,
+}: {
+  index: number;
+  uid: number;
+  firstname: string;
+  lastname?: string;
+  email: string;
+}) => {
+  const { setopenmodal, setglobalindex } = useGlobalContext();
+  const handleEdit = () => {
+    setglobalindex((prev) => ({ ...prev, useredit: index }));
+    setopenmodal((prev) => ({ ...prev, createUser: true }));
+  };
   return (
-    <div className="usercard_container w-[330px] h-[100px] rounded-lg border-2 border-black flex flex-col justify-center items-center gap-y-5 p-2">
+    <div
+      key={index}
+      onClick={() => handleEdit()}
+      className="usercard_container w-[330px] h-[100px] rounded-lg border-2 border-black flex flex-col justify-center items-center gap-y-5 p-2 transition hover:bg-black hover:text-white"
+    >
       <h3 className="text-md font-bold w-full text-center break-words">
-        User Name #userid
+        {`${firstname} ${lastname}`} #{uid}
       </h3>
       <h3 className="text-md text-center font-bold w-full break-words">
-        Email Address
+        {email}
       </h3>
     </div>
   );

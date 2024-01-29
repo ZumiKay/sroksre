@@ -2,18 +2,23 @@ import NextAuth from "next-auth/next";
 import GoogleProvider from "next-auth/providers/google";
 import DiscordProvider from "next-auth/providers/discord";
 import CredentialProvider from "next-auth/providers/credentials";
-import { userdata } from "@/src/app/account/actions";
-import { userlogin } from "@/src/lib/userlib";
+import { handleCheckandRegisterUser, userlogin } from "@/src/lib/userlib";
 import { NextAuthOptions } from "next-auth";
-import { User } from "@prisma/client";
+import {
+  checkloggedsession,
+  generateRandomPassword,
+} from "@/src/lib/utilities";
+import { Role } from "@prisma/client";
+import { signOut } from "next-auth/react";
 export const authOptions: NextAuthOptions = {
   pages: {
     signIn: "../../../account/page.tsx",
   },
   session: {
     strategy: "jwt",
-    maxAge: 60 * 60 * 24 * 7,
+    maxAge: 60 * 60 * 24,
   },
+
   providers: [
     GoogleProvider({
       clientId: process.env.GMAIL_CLIENTID as string,
@@ -23,6 +28,7 @@ export const authOptions: NextAuthOptions = {
       clientId: process.env.DISCORD_CLIENTID as string,
       clientSecret: process.env.DISCORD_CLIENTSECRET as string,
     }),
+
     CredentialProvider({
       name: "Credentials",
       credentials: {
@@ -33,36 +39,63 @@ export const authOptions: NextAuthOptions = {
           placeholder: "Password",
         },
       },
-      async authorize(credentails: userdata | any): Promise<any> {
+      async authorize(credentails: any): Promise<any> {
+        if (!credentails.email || !credentails.password) {
+          return null;
+        }
         const login = await userlogin(credentails);
-        return login;
+        if (!login.success) {
+          return null;
+        } else {
+          return login.data;
+        }
       },
     }),
   ],
   callbacks: {
-    async jwt(params) {
-      const user = params.user as unknown as User;
-      // Persist the OAuth access_token and or the user id to the token right after signin
-      if (user && user.firstname && user.lastname && user.role) {
-        params.token.userid = user.id;
-        params.token.role = user.role;
-        params.token.name = user.firstname + "," + user.lastname;
-      } else {
-        params.token.role = "USER";
+    async signIn(param): Promise<any> {
+      if (param.user.id) {
+        const checkuser = await handleCheckandRegisterUser({
+          id: param.user.id,
+          data: {
+            firstname: param.user.name as string,
+            email: param.user.email as string,
+            password: generateRandomPassword(),
+          },
+        });
+        if (!checkuser.success) {
+          return false;
+        }
       }
-
-      return params.token;
+      return true;
     },
-    async session({ session, token }) {
-      if (session.user && session.user.name) {
-        session.user.name = token.name;
+
+    async jwt(params): Promise<any> {
+      let modifiedtoken: any = { ...params.token, ...params.user };
+
+      return modifiedtoken;
+    },
+    async session(params): Promise<any> {
+      //checksesstion
+      const verified = await checkloggedsession(params.token.sub as string);
+
+      if (verified.success) {
+        let modifieddata = { ...params.token };
+        if (modifieddata.jti || modifieddata.exp || modifieddata.iat) {
+          delete modifieddata.jti;
+          delete modifieddata.exp;
+          delete modifieddata.iat;
+        }
+        if (!modifieddata.role) {
+          modifieddata.role = Role.USER;
+        }
+
+        params.session.user = { ...modifieddata };
+        return params.session;
       }
-
-      return session;
+      await signOut();
+      return null;
     },
-  },
-  jwt: {
-    maxAge: 60 * 60,
   },
 };
 const Nextauth = NextAuth(authOptions);

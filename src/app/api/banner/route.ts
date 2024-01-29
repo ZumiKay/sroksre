@@ -4,6 +4,7 @@ import {
   DeleteImageFromStorage,
   calculatePagination,
 } from "@/src/lib/utilities";
+import { revalidateTag } from "next/cache";
 import { NextRequest } from "next/server";
 
 export async function POST(request: NextRequest) {
@@ -18,15 +19,16 @@ export async function POST(request: NextRequest) {
         show: data.show ?? false,
       },
     });
+    revalidateTag("banner");
     return Response.json({ data: { id: create.id } }, { status: 200 });
   } catch (error) {
     console.log("Create Banner", error);
     return Response.json(
       { message: "Failed To Create Banner" },
-      { status: 500 },
+      { status: 500 }
     );
   } finally {
-    Prisma.$disconnect();
+    await Prisma.$disconnect();
   }
 }
 
@@ -37,6 +39,7 @@ interface Updatebannerprops extends BannerState {
 export async function PUT(request: NextRequest) {
   try {
     const updatedata: Updatebannerprops = await request.json();
+    console.log(updatedata);
     if (updatedata.id) {
       const isBanner = await Prisma.banner.findUnique({
         where: {
@@ -44,7 +47,7 @@ export async function PUT(request: NextRequest) {
         },
       });
       if (!isBanner) {
-        return Response.json({ message: "Banner Not Found" }, { status: 404 });
+        return new Response(null, { status: 404 });
       }
       await Prisma.banner.update({
         where: {
@@ -64,14 +67,17 @@ export async function PUT(request: NextRequest) {
             data: {
               show: i.show,
             },
-          }),
-        ),
+          })
+        )
       );
     }
+    revalidateTag("banner");
     return Response.json({ message: "Banner Updated" }, { status: 200 });
   } catch (error) {
     console.log("Update Banner", error);
     return Response.json({ message: "Failed To Update" }, { status: 500 });
+  } finally {
+    await Prisma.$disconnect();
   }
 }
 export async function DELETE(request: NextRequest) {
@@ -107,10 +113,13 @@ export async function DELETE(request: NextRequest) {
 
     await DeleteImageFromStorage(name as string);
     await Prisma.banner.delete({ where: { id } });
+    revalidateTag("banner");
     return Response.json({ message: "Banner Deleted" }, { status: 200 });
   } catch (error) {
     console.log("Delete Banner", error);
     return Response.json({ message: "Failed to Delete" }, { status: 500 });
+  } finally {
+    await Prisma.$disconnect();
   }
 }
 
@@ -155,23 +164,34 @@ export async function GET(request: NextRequest) {
     const { startIndex, endIndex } = calculatePagination(
       total,
       param.limit as number,
-      param.p as number,
+      param.p as number
     );
-    const banner = await Prisma.banner.findMany({
-      where:
-        param.ty === "all"
-          ? {}
-          : {
-              name: {
-                contains: decodeURIComponent(param.q as string)
-                  .toString()
-                  .toLowerCase(),
-                mode: "insensitive",
-              },
+    const banner =
+      param.ty !== "edit"
+        ? await Prisma.banner.findMany({
+            where:
+              param.ty === "all"
+                ? {}
+                : {
+                    name: {
+                      contains: decodeURIComponent(param.q as string)
+                        .toString()
+                        .toLowerCase(),
+                      mode: "insensitive",
+                    },
+                  },
+            select: {
+              id: true,
+              name: true,
+              image: true,
+              show: true,
             },
-      take: endIndex - startIndex + 1,
-      skip: startIndex,
-    });
+            take: endIndex - startIndex + 1,
+            skip: startIndex,
+          })
+        : await Prisma.banner.findUnique({
+            where: { id: param.p },
+          });
 
     return Response.json(
       {
@@ -179,13 +199,15 @@ export async function GET(request: NextRequest) {
         total: total,
         totalpage: Math.ceil(total / itemperpage),
       },
-      { status: 200 },
+      { status: 200 }
     );
   } catch (error) {
     console.log("Fetch Banner", error);
     return Response.json(
       { message: "Failed To Fetch Banner" },
-      { status: 500 },
+      { status: 500 }
     );
+  } finally {
+    await Prisma.$disconnect();
   }
 }

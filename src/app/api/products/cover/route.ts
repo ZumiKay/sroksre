@@ -40,7 +40,7 @@ export async function POST(request: Request) {
     console.log("Save Image", error);
     return Response.json({ message: "Failed To Save" }, { status: 500 });
   } finally {
-    prisma.$disconnect();
+    await prisma.$disconnect();
   }
 }
 interface DeleteCoverData {
@@ -86,6 +86,6 @@ export async function DELETE(request: NextRequest) {
     console.log("Delete Cover", error);
     return Response.json({ message: "Failed To Delete Cover=" });
   } finally {
-    prisma.$disconnect();
+    await prisma.$disconnect();
   }
 }

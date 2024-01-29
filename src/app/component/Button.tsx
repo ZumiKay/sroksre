@@ -2,12 +2,10 @@
 
 import { CSSProperties, MouseEventHandler, ReactNode, useState } from "react";
 import "../globals.css";
-import LoadingIcon from "../Asset/Image/Loading.svg";
 import * as React from "react";
 import { styled } from "@mui/material/styles";
 import Button from "@mui/material/Button";
 import { useGlobalContext } from "@/src/context/GlobalContext";
-import Image from "next/image";
 
 interface buttonpros {
   type: "submit" | "reset" | "button" | undefined;
@@ -54,15 +52,15 @@ export default function PrimaryButton(props: buttonpros) {
         backgroundColor: hover
           ? props.hoverColor ?? "white"
           : props.color
-            ? props.color
-            : "",
+          ? props.color
+          : "",
         borderRadius: props.radius ?? "0px",
         border: props.border ?? "0px",
         color: hover
           ? props.hoverTextColor ?? "black"
           : props.textcolor
-            ? props.textcolor
-            : "white",
+          ? props.textcolor
+          : "white",
         position: props.postion,
         top: props.top,
         left: props.left,
@@ -92,7 +90,7 @@ interface selectprops {
   label?: string;
   style?: CSSProperties;
   option?: HTMLOptionElement;
-  default: string;
+  default?: string;
   defaultValue?: string;
   data?: string[] | number[] | any[];
   subcategory?:
@@ -122,6 +120,9 @@ export function Selection(props: selectprops) {
         <label className="select_label text-md font-semibold mr-2">
           {" "}
           {props.label}{" "}
+          {props.required && (
+            <strong className="font-normal text-lg text-red-500">*</strong>
+          )}
         </label>
       )}
 
@@ -134,9 +135,11 @@ export function Selection(props: selectprops) {
         value={props.value}
         name={props.name}
       >
-        <option value={props.defaultValue?.toLowerCase() ?? ""}>
-          {props.default}
-        </option>
+        {props.default && (
+          <option value={props.defaultValue?.toLowerCase() ?? ""}>
+            {props.default}
+          </option>
+        )}
         {props.type
           ? (props.type === "category"
               ? allData.category

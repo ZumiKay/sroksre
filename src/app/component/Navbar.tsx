@@ -18,7 +18,13 @@ import AccountMenu, { CartMenu } from "./SideMenu";
 import { useSession } from "next-auth/react";
 import "../globals.css";
 import Link from "next/link";
-import { useGlobalContext } from "@/src/context/GlobalContext";
+import {
+  CateogoryState,
+  Sessiontype,
+  useGlobalContext,
+} from "@/src/context/GlobalContext";
+import { ApiRequest } from "@/src/context/CustomHook";
+import { LoadingText } from "./Loading";
 
 export default function Navbar() {
   const [categories, setcategories] = useState(false);
@@ -42,13 +48,13 @@ export default function Navbar() {
     <nav className="navbar__container sticky top-0 z-[99] w-full h-[60px] bg-[#F3F3F3] flex flex-row justify-between item-center">
       <div ref={navref} className="first_section  w-1/2 h-fit p-1">
         <Image
-          className="menu_icon w-[50px] h-[50px] object-contain transition rounded-md"
+          className="menu_icon w-[50px] h-[50px] object-fill transition rounded-md"
           onClick={() => setcategories(!categories)}
           src={Menu}
           alt="menu"
           style={categories ? { backgroundColor: "lightgray" } : {}}
         />
-        {categories && <Categories_Container />}
+        {categories && <Categories_Container setopen={setcategories} />}
       </div>
       <div className="second_section  w-full h-fit relative top-2 flex justify-center">
         <Image
@@ -89,23 +95,47 @@ export default function Navbar() {
     </nav>
   );
 }
-const Categories_Container = () => {
+const Categories_Container = (props: { setopen: any }) => {
+  const [allcate, setallcate] = useState<Array<CateogoryState> | []>([]);
+  const [loading, setloading] = useState(true);
+  const router = useRouter();
+  const fetchcate = async () => {
+    const request = await ApiRequest("/api/categories", undefined, "GET");
+    if (request.success) {
+      setallcate(request.data);
+    }
+    setloading(false);
+  };
+  useEffect(() => {
+    fetchcate();
+  }, []);
   return (
-    <div className="categories__container grid md:grid-cols-6 sm:grid-cols-4  place-items-start w-full h-fit absolute top-[57px] z-[99] bg-[#F3F3F3] ">
-      {[1, 2, 3, 4, 5, 6].map((i) => (
+    <div
+      onMouseLeave={() => props.setopen(false)}
+      className="categories__container grid md:grid-cols-6 sm:grid-cols-4  place-items-start w-full min-h-[50vh] absolute top-[57px] z-[99] bg-[#F3F3F3] "
+    >
+      {loading && <LoadingText />}
+      {allcate.map((i) => (
         <div
-          key={i}
-          className="category flex flex-col h-[50vh] w-[15vw] min-w-[10vw] items-center justify-start p-1"
+          key={i.id}
+          className="category flex flex-col w-[15vw] min-w-[10vw] pt-10  items-center justify-start p-1"
         >
-          <h3 className="category_header bg-[#495464] rounded-md p-1 w-[150px]  break-words h-fit text-center text-white font-bold">
+          <h3
+            onClick={() => router.push(`/product/${i.id}`)}
+            className="category_header bg-[#495464] transition cursor-pointer hover:bg-white hover:text-black active:bg-white active:text-black rounded-md p-3 min-w-[150px] h-fit  break-words  text-center text-white font-medium"
+          >
             {" "}
-            fdsfsfdsfj
+            {i.name}
           </h3>
-          <div className="category_subheader h-full grid row-span-3 pt-7 font-medium text-center">
-            <h4 className="subcategory"> Upperbody </h4>
-            <h4 className="subcategory"> Lowerbody </h4>
-            <h4 className="subcategory"> T-shirt </h4>
-            <h4 className="subcategory"> Pants </h4>
+          <div className="category_subheader h-full grid row-span-3 gap-y-5 pt-7 font-normal text-center">
+            {i.subcategories.map((sub) => (
+              <Link href={`/product/${i.id}/${sub.id}`} scroll={true}>
+                <h4 key={sub.id} className="subcategory">
+                  {" "}
+                  {sub.name}{" "}
+                </h4>
+              </Link>
+            ))}
           </div>
         </div>
       ))}
@@ -114,6 +144,12 @@ const Categories_Container = () => {
 };
 export function DashboordNavBar() {
   const route = usePathname();
+  const session: any = useSession();
+  const [data, setdata] = useState<any>(null);
+  useEffect(() => {
+    setdata(session.data?.user as unknown as Sessiontype);
+  }, []);
+
   return (
     <nav className="dashboardNav__container flex flex-row w-full items-center justify-evenly bg-[#F3F3F3] h-[70px]">
       <Link href={"/dashboard"}>
@@ -134,7 +170,10 @@ export function DashboordNavBar() {
           My Order
         </h1>
       </Link>
-      <Link href={"/dashboard/products"}>
+      <Link
+        hidden={session.data?.user?.role !== "ADMIN"}
+        href={"/dashboard/products"}
+      >
         <h1
           className={`navlink ${
             route === "/dashboard/products" ? "activelink" : ""
@@ -143,7 +182,10 @@ export function DashboordNavBar() {
           Inventory
         </h1>
       </Link>
-      <Link href={"/dashboard/usermanagement"}>
+      <Link
+        hidden={session.data?.user?.role !== "ADMIN"}
+        href={"/dashboard/usermanagement"}
+      >
         <h1
           className={`navlink ${
             route === "/dashboard/usermanagement" ? "activelink" : ""
@@ -173,14 +215,8 @@ enum actiontype {
 }
 
 export const SubInventoryMenu = (props: Subinventorymenuprops) => {
-  const {
-    openmodal,
-    setopenmodal,
-    allData,
-    setproduct,
-    setbanner,
-    setglobalindex,
-  } = useGlobalContext();
+  const { openmodal, setopenmodal, setglobalindex, setalldata } =
+    useGlobalContext();
 
   const handleClick = (obj: { value: string; opencon: string }) => {
     const index = props.index as number;
@@ -190,22 +226,14 @@ export const SubInventoryMenu = (props: Subinventorymenuprops) => {
       props.type === "banner" ||
       props.type === "promotion"
     ) {
-      const isProduct = props.type === "product";
-      const itemList = isProduct ? allData.product : allData.banner;
-      const setItem = isProduct ? setproduct : setbanner;
-
       if (obj.value === actiontype.EDIT) {
-        const editItem = itemList[index];
-        setItem(
-          (prevItem: any) => ({ ...prevItem, ...editItem }) as typeof prevItem,
-        );
         setglobalindex((previndex) => ({
           ...previndex,
           [props.type === "product"
             ? "producteditindex"
             : props.type === "banner"
-              ? "bannereditindex"
-              : "promotioneditindex"]: index,
+            ? "bannereditindex"
+            : "promotioneditindex"]: index,
         }));
 
         setopenmodal({ ...openmodal, [obj.opencon as string]: true });
