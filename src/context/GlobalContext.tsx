@@ -2,7 +2,7 @@
 import dayjs, { Dayjs } from "dayjs";
 import React, { useContext, useState } from "react";
 import { Role } from "@prisma/client";
-import { info } from "../app/severactions/actions";
+import { Ordertype } from "./OrderContext";
 
 export interface userdata {
   id?: number;
@@ -53,20 +53,50 @@ export interface productcoverstype {
   isSaved?: boolean;
   id?: number;
 }
+export interface Varianttype {
+  id?: number;
+  option_title: string;
+  option_type: "COLOR" | "TEXT";
+  option_value: Array<string>;
+}
+export interface Stocktype {
+  id?: number;
+  variant_id: Array<number>;
+  variant_val: Array<string>;
+  qty: number;
+  price?: number;
+}
+
+export interface Relatedproducttype {
+  id: number;
+  name: string;
+  parentcategory_id: number;
+  childcategory_id: number;
+  covers: {
+    url: string;
+  }[];
+}
 export interface ProductState {
   id?: number;
   name: string;
   price: number;
   description: string;
-  stock: number;
-
+  stocktype: string;
   covers: productcoverstype[] | [];
   category: { parent_id: number; child_id: number };
   details: ProductInfo[] | [];
+  stock?: number;
+  variantcount?: number;
+  variants?: Array<Varianttype>;
+  varaintstock?: Array<Stocktype>;
+  lowstock?: boolean;
+  incart?: boolean;
   discount?: {
-    percent: string;
+    percent: number;
     newPrice: string;
   };
+  relatedproductid?: Array<number>;
+  relatedproduct?: Array<Relatedproducttype>;
 }
 export interface FilterValue {
   page: number;
@@ -86,6 +116,7 @@ export interface FilterValue {
 interface Listproductfilter {
   size: Array<string>;
   color: Array<string>;
+  text: Array<string>;
   order?: string;
 }
 export const FiltervalueInitialize: FilterValue = {
@@ -139,7 +170,7 @@ export interface ItemLength {
 export interface PromotionProductState {
   id: number;
   discount?: {
-    percent: string;
+    percent: number;
     newPrice: string;
     oldPrice: number;
   };
@@ -151,7 +182,7 @@ export interface PromotionState {
   selectproduct: boolean;
   selectbanner: boolean;
   Products: Array<PromotionProductState>;
-  expiredAt: Dayjs;
+  expireAt: Dayjs;
   banner_id?: number;
 
   banner?: BannerState;
@@ -164,7 +195,8 @@ export type filterinventorytype =
   | "product"
   | "banner"
   | "promotion"
-  | "usermanagement";
+  | "usermanagement"
+  | string;
 
 export interface Allrefstate {
   filterref: HTMLDivElement | null;
@@ -184,12 +216,25 @@ interface AllDataState {
   [x: string]: any;
 }
 
+export interface Usersessiontype {
+  sub: string;
+  id: string;
+  role: Role;
+  sessionid: string;
+}
+
 type confirmmodaltype = {
   open: boolean;
   confirm: boolean;
   closecon: string;
-  index?: number;
+  index?: number | string;
   type?: "product" | "banner" | "promotion" | "promotioncancel" | "user";
+};
+
+type alerttype = {
+  open: boolean;
+  text: string;
+  action?: () => Promise<void> | void;
 };
 interface OpenModalState {
   createProduct: boolean;
@@ -211,11 +256,16 @@ interface OpenModalState {
   loaded: boolean;
   managebanner: boolean;
   editprofile: boolean;
-  alert: {
-    open: boolean;
-    text: string;
-    action?: () => Promise<void> | void;
-  };
+  editvariantstock: boolean;
+  editsize: boolean;
+  alert: alerttype;
+  orderdetail: boolean;
+  orderlaert: boolean;
+  orderactionmodal: boolean;
+  orderproductdetailmodal: boolean;
+  exportoption: boolean;
+
+  [key: string]: boolean | confirmmodaltype | alerttype;
 }
 
 export interface GlobalIndexState {
@@ -257,6 +307,7 @@ export interface Sessiontype {
   name?: string;
   image?: string;
   role?: "USER" | "ADMIN" | "EDITOR";
+  status?: string;
 }
 
 export interface ProductOrderType {
@@ -264,19 +315,6 @@ export interface ProductOrderType {
   quantity: number;
   details: Array<ProductInfo>;
   price: string;
-}
-export type OrderStatus =
-  | "Unpaid"
-  | "Paid"
-  | "Preparing"
-  | "Shipping"
-  | "Shipped"
-  | "Arrived";
-
-export interface Ordertype {
-  id?: string;
-  products: Array<ProductOrderType>;
-  status: OrderStatus;
 }
 
 //Initail State
@@ -301,6 +339,13 @@ const OpenmodalinitialState: OpenModalState = {
   loaded: false,
   managebanner: false,
   editprofile: false,
+  editvariantstock: false,
+  editsize: false,
+  orderdetail: false,
+  orderlaert: false,
+  orderactionmodal: false,
+  orderproductdetailmodal: false,
+  exportoption: false,
   alert: {
     open: false,
     text: "",
@@ -322,13 +367,16 @@ export const Productinitailizestate: ProductState = {
   name: "",
   price: 0.0,
   description: "",
+  stocktype: "stock",
   stock: 0,
+  variantcount: 0,
   covers: [],
   category: {
     parent_id: 0,
     child_id: 0,
   },
   details: [],
+  relatedproductid: [],
 };
 export const AllDataInitialize: AllDataState = {
   product: [],
@@ -360,7 +408,7 @@ export const PromotionInitialize: PromotionState = {
   Products: [PromotionProductInitialize],
   selectbanner: false,
   selectproduct: false,
-  expiredAt: dayjs(),
+  expireAt: dayjs(),
   tempproduct: [],
 };
 
@@ -392,6 +440,12 @@ export const Userinitialize: UserState = {
   email: "",
   password: "",
   confirmpassword: "",
+};
+
+export const ProductStockType = {
+  size: "size",
+  variant: "variant",
+  stock: "stock",
 };
 
 //
@@ -437,6 +491,12 @@ interface ContextType {
   setproductfilval: React.Dispatch<React.SetStateAction<Listproductfilter>>;
   error: boolean;
   seterror: React.Dispatch<React.SetStateAction<boolean>>;
+  reloaddata: boolean;
+  setreloaddata: React.Dispatch<React.SetStateAction<boolean>>;
+  order: Ordertype | undefined;
+  setorder: React.Dispatch<React.SetStateAction<Ordertype | undefined>>;
+  cart: boolean;
+  setcart: React.Dispatch<React.SetStateAction<boolean>>;
 }
 const GlobalContext = React.createContext<ContextType | null>(null);
 
@@ -459,13 +519,19 @@ export const GlobalContextProvider = ({
   const [page, setpage] = useState(1);
   const [userinfo, setuserinfo] = useState({});
   const [error, seterror] = useState<boolean>(false);
+  const [reloaddata, setreloaddata] = useState(false);
+  const [order, setorder] = useState<Ordertype | undefined>(undefined);
+  const [cart, setcart] = useState(false);
+
   const [listproductfilter, setlistprodfil] = useState<Listproductfilter>({
     size: [],
     color: [],
+    text: [],
   });
   const [listproductfilval, setproductfilval] = useState<Listproductfilter>({
     size: [],
     color: [],
+    text: [],
     order: "",
   });
   const [inventoryfilter, setinventoryfilter] =
@@ -482,6 +548,13 @@ export const GlobalContextProvider = ({
         listproductfilval,
         setproductfilval,
         error,
+        reloaddata,
+        setreloaddata,
+        order,
+        cart,
+        setcart,
+
+        setorder,
         seterror,
         promotion,
         setpromotion,

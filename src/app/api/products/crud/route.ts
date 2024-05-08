@@ -10,9 +10,9 @@ import { revalidateTag } from "next/cache";
 import { NextRequest } from "next/server";
 export async function POST(req: NextRequest) {
   const data: ProductState = await req.json();
+
   const created = await CreateProduct(data);
   if (created.success) {
-    revalidateTag("product");
     return Response.json({ data: { id: created.id } }, { status: 200 });
   } else {
     return Response.json({ message: created.error }, { status: 500 });

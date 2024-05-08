@@ -1,8 +1,8 @@
-import { infovaluetype } from "@/src/context/GlobalContext";
 import { GetAllProduct } from "@/src/lib/adminlib";
-import Prisma from "@/src/lib/prisma";
-import { notFound } from "next/navigation";
+import Prisma from "../../../../lib/prisma";
+
 import { NextRequest } from "next/server";
+import { ProductState } from "@/src/context/GlobalContext";
 
 function queryStringToObject(queryString: string) {
   const pairs = queryString.split("_");
@@ -31,15 +31,17 @@ interface paramsType {
   po?: number;
   dc?: string;
   ds?: string;
+  dt?: string;
+  vr?: number;
+  vs?: number;
 }
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { f: string } }
 ) {
-  const { ty, limit, q, pc, sk, cc, p, pid, po, dc, ds } = queryStringToObject(
-    params.f
-  ) as paramsType;
+  const { ty, limit, q, pc, sk, cc, p, pid, po, dc, ds, dt, vr, vs } =
+    queryStringToObject(params.f) as paramsType;
 
   let response;
   if (ty === "all" || ty === "filter" || ty === "detail") {
@@ -54,7 +56,8 @@ export async function GET(
       pid,
       po,
       dc,
-      ds
+      ds,
+      dt
     );
 
     const total = await Prisma.products.count();
@@ -79,72 +82,142 @@ export async function GET(
         parentcategory_id: pc,
         childcategory_id: cc,
       },
-      include: {
-        details: true,
+      select: {
+        Variant: true,
       },
     });
     let allval = {
       size: new Set<String>(),
       color: new Set<String>(),
+      text: new Set<String>(),
     };
 
-    allfilter.forEach((item) => {
-      item.details.forEach((detail) => {
-        if (detail.info_type === "SIZE" || detail.info_type === "COLOR") {
-          detail.info_type === "SIZE" &&
-            detail?.info_value?.forEach((value) => allval.size.add(value));
-          detail.info_type === "COLOR" &&
-            detail.info_value.forEach((value) => allval.color.add(value));
+    allfilter.forEach((filval) => {
+      filval.Variant.forEach((variant) => {
+        if (variant.option_type === "COLOR") {
+          variant.option_value.map((i) => allval.color.add(i));
+        } else if (variant.option_type === "TEXT") {
+          variant.option_value.map((i) => allval.text.add(i));
+        } else {
+          variant.option_value.map((i) => allval.size.add(i));
         }
       });
     });
-    let allvalarr = {
+    const allvalarr = {
+      text: Array.from(allval.text),
       size: Array.from(allval.size),
       color: Array.from(allval.color).filter((i) => i !== ""),
     };
 
     response = Response.json({ data: allvalarr }, { status: 200 });
   } else if (ty === "info") {
-    let result: any = {};
     const product = await Prisma.products.findUnique({
       where: { id: pid },
       include: {
         details: true,
         covers: true,
+        Variant: true,
+        Stock: true,
+        Orderproduct: true,
+        relatedproduct: {
+          select: {
+            id: true,
+            productId: true,
+          },
+        },
       },
     });
+
     if (!product) {
-      response = new Response(null, { status: 404 });
-    } else {
-      if (product.discount) {
-        result = product;
-
-        result.discount = {
-          percent: parseFloat(result.discount.toString()) * 100,
-          newPrice: (
-            parseFloat(result.price.toString()) -
-            (parseFloat(result.price.toString()) *
-              parseFloat(result.discount.toString())) /
-              100
-          ).toFixed(2),
-        };
-      } else {
-        result = product;
-      }
-      result.category = {
-        parent_id: result.parentcategory_id,
-        child_id: result.childcategory_id,
-      };
-      delete result.parentcategory_id;
-      delete result.childcategory_id;
-
-      response = Response.json({ data: result }, { status: 200 });
+      return new Response(null, { status: 404 });
     }
+
+    const result: any = {
+      ...product,
+      category: {
+        parent_id: product.parentcategory_id,
+        child_id: product.childcategory_id,
+      },
+      stocktype: product.stocktype,
+      variants: product.Variant,
+      varaintstock: product.Stock,
+      Variant: undefined,
+      Stock: undefined,
+      parentcategory_id: undefined,
+      childcategory_id: undefined,
+    };
+
+    if (product.discount) {
+      result.discount = {
+        percent: product.discount,
+        newPrice: (
+          parseFloat(product.price.toString()) -
+          (parseFloat(product.price.toString()) *
+            parseFloat(product.discount.toString())) /
+            100
+        ).toFixed(2),
+      };
+    }
+    if (product.relatedproduct) {
+      const ids = product.relatedproduct?.productId as number[];
+      result.relatedproduct = await Prisma.products.findMany({
+        where: {
+          id: {
+            in: ids.filter((i) => i !== pid),
+          },
+        },
+        select: {
+          id: true,
+          name: true,
+          parentcategory_id: true,
+          childcategory_id: true,
+          covers: {
+            select: {
+              url: true,
+            },
+          },
+        },
+      });
+    }
+    return Response.json({ data: result }, { status: 200 });
+  } else if (ty === "stock") {
+    const variant = await Prisma.variant.findMany({
+      where: {
+        product_id: pid,
+      },
+      select: {
+        id: true,
+        option_title: true,
+        option_type: true,
+        option_value: true,
+      },
+    });
+    const stock = await Prisma.stock.findMany({
+      where: {
+        product_id: pid,
+      },
+      select: {
+        id: true,
+        qty: true,
+        variant_val: true,
+      },
+    });
+
+    response = Response.json(
+      { data: { varaintstock: stock, variants: variant } },
+      { status: 200 }
+    );
+  } else if (ty === "size") {
+    const size = await Prisma.products.findUnique({
+      where: { id: pid },
+      select: {
+        details: true,
+      },
+    });
+
+    response = Response.json({ data: size?.details }, { status: 200 });
   } else {
     response = new Response(null, { status: 404 });
   }
-
-  await Prisma.$disconnect();
-
   return response;
 }

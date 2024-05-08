@@ -1,7 +1,6 @@
 import Prisma from "@/src/lib/prisma";
 import { NextRequest } from "next/server";
 import { extractQueryParams } from "../../banner/route";
-import { notFound } from "next/navigation";
 
 export async function GET(request: NextRequest) {
   try {
@@ -39,7 +38,5 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.log("Vfy Cate", error);
     return Response.error();
-  } finally {
-    await Prisma.$disconnect();
   }
 }

@@ -6,8 +6,25 @@ import {
 } from "firebase/storage";
 import { storage } from "./firebase";
 import Prisma from "./prisma";
-import colornames from "color-name-list";
+import {
+  ProductState,
+  Stocktype,
+  infovaluetype,
+} from "../context/GlobalContext";
 
+import { Orderpricetype, Productordertype } from "../context/OrderContext";
+import { createCipheriv, createDecipheriv, randomBytes } from "crypto";
+import { calculatePrice } from "../app/checkout/page";
+import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
+
+export const AllOrderStatusColor: Record<string, string> = {
+  incart: "#495464",
+  unpaid: "#EB5757",
+  paid: "#35C191",
+  preparing: "#0097FA",
+  shipped: "#60513C",
+  arrived: "#35C191",
+};
 export const postRequest = async (url: string, data: any) => {
   const post = await fetch(url, {
     method: "POST",
@@ -117,36 +134,21 @@ export const checkpassword = (password: string) => {
 };
 
 export const checkloggedsession = async (uid: string) => {
-  const usersession = await Prisma.usersession.findMany({
-    where: {
-      user_id: uid,
-    },
-  });
-  if (usersession.length > 0) {
-    await Prisma.$disconnect();
-    return { success: true };
-  }
-  await Prisma.$disconnect();
-  return { success: false };
-};
-export const removeDuplicates = (transformedData: any) => {
-  for (const key in transformedData) {
-    if (transformedData.hasOwnProperty(key)) {
-      transformedData[key] = Array.from(
-        new Set(transformedData[key].map(JSON.stringify)),
-        JSON.parse
-      );
-    }
-  }
-  return transformedData;
-};
-const getColorName = (hexcode: string) => {
-  let colorname = colornames.find((color: any) => color.hex === hexcode);
+  try {
+    const usersession = await Prisma.usersession.findMany({
+      where: {
+        user_id: uid,
+      },
+    });
 
-  if (colorname) {
-    return colorname.name;
-  } else {
-    return "Unkown";
+    if (usersession.length > 0) {
+      return { success: true };
+    }
+
+    return { success: false };
+  } catch (error) {
+    console.error("Error checking session:", error);
+    return { success: false, error: "Error checking session" };
   }
 };
 
@@ -168,6 +170,164 @@ export const transformData = (data: any) => {
   return transformedData;
 };
 
+export const findDuplicateStockIndices = (stocks: Stocktype[]): number[] => {
+  const seen: Map<string, number[]> = new Map();
+
+  const duplicates: number[] = [];
+
+  stocks.forEach((stock, index) => {
+    const key = JSON.stringify({
+      variant_id: stock.variant_id,
+      variant_val: stock.variant_val,
+    });
+
+    if (seen.has(key)) {
+      // Duplicate found, add index to duplicates array
+      duplicates.push(index, ...(seen.get(key) as number[]));
+    }
+
+    if (!seen.has(key)) {
+      seen.set(key, []);
+    }
+
+    seen.get(key)?.push(index);
+  });
+
+  return duplicates;
+};
+export const calculateCartTotalPrice = (
+  cartItems: Array<Productordertype>
+): number => {
+  return cartItems.reduce((total, item) => {
+    const { quantity, price } = item;
+
+    console.log(price);
+    const effectivePrice = price.discount
+      ? price.discount.newprice
+      : price.price;
+    return total + (effectivePrice ?? 0) * quantity;
+  }, 0);
+};
+
+export const getmaxqtybaseStockType = (
+  product: ProductState,
+  selected_detail: Array<string>
+) => {
+  const { stocktype, varaintstock, stock, details } = product;
+
+  let qty = 0;
+
+  if (stocktype === "stock") {
+    qty = stock as number;
+  } else if (stocktype === "variant") {
+    varaintstock?.forEach((variant) => {
+      const isStock = variant.variant_val.some((value) =>
+        selected_detail.includes(value)
+      );
+
+      if (isStock) {
+        qty = variant.qty;
+        return true;
+      }
+      return false;
+    });
+  } else {
+    const sizeInfo = details.find((detail) => detail.info_type === "SIZE");
+
+    if (sizeInfo) {
+      const size = sizeInfo.info_value.find(
+        (value) => (value as infovaluetype).val === selected_detail[0]
+      );
+
+      if (size) {
+        const result = size as infovaluetype;
+        qty = result.qty;
+      }
+    }
+  }
+
+  return qty;
+};
+
+export const encrypt = (text: string, key: string) => {
+  const algorithm = "aes-256-cbc";
+
+  const iv = randomBytes(16);
+  const cipher = createCipheriv(algorithm, Buffer.from(key, "hex"), iv);
+  let encrypted = cipher.update(text);
+  encrypted = Buffer.concat([encrypted, cipher.final()]);
+  return iv.toString("hex") + ":" + encrypted.toString("hex");
+};
+
+export const decrypt = (text: string, key: string) => {
+  const algorithm = "aes-256-cbc";
+  const textParts = text.split(":");
+  const iv = Buffer.from(textParts.shift() as string, "hex");
+  const encryptedText = Buffer.from(textParts.join(":"), "hex");
+
+  const keyBuffer = Buffer.from(key, "hex");
+
+  const decipher = createDecipheriv(algorithm, keyBuffer, iv);
+  let decrypted = decipher.update(encryptedText);
+  decrypted = Buffer.concat([decrypted, decipher.final()]);
+  return decrypted.toString();
+};
+
+export const calculateDiscountPrice = (
+  price: number,
+  discount: number
+): number => {
+  const discountedAmount = (discount * price) / 100;
+  return price - discountedAmount;
+};
+
+export const getDiscountedPrice = (discount: number, price: number) => {
+  return {
+    newprice: calculatePrice(price, discount),
+    percent: discount,
+  };
+};
+
+export function updateSearchParams(
+  params: Record<string, string>,
+  router: AppRouterInstance
+) {
+  if (typeof window === "undefined") return;
+
+  const searchParams = new URLSearchParams(window.location.search);
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (searchParams.has(key)) {
+      searchParams.set(key, `${searchParams.get(key)},${value}`);
+    } else {
+      searchParams.set(key, value);
+    }
+  });
+
+  const newRelativePathQuery = `?${searchParams}`;
+
+  router.replace(newRelativePathQuery);
+}
+
+export const isObjectEmpty = (data: Record<string, any>) =>
+  Object.entries(data).every(([_, val]) => !val);
+
+export const calculateDiscountProductPrice = (data: {
+  price: number;
+  discount?: number;
+}): Orderpricetype => {
+  if (data.discount) {
+    return {
+      price: data.price,
+      discount: {
+        newprice: data.price - (data.price * data.discount) / 100,
+        percent: data.discount,
+      },
+    };
+  }
+
+  return { price: data.price };
+};
 //Email Template
 //
 //

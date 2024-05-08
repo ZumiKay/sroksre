@@ -1,13 +1,31 @@
 "use client";
-import { CSSProperties, ReactNode, useEffect, useRef, useState } from "react";
+import {
+  CSSProperties,
+  ReactNode,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import "../globals.css";
 import { INVENTORYENUM } from "../dashboard/products/page";
-import { ProductInfo, useGlobalContext } from "@/src/context/GlobalContext";
+import {
+  ProductInfo,
+  Relatedproducttype,
+  Varianttype,
+  useGlobalContext,
+} from "@/src/context/GlobalContext";
 import PrimaryButton from "./Button";
 import { toast } from "react-toastify";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
+import ReactSelect from "react-select/async";
+import makeAnimated from "react-select/animated";
 
 import { removeSpaceAndToLowerCase } from "@/src/lib/utilities";
+import {
+  GetProductName,
+  GetRelatedProduct,
+} from "../dashboard/products/varaint_action";
 interface toggleprops {
   name: string;
   isAdmin: boolean;
@@ -17,17 +35,11 @@ interface toggleprops {
 }
 
 export default function ToggleMenu(props: toggleprops) {
-  const {
-    openmodal,
-    product,
-    setproduct,
-    setopenmodal,
-    globalindex,
-    setglobalindex,
-  } = useGlobalContext();
+  const { openmodal, product, setproduct, setopenmodal, setglobalindex } =
+    useGlobalContext();
   const [open, setopen] = useState(false);
   const handleEdit = (index: number) => {
-    setglobalindex({ ...globalindex, productdetailindex: index });
+    setglobalindex((prev) => ({ ...prev, productdetailindex: index }));
     setopenmodal({ ...openmodal, productdetail: true });
   };
   const handleDelete = (index: number) => {
@@ -36,6 +48,7 @@ export default function ToggleMenu(props: toggleprops) {
     setproduct({ ...product, details: updatedetail });
     setopenmodal({ ...openmodal, productdetail: false });
   };
+
   return (
     <motion.div
       initial={{ height: "0%" }}
@@ -44,7 +57,7 @@ export default function ToggleMenu(props: toggleprops) {
         ease: "linear",
         duration: 0.2,
       }}
-      className="toggle__container w-full flex flex-col gap-y-1"
+      className="toggle__container w-full h-fit flex flex-col gap-y-1"
     >
       <h3 className="togglebtn sticky top-0 mb-5 font-normal text-lg flex flex-row items-center justify-start gap-x-5">
         <strong className="underline font-bold">{props.name}</strong>
@@ -55,43 +68,46 @@ export default function ToggleMenu(props: toggleprops) {
           } rounded-2xl text-xl p-2 no-underline transition hover:-translate-y-[.5] active:-translate-y-1`}
         ></i>{" "}
       </h3>
-
-      <motion.div
-        initial={props.isAdmin ? { y: 0, opacity: 1 } : { y: 10, opacity: 0 }}
-        animate={
-          !props.isAdmin &&
-          (open ? { y: 0, opacity: 1 } : { y: -10, opacity: 0 })
-        }
-        exit={{ y: -10, opacity: 0 }}
-        transition={{ duration: 0.2 }}
-        className="detailheader w-full break-words flex flex-col items-start gap-y-3"
-      >
-        {props.data?.map((obj: ProductInfo, index: number) => (
-          <h3
-            key={index}
-            className="text-base font-normal flex flex-row items-center gap-x-5"
+      <AnimatePresence>
+        {(open || props.isAdmin) && (
+          <motion.div
+            initial={{ height: 0, opacity: 0, y: -10 }}
+            animate={{ height: "fit-content", y: 0, opacity: 1 }}
+            exit={{ height: 0, y: -10, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="detailheader w-full h-fit  break-words flex flex-col items-start gap-y-3"
           >
-            {" "}
-            {obj.info_title} : {obj.info_value[0] as string}
-            {props.isAdmin && (
-              <>
-                <h5
-                  onClick={() => handleEdit(index)}
-                  className="text-blue-400 underline transition hover:text-black"
-                >
-                  Edit
-                </h5>
-                <h5
-                  onClick={() => handleDelete(index)}
-                  className="text-red-400 underline transition hover:text-black"
-                >
-                  Delete
-                </h5>
-              </>
+            {props.data?.map(
+              (obj, index) =>
+                obj.info_type !== INVENTORYENUM.size && (
+                  <div
+                    key={index}
+                    className="text-base font-normal flex flex-row items-center gap-x-5"
+                  >
+                    {" "}
+                    {obj.info_title} : {obj.info_value[0] as string}
+                    {props.isAdmin && (
+                      <>
+                        <div
+                          onClick={() => handleEdit(index)}
+                          className="text-blue-400 underline transition hover:text-black"
+                        >
+                          Edit
+                        </div>
+                        <div
+                          onClick={() => handleDelete(index)}
+                          className="text-red-400 underline transition hover:text-black"
+                        >
+                          Delete
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )
             )}
-          </h3>
-        ))}
-      </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
@@ -228,16 +244,26 @@ export function AddSubCategoryMenu({ index }: { index: number }) {
   );
 }
 interface Toggleselectprops {
-  type: "color" | "size";
+  type: "color" | "size" | "text";
   title: string;
   data: Array<String>;
+  variantdata?: Array<Varianttype>;
 }
-export function ToggleSelect({ type, data, title }: Toggleselectprops) {
+export function ToggleSelect({
+  type,
+  data,
+  title,
+  variantdata,
+}: Toggleselectprops) {
   const [open, setopen] = useState(false);
   const { listproductfilter, setlistprodfil } = useGlobalContext();
 
-  const handleClick = (idx: number) => {
-    const selectedData = removeSpaceAndToLowerCase(data[idx]);
+  const handleClick = (idx: number, parent_idx?: number) => {
+    const selectedData = removeSpaceAndToLowerCase(
+      parent_idx && variantdata
+        ? variantdata[parent_idx].option_value[idx]
+        : data[idx]
+    );
     const update = { ...listproductfilter };
 
     const updateArray = (array: string[], value: string) => {
@@ -251,8 +277,10 @@ export function ToggleSelect({ type, data, title }: Toggleselectprops) {
 
     if (type === "color") {
       updateArray(update.color, selectedData as string);
-    } else {
+    } else if (type === "size") {
       updateArray(update.size, selectedData as string);
+    } else {
+      updateArray(update.text, selectedData as string);
     }
 
     setlistprodfil(update);
@@ -274,52 +302,136 @@ export function ToggleSelect({ type, data, title }: Toggleselectprops) {
             ? "Selected Color"
             : "Color"
           : listproductfilter.size.length > 0
-          ? "Selected Size"
-          : "Size"}
+          ? `Selected ${title}`
+          : title}
       </h3>
       {open && (
-        <div className="w-full max-h-[140px] overflow-y-auto ">
+        <div className="w-full max-h-[150px] overflow-y-auto ">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             className="selectitem_container grid grid-cols-3 gap-y-3 h-full  w-fit gap-x-3 p-2 transition-all"
           >
-            {data.map((i, idx) => (
-              <div
-                key={idx}
-                className="selectitem min-w-[50px] rounded-md cursor-pointer w-fit max-w-[150px] h-fit break-words bg-white hover:bg-gray-100 active:bg-gray-100 p-2"
-                onClick={() => handleClick(idx)}
-                style={
-                  listproductfilter[type].find(
-                    (j) => j === removeSpaceAndToLowerCase(i)
-                  )
-                    ? { backgroundColor: "gray" }
-                    : {}
-                }
-              >
-                {" "}
-                {type === "color" ? (
-                  <>
-                    <div
-                      className={`colorplattet w-[40px] h-[40px]`}
-                      style={
-                        i
-                          ? {
-                              backgroundColor: i as string,
-                              backgroundPosition: "center",
-                            }
-                          : {}
-                      }
-                    ></div>
-                  </>
-                ) : (
-                  <h3 className="label text-lg text-center font-normal">{i}</h3>
-                )}{" "}
-              </div>
-            ))}
+            {variantdata
+              ? variantdata.map((item, idx) => (
+                  <div key={idx} className="w-full h-fit flex flex-col gap-y-3">
+                    <h3 className="name text-lg font-semibold w-full text-left pl-2">
+                      {item.option_title}
+                    </h3>
+                    <div className="filterval w-full h-fit grid grid-cols-3">
+                      {item.option_value.map((i, index) => (
+                        <h4
+                          onClick={() => handleClick(index, idx)}
+                          key={index}
+                          className="text-lg p-1 font-normal bg-gray-300 text-black rounded-lg cursor-pointer transition duration-200 hover:bg-gray-100 active:bg-gray-100 break-all"
+                        >
+                          {" "}
+                          {i}{" "}
+                        </h4>
+                      ))}
+                    </div>
+                  </div>
+                ))
+              : data.map((i, idx) => (
+                  <div
+                    key={idx}
+                    className="selectitem min-w-[50px] rounded-md cursor-pointer w-fit max-w-[150px] h-fit break-words bg-white hover:bg-gray-100 active:bg-gray-100 p-2"
+                    onClick={() => handleClick(idx)}
+                    style={
+                      listproductfilter[type].find(
+                        (j) => j === removeSpaceAndToLowerCase(i)
+                      )
+                        ? { backgroundColor: "gray" }
+                        : {}
+                    }
+                  >
+                    {" "}
+                    {type === "color" ? (
+                      <>
+                        <div
+                          className={`colorplattet w-[40px] h-[40px]`}
+                          style={
+                            i
+                              ? {
+                                  backgroundColor: i as string,
+                                  backgroundPosition: "center",
+                                }
+                              : {}
+                          }
+                        ></div>
+                      </>
+                    ) : (
+                      <h3 className="label text-lg text-center font-normal">
+                        {i}
+                      </h3>
+                    )}{" "}
+                  </div>
+                ))}
           </motion.div>
         </div>
       )}
     </motion.div>
   );
 }
+
+const animatedComponents = makeAnimated();
+
+interface Selecttype {
+  label: string;
+  value: string;
+}
+const getOptions = async (value: string, selectedvalue?: string[]) => {
+  const product = GetProductName.bind(null, value);
+  const searchreq = await product();
+
+  const filterd = selectedvalue
+    ? searchreq.data.filter((i) => !selectedvalue.includes(i.id.toString()))
+    : searchreq.data;
+
+  const result = filterd.map((i) => ({
+    label: i.name,
+    value: i.id,
+  }));
+
+  return result;
+};
+export const SearchAndMultiSelect = () => {
+  const { product, setproduct } = useGlobalContext();
+
+  const [selected, setselected] = useState<Selecttype[] | undefined>(undefined);
+
+  useEffect(() => {
+    if (product.relatedproduct) {
+      const selectedrelated = product.relatedproduct.map((i) => ({
+        label: i.name,
+        value: i.id.toString(),
+      }));
+      setselected(selectedrelated.length === 0 ? undefined : selectedrelated);
+    }
+  }, [product.relatedproduct]);
+
+  const handleSelectChange = (val: Selecttype[] | null) => {
+    const selected = val ?? [];
+    const productId = selected.map((i) => parseInt(i.value));
+
+    setselected(selected);
+    setproduct((prev) => ({ ...prev, relatedproductid: productId }));
+  };
+
+  return (
+    <ReactSelect
+      closeMenuOnSelect={false}
+      components={animatedComponents}
+      placeholder={"Product name"}
+      value={selected?.filter((i) => i.value !== product.id?.toString())}
+      loadOptions={(value) =>
+        getOptions(
+          value,
+          selected?.map((i) => i.value)
+        ) as any
+      }
+      onChange={(val) => handleSelectChange(val as Selecttype[] | null)}
+      isMulti
+    />
+  );
+};

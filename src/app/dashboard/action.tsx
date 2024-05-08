@@ -3,10 +3,12 @@
 import Prisma from "@/src/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../api/auth/[...nextauth]/route";
-import { handleEmail, hashedpassword } from "@/src/lib/userlib";
+import { hashedpassword } from "@/src/lib/userlib";
 import { compareSync } from "bcryptjs";
 import { generateRandomNumber } from "@/src/lib/utilities";
 import { revalidateTag } from "next/cache";
+import { handleEmail } from "../checkout/action";
+import { getUser } from "@/src/context/OrderContext";
 
 interface returntype {
   success: boolean;
@@ -80,8 +82,6 @@ export async function Editprofileaction(
   } catch (error) {
     console.log("Update Userdata", error);
     return { success: false, message: "Error Occured" };
-  } finally {
-    await Prisma.$disconnect();
   }
 }
 
@@ -91,11 +91,16 @@ export async function Addaddress(
   id?: number
 ): Promise<returntype> {
   try {
-    const user = await getServerSession(authOptions);
-    const uID: any = user?.user && "sub" in user.user && user.user.sub;
+    const user = await getUser();
+
+    if (!user) {
+      return { success: false, message: "Unauthenticated" };
+    }
     const alldata = Array.from(data.entries());
+
     let address: any = {};
     let message: string = "";
+
     for (const [name, value] of alldata) {
       address[name] = value;
     }
@@ -103,7 +108,7 @@ export async function Addaddress(
     if (!isEdit) {
       const created = await Prisma.address.create({
         data: {
-          userId: uID as string,
+          userId: user?.id as string,
           ...address,
         },
       });
@@ -112,7 +117,7 @@ export async function Addaddress(
     } else {
       await Prisma.address.updateMany({
         where: {
-          userId: uID as string,
+          userId: user?.id as string,
           id: id,
         },
         data: {
@@ -128,8 +133,6 @@ export async function Addaddress(
   } catch (error) {
     console.log("Add Address", error);
     return { success: false, message: "Error Occured" };
-  } finally {
-    await Prisma.$disconnect();
   }
 }
 
@@ -181,13 +184,13 @@ export const VerifyEmail = async (
           vfy: otp,
         },
       });
-      await handleEmail({
-        subject: "Verify Email",
-        to: email,
-        message: `Verify Code: ${otp}`,
-        title: "Email Verification",
-        warn: "",
-      });
+      // await handleEmail({
+      //   subject: "Verify Email",
+      //   to: email,
+      //   message: `Verify Code: ${otp}`,
+      //   title: "Email Verification",
+      //   warn: "",
+      // });
       return { success: true, message: "Please Check Email" };
     } else {
       const verifyemail = await Prisma.user.updateMany({
@@ -205,7 +208,5 @@ export const VerifyEmail = async (
   } catch (error) {
     console.log("Verify Email", error);
     return { success: false, message: "Error Occured" };
-  } finally {
-    await Prisma.$disconnect();
   }
 };

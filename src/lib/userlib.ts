@@ -1,10 +1,11 @@
 import * as jose from "jose";
-import { date, z } from "zod";
+import { z } from "zod";
 import { compare, genSaltSync, hashSync } from "bcryptjs";
 import Prisma from "./prisma";
 import { userdata } from "../app/account/actions";
-import nodemailer from "nodemailer";
-import { checkpassword, normalemailtemplate } from "./utilities";
+
+import { checkpassword } from "./utilities";
+import { handleEmail } from "../app/checkout/action";
 
 export enum Role {
   USER = "USER",
@@ -98,8 +99,6 @@ export const userlogin = async (
   } catch (error: any) {
     console.log("Login", error);
     return { success: false, message: "Error Occured" };
-  } finally {
-    await Prisma.$disconnect();
   }
 };
 export const logout = async (sessionid: string) => {
@@ -113,12 +112,15 @@ export const logout = async (sessionid: string) => {
   } catch (error) {
     console.log("Session Error", error);
     throw new Error("Error Occured");
-  } finally {
-    await Prisma.$disconnect();
   }
   //delete session
 };
-export const registerUser = async (data: RegisterUser) => {
+
+interface ReturnType {
+  success: boolean;
+  message?: string;
+}
+export const registerUser = async (data: RegisterUser): Promise<ReturnType> => {
   try {
     validateUserInput.parse(data);
     const isValid = checkpassword(data.password);
@@ -131,56 +133,26 @@ export const registerUser = async (data: RegisterUser) => {
         password: password,
       };
       //verify email
-      const user = await Prisma.user.update({
-        where: { id: data.id },
-        data: { ...datatosave, vfy: null },
-      });
-      if (user) {
-        return true;
+
+      if (!data.id) {
+        await Prisma.user.create({ data: { ...datatosave } });
       } else {
-        return new Error("Error Occured");
+        await Prisma.user.update({
+          where: { id: data.id },
+          data: { ...datatosave, vfy: null },
+        });
       }
+
+      return { success: true };
     } else {
-      return new Error(isValid.error);
+      return { success: false, message: isValid.error };
     }
   } catch (error: any) {
     console.log("Register", error);
     if (error.issues) {
-      return new Error(error.issues[0].message);
-    } else {
-      return new Error(error as string);
+      return { success: false, message: error.issues[0].message };
     }
-  } finally {
-    await Prisma.$disconnect();
-  }
-};
-interface Emaildata {
-  to: string;
-  subject: string;
-  message: string;
-  warn: string;
-  title?: string;
-}
-export const handleEmail = async (data: Emaildata) => {
-  const transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-      user: process.env.EMAIL,
-      pass: process.env.EMAIL_APPKEY,
-    },
-  });
-  const mailoptions = {
-    from: `SrokSre <${process.env.EMAIL}>`,
-    to: `<${data.to}>`,
-    subject: data.subject,
-    html: normalemailtemplate(data.warn, data.title ?? "", data.message),
-  };
-  try {
-    await transporter.sendMail(mailoptions);
-    return { sucess: true };
-  } catch (error) {
-    console.log("Send Email", error);
-    return { success: true };
+    return { success: false };
   }
 };
 
@@ -195,7 +167,7 @@ export const handleCheckandRegisterUser = async ({
     const existingUser = await Prisma.user.findUnique({ where: { id } });
 
     if (existingUser) {
-      return { success: true, message: "User already exists" };
+      return { success: true };
     }
     let plainpassword = data.password;
 
@@ -230,7 +202,5 @@ export const handleCheckandRegisterUser = async ({
       success: false,
       message: "An error occurred during user registration",
     };
-  } finally {
-    await Prisma.$disconnect();
   }
 };

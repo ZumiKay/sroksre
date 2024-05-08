@@ -23,7 +23,6 @@ export const verifySession = async (sessionid: string) => {
     },
   });
   if (session) {
-    Prisma.$disconnect();
     return true;
   } else {
     return false;

@@ -1,6 +1,6 @@
 "use client";
 import Image from "next/image";
-import Logo from "../Asset/Image/Logo.svg";
+import Logo from "../../../public/Image/Logo.svg";
 import PrimaryButton from "./Button";
 import { TextField } from "@mui/material";
 import Link from "next/link";
@@ -37,8 +37,12 @@ export default function Footer() {
           <li>
             <Link href={"/account"}>Login/SignUp</Link>{" "}
           </li>
-          <li>Privacy Policy</li>
-          <li>Contact Us</li>
+          <li>
+            <Link href={"/privacyandpolicy"}>Privacy and Policies</Link>
+          </li>
+          <li>
+            <Link href={"/contact"}>Contact us</Link>
+          </li>
         </ul>
         <ul className="social__container list-none h-[200px] flex flex-col gap-y-5">
           <li className="header font-bold text-xl">Follow Us</li>

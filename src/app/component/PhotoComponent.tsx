@@ -9,6 +9,7 @@ interface Primaryphotoprops {
     type: string;
   }[];
   style?: CSSProperties;
+  hover: boolean;
   showcount: boolean;
 }
 type indextype = {
@@ -18,6 +19,8 @@ type indextype = {
 };
 
 export const PrimaryPhoto = (props: Primaryphotoprops) => {
+  const [hover, sethover] = useState(false);
+
   const [index, setindex] = useState<indextype>({
     start: 0,
     end: 0,
@@ -25,6 +28,7 @@ export const PrimaryPhoto = (props: Primaryphotoprops) => {
   });
 
   useEffect(() => {
+    sethover(!props.hover);
     setindex({ ...index, end: props.data?.length - 1 });
   }, [props.data]);
 
@@ -48,6 +52,8 @@ export const PrimaryPhoto = (props: Primaryphotoprops) => {
   return (
     <div
       style={props.style}
+      onMouseEnter={() => props.hover && sethover(true)}
+      onMouseLeave={() => props.hover && sethover(false)}
       className="primaryphoto__container flex flex-col gap-y-0  w-[400px] h-full overflow-hidden"
     >
       <div
@@ -59,22 +65,26 @@ export const PrimaryPhoto = (props: Primaryphotoprops) => {
             key={index}
             src={obj.url}
             alt={`${obj.name}`}
-            className="min-w-[400px] min-h-[550px] object-contain"
+            className="w-[400px] h-[550px] object-contain"
             width={500}
             height={600}
             quality={80}
-            loading="lazy"
+            priority={true}
           />
         ))}
       </div>
-      <i
-        onClick={() => handleClick("left")}
-        className="fa-solid fa-chevron-left absolute top-[35%] left-1 w-fit h-fit pt-10 pb-10 pl-1 pr-1 transition  hover:bg-gray-300 text-3xl text-black"
-      ></i>
-      <i
-        onClick={() => handleClick("right")}
-        className="fa-solid fa-chevron-right absolute top-[35%] right-1  pt-10 pb-10 pl-1 pr-1 transition hover:bg-gray-300 text-3xl text-black"
-      ></i>{" "}
+      {hover && (
+        <>
+          <i
+            onClick={() => handleClick("left")}
+            className="fa-solid fa-chevron-left absolute top-[35%] left-1 w-fit h-fit pt-10 pb-10 pl-1 pr-1 transition  hover:bg-gray-300 text-3xl text-black"
+          ></i>
+          <i
+            onClick={() => handleClick("right")}
+            className="fa-solid fa-chevron-right absolute top-[35%] right-1  pt-10 pb-10 pl-1 pr-1 transition hover:bg-gray-300 text-3xl text-black"
+          ></i>{" "}
+        </>
+      )}
       {props.showcount && (
         <p className="w-full text-center text-white bg-[#495464] p-1 text-sm font-bold">
           {" "}

@@ -2,8 +2,6 @@
 
 import { useGlobalContext } from "@/src/context/GlobalContext";
 import { notFound } from "next/navigation";
-import { Suspense } from "react";
-import LoadingIcon from "../component/Loading";
 
 export default function Productlayout({
   children,

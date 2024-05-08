@@ -2,18 +2,27 @@
 import Image, { StaticImageData } from "next/image";
 import PrimaryButton, { Selection } from "./Button";
 import "../globals.css";
-import { useRef, useState } from "react";
-import ToggleMenu from "./ToggleMenu";
+import { ChangeEvent, useRef, useState } from "react";
+
 import { PrimaryPhoto } from "./PhotoComponent";
 import {
   PromotionState,
   productcoverstype,
   useGlobalContext,
 } from "@/src/context/GlobalContext";
-import Checkmark from "../Asset/Image/Checkmark.svg";
+import Checkmark from "../../../public/Image/Checkmark.svg";
 import { SubInventoryMenu } from "./Navbar";
-import LoadingIcon from "./Loading";
+import LoadingIcon, { errorToast } from "./Loading";
 import { useRouter } from "next/navigation";
+import { Sizecontainer, UpdateStockModal, Variantcontainer } from "./Modals";
+
+import {
+  Orderpricetype,
+  Productorderdetailtype,
+  totalpricetype,
+} from "@/src/context/OrderContext";
+import { Editcart } from "../product/detail/[id]/action";
+import { motion } from "framer-motion";
 
 interface cardprops {
   name: string;
@@ -25,10 +34,12 @@ interface cardprops {
   hover?: boolean;
   id?: number;
   discount?: {
-    percent: string;
+    percent: number;
     newPrice: string;
   };
   stock?: number;
+  lowstock?: boolean;
+  stocktype?: string;
 }
 const editactionMenu = [
   {
@@ -41,23 +52,29 @@ const editactionMenu = [
     opencon: "",
   },
 ];
+
+interface openstockmodaltype {
+  [key: string]: boolean;
+}
 export default function Card(props: cardprops) {
   const {
     promotion,
     setpromotion,
     setglobalindex,
+    openmodal,
     setopenmodal,
     globalindex,
-    openmodal,
-    setalldata,
     allData,
+    setalldata,
   } = useGlobalContext();
   const route = useRouter();
   const isProduct = promotion.Products.find((i) => i.id === props.id);
+
   const [state, setstate] = useState({
     detail: false,
     editaction: false,
     hover: false,
+    editvariantstock: false,
   });
 
   const handeMouseEvent = (type: "enter" | "leave") =>
@@ -67,7 +84,8 @@ export default function Card(props: cardprops) {
       editaction: type === "leave" && false,
     });
   const ref = useRef<HTMLDivElement | null>(null);
-  const handleSelectDiscount = (id: number, type: "create" | "edit") => {
+
+  const handleSelectDiscount = async (id: number, type: "create" | "edit") => {
     const promo = [...promotion.Products];
     let temp: Array<number> = [];
 
@@ -79,7 +97,7 @@ export default function Card(props: cardprops) {
           const option = {
             id: id,
             discount: {
-              percent: "",
+              percent: 0,
               newPrice: "",
               oldPrice: parseFloat(props.price),
             },
@@ -88,18 +106,25 @@ export default function Card(props: cardprops) {
         } else {
           promo.splice(index, 1);
         }
-      } else if (props.discount) {
+      } else {
         if (isProduct) {
           const isExist = promotion.tempproduct?.includes(id);
           !isExist && temp.push(id);
-          console.log(temp);
+          let allproduct = [...allData.product];
+          allproduct = allproduct.map((i) => {
+            if (i.id === id) {
+              return { ...i, discount: undefined };
+            }
+            return i;
+          });
 
           promo.splice(index, 1);
+          setalldata((prev) => ({ ...prev, product: allproduct }));
         } else {
           promo.push({
             id: id,
             discount: {
-              percent: "",
+              percent: 0,
               newPrice: "",
               oldPrice: parseFloat(props.price),
             },
@@ -118,180 +143,299 @@ export default function Card(props: cardprops) {
     }
   };
 
+  ///JSX CONDITIONS
+  ///
+  ///
+
+  const shouldShowCheckmark =
+    promotion.selectproduct &&
+    (globalindex.promotioneditindex === -1
+      ? isProduct?.discount
+      : isProduct?.discount);
+
+  const showCheckmark = (
+    <Image
+      src={Checkmark}
+      alt="checkmark"
+      width={1000}
+      height={1000}
+      className="w-[30px] h-[30px] object-contain"
+    />
+  );
+
+  const showEllipsis = (
+    <i
+      onClick={() => setstate({ ...state, editaction: true })}
+      className="fa-solid fa-ellipsis-vertical text-xl transition rounded-lg p-2 hover:bg-gray-300"
+    ></i>
+  );
+
+  const showHeart = <i className="fa-solid fa-heart "></i>;
+
+  //Price Condition
+
+  const hasDiscount = props.discount;
+  const showOriginalPrice = (
+    <h4 className="text-sm font-semibold">${props.price}</h4>
+  );
+  const showDiscountPrice = (
+    <div className="price_con flex flex-row flex-wrap items-center gap-x-5 w-full h-fit">
+      <h4 className="text-sm font-semibold line-through decoration-red-300 decoration-2">
+        ${props.price}
+      </h4>
+
+      <h4 className="text-sm font-semibold text-red-500">
+        -{hasDiscount?.percent ?? 0}%
+      </h4>
+
+      <h4 className="text-sm font-semibold">{`${
+        hasDiscount?.newPrice ? `$${hasDiscount?.newPrice}` : ""
+      }`}</h4>
+    </div>
+  );
+
+  const showLowStock = () => {
+    return !promotion.selectproduct && props.lowstock && props.isAdmin ? (
+      <PrimaryButton
+        type="button"
+        text="Low Stock"
+        onClick={() => {
+          setopenmodal((prev) => ({
+            ...prev,
+            [`${props.stocktype}${props.id}`]: true,
+          }));
+        }}
+        width="100%"
+        color="lightcoral"
+      />
+    ) : (
+      <></>
+    );
+  };
+
+  const closename: string = (props.stocktype &&
+    props.id &&
+    props.stocktype + props.id) as string;
+  //
+  ///end
+
   return (
-    <div
-      key={props.index}
-      ref={ref}
-      onMouseEnter={() => handeMouseEvent("enter")}
-      onMouseLeave={() => handeMouseEvent("leave")}
-      className={`card__container w-[550px] h-[550px]
+    <>
+      <div
+        key={props.index}
+        ref={ref}
+        onMouseEnter={() => handeMouseEvent("enter")}
+        onMouseLeave={() => handeMouseEvent("leave")}
+        className={`card__container w-[550px] h-[550px]
        hover:border-[2px] hover:border-gray-300 ${
          isProduct ? "border border-gray-300" : ""
        }`}
-    >
-      <div
-        onClick={() => {
-          if (promotion.selectproduct) {
-            handleSelectDiscount(props.id as number, "create");
-          } else if (!props.isAdmin) {
-            route.push(`/product/detail/${props.id}`);
-          }
-        }}
-        className="cardimage__container flex flex-col justify-center items-center relative w-full h-full border border-gray-300"
       >
-        <PrimaryPhoto showcount={false} data={props.img} />
+        <div
+          onClick={() => {
+            if (promotion.selectproduct) {
+              handleSelectDiscount(props.id as number, "create");
+            } else if (!props.isAdmin) {
+              route.push(`/product/detail/${props.id}`);
+            }
+          }}
+          className="cardimage__container flex flex-col justify-center items-center relative w-full h-full border border-gray-300"
+        >
+          <PrimaryPhoto showcount={false} data={props.img} hover={false} />
 
-        <span className="absolute top-3 right-3">
-          {promotion.selectproduct &&
-          (globalindex.promotioneditindex === -1
-            ? isProduct?.discount
-            : isProduct?.discount) ? (
-            <Image
-              src={Checkmark}
-              alt="checkmark"
-              width={1000}
-              height={1000}
-              className="w-[30px] h-[30px] object-contain"
+          <span className="absolute top-3 right-3">
+            {shouldShowCheckmark
+              ? showCheckmark
+              : state.hover && props.isAdmin
+              ? showEllipsis
+              : showHeart}
+          </span>
+          {state.editaction && (
+            <SubInventoryMenu
+              ref={ref}
+              data={editactionMenu}
+              index={props.id}
+              type="product"
+              style={{ right: "0", top: 0 }}
+              open="createProduct"
+              stock={props.stock}
+              stocktype={props.stocktype}
+              stockaction={() => {
+                setopenmodal((prev) => ({
+                  ...prev,
+                  [closename]: true,
+                }));
+              }}
             />
-          ) : state.hover && props.isAdmin ? (
-            <i
-              onClick={() => setstate({ ...state, editaction: true })}
-              className="fa-solid fa-ellipsis-vertical text-xl transition rounded-lg p-2 hover:bg-gray-300 "
-            ></i>
-          ) : (
-            <i className="fa-solid fa-heart "></i>
           )}
-        </span>
-        {state.editaction && (
-          <SubInventoryMenu
-            ref={ref}
-            data={editactionMenu}
-            index={props.id}
-            type="product"
-            style={{ right: "0", top: 0 }}
-            open="createProduct"
+        </div>
+        <section className="card_detail w-full h-[90px] font-semibold bg-white flex flex-col justify-center gap-y-3 border-[0.5px] border-t-0 border-solid border-gray-400 pl-2 rounded-b-md text-sm">
+          <h4 className="card_info w-[400px] h-[50px] overflow-y-auto text-lg">
+            {props.name.length > 0 ? props.name : "No Product Created"}
+          </h4>
+
+          {hasDiscount || promotion.selectproduct
+            ? showDiscountPrice
+            : showOriginalPrice}
+        </section>
+        {props.button && (
+          <PrimaryButton type="button" text="Add To Cart" width={"100%"} />
+        )}
+        {promotion.selectproduct && isProduct?.discount && (
+          <PrimaryButton
+            onClick={() => handleSelectDiscount(isProduct.id ?? 0, "edit")}
+            type="button"
+            text={isProduct?.discount?.percent === 0 ? "Set Discount" : "Edit"}
+            width="50%"
+            radius="10px"
           />
         )}
+        {showLowStock()}
       </div>
-      <section className="card_detail w-full h-[90px] font-semibold bg-white flex flex-col justify-center gap-y-3 border-[0.5px] border-t-0 border-solid border-gray-400 pl-2 rounded-b-md text-sm">
-        <h4 className="card_info w-[400px] h-[50px] overflow-y-auto text-lg">
-          {" "}
-          {props.name.length > 0 ? props.name : "No Product Created"}
-        </h4>
-        {props.discount ||
-        promotion.selectproduct ||
-        openmodal.createPromotion ? (
-          <div className="price_con flex flex-row flex-wrap items-center gap-x-5 w-full h-fit">
-            {props.discount || isProduct?.discount ? (
-              <h4 className="text-sm font-semibold line-through decoration-red-300 decoration-2">
-                ${props.price}
-              </h4>
-            ) : (
-              <h4 className="text-sm font-semibold">${props.price}</h4>
-            )}
-            <h4 className="text-sm font-semibold text-red-500">
-              {globalindex.promotioneditindex === -1
-                ? (promotion.selectproduct || openmodal.createPromotion) &&
-                  !props.discount
-                  ? isProduct?.discount
-                    ? `-${isProduct?.discount?.percent}%`
-                    : ""
-                  : `-${props.discount?.percent}%`
-                : promotion.selectproduct || openmodal.createPromotion
-                ? isProduct?.discount?.percent
-                  ? `-${isProduct?.discount?.percent}%`
-                  : ""
-                : `-${props.discount?.percent}%`}{" "}
-            </h4>
-
-            <h4 className="text-sm font-semibold">
-              {globalindex.promotioneditindex === -1
-                ? promotion.selectproduct || openmodal.createPromotion
-                  ? isProduct?.discount
-                    ? `$${isProduct?.discount?.newPrice}`
-                    : ""
-                  : `$${props.discount?.newPrice}`
-                : isProduct?.discount
-                ? `$${isProduct?.discount?.newPrice}`
-                : ""}
-            </h4>
-          </div>
-        ) : (
-          <h4 className="text-sm font-semibold">${props.price}</h4>
-        )}
-      </section>
-      {props.button && (
-        <PrimaryButton type="button" text="Add To Cart" width={"100%"} />
+      {openmodal && (
+        <>
+          {openmodal[`variant${props.id}`] && (
+            <Variantcontainer
+              type="stock"
+              editindex={props.id}
+              closename={closename}
+            />
+          )}
+          {props.id && openmodal[`size${props.id}`] && (
+            <Sizecontainer index={props.id} type="edit" closename={closename} />
+          )}
+          {openmodal[`stock${props.id}`] && (
+            <UpdateStockModal closename={closename} />
+          )}
+        </>
       )}
-      {promotion.selectproduct && isProduct?.discount && (
-        <PrimaryButton
-          onClick={() => handleSelectDiscount(isProduct.id ?? 0, "edit")}
-          type="button"
-          text={
-            isProduct?.discount?.percent?.length === 0 ? "Set Discount" : "Edit"
-          }
-          width="50%"
-          radius="10px"
-        />
-      )}
-      {!promotion.selectproduct &&
-      props.stock &&
-      props.stock <= 1 &&
-      props.isAdmin ? (
-        <PrimaryButton
-          type="button"
-          text="Low Stock"
-          onClick={() => {
-            setglobalindex((prev) => ({
-              ...prev,
-              producteditindex: props.index as number,
-            }));
-            setopenmodal((prev) => ({ ...prev, updatestock: true }));
-          }}
-          width="100%"
-          color="lightcoral"
-        />
-      ) : (
-        <></>
-      )}
-    </div>
+    </>
   );
 }
 interface SecondayCardprops {
+  id: number;
   img: string | StaticImageData;
+  name: string;
+  price: Orderpricetype;
+  selecteddetail: Array<Productorderdetailtype>;
+  selectedqty: number;
+  maxqty?: number;
   width?: string;
-  name?: string;
-  price?: string;
   action?: boolean;
+  removecart: () => Promise<void>;
+  settotal: (param?: totalpricetype) => void;
 }
 export function SecondayCard(props: SecondayCardprops) {
+  const [editqty, seteditqty] = useState(props.selectedqty);
+  const [loading, setloading] = useState(false);
+  const price = parseFloat(props.price.price.toString()).toFixed(2);
+  const showprice = () => {
+    const hasdiscount = (
+      <div className="w-fit h-full flex flex-row gap-x-5">
+        <h3 className="text-lg font-medium"> ${price} </h3>
+        <h3 className="text-lg font-bold text-red-500">
+          {" "}
+          {`- ${props.price.discount?.percent}%`}{" "}
+        </h3>
+        <h3 className="text-lg font-bold">
+          {" "}
+          {`$${parseFloat(
+            props.price.discount?.newprice?.toString() ?? `0.00`
+          ).toFixed(2)}`}{" "}
+        </h3>
+      </div>
+    );
+
+    return !props.price.discount ? (
+      <h3 className="text-lg font-bold w-full h-full"> ${price} </h3>
+    ) : (
+      hasdiscount
+    );
+  };
+
+  const handleEditQty = async ({ target }: ChangeEvent<HTMLSelectElement>) => {
+    //update cartitem
+    const value = parseInt(`${target.value}`);
+    const updatereq = Editcart.bind(null, { id: props.id, qty: value });
+    const update = await updatereq();
+
+    if (!update.success) {
+      errorToast("Can't update quantity");
+      return;
+    }
+    seteditqty(target.value !== "" ? value : 0);
+    props.settotal(update.total);
+  };
+
+  const selecteddetailcard = (text: string, key: string, type: string) => (
+    <div
+      key={key}
+      style={
+        type === "COLOR"
+          ? { backgroundColor: text, width: "40px", height: "40px" }
+          : {}
+      }
+      className={`max-w-[125px] break-words  h-fit p-1 bg-white outline-1 outline outline-gray-400 text-lg font-medium rounded-lg ${
+        type === "COLOR" ? `bg-[${text}]` : ""
+      }`}
+    >
+      {type !== "COLOR" ? text : ""}
+    </div>
+  );
+
+  const handleDelete = async () => {
+    setloading(true);
+    await props.removecart();
+    setloading(false);
+  };
   return (
     <div className="w-full h-fit flex flex-col  items-end gap-y-5">
       <div
         style={{ width: props.width }}
-        className="secondarycard__container flex flex-row items-center bg-[#F4FAFF] justify-between w-full gap-x-2"
+        className="secondarycard__container flex flex-row items-start bg-[#F4FAFF] justify-between w-full gap-x-2"
       >
         <Image
           src={props.img}
           alt="cover"
           className="cardimage w-[250px] h-[350px] object-cover"
+          width={600}
+          height={600}
+          quality={50}
+          loading="lazy"
         />
         <div className="product_detail flex flex-col items-start gap-y-5 w-full">
-          <div className="product_info">
-            <h2 className="text-md font-black"> Product Name </h2>
-            <h4>Price</h4>
+          <div className="product_info flex flex-col gap-y-5 max-w-[250px] break-words">
+            <h3 className="text-lg font-bold w-fit"> {props.name}</h3>
+            {showprice()}
           </div>
-          <Selection default="Select" label="Size" data={["S", "M"]} />
-          <label className="w-fit flex flex-row justify-between items-center gap-x-5">
-            {" "}
-            Quantity{" "}
-            <input
-              className="w-full border border-black rounded-md text-center"
-              type="number"
-            />{" "}
-          </label>
-          <ToggleMenu name="Product Details" isAdmin={false} />
-          <i className="fa-solid fa-trash relative -top-2"></i>
+
+          <div className="selecteddetails flex flex-row items-center gap-x-3 w-full h-fit max-h-[200px]">
+            {props.selecteddetail.map((detail) =>
+              selecteddetailcard(
+                detail.option_value,
+                detail.option_title,
+                detail.option_type
+              )
+            )}
+          </div>
+          <div className="qty flex flex-col gap-y-1 w-full h-fit">
+            <label className="text-lg font-bold">Quantity</label>
+            <Selection
+              value={editqty}
+              onChange={handleEditQty}
+              data={Array.from({ length: props.maxqty ?? 0 }).map(
+                (_, idx) => idx + 1
+              )}
+              style={{ width: "90%", height: "fit-content" }}
+            />
+          </div>
+
+          <i
+            onClick={() => handleDelete()}
+            className={`fa-solid fa-trash relative transition duration-300 active:text-white ${
+              loading ? "animate-spin" : ""
+            }`}
+          ></i>
         </div>
       </div>
       {props.action && (
@@ -333,9 +477,16 @@ interface Bannercardprops {
   promodata?: PromotionState;
 }
 export const BannerCard = ({ data, index, id, type }: Bannercardprops) => {
-  const { promotion, setpromotion, allData, setalldata, openmodal } =
-    useGlobalContext();
-
+  const {
+    promotion,
+    setpromotion,
+    allData,
+    setalldata,
+    openmodal,
+    isLoading,
+    setisLoading,
+  } = useGlobalContext();
+  const ref = useRef<HTMLDivElement | null>(null);
   const isBanner = promotion.banner_id === id;
   const [open, setopen] = useState(false);
   const actionMenu = [
@@ -350,9 +501,40 @@ export const BannerCard = ({ data, index, id, type }: Bannercardprops) => {
   ];
   type === "banner" && actionMenu.push({ value: "Show At Home", opencon: "" });
 
-  const ref = useRef<HTMLDivElement | null>(null);
-  const { isLoading, setisLoading } = useGlobalContext();
+  const handleSelectBanner = () => {
+    if (promotion.selectbanner) {
+      let ID = 0;
+      isBanner ? (ID = 0) : (ID = id as number);
+      setpromotion((prev) => ({
+        ...prev,
+        banner_id: ID === 0 ? undefined : ID,
+      }));
+    } else if (openmodal.managebanner) {
+      //set banner as show
 
+      let allbanner = [...allData.banner];
+      let tempbanner = [...(allData.tempbanner ?? [])];
+      const isTemp = tempbanner.findIndex((i) => i.id === id);
+      if (isTemp === -1) {
+        tempbanner.push({
+          id: allbanner[index].id as number,
+          show: allbanner[index].show as boolean,
+        });
+      } else {
+        tempbanner.splice(isTemp, 1);
+      }
+      if (allbanner[index].show) {
+        allbanner[index].show = false;
+      } else {
+        allbanner[index].show = true;
+      }
+      setalldata((prev) => ({
+        ...prev,
+        banner: allbanner,
+        tempbanner: tempbanner,
+      }));
+    }
+  };
   return (
     <div
       ref={ref}
@@ -360,42 +542,8 @@ export const BannerCard = ({ data, index, id, type }: Bannercardprops) => {
       onMouseLeave={() => {
         setopen(false);
       }}
-      onClick={() => {
-        if (promotion.selectbanner) {
-          let ID = 0;
-          isBanner ? (ID = 0) : (ID = id as number);
-          setpromotion((prev) => ({
-            ...prev,
-            banner_id: ID === 0 ? undefined : ID,
-          }));
-        } else if (openmodal.managebanner) {
-          //set banner as show
-
-          let allbanner = [...allData.banner];
-          let tempbanner = [...(allData.tempbanner ?? [])];
-          const isTemp = tempbanner.findIndex((i) => i.id === id);
-          if (isTemp === -1) {
-            tempbanner.push({
-              id: allbanner[index].id as number,
-              show: allbanner[index].show as boolean,
-            });
-          } else {
-            tempbanner.splice(isTemp, 1);
-          }
-          if (allbanner[index].show) {
-            allbanner[index].show = false;
-          } else {
-            allbanner[index].show = true;
-          }
-          setalldata((prev) => ({
-            ...prev,
-            banner: allbanner,
-            tempbanner: tempbanner,
-          }));
-        }
-      }}
-      className={`Banner__container relative w-full h-full flex flex-col justify-start transition rounded-t-lg border-t border-l border-r border-gray-300 `}
-      style={isBanner ? { border: "5px solid lightgray" } : {}}
+      onClick={() => handleSelectBanner()}
+      className={`Banner__container relative w-full h-full flex flex-col justify-start transition-all rounded-t-lg border-t border-l border-r border-gray-300  duration-300 hover:-translate-y-3`}
     >
       <div className="relative w-full h-full">
         <Image
@@ -436,16 +584,16 @@ export const BannerCard = ({ data, index, id, type }: Bannercardprops) => {
         }
         className="action_container absolute top-0 right-0"
       >
-        {(type === "banner" && isBanner && promotion.selectbanner) ||
-          (allData.banner[index]?.show && openmodal.managebanner && (
-            <Image
-              src={Checkmark}
-              alt="checkmark"
-              width={1000}
-              height={1000}
-              className="w-[30px] h-[30px] object-contain"
-            />
-          ))}{" "}
+        {((type === "banner" && isBanner && promotion.selectbanner) ||
+          (allData.banner[index]?.show && openmodal.managebanner)) && (
+          <Image
+            src={Checkmark}
+            alt="checkmark"
+            width={1000}
+            height={1000}
+            className="w-[30px] h-[30px] object-contain"
+          />
+        )}
         {!promotion.selectbanner && !openmodal.managebanner && (
           <i className="fa-solid fa-ellipsis-vertical text-lg bg-white w-fit h-fit p-2 transition hover:bg-gray-300"></i>
         )}
@@ -471,7 +619,7 @@ export const UserCard = ({
   index,
 }: {
   index: number;
-  uid: number;
+  uid: string;
   firstname: string;
   lastname?: string;
   email: string;

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { headers } from "next/headers";
-import Errorwheel from "./Asset/Image/errorwheel.png";
+import Errorwheel from "../../public/Image/errorwheel.png";
 import Image from "next/image";
 
 export default async function NotFound() {

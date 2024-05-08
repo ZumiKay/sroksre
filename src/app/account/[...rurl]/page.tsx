@@ -5,7 +5,6 @@ import { useFormState, useFormStatus } from "react-dom";
 import { verifyUser } from "./action";
 import PrimaryButton from "../../component/Button";
 import { ApiRequest } from "@/src/context/CustomHook";
-import { useGlobalContext } from "@/src/context/GlobalContext";
 import { useEffect, useState } from "react";
 import LoadingIcon from "../../component/Loading";
 
@@ -24,7 +23,7 @@ export default function ResetPage({ params }: { params: { rurl: string } }) {
   useEffect(() => {
     const handleVerify = async () => {
       if (match) {
-        const url = `/api/auth/users/vfy/${match[1]}`;
+        const url = `/api/users/vfy/${match[1]}`;
         const verify = await ApiRequest(url, undefined, "GET", "JSON");
         if (!verify.success) {
           setloading(false);
@@ -97,6 +96,7 @@ export default function ResetPage({ params }: { params: { rurl: string } }) {
 
               <form
                 action={formAction}
+                method="POST"
                 className="resetform flex flex-col gap-y-5 items-center w-1/2 h-fit"
               >
                 <input value={match ? match[1] : ""} name="cid" hidden />

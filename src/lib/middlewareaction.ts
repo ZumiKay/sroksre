@@ -27,21 +27,22 @@ const alladminroute: Array<Checkrouteprops> = [
 ];
 const userroute: Array<Checkrouteprops> = [
   {
-    path: "/auth/users/vfy",
-    method: ["GET", "POST", "DELETE"],
+    path: "/users/vfy",
+    method: ["GET", "DELETE"],
   },
   { path: "/auth/users/info", method: ["GET"] },
 ];
 export const VerifyApiRoute = (
   url: string,
   method: "POST" | "PUT" | "GET" | "DELETE",
-  Role: string,
+  Role: string | null
 ) => {
   const isUserRoute = userroute.find(
-    (i) => url.startsWith(i.path) && i.method.includes(method),
+    (i) => url.startsWith(i.path) && i.method.includes(method)
   );
+
   const isAdminRoute = alladminroute.find(
-    (i) => url.startsWith(i.path) && i.method.includes(method),
+    (i) => url.startsWith(i.path) && i.method.includes(method)
   );
 
   if (isUserRoute) {

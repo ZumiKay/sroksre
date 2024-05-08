@@ -1,28 +1,24 @@
-"use client";
-import {
-  AllDataInitialize,
-  useGlobalContext,
-} from "@/src/context/GlobalContext";
+import { getUser } from "@/src/context/OrderContext";
 import { DashboordNavBar } from "../component/Navbar";
-import { Alertmodal, ConfirmModal } from "../component/SideMenu";
-import { UpdateStockModal } from "../component/Modals";
-import { LocalizationProvider } from "@mui/x-date-pickers";
-import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 
-const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
-  const { openmodal } = useGlobalContext();
+import TopModal from "./TopModal";
+
+import { redirect } from "next/navigation";
+
+const DashboardLayout = async ({ children }: { children: React.ReactNode }) => {
+  const session = await getUser();
+
+  if (!session) {
+    return redirect("/account");
+  }
 
   return (
-    <LocalizationProvider dateAdapter={AdapterDayjs}>
-      <section className="min-h-screen w-full h-full">
-        {openmodal.confirmmodal.open && <ConfirmModal />}
-        {openmodal.updatestock && <UpdateStockModal />}
-        {openmodal.alert.open && <Alertmodal />}
+    <section className="min-h-screen w-full h-full">
+      <TopModal />
 
-        <DashboordNavBar />
-        {children}
-      </section>
-    </LocalizationProvider>
+      <DashboordNavBar session={session ?? undefined} />
+      {children}
+    </section>
   );
 };
 

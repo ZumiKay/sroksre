@@ -1,17 +1,13 @@
 "use client";
 
-import { useSession } from "next-auth/react";
-
 import { useEffect, useState } from "react";
-import Default from "../Asset/Image/default.png";
 import PrimaryButton from "../component/Button";
 import { ToggleDownMenu } from "../component/ToggleMenu";
 import Card from "../component/Card";
 import { Userdatastate, useGlobalContext } from "@/src/context/GlobalContext";
 import { EditProfile } from "../component/Modals";
 import { ApiRequest } from "@/src/context/CustomHook";
-import LoadingIcon, { BlurLoading, LoadingText } from "../component/Loading";
-import { loadavg } from "os";
+import LoadingIcon from "../component/Loading";
 
 interface userdata extends Userdatastate {
   open: {
@@ -22,14 +18,7 @@ interface userdata extends Userdatastate {
   };
 }
 export default function UserDashboard() {
-  const {
-    openmodal,
-    setopenmodal,
-    setisLoading,
-    isLoading,
-    userinfo,
-    setuserinfo,
-  } = useGlobalContext();
+  const { openmodal, setopenmodal, userinfo, setuserinfo } = useGlobalContext();
   const [userdata, setdata] = useState<userdata>({
     open: {
       whilist: true,
@@ -40,16 +29,16 @@ export default function UserDashboard() {
   });
   const [loading, setloading] = useState(true);
   const fetchuser = async () => {
-    const URL = `/api/auth/users/info?ty=userinfo`;
+    const URL = `/api/users/info?ty=userinfo`;
     const userreq = await ApiRequest(
       URL,
-      setisLoading,
+      undefined,
       "GET",
       undefined,
-      undefined,
-      "userinfo"
+      undefined
     );
     setloading(false);
+
     if (userreq.success) {
       setuserinfo(userreq.data);
     }

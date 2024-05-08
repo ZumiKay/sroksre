@@ -1,6 +1,6 @@
 "use server";
 
-import prisma from '../../lib/prisma'
+import Prisma from "@/src/lib/prisma";
 
 export enum infotype {
   COLOR = "COLOR",
@@ -15,7 +15,7 @@ export type info = {
 };
 export const createProductInfo = async (data: info) => {
   try {
-    await prisma.info.create({
+    await Prisma.info.create({
       data: {
         info_title: data.title,
         info_value: data.value,
@@ -37,13 +37,11 @@ export type bannerType = {
 };
 export const createBanner = async (data: bannerType) => {
   try {
-    await prisma.banner.create({
+    await Prisma.banner.create({
       data: {
         name: data.name,
         type: data.type,
-        color: data.color,
         image: data.image,
-        promotion_id: 0,
       },
     });
     return true;
@@ -58,20 +56,5 @@ type promotiontype = {
   bannerid: number | undefined;
   products_id: number[];
 };
-export const createPromotion = async (data: promotiontype) => {
-  try {
-    await prisma.promotion.create({
-      data: {
-        name: data.name,
-        description: data.description,
-        product_id: data.products_id,
-        banner_id: data.bannerid,
-      },
-    });
-    return true;
-  } catch (error) {
-    console.log(error);
-    return false;
-  }
-};
+
 export const editPromotion = async (data: promotiontype) => {};

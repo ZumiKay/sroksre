@@ -1,38 +1,48 @@
 "use client";
 import Image from "next/image";
-import Logo from "../Asset/Image/Logo.svg";
-import Menu from "../Asset/Image/Menu.svg";
-import Search from "../Asset/Image/Search.svg";
-import Cart from "../Asset/Image/cart.svg";
-import Profile from "../Asset/Image/profile.svg";
-import DefaultImage from "../Asset/Image/default.png";
+import Logo from "../../../public/Image/Logo.svg";
+import Menu from "../../../public/Image/Menu.svg";
+import Search from "../../../public/Image/Search.svg";
+import Cart from "../../../public/Image/cart.svg";
+import Profile from "../../../public/Image/profile.svg";
+import DefaultImage from "../../../public/Image/default.png";
 import {
   CSSProperties,
   MutableRefObject,
+  ReactNode,
   useEffect,
   useRef,
   useState,
 } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import AccountMenu, { CartMenu } from "./SideMenu";
-import { useSession } from "next-auth/react";
 import "../globals.css";
 import Link from "next/link";
 import {
+  BannerInitialize,
   CateogoryState,
+  Productinitailizestate,
+  PromotionInitialize,
   Sessiontype,
   useGlobalContext,
 } from "@/src/context/GlobalContext";
 import { ApiRequest } from "@/src/context/CustomHook";
 import { LoadingText } from "./Loading";
 
-export default function Navbar() {
+export default function Navbar({
+  children,
+  session,
+}: {
+  children: ReactNode;
+  session?: Sessiontype;
+}) {
+  const { cart, setcart } = useGlobalContext();
   const [categories, setcategories] = useState(false);
   const [profile, setprofile] = useState(false);
-  const [cart, setcart] = useState(false);
+
   const router = useRouter();
   const navref = useRef<HTMLDivElement>(null);
-  const session = useSession();
+
   useEffect(() => {
     const handleEventClick = (e: MouseEvent) => {
       if (navref.current && !navref.current.contains(e.target as Node)) {
@@ -71,23 +81,22 @@ export default function Navbar() {
           className="search w-[50px] h-[50px] object-contain transition hover:-translate-y-2"
         />
 
-        <Image
-          src={Cart}
-          alt="cart"
-          className="cart w-[30px] h-[30px] object-contain transition hover:-translate-y-2"
-          onMouseEnter={() => setcart(true)}
-        />
+        <div className="cart_container relative">
+          <Image
+            src={Cart}
+            alt="cart"
+            className="cart w-[30px] h-[30px] object-contain transition hover:-translate-y-2"
+            onMouseEnter={() => setcart(true)}
+          />
+          {children}
+        </div>
 
         <Image
           src={Profile}
           alt="profile"
           className="cart w-[40px] h-[40px] object-contain transition hover:-translate-y-2"
-          onMouseEnter={() =>
-            session.status === "authenticated" && setprofile(true)
-          }
-          onClick={() =>
-            session.status === "unauthenticated" && router.push("/account")
-          }
+          onMouseEnter={() => session && setprofile(true)}
+          onClick={() => !session && router.push("/account")}
         />
       </div>
       {profile && <AccountMenu setProfile={setprofile} />}
@@ -129,11 +138,12 @@ const Categories_Container = (props: { setopen: any }) => {
           </h3>
           <div className="category_subheader h-full grid row-span-3 gap-y-5 pt-7 font-normal text-center">
             {i.subcategories.map((sub) => (
-              <Link href={`/product/${i.id}/${sub.id}`} scroll={true}>
-                <h4 key={sub.id} className="subcategory">
-                  {" "}
-                  {sub.name}{" "}
-                </h4>
+              <Link
+                key={sub.id}
+                href={`/product/${i.id}/${sub.id}`}
+                scroll={true}
+              >
+                <h4 className="subcategory"> {sub.name} </h4>
               </Link>
             ))}
           </div>
@@ -142,13 +152,8 @@ const Categories_Container = (props: { setopen: any }) => {
     </div>
   );
 };
-export function DashboordNavBar() {
+export function DashboordNavBar({ session }: { session?: Sessiontype }) {
   const route = usePathname();
-  const session: any = useSession();
-  const [data, setdata] = useState<any>(null);
-  useEffect(() => {
-    setdata(session.data?.user as unknown as Sessiontype);
-  }, []);
 
   return (
     <nav className="dashboardNav__container flex flex-row w-full items-center justify-evenly bg-[#F3F3F3] h-[70px]">
@@ -165,15 +170,12 @@ export function DashboordNavBar() {
         <h1
           className={`navlink ${
             route === "/dashboard/order" ? "activelink" : ""
-          } text-lg font-bold bg-white w-[150px] p-2 transition text-center rounded-md`}
+          } text-lg font-bold bg-white w-fit p-2 transition text-center rounded-md`}
         >
-          My Order
+          {session?.role === "ADMIN" ? "Order Mangement" : "My Order"}
         </h1>
       </Link>
-      <Link
-        hidden={session.data?.user?.role !== "ADMIN"}
-        href={"/dashboard/products"}
-      >
+      <Link hidden={session?.role !== "ADMIN"} href={"/dashboard/products"}>
         <h1
           className={`navlink ${
             route === "/dashboard/products" ? "activelink" : ""
@@ -183,7 +185,7 @@ export function DashboordNavBar() {
         </h1>
       </Link>
       <Link
-        hidden={session.data?.user?.role !== "ADMIN"}
+        hidden={session?.role !== "ADMIN"}
         href={"/dashboard/usermanagement"}
       >
         <h1
@@ -207,6 +209,9 @@ interface Subinventorymenuprops {
   index?: number;
   style?: CSSProperties;
   ref?: MutableRefObject<HTMLDivElement | null>;
+  stock?: number;
+  stocktype?: string;
+  stockaction?: () => void;
 }
 enum actiontype {
   EDIT = "Edit",
@@ -215,8 +220,14 @@ enum actiontype {
 }
 
 export const SubInventoryMenu = (props: Subinventorymenuprops) => {
-  const { openmodal, setopenmodal, setglobalindex, setalldata } =
-    useGlobalContext();
+  const {
+    openmodal,
+    setopenmodal,
+    setglobalindex,
+    setproduct,
+    setbanner,
+    setpromotion,
+  } = useGlobalContext();
 
   const handleClick = (obj: { value: string; opencon: string }) => {
     const index = props.index as number;
@@ -237,9 +248,10 @@ export const SubInventoryMenu = (props: Subinventorymenuprops) => {
         }));
 
         setopenmodal({ ...openmodal, [obj.opencon as string]: true });
-      } else if (obj.value === actiontype.STOCK) {
-        setglobalindex((prev) => ({ ...prev, producteditindex: index }));
-        setopenmodal({ ...openmodal, [obj.opencon as string]: true });
+      } else if (obj.value === actiontype.STOCK && props.stockaction) {
+        props.stocktype?.includes("stock") &&
+          setproduct((prev) => ({ ...prev, stock: props.stock }));
+        props.stockaction();
       } else {
         setopenmodal((prev) => ({
           ...prev,
@@ -252,6 +264,16 @@ export const SubInventoryMenu = (props: Subinventorymenuprops) => {
         }));
       }
     } else {
+      if (obj.opencon === "createProduct") {
+        setproduct(Productinitailizestate);
+        setglobalindex((prev) => ({ ...prev, producteditindex: -1 }));
+      } else if (obj.opencon === "createBanner") {
+        setglobalindex((prev) => ({ ...prev, bannereditindex: -1 }));
+        setbanner(BannerInitialize);
+      } else if (obj.opencon === "createPromotion") {
+        setpromotion(PromotionInitialize);
+        setglobalindex((prev) => ({ ...prev, promotioneditindex: -1 }));
+      }
       setopenmodal({ ...openmodal, [obj.opencon as string]: true });
     }
   };

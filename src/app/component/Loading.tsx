@@ -1,6 +1,7 @@
 import { toast } from "react-toastify";
 import "../globals.css";
 import { CSSProperties } from "react";
+import Modal from "./Modals";
 export default function LoadingIcon({ style }: { style?: CSSProperties }) {
   return (
     <div
@@ -20,9 +21,12 @@ export default function LoadingIcon({ style }: { style?: CSSProperties }) {
 export const LoadingLogo = () => {
   return <div></div>;
 };
-export const LoadingText = () => {
+export const LoadingText = ({ style }: { style?: CSSProperties }) => {
   return (
-    <div className="textloading w-full h-full p-2 absolute top-[45%] left-[47%] z-[100] animate-pulse">
+    <div
+      style={style}
+      className="textloading w-full h-full p-2 absolute top-[45%] left-[47%] z-[100] animate-pulse"
+    >
       <h1 className="loading text-xl font-bold">Loading...</h1>
     </div>
   );
@@ -63,4 +67,25 @@ export const infoToast = (message: string) => {
     position: "top-center",
     theme: "dark",
   });
+};
+
+export const ContainerLoading = () => {
+  return (
+    <Modal
+      closestate="none"
+      customheight="300px"
+      customwidth="280px"
+      customZIndex={200}
+    >
+      <div className="loading_contianer w-full h-full bg-white rounded-lg p-5 grid place-content-center relative">
+        <div className="loadingio-spinner-double-ring-op62hjn5ktc relative left-[16%] top-[10%]">
+          <div className="ldio-jhvhak8eufc">
+            <div></div>
+            <div></div>
+            <div></div>
+          </div>
+        </div>
+      </div>
+    </Modal>
+  );
 };

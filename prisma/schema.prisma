@@ -16,6 +16,11 @@ enum Role {
   EDITOR
 }
 
+enum Imagetemptype {
+  COVER
+  BANNER
+}
+
 model User {
   id          String        @id @default(uuid())
   firstname   String
@@ -34,19 +39,22 @@ model User {
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
   addresses   Address[]
+  Orders      Orders[]
 }
 
 model Address {
   id         Int      @id @default(autoincrement())
+  street     String?
   houseId    String
   province   String
   district   String
   songkhat   String
   postalcode String
-  userId     String
-  user       User     @relation(fields: [userId], references: [id])
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+  Orders     Orders[]
 }
 
 model Usersession {
@@ -76,9 +84,10 @@ model Childcategories {
 model Products {
   id                Int              @id @default(autoincrement())
   name              String
-  price             Decimal          @default(0.00)
+  price             Float            @default(0.00)
   description       String           @default("")
-  stock             Int              @default(0)
+  stocktype         String           @default("stock")
+  stock             Int?
   covers            Productcover[]
   details           Info[]
   parentcategory_id Int
@@ -87,7 +96,7 @@ model Products {
   review_id         Int?
   reviews           Reviews[]
   promotion_id      Int?
-  discount          Decimal?
+  discount          Float?
   promotion         Promotion?       @relation(fields: [promotion_id], references: [id], onDelete: SetNull)
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt
@@ -95,7 +104,13 @@ model Products {
   userId            String?
   parentcateogries  Parentcategories @relation(fields: [parentcategory_id], references: [id])
   childcategories   Childcategories? @relation(fields: [childcategory_id], references: [id])
-  Orderproduct      Orderproduct[]
+
+  Variant      Variant[]
+  Stock        Stock[]
+  Orderproduct Orderproduct[]
+
+  relatedproductId Int?
+  relatedproduct   Producttype? @relation(fields: [relatedproductId], references: [id])
 }
 
 model Productcover {
@@ -108,26 +123,43 @@ model Productcover {
   productId Int
 }
 
+model Tempimage {
+  id   Int    @id @default(autoincrement())
+  name String
+}
+
+model Producttype {
+  id        Int  @id @default(autoincrement())
+  productId Json
+
+  Products Products[]
+}
+
 model Orders {
-  id           Int            @id @default(autoincrement())
+  id           String         @id @default(uuid())
   buyer_id     String
-  quantity     Int
   status       String
+  estimate     DateTime?
+  price        Json
+  shippingtype String         @default("Normal")
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
+  shipping_id  Int?
+  shipping     Address?       @relation(fields: [shipping_id], references: [id])
+  user         User           @relation(fields: [buyer_id], references: [id])
   Orderproduct Orderproduct[]
 }
 
 model Orderproduct {
   id        Int      @id @default(autoincrement())
   productId Int
-  orderId   Int
-  qunatity  Int
+  user_id   String
+  status    String   @default("incart")
+  quantity  Int
   details   Json
+  orderId   String?
+  order     Orders?  @relation(fields: [orderId], references: [id])
   product   Products @relation(fields: [productId], references: [id])
-  order     Orders   @relation(fields: [orderId], references: [id])
-
-  @@unique([productId, orderId])
 }
 
 model Reviews {
@@ -196,4 +228,53 @@ model Info {
   product    Products? @relation(fields: [product_id], references: [id])
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
+}
+
+model Variant {
+  id           Int       @id @default(autoincrement())
+  product_id   Int?
+  product      Products? @relation(fields: [product_id], references: [id])
+  option_title String
+  option_type  String
+  option_value String[]
+
+  @@unique([option_title, option_value])
+  @@map("variant")
+}
+
+model Stock {
+  id         Int      @id @default(autoincrement())
+  product_id Int
+  product    Products @relation(fields: [product_id], references: [id])
+  qty        Int
+
+  variant_val String[]
+
+  @@map("stock")
+}
+
+model Question {
+  id        Int      @id @default(autoincrement())
+  question  String
+  answer    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Policy {
+  id        Int         @id @default(autoincrement())
+  title     String
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  Paragraph Paragraph[]
+}
+
+model Paragraph {
+  id        Int      @id @default(autoincrement())
+  policyId  Int
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  policy Policy @relation(fields: [policyId], references: [id], onDelete: Cascade)
 }

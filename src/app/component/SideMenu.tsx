@@ -1,11 +1,11 @@
 "use client";
 import Image, { StaticImageData } from "next/image";
-import DefaultProfile from "../Asset/Image/profile.svg";
+import DefaultProfile from "../../../public/Image/profile.svg";
 import PrimaryButton, { Selection } from "./Button";
 import { ChangeEvent, SetStateAction, useEffect, useState } from "react";
 import { SecondayCard } from "./Card";
 import { signOut } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Modal from "./Modals";
 import {
   BannerInitialize,
@@ -13,15 +13,19 @@ import {
   FiltervalueInitialize,
   Productinitailizestate,
   PromotionInitialize,
-  SpecificAccess,
   useGlobalContext,
 } from "@/src/context/GlobalContext";
 import { ApiRequest } from "@/src/context/CustomHook";
-import { errorToast, successToast } from "./Loading";
+import { LoadingText, errorToast, successToast } from "./Loading";
+import { motion } from "framer-motion";
 
 import { DateTimePicker } from "@mui/x-date-pickers";
 import dayjs from "dayjs";
 import { ToggleSelect } from "./ToggleMenu";
+import { Deletecart, Getcarts } from "../product/detail/[id]/action";
+import { Productordertype, totalpricetype } from "@/src/context/OrderContext";
+import { Createorder } from "../checkout/action";
+
 interface accountmenuprops {
   setProfile: (value: SetStateAction<boolean>) => void;
 }
@@ -86,6 +90,81 @@ interface cardmenuprops {
 }
 
 export function CartMenu(props: cardmenuprops) {
+  const router = useRouter();
+  const searchparams = useSearchParams();
+  const [cartItem, setitem] = useState<Array<Productordertype> | []>([]);
+  const [loading, setloading] = useState({
+    fetch: true,
+    checkout: false,
+  });
+
+  const [totalprice, settotal] = useState<totalpricetype | undefined>(
+    undefined
+  );
+
+  useEffect(() => {
+    const fetchcart = async () => {
+      const carts = await Getcarts();
+      setloading((prev) => ({ ...prev, fetch: false }));
+
+      settotal(carts.total);
+
+      setitem(carts.data);
+
+      console.log(carts);
+    };
+
+    fetchcart();
+  }, []);
+
+  const removecart = async (id: number, idx: number) => {
+    const deletereq = Deletecart.bind(null, id);
+    const makereq = await deletereq();
+    if (!makereq.success) {
+      errorToast("Can't delete cart");
+      return;
+    }
+    let updatecart = [...cartItem];
+
+    updatecart.splice(idx, 1);
+    settotal(makereq.total);
+    setitem(updatecart);
+    router.refresh();
+  };
+
+  const subprice = totalprice
+    ? parseFloat(totalprice.subtotal.toString()).toFixed(2)
+    : `0.00`;
+
+  const handleCheckout = async () => {
+    const params = new URLSearchParams(searchparams);
+    let orderId = "";
+
+    if (!cartItem || cartItem.length === 0) {
+      errorToast("No items in cart");
+      return;
+    }
+
+    if (totalprice && cartItem.length !== 0) {
+      const cartitem_id = cartItem.map((i) => i.id);
+      const makereq = Createorder.bind(null, {
+        price: totalprice,
+        incartProduct: cartitem_id,
+      });
+      setloading((prev) => ({ ...prev, checkout: true }));
+      const createOrder = await makereq();
+      setloading((prev) => ({ ...prev, checkout: false }));
+      if (!createOrder.success) {
+        errorToast("Error Occured");
+        return;
+      }
+      orderId = createOrder.data.orderId;
+
+      params.set("orderid", createOrder.data.encrypt ?? "");
+      params.set("step", "1");
+      router.push(`/checkout?${params.toString()}`);
+    }
+  };
   return (
     <aside
       onMouseEnter={() => (document.body.style.overflow = "hidden")}
@@ -93,32 +172,53 @@ export function CartMenu(props: cardmenuprops) {
         document.body.style.overflow = "auto";
         props.setcart(false);
       }}
-      className="Cart__Sidemenu fixed h-full w-[fit] right-0 bg-white z-40 flex flex-col items-center gap-y-5"
+      className="Cart__Sidemenu fixed h-full w-[700px] right-0 bg-white z-40 flex flex-col items-center gap-y-5 pb-2"
     >
       <h1 className="heading text-xl font-bold text-center w-full">
-        Shopping Cart <span>( 2 items )</span>
+        Shopping Cart <span>( {cartItem?.length} item )</span>
       </h1>
-      <div className="card_container flex flex-col w-[95%] gap-y-5 max-h-[75vh] overflow-y-auto">
-        <SecondayCard img={props.img} />
-        <SecondayCard img={props.img} />
-        <SecondayCard img={props.img} />
+      <div className="card_container flex flex-col w-[95%] gap-y-5 h-full max-h-[75vh] overflow-y-auto">
+        {loading.fetch && <LoadingText style={{ left: "40%" }} />}
+        {(!cartItem || cartItem.length === 0) && (
+          <h3 className="text-xl font-bold text-red-500 w-full h-fit text-center">
+            No items
+          </h3>
+        )}
+        {cartItem?.map((i, idx) => {
+          return (
+            <SecondayCard
+              key={i.id}
+              id={i.id}
+              img={
+                i.product?.covers.length !== 0
+                  ? (i.product?.covers[0].url as string)
+                  : props.img
+              }
+              name={i.product?.name ?? ""}
+              maxqty={i.maxqty}
+              selectedqty={i.quantity}
+              selecteddetail={i.details.filter((i) => i)}
+              price={i.price}
+              removecart={() => removecart(i.id, idx)}
+              settotal={settotal}
+            />
+          );
+        })}
       </div>
-      <div className="totalprice w-[90%] text-left font-medium">
-        <h5 className="text-lg">Subtotal: </h5>
-        <h5
-          className="textprice text-sm font-medium
-      "
-        >
-          Shipping:{" "}
-        </h5>
+      <div className="totalprice w-[90%] text-left font-medium flex flex-col gap-y-3">
+        <h5 className="text-lg text-[15px]">Subtotal: {`$${subprice}`} </h5>
+        <h5 className="textprice text-[15px]">Shipping: </h5>
         <h3 className="text-xl font-bold">Total: </h3>
       </div>
       <PrimaryButton
         type="button"
         text="Check Out"
-        width="80%"
+        onClick={() => handleCheckout()}
+        disable={cartItem?.length === 0}
+        width="90%"
         height="50px"
         radius="10px"
+        status={loading.checkout ? "loading" : "authenticated"}
       />
     </aside>
   );
@@ -196,7 +296,12 @@ export const ConfirmModal = () => {
         setbanner(BannerInitialize);
       }
       setproduct(Productinitailizestate);
-      setglobalindex({ ...globalindex, producteditindex: -1 });
+      setglobalindex({
+        ...globalindex,
+        producteditindex: -1,
+        bannereditindex: -1,
+      });
+
       setopenmodal({
         ...openmodal,
         [openmodal.confirmmodal.closecon]: false,
@@ -230,21 +335,22 @@ export const ConfirmModal = () => {
         ? "/api/banner"
         : type === "promotion"
         ? "/api/promotion"
-        : "/api/auth/users";
+        : "/api/users";
 
     if (confirm) {
       if (type === "promotioncancel") {
         setpromotion(PromotionInitialize);
-        globalindex.promotioneditindex === -1 && setinventoryfilter("product");
+        setinventoryfilter("promotion");
+        setglobalindex((prev) => ({ ...prev, promotioneditindex: -1 }));
         setopenmodal((prev) => ({ ...prev, createPromotion: false }));
       } else {
-        const id = itemlist[index as number]?.id ?? 0;
+        const idx = itemlist.find((i: any) => i.id === index);
         const deleteRequest = await ApiRequest(
           URL,
           setisLoading,
           "DELETE",
           "JSON",
-          { id }
+          { id: index }
         );
 
         if (!deleteRequest.success) {
@@ -252,7 +358,7 @@ export const ConfirmModal = () => {
           return;
         }
 
-        itemlist.splice(index as number, 1);
+        itemlist.splice(idx as number, 1);
 
         setalldata((prev) => ({ ...prev, [type as string]: itemlist }));
         if (type === "user") {
@@ -290,7 +396,7 @@ export const ConfirmModal = () => {
             type="button"
             text="Yes"
             radius="10px"
-            status={SpecificAccess(isLoading) ? "loading" : "authenticated"}
+            status={isLoading.DELETE ? "loading" : "authenticated"}
             onClick={() =>
               openmodal.confirmmodal.type
                 ? handleConfirmDelete(true)
@@ -307,7 +413,7 @@ export const ConfirmModal = () => {
                 : handleConfirm(false)
             }
             radius="10px"
-            disable={SpecificAccess(isLoading)}
+            disable={isLoading.DELETE}
             color="#F08080"
           />
         </div>
@@ -325,8 +431,6 @@ export const FilterMenu = ({
   totalproduct?: number;
 }) => {
   const {
-    isLoading,
-    setisLoading,
     allData,
     setalldata,
     subcate,
@@ -348,10 +452,11 @@ export const FilterMenu = ({
   const [filterdata, setdata] = useState<{
     size?: Array<String>;
     color?: Array<String>;
+    text?: Array<String>;
   }>({});
 
   const fetchcate = async () => {
-    const categories = await ApiRequest("/api/categories", setisLoading, "GET");
+    const categories = await ApiRequest("/api/categories", undefined, "GET");
     if (!categories.success) {
       errorToast("Error Connection");
       return;
@@ -374,7 +479,7 @@ export const FilterMenu = ({
 
       if (!isFilter) {
         Allfilterdata.push({
-          page: inventoryfilter,
+          page: inventoryfilter as any,
           filter: filtervalue,
         });
       } else {
@@ -382,7 +487,7 @@ export const FilterMenu = ({
           type ? i.page === type : i.page === inventoryfilter
         );
         Allfilterdata[idx] = {
-          page: type ? type : inventoryfilter,
+          page: type ? type : (inventoryfilter as any),
           filter: filtervalue,
         };
       }
@@ -430,6 +535,7 @@ export const FilterMenu = ({
       setlistprodfil({
         color: [],
         size: [],
+        text: [],
       });
     }
   };
@@ -439,7 +545,12 @@ export const FilterMenu = ({
       customheight="fit-content"
       closestate={selectdate ? "discount" : "filteroption"}
     >
-      <div className="filtermenu w-[50vw] h-fit bg-white p-5 rounded-md flex flex-col justify-center gap-y-5">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="filtermenu w-[50vw] h-fit bg-white p-5 rounded-md flex flex-col justify-center gap-y-5"
+      >
         <input
           type="text"
           name="name"
@@ -451,22 +562,30 @@ export const FilterMenu = ({
           className="search w-full pl-2 h-[50px] rounded-md border border-gray-300"
           hidden={type === "listproduct"}
         />
-        {type === "listproduct" && (filterdata.color || filterdata.size) && (
-          <>
-            <ToggleSelect
-              type="size"
-              title="Size"
-              data={filterdata.size as string[]}
-            />
-            {filterdata.color && filterdata.color.length > 0 && (
-              <ToggleSelect
-                type="color"
-                title="Color"
-                data={filterdata.color?.filter((i) => i.length > 0) as string[]}
-              />
-            )}
-          </>
-        )}
+        {type === "listproduct" &&
+          (filterdata.color || filterdata.size || filterdata.text) && (
+            <>
+              {filterdata.size && filterdata.size.length !== 0 && (
+                <ToggleSelect type="size" title="Size" data={filterdata.size} />
+              )}
+              {filterdata.color && filterdata.color.length > 0 && (
+                <ToggleSelect
+                  type="color"
+                  title="Color"
+                  data={
+                    filterdata.color?.filter((i) => i.length > 0) as string[]
+                  }
+                />
+              )}
+              {filterdata.text && filterdata.text.length !== 0 && (
+                <ToggleSelect
+                  type="text"
+                  title="Other"
+                  data={filterdata.text}
+                />
+              )}
+            </>
+          )}
         {type === "usermanagement" && (
           <input
             type="text"
@@ -545,7 +664,6 @@ export const FilterMenu = ({
             type="button"
             onClick={() => handleFilter()}
             text="Filter"
-            status={SpecificAccess(isLoading) ? "loading" : "authenticated"}
             radius="10px"
             width="100%"
           />
@@ -577,7 +695,7 @@ export const FilterMenu = ({
           radius="10px"
           width="100%"
         />
-      </div>
+      </motion.div>
     </Modal>
   );
 };

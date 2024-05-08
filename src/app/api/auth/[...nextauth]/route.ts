@@ -10,13 +10,14 @@ import {
 } from "@/src/lib/utilities";
 import { Role } from "@prisma/client";
 import { signOut } from "next-auth/react";
+import Prisma from "@/src/lib/prisma";
 export const authOptions: NextAuthOptions = {
   pages: {
     signIn: "../../../account/page.tsx",
   },
   session: {
     strategy: "jwt",
-    maxAge: 60 * 60 * 24,
+    maxAge: 60 * 60 * 48,
   },
 
   providers: [
@@ -71,7 +72,17 @@ export const authOptions: NextAuthOptions = {
     },
 
     async jwt(params): Promise<any> {
-      let modifiedtoken: any = { ...params.token, ...params.user };
+      const uid = params.token?.sub;
+
+      const getRole = await Prisma.user.findUnique({
+        where: { id: uid },
+        select: { role: true },
+      });
+
+      let modifiedtoken = {
+        ...params.token,
+        ...{ ...params.user, role: getRole?.role },
+      };
 
       return modifiedtoken;
     },
@@ -91,6 +102,7 @@ export const authOptions: NextAuthOptions = {
         }
 
         params.session.user = { ...modifieddata };
+
         return params.session;
       }
       await signOut();

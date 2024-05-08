@@ -2,9 +2,12 @@ import { PromotionState } from "@/src/context/GlobalContext";
 import Prisma from "@/src/lib/prisma";
 import { NextRequest } from "next/server";
 import { extractQueryParams } from "../banner/route";
-import { calculatePagination } from "@/src/lib/utilities";
+import {
+  caculateArrayPagination,
+  calculatePagination,
+} from "@/src/lib/utilities";
 import { revalidateTag } from "next/cache";
-import dayjs from "dayjs";
+import dayjs, { Dayjs } from "dayjs";
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,94 +21,116 @@ export async function POST(request: NextRequest) {
     if (isExist) {
       return Response.json({ message: "Promotion Exist" }, { status: 500 });
     }
-    const products = await Prisma.products.findMany({
-      where: { id: { in: promodata.Products.map((i) => i.id) } },
-    });
-    if (products.length === 0) {
-      return Response.json({ message: "No Product Found" }, { status: 500 });
-    }
-
     const create = await Prisma.promotion.create({
       data: {
         name: promodata.name,
         description: promodata.description,
         banner_id: promodata.banner_id,
-        expireAt: new Date(promodata.expiredAt.toString()),
+        expireAt: new Date(promodata.expireAt.toString()),
       },
     });
-    const updateproduct = await Promise.all(
-      promodata.Products.map((i) =>
+
+    if (!create) {
+      return Response.json({ message: "Error Occured" }, { status: 500 });
+    }
+
+    //update product
+    await Promise.all(
+      promodata.Products.filter((i) => i.id !== 0).map((i) =>
         Prisma.products.update({
           where: { id: i.id },
           data: {
-            discount: parseInt(i.discount?.percent as string) / 100,
             promotion_id: create.id,
           },
         })
       )
     );
 
-    if (!updateproduct && create) {
-      return Response.json({ message: "Error Occured" }, { status: 500 });
-    }
     revalidateTag("promotion");
     return Response.json({ data: { id: create.id } }, { status: 200 });
   } catch (error) {
     console.log("Create Promotion", error);
     return Response.json({ message: "Error Occured" }, { status: 500 });
-  } finally {
-    await Prisma.$disconnect();
   }
 }
 
+interface extendedPromotionState extends PromotionState {
+  pid?: number;
+}
 export async function PUT(request: NextRequest) {
   try {
-    const updatedata: PromotionState = await request.json();
+    const updatedata: extendedPromotionState = await request.json();
 
-    if (updatedata.type === "edit") {
-      // Get the existing promotion data
-      const existingPromotion = await Prisma.promotion.findUnique({
+    const existingPromotion =
+      updatedata.id &&
+      (await Prisma.promotion.findUnique({
         where: { id: updatedata.id },
-      });
+      }));
 
-      // Check if data has changed before updating
-      if (existingPromotion) {
-        const hasChanges =
-          existingPromotion.name !== updatedata.name ||
+    const hasChanges = () => {
+      return (
+        existingPromotion &&
+        (existingPromotion.name !== updatedata.name ||
           existingPromotion.description !== updatedata.description ||
           existingPromotion.expireAt !==
-            new Date(updatedata.expiredAt.toString());
+            new Date(updatedata.expireAt.toString()))
+      );
+    };
 
-        if (hasChanges) {
-          // Perform the update only if there are changes
-          await Prisma.promotion.update({
-            where: {
-              id: updatedata.id,
-            },
-            data: {
-              name: updatedata.name,
-              description: updatedata.description,
-              expireAt: updatedata.expiredAt as unknown as Date,
-            },
-          });
-        }
-      }
+    const updatePromotion = async () => {
+      await Prisma.promotion.update({
+        where: { id: updatedata.id },
+        data: {
+          name: updatedata.name,
+          description: updatedata.description,
+          expireAt: updatedata.expireAt as unknown as Date,
+        },
+      });
+    };
+
+    if (updatedata.type === "edit" && hasChanges()) {
+      await updatePromotion();
     } else if (updatedata.type === "banner") {
       const existingBanner = await Prisma.promotion.findUnique({
         where: { id: updatedata.id },
       });
 
-      if (existingBanner) {
-        const haschange = existingBanner.banner_id !== updatedata.banner_id;
-        if (haschange) {
-          await Prisma.promotion.update({
-            where: { id: updatedata.id },
-            data: { banner_id: updatedata.banner_id },
-          });
-        }
+      if (existingBanner && existingBanner.banner_id !== updatedata.banner_id) {
+        await Prisma.promotion.update({
+          where: { id: updatedata.id },
+          data: { banner_id: updatedata.banner_id },
+        });
       }
-    } else {
-      // Delete discount of products
+    } else if (updatedata.type === "editproducts") {
+      await Promise.all(
+        updatedata.Products.map((i) =>
+          Prisma.products.updateMany({
+            where: { id: i.id },
+            data: {
+              promotion_id: updatedata.id === -1 ? null : updatedata.id,
+              discount: i.discount?.percent,
+            },
+          })
+        )
+      );
+    } else if (updatedata.type === "cancelproduct") {
+      await Prisma.products.updateMany({
+        where: {
+          promotion_id: null,
+        },
+        data: {
+          discount: null,
+        },
+      });
+    } else if (updatedata.type === "removediscount") {
+      await Prisma.products.update({
+        where: { id: updatedata.pid },
+        data: {
+          discount: null,
+          promotion_id: null,
+        },
+      });
+    } else if (updatedata.type === "product") {
       updatedata.tempproduct &&
         (await Promise.all(
           updatedata.tempproduct.map((i) =>
@@ -118,15 +143,13 @@ export async function PUT(request: NextRequest) {
             })
           )
         ));
-
-      // Update product discount only if there are changes
       await Promise.all(
         updatedata.Products.map((i) =>
-          Prisma.products.update({
+          Prisma.products.updateMany({
             where: { id: i.id },
             data: {
-              promotion_id: updatedata.id,
-              discount: parseInt(i.discount?.percent ?? "") / 100,
+              promotion_id: updatedata.id === -1 ? null : updatedata.id,
+              discount: i.discount?.percent,
             },
           })
         )
@@ -137,10 +160,8 @@ export async function PUT(request: NextRequest) {
     revalidateTag("product");
     return Response.json({ message: "Update Successfully" }, { status: 200 });
   } catch (error) {
-    console.log("Edit Promotion", error);
+    console.error("Edit Promotion", error);
     return Response.json({ message: "Editing Failed" }, { status: 500 });
-  } finally {
-    await Prisma.$disconnect();
   }
 }
 
@@ -166,8 +187,6 @@ export async function DELETE(request: NextRequest) {
   } catch (error) {
     console.log("Delete Promotion", error);
     return Response.json({ message: "Deletion Failed" }, { status: 500 });
-  } finally {
-    await Prisma.$disconnect();
   }
 }
 
@@ -238,6 +257,41 @@ export async function GET(request: NextRequest) {
           banner: true,
         },
       });
+    } else if (param.ty === "filter") {
+      let allpromo = await Prisma.promotion.findMany({
+        select: {
+          id: true,
+          name: true,
+          banner: true,
+          expireAt: true,
+        },
+      });
+      const compareDatesIgnoringSeconds = (date1: Dayjs, date2: Dayjs) => {
+        const formattedDate1 = date1.format("YYYY-MM-DD HH:mm");
+        const formattedDate2 = date2.format("YYYY-MM-DD HH:mm");
+
+        const isSameDateTime = formattedDate1 === formattedDate2;
+
+        return isSameDateTime;
+      };
+      allpromo = allpromo.filter((promo) => {
+        const matchName =
+          param.q &&
+          promo.name
+            .toLowerCase()
+            .includes(decodeURIComponent(param.q).toLowerCase());
+
+        const matchExpiredDate = compareDatesIgnoringSeconds(
+          dayjs(param.exp),
+          dayjs(promo.expireAt)
+        );
+
+        return param.exp && param.q
+          ? matchName && matchExpiredDate
+          : matchName || matchExpiredDate;
+      });
+
+      modified = caculateArrayPagination(allpromo, param.p ?? 1, param.lt ?? 1);
     } else {
       const promotion = await Prisma.promotion.findUnique({
         where: {
@@ -248,7 +302,7 @@ export async function GET(request: NextRequest) {
       if (promotion) {
         const modifiedProducts = promotion.Products.map((j) => {
           const price = parseFloat(j.price.toString());
-          const discount = parseFloat(j.discount?.toString() as string) * 100;
+          const discount = parseFloat(j.discount?.toString() as string);
 
           return {
             ...j,
@@ -262,7 +316,6 @@ export async function GET(request: NextRequest) {
 
         modified = {
           ...promotion,
-          expiredAt: promotion.expireAt,
 
           Products: modifiedProducts,
         };
@@ -278,7 +331,5 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.log("Get Promotion", error);
     return Response.json({ message: "Failed To Fetch" }, { status: 500 });
-  } finally {
-    await Prisma.$disconnect();
   }
 }

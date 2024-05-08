@@ -1,9 +1,10 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
 :root {
   width: 100%;
+  overflow-x: hidden;
 }
 .Home__Container {
   .second_section {
@@ -78,7 +79,7 @@
 }
 .select__container {
   select {
-    background-image: url("./Asset/Image/Arrow_down.svg");
+    background-image: url("../../public/Image/Arrow_down.svg");
     background-repeat: no-repeat;
     background-position: center right;
     background-size: 22px;

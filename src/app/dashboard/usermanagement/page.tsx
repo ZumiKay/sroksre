@@ -44,7 +44,7 @@ export default function UsermanagementPage() {
 
     const { name, email, page } =
       allfiltervalue.find((i) => i.page === "usermanagement")?.filter ?? {};
-    const URL = `/api/auth/users?${name || email ? `ty="filter"` : `ty=all`}${
+    const URL = `/api/users?${name || email ? `ty="filter"` : `ty=all`}${
       name ? `&n=${name}` : ""
     }${email ? `&e=${email}` : ""}${`&p=${page ?? 1}`}${`&lt=${showperpage}`}`;
     const user = await ApiRequest(URL, setisLoading, "GET");
@@ -95,7 +95,7 @@ export default function UsermanagementPage() {
             firstname={i.firstname}
             lastname={i.lastname ?? ""}
             email={i.email}
-            uid={i.id ?? 0}
+            uid={i.id ?? "0"}
           />
         ))}
       </div>

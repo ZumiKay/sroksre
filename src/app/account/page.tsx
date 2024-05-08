@@ -6,15 +6,14 @@ import { Checkbox, FormControlLabel } from "@mui/material";
 import { signIn } from "next-auth/react";
 
 import { postRequest } from "@/src/lib/utilities";
-import { errorToast, infoToast, successToast } from "../component/Loading";
+import { errorToast, successToast } from "../component/Loading";
 import { useRouter } from "next/navigation";
 
-import {
-  SpecificAccess,
-  useGlobalContext,
-  userdata,
-} from "@/src/context/GlobalContext";
+import { useGlobalContext, userdata } from "@/src/context/GlobalContext";
 import { ApiRequest } from "@/src/context/CustomHook";
+import ReactDOMServer from "react-dom/server";
+import { CredentialEmail } from "../component/EmailTemplate";
+import { SendVfyEmail } from "./actions";
 
 export default function AuthenticatePage() {
   const { setisLoading, isLoading } = useGlobalContext();
@@ -35,7 +34,12 @@ export default function AuthenticatePage() {
   const handleSumbit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (type === "login") {
+      if (!data.email || !data.password) {
+        errorToast("Fill in the required information ");
+        return;
+      }
       setloading("loading");
+
       await signIn("credentials", {
         email: data.email,
         password: data.password,
@@ -83,23 +87,43 @@ export default function AuthenticatePage() {
     setdata({ ...data, [name]: name === "agreement" ? checked : value });
   };
   const handleConfirm = async (types: "email" | "cid") => {
-    const URL = `/api/auth/users/vfy${
-      types === "cid" ? `?cid=${data.cid}` : ""
-    }`;
+    const URL = `/api/users/vfy${types === "cid" ? `?cid=${data.cid}` : ""}`;
+    setloading("loading");
+    if (!data.email) {
+      errorToast("Email Required");
+      return;
+    }
+
     const verifyreq = await ApiRequest(
       URL,
-      setisLoading,
+      undefined,
       types === "email" ? "POST" : "GET",
       "JSON",
       types === "email"
         ? type === "register"
-          ? { email: data.email }
+          ? { email: data.email, type }
           : { email: data.email, type: type }
-        : undefined,
+        : undefined
     );
     if (verifyreq.success) {
+      const vfydata = verifyreq.data;
+      const template = ReactDOMServer.renderToString(
+        <CredentialEmail {...vfydata} />
+      );
+      const sendemail = SendVfyEmail.bind(
+        null,
+        template,
+        data.email,
+        `${type === "register" ? "Email Verification" : "Reset Password"}`
+      );
+      const makereq = await sendemail();
+      setloading("authenticated");
+      if (!makereq.success) {
+        errorToast("Error occured");
+        return;
+      }
       if (type === "register") {
-        setverify((prev) => ({ ...prev, [type]: true }));
+        setverify((prev) => ({ ...prev, [types]: true }));
         if (verifyreq.data) {
           setdata((prev) => ({ ...prev, id: verifyreq.data.id }));
         }
@@ -108,17 +132,17 @@ export default function AuthenticatePage() {
       setdata((prev) => ({ ...prev, email: "" }));
     } else {
       errorToast(verifyreq.error ?? "Error Occured");
-      type === "register" && setverify((prev) => ({ ...prev, [type]: false }));
+      type === "register" && setverify((prev) => ({ ...prev, [types]: false }));
     }
   };
   const handleBack = async () => {
     if (verify.email) {
       const deletecid = await ApiRequest(
-        "/api/auth/users/vfy",
+        "/api/users/vfy",
         setisLoading,
         "DELETE",
         "JSON",
-        { type: "email", email: data.email },
+        { type: "email", email: data.email }
       );
       if (!deletecid.success) {
         errorToast("Error Occured");
@@ -141,7 +165,7 @@ export default function AuthenticatePage() {
       >
         {type === "register" && (!verify.cid || !verify.email) && (
           <div className="w-[80%] flex flex-col gap-y-5">
-            {!verify.email && (
+            {!verify.email ? (
               <input
                 type="email"
                 name="email"
@@ -149,9 +173,9 @@ export default function AuthenticatePage() {
                 className="email w-full p-3 rounded-md"
                 value={data.email}
                 onChange={handleChange}
+                required
               />
-            )}
-            {verify.email && (
+            ) : (
               <input
                 type="number"
                 name="cid"
@@ -247,16 +271,12 @@ export default function AuthenticatePage() {
               ) : (
                 <PrimaryButton
                   type="button"
-                  text={"Next"}
+                  text={!verify.email ? "Next" : "Confirm"}
                   color="#3D788E"
-                  status={
-                    isLoading.POST || isLoading.GET
-                      ? "loading"
-                      : "authenticated"
-                  }
                   width="100%"
                   height="70px"
                   radius="10px"
+                  status={loading}
                   onClick={() => handleConfirm(!verify.email ? "email" : "cid")}
                 />
               )}
@@ -265,9 +285,9 @@ export default function AuthenticatePage() {
                 text="Back"
                 color="#F08080"
                 width="100%"
-                disable={SpecificAccess(isLoading)}
                 height="70px"
                 radius="10px"
+                status={isLoading.DELETE ? "loading" : "authenticated"}
                 onClick={() => handleBack()}
               />
             </div>
@@ -281,6 +301,7 @@ export default function AuthenticatePage() {
               className="email w-[80%] p-3 rounded-md"
               value={data.email}
               onChange={handleChange}
+              required
             />
             {type === "login" && (
               <>
@@ -362,7 +383,7 @@ export default function AuthenticatePage() {
                   height="70px"
                   radius="10px"
                   onClick={() => handleConfirm("email")}
-                  status={isLoading.POST ? "loading" : "authenticated"}
+                  status={loading}
                 />
                 <PrimaryButton
                   type="button"
@@ -371,7 +392,7 @@ export default function AuthenticatePage() {
                   width="80%"
                   height="70px"
                   radius="10px"
-                  disable={SpecificAccess(isLoading)}
+                  disable={loading === "loading"}
                   onClick={() => settype("login")}
                 />
               </>

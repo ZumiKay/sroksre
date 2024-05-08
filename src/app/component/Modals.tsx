@@ -9,20 +9,26 @@ import {
   useRef,
   useState,
 } from "react";
-import CloseIcon from "../Asset/Image/Close.svg";
+import CloseIcon from "../../../public/Image/Close.svg";
 
-import PrimaryButton, { InputFileUpload, Selection } from "./Button";
+import PrimaryButton, {
+  ColorSelect,
+  InputFileUpload,
+  Selection,
+} from "./Button";
 import "../globals.css";
-import ToggleMenu, { AddSubCategoryMenu } from "./ToggleMenu";
+import ToggleMenu, {
+  AddSubCategoryMenu,
+  SearchAndMultiSelect,
+} from "./ToggleMenu";
 import {
-  AllDataInitialize,
   BannerInitialize,
   CateogoryInitailizestate,
   CateogoryState,
   DefaultSize,
-  FiltervalueInitialize,
   GlobalIndexState,
   ProductState,
+  ProductStockType,
   Productinitailizestate,
   PromotionInitialize,
   SaveCheck,
@@ -31,13 +37,15 @@ import {
   UserState,
   Userinitialize,
   infovaluetype,
+  productcoverstype,
   useGlobalContext,
 } from "@/src/context/GlobalContext";
 import { INVENTORYENUM } from "../dashboard/products/page";
 import { PrimaryPhoto } from "./PhotoComponent";
 import { toast } from "react-toastify";
-import { ApiRequest, useRequest } from "@/src/context/CustomHook";
-import LoadingIcon, {
+import { ApiRequest } from "@/src/context/CustomHook";
+import {
+  ContainerLoading,
   LoadingText,
   errorToast,
   infoToast,
@@ -63,13 +71,20 @@ import {
   Editprofileaction,
   VerifyEmail,
 } from "../dashboard/action";
-import { listofprovinces } from "@/src/lib/utilities";
+import {
+  findDuplicateStockIndices,
+  listofprovinces,
+} from "@/src/lib/utilities";
 import { signOut } from "next-auth/react";
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
 import { RGBColor, SketchPicker } from "react-color";
 import tinycolor from "tinycolor2";
-import { Products } from "@prisma/client";
-import { setegid } from "process";
+
+import { Deletevairiant } from "../dashboard/products/varaint_action";
+import Cropimage from "./Cropimage";
+import Variantimg from "../../../public/Image/Variant.png";
+import Variantstockimg from "../../../public/Image/Stock.png";
+import { CloseVector } from "./Asset";
 
 export default function Modal({
   children,
@@ -78,12 +93,14 @@ export default function Modal({
   customheight,
   closestate,
   bgblur,
+  action,
 }: {
   children: ReactNode;
   customZIndex?: number;
   customwidth?: string;
   customheight?: string;
   bgblur?: boolean;
+  action?: () => void;
   closestate:
     | "createProduct"
     | "createBanner"
@@ -96,7 +113,9 @@ export default function Modal({
     | "filteroption"
     | "discount"
     | "editprofile"
-    | "none";
+    | "editsize"
+    | "none"
+    | string;
 }) {
   const ref = useRef<HTMLDivElement | null>(null);
   const { setopenmodal, setglobalindex, globalindex, setalldata } =
@@ -110,15 +129,16 @@ export default function Modal({
           !ref.current.contains(e.target as Node) &&
           closestate !== "none"
         ) {
-          setopenmodal((prev) => ({ ...prev, [closestate]: false }));
           const updateIndex = Object.fromEntries(
             Object.entries(globalindex).map(([key, _]) => [key, -1])
           ) as unknown as GlobalIndexState;
+          action && action();
           setglobalindex(updateIndex);
 
           if (closestate === "createCategory") {
             setalldata((prev) => ({ ...prev, category: [] }));
           }
+          setopenmodal((prev) => ({ ...prev, [closestate]: false }));
         }
       }}
       style={{ zIndex: customZIndex, overflowY: "auto" }}
@@ -129,13 +149,25 @@ export default function Modal({
       <div
         ref={ref}
         style={{ width: customwidth, height: customheight }}
-        className="w-1/2 h-1/2 flex justify-center items-center"
+        className="w-1/2 h-1/2 flex flex-col justify-center items-center"
       >
         {children}
       </div>
     </dialog>
   );
 }
+
+const stockTypeData = [
+  {
+    label: "Normal",
+    value: "stock",
+  },
+  {
+    label: "Variants ( Product have multiple versions)",
+    value: "variant",
+  },
+  { label: "Size", value: "size" },
+];
 
 export function CreateProducts() {
   const {
@@ -144,32 +176,37 @@ export function CreateProducts() {
     product,
     setproduct,
     allData,
-    setalldata,
     globalindex,
     setglobalindex,
     isLoading,
     setisLoading,
+    setreloaddata,
   } = useGlobalContext();
 
   const [edit, setedit] = useState({
     productdetail: false,
+    productinfo: false,
   });
-  const [stocktype, setstocktype] = useState<"stock" | "variant">("stock");
+  const detailref = useRef<HTMLDivElement>(null);
+  const [loading, setloading] = useState(true);
+  const [stocktype, setstocktype] = useState<"stock" | "variant" | "size">(
+    "stock"
+  );
   const [subcate, setsubcate] = useState<Array<SubcategoriesState>>([]);
-  const getsubcategories = (value: number) => {
-    const sub = allData.category.find((i) => i.id === value)?.subcategories;
-    return sub;
-  };
+  const [cate, setcate] = useState<Array<CateogoryState> | undefined>(
+    undefined
+  );
 
-  const fetchcate = async (product: ProductState) => {
+  const fetchcate = async (products?: ProductState) => {
     const categories = await ApiRequest("/api/categories", setisLoading, "GET");
     if (categories.success) {
-      setalldata((prev) => ({ ...prev, category: categories.data }));
-      const { parent_id } = product.category;
-      const parentid =
-        typeof parent_id === "string" ? parseInt(parent_id) : parent_id;
+      setcate(categories.data);
+      const { parent_id } = products
+        ? { ...products.category }
+        : { ...product.category };
+
       const subcates: CateogoryState = categories.data.find(
-        (i: CateogoryState) => i.id === parentid
+        (i: CateogoryState) => i.id === parent_id
       );
 
       setsubcate(subcates?.subcategories ?? []);
@@ -178,49 +215,57 @@ export function CreateProducts() {
     }
   };
   const fetchproductdata = async (id: number) => {
+    setloading(true);
     const request = await ApiRequest(
       `/api/products/ty=info_pid=${id}`,
-      setisLoading,
-      "GET"
+      undefined,
+      "GET",
+      undefined,
+      undefined,
+      "product"
     );
-    if (request.success) {
-      const data: ProductState = request.data;
-      await fetchcate(data);
-
-      const isExist = data.details.findIndex(
-        (i) => i.info_type === ("COLOR" || "TEXT")
-      );
-      if (isExist !== -1) {
-        setstocktype("variant");
-      }
-      setproduct(request.data);
-    } else {
+    if (!request.success) {
       errorToast("Connection Problem");
+      return;
     }
-  };
-  useEffect(() => {
-    setalldata(AllDataInitialize);
-    setopenmodal((prev) => ({ ...prev, loaded: false }));
 
-    globalindex.producteditindex !== -1
-      ? fetchproductdata(globalindex.producteditindex)
-      : fetchcate(product);
+    const data: ProductState = request.data;
+
+    const isExist = data.details.findIndex(
+      (i) => i.info_type === ("COLOR" || "TEXT")
+    );
+    if (isExist !== -1) {
+      setstocktype("variant");
+    }
+
+    setproduct(request.data);
+
+    await fetchcate(request.data); //fetch categories
+
+    request.data.stocktype && setstocktype(request.data.stocktype);
+  };
+
+  //Fecth Product Info
+  useEffect(() => {
+    setopenmodal((prev) => ({ ...prev, loaded: false }));
+    fetchcate();
+    globalindex.producteditindex !== -1 &&
+      fetchproductdata(globalindex.producteditindex);
+    setloading(false);
   }, []);
 
   useEffect(() => {
-    const handleReload = (e: Event) => {
-      e.preventDefault();
-      if (product.covers.length > 0 && globalindex.producteditindex === -1) {
-        const images = product.covers.map((i) => i.name);
-        localStorage.setItem("diP", JSON.stringify(images));
-      }
-    };
-    window.addEventListener("beforeunload", handleReload);
+    detailref.current &&
+      detailref.current.scrollIntoView({
+        behavior: "smooth",
+      });
+  }, [openmodal.productdetail]);
 
-    return () => {
-      window.removeEventListener("beforeunload", handleReload);
-    };
-  }, [product.covers]);
+  useMemo(() => {
+    setedit((prev) => ({ ...prev, productinfo: true }));
+  }, [product.details]);
+
+  //Method
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -228,53 +273,87 @@ export function CreateProducts() {
     const allproduct = [...allData.product];
     const URL = "/api/products/crud";
 
-    if (createdproduct.covers.length !== 0) {
-      if (globalindex.producteditindex === -1) {
-        //createproduct
-        const created = await ApiRequest(
-          URL,
-          setisLoading,
-          "POST",
-          "JSON",
-          createdproduct
-        );
-        if (!created.success) {
-          errorToast(created.error as string);
-          return;
+    const checkstock = () => {
+      let checked = true;
+      if (stocktype === ProductStockType.stock) {
+        if (
+          stocktype &&
+          createdproduct.stock &&
+          parseInt(createdproduct.stock.toString()) === 0
+        ) {
+          checked = false;
         }
-
-        allproduct.push({ ...createdproduct, id: created.data.id });
-
-        setproduct(Productinitailizestate);
-        successToast(`${product.name} Created`);
-      } else {
-        //updateProduct
-
-        const updated = await ApiRequest(
-          URL,
-          setisLoading,
-          "PUT",
-          "JSON",
-          createdproduct
-        );
-        if (!updated.success) {
-          errorToast(updated.error as string);
-          return;
+      } else if (stocktype === ProductStockType.variant) {
+        if (!createdproduct.varaintstock) {
+          checked = false;
         }
-        const idx = allproduct.findIndex(
-          (i) => i.id === globalindex.producteditindex
-        );
+      } else if (stocktype === ProductStockType.size) {
+        const size = createdproduct.details.find((i) => i.info_type === "SIZE");
+        if (size) {
+          const isZero = size.info_value.some((i: any) => i.qty <= 0);
 
-        allproduct[idx] = createdproduct;
-        successToast(`${product.name} Updated`);
+          if (isZero) {
+            checked = false;
+          }
+        }
+      }
+      return checked;
+    };
+    const checked = checkstock();
+
+    if (!checked) {
+      errorToast("Please Add Stock!");
+      return;
+    }
+
+    if (product.covers.length === 0) {
+      errorToast("Cover Image is Required");
+      return;
+    }
+
+    if (globalindex.producteditindex === -1) {
+      //createproduct
+      const created = await ApiRequest(URL, setisLoading, "POST", "JSON", {
+        createdproduct,
+      });
+      if (!created.success) {
+        errorToast(created.error as string);
+        return;
+      }
+      allproduct.push({ ...createdproduct, id: created.data.id });
+
+      setproduct(Productinitailizestate);
+      successToast(`${product.name} Created`);
+    } else {
+      //updateProduct
+
+      const updated = await ApiRequest(URL, setisLoading, "PUT", "JSON", {
+        id: createdproduct.id,
+        name: createdproduct.name,
+        description: createdproduct.description,
+        price: createdproduct.price,
+        category: createdproduct.category,
+        stocktype: createdproduct.stocktype,
+        details: createdproduct.details,
+        relatedproductid: createdproduct.relatedproductid
+          ? [
+              createdproduct.id,
+              ...(createdproduct.relatedproductid as number[]),
+            ]
+          : undefined,
+      });
+      if (!updated.success) {
+        errorToast(updated.error as string);
+        return;
       }
 
-      setopenmodal(SaveCheck(true, "createProduct", openmodal));
-      setopenmodal((prev) => ({ ...prev, loaded: true }));
-      setalldata({ ...allData, product: allproduct });
-    } else {
-      errorToast("Image Is Required");
+      successToast(`${product.name} Updated`);
     }
+
+    setopenmodal(SaveCheck(true, "createProduct", openmodal));
+    setedit((prev) => ({ ...prev, productinfo: false }));
+    setopenmodal((prev) => ({ ...prev, loaded: true }));
+    setreloaddata(true);
   };
   const IsAdded = (type: string) => {
     const isExist = product.details.findIndex((i) => i.info_type === type);
@@ -290,27 +369,66 @@ export function CreateProducts() {
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     const name = e.target.name;
+
+    // Validation for positive numbers
+    if (name === "price" && !/^\d*\.?\d{0,2}$/.test(value)) {
+      return;
+    }
+
     setproduct({
       ...product,
       [name]: value,
     });
+    setedit((prev) => ({ ...prev, productinfo: true }));
     setopenmodal(SaveCheck(false, "createProduct", openmodal));
   };
   const handleSelect = (e: ChangeEvent<HTMLSelectElement>) => {
     const { name, value } = e.target;
+
     if (name === "parent_id") {
-      const subcates = getsubcategories(parseInt(e.target.value));
+      const subcates = cate?.find(
+        (i) => i.id?.toString() === value
+      )?.subcategories;
       setsubcate(subcates ?? []);
     }
+
     setproduct({
       ...product,
-      category: { ...product.category, [name]: value },
+      category: { ...product.category, [name]: parseInt(value) },
     });
+    setedit((prev) => ({ ...prev, productinfo: true }));
     setopenmodal(SaveCheck(false, "createProduct", openmodal));
   };
-  const handleCancel = () => {
-    if (!openmodal.confirmmodal.confirm || product.covers.length > 0) {
-      setopenmodal(SaveCheck(true, "createProduct", openmodal, true));
+
+  const deleteImage = async (name: any) => {
+    const removed = await ApiRequest(
+      "/api/image",
+      undefined,
+      "DELETE",
+      "JSON",
+      { names: name }
+    );
+
+    if (!removed.success) {
+      return false;
+    }
+    return true;
+  };
+
+  const handleCancel = async () => {
+    //Remove Unsaved Image
+    if (globalindex.producteditindex === -1) {
+      const names = product.covers.map((i) => i.name);
+      if (names.length !== 0) {
+        const removedimage = await deleteImage(names);
+        if (!removedimage) {
+          errorToast("Error Occured");
+          return;
+        }
+      }
+    }
+    if (!edit.productinfo || product.covers.length > 0) {
+      setopenmodal(SaveCheck(false, "createProduct", openmodal, true));
       return;
     }
     setproduct(Productinitailizestate);
@@ -318,10 +436,14 @@ export function CreateProducts() {
     setglobalindex({ ...globalindex, producteditindex: -1 });
   };
   return (
-    <dialog
+    <motion.dialog
+      initial={{ y: 1000 }}
+      animate={{ y: 0 }}
+      exit={{ y: 1000 }}
       open={openmodal.createProduct}
       className="createProduct__container z-[100] flex items-center justify-center fixed top-0 left-0 bg-white min-h-screen h-fit w-screen"
     >
+      {(loading || isLoading.PUT || isLoading.POST) && <ContainerLoading />}
       <form
         onSubmit={handleSubmit}
         className="createform flex flex-col w-full max-h-[95vh] overflow-y-auto items-center justify-center gap-y-5"
@@ -331,7 +453,8 @@ export function CreateProducts() {
             <PrimaryPhoto
               data={product.covers}
               showcount={true}
-              style={{ height: "50vh" }}
+              style={{ height: "100%" }}
+              hover={true}
             />
             <PrimaryButton
               type="button"
@@ -340,7 +463,6 @@ export function CreateProducts() {
               onClick={() => {
                 setopenmodal({ ...openmodal, imageupload: true });
               }}
-              Icon={<i className="fa-regular fa-image text-lg text-white"></i>}
             />
           </div>
 
@@ -352,7 +474,7 @@ export function CreateProducts() {
               onChange={handleChange}
               value={product.name}
               required
-              className="w-[100%] h-[50px] text-lg pl-1 font-bold bg-[#D9D9D9] rounded-md "
+              className="w-[100%] h-[40px] text-lg pl-1 font-bold bg-[#D9D9D9] rounded-md "
             />
             <input
               type="text"
@@ -361,7 +483,7 @@ export function CreateProducts() {
               onChange={handleChange}
               value={product.description}
               required
-              className="w-[100%] h-[50px] text-lg pl-1 font-bold bg-[#D9D9D9] rounded-md "
+              className="w-[100%] h-[45px] text-lg pl-1 font-bold bg-[#D9D9D9] rounded-md "
             />
 
             <input
@@ -374,20 +496,22 @@ export function CreateProducts() {
               min={0}
               max={10000}
               required
-              className="w-[100%] h-[50px] text-lg pl-1 font-bold bg-[#D9D9D9] rounded-md "
+              className="w-[100%] h-[45px] text-lg pl-1 font-bold bg-[#D9D9D9] rounded-md "
             />
 
             <div className="category_sec flex flex-col gap-y-5  w-full h-fit">
               <Selection
-                label="Parent Category"
+                label="Category"
                 default="Select"
+                defaultValue={0}
                 name="parent_id"
                 onChange={handleSelect}
-                value={product.category.parent_id.toString()}
+                category={cate}
+                value={product.category.parent_id}
                 type="category"
                 required={true}
               />
-              {product.category.parent_id > 0 && (
+              {product.category.parent_id !== 0 && (
                 <Selection
                   label="Sub Category"
                   required={true}
@@ -396,27 +520,46 @@ export function CreateProducts() {
                   type="subcategory"
                   subcategory={subcate}
                   onChange={handleSelect}
-                  value={product.category.child_id.toString()}
+                  value={product.category.child_id}
                 />
               )}
             </div>
             <Selection
               label="Stock Type"
-              value={stocktype}
-              data={[
-                {
-                  label: "Normal",
-                  value: "stock",
-                },
-                {
-                  label: "Variants ( Product have multiple versions)",
-                  value: "variant",
-                },
-              ]}
-              onChange={(e) => setstocktype(e.target.value as any)}
+              value={product.stocktype}
+              data={stockTypeData}
+              onChange={(e) => {
+                const { value } = e.target;
+                let updateproducts = { ...product };
+
+                if (
+                  value === ProductStockType.size ||
+                  value === ProductStockType.stock ||
+                  value === ProductStockType.variant
+                ) {
+                  updateproducts.stock = 0;
+                }
+
+                if (
+                  value === ProductStockType.stock ||
+                  value === ProductStockType.variant
+                ) {
+                  const idx = updateproducts.details?.findIndex(
+                    (i) => i.info_type === INVENTORYENUM.size
+                  );
+                  idx !== undefined && updateproducts.details?.splice(idx, 1);
+                } else {
+                  updateproducts.variants = undefined;
+                  updateproducts.varaintstock = undefined;
+                }
+                updateproducts.stocktype = value;
+                setproduct(updateproducts);
+                setedit((prev) => ({ ...prev, productinfo: true }));
+                setstocktype(value as any);
+              }}
               required
             />
-            {stocktype === "stock" ? (
+            {stocktype === ProductStockType.stock ? (
               <input
                 type="number"
                 placeholder="Stock"
@@ -426,72 +569,65 @@ export function CreateProducts() {
                 onChange={handleChange}
                 value={product.stock === 0 ? "" : product.stock}
                 required
-                className="w-[100%] h-[50px] text-lg pl-1 font-bold bg-[#D9D9D9] rounded-md "
+                className="w-[100%] h-[40px] text-lg pl-1 font-bold bg-[#D9D9D9] rounded-md "
               />
+            ) : stocktype === ProductStockType.size ? (
+              <div className="size_con flex flex-col justify-start gap-y-5 h-fit w-full  rounded-lg p-3">
+                {IsAdded(INVENTORYENUM.size).added ? (
+                  <Sizecontainer index={IsAdded("SIZE").index} />
+                ) : (
+                  <PrimaryButton
+                    radius="10px"
+                    textcolor="black"
+                    Icon={
+                      <i className="fa-regular fa-square-plus text-2xl"></i>
+                    }
+                    type="button"
+                    text="Add product size"
+                    width="100%"
+                    onClick={() => {
+                      let updatearr = [...product.details];
+                      updatearr.push({
+                        info_title: "Size",
+                        info_value: DefaultSize,
+                        info_type: INVENTORYENUM.size,
+                      });
+                      setproduct((prev) => ({ ...prev, details: updatearr }));
+                    }}
+                    height="50px"
+                    color="white"
+                    hoverTextColor="lightblue"
+                  />
+                )}
+              </div>
             ) : (
-              <PrimaryButton
-                radius="10px"
-                textcolor="black"
-                hoverTextColor="lightblue"
-                Icon={<i className="fa-regular fa-square-plus text-2xl"></i>}
-                type="button"
-                text={
-                  !product.details.some(
-                    (i) =>
-                      i.info_type === INVENTORYENUM.color ||
-                      i.info_type === INVENTORYENUM.text
-                  )
-                    ? "Add Product Variant"
-                    : "Edit Product Varaint"
-                }
-                width="100%"
-                onClick={() => {
-                  setopenmodal((prev) => ({
-                    ...prev,
-                    addproductvariant: true,
-                  }));
-                }}
-                height="50px"
-                color="white"
-              />
-            )}
-            <div className="size_con flex flex-col justify-start gap-y-5 h-fit w-full outline outline-[2px] rounded-lg outline-blue-950 p-3">
-              {IsAdded(INVENTORYENUM.size).added && (
-                <Selection
-                  label="Preview"
-                  data={product.details
-                    .find((i) => i.info_type === INVENTORYENUM.size)
-                    ?.info_value?.map((i: any) => ({
-                      label: i.val,
-                      value: i.qty,
-                    }))}
-                />
-              )}
-              {IsAdded(INVENTORYENUM.size).added ? (
-                <Sizecontainer index={IsAdded(INVENTORYENUM.size).index} />
-              ) : (
+              <>
                 <PrimaryButton
                   radius="10px"
                   textcolor="black"
-                  Icon={<i className="fa-regular fa-square-plus text-2xl"></i>}
+                  hoverTextColor="lightblue"
                   type="button"
-                  text="Add product size"
+                  text={
+                    (
+                      globalindex.producteditindex === -1
+                        ? product.variants?.length !== 0
+                        : product.variantcount !== 0
+                    )
+                      ? "Edit variants"
+                      : "Create variants"
+                  }
                   width="100%"
                   onClick={() => {
-                    let updatearr = [...product.details];
-                    updatearr.push({
-                      info_title: "Size",
-                      info_value: DefaultSize,
-                      info_type: INVENTORYENUM.size,
-                    });
-                    setproduct((prev) => ({ ...prev, details: updatearr }));
+                    setopenmodal((prev) => ({
+                      ...prev,
+                      addproductvariant: true,
+                    }));
                   }}
                   height="50px"
                   color="white"
-                  hoverTextColor="lightblue"
                 />
-              )}
-            </div>
+              </>
+            )}
 
             <div
               onClick={() => {
@@ -504,9 +640,7 @@ export function CreateProducts() {
             >
               <ToggleMenu
                 name="Product Details"
-                data={product.details.filter(
-                  (i) => i.info_type === INVENTORYENUM.normal
-                )}
+                data={product.details}
                 isAdmin={true}
               />
             </div>
@@ -527,18 +661,34 @@ export function CreateProducts() {
                 height="35px"
               />
             ) : (
-              <DetailsModal />
+              <div ref={detailref} className="w-full h-full">
+                <DetailsModal />
+              </div>
             )}
+            <div className="w-full h-fit flex flex-col gap-y-5">
+              <label className="font-bold text-lg">
+                {" "}
+                Add related product (Optional){" "}
+              </label>
+              <SearchAndMultiSelect />
+            </div>
           </div>
         </div>
         <div className="w-[90%] h-fit flex flex-row gap-x-5 justify-start">
           <PrimaryButton
             color="#44C3A0"
             text={globalindex.producteditindex === -1 ? "Create" : "Update"}
-            type="submit"
+            type={
+              globalindex.producteditindex !== -1
+                ? !edit.productinfo
+                  ? "button"
+                  : "submit"
+                : "submit"
+            }
             radius="10px"
             width="90%"
             status={SpecificAccess(isLoading) ? "loading" : "authenticated"}
+            disable={globalindex.producteditindex !== -1 && !edit.productinfo}
             height="50px"
           />{" "}
           <PrimaryButton
@@ -558,35 +708,79 @@ export function CreateProducts() {
       {openmodal.imageupload && (
         <ImageUpload limit={4} mutitlple={true} type="createproduct" />
       )}
-      {openmodal.addproductvariant && <Variantcontainer />}
-    </dialog>
+      {openmodal.addproductvariant && <Variantcontainer closename="none" />}
+    </motion.dialog>
   );
 }
 interface variantdatatype {
+  id?: number;
   type: "COLOR" | "TEXT";
   name: string;
-  value: Array<{
-    qty: number;
-    val: string;
-  }>;
+  value: Array<string>;
 }
+
 interface colortype {
   hex: string;
   rgb: RGBColor;
 }
 
-const Variantcontainer = () => {
-  const { setopenmodal, product, setproduct } = useGlobalContext();
-  const [varaintdata, setdata] = useState<Array<variantdatatype> | []>([]);
+export const Variantcontainer = ({
+  type,
+  editindex,
+  action,
+  closename,
+}: {
+  closename: string;
+  type?: "stock";
+  editindex?: number;
+  action?: () => void;
+}) => {
+  const { setopenmodal, product, setproduct, globalindex, setreloaddata } =
+    useGlobalContext();
   const [temp, setemp] = useState<variantdatatype | undefined>(undefined);
-  const [newadd, setnew] = useState("none");
-  const [qty, setqty] = useState(0);
+
+  const [newadd, setnew] = useState<
+    "variant" | "stock" | "type" | "info" | "stockinfo" | "none"
+  >(type ?? "none");
   const [option, setoption] = useState("");
   const [added, setadded] = useState(-1);
   const [edit, setedit] = useState(-1);
+  const [addstock, setaddstock] = useState(-1);
   const [name, setname] = useState("");
-  const [isSaved, setisSaved] = useState(true);
-  const [loaded, setloaded] = useState(false);
+  const [stock, setstock] = useState("");
+  const [loading, setloading] = useState(true);
+
+  //Fetch variant stock
+  const fetchstock = async (index: number) => {
+    const URL = `/api/products/ty=${type}_pid=${index}`;
+    const response = await ApiRequest(URL, undefined, "GET");
+    setloading(false);
+    if (!response.success) {
+      errorToast("Error Connection");
+      return;
+    }
+    setproduct((prev) => ({ ...prev, ...response.data }));
+  };
+  const handleUpdateVariant = async (idx: number) => {
+    setloading(true);
+
+    const updateReq = await ApiRequest(
+      "/api/products/crud",
+      undefined,
+      "PUT",
+      "JSON",
+      {
+        id: idx,
+        ...product,
+      }
+    );
+    setloading(false);
+    if (!updateReq.success) {
+      return null;
+    }
+    return true;
+  };
+
   const colorinitalize: colortype = {
     hex: "#f5f5f5",
     rgb: {
@@ -604,80 +798,102 @@ const Variantcontainer = () => {
   });
 
   useEffect(() => {
-    const isExist = product.details.findIndex(
-      (i) =>
-        i.info_type === INVENTORYENUM.color ||
-        i.info_type === INVENTORYENUM.text
-    );
-    if (isExist !== -1) {
-      const updatedetail: Array<variantdatatype> = product.details
-        .filter(
-          (i) =>
-            i.info_type === INVENTORYENUM.color ||
-            i.info_type === INVENTORYENUM.text
-        )
-        .map((i) => ({
-          type: i.info_type,
-          name: i.info_title,
-          value: i.info_value,
-        })) as Array<variantdatatype>;
-
-      setdata(updatedetail);
-      setloaded(true);
-    }
+    setloading(false);
+    editindex &&
+      type &&
+      type === ProductStockType.stock &&
+      fetchstock(editindex);
   }, []);
 
-  useEffect(() => {
-    if (loaded) {
-      setisSaved(true);
-      setloaded(false);
-    } else {
-      setisSaved(false);
-    }
-  }, [varaintdata]);
-
   const handleCreate = () => {
-    let update = [...varaintdata];
-    const isExist = update.findIndex((i) => i.name === name);
+    let update = product.variants;
 
-    if (isExist !== -1 && added === -1) {
+    const isExist =
+      added === -1 && update && update.find((i) => i.option_title === name);
+
+    if (isExist) {
       errorToast("Variant name exist");
       return;
     }
-
-    if (added === -1) {
-      update.push({ ...temp, name: name } as variantdatatype);
+    if (!update) {
+      update = [
+        {
+          option_title: name,
+          option_type: temp?.type as "COLOR" | "TEXT",
+          option_value: temp?.value as string[],
+        },
+      ];
     } else {
-      update[added] = { ...temp, name: name } as variantdatatype;
+      if (added !== -1) {
+        if (product.varaintstock) {
+          const stock = [...product.varaintstock];
+          const toupdate = update[added];
+          stock.forEach((i) => {
+            const isExist = i.variant_val.findIndex((j) =>
+              toupdate.option_value.includes(j)
+            );
+
+            const idx = toupdate.option_value.findIndex((k) =>
+              i.variant_val.includes(k)
+            );
+
+            if (
+              isExist !== -1 &&
+              idx !== -1 &&
+              temp?.value[idx] !== undefined
+            ) {
+              i.variant_val[isExist] = temp.value[idx] as string;
+            }
+          });
+
+          setproduct((prev) => ({ ...prev, varaintstock: stock }));
+        }
+
+        update[added] = {
+          option_title: name,
+          option_type: temp?.type as "COLOR" | "TEXT",
+          option_value: temp?.value as string[],
+        };
+      } else {
+        update.push({
+          option_title: name,
+          option_type: temp?.type as "COLOR" | "TEXT",
+          option_value: temp?.value as string[],
+        });
+      }
     }
-    setdata(update);
+
+    setproduct((prev) => ({ ...prev, variants: update }));
 
     setadded(-1);
     setname("");
-    setqty(0);
-    setnew("none");
+    setnew("variant");
   };
 
   const handleAddColor = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (qty === 0 || color?.hex === "") {
-      errorToast("Please fill all required");
+    if (color?.hex === "") {
+      errorToast("Please Select Color");
       return;
     }
     let update = { ...temp };
     if (edit === -1) {
-      update.value?.push({
-        qty: qty,
-        val: color?.hex,
-      });
+      update.value?.push(color.hex);
     } else if (update.value && edit !== -1) {
-      update.value[edit] = {
-        qty: qty,
-        val: color?.hex,
-      };
+      if (product.varaintstock) {
+        let prevvalue = update.value[edit];
+        let stock = [...product.varaintstock];
+        stock.forEach((i) => {
+          const isValue = i.variant_val.findIndex((j) => j === prevvalue);
+          if (isValue !== -1) {
+            i.variant_val[isValue] = color.hex;
+          }
+        });
+        setproduct((prev) => ({ ...prev, varaintstock: stock }));
+      }
+      update.value[edit] = color.hex;
     }
     setemp(update as variantdatatype);
-    setqty(0);
     setcolor(colorinitalize);
 
     setedit(-1);
@@ -688,97 +904,363 @@ const Variantcontainer = () => {
   const handleColorSelect = (idx: number, type: "color" | "text") => {
     const data = temp?.value[idx];
     if (type === "color") {
-      const rgb = tinycolor(data?.val).toRgb();
+      const rgb = tinycolor(data).toRgb();
       setedit(idx);
-      setcolor({ hex: data?.val as string, rgb: rgb });
-      setqty(data?.qty ?? 0);
+      setcolor({ hex: data as string, rgb: rgb });
+
       setopen((prev) => ({ ...prev, addcolor: true }));
     } else {
       setedit(idx);
-      setqty(data?.qty ?? 0);
-      setoption(data?.val as string);
+
+      setoption(data as string);
 
       setopen((prev) => ({ ...prev, addoption: true }));
     }
   };
-  const handleVariantEdit = (idx: number) => {
-    const data = varaintdata[idx];
 
-    setname(data.name);
-    setemp(data);
-    setadded(idx);
-    setnew("info");
+  const handleUpdateVariantOption = () => {
+    let update = { ...temp };
+
+    if (edit === -1) {
+      update.value?.push(option);
+    } else if (update.value) {
+      if (product.varaintstock) {
+        let preval = update.value[edit];
+        let stock = [...product.varaintstock];
+
+        stock &&
+          stock.forEach((i) => {
+            const isValue = i.variant_val.findIndex((i) => i === preval);
+            if (isValue !== -1) {
+              i.variant_val[isValue] = option;
+            }
+          });
+        setproduct((prev) => ({ ...prev, varaintstock: stock }));
+      }
+
+      update.value[edit] = option;
+      setedit(-1);
+    }
+
+    // setemp(update as variantdatatype);
+    setopen((prev) => ({ ...prev, addoption: false }));
   };
-  const handleVaraintDelete = (idx: number) => {
-    let update = [...varaintdata];
-    update.splice(idx, 1);
-    setdata(update);
-    setnew("none");
+  const handleVariantEdit = (idx: number) => {
+    if (product.variants) {
+      const data = { ...product.variants[idx] };
+      if (data) {
+        setname(data.option_title);
+        setemp({
+          name: data.option_title,
+          value: [...data.option_value],
+          type: data.option_type as "COLOR" | "TEXT",
+        });
+        setadded(idx);
+        setnew("info");
+      }
+    }
   };
+  const handleVaraintDelete = async (idx: number) => {
+    let update = product.variants;
+    let stock = product.varaintstock;
+    if (update) {
+      if (globalindex.producteditindex !== -1) {
+        const makereq = Deletevairiant.bind(null, update[idx].id as number);
+        const req = await makereq();
+        if (!req.success) {
+          errorToast(req.message ?? "Error Occured");
+          return;
+        }
+      }
+
+      if (stock) {
+        stock.forEach((stockitem) => {
+          stockitem.variant_val = stockitem.variant_val.filter(
+            (value) => !update[idx].option_value.includes(value)
+          );
+        });
+
+        stock = stock.filter((stockitem) => stockitem.variant_val.length > 0);
+      }
+
+      update.splice(idx, 1);
+    }
+
+    setproduct((prev) => ({ ...prev, variants: update, varaintstock: stock }));
+    setnew("variant");
+  };
+
+  const handleStock = (e: ChangeEvent<HTMLInputElement>) => {
+    let { value, name } = e.target;
+    value = value.length === 0 ? "" : value;
+    let updateProduct = { ...product };
+    let stock = updateProduct.varaintstock;
+    const idx = edit === -1 ? addstock : edit;
+    if (name === "stock") {
+      if (stock) {
+        stock[idx].qty = parseInt(value);
+      }
+      setstock(value);
+    }
+    setproduct((prev) => ({ ...prev, varaintstock: stock }));
+  };
+
+  const handleCreateVariantStock = () => {
+    if (!product.variants) {
+      errorToast("Please Create Varaint");
+      return;
+    }
+
+    let updateProduct = { ...product };
+    let updatestock = updateProduct.varaintstock ?? [];
+
+    updatestock.push({
+      qty: 0,
+      price: 0,
+      variant_id: [],
+      variant_val: Array<string>(product.variants?.length ?? 0),
+    });
+
+    setaddstock(updatestock.length - 1);
+    setstock("");
+
+    setproduct((prev) => ({ ...prev, varaintstock: updatestock }));
+
+    setnew("stockinfo");
+  };
+
   return (
-    <Modal closestate="discount" customZIndex={150}>
-      <div className="relative productvariant_creation w-full min-h-full max-h-[50vh] overflow-x-hidden overflow-y-auto bg-white flex flex-col items-center justify-start pt-5 gap-y-5">
-        <div className="w-full flex flex-col items-center gap-y-5">
-          {varaintdata.map((obj, idx) => (
-            <motion.div
-              initial={{ x: "-120%" }}
-              animate={{ x: 0 }}
-              transition={{
-                duration: 0.2,
-              }}
-              key={idx}
-              className="relative varaint_container w-[90%] h-fit border border-black rounded-lg p-2"
-            >
-              <h3 className="variant_name font-medium text-lg w-fit h-fit">
-                {obj.name === "" ? "No Name" : obj.name}
-              </h3>
-              <motion.div className="varaints flex flex-row w-full gap-x-3">
-                {obj.type === "TEXT" &&
-                  obj.value.map((item) => (
-                    <div className="min-w-[40px] h-fit max-w-full break-words font-normal text-lg">
-                      {item.val}
+    <Modal closestate={"none"} customZIndex={150} customheight="70vh">
+      <div className="relative productvariant_creation w-full min-h-full max-h-[70vh] overflow-x-hidden overflow-y-auto bg-white flex flex-col items-center justify-start pt-5 gap-y-5">
+        {loading && <ContainerLoading />}
+        <h1 className="title text-xl font-semibold text-left w-full pl-2 ">
+          {newadd === "variant" || newadd === "type" || newadd === "info"
+            ? "Variant"
+            : newadd === "stock" || newadd === "stockinfo"
+            ? "Stock"
+            : ""}
+        </h1>
+
+        {newadd === "variant" ? (
+          <>
+            <div className="w-full flex flex-col items-center gap-y-5">
+              {(product.variants?.length === 0 || !product.variants) && (
+                <h3 className="text-lg text-gray-500 w-[90%] rounded-lg outline outline-1 outline-gray-500 p-2">
+                  No Variant
+                </h3>
+              )}
+              {product.variants &&
+                product.variants.map((obj, idx) => (
+                  <motion.div
+                    initial={{ x: "-120%" }}
+                    animate={{ x: 0 }}
+                    transition={{
+                      duration: 0.2,
+                    }}
+                    key={idx}
+                    className="relative varaint_container w-[90%] h-fit border border-black rounded-lg p-2"
+                  >
+                    <h3 className="variant_name font-medium text-lg w-fit h-fit">
+                      {obj.option_title === "" ? "No Name" : obj.option_title}
+                    </h3>
+                    <motion.div className="varaints flex flex-row w-full gap-x-3">
+                      {obj.option_type === "TEXT" &&
+                        obj.option_value.map((item) => (
+                          <div className="min-w-[40px] h-fit max-w-full break-words font-normal text-lg">
+                            {item}
+                          </div>
+                        ))}
+                      {obj.option_type === "COLOR" &&
+                        obj.option_value.map((item) => (
+                          <div
+                            style={{ backgroundColor: item }}
+                            className="w-[30px] h-[30px] rounded-3xl"
+                          ></div>
+                        ))}
+                    </motion.div>
+                    <div className="action flex flex-row items-start w-[20%] h-fit gap-x-5 absolute right-0 top-[40%]">
+                      <div
+                        onClick={() => handleVariantEdit(idx)}
+                        className="edit text-sm cursor-pointer text-blue-500 hover:text-white active:text-white transition duration-500"
+                      >
+                        Edit
+                      </div>
+                      <div
+                        onClick={() => handleVaraintDelete(idx)}
+                        className="edit text-sm cursor-pointer text-red-500 hover:text-white active:text-white transition duration-500"
+                      >
+                        Delete
+                      </div>
                     </div>
-                  ))}
-                {obj.type === "COLOR" &&
-                  obj.value.map((item) => (
-                    <div
-                      style={{ backgroundColor: item.val }}
-                      className="w-[30px] h-[30px] rounded-3xl"
-                    ></div>
-                  ))}
-              </motion.div>
-              <div className="action flex flex-row items-start w-[20%] h-fit gap-x-5 absolute right-0 top-[40%]">
-                <div
-                  onClick={() => handleVariantEdit(idx)}
-                  className="edit text-sm cursor-pointer text-blue-500 hover:text-white active:text-white transition duration-500"
-                >
-                  Edit
+                  </motion.div>
+                ))}
+            </div>
+          </>
+        ) : (
+          // stock__container
+          //
+          //
+          (newadd === "stock" || newadd === "stockinfo") && (
+            <div className="stock_container w-full h-fit">
+              {newadd === "stockinfo" ? (
+                <div className="createstock_container flex flex-col w-full h-full items-center justify-start mt-2">
+                  <h2 className="text-lg font-medium">
+                    Please Choose Variants
+                  </h2>
+                  <div className="variantlist relative outline outline-2 outline-gray-300 rounded-lg flex flex-col items-center justify-start gap-y-10 w-[90%] h-full max-h-[60vh] p-5 overflow-y-auto">
+                    {product.variants &&
+                      product.variants.map((i, idx) => (
+                        <ColorSelect
+                          key={i.option_title}
+                          index={idx}
+                          type={i.option_type}
+                          label={i.option_title}
+                          width="80%"
+                          height="35px"
+                          data={i.option_value}
+                          edit={edit}
+                          added={addstock}
+                          value={
+                            product.varaintstock && edit !== -1
+                              ? product.varaintstock[edit].variant_val[idx]
+                              : undefined
+                          }
+                        />
+                      ))}
+                  </div>
+                  <div className="w-[90%] absolute bottom-3 flex flex-row gap-x-3">
+                    <input
+                      className="stock w-[100%] text-sm bottom-3 font-medium p-2 h-[40px] rounded-lg outline outline-1 outline-black"
+                      name="stock"
+                      placeholder="Stock"
+                      type="number"
+                      value={stock}
+                      onChange={handleStock}
+                    />
+                  </div>
                 </div>
-                <div
-                  onClick={() => handleVaraintDelete(idx)}
-                  className="edit text-sm cursor-pointer text-red-500 hover:text-white active:text-white transition duration-500"
-                >
-                  Delete
+              ) : (
+                <div className="selectvariaint_container flex flex-col items-center justify-start gap-y-10 w-full h-full">
+                  <div className="liststock_container grid grid-cols-3 gap-x-3 w-[90%] h-fit p-1 max-h-[46vh] overflow-y-auto">
+                    {(product.varaintstock?.length === 0 ||
+                      !product.varaintstock) && (
+                      <h3 className="text-lg text-gray-500 w-full outline outline-1 outline-gray-500 p-2 rounded-lg">
+                        No Stock
+                      </h3>
+                    )}
+                    {product.varaintstock &&
+                      product.varaintstock.map((i, idx) => (
+                        <div
+                          key={idx}
+                          style={
+                            i.qty <= 1
+                              ? {
+                                  borderLeft: "5px solid red",
+                                }
+                              : {}
+                          }
+                          className="stockcard w-full h-[50px] flex flex-row items-center justify-evenly p-2 outline outline-2 outline-gray-300 rounded-lg transition duration-200 hover:bg-gray-300"
+                        >
+                          <h3 className="name text-lg font-semibold w-full">
+                            Stock {idx + 1}
+                          </h3>
+                          <div className="action w-full flex flex-row items-center justify-evenly">
+                            <h3
+                              onClick={() => {
+                                //Edit Stock
+                                setedit(idx);
+                                setstock(i.qty.toString());
+                                setnew("stockinfo");
+                              }}
+                              className="w-fit h-fit text-lg font-normal text-blue-500 transition duration-200 cursor-pointer hover:text-black"
+                            >
+                              Edit
+                            </h3>
+                            <h3
+                              onClick={() => {
+                                //Delete Stock
+                                const updatestock = product.varaintstock;
+                                updatestock && updatestock.splice(idx, 1);
+                                setproduct((prev) => ({
+                                  ...prev,
+                                  varaintstock: updatestock,
+                                }));
+                              }}
+                              className="w-fit h-fit text-lg font-normal text-red-500 transition duration-200 cursor-pointer hover:text-black"
+                            >
+                              Delete
+                            </h3>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+
+                  <PrimaryButton
+                    text={"Add Stock"}
+                    type="button"
+                    width="90%"
+                    radius="10px"
+                    height="40px"
+                    textsize="12px"
+                    onClick={() => {
+                      //create stock
+                      handleCreateVariantStock();
+                    }}
+                  />
+
+                  {/*  */}
                 </div>
-              </div>
-            </motion.div>
-          ))}
-        </div>
+              )}
+            </div>
+          )
+        )}
+
+        {newadd === "type" && (
+          <>
+            <Selection
+              default="Chose Type"
+              style={{ width: "90%" }}
+              onChange={(e) => {
+                setemp({
+                  name: "",
+                  value: [],
+                  type: e.target.value as any,
+                });
+                setnew("info");
+              }}
+              data={[
+                {
+                  label: "Color",
+                  value: "COLOR",
+                },
+                { label: "Text", value: "TEXT" },
+              ]}
+            />
+            <PrimaryButton
+              text="Back"
+              type="button"
+              onClick={() => setnew("variant")}
+              radius="10px"
+              width="90%"
+              height="35px"
+            />
+          </>
+        )}
         {newadd === "info" && (
-          <div className="addcontainer w-[95%] h-fit flex flex-col gap-y-5 border border-black rounded-lg p-2">
+          <div className="addcontainer w-[95%] h-full flex flex-col gap-y-5 rounded-lg p-2">
             <input
               name="name"
               placeholder="Variant Name"
               value={name}
               onChange={(e) => setname(e.target.value)}
-              className="text-sm font-medium pl-1 h-[30px] w-full border-2 border-gray-300 rounded-md"
+              className="text-sm font-medium pl-1 h-[40px] w-full border-2 border-gray-300 rounded-md"
             />
             {temp && temp.type === "COLOR" ? (
               <div className="color_container w-full h-fit flex flex-col gap-y-5">
                 <h3
                   onClick={() => {
                     setedit(-1);
-                    setqty(0);
+
                     setcolor(colorinitalize);
                     setopen((prev) => ({ ...prev, addcolor: true }));
                   }}
@@ -793,7 +1275,7 @@ const Variantcontainer = () => {
                 {/* Modal */}
                 {open.addcolor && (
                   <Modal
-                    closestate="discount"
+                    closestate="none"
                     customwidth="30vw"
                     customheight="30vh"
                   >
@@ -802,30 +1284,7 @@ const Variantcontainer = () => {
                       className="relative w-full h-full bg-white flex flex-col items-center justify-center gap-y-3 p-3"
                     >
                       <label
-                        htmlFor="qty"
-                        className="font-semibold text-sm w-full text-left"
-                      >
-                        {" "}
-                        Stock{" "}
-                        <strong className="text-red-400 text-lg font-normal">
-                          *
-                        </strong>{" "}
-                      </label>
-                      <input
-                        name="qty"
-                        placeholder="Stock (Required)"
-                        type="number"
-                        value={qty}
-                        pattern="[0-9]+"
-                        min={0}
-                        max={1000}
-                        onChange={(e) => setqty(parseInt(e.target.value))}
-                        className="text-sm font-medium pl-1 h-[50px] w-full border-2 border-gray-300 rounded-md"
-                        required
-                      />
-
-                      <label
-                        htmlFor="qty"
+                        htmlFor="color"
                         className="font-semibold text-sm w-full text-left"
                       >
                         {" "}
@@ -836,7 +1295,10 @@ const Variantcontainer = () => {
                       </label>
                       <div
                         onClick={() => {
-                          setopen((prev) => ({ ...prev, colorpicker: true }));
+                          setopen((prev) => ({
+                            ...prev,
+                            colorpicker: true,
+                          }));
                         }}
                         className={`w-[100%] h-[50px] border-[5px] border-gray-300 rounded-lg`}
                         style={
@@ -852,7 +1314,7 @@ const Variantcontainer = () => {
                       <PrimaryButton
                         text={edit === -1 ? "Confirm" : "Update"}
                         type="submit"
-                        disable={!qty || color.hex === ""}
+                        disable={color.hex === ""}
                         width="100%"
                         textsize="13px"
                         radius="10px"
@@ -871,8 +1333,10 @@ const Variantcontainer = () => {
                               setedit(-1);
                             }
 
-                            setqty(0);
-                            setopen((prev) => ({ ...prev, addcolor: false }));
+                            setopen((prev) => ({
+                              ...prev,
+                              addcolor: false,
+                            }));
                           }}
                           width="100%"
                           textsize="12px"
@@ -885,7 +1349,10 @@ const Variantcontainer = () => {
                           type="button"
                           onClick={() => {
                             setedit(-1);
-                            setopen((prev) => ({ ...prev, addcolor: false }));
+                            setopen((prev) => ({
+                              ...prev,
+                              addcolor: false,
+                            }));
                           }}
                           width="100%"
                           textsize="12px"
@@ -927,16 +1394,17 @@ const Variantcontainer = () => {
                 )}
 
                 {/* end */}
+
                 <div className="listcolor flex flex-row flex-wrap gap-x-3 gap-y-3 w-full">
-                  {temp?.value?.some((i) => i.val !== "") ? (
+                  {temp?.value?.some((i) => i !== "") ? (
                     temp?.value?.map((color, idx) => (
                       <div
                         className={`color w-[50px] h-[50px] rounded-3xl transition duration-500 hover:border-2 hover:border-gray-300 active:border-2  active:border-gray-300`}
                         onClick={() => handleColorSelect(idx, "color")}
                         style={
-                          color.val !== ""
+                          color !== ""
                             ? {
-                                backgroundColor: color.val,
+                                backgroundColor: color,
                               }
                             : {}
                         }
@@ -952,20 +1420,8 @@ const Variantcontainer = () => {
             ) : (
               <>
                 {open.addoption && (
-                  <Modal closestate="discount" customZIndex={150}>
+                  <Modal closestate="none" customZIndex={150}>
                     <form className="addoption w-1/3 h-1/3 bg-white p-3 flex flex-col gap-y-5 items-center justify-start">
-                      <input
-                        name="qty"
-                        placeholder="Stock (Required)"
-                        type="number"
-                        value={qty}
-                        pattern="[0-9]+"
-                        min={0}
-                        max={1000}
-                        onChange={(e) => setqty(parseInt(e.target.value))}
-                        className="text-sm font-medium pl-1 h-[50px] w-full border-2 border-gray-300 rounded-md"
-                        required
-                      />
                       <input
                         name="option"
                         placeholder="Option (Required)"
@@ -977,26 +1433,12 @@ const Variantcontainer = () => {
                       <div className="action-btn flex flex-row w-full gap-x-3">
                         <PrimaryButton
                           text={edit === -1 ? "Create" : "Update"}
-                          color="lightcoral"
-                          type="submit"
+                          color="#35C191"
+                          type="button"
+                          disable={option === ""}
                           onClick={() => {
-                            let update = { ...temp };
-                            if (edit === -1) {
-                              update.value?.push({
-                                qty: qty,
-                                val: option,
-                              });
-                            } else if (update.value) {
-                              update.value[edit] = {
-                                qty: qty,
-                                val: option,
-                              };
-                              setedit(-1);
-                            }
-                            setemp(update as variantdatatype);
-                            setopen((prev) => ({ ...prev, addoption: false }));
+                            handleUpdateVariantOption();
                           }}
-                          disable={!qty || option === ""}
                           width="100%"
                           textsize="12px"
                           radius="10px"
@@ -1007,7 +1449,10 @@ const Variantcontainer = () => {
                           color="black"
                           type="button"
                           onClick={() => {
-                            setopen((prev) => ({ ...prev, addoption: false }));
+                            setopen((prev) => ({
+                              ...prev,
+                              addoption: false,
+                            }));
                           }}
                           width="100%"
                           textsize="12px"
@@ -1023,7 +1468,6 @@ const Variantcontainer = () => {
                     onClick={() => {
                       setedit(-1);
                       setoption("");
-                      setqty(0);
                       setopen((prev) => ({ ...prev, addoption: true }));
                     }}
                     className="text-sm w-ft h-fit cursor-pointer font-medium text-blue-500 transition duration-300 hover:text-gray-300 active:text-gray-300"
@@ -1041,7 +1485,7 @@ const Variantcontainer = () => {
                         onClick={() => handleColorSelect(idx, "text")}
                         className="option text-[15px] cursor-pointer p-2 rounded-lg text-black outline outline-2 outline-black font-normal transition duration-200 w-fit h-fit"
                       >
-                        {i.val}
+                        {i}
                       </h3>
                     ))}
                   </div>
@@ -1067,7 +1511,7 @@ const Variantcontainer = () => {
                 onClick={() => {
                   setedit(-1);
                   setemp(undefined);
-                  setnew("none");
+                  setnew("variant");
                 }}
                 radius="10px"
                 width="100%"
@@ -1076,40 +1520,9 @@ const Variantcontainer = () => {
             </div>
           </div>
         )}
-        {newadd === "type" && (
-          <>
-            <Selection
-              default="Chose Type"
-              style={{ width: "90%" }}
-              onChange={(e) => {
-                setemp({
-                  name: "",
-                  value: [],
-                  type: e.target.value as any,
-                });
-                setnew("info");
-              }}
-              data={[
-                {
-                  label: "Color",
-                  value: "COLOR",
-                },
-                { label: "Text", value: "TEXT" },
-              ]}
-            />
-            <PrimaryButton
-              text="Back"
-              type="button"
-              onClick={() => setnew("none")}
-              radius="10px"
-              width="90%"
-              height="35px"
-            />
-          </>
-        )}
-        {newadd === "none" && (
+        {newadd === "variant" && (
           <PrimaryButton
-            text="Add New"
+            text="Add new"
             type="button"
             onClick={() => {
               setname("");
@@ -1120,68 +1533,193 @@ const Variantcontainer = () => {
             radius="10px"
             width="90%"
             textsize="12px"
-            height="30px"
+            height="40px"
           />
         )}
-        <div className="relative pt-10 pb-10 bottom-5 w-[90%] h-[40px] flex flex-row justify-start gap-x-5">
+        {newadd === "none" && (
+          <div className="w-[90%]  flex flex-row justify-start items-center gap-x-3">
+            <div
+              onClick={() => setnew("variant")}
+              className="card w-[50%] h-[200px] bg-blue-300 rounded-lg grid place-content-center place-items-center transition duration-200 cursor-pointer hover:bg-transparent hover:outline hover:outline-1 hover:outline-black"
+            >
+              <Image
+                src={Variantimg}
+                alt="Icon"
+                className="w-[70px] h-[70px[ object-contain pb-10"
+              />
+              <h3 className="text-2xl font-bold w-fit h-fit text-black flex flex-row gap-x-3 items-center">
+                {`${
+                  !product.variants || product.variants.length === 0
+                    ? "Create"
+                    : ""
+                } Variant`}
+                <div
+                  style={
+                    !product.variants || product.variants.length === 0
+                      ? { display: "none" }
+                      : {}
+                  }
+                  className="font-bold min-w-[30px] w-fit h-fit p-1 bg-black text-white rounded-lg grid place-content-center"
+                >
+                  {" "}
+                  <p className="w-fit h-fit text-[15px]">
+                    {product.variants?.length}
+                  </p>
+                </div>
+              </h3>
+            </div>
+            <div
+              onClick={() => setnew("stock")}
+              className="card w-[50%] h-[200px] bg-blue-300 rounded-lg grid place-content-center place-items-center transition duration-200 cursor-pointer hover:bg-transparent hover:outline hover:outline-1 hover:outline-black"
+            >
+              <Image
+                src={Variantstockimg}
+                alt="Icon"
+                className="w-[70px] h-[70px[ object-contain pb-10"
+              />
+              <h3 className="text-2xl font-bold w-fit h-fit text-black">
+                {`${
+                  !product.varaintstock || product.varaintstock.length === 0
+                    ? "Create"
+                    : ""
+                } Stock`}
+                <div
+                  style={
+                    !product.varaintstock || product.varaintstock.length === 0
+                      ? { display: "none" }
+                      : {}
+                  }
+                  className="font-bold min-w-[30px] w-fit h-fit p-1 bg-black text-white rounded-lg grid place-content-center"
+                >
+                  {" "}
+                  <p className="w-fit h-fit text-[15px]">
+                    {product.varaintstock?.length}
+                  </p>
+                </div>
+              </h3>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="flex flex-row justify-start w-full h-fit">
+        {newadd === "stockinfo" && (
           <PrimaryButton
-            text="Save"
+            text="Delete"
             type="button"
             onClick={() => {
-              let updateproduct = [...product.details];
+              let updatestock = product.varaintstock;
 
-              let filtered = updateproduct.filter((i) => {
-                if (i.info_type === "COLOR" || i.info_type === "TEXT") {
-                  return varaintdata.some((item) => item.name === i.info_title);
-                }
-                return true;
-              }); // Delete Variants
-
-              varaintdata.forEach((item) => {
-                const idx = filtered.findIndex(
-                  (i) => i.info_title === item.name
-                );
-
-                if (idx === -1) {
-                  filtered.push({
-                    info_title: item.name as string,
-                    info_type: item.type as string,
-                    info_value: item.value as any,
-                  });
-                } else {
-                  filtered[idx] = {
-                    info_title: item.name as string,
-                    info_type: item.type as string,
-                    info_value: item.value as any,
-                  };
-                }
-              });
-
-              setproduct((prev) => ({ ...prev, details: filtered }));
-              setisSaved(true);
-              successToast("Saved");
+              console.log(updatestock);
+              updatestock && updatestock.splice(addstock, 1);
+              setaddstock(-1);
+              setproduct((prev) => ({
+                ...prev,
+                varaintstock: updatestock,
+              }));
+              setnew("stock");
             }}
-            radius="10px"
-            width="90%"
-            textsize="12px"
-            height="40px"
-            color="#438D86"
-            disable={isSaved}
+            width="100%"
+            height="50px"
+            color="#674C54"
           />
+        )}
 
-          <PrimaryButton
-            text="Close"
-            type="button"
-            onClick={() => {
+        <PrimaryButton
+          text={
+            newadd === "stock" ||
+            newadd === "variant" ||
+            newadd === "stockinfo" ||
+            newadd === "info"
+              ? "Back"
+              : "Close"
+          }
+          type="button"
+          onClick={async () => {
+            if (
+              newadd === "stock" ||
+              newadd === "variant" ||
+              newadd === "stockinfo" ||
+              newadd === "info"
+            ) {
+              if (newadd === "stockinfo") {
+                if (parseInt(stock) === 0 || !stock) {
+                  errorToast("Please enter stock");
+                  return;
+                }
+
+                if (product.varaintstock) {
+                  const checkstock = product.varaintstock[
+                    addstock === -1 ? edit : addstock
+                  ].variant_val.every((i) => i === "");
+
+                  if (stock === "" || checkstock) {
+                    errorToast("Please fill all required");
+                    return;
+                  } else {
+                    const checkduplicate = findDuplicateStockIndices(
+                      product.varaintstock
+                    );
+                    if (checkduplicate.length !== 0) {
+                      errorToast(`Stock exist`);
+                      return;
+                    }
+
+                    setedit(-1);
+                    setadded(-1);
+                    setstock("");
+                    setnew("stock");
+                  }
+                }
+              } else {
+                if (type) {
+                  //update product variant stock
+                  setloading(true);
+                  const update = await ApiRequest(
+                    "/api/products/crud",
+                    undefined,
+                    "PUT",
+                    "JSON",
+                    {
+                      varaintstock: product.varaintstock,
+                      id: editindex,
+                      type: "editvariantstock",
+                    }
+                  );
+                  setloading(false);
+                  if (!update) {
+                    errorToast("Failed to update stock");
+                    return;
+                  }
+                  setnew("stock");
+                  setreloaddata(true);
+
+                  setopenmodal((prev) => ({
+                    ...prev,
+                    [closename]: false,
+                  }));
+                  return;
+                }
+
+                setnew("none");
+              }
+            } else {
+              const idx = globalindex.producteditindex;
+              if (idx !== -1) {
+                const update = await handleUpdateVariant(idx);
+                if (!update) {
+                  errorToast("Failed to update variant please try again");
+                  return;
+                }
+              }
+
               setopenmodal((prev) => ({ ...prev, addproductvariant: false }));
-            }}
-            radius="10px"
-            width="90%"
-            textsize="12px"
-            height="40px"
-            color="lightcoral"
-          />
-        </div>
+            }
+          }}
+          width="100%"
+          height="50px"
+          color="lightcoral"
+        />
       </div>
     </Modal>
   );
@@ -1189,26 +1727,53 @@ const Variantcontainer = () => {
 
 interface SizecontainerProps {
   index: number;
+  closename?: string;
+  type?: "edit";
+  action?: () => void;
 }
 
-const Sizecontainer = (props: SizecontainerProps) => {
+export const Sizecontainer = (props: SizecontainerProps) => {
   const [customvalue, setvalue] = useState("");
+  const [addnew, setaddnew] = useState(false);
   const [qty, setqty] = useState(0);
   const [Edit, setedit] = useState({
     isEdit: false,
     index: -1,
   });
-  const { product, setproduct } = useGlobalContext();
-  const handleAdd = () => {
+  const { product, setproduct, setreloaddata } = useGlobalContext();
+  const [loading, setloading] = useState(true);
+
+  const fetchsize = async () => {
+    setloading(true);
+    const URL = `/api/products/ty=size_pid=${props.index}`;
+    const response = await ApiRequest(URL, undefined, "GET");
+    setloading(false);
+    if (!response.success) {
+      errorToast("Error Connection");
+      return;
+    }
+
+    setproduct((prev) => ({ ...prev, details: response.data }));
+  };
+
+  useEffect(() => {
+    props.type && fetchsize();
+  }, []);
+  const handleAdd = async () => {
     const detail = [...product.details];
-    const prevarr = detail[props.index].info_value;
+    const idx = props.type
+      ? detail.findIndex((i) => i.info_type === "SIZE")
+      : props.index;
+    const prevarr = detail[idx].info_value;
 
     if (customvalue === "" || !qty) {
       errorToast("Please fill all Required");
       return;
     }
+
     //add and edit size
-    if (Edit.index > -1) {
+
+    if (Edit.index !== -1) {
       prevarr[Edit.index] = {
         qty: qty,
         val: customvalue,
@@ -1219,7 +1784,15 @@ const Sizecontainer = (props: SizecontainerProps) => {
         val: customvalue,
       } as any);
     }
-    detail[props.index].info_value = prevarr as any;
+    detail[idx].info_value = prevarr as any;
+
+    if (props.index) {
+      const updatereq = await handleUpdate();
+      if (!updatereq) {
+        errorToast("Failed Update Stock");
+        return;
+      }
+    }
 
     setproduct({ ...product, details: detail });
 
@@ -1227,114 +1800,206 @@ const Sizecontainer = (props: SizecontainerProps) => {
       isEdit: false,
       index: -1,
     });
+
     setqty(0);
     setvalue("");
+    setaddnew(false);
   };
   const handleDelete = (index: number) => {
-    const updatearr = [...product.details[props.index].info_value];
     const detail = [...product.details];
+    const idx = props.type
+      ? detail.findIndex((i) => i.info_type === "SIZE")
+      : props.index;
+    const updatearr = [...product.details[idx].info_value];
 
     updatearr.splice(index, 1);
-    detail[props.index].info_value = updatearr as any;
+    detail[idx].info_value = updatearr as any;
     setproduct({ ...product, details: detail });
   };
+  const handleUpdate = async () => {
+    setloading(true);
+    const URL = "/api/products/crud";
+    const request = await ApiRequest(URL, undefined, "PUT", "JSON", {
+      type: "editsize",
+      details: product.details,
+      id: props.index,
+    });
+    setloading(false);
 
-  return (
-    <div className="size__contianer w-full h-fit flex flex-col gap-y-5">
-      <div className="size_list grid grid-cols-4 w-fit gap-x-5 gap-y-5 h-full">
-        {product.details[props.index]?.info_value?.map((i, idx) => {
-          const val = i as infovaluetype;
-          return (
-            <div
-              key={idx}
-              className="size flex flex-row z-[100] justify-center outline outline-2 outline-black outline-offset-2 w-[100px]  p-2 h-fit rounded-lg text-center font-bold"
-              style={
-                Edit.index === idx
-                  ? { backgroundColor: "black", color: "white" }
-                  : {}
+    if (!request.success) {
+      return null;
+    }
+    return true;
+  };
+
+  const SizeElements = (bg: boolean) => {
+    return (
+      <div
+        style={
+          bg
+            ? {
+                backgroundColor: "white",
+                padding: "20px",
+                outline: "0",
+                borderRadius: "10px",
+                width: "100%",
+                maxHeight: "500px",
               }
-            >
-              <span
-                onClick={() => handleDelete(idx)}
-                className="relative -top-5 left-[100%] transition hover:-translate-y-1"
-              >
-                <i className="fa-solid fa-minus font-bold text-white  text-[10px] bg-[#F08080] rounded-2xl p-1"></i>
-              </span>
+            : {}
+        }
+        className="size__contianer w-full max-h-[500px] h-fit flex flex-col gap-y-5 outline-2 outline p-3 outline-gray-300 rounded-lg"
+      >
+        <div
+          className="size_list grid grid-cols-4 w-fit gap-x-5 gap-y-5 h-full"
+          style={{
+            outline: "2px solid lightgray",
+            width: "100%",
+            padding: "10px",
+          }}
+        >
+          {product.details &&
+            product.details
+              .find((i) => i.info_type === "SIZE")
+              ?.info_value.map((i, idx) => {
+                const val = i as infovaluetype;
+                return (
+                  <div
+                    key={idx}
+                    className="size flex flex-row z-[100] justify-center bg-[#495464] rounded-lg w-[100px]  p-3 h-fit text-center font-bold"
+                    style={
+                      Edit.index === idx
+                        ? { backgroundColor: "black", color: "white" }
+                        : val.qty <= 1
+                        ? { backgroundColor: "lightcoral", color: "white" }
+                        : {}
+                    }
+                  >
+                    <span
+                      onClick={() => handleDelete(idx)}
+                      className="relative -top-5 left-[100%] transition hover:-translate-y-1"
+                    >
+                      <i className="fa-solid fa-minus font-bold text-white  text-[10px] bg-[#F08080] rounded-2xl p-1"></i>
+                    </span>
 
-              <h3
-                onClick={() => {
-                  setedit((prev) => ({
-                    isEdit: !prev.isEdit,
-                    index: prev.index === idx ? -1 : idx,
-                  }));
+                    <h3
+                      onClick={() => {
+                        setedit((prev) => ({
+                          isEdit: !prev.isEdit,
+                          index: prev.index === idx ? -1 : idx,
+                        }));
 
-                  setqty(Edit.index === idx ? 0 : val.qty);
+                        setaddnew(!(Edit.index === idx));
 
-                  setvalue(Edit.index === idx ? "" : val.val);
-                }}
-                className={`relative w-full h-full break-words right-2`}
-              >
-                {val.val}
-              </h3>
+                        setqty(Edit.index === idx ? 0 : val.qty);
+
+                        setvalue(Edit.index === idx ? "" : val.val);
+                      }}
+                      className={`relative w-full h-full break-words right-2 text-white`}
+                    >
+                      {val.val}
+                    </h3>
+                  </div>
+                );
+              })}
+        </div>
+        <p
+          onClick={() => {
+            setaddnew(!addnew);
+            setedit({ isEdit: false, index: -1 });
+            setvalue("");
+            setqty(0);
+          }}
+          className={`text-sm font-bold ${
+            addnew ? "text-red-500" : "text-blue-500"
+          } w-fit h-fit border-b-2 border-b-black transition-all duration-300 hover:text-white active:text-white hover:pb-5 cursor-pointer`}
+        >
+          {`${addnew ? "Close" : "Add New"}`}
+        </p>
+        {addnew && (
+          <>
+            <div className="w-full h-fit">
+              <label htmlFor="qty" className="text-lg font-semibold">
+                Size <strong className="text-red-500">*</strong>
+              </label>
+              <input
+                type="text"
+                placeholder="Size (Required)"
+                name="size"
+                value={customvalue}
+                onChange={(e) => setvalue(e.target.value)}
+                className="w-[100%] h-[35px] text-sm pl-1 font-bold bg-[#D9D9D9] rounded-md "
+              />
             </div>
-          );
-        })}
+            <div className="w-full h-fit">
+              <label htmlFor="qty" className="text-lg font-semibold">
+                Stock <strong className="text-red-500">*</strong>
+              </label>
+              <input
+                type="number"
+                placeholder="Stock"
+                name="qty"
+                value={qty}
+                onChange={(e) => setqty(parseInt(e.target.value))}
+                className="w-[100%] h-[35px] text-sm pl-1 font-bold bg-[#D9D9D9] rounded-md "
+              />
+            </div>
+            <div className="w-full h-fit flex flex-row gap-x-5">
+              <PrimaryButton
+                color="#44C3A0"
+                text={Edit.index === -1 ? "Add" : "Update"}
+                type="button"
+                radius="10px"
+                onClick={() => handleAdd()}
+                width="100%"
+                textsize="12px"
+                disable={customvalue === "" || !qty}
+                height="30px"
+              />
+              {!props.type && (
+                <PrimaryButton
+                  color="#F08080"
+                  text={"Delete"}
+                  onClick={() => {
+                    let updatearr = [...product.details];
+                    updatearr.splice(props.index, 1);
+                    setproduct({ ...product, details: updatearr });
+                  }}
+                  type="button"
+                  radius="10px"
+                  width="100%"
+                  textsize="12px"
+                  height="30px"
+                />
+              )}
+            </div>{" "}
+          </>
+        )}
       </div>
+    );
+  };
 
-      <input
-        type="text"
-        placeholder="Size (Required)"
-        name="size"
-        value={customvalue}
-        onChange={(e) => setvalue(e.target.value)}
-        className="w-[100%] h-[35px] text-sm pl-1 font-bold bg-[#D9D9D9] rounded-md "
-      />
-      <input
-        type="number"
-        placeholder="Stock"
-        name="qty"
-        value={qty}
-        onChange={(e) => setqty(parseInt(e.target.value))}
-        className="w-[100%] h-[35px] text-sm pl-1 font-bold bg-[#D9D9D9] rounded-md "
-      />
-
-      <PrimaryButton
-        color="#44C3A0"
-        text={Edit.index === -1 ? "Add" : "Update"}
-        type="button"
-        radius="10px"
-        onClick={() => handleAdd()}
-        width="100%"
-        textsize="12px"
-        disable={customvalue === "" || !qty}
-        height="30px"
-      />
-
-      <PrimaryButton
-        color="#F08080"
-        text="Delete"
-        onClick={() => {
-          let updatearr = [...product.details];
-          updatearr.splice(props.index, 1);
-          setproduct({ ...product, details: updatearr });
-        }}
-        type="button"
-        radius="10px"
-        width="100%"
-        textsize="12px"
-        height="30px"
-      />
-    </div>
+  return props.type && props.closename ? (
+    <Modal
+      closestate={props.closename}
+      customheight="fit-content"
+      action={() => {
+        setreloaddata(true);
+      }}
+    >
+      {loading && <ContainerLoading />}
+      {SizeElements(true)}
+    </Modal>
+  ) : (
+    SizeElements(false)
   );
 };
 
 export const DetailsModal = () => {
-  const { setopenmodal, globalindex } = useGlobalContext();
+  const { setopenmodal } = useGlobalContext();
 
   return (
     <div className="details_modal bg-[#CFDBEE] w-full h-full flex flex-col gap-y-5 p-14">
-      <NormalDetail index={globalindex.productdetailindex} />
-
+      <NormalDetail />
       <PrimaryButton
         width="100%"
         height="50px"
@@ -1430,7 +2095,12 @@ export const Category = () => {
   };
   return (
     <Modal closestate="createCategory" customheight="600px">
-      <div className="category relative rounded-md p-2 w-full min-h-[600px] max-h-[700px] flex flex-col bg-white gap-y-5 justify-start items-center">
+      <motion.div
+        initial={{ y: 1000 }}
+        animate={{ y: 0 }}
+        exit={{ y: -1000 }}
+        className="category relative rounded-md p-2 w-full min-h-[600px] max-h-[700px] flex flex-col bg-white gap-y-5 justify-start items-center"
+      >
         <CategoryNavBar />
         {show === "Create" ? (
           <>
@@ -1495,7 +2165,7 @@ export const Category = () => {
         ) : (
           <EditCategory />
         )}
-      </div>
+      </motion.div>
     </Modal>
   );
 };
@@ -1620,13 +2290,13 @@ const EditCategory = () => {
                 }}
                 className="parentcategory w-full bg-white outline outline-2 outline-black outline-offset-1 h-fit min-h-[50px] rounded-lg flex flex-row items-center gap-x-5"
               >
-                <h3
+                <p
                   onClick={() => handleClick(idx)}
                   className="parentcateogry text-xl transition duration-300 hover:text-white font-bold w-full h-full break-all flex items-center justify-center cursor-pointer text-center rounded-lg "
                 >
                   {obj.name}
-                </h3>
-                <h3
+                </p>
+                <p
                   onClick={() => {
                     let categorydeleteindex = [
                       ...globalindex.categoryeditindex,
@@ -1649,7 +2319,7 @@ const EditCategory = () => {
                 >
                   {" "}
                   Delete
-                </h3>
+                </p>
               </motion.div>
             ))}{" "}
           </>
@@ -1723,22 +2393,27 @@ const EditCategory = () => {
 //
 //
 
-const NormalDetail = ({ index }: { index: number }) => {
-  const { product, setproduct, setglobalindex, setopenmodal } =
+const NormalDetail = () => {
+  const { product, globalindex, setproduct, setglobalindex, setopenmodal } =
     useGlobalContext();
-  const [normaldetail, setnormal] = useState({
+  const [index, setindex] = useState(-1);
+  const normaldetailinitialize = {
     info_title: "",
     info_value: "",
-  });
+  };
+  const [normaldetail, setnormal] = useState(normaldetailinitialize);
   useEffect(() => {
-    const editindex = index === -1;
+    const editindex = globalindex.productdetailindex === -1;
+    console.log(product.details[globalindex.productdetailindex]);
     if (!editindex) {
       setnormal({
-        info_title: product.details[index].info_title,
-        info_value: product.details[index].info_value[0] as string,
+        info_title: product.details[globalindex.productdetailindex].info_title,
+        info_value: product.details[globalindex.productdetailindex]
+          .info_value[0] as string,
       });
     }
-  }, []);
+    setindex(globalindex.productdetailindex);
+  }, [globalindex.productdetailindex]);
   const handleAdd = () => {
     const updatedetail = [...product.details];
     const isExist = updatedetail.some(
@@ -1761,6 +2436,7 @@ const NormalDetail = ({ index }: { index: number }) => {
     }
     setproduct({ ...product, details: updatedetail });
     setglobalindex((prev) => ({ ...prev, productdetailindex: -1 }));
+    setnormal(normaldetailinitialize);
     setopenmodal((prev) => ({ ...prev, productdetail: false }));
     //save detail
   };
@@ -1835,26 +2511,46 @@ export const ImageUpload = (props: imageuploadprops) => {
     setopenmodal,
     isLoading,
     setisLoading,
+    globalindex,
+    setreloaddata,
   } = useGlobalContext();
 
   const [Imgurl, seturl] = useState<Imgurl[]>([]);
   const [Imgurltemp, seturltemp] = useState<Imgurl[]>([]);
   const [Files, setfiles] = useState<File[]>([]);
+  const [crop, setcrop] = useState(false);
+  const [selectedImg, setselected] = useState(-1);
+  const [isEdit, setisEdit] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
+  //Initialize
   useEffect(() => {
-    seturl(
+    //Initialize Img URL
+    const updatedImages =
       product.covers.length > 0
         ? product.covers.map((i) => ({ ...i, isSave: true }))
         : banner.image?.url.length > 0
         ? [banner.image]
-        : []
-    );
-  }, [product.covers, banner.image]);
+        : [];
 
+    seturl([...updatedImages]);
+    //Initailize File
+    setfiles((prevFiles) => {
+      const newLength = updatedImages.length;
+
+      const newFiles = Array(newLength).fill(null);
+
+      newFiles.splice(0, prevFiles.length, ...prevFiles);
+
+      return newFiles;
+    });
+  }, []);
+
+  //Change Event
   const handleFile = async (e: ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files;
     const updateUrl = [...Imgurl];
-    if (Imgurltemp.length > 0) {
+    if (Imgurltemp.length > 0 && globalindex.producteditindex !== -1) {
       const deleteImage = await ApiRequest(
         "/api/products/cover",
         setisLoading,
@@ -1886,20 +2582,17 @@ export const ImageUpload = (props: imageuploadprops) => {
           url: obj,
           name: filteredFile[index].name,
           type: filteredFile[index].type,
-          id: updateUrl.length,
         })
       );
 
       seturl(updateUrl);
       setfiles((prev) => [...prev, ...filteredFile]);
-      setopenmodal({
-        ...openmodal,
-        confirmmodal: { ...openmodal.confirmmodal, confirm: false },
-      });
-
+      setisEdit(true);
       filteredFileUrl.length > 0 && seturltemp([]);
     }
   };
+
+  //Delete Image
   const handleDelete = (index: number) => {
     const updateUrl = [...Imgurl];
     const updatefile = [...Files];
@@ -1908,15 +2601,34 @@ export const ImageUpload = (props: imageuploadprops) => {
     updatefile.splice(index, 1);
 
     updateUrl.splice(index, 1);
-    seturltemp([...Imgurltemp, temp]);
+
+    seturltemp((prev) => [...prev, { ...temp }]);
     seturl(updateUrl);
+    setisEdit(true);
     setfiles(updatefile);
-    setopenmodal({
-      ...openmodal,
-      confirmmodal: { ...openmodal.confirmmodal, confirm: false },
-    });
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   };
 
+  //Update Product when saved
+  const handleUpdateCover = async (data: productcoverstype[]) => {
+    const updateProduct = await ApiRequest(
+      "/api/products/crud",
+      undefined,
+      "PUT",
+      "JSON",
+      { ...product, covers: data }
+    );
+
+    if (!updateProduct.success) {
+      return null;
+    }
+    setreloaddata(true);
+    return true;
+  };
+
+  //Saved to storage
   const handleSave = async () => {
     const URL = "/api/products/cover";
     try {
@@ -1952,23 +2664,41 @@ export const ImageUpload = (props: imageuploadprops) => {
           return;
         }
       }
+
       const updateUrl = [...Imgurl];
       const isSaved = updateUrl.some((i) => i.isSave);
-
       const savedFile = [...updateUrl, ...uploadImg.data];
       const savedUrl = !isSaved
         ? uploadImg.data
         : savedFile.filter((i: Imgurl) => i.isSave);
 
       if (props.type === "createproduct") {
+        if (globalindex.producteditindex !== -1) {
+          const update = await handleUpdateCover(savedUrl);
+
+          if (!update) {
+            errorToast("Error Occured");
+            return;
+          }
+        }
         setproduct({ ...product, covers: savedUrl });
       } else if (props.type === "createbanner") {
         setbanner({ ...banner, image: savedUrl[0] });
       }
-      seturltemp([]);
 
+      seturltemp([]);
       seturl(savedUrl);
-      setfiles([]);
+      setfiles((prevFiles) => {
+        const newLength = savedUrl.length;
+
+        const newFiles = Array(newLength).fill(null);
+
+        newFiles.splice(0, prevFiles.length, ...prevFiles);
+
+        return newFiles;
+      });
+      setisEdit(false);
+      setreloaddata(true);
 
       setopenmodal({
         ...openmodal,
@@ -1981,7 +2711,7 @@ export const ImageUpload = (props: imageuploadprops) => {
     }
   };
   const handleCancel = () => {
-    if (!openmodal.confirmmodal.confirm) {
+    if (isEdit) {
       setopenmodal({
         ...openmodal,
         confirmmodal: {
@@ -2001,6 +2731,19 @@ export const ImageUpload = (props: imageuploadprops) => {
     setfiles([]);
     seturltemp([]);
   };
+
+  const handleselectImg = (idx: number) => {
+    const imgurl = [...Imgurl];
+    const img = imgurl[idx];
+
+    if (img.isSave) {
+      infoToast("To edit this image please delete and upload again");
+      return;
+    }
+    setselected(idx);
+
+    setcrop(true);
+  };
   return (
     <dialog
       open={openmodal.imageupload}
@@ -2015,19 +2758,27 @@ export const ImageUpload = (props: imageuploadprops) => {
       />
       <div className="uploadImage__container w-[80%] max-h-[600px] flex flex-row justify-start items-center gap-x-5">
         <div className="previewImage__container w-[50%] border-[1px] border-black grid grid-cols-2 gap-x-5 gap-y-5 p-3  min-h-[400px] max-h-[600px] overflow-y-auto">
-          {Imgurl.filter((i) => i.url !== "").map((file, index) => (
-            <div key={index} className="image_container relative">
+          {Imgurl.map((file, index) => (
+            <div
+              key={index}
+              className="image_container relative transition duration-300 "
+            >
               <Image
+                onClick={() => handleselectImg(index)}
                 src={file.url}
-                style={
-                  props.type === "createbanner"
-                    ? { width: "400px", height: "auto", objectFit: "contain" }
-                    : { width: "400px", height: "550px", objectFit: "cover" }
-                }
-                width={1000}
-                height={1000}
+                style={{
+                  width: "400px",
+                  height: "auto",
+                  objectFit: "contain",
+                }}
+                className="transition-all duration-300 hover:p-3 active:p-3"
+                width={600}
+                height={600}
+                quality={80}
+                loading="lazy"
                 alt={`Preview of Image ${file.name}`}
               />
+
               <i
                 onClick={() => handleDelete(index)}
                 className="fa-solid fa-minus font-black p-[1px] h-fit absolute right-0 top-0  text-lg rounded-lg bg-red-500 text-white transition hover:bg-black "
@@ -2036,7 +2787,11 @@ export const ImageUpload = (props: imageuploadprops) => {
           ))}
         </div>
         <div className="action__container w-1/2 flex flex-col items-center gap-y-5 h-fit">
-          <InputFileUpload onChange={handleFile} multiple={props.mutitlple} />
+          <InputFileUpload
+            ref={fileInputRef}
+            onChange={handleFile}
+            multiple={props.mutitlple}
+          />
           <PrimaryButton
             onClick={() => handleSave()}
             type="button"
@@ -2046,7 +2801,7 @@ export const ImageUpload = (props: imageuploadprops) => {
             color="#44C3A0"
             radius="10px"
             status={SpecificAccess(isLoading) ? "loading" : "authenticated"}
-            disable={openmodal.confirmmodal.confirm}
+            disable={!isEdit}
           />
           <PrimaryButton
             onClick={() => handleReset()}
@@ -2058,7 +2813,20 @@ export const ImageUpload = (props: imageuploadprops) => {
             disable={Imgurltemp.length === 0}
           />
         </div>
-      </div>
+      </div>{" "}
+      {crop && (
+        <Cropimage
+          index={selectedImg}
+          img={Imgurl[selectedImg].url}
+          setclose={setcrop}
+          imgurl={Imgurl}
+          ratio={16 / 10}
+          Files={Files}
+          setfile={setfiles}
+          setimgurl={seturl}
+          type={props.type}
+        />
+      )}
     </dialog>
   );
 };
@@ -2080,8 +2848,9 @@ export const BannerModal = ({ type }: { type: "banner" | "promotion" }) => {
     setisLoading,
     isLoading,
   } = useGlobalContext();
+  const [isEdit, setisEdit] = useState(false);
   const handleCancel = () => {
-    if (!openmodal.confirmmodal.confirm || banner.image.name.length > 0) {
+    if (isEdit) {
       setopenmodal(SaveCheck(false, "createBanner", openmodal, true));
       return;
     }
@@ -2106,6 +2875,11 @@ export const BannerModal = ({ type }: { type: "banner" | "promotion" }) => {
       ? fetchdata()
       : setisLoading((prev) => ({ ...prev, GET: false }));
   }, []);
+
+  useEffect(() => {
+    const isEdit = banner.image.url.length !== 0 && banner.name.length !== 0;
+    setisEdit(isEdit);
+  }, [banner]);
   const handleCreate = async () => {
     const allbanner = [...allData.banner];
     const URL = "/api/banner";
@@ -2150,6 +2924,7 @@ export const BannerModal = ({ type }: { type: "banner" | "promotion" }) => {
 
         successToast("Banner Updated");
       }
+      setisEdit(false);
       setbanner(BannerInitialize);
       setopenmodal(SaveCheck(true, "createBanner", openmodal));
       setalldata({ ...allData, banner: allbanner });
@@ -2157,23 +2932,14 @@ export const BannerModal = ({ type }: { type: "banner" | "promotion" }) => {
       toast.error("Image Is Missing", { autoClose: 2000, pauseOnHover: true });
     }
   };
-  useEffect(() => {
-    const handleReload = (e: Event) => {
-      e.preventDefault();
-      if (banner.image.name.length > 0) {
-        localStorage.setItem("diB", banner.image.name);
-      }
-    };
-    if (globalindex.bannereditindex === -1) {
-      window.addEventListener("beforeunload", handleReload);
-    }
-    return () => {
-      window.removeEventListener("beforeunload", handleReload);
-    };
-  }, [banner]);
   return (
     <Modal customwidth="100%" customheight="100%" closestate="createBanner">
-      <div className="bannermodal_content bg-white border border-black p-1 w-auto min-w-1/2 max-w-full h-fit  flex flex-col gap-y-5 justify-start items-center">
+      <motion.div
+        initial={{ y: 1000 }}
+        animate={{ y: 0 }}
+        exit={{ opacity: 0 }}
+        className="bannermodal_content bg-white border border-black p-1 w-auto min-w-1/2 max-w-full h-fit  flex flex-col gap-y-5 justify-start items-center"
+      >
         <div className="image_container flex flex-col justify-center w-[95vw] items-center h-full">
           <div className="flex flex-col justify-center w-fit  min-w-[80vw] max-h-[80vh] min-h-[250px]">
             {banner.image.url.length === 0 ? (
@@ -2181,16 +2947,18 @@ export const BannerModal = ({ type }: { type: "banner" | "promotion" }) => {
                 No Image
               </h3>
             ) : (
-              <img
-                src={banner.image?.url}
-                alt={"Banner"}
-                className="w-auto min-h-[250px] max-h-[80vh]  mt-9 object-cover"
-                loading="lazy"
-              />
+              <>
+                <img
+                  src={banner.image?.url}
+                  alt={"Banner"}
+                  className="w-auto min-h-[250px] max-h-[80vh]  mt-9 object-cover"
+                  loading="lazy"
+                />
+                <h3 className="w-full p-2 bg-[#495464] font-black text-white mb-5">
+                  {banner.name.length > 0 ? banner.name : "Banner Name"}
+                </h3>
+              </>
             )}
-            <h3 className="w-full p-2 bg-[#495464] font-black text-white mb-5">
-              {banner.name.length > 0 ? banner.name : "Banner Name"}
-            </h3>
           </div>
           <PrimaryButton
             text={banner.image?.url.length > 0 ? "EditImage" : "UploadImage"}
@@ -2239,7 +3007,7 @@ export const BannerModal = ({ type }: { type: "banner" | "promotion" }) => {
               width="100%"
               type="button"
               status={SpecificAccess(isLoading) ? "loading" : "authenticated"}
-              disable={banner.image?.url.length === 0}
+              disable={!isEdit}
             />
             <PrimaryButton
               text="Cancel"
@@ -2251,7 +3019,7 @@ export const BannerModal = ({ type }: { type: "banner" | "promotion" }) => {
             />
           </div>
         </div>
-      </div>
+      </motion.div>
       {openmodal.imageupload && (
         <ImageUpload limit={1} mutitlple={false} type="createbanner" />
       )}
@@ -2264,20 +3032,43 @@ export const BannerModal = ({ type }: { type: "banner" | "promotion" }) => {
 //
 //UpdateStockModal
 
-export const UpdateStockModal = () => {
+export const UpdateStockModal = ({
+  action,
+  closename,
+}: {
+  action?: () => void;
+  closename: string;
+}) => {
   const {
     product,
     setproduct,
-    allData,
-    setalldata,
-    globalindex,
-    setglobalindex,
+
+    setreloaddata,
     setopenmodal,
     isLoading,
     setisLoading,
   } = useGlobalContext();
+
+  const handleUpdate = async () => {
+    const update = await ApiRequest(
+      "/api/products/crud",
+      setisLoading,
+      "PUT",
+      "JSON",
+      { stock: product.stock, id: product.id, type: "editstock" }
+    );
+    if (!update.success) {
+      errorToast("Failed To Update Stock");
+      return;
+    }
+
+    setproduct(Productinitailizestate);
+    setreloaddata(true);
+    successToast("Stock Updated");
+    setopenmodal((prev) => ({ ...prev, [closename]: false }));
+  };
   return (
-    <Modal closestate="updatestock">
+    <Modal closestate={closename}>
       <div className="updatestock w-[100%] h-[100%] rounded-lg flex flex-col items-center justify-center gap-y-5 bg-white p-1">
         <label className="text-lg font-bold">Update Stock </label>
         <input
@@ -2287,17 +3078,11 @@ export const UpdateStockModal = () => {
           min={0}
           max={1000}
           onChange={(e) => {
-            let updatestock = {
-              ...allData.product[globalindex.producteditindex],
-            };
-            updatestock.stock = parseInt(e.target.value);
-            setproduct(updatestock);
+            const { value } = e.target;
+            const val = parseInt(value);
+            setproduct((prev) => ({ ...prev, stock: val }));
           }}
-          value={
-            product.stock === 0
-              ? allData.product[globalindex.producteditindex]?.stock
-              : product.stock
-          }
+          value={product.stock}
           required
           className="w-[80%] h-[50px] text-lg pl-1 font-bold bg-[#D9D9D9] rounded-md "
         />
@@ -2305,28 +3090,9 @@ export const UpdateStockModal = () => {
           color="#44C3A0"
           text="Update"
           type="button"
-          onClick={async () => {
-            const update = await ApiRequest(
-              "/api/products/crud",
-              setisLoading,
-              "PUT",
-              "JSON",
-              product
-            );
-            if (!update.success) {
-              errorToast("Failed To Update Stock");
-              return;
-            }
-            let updatestock = [...allData.product];
-            updatestock[globalindex.producteditindex].stock = product.stock;
-            setalldata((prev) => ({ ...prev, product: updatestock }));
-            setproduct(Productinitailizestate);
-            setglobalindex((prev) => ({ ...prev, producteditindex: -1 }));
-            setopenmodal((prev) => ({ ...prev, updatestock: false }));
-            successToast("Stock Updated");
-          }}
+          onClick={() => handleUpdate()}
           radius="10px"
-          status={SpecificAccess(isLoading) ? "loading" : "authenticated"}
+          status={isLoading.PUT ? "loading" : "authenticated"}
           width="80%"
           height="50px"
         />{" "}
@@ -2337,9 +3103,9 @@ export const UpdateStockModal = () => {
           radius="10px"
           width="80%"
           height="50px"
-          disable={SpecificAccess(isLoading)}
+          disable={isLoading.PUT}
           onClick={() => {
-            setopenmodal((prev) => ({ ...prev, updatestock: false }));
+            setopenmodal((prev) => ({ ...prev, [closename]: false }));
           }}
         />
       </div>
@@ -2364,19 +3130,18 @@ export const CreatePromotionModal = () => {
     setinventoryfilter,
     setisLoading,
     isLoading,
-    setalldata,
-    allData,
     globalindex,
     setglobalindex,
     allfiltervalue,
     setallfilterval,
+    setreloaddata,
   } = useGlobalContext();
 
   const [isEdit, setisEdit] = useState(false);
 
   const fetchdata = async (id: number) => {
     const request = await ApiRequest(
-      `/api/promotion?ty=edit&p=${globalindex.promotioneditindex}`,
+      `/api/promotion?ty=edit&p=${id}`,
       setisLoading,
       "GET"
     );
@@ -2388,28 +3153,33 @@ export const CreatePromotionModal = () => {
   };
   useEffect(() => {
     setisEdit(false);
-
     if (globalindex.promotioneditindex !== -1) {
       fetchdata(globalindex.promotioneditindex);
+    } else {
+      setpromotion((prev) => ({ ...prev, id: -1 }));
     }
   }, []);
+
+  useEffect(() => {
+    const isEdit =
+      promotion.name.length !== 0 &&
+      promotion.description.length !== 0 &&
+      promotion.banner_id &&
+      promotion.Products.length > 0;
+    isEdit ? setisEdit(true) : setisEdit(false);
+  }, [promotion]);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const promo = { ...promotion };
     const isProduct = promo.Products.filter((i) => i.id !== 0).length;
-    if (
-      globalindex.promotioneditindex === -1 &&
-      (isProduct === 0 || !promo.expiredAt)
-    ) {
+    if (isProduct === 0 || !promo.expireAt) {
       errorToast(
-        !promo.expiredAt ? "Please Fill Expire Date" : "Please Select Product"
+        !promo.expireAt ? "Please Fill Expire Date" : "Please Select Product"
       );
       return;
     }
 
-    const allPromo = [...allData.promotion];
-    const allProduct = [...allData.product];
     const method = globalindex.promotioneditindex !== -1 ? "PUT" : "POST";
     const createpromo = await ApiRequest(
       "/api/promotion",
@@ -2422,51 +3192,12 @@ export const CreatePromotionModal = () => {
       errorToast(createpromo.error ?? "Error Occured");
       return;
     }
-    if (globalindex.promotioneditindex === -1) {
-      allPromo.push(promo);
-      allProduct.forEach((i) => {
-        promo.Products.forEach((j) => {
-          if (j.id === i.id) {
-            i.discount = {
-              percent: j.discount?.percent ?? "",
-              newPrice: j.discount?.newPrice ?? "",
-            };
-          }
-        });
-      });
+    setreloaddata(true);
 
-      setpromotion(PromotionInitialize);
-    } else {
-      const idx = allPromo.findIndex(
-        (i) => i.id === globalindex.promotioneditindex
-      );
-      allPromo[idx].banner_id = promo.banner_id;
-      if (!promo.banner_id) {
-        allPromo[idx].banner = undefined;
-      }
-      allProduct.forEach((i) => {
-        promo.Products.forEach((j) => {
-          if (j.id === i.id) {
-            i.discount = {
-              percent: j.discount?.percent ?? "",
-              newPrice: j.discount?.newPrice ?? "",
-            };
-          }
-        });
-      });
-      setglobalindex((prev) => ({ ...prev, promotioneditindex: -1 }));
-      setopenmodal((prev) => ({ ...prev, createPromotion: false }));
+    setpromotion(PromotionInitialize);
 
-      setpromotion(PromotionInitialize);
+    setinventoryfilter("promotion");
 
-      setinventoryfilter("promotion");
-    }
-
-    setalldata((prev) => ({
-      ...prev,
-      promotion: allPromo,
-      product: allProduct,
-    }));
     setisEdit(false);
 
     successToast(
@@ -2474,20 +3205,28 @@ export const CreatePromotionModal = () => {
         globalindex.promotioneditindex === -1 ? "Created" : "Updated"
       }`
     );
+    setglobalindex((prev) => ({ ...prev, promotioneditindex: -1 }));
+    setopenmodal((prev) => ({ ...prev, createPromotion: false }));
   };
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     setpromotion((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-    setopenmodal(SaveCheck(false, "createPromotion", openmodal));
-    setisEdit(true);
   };
-  const handleCancel = () => {
+  const handleCancel = async () => {
     const allfilter = [...allfiltervalue];
-    if (openmodal.confirmmodal.confirm) {
-      setpromotion(PromotionInitialize);
-      globalindex.promotioneditindex === -1 && setinventoryfilter("promotion");
-      setglobalindex((prev) => ({ ...prev, promotioneditindex: -1 }));
-      setopenmodal((prev) => ({ ...prev, createPromotion: false }));
-    } else {
+    const deletepromoproduct = await ApiRequest(
+      "/api/promotion",
+      undefined,
+      "PUT",
+      "JSON",
+      { type: "cancelproduct" }
+    );
+
+    if (!deletepromoproduct.success) {
+      errorToast("Error Occured");
+      return;
+    }
+
+    if (isEdit) {
       setopenmodal((prev) => ({
         ...prev,
         confirmmodal: {
@@ -2497,6 +3236,7 @@ export const CreatePromotionModal = () => {
           closecon: "createPromotion",
         },
       }));
+      return;
     }
     allfilter.forEach((i) => {
       if (i.page === "product") {
@@ -2504,35 +3244,14 @@ export const CreatePromotionModal = () => {
       }
     });
     setallfilterval(allfilter);
+    setpromotion(PromotionInitialize);
     setinventoryfilter("promotion");
+    setglobalindex((prev) => ({ ...prev, promotioneditindex: -1 }));
+    setopenmodal((prev) => ({ ...prev, createPromotion: false }));
   };
   const handleSelectProduct = (type: "product" | "banner") => {
     const isSelect = promotion.Products.every((i) => i.id !== 0);
-    const allfilter = [...allfiltervalue];
-    const Isfilterexist = allfilter.findIndex((i) => i.page === type);
-    if (Isfilterexist === -1) {
-      allfilter.push({
-        page: type,
-        filter:
-          globalindex.promotioneditindex === -1
-            ? FiltervalueInitialize
-            : globalindex.promotioneditindex !== -1 && type === "product"
-            ? {
-                ...FiltervalueInitialize,
-                promotionid: promotion.id,
-              }
-            : FiltervalueInitialize,
-      });
-    } else {
-      if (globalindex.promotioneditindex !== -1) {
-        allfilter[Isfilterexist].filter.promotionid = promotion.id;
-      }
-    }
-
-    setopenmodal(SaveCheck(false, "createPromotion", openmodal));
-    setinventoryfilter(type);
-
-    setallfilterval(allfilter);
+    let allfil = [...allfiltervalue];
 
     setpromotion((prev) => ({
       ...prev,
@@ -2540,15 +3259,31 @@ export const CreatePromotionModal = () => {
       [type === "product" ? "selectproduct" : "selectbanner"]: true,
     }));
     infoToast(
-      "Start selection by click on " + type + " click again to remove discount"
+      "Start selection by click on card and click on it again to remove discount"
     );
 
+    allfil = allfil.map((i) => {
+      if (i.page === "product") {
+        return {
+          ...i,
+          promotionid: promotion.id,
+        };
+      }
+      return i;
+    });
+
+    setinventoryfilter(type);
+    setallfilterval(allfil);
     setopenmodal((prev) => ({ ...prev, createPromotion: false }));
   };
-
   return (
     <Modal closestate={"none"}>
-      <div className="createPromotion__container relative  rounded-lg w-full h-full bg-white p-3 flex flex-col justify-center items-center">
+      <motion.div
+        initial={{ y: 1000 }}
+        animate={{ y: 0 }}
+        exit={{ y: 1000 }}
+        className="createPromotion__container relative  rounded-lg w-full h-full bg-white p-3 flex flex-col justify-center items-center"
+      >
         <form
           onSubmit={handleSubmit}
           className="promotionform w-full h-full flex flex-col justify-center items-center gap-y-5"
@@ -2574,10 +3309,10 @@ export const CreatePromotionModal = () => {
             Expire Date*
           </label>
           <DateTimePicker
-            value={dayjs(promotion.expiredAt)}
+            value={dayjs(promotion.expireAt)}
             onChange={(e) => {
               setpromotion((prev) => ({ ...prev, expiredAt: dayjs(e) }));
-              setisEdit(true);
+              setisEdit(false);
             }}
             sx={{ width: "100%", height: "50px" }}
           />
@@ -2627,7 +3362,7 @@ export const CreatePromotionModal = () => {
             onClick={() => handleCancel()}
           />
         </form>
-      </div>
+      </motion.div>
       {openmodal.imageupload && (
         <ImageUpload mutitlple={false} limit={1} type="createpromotion" />
       )}
@@ -2639,12 +3374,11 @@ export const DiscountModals = () => {
   const {
     promotion,
     allData,
+    setalldata,
     setpromotion,
     globalindex,
-
     setopenmodal,
   } = useGlobalContext();
-  const discounteditindex = globalindex.promotionproductedit;
   const [discount, setdiscount] = useState<number>(0);
   useEffect(() => {
     if (globalindex.promotionproductedit !== -1) {
@@ -2652,49 +3386,75 @@ export const DiscountModals = () => {
         (i) => i.id === globalindex.promotionproductedit
       );
       const promo = promotion.Products[idx].discount;
-      const percent = parseInt(promo?.percent ?? "");
-      setdiscount(percent);
+      const percent = promo?.percent;
+      setdiscount(percent ?? 0);
     }
   }, []);
-  const handleDiscount = (e: FormEvent<HTMLFormElement>) => {
+
+  const handleDiscount = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     let promoproduct = [...promotion.Products];
-    const promoproductid = promoproduct.map((i) => i.id);
-    const product = allData.product
-      .map((i) => (promoproductid.includes(i.id ?? 0) ? i : null))
-      .filter((i) => i?.id);
+    let allproduct = [...allData.product];
+    const producteditidx = globalindex.promotionproductedit;
 
-    if (discounteditindex === -1) {
-      promoproduct.forEach((i, idx) => {
-        const price = product[idx]?.price ?? 0;
-        i.discount = {
-          percent: discount?.toString() as string,
-          newPrice: (price - (price * discount) / 100).toFixed(2),
-          oldPrice: price,
-        };
-      });
-      setpromotion((prev) => ({ ...prev, products: promoproduct }));
+    const calculateDiscount = (price: number) => ({
+      percent: discount,
+      newPrice: (price - (price * discount) / 100).toFixed(2),
+      oldPrice: price,
+    });
+    if (producteditidx === -1) {
+      promoproduct = promoproduct.map((i) => ({
+        ...i,
+        discount: calculateDiscount(i.discount?.oldPrice as number),
+      })); // set discount for all selected product
     } else {
-      const idx = promotion.Products.findIndex(
-        (i) => i.id === globalindex.promotionproductedit
+      promoproduct = promoproduct.map((i) => {
+        if (i.id === producteditidx) {
+          return {
+            ...i,
+            discount: calculateDiscount(i.discount?.oldPrice as number),
+          };
+        }
+        return i;
+      });
+    }
+
+    //update product discount
+    allproduct = allproduct.map((product) => {
+      const matchingPromoProduct = promoproduct.find(
+        (promoProduct) => promoProduct.id === product.id
       );
 
-      let oldprice = promoproduct[idx].discount?.oldPrice ?? 0;
-      promoproduct[idx].discount = {
-        percent: discount?.toString() as string,
-        newPrice: (oldprice - (oldprice * discount) / 100).toFixed(2),
-        oldPrice: oldprice as number,
-      };
+      if (matchingPromoProduct) {
+        const { percent, newPrice } = matchingPromoProduct.discount || {};
+        return {
+          ...product,
+          discount: {
+            ...product.discount,
+            percent: percent as number,
+            newPrice: newPrice as string,
+          },
+        };
+      }
 
-      setpromotion((prev) => ({ ...prev, products: promoproduct }));
+      return product;
+    });
 
-      successToast("Discount Set");
-      setopenmodal((prev) => ({ ...prev, discount: false }));
-    }
+    setalldata((prev) => ({ ...prev, product: allproduct }));
+
+    setpromotion((prev) => ({ ...prev, Products: promoproduct }));
+
+    setopenmodal((prev) => ({ ...prev, discount: false }));
+
+    successToast("Discount Set");
   };
+
   return (
     <Modal customwidth="30%" customheight="fit-content" closestate="discount">
-      <form
+      <motion.form
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
         onSubmit={handleDiscount}
         className="discount_content rounded-lg w-full h-full p-3 bg-white flex flex-col gap-y-5 justify-center items-center"
       >
@@ -2711,7 +3471,7 @@ export const DiscountModals = () => {
           min={1}
           max={100}
           className="w-full h-[50px] rounded-lg pl-3 text-lg font-bold round-lg border border-gray-300"
-          onChange={(e) => setdiscount(parseInt(e.target.value))}
+          onChange={(e) => setdiscount(parseFloat(e.target.value))}
           required
         />
         <PrimaryButton
@@ -2720,7 +3480,7 @@ export const DiscountModals = () => {
           width="100%"
           radius="10px"
         />
-      </form>
+      </motion.form>
     </Modal>
   );
 };
@@ -2771,7 +3531,7 @@ export const Createusermodal = () => {
     //register User
     const register = await ApiRequest(URL, setisLoading, method, "JSON", data);
     if (!register.success) {
-      errorToast(register.error ?? "Failed To Register User");
+      errorToast(register.error ?? "Failed to register");
       return;
     }
     let alluser = [...allData.user];
@@ -2795,7 +3555,7 @@ export const Createusermodal = () => {
     setdata((prev) => ({ ...prev, [name]: value }));
     setopenmodal(SaveCheck(false, "createUser", openmodal));
   };
-  const handleDelete = (id: number) => {
+  const handleDelete = (id: string) => {
     setopenmodal((prev) => ({
       ...prev,
       confirmmodal: {
@@ -2966,9 +3726,7 @@ export const Createusermodal = () => {
                 color="lightcoral"
                 text="Delete"
                 type="button"
-                onClick={() =>
-                  handleDelete(allData.user.findIndex((i) => i.id === data.id))
-                }
+                onClick={() => handleDelete(data.id as string)}
                 width="100%"
                 height="50px"
                 radius="10px"
@@ -2999,12 +3757,14 @@ export interface editprofiledata {
 }
 export interface shippingtype {
   id?: number;
+  street?: string;
   province: string;
   houseId: number;
   district: string;
   songkhat: string;
   postalcode: string;
   isSaved: boolean;
+  save?: string;
   [key: string]: string | number | boolean | undefined;
 }
 export const EditProfile = ({
@@ -3030,7 +3790,6 @@ export const EditProfile = ({
   });
 
   const handleAdd = async (index: number) => {
-    setloading((prev) => ({ ...prev, post: true }));
     const formeddata = new FormData();
 
     let userdata = { ...data };
@@ -3039,12 +3798,28 @@ export const EditProfile = ({
 
     if (shipping && index >= 0 && index < shipping.length) {
       let selectedShipping = shipping[index];
+      const isNotEmpty = Object.entries(selectedShipping).every(
+        ([key, val]) => {
+          if (typeof val === "string") {
+            return val.trim() !== "";
+          }
+          if (typeof val === "number") {
+            return val !== 0;
+          }
+          return Boolean(val);
+        }
+      );
+      if (!isNotEmpty) {
+        errorToast("All field is required");
+        return;
+      }
 
       Object.entries(selectedShipping).forEach(([key, value]) => {
         if (typeof value === "string") {
           formeddata.set(key, value);
         }
       });
+      setloading((prev) => ({ ...prev, post: true }));
 
       const address = Addaddress.bind(
         null,
@@ -3102,7 +3877,7 @@ export const EditProfile = ({
   const fetchdata = async (ty: typeof type) => {
     let userdata = { ...data };
 
-    let url = `/api/auth/users/info?ty=${type}`;
+    let url = `/api/users/info?ty=${type}`;
     if (ty === "shipping") {
       let updateopen = { ...open };
 
@@ -3157,6 +3932,7 @@ export const EditProfile = ({
     );
     const updaterequest = Editprofileaction.bind(null, formeddata, type);
     const update = await updaterequest();
+    setloading((prev) => ({ ...prev, post: false }));
     if (!update.success) {
       errorToast(update.message as string);
       return;
@@ -3184,7 +3960,6 @@ export const EditProfile = ({
     }
 
     successToast(update.message as string);
-    setloading((prev) => ({ ...prev, post: false }));
   };
 
   const handleVerify = async () => {
@@ -3312,9 +4087,9 @@ export const EditProfile = ({
                       }`}
                       onClick={() => {
                         const update = Object.entries(open).map(
-                          ([key, value]: any) => {
+                          ([key, _]: any) => {
                             if (key === `sub${idx + 1}`) {
-                              return [key, !value];
+                              return [key, true];
                             } else {
                               return [key, false];
                             }
@@ -3328,89 +4103,113 @@ export const EditProfile = ({
                     </h3>
 
                     {open && open[`sub${idx + 1}`] && (
-                      <div className="addressform relative w-full h-fit flex flex-col items-center gap-y-5 p-5">
-                        <Selection
-                          style={{ width: "100%", height: "50px" }}
-                          default="Province / Cities"
-                          name="province"
-                          value={i.province}
-                          onChange={(e) => {
-                            let result = { ...data };
-                            if (result.shipping) {
-                              let shipping = result.shipping[idx];
-                              shipping[e.target.name] = e.target.value;
-                            }
-                            setdata(result);
-                          }}
-                          data={listofprovinces}
-                        />
-                        <input
-                          name="houseId"
-                          type="text"
-                          onChange={(e) => Handleaddresschange(e, idx)}
-                          value={i.houseId}
-                          placeholder="House(73) or Apartment ID (13, Floor 2)"
-                          className="w-full h-[50px] border border-gray-300 p-3 rounded-lg font-bold text-lg"
-                        />
-                        <input
-                          name="district"
-                          type="text"
-                          value={i.district}
-                          onChange={(e) => Handleaddresschange(e, idx)}
-                          placeholder="District / Khan"
-                          className="w-full h-[50px] border border-gray-300 p-3 rounded-lg font-bold text-lg"
-                        />
-                        <input
-                          name="songkhat"
-                          type="text"
-                          value={i.songkhat}
-                          onChange={(e) => Handleaddresschange(e, idx)}
-                          placeholder="Songkhat / Commune"
-                          className="w-full h-[50px] border border-gray-300 p-3 rounded-lg font-bold text-lg"
-                        />
-                        <input
-                          name="postalcode"
-                          type="text"
-                          value={i.postalcode}
-                          onChange={(e) => Handleaddresschange(e, idx)}
-                          placeholder="Postalcode (12061)"
-                          className="w-full h-[50px] border border-gray-300 p-3 rounded-lg font-bold text-lg"
-                        />
+                      <>
+                        <div className="addressform relative w-full h-fit flex flex-col items-center gap-y-5 p-5">
+                          <span
+                            onClick={() => {
+                              const update = Object.entries(open).map(
+                                ([key, value]: any) => {
+                                  if (key === `sub${idx + 1}`) {
+                                    return [key, !value];
+                                  } else {
+                                    return [key, false];
+                                  }
+                                }
+                              );
 
-                        <div className="flex flex-row gap-x-5 w-full h-fit">
-                          <PrimaryButton
-                            type="submit"
-                            text={i.isSaved ? "Update" : "Add"}
-                            color="#0097FA"
-                            width="100%"
-                            height="50px"
-                            radius="10px"
-                            status={loading.post ? "loading" : "authenticated"}
-                            disable={
-                              i.isSaved
-                                ? !loading.edit
-                                : Object.entries(i).some(([_, value]) =>
-                                    typeof value === "string"
-                                      ? value.length === 0
-                                      : typeof value === "number"
-                                      ? value === 0
-                                      : false
-                                  )
-                            }
-                            onClick={() => handleAdd(idx)}
+                              setopen(Object.fromEntries(update));
+                            }}
+                            className="absolute -top-7 right-0 transition hover:translate-x-1 "
+                          >
+                            <CloseVector width="30px" height="30px" />
+                          </span>
+                          <Selection
+                            style={{ width: "100%", height: "50px" }}
+                            default="Province / Cities"
+                            name="province"
+                            value={i.province}
+                            onChange={(e) => {
+                              let result = { ...data };
+                              if (result.shipping) {
+                                let shipping = result.shipping[idx];
+                                shipping[e.target.name] = e.target.value;
+                              }
+                              setdata(result);
+                            }}
+                            data={listofprovinces}
                           />
-                          <PrimaryButton
-                            type="button"
-                            text={"Delete"}
-                            disable={SpecificAccess(loading)}
-                            onClick={() => handleRemove(idx)}
-                            color="lightcoral"
-                            width="100%"
-                            height="50px"
-                            radius="10px"
+                          <input
+                            name="street"
+                            type="text"
+                            onChange={(e) => Handleaddresschange(e, idx)}
+                            value={i.street}
+                            placeholder="Street Address"
+                            className="w-full h-[50px] border border-gray-300 p-3 rounded-lg font-bold text-lg"
                           />
+                          <input
+                            name="houseId"
+                            type="text"
+                            onChange={(e) => Handleaddresschange(e, idx)}
+                            value={i.houseId === 0 ? "" : i.houseId}
+                            placeholder="House(73) or Apartment ID (13, Floor 2)"
+                            className="w-full h-[50px] border border-gray-300 p-3 rounded-lg font-bold text-lg"
+                          />
+                          <input
+                            name="district"
+                            type="text"
+                            value={i.district}
+                            onChange={(e) => Handleaddresschange(e, idx)}
+                            placeholder="District / Khan"
+                            className="w-full h-[50px] border border-gray-300 p-3 rounded-lg font-bold text-lg"
+                          />
+                          <input
+                            name="songkhat"
+                            type="text"
+                            value={i.songkhat}
+                            onChange={(e) => Handleaddresschange(e, idx)}
+                            placeholder="Songkhat / Commune"
+                            className="w-full h-[50px] border border-gray-300 p-3 rounded-lg font-bold text-lg"
+                          />
+                          <input
+                            name="postalcode"
+                            type="text"
+                            value={i.postalcode}
+                            onChange={(e) => Handleaddresschange(e, idx)}
+                            placeholder="Postalcode (12061)"
+                            className="w-full h-[50px] border border-gray-300 p-3 rounded-lg font-bold text-lg"
+                          />
+
+                          <div className="flex flex-row gap-x-5 w-full h-fit">
+                            <PrimaryButton
+                              type="submit"
+                              text={i.isSaved ? "Update" : "Add"}
+                              color="#0097FA"
+                              width="100%"
+                              height="50px"
+                              radius="10px"
+                              status={
+                                loading.post ? "loading" : "authenticated"
+                              }
+                              disable={
+                                !data.shipping ||
+                                Object.entries(data.shipping[idx]).every(
+                                  ([_, val]) => !val
+                                )
+                              }
+                              onClick={() => handleAdd(idx)}
+                            />
+                            <PrimaryButton
+                              type="button"
+                              text={"Delete"}
+                              onClick={() => handleRemove(idx)}
+                              color="lightcoral"
+                              width="100%"
+                              height="50px"
+                              radius="10px"
+                            />
+                          </div>
                         </div>
-                      </div>
+                      </>
                     )}
                   </div>
                 ))}{" "}
@@ -3428,6 +4227,7 @@ export const EditProfile = ({
                 return;
               }
               address?.push({
+                street: "",
                 province: "",
                 district: "",
                 songkhat: "",
@@ -3437,7 +4237,7 @@ export const EditProfile = ({
               });
               setopen((prev: any) => ({
                 ...prev,
-                [`sub${address?.length}`]: address?.length === 1,
+                [`sub${address?.length}`]: true,
               }));
               setdata(update);
             }}
@@ -3450,8 +4250,8 @@ export const EditProfile = ({
               type="button"
               text="Update"
               onClick={() => handleUpdateuser()}
-              width="100%"
               status={loading.post ? "loading" : "authenticated"}
+              width="100%"
               height="50px"
               radius="10px"
             />

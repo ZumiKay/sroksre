@@ -1,7 +1,7 @@
-import { SetStateAction, useState } from "react";
+import { SetStateAction, useState, useEffect, DependencyList } from "react";
 import { LoadingState, useGlobalContext } from "./GlobalContext";
 import Error from "next/error";
-import next from "next";
+import { useRouter, useSearchParams } from "next/navigation";
 
 type RequestMethod = "GET" | "POST" | "PUT" | "DELETE"; // Add other request methods as needed
 
@@ -75,6 +75,7 @@ export const ApiRequest = async (
   lowstock?: number;
   valid?: boolean;
   totalfilter?: number;
+  message?: string;
 }> => {
   try {
     setloading && setloading((prev) => ({ ...prev, [method]: true }));
@@ -114,3 +115,51 @@ export const ApiRequest = async (
     return { success: false, error: error.props ?? "Error Occured" };
   }
 };
+
+export function useDebounceEffect(
+  fn: () => void,
+  waitTime: number,
+  deps?: DependencyList
+) {
+  useEffect(() => {
+    const t = setTimeout(() => {
+      fn.apply(undefined, deps);
+    }, waitTime);
+
+    return () => {
+      clearTimeout(t);
+    };
+  }, deps);
+}
+
+export function useSetSearchParams() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const getSearchParams = () => {
+    const searchParam = new URLSearchParams(searchParams);
+    return Object.fromEntries(searchParam);
+  };
+  const setSearchParams = (newParams: Record<string, string>) => {
+    const searchParam = new URLSearchParams(searchParams);
+
+    Object.entries(newParams).forEach(([key, value]) => {
+      if (value === null || value === undefined || value === "") {
+        searchParam.delete(key);
+      } else {
+        searchParam.set(key, `${value}`);
+      }
+    });
+
+    router.push(`?${searchParam}`);
+  };
+  const deleteSearchParams = (key: string) => {
+    const searchParam = new URLSearchParams(searchParams);
+
+    searchParam.delete(key);
+
+    router.push(`?${searchParam}`);
+  };
+
+  return { getSearchParams, setSearchParams, deleteSearchParams };
+}

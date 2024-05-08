@@ -10,7 +10,11 @@ export default function TestForm() {
   return (
     <form onSubmit={(e) => handleSubmit(e)} className="form_container">
       <input type="email" name="email" />
-      <input type="submit" value={"signin"} onClick={() => console.log("clicked")}/>
+      <input
+        type="submit"
+        value={"signin"}
+        onClick={() => console.log("clicked")}
+      />
     </form>
   );
 }

@@ -10,7 +10,7 @@ interface returntype {
 }
 export const verifyUser = async (
   prev: any,
-  data: FormData,
+  data: FormData
 ): Promise<returntype> => {
   try {
     const dt = {
@@ -57,7 +57,5 @@ export const verifyUser = async (
       message: "Failed To Update",
       success: false,
     };
-  } finally {
-    await Prisma.$disconnect();
   }
 };

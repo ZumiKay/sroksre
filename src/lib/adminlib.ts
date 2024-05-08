@@ -1,18 +1,20 @@
 import { Role, hashedpassword } from "./userlib";
-import prisma from "./prisma";
+
 import {
+  ProductInfo,
   ProductState,
+  Stocktype,
+  Varianttype,
   infovaluetype,
   userdata,
 } from "../context/GlobalContext";
 import {
   DeleteImageFromStorage,
   caculateArrayPagination,
-  calculatePagination,
   removeSpaceAndToLowerCase,
 } from "./utilities";
 
-import { Info, Productcover, Products } from "@prisma/client";
+import Prisma from "./prisma";
 
 //
 //
@@ -38,7 +40,7 @@ export const createCategory = async (
   data: Categorydata
 ): Promise<ReturnType> => {
   try {
-    const isCate = await prisma.parentcategories.findFirst({
+    const isCate = await Prisma.parentcategories.findFirst({
       where: {
         name: data.name,
       },
@@ -47,7 +49,7 @@ export const createCategory = async (
     if (isCate) {
       return { success: false, error: "Parent Category Already Exists" };
     } else {
-      const create = await prisma.parentcategories.create({
+      const create = await Prisma.parentcategories.create({
         data: {
           name: data.name,
           sub: {
@@ -67,8 +69,6 @@ export const createCategory = async (
   } catch (error) {
     console.error("Create Category", error);
     return { success: false, error: "An error occurred" };
-  } finally {
-    await prisma.$disconnect();
   }
 }; //
 export interface updateCategoryData extends Categorydata {
@@ -79,7 +79,7 @@ export const updateCategory = async (
   data: updateCategoryData
 ): Promise<ReturnType> => {
   try {
-    const update = await prisma.parentcategories.update({
+    const update = await Prisma.parentcategories.update({
       where: {
         id: data.id,
       },
@@ -96,7 +96,7 @@ export const updateCategory = async (
       .filter((child) => child.id)
       .map((child) => child.id);
 
-    await prisma.childcategories.deleteMany({
+    await Prisma.childcategories.deleteMany({
       where: {
         parentcategoriesId: data.id,
         id: { notIn: childIds as Array<number> },
@@ -105,7 +105,7 @@ export const updateCategory = async (
 
     await Promise.all(
       data.subcategories.map((child) =>
-        prisma.childcategories.upsert({
+        Prisma.childcategories.upsert({
           where: {
             id: child.id ?? 0,
           },
@@ -128,8 +128,6 @@ export const updateCategory = async (
   } catch (error) {
     console.error("Update Category", error);
     return { success: false, error: "Error Occurred" };
-  } finally {
-    await prisma.$disconnect();
   }
 };
 
@@ -138,24 +136,22 @@ export interface Deletecategorydata {
 }
 export const deleteCategory = async (data: Deletecategorydata) => {
   try {
-    const deletechild = prisma.childcategories.deleteMany({
+    const deletechild = Prisma.childcategories.deleteMany({
       where: {
         parentcategoriesId: { in: data.id },
       },
     });
-    const deleteparent = prisma.parentcategories.deleteMany({
+    const deleteparent = Prisma.parentcategories.deleteMany({
       where: {
         id: { in: data.id },
       },
     });
-    await prisma.$transaction([deletechild, deleteparent]);
+    await Prisma.$transaction([deletechild, deleteparent]);
 
     return { success: true };
   } catch (error) {
     console.error("Delete Category", error);
     throw new Error("Error Occured");
-  } finally {
-    await prisma.$disconnect();
   }
 };
 //
@@ -164,18 +160,27 @@ export const CreateProduct = async (
   data: ProductState
 ): Promise<ReturnType> => {
   try {
-    const isProduct = await prisma.products.findFirst({
+    const isProduct = await Prisma.products.findFirst({
       where: {
         name: data.name,
       },
     });
     if (!isProduct) {
-      const created = await prisma.products.create({
+      let relatedproduct = null;
+      if (data.relatedproductid) {
+        relatedproduct = await Prisma.producttype.create({
+          data: {
+            productId: data.relatedproductid as any,
+          },
+        });
+      }
+      const created = await Prisma.products.create({
         data: {
           name: data.name,
           description: data.description,
-          price: parseFloat(data.price.toString()).toFixed(2),
-          stock: parseInt(data.stock.toString()),
+          price: parseFloat(data.price.toString()),
+          stock: parseInt(`${data.stock}`),
+          stocktype: data.stocktype,
           parentcategory_id: parseInt(data.category.parent_id.toString()),
           childcategory_id: parseInt(data.category.child_id.toString()),
           covers: {
@@ -192,100 +197,102 @@ export const CreateProduct = async (
               data: data.details as any,
             },
           },
+          relatedproductId: relatedproduct?.id,
+        },
+        include: {
+          relatedproduct: true,
         },
       });
-      if (created) {
-        return { success: true, error: "", id: created.id };
-      } else {
+
+      if (data.relatedproductid) {
+        await Prisma.producttype.update({
+          where: { id: relatedproduct?.id },
+          data: { productId: [created.id, ...data.relatedproductid] },
+        });
+        //update all related product
+        await Prisma.products.updateMany({
+          where: {
+            id: { in: data.relatedproductid },
+          },
+          data: {
+            relatedproductId: relatedproduct?.id,
+          },
+        });
+      }
+
+      if (!created) {
         return { success: false, error: "Failed To Create Product" };
       }
+
+      //remove Image temp
+
+      await Promise.all(
+        data.covers.map((i) =>
+          Prisma.tempimage.deleteMany({ where: { name: i.name } })
+        )
+      );
+
+      //create product variant
+      if (data.variants && data.variants?.length > 0) {
+        await Promise.all(
+          data.variants.map((i) =>
+            Prisma.variant.create({
+              data: {
+                product_id: created.id,
+                option_title: i.option_title,
+                option_type: i.option_type,
+                option_value: i.option_value,
+              },
+            })
+          )
+        );
+      }
+      //created product stock
+      if (data.varaintstock && data.varaintstock.length > 0) {
+        await Promise.all(
+          data.varaintstock.map((i) =>
+            Prisma.stock.create({
+              data: {
+                product_id: created.id,
+                variant_val: i.variant_val,
+                qty: i.qty,
+              },
+            })
+          )
+        );
+      }
+
+      return { success: true, error: "", id: created.id };
     } else {
       return { success: false, error: "Product Already Exist" };
     }
   } catch (error) {
     console.error("Create Product", error);
     return { success: false, error: "Error Occured" };
-  } finally {
-    await prisma.$disconnect();
   }
 };
 export interface updateProductData extends ProductState {
   id: number;
+  type?: "editsize" | "editstock" | "editvariantstock" | "editvariant";
 }
 
-export const EditProduct = async (
-  data: updateProductData
-): Promise<ReturnType> => {
+const updateDetails = async (details: [] | ProductInfo[], id: number) => {
   try {
-    await prisma.products.update({
+    // Delete Details
+    const detailsToDelete = details
+      .filter((i) => i.id)
+      .map((i) => i.id) as number[];
+    await Prisma.info.deleteMany({
       where: {
-        id: data.id,
-      },
-      data: {
-        name: data.name,
-        description: data.description,
-        price: parseFloat(data.price.toString()).toFixed(2),
-        stock: parseInt(data.stock.toString()),
-        parentcategory_id: parseInt(data.category.parent_id.toString()),
-        childcategory_id: parseInt(data.category.child_id.toString()),
+        AND: [{ product_id: id }, { id: { notIn: detailsToDelete } }],
       },
     });
 
-    const isCoverid = data.covers.filter((i) => i.id);
-    const isNotCoverid = data.covers.filter((i) => !i.id);
-
-    isCoverid.length > 0 &&
-      (await Promise.all(
-        isCoverid.map((i) =>
-          prisma.productcover.update({
-            where: {
-              id: i.id,
-            },
-            data: {
-              url: i.url,
-              name: i.name,
-              type: i.type,
-            },
-          })
-        )
-      ));
-    isNotCoverid.length > 0 &&
-      (await Promise.all(
-        isNotCoverid.map((i) =>
-          prisma.productcover.create({
-            data: {
-              productId: data.id,
-              name: i.name,
-              type: i.type,
-              url: i.url,
-              isSaved: true,
-            },
-          })
-        )
-      ));
-
-    //delete Details
-    await prisma.info.deleteMany({
-      where: {
-        AND: [
-          {
-            product_id: data.id,
-          },
-          {
-            id: {
-              notIn: data.details
-                .filter((i) => i.id)
-                .map((i) => i.id) as number[],
-            },
-          },
-        ],
-      },
-    });
-
+    // Update or create new details
     await Promise.all(
-      data.details.map(async (obj) => {
+      details.map(async (obj) => {
         if (obj.id) {
-          return prisma.info.update({
+          return Prisma.info.update({
             where: { id: obj.id },
             data: {
               info_title: obj.info_title,
@@ -293,43 +300,412 @@ export const EditProduct = async (
             },
           });
         } else {
-          return prisma.info.create({
+          return Prisma.info.create({
             data: {
               info_title: obj.info_title,
               info_type: obj.info_type,
               info_value: obj.info_value as any,
-              product_id: data.id,
+              product_id: id,
             },
           });
         }
       })
     );
+    return true;
+  } catch (error) {
+    throw Error("Failed update product detail");
+  }
+};
+
+const updateProductVariantStock = async (
+  varaintstock: Stocktype[],
+  id: number
+) => {
+  try {
+    const stockIdsToDelete = varaintstock
+      .filter((i) => i.id)
+      .map((i) => i.id) as number[];
+    await Prisma.stock.deleteMany({
+      where: {
+        AND: [{ product_id: id }, { id: { notIn: stockIdsToDelete } }],
+      },
+    });
+    await Promise.all(
+      varaintstock.map((stock) => {
+        if (stock.id) {
+          return Prisma.stock.update({
+            where: {
+              id: stock.id,
+            },
+            data: {
+              variant_val: stock.variant_val,
+              qty: stock.qty,
+            },
+          });
+        } else {
+          return Prisma.stock.create({
+            data: {
+              variant_val: stock.variant_val.map((i) => {
+                if (i === null) {
+                  return `${i}`;
+                }
+                return i;
+              }),
+              qty: stock.qty,
+              product_id: id,
+            },
+          });
+        }
+      })
+    );
+    return true;
+  } catch (error) {
+    console.log("Edit Product", error);
+    return null;
+  }
+};
+
+const handleUpdateProductVariant = async (
+  id: number,
+  variants: Varianttype[]
+) => {
+  try {
+    const variantIdsToDelete = variants
+      .filter((i) => i.id)
+      .map((i) => i.id) as number[];
+    await Prisma.variant.deleteMany({
+      where: {
+        AND: [
+          {
+            id: { notIn: variantIdsToDelete },
+          },
+          { product_id: id },
+        ],
+      },
+    });
+
+    await Promise.all(
+      variants.map((i) => {
+        if (i.id) {
+          return Prisma.variant.update({
+            where: { id: i.id },
+            data: {
+              option_title: i.option_title,
+              option_type: i.option_type,
+              option_value: i.option_value,
+            },
+          });
+        } else {
+          return Prisma.variant.create({
+            data: {
+              product_id: id,
+              option_title: i.option_title,
+              option_type: i.option_type,
+              option_value: i.option_value,
+            },
+          });
+        }
+      })
+    );
+    return true;
+  } catch (error) {
+    throw new Error("Failed to update variant");
+  }
+};
+
+export const EditProduct = async (
+  data: updateProductData
+): Promise<ReturnType> => {
+  try {
+    const {
+      id,
+      name,
+      description,
+      price,
+      stock,
+      category,
+      covers,
+      details,
+      variants,
+      varaintstock,
+      stocktype,
+      type,
+      relatedproductid,
+    } = data;
+
+    //update stocktype and detail of stock
+
+    await Prisma.products.update({
+      where: { id },
+      data: {
+        stock:
+          stocktype === "variant" || stocktype === "size" ? null : undefined,
+        stocktype,
+        price: parseFloat(price.toString()),
+      },
+    });
+
+    if (name || description) {
+      await Prisma.products.update({
+        where: { id },
+        data: { name, description },
+      });
+    }
+
+    if (type) {
+      if (type === "editsize") {
+        const response = await Prisma.products.findUnique({
+          where: { id },
+          select: {
+            details: true,
+          },
+        });
+        if (!response) {
+          return { success: false };
+        }
+
+        const updatedetail = await updateDetails(details, id);
+        if (updatedetail) {
+          return { success: true };
+        }
+      } else if (
+        type === "editvariantstock" &&
+        varaintstock &&
+        varaintstock.length !== 0
+      ) {
+        const updatestock = await updateProductVariantStock(varaintstock, id);
+        if (updatestock) {
+          return { success: true };
+        }
+      } else if (!varaintstock || varaintstock.length === 0) {
+        await Prisma.stock.deleteMany({ where: { product_id: id } });
+      } else {
+        await Prisma.products.update({
+          where: { id },
+          data: {
+            stock: stock,
+          },
+        });
+        return { success: true };
+      }
+      return { success: false };
+    }
+
+    const isCategoryValid =
+      Object.entries(category).length !== 0 &&
+      category.parent_id !== 0 &&
+      category.child_id !== 0;
+    const isStockValid = stock && stock !== 0;
+
+    if (isCategoryValid && isStockValid) {
+      const updateData: any = {
+        name,
+        description,
+        price: parseFloat(price.toString()),
+      };
+
+      if (isStockValid) {
+        updateData.stock = parseInt(stock.toString(), 10);
+      }
+
+      if (isCategoryValid) {
+        updateData.parentcategory_id = parseInt(
+          category.parent_id.toString(),
+          10
+        );
+        updateData.childcategory_id = parseInt(
+          category.child_id.toString(),
+          10
+        );
+      }
+
+      await Prisma.products.update({
+        where: { id },
+        data: updateData,
+      });
+    }
+
+    // Update existing covers
+    if (covers && covers.length !== 0) {
+      const existingCovers = covers.filter((i) => i.id);
+      await Promise.all(
+        existingCovers.map((i) =>
+          Prisma.productcover.update({
+            where: { id: i.id },
+            data: { url: i.url, name: i.name, type: i.type },
+          })
+        )
+      );
+
+      // Create new covers
+      const newCovers = covers.filter((i) => !i.id);
+      await Promise.all(
+        newCovers.map((i) =>
+          Prisma.productcover.create({
+            data: {
+              productId: id,
+              name: i.name,
+              type: i.type,
+              url: i.url,
+              isSaved: true,
+            },
+          })
+        )
+      );
+      await Promise.all(
+        data.covers.map((i) =>
+          Prisma.tempimage.deleteMany({ where: { name: i.name } })
+        )
+      );
+    }
+
+    //update details
+    if (details && details.length !== 0) {
+      await updateDetails(details, id);
+    }
+
+    //delete deleted variants andt stock
+
+    // Update or create variants
+    if (variants && variants?.length !== 0) {
+      const updatevariant = await handleUpdateProductVariant(id, variants);
+      if (!updatevariant) {
+        return { success: false };
+      }
+
+      // Update or create stock variants
+      if (varaintstock && varaintstock.length !== 0) {
+        const updatestock = await updateProductVariantStock(varaintstock, id);
+
+        if (!updatestock) {
+          return { success: false };
+        }
+      } else {
+        await Prisma.stock.deleteMany({ where: { product_id: id } });
+      }
+    } else {
+      await Prisma.variant.deleteMany({ where: { product_id: id } });
+    }
+    if (relatedproductid) {
+      if (relatedproductid.length === 0) {
+        await Prisma.products.update({
+          where: { id },
+          data: {
+            relatedproduct: {
+              delete: {},
+            },
+          },
+        });
+      } else {
+        const prevdata = await Prisma.products.findUnique({
+          where: { id },
+          select: { relatedproduct: true },
+        });
+
+        if (prevdata?.relatedproduct) {
+          const ids = prevdata.relatedproduct?.productId as number[];
+
+          const notinids = ids.filter((i) => !relatedproductid.includes(i));
+
+          if (notinids.length > 0) {
+            await Prisma.products.updateMany({
+              where: { id: { in: notinids } },
+              data: {
+                relatedproductId: null,
+              },
+            });
+          }
+        }
+        const updaterelated = await Prisma.products.update({
+          where: { id },
+          data: {
+            relatedproduct: {
+              upsert: {
+                create: { productId: relatedproductid },
+                update: { productId: relatedproductid },
+              },
+            },
+          },
+          include: {
+            relatedproduct: true,
+          },
+        });
+        //update related product
+        await Prisma.products.updateMany({
+          where: {
+            id: { in: relatedproductid },
+          },
+          data: { relatedproductId: updaterelated.relatedproduct?.id },
+        });
+      }
+    }
 
     return { success: true };
   } catch (error) {
     console.error("Edit Product", error);
-    return { success: false, error: "Faild To Update Product" };
-  } finally {
-    await prisma.$disconnect();
+    return { success: false, error: "Failed To Update Product" };
   }
 };
+
 export const DeleteProduct = async (id: number) => {
   try {
-    const covers = await prisma.productcover.findMany({
-      where: { productId: id },
+    const Products = await Prisma.products.findUnique({
+      where: { id: id },
+      select: {
+        covers: true,
+        Variant: true,
+        Stock: true,
+        relatedproduct: true,
+        relatedproductId: true,
+      },
     });
-    if (covers.length > 0) {
-      await Promise.all(covers.map((i) => DeleteImageFromStorage(i.name)));
-      await prisma.productcover.deleteMany({ where: { productId: id } });
+    if (!Products) {
+      return false;
     }
-    await prisma.info.deleteMany({ where: { product_id: id } });
-    await prisma.products.delete({ where: { id: id } });
+
+    if (Products.covers.length > 0) {
+      await Promise.all(
+        Products.covers.map((i) => DeleteImageFromStorage(i.name))
+      );
+      await Prisma.productcover.deleteMany({ where: { productId: id } });
+      await Promise.all(
+        Products.covers.map((i) =>
+          Prisma.tempimage.deleteMany({ where: { name: i.name } })
+        )
+      );
+    }
+    if (Products.Variant.length !== 0) {
+      await Prisma.variant.deleteMany({ where: { product_id: id } });
+    }
+    if (Products.Stock.length !== 0) {
+      await Prisma.stock.deleteMany({ where: { product_id: id } });
+    }
+    await Prisma.info.deleteMany({ where: { product_id: id } });
+
+    await Prisma.orderproduct.deleteMany({ where: { productId: id } });
+
+    if (Products.relatedproductId && Products.relatedproduct) {
+      let currentid = Products.relatedproduct.productId as number[];
+      currentid = currentid.filter((i) => i !== id);
+
+      if (currentid.length !== 0) {
+        await Prisma.producttype.update({
+          where: { id: Products.relatedproductId },
+          data: { productId: currentid },
+        });
+      } else {
+        await Prisma.producttype.delete({
+          where: { id: Products.relatedproductId },
+        });
+      }
+    }
+
+    await Prisma.products.delete({ where: { id: id } });
+
     return true;
   } catch (error) {
     console.log("Delete Product", error);
     throw new Error("Failed To Delete");
-  } finally {
-    await prisma.$disconnect();
   }
 };
 
@@ -352,24 +728,46 @@ export const GetAllProduct = async (
   promotionid?: number,
   priceorder?: number,
   detailcolor?: string,
-  detailsize?: string
+  detailsize?: string,
+  detailtext?: string
 ): Promise<GetProductReturnType> => {
   try {
     let totalproduct: number = 0;
 
     let filteroptions = {};
     let allproduct: any = [];
+    let lowstock = 0;
 
-    const lowstock = await prisma.products.count({
-      where: {
-        stock: {
-          lte: 1,
-        },
-      },
-    });
     if (!promotionid) {
       if (ty === "all") {
-        totalproduct = await prisma.products.count();
+        let totallowstock = 0;
+        const allproduct = await Prisma.products.findMany({
+          select: { details: true, stock: true, Stock: true, stocktype: true },
+        });
+        totalproduct = allproduct.length;
+        allproduct.forEach((product) => {
+          const isStock = product.stocktype === "stock";
+          const isVariant = product.stocktype === "variant";
+
+          if (isStock) {
+            totallowstock += product.stock && product.stock <= 1 ? 1 : 0;
+          } else if (isVariant) {
+            product.Stock.forEach((variant) => {
+              totallowstock += variant.qty <= 1 ? 1 : 0;
+            });
+          } else {
+            const sizeDetails =
+              product.details &&
+              (product?.details?.find((detail) => detail.info_type === "SIZE")
+                ?.info_value as any[]);
+            sizeDetails?.forEach((size) => {
+              totallowstock += size.qty <= 1 ? 1 : 0;
+            });
+          }
+        });
+
+        lowstock = totallowstock;
+
         filteroptions = {};
       } else if (ty === "filter") {
         const namequery = decodeURIComponent(query ?? "")
@@ -384,27 +782,16 @@ export const GetAllProduct = async (
             : undefined,
           parentcategory_id: parent_cate ?? undefined,
           childcategory_id: child_cate ?? undefined,
-
-          stock:
-            sk && sk === "Low"
-              ? {
-                  lte: 1,
-                }
-              : {},
         };
-        totalproduct = await prisma.products.count({
+        totalproduct = await Prisma.products.count({
           where: {
             ...filteroptions,
           },
         });
       }
+
       if (ty === "filter" || ty === "all") {
-        const { startIndex, endIndex } = calculatePagination(
-          totalproduct,
-          limit,
-          page
-        );
-        const products = await prisma.products.findMany({
+        let products = await Prisma.products.findMany({
           where: {
             ...filteroptions,
           },
@@ -417,17 +804,44 @@ export const GetAllProduct = async (
               },
             },
             price: true,
+            stock: true,
             discount: true,
+            Stock: true,
+            stocktype: true,
+            details: true,
           },
 
-          take: endIndex - startIndex + 1,
-          skip: startIndex,
           orderBy: {
             price: priceorder === 1 ? "asc" : "desc",
           },
         });
 
-        allproduct = products;
+        if (sk && sk === "Low") {
+          products = products.filter((item) => {
+            const isLowStockVariant =
+              item.Stock && item.Stock.some((i) => i.qty <= 1);
+            const isLowStock = item.stock && item.stock <= 1;
+
+            return isLowStockVariant || isLowStock;
+          });
+        }
+
+        products = products.map((i) => {
+          const isLowStock = i.stock && i.stock <= 1;
+          const isLowStockVariant = i.Stock && i.Stock.some((j) => j.qty <= 1);
+          const isSize = i.details.find((j) => j.info_type === "SIZE")
+            ?.info_value as unknown as infovaluetype[];
+          const isLowStockSize = isSize && isSize.some((j) => j.qty <= 1);
+
+          if (isLowStock || isLowStockVariant || isLowStockSize) {
+            return { ...i, lowstock: true };
+          }
+          return i;
+        });
+
+        totalproduct = products.length;
+
+        allproduct = caculateArrayPagination(products, page, limit);
       } else if (ty === "detail") {
         //filter list product based on color and size
         const colors =
@@ -438,28 +852,38 @@ export const GetAllProduct = async (
           detailsize && detailsize.includes(",")
             ? detailsize?.split(",")
             : [detailsize];
-        let product = await prisma.products.findMany({
+        const texts =
+          detailtext && detailtext.includes(",")
+            ? detailtext.split(",")
+            : [detailtext];
+
+        let product = await Prisma.products.findMany({
           where: {
             parentcategory_id: parent_cate ?? undefined,
             childcategory_id: child_cate ?? undefined,
           },
           include: {
             details: true,
+            Variant: true,
             covers: true,
           },
         });
 
         const filteredproduct = product.filter((i) => {
-          const color = i.details.find((j) => j.info_type === "COLOR") as any;
+          const color = i.Variant.find((j) => j.option_type === "COLOR");
+          const text = i.Variant.find((j) => j.option_type === "TEXT");
           const size = i.details.find((j) => j.info_type === "SIZE") as any;
 
           if (color || size) {
-            const productColors = color?.info_value
-              .filter((k: infovaluetype) => k.val !== "")
-              .map((l: infovaluetype) => {
-                return l.val.replace("#", "");
+            const productColors = color?.option_value
+              .filter((k) => k !== "")
+              .map((l) => {
+                return l.replace("#", "");
               });
             const productSize = size?.info_value.map((l: string) => {
+              return removeSpaceAndToLowerCase(l);
+            });
+            const otherFilter = text?.option_value.map((l) => {
               return removeSpaceAndToLowerCase(l);
             });
 
@@ -470,7 +894,10 @@ export const GetAllProduct = async (
             const hasSelectedSize =
               sizes &&
               sizes?.some((item) => productSize?.includes(item as string));
-            return hasSelectedColor || hasSelectedSize;
+            const hasSeletecFilter =
+              otherFilter &&
+              texts?.some((item) => otherFilter.includes(item as string));
+            return hasSelectedColor || hasSelectedSize || hasSeletecFilter;
           }
           return false;
         });
@@ -479,7 +906,7 @@ export const GetAllProduct = async (
         allproduct = caculateArrayPagination(filteredproduct, page, limit);
       }
     } else {
-      let product = await prisma.products.findMany({
+      let product = await Prisma.products.findMany({
         select: {
           id: true,
           discount: true,
@@ -494,9 +921,12 @@ export const GetAllProduct = async (
         },
       });
 
-      const filterproduct = product.filter(
-        (i) => i.promotion_id === promotionid || i.promotion_id === null
-      );
+      const filterproduct =
+        promotionid === -1
+          ? product.filter((i) => i.promotion_id === null)
+          : product.filter(
+              (i) => i.promotion_id === promotionid || i.promotion_id === null
+            );
 
       totalproduct = filterproduct.length;
       allproduct = caculateArrayPagination(filterproduct, page, limit);
@@ -508,12 +938,10 @@ export const GetAllProduct = async (
 
         ...(i.discount && {
           discount: {
-            percent: parseFloat(i.discount.toString()) * 100,
+            percent: i.discount,
             newPrice: (
               parseFloat(i.price.toString()) -
-              (parseFloat(i.price.toString()) *
-                parseFloat(i.discount.toString())) /
-                100
+              (parseFloat(i.price.toString()) * i.discount) / 100
             ).toFixed(2),
           },
         }),
@@ -530,8 +958,6 @@ export const GetAllProduct = async (
   } catch (error) {
     console.log("Get Allproduct", error);
     return { success: false };
-  } finally {
-    await prisma.$disconnect();
   }
 };
 export const GetProductByCategory = async ({
@@ -544,7 +970,7 @@ export const GetProductByCategory = async ({
   category: { parent: number; child: number };
 }): Promise<GetProductReturnType> => {
   try {
-    const products = await prisma.products.findMany({
+    const products = await Prisma.products.findMany({
       where: {
         parentcategory_id: category.parent,
         childcategory_id: category.child,
@@ -560,8 +986,6 @@ export const GetProductByCategory = async ({
   } catch (error) {
     console.error("GetProductByCategory", error);
     return { success: false };
-  } finally {
-    await prisma.$disconnect();
   }
 };
 
@@ -587,7 +1011,7 @@ export const CreatePromotion = async (
   data: PromotionData
 ): Promise<ReturnType> => {
   try {
-    const isExist = await prisma.promotion.findFirst({
+    const isExist = await Prisma.promotion.findFirst({
       where: {
         name: data.name,
       },
@@ -595,7 +1019,7 @@ export const CreatePromotion = async (
     if (isExist) {
       return { success: false, error: "Promotion Already Existed" };
     } else {
-      const create = await prisma.promotion.create({
+      const create = await Prisma.promotion.create({
         data: {
           name: data.name,
           description: data.description,
@@ -612,15 +1036,13 @@ export const CreatePromotion = async (
   } catch (error) {
     console.log("Create Promotion", error);
     return { success: false, error: "Create Promotion Saved" };
-  } finally {
-    await prisma.$disconnect();
   }
 };
 export const EditPromotion = async (
   data: PromotionData
 ): Promise<ReturnType> => {
   try {
-    const update = await prisma.promotion.update({
+    const update = await Prisma.promotion.update({
       where: {
         id: data.id,
       },
@@ -637,19 +1059,15 @@ export const EditPromotion = async (
     return { success: false };
   } catch (error) {
     return { success: false, error: "Edit Promotion Failed" };
-  } finally {
-    await prisma.$disconnect();
   }
 };
 export const DeletePromotion = async (id: number): Promise<ReturnType> => {
   try {
-    await prisma.promotion.delete({ where: { id: id } });
+    await Prisma.promotion.delete({ where: { id: id } });
     return { success: true };
   } catch (error) {
     console.error("Delete Promotion", error);
     return { success: false, error: "Delete Promotion Failed" };
-  } finally {
-    await prisma.$disconnect();
   }
 };
 
@@ -662,7 +1080,7 @@ export interface admindata {
 }
 
 export const Createadmin = async (data: userdata) => {
-  const createdAdmin = await prisma.user.create({
+  const createdAdmin = await Prisma.user.create({
     data: {
       firstname: data.firstname as string,
       lastname: data.lastname,
@@ -671,7 +1089,7 @@ export const Createadmin = async (data: userdata) => {
       role: "ADMIN",
     },
   });
-  await prisma.$disconnect();
+
   if (createdAdmin) {
     return true;
   } else {

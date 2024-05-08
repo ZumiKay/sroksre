@@ -11,8 +11,6 @@ import LoadingIcon from "../../component/Loading";
 import Link from "next/link";
 import { FilterMenu } from "../../component/SideMenu";
 
-import { notFound } from "next/navigation";
-
 export default function ProductsPage({
   params,
 }: {
@@ -20,7 +18,6 @@ export default function ProductsPage({
 }) {
   const {
     setitemlength,
-    page,
     allData,
     setalldata,
     openmodal,
@@ -34,6 +31,7 @@ export default function ProductsPage({
   const [show, setshow] = useState(1);
   const [loading, setloading] = useState(true);
   const [name, setname] = useState("");
+  const [page, setpage] = useState(1);
 
   const [cate, setcate] = useState<any>({});
   const [totalprob, settotalprob] = useState(0);
@@ -85,6 +83,7 @@ export default function ProductsPage({
     //products
     const hasColorFilter = listproductfilter.color.length > 0;
     const hasSizeFilter = listproductfilter.size.length > 0;
+    const hasOtherFilter = listproductfilter.text.length > 0;
 
     const colorQueryString = hasColorFilter
       ? `_dc=${listproductfilter.color.join(",").replaceAll("#", "")}`
@@ -92,10 +91,13 @@ export default function ProductsPage({
     const sizeQueryString = hasSizeFilter
       ? `_ds=${listproductfilter.size.join(",")}`
       : "";
+    const textQuertString = hasOtherFilter
+      ? `_dt=${listproductfilter.text.join(",")}`
+      : "";
 
     const URL =
       hasColorFilter || hasSizeFilter
-        ? `/api/products/ty=detail${colorQueryString}${sizeQueryString}_pc=${
+        ? `/api/products/ty=detail${colorQueryString}${sizeQueryString}${textQuertString}_pc=${
             params.cid[0]
           }${
             params.cid[1] ? `_cc=${params.cid[1]}` : ""
@@ -128,6 +130,7 @@ export default function ProductsPage({
 
   return (
     <div className="products_page relative w-full min-h-[100vh] h-fit">
+      {loading && <LoadingIcon />}
       <div className="header_section w-full h-fit flex flex-col items-start gap-y-2">
         <h1 className="category_name text-3xl w-fit font-normal text-black text-center pt-3 pl-5 italic">
           {name}
@@ -197,9 +200,9 @@ export default function ProductsPage({
         </div>
       </div>
       <div className="listproduct grid grid-cols-3 w-full h-full place-content-center mt-5 p-3">
-        {loading && <LoadingIcon />}
         {allData.product.map((i, idx) => (
           <Card
+            key={idx}
             name={i.name}
             price={i.price.toString()}
             img={i.covers}
@@ -214,6 +217,7 @@ export default function ProductsPage({
       <PaginationComponent
         page={page}
         show={show}
+        setpage={setpage}
         setshow={setshow}
         type="product"
       />

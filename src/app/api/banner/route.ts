@@ -19,6 +19,8 @@ export async function POST(request: NextRequest) {
         show: data.show ?? false,
       },
     });
+    //remove temp image
+    await Prisma.tempimage.deleteMany({ where: { name: data.image.name } });
     revalidateTag("banner");
     return Response.json({ data: { id: create.id } }, { status: 200 });
   } catch (error) {
@@ -27,8 +29,6 @@ export async function POST(request: NextRequest) {
       { message: "Failed To Create Banner" },
       { status: 500 }
     );
-  } finally {
-    await Prisma.$disconnect();
   }
 }
 
@@ -76,8 +76,6 @@ export async function PUT(request: NextRequest) {
   } catch (error) {
     console.log("Update Banner", error);
     return Response.json({ message: "Failed To Update" }, { status: 500 });
-  } finally {
-    await Prisma.$disconnect();
   }
 }
 export async function DELETE(request: NextRequest) {
@@ -118,8 +116,6 @@ export async function DELETE(request: NextRequest) {
   } catch (error) {
     console.log("Delete Banner", error);
     return Response.json({ message: "Failed to Delete" }, { status: 500 });
-  } finally {
-    await Prisma.$disconnect();
   }
 }
 
@@ -207,7 +203,5 @@ export async function GET(request: NextRequest) {
       { message: "Failed To Fetch Banner" },
       { status: 500 }
     );
-  } finally {
-    await Prisma.$disconnect();
   }
 }

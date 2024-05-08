@@ -3,6 +3,7 @@
 @tailwind utilities;
 :root {
   width: 100%;
+  overflow-x: hidden;
 }
 
 @media screen and (max-width: 768px) {
@@ -69,7 +70,7 @@
 }
 
 .select__container select {
-  background-image: url("./Asset/Image/Arrow_down.svg");
+  background-image: url("../../public/Image/Arrow_down.svg");
   background-repeat: no-repeat;
   background-position: center right;
   background-size: 22px;
@@ -275,6 +276,10 @@
 
 .toggleselect[data-isopen=true] {
   height: 100%;
+ 
+
 }
 
 /*# sourceMappingURL=globals.css.map */
+
+

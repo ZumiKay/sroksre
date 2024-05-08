@@ -1,5 +1,5 @@
 import Image from "next/image";
-import Default from "../Asset/Image/default.png";
+import Default from "../../../public/Image/default.png";
 interface bannerprops {
   title?: string;
   img?: string;
@@ -22,7 +22,7 @@ export default function Banner(props: bannerprops) {
           style={{ width: props.width ?? "95vw" }}
         >
           {" "}
-          {props.title ?? "No Title"}{" "}
+          {props.title ?? "No Title"}
         </h3>
       )}
     </div>

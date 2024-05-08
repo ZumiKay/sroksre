@@ -6,10 +6,10 @@ import { NextRequest } from "next/server";
 export async function POST(req: NextRequest) {
   const userdata: any = await req.json();
   const user = await registerUser(userdata);
-  if (user === true) {
+  if (user.success) {
     return Response.json({ message: "Registered" }, { status: 200 });
   } else {
-    return Response.json({ message: user?.message }, { status: 500 });
+    return Response.json({ message: user.message }, { status: 500 });
   }
 }
 export async function PUT(request: NextRequest) {
@@ -30,7 +30,5 @@ export async function PUT(request: NextRequest) {
   } catch (error) {
     console.log("Edit User", error);
     return Response.json({ message: "Failed To Update User" }, { status: 500 });
-  } finally {
-    await Prisma.$disconnect();
   }
 }

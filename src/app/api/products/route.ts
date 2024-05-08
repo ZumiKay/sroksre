@@ -22,7 +22,5 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.log("Fetch Product", error);
     return Response.error();
-  } finally {
-    await Prisma.$disconnect();
   }
 }

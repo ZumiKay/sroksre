@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import ErrorIcon from "./Asset/Image/error_icon.png";
+import ErrorIcon from "../../public/Image/error_icon.png";
 import Link from "next/link";
 import PrimaryButton from "./component/Button";
 export default function GlobalError({

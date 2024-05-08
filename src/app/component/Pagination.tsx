@@ -13,6 +13,8 @@ interface PagiationProps {
   setshow: React.Dispatch<SetStateAction<number>>;
   setpage: React.Dispatch<SetStateAction<number>>;
   type: filterinventorytype;
+  count?: number;
+  onchange?: (value: number | string, type: string) => void;
 }
 export default function PaginationComponent(props: PagiationProps) {
   const { itemlength, allfiltervalue, setallfilterval, setpage } =
@@ -20,7 +22,7 @@ export default function PaginationComponent(props: PagiationProps) {
   return (
     <div className="pagination_container  w-full h-fit absolute -bottom-[5%] flex flex-row justify-center  ">
       <Pagination
-        count={itemlength.totalpage}
+        count={itemlength.totalpage || props.count}
         page={
           allfiltervalue.find((i) => i.page === props.type)?.filter.page ??
           props.page
@@ -28,7 +30,7 @@ export default function PaginationComponent(props: PagiationProps) {
         color="primary"
         onChange={(_, value) => {
           props.setpage(value);
-
+          props.onchange && props.onchange(value, "page");
           const isExist = allfiltervalue.findIndex(
             (i) => i.page === props.type
           );
@@ -53,6 +55,7 @@ export default function PaginationComponent(props: PagiationProps) {
         value={props.show}
         onChange={(e) => {
           const allfilter = [...allfiltervalue];
+          props.onchange && props.onchange(e.target.value, "limit");
           allfilter.forEach((i) => (i.filter.page = 1));
           setallfilterval(allfilter);
           props.setshow(parseInt(e.target.value));
