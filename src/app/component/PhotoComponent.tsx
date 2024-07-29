@@ -9,6 +9,7 @@ interface Primaryphotoprops {
     type: string;
   }[];
   style?: CSSProperties;
+  setclick?: React.Dispatch<React.SetStateAction<boolean>>;
   hover: boolean;
   showcount: boolean;
 }
@@ -54,7 +55,7 @@ export const PrimaryPhoto = (props: Primaryphotoprops) => {
       style={props.style}
       onMouseEnter={() => props.hover && sethover(true)}
       onMouseLeave={() => props.hover && sethover(false)}
-      className="primaryphoto__container flex flex-col gap-y-0  w-[400px] h-full overflow-hidden"
+      className="primaryphoto__container flex flex-col gap-y-0 w-[400px] max-smaller_screen:w-[350px] max-small_phone:w-[280px] h-full overflow-hidden"
     >
       <div
         className="imagecontainer  flex flex-row justify-start items-center w-full h-full transition"
@@ -65,7 +66,7 @@ export const PrimaryPhoto = (props: Primaryphotoprops) => {
             key={index}
             src={obj.url}
             alt={`${obj.name}`}
-            className="w-[400px] h-[550px] object-contain"
+            className="w-full h-[550px] max-smaller_screen:h-[350px] max-small_phone:h-[300px] object-contain"
             width={500}
             height={600}
             quality={80}
@@ -76,10 +77,14 @@ export const PrimaryPhoto = (props: Primaryphotoprops) => {
       {hover && (
         <>
           <i
+            onMouseEnter={() => props.setclick && props.setclick(true)}
+            onMouseLeave={() => props.setclick && props.setclick(false)}
             onClick={() => handleClick("left")}
             className="fa-solid fa-chevron-left absolute top-[35%] left-1 w-fit h-fit pt-10 pb-10 pl-1 pr-1 transition  hover:bg-gray-300 text-3xl text-black"
           ></i>
           <i
+            onMouseEnter={() => props.setclick && props.setclick(true)}
+            onMouseLeave={() => props.setclick && props.setclick(false)}
             onClick={() => handleClick("right")}
             className="fa-solid fa-chevron-right absolute top-[35%] right-1  pt-10 pb-10 pl-1 pr-1 transition hover:bg-gray-300 text-3xl text-black"
           ></i>{" "}

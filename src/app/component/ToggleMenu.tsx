@@ -1,17 +1,10 @@
 "use client";
-import {
-  CSSProperties,
-  ReactNode,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { CSSProperties, ReactNode, useEffect, useState } from "react";
 import "../globals.css";
-import { INVENTORYENUM } from "../dashboard/products/page";
+
 import {
   ProductInfo,
-  Relatedproducttype,
+  SelectType,
   Varianttype,
   useGlobalContext,
 } from "@/src/context/GlobalContext";
@@ -22,10 +15,8 @@ import ReactSelect from "react-select/async";
 import makeAnimated from "react-select/animated";
 
 import { removeSpaceAndToLowerCase } from "@/src/lib/utilities";
-import {
-  GetProductName,
-  GetRelatedProduct,
-} from "../dashboard/products/varaint_action";
+import { GetProductName } from "../dashboard/inventory/varaint_action";
+import { errorToast } from "./Loading";
 interface toggleprops {
   name: string;
   isAdmin: boolean;
@@ -79,7 +70,7 @@ export default function ToggleMenu(props: toggleprops) {
           >
             {props.data?.map(
               (obj, index) =>
-                obj.info_type !== INVENTORYENUM.size && (
+                obj.info_type !== "SIZE" && (
                   <div
                     key={index}
                     className="text-base font-normal flex flex-row items-center gap-x-5"
@@ -119,8 +110,8 @@ interface toggledownmenuprops {
 export function ToggleDownMenu(props: toggledownmenuprops) {
   return (
     <div
-      style={{ ...props.style, display: props.open ? "none" : "" }}
-      className="toggleDownMenu__container w-full h-fit border-l-2 border-l-black flex flex-col items-start gap-y-5 pl-2"
+      style={{ ...props.style, display: !props.open ? "none" : "" }}
+      className="toggleDownMenu__container w-full h-[75vh] flex flex-col items-start gap-y-5 pl-2 overflow-y-auto overflow-x-hidden"
     >
       {props.children}
     </div>
@@ -131,24 +122,20 @@ export function AddSubCategoryMenu({ index }: { index: number }) {
   const { category, setcategory, setopenmodal, allData } = useGlobalContext();
   const [name, setname] = useState("");
   const [editIdx, setedit] = useState(-1);
-  const [showform, setshow] = useState(false);
 
   useEffect(() => {
-    index !== -1 && setcategory(allData.category[index]);
+    index !== -1 && allData.category && setcategory(allData.category[index]);
   }, []);
 
   const handleAdd = () => {
     const updatecate = [...category.subcategories];
     const isExist = updatecate.some((i) => i.name === name);
     if (isExist) {
-      toast.error("Sub Cateogory Exist", {
-        autoClose: 2000,
-        pauseOnHover: true,
-      });
+      errorToast("Cateogory Exist");
       return;
     }
     if ((name.length > 0 && editIdx < 0) || updatecate.length === 0) {
-      updatecate.push({ name: name });
+      updatecate.push({ name: name, type: "normal" });
     } else {
       updatecate[editIdx].name = name;
     }
@@ -171,10 +158,7 @@ export function AddSubCategoryMenu({ index }: { index: number }) {
     setcategory((prev) => ({ ...prev, subcategories: subcate }));
   };
   return (
-    <div
-      onClick={() => setshow(true)}
-      className="AddSubCategory_menu w-full h-fit p-1 flex flex-col justify-center gap-y-5 transition rounded-md outline outline-2 outline-gray-300"
-    >
+    <div className="AddSubCategory_menu w-full h-fit p-1 flex flex-col justify-center gap-y-5 transition rounded-md outline outline-2 outline-gray-300">
       <h2 className="text-lg font-bold">Sub Categories</h2>
       <div className="subcategory_list grid grid-cols-5 gap-y-3 p-4 place-content-start h-full  max-h-[120px] overflow-y-auto">
         {category.subcategories?.map((cat, index) => (
@@ -218,27 +202,29 @@ export function AddSubCategoryMenu({ index }: { index: number }) {
             setname(e.target.value);
           }}
         />
-        <PrimaryButton
-          type="button"
-          text={editIdx < 0 ? "Add" : "Edit"}
-          onClick={() => handleAdd()}
-          width="100%"
-          height="30px"
-          textsize="12px"
-          color="#44C3A0"
-          radius="10px"
-          disable={name.length === 0}
-        />
-        <PrimaryButton
-          type="button"
-          text={"Delete"}
-          onClick={() => handleCancel()}
-          width="100%"
-          height="30px"
-          textsize="12px"
-          color="lightcoral"
-          radius="10px"
-        />
+        <div className="w-full h-fit flex flex-row items-center gap-x-5">
+          <PrimaryButton
+            type="button"
+            text={editIdx < 0 ? "Add" : "Edit"}
+            onClick={() => handleAdd()}
+            width="100%"
+            height="30px"
+            textsize="12px"
+            color="#44C3A0"
+            radius="10px"
+            disable={name.length === 0}
+          />
+          <PrimaryButton
+            type="button"
+            text={"Delete"}
+            onClick={() => handleCancel()}
+            width="100%"
+            height="30px"
+            textsize="12px"
+            color="lightcoral"
+            radius="10px"
+          />
+        </div>
       </div>
     </div>
   );
@@ -246,14 +232,18 @@ export function AddSubCategoryMenu({ index }: { index: number }) {
 interface Toggleselectprops {
   type: "color" | "size" | "text";
   title: string;
-  data: Array<String>;
+  data: Array<string>;
   variantdata?: Array<Varianttype>;
+  clickfunction?: (idx: number, type: string) => void;
+  selected?: string[];
 }
 export function ToggleSelect({
   type,
   data,
   title,
   variantdata,
+  clickfunction,
+  selected,
 }: Toggleselectprops) {
   const [open, setopen] = useState(false);
   const { listproductfilter, setlistprodfil } = useGlobalContext();
@@ -298,10 +288,10 @@ export function ToggleSelect({
         className="title text-lg font-semibold w-full text-left sticky top-0 cursor-pointer p-2"
       >
         {type === "color"
-          ? listproductfilter.color.length > 0
+          ? selected
             ? "Selected Color"
             : "Color"
-          : listproductfilter.size.length > 0
+          : selected
           ? `Selected ${title}`
           : title}
       </h3>
@@ -336,13 +326,11 @@ export function ToggleSelect({
                   <div
                     key={idx}
                     className="selectitem min-w-[50px] rounded-md cursor-pointer w-fit max-w-[150px] h-fit break-words bg-white hover:bg-gray-100 active:bg-gray-100 p-2"
-                    onClick={() => handleClick(idx)}
+                    onClick={() => {
+                      clickfunction && clickfunction(idx, type);
+                    }}
                     style={
-                      listproductfilter[type].find(
-                        (j) => j === removeSpaceAndToLowerCase(i)
-                      )
-                        ? { backgroundColor: "gray" }
-                        : {}
+                      selected?.includes(i) ? { backgroundColor: "gray" } : {}
                     }
                   >
                     {" "}
@@ -376,10 +364,6 @@ export function ToggleSelect({
 
 const animatedComponents = makeAnimated();
 
-interface Selecttype {
-  label: string;
-  value: string;
-}
 const getOptions = async (value: string, selectedvalue?: string[]) => {
   const product = GetProductName.bind(null, value);
   const searchreq = await product();
@@ -398,7 +382,7 @@ const getOptions = async (value: string, selectedvalue?: string[]) => {
 export const SearchAndMultiSelect = () => {
   const { product, setproduct } = useGlobalContext();
 
-  const [selected, setselected] = useState<Selecttype[] | undefined>(undefined);
+  const [selected, setselected] = useState<SelectType[] | undefined>(undefined);
 
   useEffect(() => {
     if (product.relatedproduct) {
@@ -410,9 +394,9 @@ export const SearchAndMultiSelect = () => {
     }
   }, [product.relatedproduct]);
 
-  const handleSelectChange = (val: Selecttype[] | null) => {
+  const handleSelectChange = (val: SelectType[] | null) => {
     const selected = val ?? [];
-    const productId = selected.map((i) => parseInt(i.value));
+    const productId = selected.map((i) => parseInt(i.value.toString()));
 
     setselected(selected);
     setproduct((prev) => ({ ...prev, relatedproductid: productId }));
@@ -427,10 +411,10 @@ export const SearchAndMultiSelect = () => {
       loadOptions={(value) =>
         getOptions(
           value,
-          selected?.map((i) => i.value)
+          selected?.map((i) => i.value as string)
         ) as any
       }
-      onChange={(val) => handleSelectChange(val as Selecttype[] | null)}
+      onChange={(val) => handleSelectChange(val as SelectType[] | null)}
       isMulti
     />
   );

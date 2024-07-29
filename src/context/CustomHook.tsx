@@ -1,4 +1,10 @@
-import { SetStateAction, useState, useEffect, DependencyList } from "react";
+import {
+  SetStateAction,
+  useState,
+  useEffect,
+  DependencyList,
+  useRef,
+} from "react";
 import { LoadingState, useGlobalContext } from "./GlobalContext";
 import Error from "next/error";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -76,6 +82,7 @@ export const ApiRequest = async (
   valid?: boolean;
   totalfilter?: number;
   message?: string;
+  isLimit?: boolean;
 }> => {
   try {
     setloading && setloading((prev) => ({ ...prev, [method]: true }));
@@ -100,19 +107,24 @@ export const ApiRequest = async (
       return {
         success: true,
         data: responseJson.data,
-        total: method === "GET" && responseJson.total,
-        lowstock: method === "GET" && responseJson.lowstock,
-        totalpage: method === "GET" && responseJson.totalpage,
-        totalfilter: method === "GET" && responseJson.totalfilter,
+        total: method === "GET" && responseJson?.total,
+        lowstock: method === "GET" && responseJson?.lowstock,
+        totalpage: method === "GET" && responseJson?.totalpage,
+        totalfilter: method === "GET" && responseJson?.totalfilter,
         valid: responseJson.valid ?? undefined,
+        isLimit: method === "GET" && responseJson?.isLimit,
       };
     } else {
-      return { success: true };
+      return { success: true, message: responseJson.message };
     }
   } catch (error: any) {
     setloading && setloading((prev) => ({ ...prev, [method]: false }));
 
-    return { success: false, error: error.props ?? "Error Occured" };
+    return {
+      success: false,
+      error: error.props ?? "Error Occured",
+      message: error.message ?? "Error Occured",
+    };
   }
 };
 
@@ -123,7 +135,7 @@ export function useDebounceEffect(
 ) {
   useEffect(() => {
     const t = setTimeout(() => {
-      fn.apply(undefined, deps);
+      fn.apply(undefined, deps as any);
     }, waitTime);
 
     return () => {
@@ -163,3 +175,83 @@ export function useSetSearchParams() {
 
   return { getSearchParams, setSearchParams, deleteSearchParams };
 }
+
+export const useEffectOnce = (effect: () => void | (() => void)) => {
+  const destroyFunc = useRef<void | (() => void)>();
+  const effectCalled = useRef(false);
+  const renderAfterCalled = useRef(false);
+  const [val, setVal] = useState<number>(0);
+
+  if (effectCalled.current) {
+    renderAfterCalled.current = true;
+  }
+
+  useEffect(() => {
+    // only execute the effect first time around
+    if (!effectCalled.current) {
+      destroyFunc.current = effect();
+      effectCalled.current = true;
+    }
+
+    // this forces one render after the effect is run
+    setVal((val) => val + 1);
+
+    return () => {
+      // if the comp didn't render since the useEffect was called,
+      // we know it's the dummy React cycle
+      if (!renderAfterCalled.current) {
+        return;
+      }
+      if (destroyFunc.current) {
+        destroyFunc.current();
+      }
+    };
+  }, []);
+};
+
+export const useClickOutside = (callback: () => void) => {
+  const ref = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (ref.current && !ref.current.contains(event.target as Node)) {
+        callback();
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  return ref;
+};
+
+export const Delayloading = async (
+  asyncFn: () => Promise<void>,
+  setLoading: (loading: boolean) => void,
+  delay: number = 3000
+) => {
+  let timeoutId: NodeJS.Timeout | null = null;
+
+  // Create a promise that sets loading to true after a delay
+  const loadingTimeout = new Promise<void>((resolve) => {
+    timeoutId = setTimeout(() => {
+      setLoading(true);
+      resolve();
+    }, delay);
+  });
+
+  // Execute the async function and clear the timeout if it completes first
+  const operationPromise = asyncFn().finally(() => {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+    setLoading(false);
+  });
+
+  // Wait for either the loading timeout or the async function to complete
+  await Promise.race([loadingTimeout, operationPromise]);
+};

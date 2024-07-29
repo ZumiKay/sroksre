@@ -7,6 +7,8 @@ import { ContactForm } from "./component";
 import { Suspense } from "react";
 import LoadingIcon from "../component/Loading";
 import Image from "next/image";
+import { getUser } from "@/src/context/OrderContext";
+import Prisma from "@/src/lib/prisma";
 
 const ContactItems = [
   { icon: Igicon, value: "SrokSreStore" },
@@ -15,6 +17,8 @@ const ContactItems = [
   { icon: Phoneicon, value: "023880880" },
 ];
 export default async function ContactPage() {
+  const user = await getUser();
+  const userdata = await Prisma.user.findUnique({ where: { id: user?.id } });
   return (
     <div className="w-[70%] h-full min-h-screen pl-10 flex flex-col gap-y-20">
       <h2 className="text-5xl font-bold w-full h-fit">Contact Us</h2>
@@ -36,7 +40,10 @@ export default async function ContactPage() {
         ))}
       </div>
       <Suspense fallback={<LoadingIcon />}>
-        <ContactForm />
+        <ContactForm
+          email={userdata?.email}
+          fullname={`${userdata?.firstname} ${userdata?.lastname ?? ""}`}
+        />
       </Suspense>
     </div>
   );

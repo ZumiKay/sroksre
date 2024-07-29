@@ -14,8 +14,11 @@ import {
 import Prisma from "@/src/lib/prisma";
 import {
   calculateCartTotalPrice,
+  calculateDiscountProductPrice,
+  getDiscountedPrice,
   getmaxqtybaseStockType,
 } from "@/src/lib/utilities";
+import e from "express";
 import { getServerSession } from "next-auth";
 import { revalidatePath } from "next/cache";
 
@@ -44,7 +47,17 @@ export async function Addtocart(data: Productordertype): Promise<returntype> {
       };
     }
 
+    const isProduct = await Prisma.products.findUnique({
+      where: { id },
+      select: { id: true },
+    });
+
+    if (!isProduct) {
+      return { success: false, message: "Product not found" };
+    }
+
     //create in cart product
+
     await Prisma.orderproduct.create({
       data: {
         productId: id,
@@ -53,6 +66,10 @@ export async function Addtocart(data: Productordertype): Promise<returntype> {
         details: details.filter((i) => i) ?? [],
         status: Allstatus.incart,
       },
+    });
+    await Prisma.products.update({
+      where: { id },
+      data: { amount_wishlist: { increment: 1 } },
     });
 
     revalidatePath(`/product/detail/${data.productId}`);
@@ -146,7 +163,7 @@ export async function Editcart(data: {
     }
 
     await Prisma.orderproduct.updateMany({
-      where: { AND: [{ id: data.id }, { user_id: userid.sub }] },
+      where: { AND: [{ id: data.id }, { user_id: userid.id }] },
       data: { quantity: data.qty },
     });
 
@@ -311,10 +328,9 @@ export async function CheckCart(
 ): Promise<returntype> {
   try {
     let isInCart = false;
-    const user = await getServerSession(authOptions);
-    const userId = user?.user as Usersessiontype;
+    const user = await getUser();
 
-    if (!userId) {
+    if (!user) {
       return { success: true };
     }
 
@@ -322,7 +338,7 @@ export async function CheckCart(
       where: {
         AND: [
           {
-            user_id: userId.id,
+            user_id: user.id,
           },
           {
             status: Allstatus.incart || Allstatus.unpaid,
@@ -370,3 +386,158 @@ export async function CheckCart(
     return { success: false, message: "Network error" };
   }
 }
+
+export const getRelatedProduct = async (
+  targetId: number,
+  parent_id: number,
+  limit: number,
+  child_id?: number,
+  promoid?: number
+) => {
+  try {
+    let maxprod = false;
+    let result = await Prisma.products.findMany({
+      where: {
+        id: { not: targetId },
+      },
+      select: {
+        id: true,
+        name: true,
+        price: true,
+        discount: true,
+        parentcategory_id: true,
+        promotion_id: true,
+        childcategory_id: true,
+        covers: {
+          select: {
+            name: true,
+            url: true,
+          },
+        },
+      },
+    });
+
+    let product = result.map((i) => {
+      const discount = i.discount && getDiscountedPrice(i.discount, i.price);
+      return {
+        ...i,
+        discount: discount && {
+          ...discount,
+          newprice: discount.newprice.toFixed(2),
+        },
+        category: {
+          parent_id: i.parentcategory_id,
+          child_id: i.childcategory_id,
+        },
+      };
+    }) as unknown as ProductState[];
+
+    //Finding The most similar product
+    let relatedProducts = product
+      .map((i) => {
+        let score = 0;
+        if (
+          parent_id &&
+          child_id &&
+          promoid &&
+          i.category.parent_id === parent_id &&
+          i.category?.child_id === child_id &&
+          i.promotion_id === promoid
+        ) {
+          score = 4;
+        } else if (promoid && promoid === i.promotion_id) {
+          score = 3;
+        } else if (child_id && i.category?.child_id === child_id) {
+          score = 2;
+        } else if (i.category.parent_id === parent_id) {
+          score = 1;
+        }
+        return { ...i, score };
+      })
+      .sort((a, b) => b.score - a.score);
+
+    relatedProducts = relatedProducts.filter((i) => i.score > 0);
+
+    if (relatedProducts.length <= limit) {
+      maxprod = true;
+    }
+
+    relatedProducts = relatedProducts.slice(0, limit);
+
+    return {
+      success: true,
+      data: relatedProducts,
+      maxprod,
+    };
+  } catch (error) {
+    console.log("Related product", error);
+    return { success: false };
+  }
+};
+
+export const AddWishlist = async (pid: number) => {
+  try {
+    const user = await getUser();
+
+    if (!user) {
+      return { success: false, message: "Please login or register account" };
+    }
+    const product = await Prisma.products.findUnique({
+      where: { id: pid },
+      select: { id: true },
+    });
+
+    if (!product) {
+      return { success: false, message: "Product not found" };
+    }
+    await Prisma.wishlist.create({
+      data: {
+        pid,
+        uid: user.id,
+      },
+    });
+
+    await Prisma.products.update({
+      where: { id: pid },
+      data: { amount_wishlist: { increment: 1 } },
+    });
+
+    revalidatePath(`/product/detail/${pid}`);
+
+    return { success: true, message: "Product Added" };
+  } catch (error) {
+    console.log("Wishlist", error);
+    return { success: false, message: "Error occured" };
+  }
+};
+
+export const Checkwishlist = async (pid: number) => {
+  const user = await getUser();
+
+  if (!user) {
+    return;
+  }
+
+  try {
+    const checkwishlist = await Prisma.wishlist.findFirst({
+      where: {
+        AND: [
+          {
+            uid: user.id,
+          },
+          {
+            pid: parseInt(pid.toString()),
+          },
+        ],
+      },
+    });
+
+    if (checkwishlist) {
+      return { isExist: true };
+    }
+    return { isExist: false };
+  } catch (error) {
+    console.log("Wishlist", error);
+    return null;
+  }
+};

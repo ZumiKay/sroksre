@@ -22,24 +22,35 @@ enum Imagetemptype {
 }
 
 model User {
-  id          String        @id @default(uuid())
-  firstname   String
-  lastname    String?
-  email       String        @unique
-  role        Role          @default(USER)
-  phonenumber String?       @unique
-  password    String        @unique
-  whislist    Json?
-  vfy         String?
-  reviews     Reviews[]
-  products    Products[]
-  questions   Questions[]
-  sessions    Usersession[]
-  answers     Answers[]
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-  addresses   Address[]
-  Orders      Orders[]
+  id           Int            @id @default(autoincrement())
+  type         String?
+  firstname    String
+  lastname     String?
+  email        String         @unique
+  role         Role           @default(USER)
+  phonenumber  String?        @unique
+  password     String         @unique
+  whislist     Json?
+  vfy          String?
+  products     Products[]
+  questions    Questions[]
+  sessions     Usersession[]
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  addresses    Address[]
+  Orders       Orders[]
+  Notification Notification[]
+  Wishlist     Wishlist[]
+  Orderproduct Orderproduct[]
+  Tempimage    Tempimage[]
+}
+
+model Wishlist {
+  id      Int      @id @default(autoincrement())
+  pid     Int
+  uid     Int
+  user    User     @relation(fields: [uid], references: [id])
+  product Products @relation(fields: [pid], references: [id])
 }
 
 model Address {
@@ -50,7 +61,7 @@ model Address {
   district   String
   songkhat   String
   postalcode String
-  userId     String?
+  userId     Int?
   user       User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
@@ -59,58 +70,78 @@ model Address {
 
 model Usersession {
   session_id String   @id @default(uuid())
-  user_id    String
+  user_id    Int
   user       User     @relation(fields: [user_id], references: [id])
   createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  expireAt   DateTime
 }
 
 model Parentcategories {
-  id          Int               @id @default(autoincrement())
-  name        String
-  description String?
-  sub         Childcategories[]
-  products    Products[]
+  id             Int               @id @default(autoincrement())
+  name           String
+  type           String?           @default("normal")
+  pid            Int?
+  description    String?
+  sub            Childcategories[]
+  products       Products[]
+  autocategories Productcategory[]
 }
 
 model Childcategories {
   id                 Int               @id @default(autoincrement())
   name               String
+  type               String?           @default("normal")
+  pid                Int?
   Parentcategories   Parentcategories? @relation(fields: [parentcategoriesId], references: [id])
   parentcategoriesId Int?
   Products           Products[]
 }
 
 model Products {
-  id                Int              @id @default(autoincrement())
+  id                Int            @id @default(autoincrement())
   name              String
-  price             Float            @default(0.00)
-  description       String           @default("")
-  stocktype         String           @default("stock")
+  price             Float          @default(0.00)
+  description       String         @default("")
+  stocktype         String         @default("stock")
   stock             Int?
   covers            Productcover[]
   details           Info[]
-  parentcategory_id Int
+  parentcategory_id Int?
   childcategory_id  Int?
   order_id          String?
   review_id         Int?
-  reviews           Reviews[]
-  promotion_id      Int?
-  discount          Float?
-  promotion         Promotion?       @relation(fields: [promotion_id], references: [id], onDelete: SetNull)
-  createdAt         DateTime         @default(now())
-  updatedAt         DateTime         @updatedAt
-  User              User?            @relation(fields: [userId], references: [id])
-  userId            String?
-  parentcateogries  Parentcategories @relation(fields: [parentcategory_id], references: [id])
-  childcategories   Childcategories? @relation(fields: [childcategory_id], references: [id])
+  amount_sold       Int?           @default(0)
+  amount_incart     Int?           @default(0)
+  amount_wishlist   Int?           @default(0)
+
+  promotion_id Int?
+  discount     Float?
+  promotion    Promotion? @relation(fields: [promotion_id], references: [id], onDelete: SetNull)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  parentcateogries Parentcategories? @relation(fields: [parentcategory_id], references: [id])
+  childcategories  Childcategories?  @relation(fields: [childcategory_id], references: [id])
 
   Variant      Variant[]
   Stock        Stock[]
   Orderproduct Orderproduct[]
 
   relatedproductId Int?
-  relatedproduct   Producttype? @relation(fields: [relatedproductId], references: [id])
+  relatedproduct   Producttype?      @relation(fields: [relatedproductId], references: [id])
+  User             User?             @relation(fields: [userId], references: [id])
+  userId           Int?
+  Wishlist         Wishlist[]
+  Containeritems   Containeritems[]
+  Autocategory     Productcategory[]
+}
+
+model Productcategory {
+  id              Int              @id @default(autoincrement())
+  product_id      Int
+  autocategory_id Int
+  product         Products         @relation(fields: [product_id], references: [id])
+  autocategory    Parentcategories @relation(fields: [autocategory_id], references: [id])
 }
 
 model Productcover {
@@ -124,20 +155,21 @@ model Productcover {
 }
 
 model Tempimage {
-  id   Int    @id @default(autoincrement())
-  name String
+  id      Int    @id @default(autoincrement())
+  name    String
+  user_id Int
+  user    User   @relation(fields: [user_id], references: [id])
 }
 
 model Producttype {
-  id        Int  @id @default(autoincrement())
+  id        Int        @id @default(autoincrement())
   productId Json
-
-  Products Products[]
+  Products  Products[]
 }
 
 model Orders {
   id           String         @id @default(uuid())
-  buyer_id     String
+  buyer_id     Int
   status       String
   estimate     DateTime?
   price        Json
@@ -153,36 +185,55 @@ model Orders {
 model Orderproduct {
   id        Int      @id @default(autoincrement())
   productId Int
-  user_id   String
+  user_id   Int
   status    String   @default("incart")
   quantity  Int
   details   Json
   orderId   String?
+  user      User     @relation(fields: [user_id], references: [id])
   order     Orders?  @relation(fields: [orderId], references: [id])
   product   Products @relation(fields: [productId], references: [id])
 }
 
-model Reviews {
-  id          Int      @id @default(autoincrement())
-  value       Int      @default(0)
-  description String   @default("No comment")
-  user_id     String
-  product_id  Int
-  product     Products @relation(fields: [product_id], references: [id], onDelete: Cascade)
-  user        User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+model Banner {
+  id                 Int              @id @default(autoincrement())
+  name               String
+  type               String
+  size               String           @default("large")
+  linktype           String?
+  image              Json
+  parentcate_id      Int?
+  childcate_id       Int?
+  selectedproduct_id Json?
+  link               String?
+  createdAt          DateTime         @default(now())
+  Promotion          Promotion[]
+  Containeritems     Containeritems[]
 }
 
-model Banner {
-  id        Int         @id @default(autoincrement())
-  name      String
-  type      String
-  image     Json
-  show      Boolean     @default(false)
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
-  Promotion Promotion[]
+model Homecontainer {
+  id             Int              @id @default(autoincrement())
+  idx            Int
+  type           String
+  name           String?
+  scrollabletype String?
+  amountofitem   Int?
+  daterange      Json?
+  item           Containeritems[]
+  createdAt      DateTime         @default(now())
+  updateAt       DateTime         @updatedAt
+}
+
+model Containeritems {
+  id              Int       @id @default(autoincrement())
+  homecontainerId Int?
+  banner_id       Int?
+  product_id      Int?
+  banner          Banner?   @relation(fields: [banner_id], references: [id])
+  product         Products? @relation(fields: [product_id], references: [id])
+  createdAt       DateTime  @default(now())
+
+  Homecontainer Homecontainer? @relation(fields: [homecontainerId], references: [id])
 }
 
 model Promotion {
@@ -200,10 +251,8 @@ model Promotion {
 model Answers {
   id          Int       @id @default(autoincrement())
   answer      String
-  user_id     String
   question_id Int
   question    Questions @relation(fields: [question_id], references: [id], onDelete: Cascade)
-  user        User      @relation(fields: [user_id], references: [id], onDelete: SetDefault)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 }
@@ -212,7 +261,7 @@ model Questions {
   id        Int       @id @default(autoincrement())
   question  String
   answer_id Int
-  user_id   String
+  user_id   Int
   user      User      @relation(fields: [user_id], references: [id])
   answers   Answers[]
   createdAt DateTime  @default(now())
@@ -231,15 +280,22 @@ model Info {
 }
 
 model Variant {
-  id           Int       @id @default(autoincrement())
-  product_id   Int?
-  product      Products? @relation(fields: [product_id], references: [id])
-  option_title String
-  option_type  String
-  option_value String[]
+  id              Int               @id @default(autoincrement())
+  product_id      Int?
+  product         Products?         @relation(fields: [product_id], references: [id])
+  option_title    String
+  option_type     String
+  option_value    String[]
+  Varianttemplate Varianttemplate[]
 
   @@unique([option_title, option_value])
   @@map("variant")
+}
+
+model Varianttemplate {
+  id         Int     @id @default(autoincrement())
+  variant_id Int
+  variant    Variant @relation(fields: [variant_id], references: [id], onDelete: Cascade, onUpdate: Cascade)
 }
 
 model Stock {
@@ -277,4 +333,17 @@ model Paragraph {
   updatedAt DateTime @updatedAt
 
   policy Policy @relation(fields: [policyId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id      Int      @id @default(autoincrement())
+  type    String
+  content String
+  checked Boolean? @default(false)
+  link    String?
+
+  userid    Int
+  user      User     @relation(fields: [userid], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

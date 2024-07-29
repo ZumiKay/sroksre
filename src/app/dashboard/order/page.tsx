@@ -231,8 +231,6 @@ export const DataRow = async ({
 }) => {
   const orderData = await getOrderData(data.id, isAdmin, param);
 
-  console.log(orderData);
-
   return (
     <>
       <tr key={idx} className="bg-[#f2f2f3] h-[50px]">

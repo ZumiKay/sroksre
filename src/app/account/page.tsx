@@ -1,14 +1,12 @@
 "use client";
 import { ChangeEvent, FormEvent, useState } from "react";
-import Banner from "../component/Banner";
+
 import PrimaryButton from "../component/Button";
 import { Checkbox, FormControlLabel } from "@mui/material";
 import { signIn } from "next-auth/react";
-
 import { postRequest } from "@/src/lib/utilities";
 import { errorToast, successToast } from "../component/Loading";
 import { useRouter } from "next/navigation";
-
 import { useGlobalContext, userdata } from "@/src/context/GlobalContext";
 import { ApiRequest } from "@/src/context/CustomHook";
 import ReactDOMServer from "react-dom/server";
@@ -155,9 +153,7 @@ export default function AuthenticatePage() {
 
   return (
     <div className="authentication__container flex flex-row gap-x-4 justify-between w-full min-h-[90vh] mt-4">
-      <div className="banner__section w-full h-full">
-        <Banner height="100vh" />
-      </div>
+      <div className="banner__section w-full h-full"></div>
 
       <form
         onSubmit={handleSumbit}

@@ -88,11 +88,11 @@ export default function PrimaryButton(props: buttonpros) {
       {props.status === "loading" ? (
         <h3 className="loading-text font-bold w-full h-fit"> Loading...</h3>
       ) : (
-        <h3 className="flex flex-row items-center justify-center">
+        <div className="w-full h-full flex flex-row items-center justify-center gap-x-2">
           {" "}
-          {props.Icon && <span className="mr-2"> {props.Icon} </span>}{" "}
-          {props.text}{" "}
-        </h3>
+          {props.Icon && props.Icon}
+          <p>{props.text}</p>{" "}
+        </div>
       )}
     </button>
   );
@@ -141,7 +141,7 @@ export function Selection(props: selectprops) {
 
       <select
         disabled={props.disable ? props.disable : false}
-        className={`select border border-1 border-black rounded-md ${
+        className={`select border-1 border-black rounded-md ${
           props.label ? "w-1/2" : "w-full"
         } h-full p-2`}
         onChange={props.onChange}
@@ -219,6 +219,10 @@ export const InputFileUpload = React.forwardRef(
   }
 );
 
+interface SelectedVariantType {
+  [key: string]: string[];
+}
+
 export const ColorSelect = ({
   index,
   type,
@@ -229,7 +233,11 @@ export const ColorSelect = ({
   added,
   edit,
   value,
+  key,
+  selectedvalue,
+  setselectedvalue,
 }: {
+  key: string;
   index: number;
   type: "COLOR" | "TEXT";
   width: string;
@@ -238,26 +246,28 @@ export const ColorSelect = ({
   label: string;
   added: number;
   edit: number;
+  selectedvalue: SelectedVariantType;
+  setselectedvalue: React.Dispatch<React.SetStateAction<SelectedVariantType>>;
   onChange?: (event: SelectChangeEvent<any>) => void;
   value?: string;
+  multiple?: boolean;
 }) => {
   const { product, setproduct } = useGlobalContext();
-  const [state, setstate] = useState(value ? value : "");
 
-  const handleChange = (e: SelectChangeEvent<any>) => {
-    const { value } = e.target;
+  const handleChange = (e: SelectChangeEvent<string[]>) => {
+    const value = e.target.value as string[];
 
     let stock = product.varaintstock;
     const idx = edit !== -1 ? edit : added;
 
     if (stock) {
-      if (value === "none") {
-        stock[idx].variant_val[index] = "";
+      if (value.length === 0) {
+        stock[idx].variant_val[index] = [];
       } else {
         stock[idx].variant_val[index] = value;
       }
     }
-    setstate(value);
+    setselectedvalue((prev) => ({ ...prev, [key]: value }));
 
     setproduct((prev) => ({ ...prev, varaintstock: stock }));
   };
@@ -270,7 +280,8 @@ export const ColorSelect = ({
         id="demo-simple-select"
         label={label}
         onChange={handleChange}
-        value={state}
+        value={selectedvalue[key]}
+        multiple
       >
         <MenuItem value={"none"}>None</MenuItem>
 

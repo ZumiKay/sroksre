@@ -143,7 +143,7 @@ export const getCheckoutdata = async (orderid: string) => {
   return modified;
 };
 export const calculatePrice = (price: number, percent: number) =>
-  price - percent * price;
+  price - (price * percent) / 100;
 
 const OrderSummary = async ({ orderId }: { orderId: string }) => {
   const orderData = await getCheckoutdata(orderId);
@@ -314,7 +314,10 @@ const SuccessPage = ({ orderid }: { orderid: string }) => {
         <p className="text-lg font-medium text-blue-500 cursor-pointer transition hover:text-white">
           Need help? Please contact us via email
         </p>
-        <Navigatebutton title="View Order" to="/toorder" />
+        <Navigatebutton
+          title="View Order"
+          to={`${process.env.BASE_URL}/dashboard/order?&q=${orderid}`}
+        />
       </div>
     </div>
   );

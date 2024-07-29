@@ -1,62 +1,75 @@
 "use client";
-import {
-  FiltervalueInitialize,
-  useGlobalContext,
-} from "@/src/context/GlobalContext";
+import { useGlobalContext } from "@/src/context/GlobalContext";
 import PrimaryButton from "../../component/Button";
 import { UserCard } from "../../component/Card";
-import { Createusermodal } from "../../component/Modals";
-import { ApiRequest } from "@/src/context/CustomHook";
+
+import { ApiRequest, Delayloading } from "@/src/context/CustomHook";
 import { LoadingText, errorToast } from "../../component/Loading";
-import { useEffect, useState } from "react";
+import { ChangeEvent, useEffect, useState } from "react";
 import PaginationComponent from "../../component/Pagination";
 import { FilterMenu } from "../../component/SideMenu";
+import { Createusermodal } from "../../component/Modals/User";
+import { useRouter, useSearchParams } from "next/navigation";
 
-export default function UsermanagementPage() {
+interface usermangementFilterType {
+  search?: string;
+
+  lt?: string;
+  p?: string;
+}
+export default function UsermanagementPage({
+  searchParams,
+}: {
+  searchParams?: { [key: string]: string | undefined };
+}) {
   const {
     openmodal,
     setopenmodal,
     itemlength,
     setitemlength,
-    allfiltervalue,
-    setallfilterval,
-    setisLoading,
     setalldata,
     allData,
-    isLoading,
   } = useGlobalContext();
+  const { search, p, lt } = searchParams as usermangementFilterType;
   const handleAdd = () => {
     setopenmodal((prev) => ({ ...prev, createUser: true }));
   };
-  const [page, setpage] = useState(1);
-  const [showperpage, setshow] = useState(1);
+  const [page, setpage] = useState(parseInt(p ?? "1"));
+  const [showperpage, setshow] = useState(parseInt(lt ?? "1"));
+  const [isFilter, setisFilter] = useState(!!search);
+  const [loading, setloading] = useState(false);
+  const router = useRouter();
+  const searchParam = useSearchParams();
 
   useEffect(() => {
     fetchdata();
-  }, [allfiltervalue, page, allData.user.length]);
+  }, [page, showperpage, searchParams]);
   const fetchdata = async () => {
-    const allfil = [...allfiltervalue];
-    const Isfil = allfil.findIndex((i) => i.page === "usermanagement");
-    if (Isfil === -1) {
-      allfil.push({ page: "usermanagement", filter: FiltervalueInitialize });
-      setallfilterval(allfil);
-    }
+    const asyncfetch = async () => {
+      const URL = `/api/users?${search ? `ty=filter` : `ty=all`}${
+        search ? `&search=${search}` : ""
+      }${`&p=${page ?? 1}`}${`&lt=${showperpage}`}`;
+      const user = await ApiRequest(URL, undefined, "GET");
+      if (!user.success) {
+        errorToast("Error Occured");
+        return;
+      }
+      setitemlength({
+        total: user.total ?? 0,
+        totalpage: user.totalpage ?? 0,
+      });
 
-    const { name, email, page } =
-      allfiltervalue.find((i) => i.page === "usermanagement")?.filter ?? {};
-    const URL = `/api/users?${name || email ? `ty="filter"` : `ty=all`}${
-      name ? `&n=${name}` : ""
-    }${email ? `&e=${email}` : ""}${`&p=${page ?? 1}`}${`&lt=${showperpage}`}`;
-    const user = await ApiRequest(URL, setisLoading, "GET");
-    if (!user.success) {
-      errorToast("Error Occured");
-      return;
-    }
-    setitemlength({
-      total: user.total ?? 0,
-      totalpage: user.totalpage ?? 0,
-    });
-    setalldata((prev) => ({ ...prev, user: user.data }));
+      setalldata({ user: user.data });
+    };
+    await Delayloading(asyncfetch, setloading, 2000);
+  };
+
+  const handleSelectShow = (value: string) => {
+    const param = new URLSearchParams(searchParam);
+    param.set("lt", value);
+
+    router.push(`?${param}`);
+    router.refresh();
   };
   return (
     <div className="usermanagement_container relative w-full h-fit min-h-[80vh]">
@@ -74,7 +87,7 @@ export default function UsermanagementPage() {
           color="#4688A0"
           radius="10px"
           type="button"
-          text={"Filter"}
+          text={isFilter ? "Clear Filter" : "Filter"}
           onClick={() =>
             setopenmodal((prev) => ({ ...prev, filteroption: true }))
           }
@@ -88,27 +101,39 @@ export default function UsermanagementPage() {
         />
       </header>
       <div className="userlist w-full h-full grid grid-cols-3 gap-x-10 gap-y-10 place-items-center mt-5">
-        {isLoading.GET && <LoadingText />}
-        {allData.user.map((i, idx) => (
+        {loading && <LoadingText />}
+        {allData.user?.map((i, idx) => (
           <UserCard
             index={idx}
             firstname={i.firstname}
             lastname={i.lastname ?? ""}
             email={i.email}
-            uid={i.id ?? "0"}
+            uid={i.id?.toString() ?? "0"}
           />
         ))}
       </div>
       <PaginationComponent
+        count={itemlength.totalpage}
         page={page}
         show={showperpage}
         setshow={setshow}
         setpage={setpage}
+        onchange={(value, type) => {
+          if (type === "limit") {
+            handleSelectShow(value.toString());
+          }
+        }}
         type="usermanagement"
       />
 
       {openmodal.createUser && <Createusermodal />}
-      {openmodal.filteroption && <FilterMenu type="usermanagement" />}
+      {openmodal.filteroption && (
+        <FilterMenu
+          type="usermanagement"
+          setisFilter={setisFilter}
+          param={searchParams}
+        />
+      )}
     </div>
   );
 }

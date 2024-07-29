@@ -1,23 +1,40 @@
 "use client";
 import { TextField } from "@mui/material";
 import PrimaryButton from "../component/Button";
-import { ChangeEvent, FormEvent, useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useState } from "react";
 import { contacttype, SendInquiry } from "./action";
 import { successToast } from "../component/Loading";
+// import { SendNotification } from "@/src/socket";
 
-export const ContactForm = () => {
-  const [contactdata, setcontact] = useState<contacttype | undefined>(
-    undefined
-  );
+export const ContactForm = ({
+  email,
+  fullname,
+}: {
+  email?: string;
+  fullname?: string;
+}) => {
+  const [contactdata, setcontact] = useState<contacttype>({
+    email: email ?? "",
+    fullname: fullname ?? "",
+    orderid: "",
+    subject: "",
+    message: "",
+  });
+
   const [loading, setloading] = useState(false);
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setloading(true);
 
-    console.log(contactdata);
     if (contactdata) {
       const send = SendInquiry.bind(null, contactdata);
       const makereq = await send();
+      // await SendNotification({
+      //   type: "New Equiry",
+      //   content: `From ${contactdata.email}`,
+      //   checked: false,
+      //   createdAt: "",
+      // });
       successToast(makereq.message);
     }
     setloading(false);

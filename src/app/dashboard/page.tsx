@@ -4,15 +4,23 @@ import { useEffect, useState } from "react";
 import PrimaryButton from "../component/Button";
 import { ToggleDownMenu } from "../component/ToggleMenu";
 import Card from "../component/Card";
-import { Userdatastate, useGlobalContext } from "@/src/context/GlobalContext";
-import { EditProfile } from "../component/Modals";
-import { ApiRequest } from "@/src/context/CustomHook";
-import LoadingIcon from "../component/Loading";
+import {
+  ProductState,
+  Userdatastate,
+  useGlobalContext,
+} from "@/src/context/GlobalContext";
+import {
+  ApiRequest,
+  Delayloading,
+  useEffectOnce,
+} from "@/src/context/CustomHook";
+import { ContainerLoading } from "../component/Loading";
+import { EditProfile } from "../component/Modals/User";
 
 interface userdata extends Userdatastate {
   open: {
     whilist: boolean;
-    rating: boolean;
+
     edit: boolean;
     edittype: "email" | "password" | "shipping" | "name" | "none";
   };
@@ -21,31 +29,43 @@ export default function UserDashboard() {
   const { openmodal, setopenmodal, userinfo, setuserinfo } = useGlobalContext();
   const [userdata, setdata] = useState<userdata>({
     open: {
-      whilist: true,
-      rating: true,
+      whilist: false,
       edit: false,
       edittype: "none",
     },
   });
-  const [loading, setloading] = useState(true);
-  const fetchuser = async () => {
-    const URL = `/api/users/info?ty=userinfo`;
-    const userreq = await ApiRequest(
-      URL,
-      undefined,
-      "GET",
-      undefined,
-      undefined
-    );
-    setloading(false);
+  const [wishlist, setwishlist] = useState<ProductState[] | null>(null);
+  const [loading, setloading] = useState(false);
+  const fetchuser = async (type: "userinfo" | "wishlist") => {
+    const asyncfetch = async () => {
+      const URL = `/api/users/info?ty=${type}`;
+      const userreq = await ApiRequest(
+        URL,
+        undefined,
+        "GET",
+        undefined,
+        undefined
+      );
 
-    if (userreq.success) {
-      setuserinfo(userreq.data);
-    }
+      if (userreq.success) {
+        type === "userinfo"
+          ? setuserinfo(userreq.data)
+          : setwishlist(userreq.data);
+      }
+    };
+
+    await Delayloading(asyncfetch, setloading, 1000);
   };
+
+  useEffectOnce(() => {
+    fetchuser("userinfo");
+  });
+
   useEffect(() => {
-    fetchuser();
-  }, []);
+    if (userdata.open.whilist) {
+      fetchuser("wishlist");
+    }
+  }, [userdata.open.whilist]);
 
   const handleEdit = (type: typeof userdata.open.edittype) => {
     setdata((prev) => ({ ...prev, open: { ...prev.open, edittype: type } }));
@@ -56,7 +76,7 @@ export default function UserDashboard() {
       <div className="profile__section w-[80%] flex flex-row items-center justify-evenly">
         <div className="profiledetail__section relative w-full min-h-[350px] flex flex-row items-start justify-evenly bg-gray-100 rounded-lg p-10">
           {loading ? (
-            <LoadingIcon />
+            <ContainerLoading />
           ) : (
             <>
               <div className="profileheader grid gap-y-10">
@@ -134,77 +154,50 @@ export default function UserDashboard() {
           />
         </div>
       </div>
-      <div className="setting__section w-[80%] flex flex-col items-center gap-y-7">
-        <div className="whilist_container flex flex-col items-start gap-y-10 w-full max-h-[77vh] overflow-y-auto">
-          <PrimaryButton
-            text="Whilist Products"
-            type="button"
-            width="100%"
-            hoverTextColor="white"
-            hoverColor="#2F4865"
-            radius="10px"
-            height="50px"
-            border="2px solid black"
-            color="white"
-            textalign="left"
-            textcolor="black"
-            textsize="20px"
-            postion={userdata.open.whilist ? "relative" : "sticky"}
-            top="0"
-            zI="20"
-            onClick={() =>
-              setdata({
-                ...userdata,
-                open: {
-                  ...userdata.open,
-                  whilist: !userdata.open.whilist,
-                },
-              })
-            }
-          />
-          <ToggleDownMenu open={userdata.open.whilist}>
-            <div className="products grid grid-cols-2 gap-x-[80%]">
-              <Card name="Products name" price="$20.00" img={[]} />
-              <Card name="Products name" price="$20.00" img={[]} />
-              <Card name="Products name" price="$20.00" img={[]} />
-            </div>
-          </ToggleDownMenu>
-        </div>
-        <div className="whilist_container flex flex-col items-start gap-y-10 w-full max-h-[77vh] overflow-y-auto">
-          <PrimaryButton
-            text="Rating Products"
-            type="button"
-            width="100%"
-            hoverTextColor="white"
-            hoverColor="#2F4865"
-            radius="10px"
-            height="50px"
-            border="2px solid black"
-            color="white"
-            textalign="left"
-            textcolor="black"
-            textsize="20px"
-            postion={userdata.open.rating ? "relative" : "sticky"}
-            top="0"
-            zI="20"
-            onClick={() =>
-              setdata({
-                ...userdata,
-                open: {
-                  ...userdata.open,
-                  rating: !userdata.open.rating,
-                },
-              })
-            }
-          />
-          <ToggleDownMenu open={userdata.open.rating}>
-            <div className="products grid grid-cols-2 gap-x-[80%]">
-              <Card name="Products name" price="$20.00" img={[]} />
-              <Card name="Products name" price="$20.00" img={[]} />
-              <Card name="Products name" price="$20.00" img={[]} />
-            </div>
-          </ToggleDownMenu>
-        </div>
+      <div className="setting__section w-[80%] h-fit flex flex-col items-center gap-y-7">
+        <PrimaryButton
+          text="Whilist Products"
+          type="button"
+          width="100%"
+          hoverTextColor="white"
+          hoverColor="#2F4865"
+          radius="10px"
+          height="50px"
+          border="2px solid black"
+          color={userdata.open.whilist ? "#2F4865" : "white"}
+          textalign="left"
+          textcolor={userdata.open.whilist ? "white" : "black"}
+          textsize="20px"
+          postion={userdata.open.whilist ? "relative" : "sticky"}
+          top="0"
+          zI="20"
+          onClick={() => {
+            userdata.open.whilist && setwishlist(null);
+            setdata({
+              ...userdata,
+              open: {
+                ...userdata.open,
+                whilist: !userdata.open.whilist,
+              },
+            });
+          }}
+        />
+
+        <ToggleDownMenu open={userdata.open.whilist}>
+          <div className="products w-full h-full grid grid-cols-2 gap-x-5 place-items-center place-content-start">
+            {wishlist?.map((prod) => (
+              <Card
+                key={prod.id}
+                id={prod.id}
+                name={prod.name}
+                price={prod.price.toFixed(2)}
+                discount={prod.discount}
+                img={prod.covers}
+              />
+            ))}
+          </div>
+        </ToggleDownMenu>
+
         <PrimaryButton
           text="Delete My Account"
           type="button"

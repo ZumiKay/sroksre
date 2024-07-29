@@ -1,3 +1,4 @@
+const MillionLint = require("@million/lint");
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
@@ -26,5 +27,4 @@ const nextConfig = {
     BASE_URL: "http://localhost:3000",
   },
 };
-
 module.exports = nextConfig;

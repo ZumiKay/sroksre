@@ -6,8 +6,11 @@ import Search from "../../../public/Image/Search.svg";
 import Cart from "../../../public/Image/cart.svg";
 import Profile from "../../../public/Image/profile.svg";
 import DefaultImage from "../../../public/Image/default.png";
+import ActiveBell from "../../../public/Image/blackbell.svg";
+import Bell from "../../../public/Image/whitebell.svg";
 import {
   CSSProperties,
+  forwardRef,
   MutableRefObject,
   ReactNode,
   useEffect,
@@ -21,42 +24,107 @@ import Link from "next/link";
 import {
   BannerInitialize,
   CateogoryState,
+  NotificationType,
   Productinitailizestate,
   PromotionInitialize,
   Sessiontype,
   useGlobalContext,
+  Usersessiontype,
 } from "@/src/context/GlobalContext";
-import { ApiRequest } from "@/src/context/CustomHook";
-import { LoadingText } from "./Loading";
+import { ApiRequest, useEffectOnce } from "@/src/context/CustomHook";
+import { errorToast, infoToast, LoadingText } from "./Loading";
+import { Role } from "@prisma/client";
+import {
+  CheckedNotification,
+  CheckNotification,
+  DeleteNotification,
+  GetNotification,
+} from "../severactions/notification_action";
+import { Box, CircularProgress } from "@mui/material";
+
+import { signOut } from "next-auth/react";
+import { checkloggedsession } from "../dashboard/action";
+import Homecontainermodal from "./HomePage/Modals";
+import { AnimatePresence } from "framer-motion";
 
 export default function Navbar({
   children,
   session,
 }: {
   children: ReactNode;
-  session?: Sessiontype;
+  session?: Usersessiontype;
 }) {
   const { cart, setcart } = useGlobalContext();
   const [categories, setcategories] = useState(false);
   const [profile, setprofile] = useState(false);
+  const [opennotification, setnotification] = useState(false);
+  const [checkNotification, setchecknotify] = useState<number | undefined>(0);
+  const [notification, setnotificationdata] = useState<
+    Array<NotificationType> | undefined
+  >(undefined);
+  const { openmodal } = useGlobalContext();
 
   const router = useRouter();
-  const navref = useRef<HTMLDivElement>(null);
+  const navref = useRef<any>(null);
+  const notiref = useRef<any>(null);
+  //checkout loggedin session
+  useEffectOnce(() => {
+    if (session) {
+      const checksession = async () => {
+        const checked = checkloggedsession.bind(null, session.session_id);
+        const makereq = await checked();
+        if (!makereq.success) {
+          infoToast("Session expired please login again");
+
+          setTimeout(() => {
+            signOut();
+          }, 3000);
+        }
+      };
+      checksession();
+    }
+  });
 
   useEffect(() => {
-    const handleEventClick = (e: MouseEvent) => {
-      if (navref.current && !navref.current.contains(e.target as Node)) {
-        setcategories(false);
+    if (session?.role === "ADMIN") {
+      const handleCheckNotification = async () => {
+        const makereq = await CheckNotification();
+
+        if (makereq.success) {
+          setchecknotify(makereq.isNotCheck?.length);
+        }
+      };
+      handleCheckNotification();
+    }
+  }, []);
+
+  useEffect(() => {
+    // session &&
+    //   socket.on("getnotify", (data) => {
+    //     setnotificationdata(data);
+    //   });
+
+    const handleEventClick = (e: globalThis.MouseEvent) => {
+      if (
+        notiref.current &&
+        !notiref.current.contains(e.target as Node) &&
+        navref.current &&
+        !navref.current.contains(e.target as Node)
+      ) {
+        setnotification(false);
       }
     };
-    window.addEventListener("click", handleEventClick);
+    window.addEventListener("click", handleEventClick, { passive: false });
+
     return () => {
       window.removeEventListener("click", handleEventClick);
+      // session ? socket.off("getnotify") : socket.disconnect();
     };
   }, []);
+
   return (
     <nav className="navbar__container sticky top-0 z-[99] w-full h-[60px] bg-[#F3F3F3] flex flex-row justify-between item-center">
-      <div ref={navref} className="first_section  w-1/2 h-fit p-1">
+      <div className="first_section  w-1/2 h-fit p-1">
         <Image
           className="menu_icon w-[50px] h-[50px] object-fill transition rounded-md"
           onClick={() => setcategories(!categories)}
@@ -64,7 +132,7 @@ export default function Navbar({
           alt="menu"
           style={categories ? { backgroundColor: "lightgray" } : {}}
         />
-        {categories && <Categories_Container setopen={setcategories} />}
+        {categories && <CategoriesContainer setopen={setcategories} />}
       </div>
       <div className="second_section  w-full h-fit relative top-2 flex justify-center">
         <Image
@@ -74,37 +142,70 @@ export default function Navbar({
           onClick={() => router.push("/")}
         />
       </div>
-      <div className="third_section  w-1/2 h-fit flex flex-row justify-evenly items-center">
+      <div className="third_section  w-1/2 h-full flex flex-row gap-x-10 items-center justify-end pr-10c">
         <Image
           src={Search}
           alt="search"
-          className="search w-[50px] h-[50px] object-contain transition hover:-translate-y-2"
+          className="search w-[50px] h-[50px] max-large_tablet:hidden object-contain transition hover:-translate-y-2"
         />
 
-        <div className="cart_container relative">
-          <Image
-            src={Cart}
-            alt="cart"
-            className="cart w-[30px] h-[30px] object-contain transition hover:-translate-y-2"
-            onMouseEnter={() => setcart(true)}
-          />
-          {children}
-        </div>
+        {session?.role !== Role.ADMIN && (
+          <div className="cart_container relative max-large_tablet:hidden">
+            <Image
+              src={Cart}
+              alt="cart"
+              className="cart w-[30px] h-[30px] object-contain transition hover:-translate-y-2"
+              onMouseEnter={() => setcart(true)}
+            />
+            {children}
+          </div>
+        )}
+
+        {session?.role === Role.ADMIN && (
+          <>
+            <div className="w-[30px] h-[30px] relative max-large_tablet:hidden">
+              <Image
+                ref={navref}
+                src={!opennotification ? Bell : ActiveBell}
+                alt="notification"
+                onClick={() => setnotification(!opennotification)}
+                width={30}
+                height={30}
+                className="bell min-w-[30px] min-h-[30px] object-fill transition-all active:bg-gray-200 active:shadow-xl rounded-xl"
+              />
+
+              {checkNotification !== 0 && (
+                <span className="absolute top-0 -right-1 w-[10px] h-[10px] rounded-2xl bg-red-500"></span>
+              )}
+              {opennotification && (
+                <NotificationMenu notification={notification} ref={notiref} />
+              )}
+            </div>
+          </>
+        )}
 
         <Image
           src={Profile}
           alt="profile"
-          className="cart w-[40px] h-[40px] object-contain transition hover:-translate-y-2"
+          className="cart w-[40px] h-[40px] max-large_tablet:w-[50px] max-large_tablet:h-[50px]  object-contain transition hover:-translate-y-2"
           onMouseEnter={() => session && setprofile(true)}
           onClick={() => !session && router.push("/account")}
         />
       </div>
-      {profile && <AccountMenu setProfile={setprofile} />}
+
+      <AnimatePresence>
+        {profile && <AccountMenu session={session} setProfile={setprofile} />}
+      </AnimatePresence>
+
+      {openmodal?.homecontainer && (
+        <Homecontainermodal setprofile={setprofile} />
+      )}
+
       {cart && <CartMenu img={DefaultImage} setcart={setcart} />}
     </nav>
   );
 }
-const Categories_Container = (props: { setopen: any }) => {
+const CategoriesContainer = (props: { setopen: any }) => {
   const [allcate, setallcate] = useState<Array<CateogoryState> | []>([]);
   const [loading, setloading] = useState(true);
   const router = useRouter();
@@ -130,7 +231,13 @@ const Categories_Container = (props: { setopen: any }) => {
           className="category flex flex-col w-[15vw] min-w-[10vw] pt-10  items-center justify-start p-1"
         >
           <h3
-            onClick={() => router.push(`/product/${i.id}`)}
+            onClick={() =>
+              router.push(
+                `/product?${
+                  i.type === "normal" ? `pid=${i.id}` : `ppid=${i.id}`
+                }`
+              )
+            }
             className="category_header bg-[#495464] transition cursor-pointer hover:bg-white hover:text-black active:bg-white active:text-black rounded-md p-3 min-w-[150px] h-fit  break-words  text-center text-white font-medium"
           >
             {" "}
@@ -140,7 +247,11 @@ const Categories_Container = (props: { setopen: any }) => {
             {i.subcategories.map((sub) => (
               <Link
                 key={sub.id}
-                href={`/product/${i.id}/${sub.id}`}
+                href={`/product?pid=${i.id}${
+                  sub.type === "normal"
+                    ? `&cid=${sub.id}`
+                    : `&promoid=${sub.pid}`
+                }`}
                 scroll={true}
               >
                 <h4 className="subcategory"> {sub.name} </h4>
@@ -175,10 +286,10 @@ export function DashboordNavBar({ session }: { session?: Sessiontype }) {
           {session?.role === "ADMIN" ? "Order Mangement" : "My Order"}
         </h1>
       </Link>
-      <Link hidden={session?.role !== "ADMIN"} href={"/dashboard/products"}>
+      <Link hidden={session?.role !== "ADMIN"} href={"/dashboard/inventory"}>
         <h1
           className={`navlink ${
-            route === "/dashboard/products" ? "activelink" : ""
+            route === "/dashboard/inventory" ? "activelink" : ""
           } text-lg font-bold bg-white w-[150px] p-2 transition text-center rounded-md`}
         >
           Inventory
@@ -294,3 +405,136 @@ export const SubInventoryMenu = (props: Subinventorymenuprops) => {
     </div>
   );
 };
+
+export const NotificationMenu = forwardRef(
+  (
+    {
+      notification,
+    }: {
+      notification?: NotificationType[];
+    },
+    ref
+  ) => {
+    const [notifydata, setnotifydata] = useState<
+      NotificationType[] | undefined
+    >(undefined);
+
+    const [loading, setloading] = useState(false);
+    const [page, setPage] = useState(1);
+    const [loadmore, setloadmore] = useState(true);
+    const router = useRouter();
+
+    useEffect(() => {
+      const getAllNotification = async () => {
+        setloading(true);
+        const makereq = GetNotification.bind(null, page, 3);
+        const result = await makereq();
+        if (result.success) {
+          if (notification) {
+            setnotifydata([...(result.data as any), ...notification]);
+          }
+
+          if (result.data?.length === 0) {
+            setloadmore(false);
+          }
+
+          if (notifydata) {
+            setnotifydata((prev) => [
+              ...(prev as any),
+              ...(result.data as any),
+            ]);
+          } else {
+            setnotifydata(result.data as any);
+          }
+        }
+        setloading(false);
+      };
+      getAllNotification();
+    }, [page]);
+
+    const handleScroll = () => {
+      const containerRef = ref as any;
+
+      if (!containerRef.current || loading || !loadmore) return;
+      const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
+
+      if (scrollTop + clientHeight >= scrollHeight - 5) {
+        setPage((prev) => prev + 1);
+      }
+    };
+
+    const handleChecked = async (id: number) => {
+      const checkednotify = CheckedNotification.bind(null, id);
+      await checkednotify();
+      router.refresh();
+    };
+
+    const handleDelete = async (id: number) => {
+      const deleteNotify = DeleteNotification.bind(null, id);
+      const makereq = await deleteNotify();
+      if (makereq.success) {
+        setnotifydata((prev) => prev?.filter((i) => i.id === id));
+      } else {
+        errorToast(makereq.message as string);
+      }
+    };
+
+    return (
+      <div
+        ref={ref as any}
+        onScroll={() => {
+          handleScroll();
+        }}
+        className="notification absolute w-[350px] h-[400px] z-[150] right-2 top-14 flex flex-col gap-x-5 bg-white rounded-lg overflow-x-hidden overflow-y-auto"
+      >
+        <h3
+          className="font-bold bg-white text-lg w-full sticky top-0 z-10 text-left p-2 border-b-2 border-b-gray-300
+      "
+        >
+          Notifications
+        </h3>
+
+        <div className="w-full h-full flex flex-col gap-y-5 relative">
+          {!notifydata?.length
+            ? !loading && (
+                <h3 className="font-normal text-sm w-full h-fit text-center pt-2">
+                  No Notification
+                </h3>
+              )
+            : notifydata.map((n) => (
+                <div key={n.id} className="w-full h-full relative">
+                  <Link href={n.link ?? ""}>
+                    <div
+                      onTouchStart={() => handleChecked(n.id as number)}
+                      onMouseEnter={() => handleChecked(n.id as number)}
+                      className="notification_item relative w-full h-fit flex flex-col gap-y-5 p-3 transition cursor-pointer hover:bg-gray-300"
+                    >
+                      {!n.checked && (
+                        <span className="w-[10px] h-[10px] bg-red-500 rounded-xl absolute right-2"></span>
+                      )}
+                      <h3 className="font-bold text-lg">{n.type} </h3>
+                      <p>{n.content}</p>
+                      <p className="text-[12px]">{n.createdAt}</p>
+                    </div>
+                  </Link>
+                  <i
+                    onClick={() => handleDelete(n.id as number)}
+                    className={`fa-solid fa-trash relative w-full left-[90%] transition duration-300 active:text-white ${
+                      loading ? "animate-spin" : ""
+                    }`}
+                  ></i>
+                </div>
+              ))}
+
+          {loading && (
+            <Box
+              sx={{ display: "flex", justifyContent: "center", height: "50px" }}
+            >
+              <CircularProgress />
+            </Box>
+          )}
+        </div>
+      </div>
+    );
+  }
+);

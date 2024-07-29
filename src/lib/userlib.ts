@@ -4,7 +4,7 @@ import { compare, genSaltSync, hashSync } from "bcryptjs";
 import Prisma from "./prisma";
 import { userdata } from "../app/account/actions";
 
-import { checkpassword } from "./utilities";
+import { checkpassword, getOneWeekFromToday } from "./utilities";
 import { handleEmail } from "../app/checkout/action";
 
 export enum Role {
@@ -13,12 +13,13 @@ export enum Role {
   EDITOR = "EDITOR",
 }
 export interface RegisterUser {
-  id?: string;
+  id?: number;
   firstname: string;
   email: string;
   password: string;
   lastname?: string;
   role?: Role;
+  type?: string;
 
   phonenumber?: string;
 }
@@ -60,11 +61,14 @@ export const userlogin = async (
   credentail: userdata
 ): Promise<{ success: boolean; data?: userdata; message?: string }> => {
   try {
-    const user = await Prisma.user.findUnique({
+    const user = await Prisma.user.findFirst({
       where: {
-        email: credentail.email,
+        email: {
+          equals: credentail.email,
+        },
       },
     });
+
     if (user) {
       const isValid = await compare(
         credentail.password as string,
@@ -74,15 +78,17 @@ export const userlogin = async (
         const session = await Prisma.usersession.create({
           data: {
             user_id: user.id,
+            expireAt: getOneWeekFromToday(),
           },
         });
         if (session) {
           return {
             success: true,
             data: {
-              id: user.id as string,
+              id: user.id,
               role: user.role,
               sessionid: session.session_id,
+              email: user.email,
             },
           };
         } else {
@@ -157,16 +163,24 @@ export const registerUser = async (data: RegisterUser): Promise<ReturnType> => {
 };
 
 export const handleCheckandRegisterUser = async ({
-  id,
   data,
+  expireSession,
 }: {
-  id: string;
   data: RegisterUser;
+  expireSession: Date;
 }): Promise<{ success: boolean; message?: string }> => {
   try {
-    const existingUser = await Prisma.user.findUnique({ where: { id } });
+    const existingUser = await Prisma.user.findUnique({
+      where: { email: data.email },
+    });
 
     if (existingUser) {
+      await Prisma.usersession.create({
+        data: {
+          user_id: existingUser.id,
+          expireAt: expireSession,
+        },
+      });
       return { success: true };
     }
     let plainpassword = data.password;
@@ -177,9 +191,10 @@ export const handleCheckandRegisterUser = async ({
     const createdUser = await Prisma.user.create({
       data: {
         ...data,
-        id: id,
         sessions: {
-          create: {},
+          create: {
+            expireAt: expireSession,
+          },
         },
       },
     });

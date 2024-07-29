@@ -10,8 +10,13 @@ import {
   InputLabel,
   OutlinedInput,
 } from "@mui/material";
-import { ChangeEvent, useState } from "react";
-import { motion } from "framer-motion";
+import {
+  ChangeEvent,
+  CSSProperties,
+  HTMLInputTypeAttribute,
+  useState,
+} from "react";
+
 export const PasswordInput = ({
   name,
   label,
@@ -61,32 +66,24 @@ export const PasswordInput = ({
   );
 };
 
-export const SelectContainer = ({
-  data,
-  title,
-}: {
-  data: Array<string>;
-  title: string;
-}) => {
-  const handleSelect = () => {
-    //selected product
-  };
+interface textinputProps {
+  name?: string;
+  style?: CSSProperties;
+  onChange?: (e: ChangeEvent<HTMLInputElement>) => void;
+  value?: string | number;
+  type?: HTMLInputTypeAttribute;
+  placeholder?: string;
+  hidden?: boolean;
+  required?: boolean;
+  min?: number;
+  max?: number;
+}
+
+export const TextInput = (props: textinputProps) => {
   return (
-    <div className="select_container w-full h-[40px] flex flex-row items-center justify-start gap-x-3">
-      <h3 className="title text-lg font-medium w-fit h-fit">
-        {" "}
-        {`${title} :`}{" "}
-      </h3>
-      {data.map((str) => (
-        <motion.div
-          whileHover={{ outline: "3px solid lightgray" }}
-          whileTap={{ outline: "3px solid lightgray" }}
-          className="w-[40px] h-full rounded-3xl"
-          style={{ backgroundColor: `${str}` }}
-        >
-          {" "}
-        </motion.div>
-      ))}
-    </div>
+    <input
+      {...props}
+      className="textinput w-full h-[50px] border border-gray-300 p-3 rounded-lg font-bold text-lg text-black"
+    />
   );
 };

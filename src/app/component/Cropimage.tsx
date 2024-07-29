@@ -18,12 +18,10 @@ import { useDebounceEffect } from "../../context/CustomHook";
 
 import "react-image-crop/dist/ReactCrop.css";
 import PrimaryButton, { Selection } from "./Button";
-import Modal, { Imgurl } from "./Modals";
-import { useGlobalContext } from "@/src/context/GlobalContext";
-import { errorToast, successToast } from "./Loading";
+import Modal from "./Modals";
+import { errorToast } from "./Loading";
+import { Imgurl } from "./Modals/Image";
 
-// This is to demonstate how to make and center a % aspect crop
-// which is a bit trickier so we use some helper functions.
 function centerAspectCrop(
   mediaWidth: number,
   mediaHeight: number,

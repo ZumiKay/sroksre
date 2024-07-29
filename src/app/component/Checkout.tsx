@@ -25,13 +25,15 @@ import {
 } from "../checkout/action";
 import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 import { errorToast, LoadingText, successToast } from "./Loading";
-import { shippingtype } from "./Modals";
 import { Checkbox, FormControlLabel } from "@mui/material";
 import { LogoVector } from "./Asset";
 import { twj } from "tw-to-css";
 import { calculatePrice } from "../checkout/page";
 import { OrderReceiptTemplate } from "./EmailTemplate";
 import Image from "next/image";
+// import { SendNotification } from "@/src/socket";
+import Link from "next/link";
+import { shippingtype } from "./Modals/User";
 
 //Step assets
 const LineSvg = ({
@@ -477,19 +479,16 @@ export const Navigatebutton = ({
   title: string;
   to: string;
 }) => {
-  const handleClick = () => {
-    alert("clicked");
-  };
-
   return (
-    <PrimaryButton
-      text={title}
-      onClick={() => handleClick()}
-      type="button"
-      height="50px"
-      width="100%"
-      radius="10px"
-    />
+    <Link href={to}>
+      <PrimaryButton
+        text={title}
+        type="button"
+        height="50px"
+        width="100%"
+        radius="10px"
+      />
+    </Link>
   );
 };
 
@@ -619,7 +618,7 @@ export function SelectionSSR(props: {
     <select
       onChange={handleChange}
       value={props.selectedvalue}
-      className={`select__container border border-1 border-black rounded-md w-full h-full p-2`}
+      className={`select__container border-1 border-black rounded-md w-full h-full p-2`}
     >
       <option value="">None</option>
       {props.data.map((i, idx) => (
@@ -897,17 +896,16 @@ export function Paypalbutton({
               const transaction =
                 orderData?.purchase_units?.[0]?.payments?.captures?.[0] ||
                 orderData?.purchase_units?.[0]?.payments?.authorizations?.[0];
-              successToast(`PURCAHSE ${transaction.status}`);
 
               //update order status and send email
 
-              const htmltemplate = ReactDOMServer.renderToStaticMarkup(
+              const htmltemplate = ReactDOMServer.renderToString(
                 <OrderReceiptTemplate
                   order={{ ...order, status: "Paid" }}
                   isAdmin={false}
                 />
               );
-              const adminhtmltemplate = ReactDOMServer.renderToStaticMarkup(
+              const adminhtmltemplate = ReactDOMServer.renderToString(
                 <OrderReceiptTemplate
                   order={{ ...order, status: "Paid" }}
                   isAdmin={true}
@@ -927,6 +925,14 @@ export function Paypalbutton({
                 errorToast(makeReq.message ?? "");
                 return;
               }
+              // await SendNotification({
+              //   type: "New Order",
+              //   content: `Order #${orderId} has requested`,
+              //   checked: false,
+              //   link: `${process.env.BASE_URL}/dashboard/order?&q=${orderId}`,
+              // });
+
+              successToast(`Purchase Complete`);
 
               router.replace(`/checkout?orderid=${encripyid}&step=4`);
             }

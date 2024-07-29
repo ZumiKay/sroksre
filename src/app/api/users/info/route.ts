@@ -1,27 +1,26 @@
 import Prisma from "@/src/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "../../auth/[...nextauth]/route";
 import { NextRequest } from "next/server";
 import { extractQueryParams } from "../../banner/route";
+import { getUser } from "@/src/context/OrderContext";
+import { getDiscountedPrice } from "@/src/lib/utilities";
 
 export async function GET(request: NextRequest) {
   try {
     const URL = request.nextUrl.toString();
 
     const { ty }: { ty?: string } = extractQueryParams(URL);
-    const user = await getServerSession(authOptions);
+    const user = await getUser();
 
     if (!user) {
       return Response.json({}, { status: 404 });
     }
-    const uID = user?.user && "sub" in user.user && user.user.sub;
 
     let result: any = null;
 
     if (ty === "shipping") {
       result = await Prisma.address.findMany({
         where: {
-          userId: uID as string,
+          userId: user.id,
         },
         select: {
           id: true,
@@ -36,7 +35,7 @@ export async function GET(request: NextRequest) {
     } else if (ty === "userinfo") {
       const info = await Prisma.user.findUnique({
         where: {
-          id: uID as string,
+          id: user.id,
         },
         select: {
           firstname: true,
@@ -50,6 +49,41 @@ export async function GET(request: NextRequest) {
         return Response.json({ message: "No user" }, { status: 404 });
       }
       result = info;
+    } else if (ty === "wishlist") {
+      const productwishlist = await Prisma.wishlist.findMany({
+        where: { uid: user.id },
+        select: {
+          product: {
+            select: {
+              id: true,
+              name: true,
+              price: true,
+              discount: true,
+              parentcategory_id: true,
+              childcategory_id: true,
+              covers: {
+                select: {
+                  url: true,
+                  name: true,
+                },
+              },
+            },
+          },
+        },
+      });
+      result = productwishlist.map((wish) => {
+        const discount =
+          wish.product.discount &&
+          getDiscountedPrice(wish.product.discount, wish.product.price);
+
+        return {
+          ...wish.product,
+          discount: discount && {
+            ...discount,
+            newprice: discount.newprice.toFixed(2),
+          },
+        };
+      });
     }
     return Response.json({ data: result }, { status: 200 });
   } catch (error) {

@@ -5,7 +5,6 @@ import {
   totalpricetype,
 } from "@/src/context/OrderContext";
 import { OrderUserType } from "../checkout/action";
-import ReactDomServer from "react-dom/server";
 
 interface OerderEmailProps {
   order: OrderUserType;

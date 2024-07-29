@@ -1,9 +1,23 @@
 "use client";
-import dayjs, { Dayjs } from "dayjs";
+import { Dayjs } from "dayjs";
 import React, { useContext, useState } from "react";
 import { Role } from "@prisma/client";
 import { Ordertype } from "./OrderContext";
+import { BannerType } from "../app/severactions/actions";
+import { Categorytype } from "../app/api/categories/route";
+import { InventoryType } from "../app/dashboard/inventory/varaint_action";
 
+export interface ActionReturnType<t = string> {
+  success: boolean;
+  message?: string;
+  data?: t;
+
+  [x: string]: any;
+}
+export interface SelectType {
+  label: string;
+  value: string | number;
+}
 export interface userdata {
   id?: number;
   email?: string;
@@ -24,7 +38,7 @@ export interface ProductInfo {
   id?: number;
   info_title: string;
   info_value: Array<string> | Array<infovaluetype>;
-  info_type: string;
+  info_type: InventoryType;
 }
 
 export const DefaultSize: Array<infovaluetype> = [
@@ -58,13 +72,12 @@ export interface Varianttype {
   option_title: string;
   option_type: "COLOR" | "TEXT";
   option_value: Array<string>;
+  [key: string]: any;
 }
 export interface Stocktype {
   id?: number;
-  variant_id: Array<number>;
-  variant_val: Array<string>;
+  variant_val: string[][];
   qty: number;
-  price?: number;
 }
 
 export interface Relatedproducttype {
@@ -73,6 +86,7 @@ export interface Relatedproducttype {
   parentcategory_id: number;
   childcategory_id: number;
   covers: {
+    id: number;
     url: string;
   }[];
 }
@@ -83,7 +97,7 @@ export interface ProductState {
   description: string;
   stocktype: string;
   covers: productcoverstype[] | [];
-  category: { parent_id: number; child_id: number };
+  category: { parent_id: number; child_id?: number };
   details: ProductInfo[] | [];
   stock?: number;
   variantcount?: number;
@@ -91,26 +105,32 @@ export interface ProductState {
   varaintstock?: Array<Stocktype>;
   lowstock?: boolean;
   incart?: boolean;
+  promotion_id?: number;
   discount?: {
     percent: number;
-    newPrice: string;
+    newprice: string;
   };
   relatedproductid?: Array<number>;
   relatedproduct?: Array<Relatedproducttype>;
+  amount_sold?: number;
+  amount_incart?: number;
+  amount_wishlist?: number;
+  createdAt?: Date;
 }
 export interface FilterValue {
-  page: number;
-  category: {
-    parent_id: number;
-    child_id: number;
-  };
-  status: string;
-  name: string;
+  parentcate?: number;
+  childcate?: number;
+  status?: string;
+  name?: string;
   firstname?: string;
   lastname?: string;
   email?: string;
-  expiredate?: dayjs.Dayjs;
+  expiredate?: string;
   promotionid?: number;
+  promoselect?: boolean;
+  bannertype?: string;
+  bannersize?: string;
+  search?: string;
 }
 
 interface Listproductfilter {
@@ -119,12 +139,20 @@ interface Listproductfilter {
   text: Array<string>;
   order?: string;
 }
+
+export interface NotificationType {
+  id?: number;
+  type: string;
+  content: string;
+  link?: string;
+  userid?: string;
+  createdAt?: string;
+  checked: boolean;
+}
+
 export const FiltervalueInitialize: FilterValue = {
-  page: 1,
-  category: {
-    parent_id: 0,
-    child_id: 0,
-  },
+  parentcate: 0,
+  childcate: 0,
   status: "",
   name: "",
   email: "",
@@ -133,17 +161,22 @@ export const FiltervalueInitialize: FilterValue = {
 export interface BannerState {
   id?: number;
   name: string;
-  type: "banner" | "promotion";
-
+  type: BannerType;
+  size: string;
   image: {
     url: string;
     name: string;
     type: string;
   };
-  show?: boolean;
+  linktype?: string;
+  parentcate?: SelectType;
+  childcate?: SelectType;
+  selectedproduct?: SelectType[];
+  selectedpromotion?: SelectType;
+  link?: string;
 }
 export interface UserState {
-  id?: string;
+  id?: number;
   lastname?: string;
   password?: string;
   confirmpassword?: string;
@@ -171,8 +204,8 @@ export interface PromotionProductState {
   id: number;
   discount?: {
     percent: number;
-    newPrice: string;
-    oldPrice: number;
+    newprice: string;
+    oldprice: number;
   };
 }
 export interface PromotionState {
@@ -182,13 +215,14 @@ export interface PromotionState {
   selectproduct: boolean;
   selectbanner: boolean;
   Products: Array<PromotionProductState>;
-  expireAt: Dayjs;
+  expireAt?: Dayjs;
   banner_id?: number;
-
   banner?: BannerState;
   tempproduct?: number[];
   tempproductstate?: Array<PromotionProductState>;
   type?: string;
+
+  isExpired?: boolean;
 }
 
 export type filterinventorytype =
@@ -203,12 +237,12 @@ export interface Allrefstate {
 }
 
 interface AllDataState {
-  product: ProductState[] | [];
-  banner: BannerState[] | [];
-  promotion: PromotionState[] | [];
-  category: CateogoryState[] | [];
-  filteredData: ProductState[] | BannerState[] | PromotionState[] | [];
-  user: UserState[] | [];
+  product?: ProductState[];
+  banner?: BannerState[];
+  promotion?: PromotionState[];
+  category?: CateogoryState[];
+  filteredData?: ProductState[] | BannerState[] | PromotionState[];
+  user?: UserState[];
   tempbanner?: {
     id: number;
     show: boolean;
@@ -217,10 +251,10 @@ interface AllDataState {
 }
 
 export interface Usersessiontype {
-  sub: string;
-  id: string;
+  sub: number;
+  id: number;
   role: Role;
-  sessionid: string;
+  session_id: string;
 }
 
 type confirmmodaltype = {
@@ -277,6 +311,7 @@ export interface GlobalIndexState {
   promotioneditindex: number;
   promotionproductedit: number;
   useredit: number;
+  homeeditindex?: number;
 }
 
 export interface AllFilterValueState {
@@ -288,9 +323,16 @@ export interface CateogoryState {
   name: string;
   childid?: number[];
   subcategories: Array<SubcategoriesState> | [];
+  type?: Categorytype;
+  daterange?: {
+    start: string;
+    end: string;
+  };
 }
 export interface SubcategoriesState {
   id?: number;
+  type?: "normal" | "promo";
+  pid?: number;
   name: string;
 }
 
@@ -302,7 +344,7 @@ export interface LoadingState {
   IMAGE: any;
 }
 export interface Sessiontype {
-  id?: string;
+  id?: number;
   email?: string;
   name?: string;
   image?: string;
@@ -392,7 +434,8 @@ export const ItemlengthInitialize: ItemLength = {
 };
 export const BannerInitialize: BannerState = {
   name: "",
-  type: "banner",
+  type: "normal",
+  size: "normal",
   image: {
     name: "",
     type: "",
@@ -408,7 +451,7 @@ export const PromotionInitialize: PromotionState = {
   Products: [PromotionProductInitialize],
   selectbanner: false,
   selectproduct: false,
-  expireAt: dayjs(),
+
   tempproduct: [],
 };
 
@@ -519,7 +562,7 @@ export const GlobalContextProvider = ({
   const [page, setpage] = useState(1);
   const [userinfo, setuserinfo] = useState({});
   const [error, seterror] = useState<boolean>(false);
-  const [reloaddata, setreloaddata] = useState(false);
+  const [reloaddata, setreloaddata] = useState(true);
   const [order, setorder] = useState<Ordertype | undefined>(undefined);
   const [cart, setcart] = useState(false);
 
