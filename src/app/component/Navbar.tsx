@@ -123,7 +123,7 @@ export default function Navbar({
   }, []);
 
   return (
-    <nav className="navbar__container sticky top-0 z-[99] w-full h-[60px] bg-[#F3F3F3] flex flex-row justify-between item-center">
+    <nav className="navbar__container sticky top-0 z-[99] w-full h-[60px] bg-[#F3F3F3] flex flex-row justify-between item-center pl-5 pr-5">
       <div className="first_section  w-1/2 h-fit p-1">
         <Image
           className="menu_icon w-[50px] h-[50px] object-fill transition rounded-md"

@@ -5,7 +5,7 @@ import "../globals.css";
 import * as React from "react";
 import { styled } from "@mui/material/styles";
 import Button from "@mui/material/Button";
-import { CateogoryState, useGlobalContext } from "@/src/context/GlobalContext";
+import { CateogoryState } from "@/src/context/GlobalContext";
 import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
 import FormControl from "@mui/material/FormControl";
@@ -218,88 +218,6 @@ export const InputFileUpload = React.forwardRef(
     );
   }
 );
-
-interface SelectedVariantType {
-  [key: string]: string[];
-}
-
-export const ColorSelect = ({
-  index,
-  type,
-  width,
-  height,
-  data,
-  label,
-  added,
-  edit,
-  value,
-  key,
-  selectedvalue,
-  setselectedvalue,
-}: {
-  key: string;
-  index: number;
-  type: "COLOR" | "TEXT";
-  width: string;
-  height: string;
-  data: Array<string>;
-  label: string;
-  added: number;
-  edit: number;
-  selectedvalue: SelectedVariantType;
-  setselectedvalue: React.Dispatch<React.SetStateAction<SelectedVariantType>>;
-  onChange?: (event: SelectChangeEvent<any>) => void;
-  value?: string;
-  multiple?: boolean;
-}) => {
-  const { product, setproduct } = useGlobalContext();
-
-  const handleChange = (e: SelectChangeEvent<string[]>) => {
-    const value = e.target.value as string[];
-
-    let stock = product.varaintstock;
-    const idx = edit !== -1 ? edit : added;
-
-    if (stock) {
-      if (value.length === 0) {
-        stock[idx].variant_val[index] = [];
-      } else {
-        stock[idx].variant_val[index] = value;
-      }
-    }
-    setselectedvalue((prev) => ({ ...prev, [key]: value }));
-
-    setproduct((prev) => ({ ...prev, varaintstock: stock }));
-  };
-  return (
-    <FormControl sx={{ width: width, height: height, minWidth: "100px" }}>
-      <InputLabel id="demo-simple-select-label">{label}</InputLabel>
-      <Select
-        key={index}
-        labelId="demo-simple-select-label"
-        id="demo-simple-select"
-        label={label}
-        onChange={handleChange}
-        value={selectedvalue[key]}
-        multiple
-      >
-        <MenuItem value={"none"}>None</MenuItem>
-
-        {data.map((i) => (
-          <MenuItem value={i}>
-            {" "}
-            <div
-              className="w-[20px] h-[20px] rounded-2xl"
-              style={type === "COLOR" ? { backgroundColor: i } : {}}
-            >
-              {`${type === "TEXT" ? i : ""}`}
-            </div>{" "}
-          </MenuItem>
-        ))}
-      </Select>
-    </FormControl>
-  );
-};
 
 interface Selectcontainerprops {
   data: Array<string>;

@@ -8,10 +8,11 @@ import {
   updateCategoryData,
 } from "@/src/lib/adminlib";
 import Prisma from "@/src/lib/prisma";
+import { extractQueryParams } from "../banner/route";
 
 const categorytype = {
-  normal: "Normal",
-  sale: "Sale",
+  normal: "normal",
+  sale: "sale",
   popular: "popular",
   latest: "latest",
 };
@@ -169,10 +170,13 @@ export async function PUT(req: NextRequest) {
   }
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const url = req.nextUrl.toString();
+  const { ty } = extractQueryParams(url);
+
   try {
     const allcat = await Prisma.parentcategories.findMany({
-      where: {},
+      where: ty === "create" ? { type: categorytype.normal } : {},
       select: {
         id: true,
         name: true,
@@ -182,6 +186,7 @@ export async function GET() {
     });
 
     const categories: any = [];
+
     allcat.forEach((obj) => {
       categories.push({
         id: obj.id,

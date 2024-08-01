@@ -4,6 +4,7 @@ import Prisma from "../../../../lib/prisma";
 import { NextRequest } from "next/server";
 
 import { calculateDiscountProductPrice } from "@/src/lib/utilities";
+import { VariantColorValueType } from "@/src/context/GlobalContext";
 
 function queryStringToObject(queryString: string) {
   const pairs = queryString.split("_");
@@ -98,11 +99,11 @@ export async function GET(
     allfilter.forEach((filval) => {
       filval.Variant.forEach((variant) => {
         if (variant.option_type === "COLOR") {
-          variant.option_value.map((i) => allval.color.add(i));
+          const opt_val = variant.option_value as VariantColorValueType[];
+          opt_val.map((i) => allval.color.add(i.val));
         } else if (variant.option_type === "TEXT") {
-          variant.option_value.map((i) => allval.text.add(i));
-        } else {
-          variant.option_value.map((i) => allval.size.add(i));
+          const opt_val = variant.option_value as string[];
+          opt_val.map((i) => allval.text.add(i));
         }
       });
     });

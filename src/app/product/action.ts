@@ -1,6 +1,10 @@
 "use server";
 
-import { infovaluetype, ProductState } from "@/src/context/GlobalContext";
+import {
+  infovaluetype,
+  ProductState,
+  VariantColorValueType,
+} from "@/src/context/GlobalContext";
 import Prisma from "@/src/lib/prisma";
 import {
   caculateArrayPagination,
@@ -170,13 +174,21 @@ export const GetListProduct = cache(
         //filter base on color & size & other (custom variants)
 
         products = products.filter((prod) => {
-          const matchesVariant = (type: string, values?: string[]) =>
-            values &&
-            prod.Variant.some(
-              (variant) =>
-                variant.option_type === type &&
-                variant.option_value.some((value) => values.includes(value))
-            );
+          const matchesVariant = (type: string, values?: string[]) => {
+            if (!values) return false;
+
+            return prod.Variant.some((variant) => {
+              if (variant.option_type !== type) return false;
+
+              if (type === "COLOR") {
+                const val = variant.option_value as VariantColorValueType[];
+                return val.some((value) => values.includes(value.val));
+              } else {
+                const val = variant.option_value as string[];
+                return val.some((v) => values.includes(v));
+              }
+            });
+          };
 
           const isColor = matchesVariant("COLOR", filtervalue.color);
           const isText = matchesVariant("TEXT", filtervalue.other);
@@ -305,11 +317,30 @@ function getUniqueOptionValues(options: string[]) {
 
   return uniqueValuesArray;
 }
+function getUniqueColor(
+  options: VariantColorValueType[]
+): VariantColorValueType[] {
+  const uniqueValuesSet = new Set<string>();
+  const uniqueOptions: VariantColorValueType[] = [];
+
+  options.forEach((option) => {
+    if (!uniqueValuesSet.has(option.val)) {
+      uniqueValuesSet.add(option.val);
+      uniqueOptions.push(option);
+    }
+  });
+
+  return uniqueOptions;
+}
 
 export interface filtervaluetype {
   variant: {
-    color: string[];
-    text: string[];
+    color: VariantColorValueType[];
+    text: {
+      id: number;
+      option_title: string;
+      option_value: string[];
+    }[];
   };
   size?: string[];
   promotion?: string[];
@@ -323,8 +354,14 @@ export const getFilterValue = async (parent_id: number, child_id?: number) => {
   try {
     let filtervalues: filtervaluetype = {
       variant: {
-        color: [""],
-        text: [""],
+        color: [{ val: "" }],
+        text: [
+          {
+            id: 0,
+            option_title: "",
+            option_value: [""],
+          },
+        ],
       },
       promo: [],
       promotion: [],
@@ -371,13 +408,15 @@ export const getFilterValue = async (parent_id: number, child_id?: number) => {
       } else if (i.stocktype === "variant") {
         const color = i.Variant.filter(
           (j) => j.option_type === "COLOR"
-        ).flatMap((j) => j.option_value);
-        const text = i.Variant.filter((j) => j.option_type === "TEXT").flatMap(
-          (j) => j.option_value
-        );
+        ).flatMap((j) => j.option_value) as VariantColorValueType[];
+        const text = i.Variant.filter((j) => j.option_type === "TEXT");
 
         filtervalues.variant.color = color;
-        filtervalues.variant.text = text;
+        filtervalues.variant.text = text.map((i) => ({
+          id: i.id,
+          option_title: i.option_title,
+          option_value: i.option_value as string[],
+        }));
       }
 
       if (i.promotion) {
@@ -389,15 +428,12 @@ export const getFilterValue = async (parent_id: number, child_id?: number) => {
       filtervalues.variant.color.length > 0 ||
       filtervalues.variant.text.length > 0
     ) {
-      filtervalues.variant.color = getUniqueOptionValues(
-        filtervalues.variant.color
-      );
-      filtervalues.variant.text = getUniqueOptionValues(
-        filtervalues.variant.text
-      );
+      filtervalues.variant.color = getUniqueColor(filtervalues.variant.color);
+      filtervalues.variant.text = filtervalues.variant.text.map((i) => ({
+        ...i,
+        option_value: getUniqueOptionValues(i.option_value),
+      }));
     }
-    filtervalues.size &&
-      (filtervalues.size = getUniqueOptionValues(filtervalues.size));
 
     if (filtervalues.promotion) {
       filtervalues.promotion = getUniqueOptionValues(filtervalues.promotion);

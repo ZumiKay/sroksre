@@ -43,7 +43,7 @@ export default function Modal({
     useGlobalContext();
 
   return (
-    <dialog
+    <div
       onClick={(e) => {
         if (
           ref.current &&
@@ -74,6 +74,6 @@ export default function Modal({
       >
         {children}
       </div>
-    </dialog>
+    </div>
   );
 }

@@ -5,6 +5,7 @@ import {
   ProductState,
   Stocktype,
   SubcategoriesState,
+  VariantColorValueType,
   Varianttype,
   infovaluetype,
   userdata,
@@ -322,7 +323,7 @@ export const CreateProduct = async (
             Prisma.stock.create({
               data: {
                 product_id: created.id,
-                variant_val: i.variant_val.filter((i) => i),
+                variant_val: i.variant_val,
                 qty: i.qty,
               },
             })
@@ -406,19 +407,14 @@ const updateProductVariantStock = async (
               id: stock.id,
             },
             data: {
-              variant_val: stock.variant_val,
+              variant_val: stock.variant_val as any,
               qty: stock.qty,
             },
           });
         } else {
           return Prisma.stock.create({
             data: {
-              variant_val: stock.variant_val.map((i) => {
-                if (i === null) {
-                  return `${i}`;
-                }
-                return i;
-              }),
+              variant_val: stock.variant_val as any,
               qty: stock.qty,
               product_id: id,
             },
@@ -460,7 +456,7 @@ const handleUpdateProductVariant = async (
             data: {
               option_title: i.option_title,
               option_type: i.option_type,
-              option_value: i.option_value,
+              option_value: i.option_value as any,
             },
           });
         } else {
@@ -469,7 +465,7 @@ const handleUpdateProductVariant = async (
               product_id: id,
               option_title: i.option_title,
               option_type: i.option_type,
-              option_value: i.option_value,
+              option_value: i.option_value as any,
             },
           });
         }
@@ -963,15 +959,20 @@ export const GetAllProduct = async (
           const size = i.details.find((j) => j.info_type === "SIZE") as any;
 
           if (color || size) {
-            const productColors = color?.option_value
-              .filter((k) => k !== "")
-              .map((l) => {
-                return l.replace("#", "");
+            const opt_val = color?.option_value as
+              | string[]
+              | VariantColorValueType[];
+            const productColors = opt_val
+              .filter((k: any) => k.val !== "")
+              .map((l: any) => {
+                return l.val.replace("#", "");
               });
+
             const productSize = size?.info_value.map((l: string) => {
               return removeSpaceAndToLowerCase(l);
             });
-            const otherFilter = text?.option_value.map((l) => {
+            const text_value = text?.option_value as string[];
+            const otherFilter = text_value?.map((l) => {
               return removeSpaceAndToLowerCase(l);
             });
 

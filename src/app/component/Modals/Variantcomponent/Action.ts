@@ -18,7 +18,7 @@ export async function CreateVariantTemplate(data: VariantTemplateType) {
             create: {
               option_title: data.name,
               option_type: data.variant.option_type,
-              option_value: data.variant.option_value,
+              option_value: data.variant.option_value as any,
             },
           },
         },

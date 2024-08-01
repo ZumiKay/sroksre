@@ -206,8 +206,8 @@ const CategoryCard = (props: Categorycardprops) => {
         className="w-full h-[600px] object-cover relative transition-transform hover:scale-110"
         src={props.data.image.url}
         alt={props.data.image.name}
-        width={700}
-        height={700}
+        width={"auto"}
+        height={"auto"}
         loading="lazy"
         onClick={() => props.data.link && router.push(props.data.link)}
       />
@@ -312,8 +312,8 @@ const ProductCard = (props: ProductCardProps) => {
       <Image
         src={props.img.url}
         alt={props.img.name}
-        width={500}
-        height={500}
+        width={"600"}
+        height={"600"}
         loading="lazy"
         className="w-full h-[500px] object-cover cursor-pointer"
       />

@@ -285,7 +285,7 @@ model Variant {
   product         Products?         @relation(fields: [product_id], references: [id])
   option_title    String
   option_type     String
-  option_value    String[]
+  option_value    Json
   Varianttemplate Varianttemplate[]
 
   @@unique([option_title, option_value])
@@ -304,7 +304,7 @@ model Stock {
   product    Products @relation(fields: [product_id], references: [id])
   qty        Int
 
-  variant_val String[]
+  variant_val Json
 
   @@map("stock")
 }

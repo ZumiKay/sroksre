@@ -67,11 +67,16 @@ export interface productcoverstype {
   isSaved?: boolean;
   id?: number;
 }
+
+export type VariantColorValueType = {
+  val: string;
+  name?: string;
+};
 export interface Varianttype {
   id?: number;
   option_title: string;
   option_type: "COLOR" | "TEXT";
-  option_value: Array<string>;
+  option_value: Array<string | VariantColorValueType>;
   [key: string]: any;
 }
 export interface Stocktype {

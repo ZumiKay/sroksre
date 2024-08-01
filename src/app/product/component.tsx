@@ -56,7 +56,6 @@ export const ProductFilterButton = ({
           selected={{
             color,
             size,
-            other,
             search,
           }}
         />
@@ -141,7 +140,7 @@ export const FilterContainer = ({
     getFiltervalue();
   }, []);
 
-  const handleClick = (idx: number, type: string) => {
+  const handleClick = (idx: number, type: string, otheridx?: number) => {
     const param = new URLSearchParams(searchParams);
 
     const toggleParam = (key: string, value: string | undefined) => {
@@ -161,9 +160,12 @@ export const FilterContainer = ({
     };
 
     if (type === "color") {
-      toggleParam("color", filtervalue?.variant.color[idx]);
-    } else if (type === "text") {
-      toggleParam("other", filtervalue?.variant.text[idx]);
+      toggleParam("color", filtervalue?.variant.color[idx].val);
+    } else if (type === "text" && otheridx) {
+      toggleParam(
+        "other",
+        filtervalue?.variant.text[otheridx].option_value[idx]
+      );
     } else if (type === "size") {
       toggleParam("size", filtervalue?.size?.[idx]);
     } else if (type === "promo") {
@@ -214,24 +216,17 @@ export const FilterContainer = ({
                   clickfunction={handleClick}
                 />
               )}
-              {filtervalue.size && filtervalue.size.length > 0 && (
-                <ToggleSelect
-                  title="Size"
-                  type="size"
-                  data={filtervalue.size}
-                  selected={selected?.size}
-                  clickfunction={handleClick}
-                />
-              )}
-              {filtervalue.variant.text.length > 0 && (
-                <ToggleSelect
-                  title="Custom Variant"
-                  type="text"
-                  selected={selected?.other}
-                  data={filtervalue.variant.text}
-                  clickfunction={handleClick}
-                />
-              )}
+
+              {filtervalue.variant.text.length > 0 &&
+                filtervalue.variant.text.map((item, idx) => (
+                  <ToggleSelect
+                    key={idx}
+                    title={item.option_title}
+                    type="text"
+                    data={item.option_value}
+                    clickfunction={(idx, type) => handleClick(idx, type, idx)}
+                  />
+                ))}
               {!isPromotion &&
                 filtervalue.promo &&
                 filtervalue.promo.length > 0 && (

@@ -463,6 +463,7 @@ export const ConfirmModal = () => {
     setinventoryfilter,
     globalindex,
     setglobalindex,
+    setreloaddata,
   } = useGlobalContext();
   const handleConfirm = async (confirm: boolean) => {
     if (confirm) {
@@ -567,14 +568,11 @@ export const ConfirmModal = () => {
           return;
         }
 
-        itemlist.splice(idx as number, 1);
-
-        setalldata((prev) => ({ ...prev, [type as string]: itemlist }));
         if (type === "user") {
           setglobalindex((prev) => ({ ...prev, useredit: -1 }));
           setopenmodal((prev) => ({ ...prev, createUser: false }));
         }
-        successToast("Delete Successfully");
+        setreloaddata(true);
       }
     }
 

@@ -5,6 +5,7 @@ import "../globals.css";
 import {
   ProductInfo,
   SelectType,
+  VariantColorValueType,
   Varianttype,
   useGlobalContext,
 } from "@/src/context/GlobalContext";
@@ -232,8 +233,7 @@ export function AddSubCategoryMenu({ index }: { index: number }) {
 interface Toggleselectprops {
   type: "color" | "size" | "text";
   title: string;
-  data: Array<string>;
-  variantdata?: Array<Varianttype>;
+  data: Array<string> | VariantColorValueType[];
   clickfunction?: (idx: number, type: string) => void;
   selected?: string[];
 }
@@ -241,40 +241,11 @@ export function ToggleSelect({
   type,
   data,
   title,
-  variantdata,
   clickfunction,
   selected,
 }: Toggleselectprops) {
   const [open, setopen] = useState(false);
-  const { listproductfilter, setlistprodfil } = useGlobalContext();
 
-  const handleClick = (idx: number, parent_idx?: number) => {
-    const selectedData = removeSpaceAndToLowerCase(
-      parent_idx && variantdata
-        ? variantdata[parent_idx].option_value[idx]
-        : data[idx]
-    );
-    const update = { ...listproductfilter };
-
-    const updateArray = (array: string[], value: string) => {
-      const isExist = array.findIndex((i) => i === value);
-      if (isExist !== -1) {
-        array.splice(isExist, 1);
-      } else {
-        array.push(value);
-      }
-    };
-
-    if (type === "color") {
-      updateArray(update.color, selectedData as string);
-    } else if (type === "size") {
-      updateArray(update.size, selectedData as string);
-    } else {
-      updateArray(update.text, selectedData as string);
-    }
-
-    setlistprodfil(update);
-  };
   return (
     <motion.div
       initial={{ height: "50px" }}
@@ -302,59 +273,45 @@ export function ToggleSelect({
             animate={{ opacity: 1 }}
             className="selectitem_container grid grid-cols-3 gap-y-3 h-full  w-fit gap-x-3 p-2 transition-all"
           >
-            {variantdata
-              ? variantdata.map((item, idx) => (
-                  <div key={idx} className="w-full h-fit flex flex-col gap-y-3">
-                    <h3 className="name text-lg font-semibold w-full text-left pl-2">
-                      {item.option_title}
-                    </h3>
-                    <div className="filterval w-full h-fit grid grid-cols-3">
-                      {item.option_value.map((i, index) => (
-                        <h4
-                          onClick={() => handleClick(index, idx)}
-                          key={index}
-                          className="text-lg p-1 font-normal bg-gray-300 text-black rounded-lg cursor-pointer transition duration-200 hover:bg-gray-100 active:bg-gray-100 break-all"
-                        >
-                          {" "}
-                          {i}{" "}
-                        </h4>
-                      ))}
-                    </div>
+            {data.map((i: any, idx) => (
+              <div
+                key={idx}
+                className="selectitem min-w-[50px] rounded-md cursor-pointer w-fit max-w-[150px] h-fit break-words bg-white hover:bg-gray-100 active:bg-gray-100 p-2"
+                onClick={() => {
+                  clickfunction && clickfunction(idx, type);
+                }}
+                style={
+                  selected?.includes(i.val ?? i)
+                    ? { backgroundColor: "gray" }
+                    : {}
+                }
+              >
+                {" "}
+                {type === "color" ? (
+                  <div className="w-fit h-fit flex flex-row p-2 items-center justify-center rounded-lg border border-black">
+                    <div
+                      className={`colorplattet w-[40px] h-[40px]`}
+                      style={
+                        i
+                          ? {
+                              backgroundColor: i.val,
+                              backgroundPosition: "center",
+                            }
+                          : {}
+                      }
+                    ></div>
+                    {i.name && (
+                      <div className="text-lg w-fit h-fit font-bold">
+                        {" "}
+                        {i.name}{" "}
+                      </div>
+                    )}
                   </div>
-                ))
-              : data.map((i, idx) => (
-                  <div
-                    key={idx}
-                    className="selectitem min-w-[50px] rounded-md cursor-pointer w-fit max-w-[150px] h-fit break-words bg-white hover:bg-gray-100 active:bg-gray-100 p-2"
-                    onClick={() => {
-                      clickfunction && clickfunction(idx, type);
-                    }}
-                    style={
-                      selected?.includes(i) ? { backgroundColor: "gray" } : {}
-                    }
-                  >
-                    {" "}
-                    {type === "color" ? (
-                      <>
-                        <div
-                          className={`colorplattet w-[40px] h-[40px]`}
-                          style={
-                            i
-                              ? {
-                                  backgroundColor: i as string,
-                                  backgroundPosition: "center",
-                                }
-                              : {}
-                          }
-                        ></div>
-                      </>
-                    ) : (
-                      <h3 className="label text-lg text-center font-normal">
-                        {i}
-                      </h3>
-                    )}{" "}
-                  </div>
-                ))}
+                ) : (
+                  <h3 className="label text-lg text-center font-normal">{i}</h3>
+                )}
+              </div>
+            ))}
           </motion.div>
         </div>
       )}

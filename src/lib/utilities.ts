@@ -376,6 +376,25 @@ export function stringToBoolean(str: string) {
       return null;
   }
 }
+
+export const HasPartialOverlap = (
+  arr1: string[][],
+  arr2: string[][]
+): boolean => {
+  const set1 = new Set(arr1.map((subArr) => subArr.join(",")));
+  const set2 = new Set(arr2.map((subArr) => subArr.join(",")));
+
+  const array1 = Array.from(set1);
+  const array2 = Array.from(set2);
+
+  for (let val of array1) {
+    if (array2.includes(val)) {
+      return true;
+    }
+  }
+
+  return false;
+};
 //Email Template
 //
 //

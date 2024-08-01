@@ -4,19 +4,22 @@ import { Badge, Button, Input } from "@nextui-org/react";
 import Modal from "../../Modals";
 import { SelectionCustom } from "../../Pagination_Component";
 import { ChangeEvent, useState } from "react";
-import { Variant } from "@prisma/client";
 import { RGBColor, SketchPicker } from "react-color";
 import PrimaryButton from "../../Button";
 import { errorToast, successToast } from "../../Loading";
 import { CreateVariantTemplate, VariantTemplateType } from "./Action";
 import { ApiRequest } from "@/src/context/CustomHook";
+import {
+  VariantColorValueType,
+  Varianttype,
+} from "@/src/context/GlobalContext";
 
 interface TemplateContainerProps {
   data?: {
     id?: number;
-    option_title: string;
-    option_type: string;
-    option_value?: string;
+    val: string;
+    name?: string;
+    type: string;
   }[];
   edit?: boolean;
   color?: boolean;
@@ -33,10 +36,10 @@ export default function TemplateContainer({
   group,
 }: TemplateContainerProps) {
   const groupedData = data?.reduce((acc, item) => {
-    if (!acc[item.option_type]) {
-      acc[item.option_type] = [];
+    if (!acc[item.type]) {
+      acc[item.type] = [];
     }
-    acc[item.option_type].push(item);
+    acc[item.type].push(item);
     return acc;
   }, {} as { [key: string]: typeof data });
   return (
@@ -61,12 +64,21 @@ export default function TemplateContainer({
                 >
                   {color ? (
                     <div
-                      onClick={() =>
-                        onItemsClick && onItemsClick(item.id as number)
-                      }
-                      style={{ backgroundColor: item.option_title }}
-                      className={`w-[50px] h-[50px] rounded-full`}
-                    ></div>
+                      key={idx}
+                      className={`w-fit h-[50px] rounded-lg flex flex-row justify-center items-center gap-x-3 cursor-pointer p-2 transition-colors active:bg-gray-300 hover:bg-gray-300`}
+                      onClick={() => onItemsClick && onItemsClick(idx)}
+                    >
+                      {/* Display created Color */}
+                      <div
+                        className="color w-[30px] h-[30px] rounded-full"
+                        style={{ backgroundColor: item.val }}
+                      ></div>
+                      {item.name && (
+                        <p className="w-fit h-fit text-lg font-light">
+                          {item.name}
+                        </p>
+                      )}
+                    </div>
                   ) : (
                     <div
                       onClick={() =>
@@ -74,7 +86,7 @@ export default function TemplateContainer({
                       }
                       className="template bg-gray-300 rounded-lg p-2 cursor-pointer transition-colors hover:bg-white"
                     >
-                      {item.option_title}
+                      {item.val}
                     </div>
                   )}
                 </Badge>
@@ -94,16 +106,25 @@ export default function TemplateContainer({
             >
               {color ? (
                 <div
+                  key={idx}
+                  className={`w-fit h-[50px] rounded-lg flex flex-row justify-center items-center gap-x-3 cursor-pointer p-2 transition-colors active:bg-gray-300 hover:bg-gray-300`}
                   onClick={() => onItemsClick && onItemsClick(idx)}
-                  style={{ backgroundColor: i.option_title }}
-                  className={`w-[50px] h-[50px] rounded-full`}
-                ></div>
+                >
+                  {/* Display created Color */}
+                  <div
+                    className="color w-[30px] h-[30px] rounded-full"
+                    style={{ backgroundColor: i.val }}
+                  ></div>
+                  {i.name && (
+                    <p className="w-fit h-fit text-lg font-light">{i.name}</p>
+                  )}
+                </div>
               ) : (
                 <div
                   onClick={() => onItemsClick && onItemsClick(idx)}
                   className="template bg-gray-300 rounded-lg p-2 cursor-pointer transition-colors hover:bg-white"
                 >
-                  {i.option_title}
+                  {i.val}
                 </div>
               )}
             </Badge>
@@ -146,7 +167,7 @@ interface AddTemplateModalProps {
 const VariantInitialize = {
   id: 0,
   option_title: "",
-  option_type: "",
+  option_type: "" as any,
   option_value: [],
 };
 export const AddTemplateModal = ({
@@ -163,9 +184,10 @@ export const AddTemplateModal = ({
   const [open, setopen] = useState(false);
   const [opencolor, setopencolor] = useState(false);
   const [color, setcolor] = useState<colortype>(colorinitalize);
+  const [colorname, setcolorname] = useState("");
   const [edit, setedit] = useState(-1);
   const [variant, setvariant] = useState<
-    Pick<Variant, "id" | "option_title" | "option_value" | "option_type">
+    Pick<Varianttype, "id" | "option_title" | "option_value" | "option_type">
   >(data ? (data.variant as any) : VariantInitialize);
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -180,7 +202,8 @@ export const AddTemplateModal = ({
 
   const handleAddOption = () => {
     const updatevariant = [...variant.option_value];
-    const value = templatetype === "TEXT" ? option : color.hex;
+    const value =
+      templatetype === "TEXT" ? option : { val: color.hex, name: colorname };
 
     if (templatetype === "TEXT" && option.length === 0) {
       return;
@@ -197,6 +220,7 @@ export const AddTemplateModal = ({
       updatevariant.push(value);
     }
     setoption("");
+    setcolorname("");
     setvariant((prev) => ({ ...prev, option_value: updatevariant }));
   };
 
@@ -295,10 +319,11 @@ export const AddTemplateModal = ({
                 </h3>
               ) : (
                 <TemplateContainer
-                  data={variant.option_value.map((i, idx) => ({
+                  data={variant.option_value.map((i: any, idx) => ({
                     id: idx,
-                    option_title: i,
-                    option_type: templatetype,
+                    type: templatetype,
+                    val: templatetype === "TEXT" ? i : i.val,
+                    name: i?.name,
                   }))}
                   color={templatetype === "COLOR"}
                   onItemsDelete={handleDeleteOption}
@@ -310,10 +335,14 @@ export const AddTemplateModal = ({
                     } else {
                       setopen(true);
                       setedit(id);
+
                       if (templatetype === "TEXT") {
-                        setoption(variant.option_value[id]);
+                        setoption(variant.option_value[id] as string);
                       } else {
-                        setcolor({ hex: variant.option_value[id] });
+                        const colorval = variant.option_value[
+                          id
+                        ] as VariantColorValueType;
+                        setcolor({ hex: colorval.val });
                       }
                     }
                   }}
@@ -348,15 +377,26 @@ export const AddTemplateModal = ({
             ) : (
               templatetype === "COLOR" && (
                 <>
-                  <div
-                    onClick={() => {
-                      setopencolor(true);
-                    }}
-                    className={`w-[100%] h-[50px] border-[5px] border-gray-300 rounded-lg`}
-                    style={{
-                      backgroundColor: color.hex,
-                    }}
-                  ></div>
+                  <div className="w-full h-fit flex flex-col gap-y-3">
+                    <label className="text-lg font-bold">Color</label>
+
+                    <div
+                      onClick={() => {
+                        setopencolor(true);
+                      }}
+                      className={`w-[100%] h-[50px] border-[5px] border-gray-300 rounded-lg`}
+                      style={{
+                        backgroundColor: color.hex,
+                      }}
+                    ></div>
+                  </div>
+                  <Input
+                    type="text"
+                    fullWidth
+                    label="Name"
+                    onChange={(e) => setcolorname(e.target.value)}
+                    value={colorname}
+                  />
 
                   {opencolor && (
                     <div className="absolute w-fit h-fit top-0 z-50">

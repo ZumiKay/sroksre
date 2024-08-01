@@ -2,6 +2,7 @@ import { VariantTemplateType } from "@/src/app/component/Modals/Variantcomponent
 import Prisma from "@/src/lib/prisma";
 import { NextRequest } from "next/server";
 import { extractQueryParams } from "../../../banner/route";
+import { VariantColorValueType } from "@/src/context/GlobalContext";
 
 export async function PUT(req: NextRequest) {
   const { id, variant } = (await req.json()) as VariantTemplateType;
@@ -24,8 +25,24 @@ export async function PUT(req: NextRequest) {
     if (variant) {
       const variantChanged = Object.entries(temp.variant).some(([key, val]) => {
         if (key === "option_value") {
-          const value = val as string[];
-          return value.some((i) => !variant.option_value.includes(i));
+          if (temp.variant.option_type === "COLOR") {
+            const tempValues = val as unknown as VariantColorValueType[];
+            const variantValues =
+              variant.option_value as VariantColorValueType[];
+
+            return tempValues.some((tempVal) =>
+              variantValues.some(
+                (variantVal) =>
+                  variantVal.val !== tempVal.val ||
+                  variantVal.name !== tempVal.name
+              )
+            );
+          } else {
+            const tempValues = val as string[];
+            return tempValues.some(
+              (tempVal) => !variant.option_value.includes(tempVal)
+            );
+          }
         } else {
           return variant[key] !== val;
         }
@@ -34,7 +51,11 @@ export async function PUT(req: NextRequest) {
       if (variantChanged) {
         await Prisma.variant.update({
           where: { id: variant.id },
-          data: variant,
+          data: {
+            option_title: variant.option_title,
+            option_type: variant.option_type,
+            option_value: variant.option_value as any,
+          },
         });
       }
     }

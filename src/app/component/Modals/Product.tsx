@@ -65,7 +65,11 @@ export function CreateProducts() {
   );
 
   const fetchcate = async (products?: ProductState) => {
-    const categories = await ApiRequest("/api/categories", setisLoading, "GET");
+    const categories = await ApiRequest(
+      "/api/categories?ty=create",
+      setisLoading,
+      "GET"
+    );
     if (categories.success) {
       setcate(categories.data);
       const { parent_id } = products
@@ -545,7 +549,7 @@ export function CreateProducts() {
       {openmodal.imageupload && (
         <ImageUpload limit={4} mutitlple={true} type="createproduct" />
       )}
-      {openmodal.addproductvariant && <Variantcontainer closename="none" />}
+      {openmodal.addproductvariant && <Variantcontainer />}
     </motion.dialog>
   );
 }

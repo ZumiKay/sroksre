@@ -2,6 +2,7 @@
 import {
   ProductStockType,
   useGlobalContext,
+  VariantColorValueType,
 } from "@/src/context/GlobalContext";
 import { ContainerLoading, errorToast } from "../Loading";
 import { FormEvent, useEffect, useState } from "react";
@@ -17,25 +18,36 @@ import Variantimg from "../../../../public/Image/Variant.png";
 import Variantstockimg from "../../../../public/Image/Stock.png";
 import {
   ColorSelectModal,
+  GenerateCombinations,
   ManageStockContainer,
 } from "./VariantModalComponent";
-import { Button } from "@nextui-org/react";
+import { Badge, Button } from "@nextui-org/react";
 import TemplateContainer, {
   AddTemplateModal,
 } from "./Variantcomponent/TemplateContainer";
 import { VariantTemplateType } from "./Variantcomponent/Action";
+import { HasPartialOverlap } from "@/src/lib/utilities";
 
 interface variantdatatype {
   id?: number;
   type: "COLOR" | "TEXT";
   name: string;
-  value: Array<string>;
+  value: Array<string | VariantColorValueType>;
 }
 
-interface colortype {
+export interface Colortype {
   hex: string;
   rgb: RGBColor;
 }
+export const Colorinitalize: Colortype = {
+  hex: "#f5f5f5",
+  rgb: {
+    r: 245,
+    g: 245,
+    b: 245,
+    a: 1,
+  },
+};
 
 export type Variantcontainertype =
   | "variant"
@@ -48,19 +60,23 @@ export type Variantcontainertype =
 export const Variantcontainer = ({
   type,
   editindex,
-  action,
-  closename,
 }: {
-  closename: string;
   type?: "stock";
   editindex?: number;
-  action?: () => void;
 }) => {
-  const { setopenmodal, product, setproduct, globalindex, setreloaddata } =
-    useGlobalContext();
-  const [temp, settemp] = useState<variantdatatype | undefined>(undefined);
+  const { setopenmodal, product, setproduct, globalindex } = useGlobalContext();
+  const [temp, settemp] = useState<variantdatatype>();
   const [reloadtemp, setreloadtemp] = useState(true);
 
+  const [colordata, setcolordata] = useState({
+    color: Colorinitalize,
+    name: "",
+  });
+  const [open, setopen] = useState({
+    addcolor: false,
+    addoption: false,
+    addtemplate: false,
+  });
   const [newadd, setnew] = useState<Variantcontainertype>(type ?? "none");
   const [option, setoption] = useState("");
   const [added, setadded] = useState(-1);
@@ -71,6 +87,12 @@ export const Variantcontainer = ({
   const [templates, settemplates] = useState<VariantTemplateType[] | []>([]);
   const [edittemplate, setedittemplate] = useState<
     VariantTemplateType | undefined
+  >(undefined);
+  const [selectedvalues, setselectedvalues] = useState<
+    | {
+        [key: string]: string[];
+      }
+    | undefined
   >(undefined);
   const [isEditTemp, setisEditTemp] = useState(false);
   const [loading, setloading] = useState(false);
@@ -127,22 +149,6 @@ export const Variantcontainer = ({
     return true;
   };
 
-  const colorinitalize: colortype = {
-    hex: "#f5f5f5",
-    rgb: {
-      r: 245,
-      g: 245,
-      b: 245,
-      a: 1,
-    },
-  };
-  const [color, setcolor] = useState<colortype>(colorinitalize);
-  const [open, setopen] = useState({
-    addcolor: false,
-    addoption: false,
-    addtemplate: false,
-  });
-
   useEffect(() => {
     editindex &&
       type &&
@@ -164,6 +170,16 @@ export const Variantcontainer = ({
       errorToast("Variant name exist");
       return;
     }
+
+    // Check if a variant with type COLOR already exists
+    const isColorTypeExist =
+      added === -1 && update && update.some((i) => i.option_type === "COLOR");
+
+    if (isColorTypeExist && temp?.type === "COLOR") {
+      errorToast("Variant of type color can only have one");
+      return;
+    }
+
     if (!update) {
       update = [
         {
@@ -189,7 +205,7 @@ export const Variantcontainer = ({
         update.push({
           option_title: name,
           option_type: temp?.type as "COLOR" | "TEXT",
-          option_value: temp?.value as string[],
+          option_value: temp?.value ?? [],
         });
       }
     }
@@ -203,31 +219,40 @@ export const Variantcontainer = ({
 
   const handleAddColor = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    const { color, name } = colordata;
     if (color?.hex === "") {
       errorToast("Please Select Color");
       return;
     }
     const update = { ...temp };
     if (edit === -1) {
-      update.value?.push(color.hex);
+      update.value?.push({
+        val: color.hex,
+        name,
+      });
     } else if (update.value && edit !== -1) {
-      if (product.varaintstock) {
-      }
-      update.value[edit] = color.hex;
+      update.value[edit] = {
+        val: color.hex,
+        name,
+      };
     }
     settemp(update as variantdatatype);
-    setcolor(colorinitalize);
+    setcolordata((prev) => ({ ...prev, color: Colorinitalize, name: "" }));
     setedit(-1);
   };
 
   const handleColorSelect = (idx: number, type: "color" | "text") => {
-    const data = temp?.value[idx];
     if (type === "color") {
-      const rgb = tinycolor(data).toRgb();
+      const data = temp?.value[idx] as VariantColorValueType;
+      const rgb = tinycolor(data.val).toRgb();
       setedit(idx);
-      setcolor({ hex: data as string, rgb: rgb });
+      setcolordata({
+        name: data.name ?? "",
+        color: { hex: data.val as string, rgb: rgb },
+      });
       setopen((prev) => ({ ...prev, addcolor: true }));
     } else {
+      const data = temp?.value[idx] as string;
       setedit(idx);
       setoption(data as string);
       setopen((prev) => ({ ...prev, addoption: true }));
@@ -269,7 +294,6 @@ export const Variantcontainer = ({
     if (!variants || idx < 0 || idx >= variants.length) return;
 
     const variantId = variants[idx].id;
-    const optionValuesToRemove = variants[idx].option_value;
 
     if (globalindex.producteditindex !== -1 && variantId !== undefined) {
       const req = await Deletevairiant(variantId);
@@ -320,7 +344,7 @@ export const Variantcontainer = ({
       settemp({
         name: selectedtemp.variant?.option_title as string,
         type: selectedtemp.variant?.option_type as any,
-        value: selectedtemp.variant?.option_value as string[],
+        value: selectedtemp.variant?.option_value as any,
       });
       setnew("info");
     }
@@ -349,7 +373,13 @@ export const Variantcontainer = ({
       return;
     } else {
       if (newadd === "stockinfo") {
-        setnew("stock");
+        if (!selectedvalues && !stock) {
+          setnew("stock");
+          return;
+        }
+
+        handleCreateAndUpdateVariantStock();
+
         return;
       }
       if (newadd === "type") {
@@ -358,6 +388,51 @@ export const Variantcontainer = ({
       }
       setnew("none");
     }
+  };
+
+  const handleCreateAndUpdateVariantStock = () => {
+    if (
+      !selectedvalues ||
+      !stock ||
+      Object.values(selectedvalues).some((v) => v.length === 0)
+    ) {
+      setnew("stock");
+      return;
+    }
+
+    const stockArray = product.varaintstock ? [...product.varaintstock] : [];
+
+    const stockValues = GenerateCombinations(Object.values(selectedvalues));
+    const newStock = {
+      variant_val: stockValues,
+      qty: parseInt(stock, 10),
+    };
+
+    if (edit === -1) {
+      const isOverlap = stockArray.some((item) =>
+        HasPartialOverlap(item.variant_val, stockValues)
+      );
+
+      if (isOverlap) {
+        errorToast("Stock Existed");
+        return;
+      }
+      stockArray.push(newStock);
+    } else {
+      stockArray[edit] = newStock;
+      setedit(-1);
+    }
+
+    setproduct((prev) => ({ ...prev, varaintstock: stockArray }));
+    setselectedvalues(undefined);
+    setstock("");
+    setnew("stock");
+  };
+
+  const handleDeleteColor = (idx: number) => {
+    const update = { ...temp };
+    update.value?.splice(idx, 1);
+    settemp(update as any);
   };
 
   return (
@@ -397,17 +472,24 @@ export const Variantcontainer = ({
                     <motion.div className="varaints flex flex-row w-full gap-x-3">
                       {obj.option_type === "TEXT" &&
                         obj.option_value.map((item) => (
-                          <div className="min-w-[40px] h-fit max-w-full break-words font-normal text-lg">
-                            {item}
+                          <div
+                            key={item as string}
+                            className="min-w-[40px] h-fit max-w-full break-words font-normal text-lg"
+                          >
+                            {item.toString()}
                           </div>
                         ))}
                       {obj.option_type === "COLOR" &&
-                        obj.option_value.map((item) => (
-                          <div
-                            style={{ backgroundColor: item }}
-                            className="w-[30px] h-[30px] rounded-3xl"
-                          ></div>
-                        ))}
+                        obj.option_value.map((item) => {
+                          const data = item as VariantColorValueType;
+                          return (
+                            <div
+                              key={data.val}
+                              style={{ backgroundColor: data.val }}
+                              className="w-[30px] h-[30px] rounded-3xl"
+                            ></div>
+                          );
+                        })}
                     </motion.div>
                     <div className="action flex flex-row items-start w-[20%] h-fit gap-x-5 absolute right-0 top-[40%]">
                       <div
@@ -441,6 +523,8 @@ export const Variantcontainer = ({
               addstock={addstock}
               setnew={setnew}
               setaddstock={setaddstock}
+              selectedstock={selectedvalues ?? {}}
+              setselectedstock={setselectedvalues}
             />
           )
         )}
@@ -482,8 +566,8 @@ export const Variantcontainer = ({
                 <TemplateContainer
                   data={templates.map((item) => ({
                     id: item.id,
-                    option_title: item.variant?.option_title ?? "",
-                    option_type: item.variant?.option_type ?? "",
+                    val: item.variant?.option_title ?? "",
+                    type: item.variant?.option_type ?? "",
                   }))}
                   edit={!isEditTemp}
                   onItemsClick={handleSelectTemplate}
@@ -531,24 +615,50 @@ export const Variantcontainer = ({
                   handleDeleteVaraint={handleDeleteVaraint}
                   edit={edit}
                   setedit={setedit}
-                  openmodal={open.addcolor}
+                  open={open.addcolor}
+                  setopen={(val) =>
+                    setopen((prev) => ({ ...prev, addcolor: val }))
+                  }
+                  color={colordata.color}
+                  name={colordata.name}
+                  setcolor={(val) => {
+                    if (typeof val === "string") {
+                      setcolordata((prev) => ({ ...prev, name: val }));
+                    } else {
+                      setcolordata((prev) => ({ ...prev, color: val }));
+                    }
+                  }}
                 />
 
                 <div className="listcolor flex flex-row flex-wrap gap-x-3 gap-y-3 w-full">
                   {temp?.value?.some((i) => i !== "") ? (
-                    temp?.value?.map((color, idx) => (
-                      <div
-                        className={`color w-[50px] h-[50px] rounded-3xl transition duration-500 hover:border-2 hover:border-gray-300 active:border-2  active:border-gray-300`}
-                        onClick={() => handleColorSelect(idx, "color")}
-                        style={
-                          color !== ""
-                            ? {
-                                backgroundColor: color,
-                              }
-                            : {}
-                        }
-                      ></div>
-                    ))
+                    temp?.value?.map((color, idx) => {
+                      const val = color as VariantColorValueType;
+                      return (
+                        <Badge
+                          content="-"
+                          color="danger"
+                          onClick={() => handleDeleteColor(idx)}
+                          key={idx}
+                        >
+                          <div
+                            className={`w-fit h-[50px] rounded-lg flex flex-row justify-center items-center gap-x-3 cursor-pointer p-2 transition-colors active:bg-gray-300 hover:bg-gray-300`}
+                            onClick={() => handleColorSelect(idx, "color")}
+                          >
+                            {/* Display created Color */}
+                            <div
+                              className="color w-[30px] h-[30px] rounded-full"
+                              style={{ backgroundColor: val.val }}
+                            ></div>
+                            {val.name && (
+                              <p className="w-fit h-fit text-lg font-light">
+                                {val.name}
+                              </p>
+                            )}
+                          </div>
+                        </Badge>
+                      );
+                    })
                   ) : (
                     <h3 className="warn_mess text-lg text-black font-normal">
                       No Color Added Yet
@@ -636,10 +746,11 @@ export const Variantcontainer = ({
                     )}
                     {temp?.value.map((i, idx) => (
                       <h3
+                        key={idx}
                         onClick={() => handleColorSelect(idx, "text")}
                         className="option text-[15px] cursor-pointer p-2 rounded-lg text-black outline outline-2 outline-black font-normal transition duration-200 w-fit h-fit"
                       >
-                        {i}
+                        {i.toString()}
                       </h3>
                     ))}
                   </div>
