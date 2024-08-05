@@ -282,13 +282,12 @@ model Info {
 model Variant {
   id              Int               @id @default(autoincrement())
   product_id      Int?
-  product         Products?         @relation(fields: [product_id], references: [id])
+  product         Products?         @relation(fields: [product_id], references: [id], onDelete: Cascade)
   option_title    String
   option_type     String
   option_value    Json
   Varianttemplate Varianttemplate[]
 
-  @@unique([option_title, option_value])
   @@map("variant")
 }
 
@@ -301,12 +300,21 @@ model Varianttemplate {
 model Stock {
   id         Int      @id @default(autoincrement())
   product_id Int
-  product    Products @relation(fields: [product_id], references: [id])
-  qty        Int
+  product    Products @relation(fields: [product_id], references: [id], onDelete: Cascade)
 
-  variant_val Json
+  Stockvalue Stockvalue[]
 
   @@map("stock")
+}
+
+model Stockvalue {
+  id          Int      @id @default(autoincrement())
+  qty         Int
+  variant_val Json
+  stockId     Int
+  stock       Stock    @relation(fields: [stockId], references: [id])
+  createdAt   DateTime @default(now())
+  updateAt    DateTime @updatedAt
 }
 
 model Question {

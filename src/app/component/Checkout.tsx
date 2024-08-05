@@ -5,7 +5,10 @@ import { AnimationControls, motion, useAnimation } from "framer-motion";
 import { ChangeEvent, FormEvent, ReactNode, useEffect, useState } from "react";
 import ReactDOMServer from "react-dom/server";
 
-import { useGlobalContext } from "@/src/context/GlobalContext";
+import {
+  useGlobalContext,
+  VariantColorValueType,
+} from "@/src/context/GlobalContext";
 import {
   Orderpricetype,
   Ordertype,
@@ -34,6 +37,7 @@ import Image from "next/image";
 // import { SendNotification } from "@/src/socket";
 import Link from "next/link";
 import { shippingtype } from "./Modals/User";
+import { Chip } from "@nextui-org/react";
 
 //Step assets
 const LineSvg = ({
@@ -244,23 +248,21 @@ export const Checkoutproductcard = ({
   );
 };
 
-const detailcard = (text: string, bg?: string) => {
+const detailcard = (data: string | VariantColorValueType) => {
   return (
-    <div
-      style={
-        bg
-          ? {
-              width: "30px",
-              backgroundColor: bg,
-              borderRadius: "100%",
-              height: "30px",
-            }
-          : {}
+    <Chip
+      startContent={
+        typeof data !== "string" ? (
+          <div
+            style={{ backgroundColor: data.val }}
+            className="w-[20px] h-[20px] rounded-full"
+          ></div>
+        ) : undefined
       }
-      className="detailinfo w-fit max-w-full grid place-content-center h-fit break-all text-lg bg-gray-300 text-center font-medium p-1 rounded-lg"
+      size="md"
     >
-      {text}
-    </div>
+      {typeof data === "string" ? data : data.name}
+    </Chip>
   );
 };
 
@@ -318,7 +320,7 @@ const ShowDetails = ({
           <h3>Color: </h3>
           {details
             ?.filter((opt) => opt.option_type === "COLOR")
-            ?.map((opt) => detailcard("", opt.option_value))}
+            ?.map((opt) => detailcard(opt.option_value))}
         </div>
       )}
     </>

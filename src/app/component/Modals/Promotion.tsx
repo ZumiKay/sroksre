@@ -279,7 +279,6 @@ export const DiscountModals = () => {
   const {
     promotion,
     allData,
-    setalldata,
     setpromotion,
     globalindex,
     setopenmodal,

@@ -2,7 +2,11 @@
 
 import { ChangeEvent, useEffect, useState } from "react";
 import PrimaryButton, { Selection } from "../component/Button";
-import { ProductState, useGlobalContext } from "@/src/context/GlobalContext";
+import {
+  ProductState,
+  useGlobalContext,
+  VariantColorValueType,
+} from "@/src/context/GlobalContext";
 import Modal from "../component/Modals";
 import { TextField } from "@mui/material";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -10,25 +14,28 @@ import { filtervaluetype, getFilterValue } from "./action";
 import { ToggleSelect } from "../component/ToggleMenu";
 import Image from "next/image";
 import Card from "../component/Card";
+import { Input, Spacer } from "@nextui-org/react";
 
 export const ProductFilterButton = ({
   pid,
   cid,
   color,
-  size,
+  promo,
   other,
   search,
   productcount,
   isPromotion,
+  latest,
 }: {
   pid: string;
   cid?: string;
   color?: string[];
-  size?: string[];
   other?: string[];
+  promo?: string[];
   search?: string;
   productcount?: number;
   isPromotion?: boolean;
+  latest?: boolean;
 }) => {
   const { openmodal, setopenmodal } = useGlobalContext();
   return (
@@ -37,7 +44,7 @@ export const ProductFilterButton = ({
         <SortSelect />
         <PrimaryButton
           type="button"
-          text="Filter"
+          text={color || other || promo || search ? "Clear Filter" : "Filter"}
           radius="10px"
           width="100%"
           height="100%"
@@ -55,9 +62,11 @@ export const ProductFilterButton = ({
           isPromotion={isPromotion}
           selected={{
             color,
-            size,
+            other,
             search,
+            promo,
           }}
+          latest={latest}
         />
       )}
     </>
@@ -67,18 +76,20 @@ export const ProductFilterButton = ({
 export const SortSelect = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [sort, setsort] = useState(searchParams.get("sort") ?? "");
   const handleSelect = (e: ChangeEvent<HTMLSelectElement>) => {
     const { value } = e.target;
     const param = new URLSearchParams(searchParams);
+    setsort(value);
 
     param.set("sort", value);
 
-    router.push(`?${param}`);
+    router.push(`?${param}`, { scroll: false });
   };
   return (
     <Selection
-      default="Sort By"
       onChange={handleSelect}
+      value={sort}
       data={[
         {
           label: "Low To High",
@@ -86,7 +97,7 @@ export const SortSelect = () => {
         },
         {
           label: "High To Low",
-          value: 0,
+          value: 2,
         },
       ]}
       style={{ height: "100%" }}
@@ -100,6 +111,7 @@ export const FilterContainer = ({
   selected,
   productcount,
   isPromotion,
+  latest,
 }: {
   pid: string;
   cid?: string;
@@ -112,6 +124,7 @@ export const FilterContainer = ({
   };
   productcount?: number;
   isPromotion?: boolean;
+  latest?: boolean;
 }) => {
   const { setopenmodal } = useGlobalContext();
   const [filtervalue, setfiltervalue] = useState<filtervaluetype | undefined>(
@@ -129,7 +142,8 @@ export const FilterContainer = ({
       const res = getFilterValue.bind(
         null,
         parseInt(pid),
-        cid ? parseInt(cid) : undefined
+        cid ? parseInt(cid) : undefined,
+        latest
       );
       const getreq = await res();
 
@@ -161,18 +175,14 @@ export const FilterContainer = ({
 
     if (type === "color") {
       toggleParam("color", filtervalue?.variant.color[idx].val);
-    } else if (type === "text" && otheridx) {
-      toggleParam(
-        "other",
-        filtervalue?.variant.text[otheridx].option_value[idx]
-      );
-    } else if (type === "size") {
-      toggleParam("size", filtervalue?.size?.[idx]);
+    } else if (type === "text" && otheridx !== undefined) {
+      const val = filtervalue?.variant.text[idx].option_value[otheridx];
+      toggleParam("other", val);
     } else if (type === "promo") {
       toggleParam("promo", filtervalue?.promo?.[idx].name);
     }
 
-    router.push(`?${param}`);
+    router.push(`?${param}`, { scroll: false });
   };
 
   const handleClear = () => {
@@ -189,53 +199,112 @@ export const FilterContainer = ({
     router.push(`?${param}`);
   };
 
+  const handleClearSpecific = (
+    data: string[] | VariantColorValueType[],
+    selectedValue: string[],
+    promo?: boolean
+  ) => {
+    const param = new URLSearchParams(searchParams);
+
+    if (typeof data[0] === "string") {
+      data.forEach((item) => {
+        if (typeof item === "string" && selectedValue.includes(item)) {
+          if (param.has("other") && !promo) {
+            const otherValues = param.get("other")?.split(",") || [];
+            const updatedOtherValues = otherValues.filter(
+              (val) => val !== item
+            );
+
+            if (updatedOtherValues.length === 0) {
+              param.delete("other");
+            } else {
+              param.set("other", updatedOtherValues.join(","));
+            }
+          }
+
+          if (param.has("promo") && selectedValue.includes(item) && promo) {
+            param.delete("promo");
+          }
+        }
+      });
+    } else {
+      if (param.has("color")) {
+        param.delete("color");
+      }
+    }
+
+    router.push(`?${param.toString()}`, { scroll: false });
+  };
+
   return (
     <Modal closestate="filteroption" customZIndex={200}>
       <div className="w-full h-full bg-white rounded-lg p-3 flex flex-col gap-y-5 items-center relative">
         <div className="w-full max-h-[400px] h-auto overflow-y-auto overflow-x-hidden flex flex-col gap-y-5 p-3">
-          <TextField
-            name="search"
+          <Input
+            isClearable
             fullWidth
-            label="Product name"
-            value={filtervalue?.search}
-            onChange={(e) => {
+            type="text"
+            label="Search"
+            variant="bordered"
+            placeholder="Search name"
+            defaultValue={selected?.search}
+            onChange={(e) =>
               setfiltervalue(
                 (prev) => ({ ...prev, search: e.target.value } as any)
-              );
-            }}
+              )
+            }
+            onClear={() =>
+              setfiltervalue((prev) => ({ ...prev, search: "" } as any))
+            }
+            size="lg"
           />
 
           {filtervalue && (
             <>
-              {filtervalue.variant.color.length > 0 && (
+              {filtervalue?.variant?.color.length > 0 && (
                 <ToggleSelect
                   title="Color"
                   type="color"
                   data={filtervalue.variant.color}
                   selected={selected?.color}
                   clickfunction={handleClick}
+                  onClear={handleClearSpecific}
                 />
               )}
 
-              {filtervalue.variant.text.length > 0 &&
-                filtervalue.variant.text.map((item, idx) => (
+              <h3
+                className="text-lg font-bold"
+                hidden={filtervalue.variant?.text.length === 0}
+              >
+                {selected?.other ? "Clear Filter" : "Other"}
+              </h3>
+              {filtervalue.variant?.text.length > 0 &&
+                filtervalue.variant?.text.map((item, index) => (
                   <ToggleSelect
-                    key={idx}
+                    key={index}
                     title={item.option_title}
                     type="text"
                     data={item.option_value}
-                    clickfunction={(idx, type) => handleClick(idx, type, idx)}
+                    selected={selected?.other}
+                    clickfunction={(idx, type) => handleClick(index, type, idx)}
+                    onClear={handleClearSpecific}
                   />
                 ))}
+
+              <Spacer />
               {!isPromotion &&
-                filtervalue.promo &&
-                filtervalue.promo.length > 0 && (
+                filtervalue?.promotion &&
+                filtervalue?.promotion.length > 0 && (
                   <ToggleSelect
                     title="Promotion"
                     type="text"
                     selected={selected?.promo}
-                    data={filtervalue.promo.map((i) => i.name)}
-                    clickfunction={handleClick}
+                    data={filtervalue?.promotion}
+                    promo
+                    clickfunction={(idx, _) => {
+                      handleClick(idx, "promo");
+                    }}
+                    onClear={handleClearSpecific}
                   />
                 )}
             </>
@@ -244,7 +313,7 @@ export const FilterContainer = ({
 
         <div className="btncontainer absolute w-[80%] flex flex-row gap-x-5 bottom-1">
           <PrimaryButton
-            text={`Show Product ${productcount}`}
+            text={`Show Product ${productcount ?? "No Product"}`}
             type="button"
             onClick={() => {
               if (filtervalue?.search) {

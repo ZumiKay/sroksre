@@ -59,6 +59,13 @@ export const LoggedOut = async () => {
   return true;
 };
 
+export const GetOneWeekAgoDate = () => {
+  const today = new Date();
+  const oneWeekAgo = new Date(today);
+  oneWeekAgo.setDate(today.getDate() - 7);
+  return oneWeekAgo;
+};
+
 export const UploadImageToStorage = async (
   File: File
 ): Promise<{ sucess: boolean; url?: string; name?: string; type?: string }> => {

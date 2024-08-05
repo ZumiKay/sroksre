@@ -1,12 +1,14 @@
-import { ApiRequest } from "@/src/context/CustomHook";
+import {
+  ApiRequest,
+  Delayloading,
+  useEffectOnce,
+} from "@/src/context/CustomHook";
 import {
   CateogoryState,
-  DefaultSize,
   infovaluetype,
   Productinitailizestate,
   ProductState,
   ProductStockType,
-  SpecificAccess,
   SubcategoriesState,
   useGlobalContext,
 } from "@/src/context/GlobalContext";
@@ -32,7 +34,6 @@ const stockTypeData = [
     label: "Variants ( Product have multiple versions)",
     value: "variant",
   },
-  { label: "Size", value: "size" },
 ];
 
 export function CreateProducts() {
@@ -65,25 +66,26 @@ export function CreateProducts() {
   );
 
   const fetchcate = async (products?: ProductState) => {
-    const categories = await ApiRequest(
-      "/api/categories?ty=create",
-      setisLoading,
-      "GET"
-    );
-    if (categories.success) {
-      setcate(categories.data);
-      const { parent_id } = products
-        ? { ...products.category }
-        : { ...product.category };
-
-      const subcates: CateogoryState = categories.data.find(
-        (i: CateogoryState) => i.id === parent_id
+    const asyncfunc = async () => {
+      const categories = await ApiRequest(
+        "/api/categories?ty=create",
+        undefined,
+        "GET"
       );
+      if (categories.success) {
+        setcate(categories.data);
+        const { parent_id } = products
+          ? { ...products.category }
+          : { ...product.category };
 
-      setsubcate(subcates?.subcategories ?? []);
-    } else {
-      errorToast("Error Connection");
-    }
+        const subcates: CateogoryState = categories.data.find(
+          (i: CateogoryState) => i.id === parent_id
+        );
+
+        setsubcate(subcates?.subcategories ?? []);
+      }
+    };
+    await Delayloading(asyncfunc, setloading, 1000);
   };
 
   const fetchproductdata = async (id: number) => {
@@ -118,9 +120,11 @@ export function CreateProducts() {
   };
 
   //Fecth Product Info
-  useEffect(() => {
-    setopenmodal((prev) => ({ ...prev, loaded: false }));
+
+  useEffectOnce(() => {
     fetchcate();
+  });
+  useEffect(() => {
     globalindex.producteditindex !== -1 &&
       fetchproductdata(globalindex.producteditindex);
     setloading(false);
@@ -133,49 +137,13 @@ export function CreateProducts() {
       });
   }, [openmodal.productdetail]);
 
-  useEffect(() => {
-    setedit((prev) => ({ ...prev, productinfo: true }));
-  }, [product.details]);
-
   //Method
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
     const createdproduct = { ...product };
     const URL = "/api/products/crud";
-
-    const checkstock = () => {
-      let checked = true;
-      if (stocktype === ProductStockType.stock) {
-        if (
-          stocktype &&
-          createdproduct.stock &&
-          parseInt(createdproduct.stock.toString()) === 0
-        ) {
-          checked = false;
-        }
-      } else if (stocktype === ProductStockType.variant) {
-        if (!createdproduct.varaintstock) {
-          checked = false;
-        }
-      } else if (stocktype === ProductStockType.size) {
-        const size = createdproduct.details.find((i) => i.info_type === "SIZE");
-        if (size) {
-          const isZero = size.info_value.some((i: any) => i.qty <= 0);
-
-          if (isZero) {
-            checked = false;
-          }
-        }
-      }
-      return checked;
-    };
-    const checked = checkstock();
-
-    if (!checked) {
-      errorToast("Please Add Stock!");
-      return;
-    }
 
     if (product.covers.length === 0) {
       errorToast("Cover Image is Required");
@@ -183,7 +151,6 @@ export function CreateProducts() {
     }
 
     if (globalindex.producteditindex === -1) {
-      //createproduct
       const created = await ApiRequest(URL, setisLoading, "POST", "JSON", {
         createdproduct,
       });
@@ -217,19 +184,8 @@ export function CreateProducts() {
     setreloaddata(true);
 
     setedit((prev) => ({ ...prev, productinfo: false }));
-    setopenmodal((prev) => ({ ...prev, loaded: true }));
   };
-  const IsAdded = (type: string) => {
-    const isExist = product.details.findIndex((i) => i.info_type === type);
-    if (isExist !== -1) {
-      return {
-        added: true,
-        index: isExist,
-      };
-    } else {
-      return { added: false, index: -1 };
-    }
-  };
+
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     const name = e.target.name;
@@ -421,35 +377,6 @@ export function CreateProducts() {
                 size="lg"
                 className="w-full h-[40px] text-lg pl-1 font-bold rounded-md "
               />
-            ) : stocktype === ProductStockType.size ? (
-              <div className="size_con flex flex-col justify-start gap-y-5 h-fit w-full  rounded-lg p-3">
-                {IsAdded("SIZE").added ? (
-                  <Sizecontainer index={IsAdded("SIZE").index} />
-                ) : (
-                  <PrimaryButton
-                    radius="10px"
-                    textcolor="black"
-                    Icon={
-                      <i className="fa-regular fa-square-plus text-2xl"></i>
-                    }
-                    type="button"
-                    text="Add product size"
-                    width="100%"
-                    onClick={() => {
-                      let updatearr = [...product.details];
-                      updatearr.push({
-                        info_title: "Size",
-                        info_value: DefaultSize,
-                        info_type: "SIZE",
-                      });
-                      setproduct((prev) => ({ ...prev, details: updatearr }));
-                    }}
-                    height="50px"
-                    color="white"
-                    hoverTextColor="lightblue"
-                  />
-                )}
-              </div>
             ) : (
               <>
                 <PrimaryButton
@@ -520,16 +447,9 @@ export function CreateProducts() {
           <PrimaryButton
             color="#44C3A0"
             text={globalindex.producteditindex === -1 ? "Create" : "Update"}
-            type={
-              globalindex.producteditindex !== -1
-                ? !edit.productinfo
-                  ? "button"
-                  : "submit"
-                : "submit"
-            }
+            type={"submit"}
             radius="10px"
             width="90%"
-            status={SpecificAccess(isLoading) ? "loading" : "authenticated"}
             height="40px"
           />{" "}
           <PrimaryButton
@@ -539,7 +459,6 @@ export function CreateProducts() {
             radius="10px"
             width="90%"
             height="40px"
-            disable={SpecificAccess(isLoading)}
             onClick={() => {
               handleCancel();
             }}

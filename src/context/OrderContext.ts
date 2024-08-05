@@ -1,5 +1,9 @@
 import { getServerSession } from "next-auth";
-import { ProductState, Usersessiontype } from "./GlobalContext";
+import {
+  ProductState,
+  Usersessiontype,
+  VariantColorValueType,
+} from "./GlobalContext";
 import { authOptions } from "../app/api/auth/[...nextauth]/route";
 
 export const getUser = async (): Promise<Usersessiontype | null> => {
@@ -30,7 +34,7 @@ export interface Productorderdetailtype {
   id?: number;
   option_title: string;
   option_type: string;
-  option_value: string;
+  option_value: string | VariantColorValueType;
   [key: string]: any;
 }
 

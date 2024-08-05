@@ -82,20 +82,21 @@ export default function PaginationCustom({
         onChange={(p) => handlePage(p)}
         variant="light"
       />
-
-      <div className="w-[280px]">
-        <SelectionCustom
-          data={numberperpage.map((i) => ({
-            label: `${i === 1 ? "1 item" : `${i} item`}`,
-            value: i.toString(),
-          }))}
-          label="Show Per Page"
-          placeholder=""
-          value={show ?? "1"}
-          setvalue={setshow}
-          onChange={(val) => onSelectShowPerPage && onSelectShowPerPage(val)}
-        />
-      </div>
+      {count && (
+        <div className="w-[280px]">
+          <SelectionCustom
+            data={numberperpage.map((i) => ({
+              label: `${i === 1 ? "1 item" : `${i} item`}`,
+              value: i.toString(),
+            }))}
+            label="Show Per Page"
+            placeholder=""
+            value={show ?? "1"}
+            setvalue={setshow}
+            onChange={(val) => onSelectShowPerPage && onSelectShowPerPage(val)}
+          />
+        </div>
+      )}
     </div>
   );
 }

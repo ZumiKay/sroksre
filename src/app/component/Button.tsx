@@ -5,7 +5,10 @@ import "../globals.css";
 import * as React from "react";
 import { styled } from "@mui/material/styles";
 import Button from "@mui/material/Button";
-import { CateogoryState } from "@/src/context/GlobalContext";
+import {
+  CateogoryState,
+  VariantColorValueType,
+} from "@/src/context/GlobalContext";
 import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
 import FormControl from "@mui/material/FormControl";
@@ -210,7 +213,7 @@ export const InputFileUpload = React.forwardRef(
         <VisuallyHiddenInput
           ref={ref}
           multiple={props.multiple}
-          accept=".jpg, .png"
+          accept=".jpg, .png , .webp"
           onChange={props.onChange}
           type="file"
         />
@@ -220,10 +223,10 @@ export const InputFileUpload = React.forwardRef(
 );
 
 interface Selectcontainerprops {
-  data: Array<string>;
+  data: Array<string | VariantColorValueType>;
   type: "TEXT" | "COLOR";
   onSelect: (value: string) => void;
-  isSelected?: string;
+  isSelected?: string | VariantColorValueType;
 }
 const isSelectedStyle: CSSProperties = {
   outline: "2px solid black",
@@ -233,32 +236,44 @@ const isSelectedStyle: CSSProperties = {
 
 export const SelectContainer = (props: Selectcontainerprops) => {
   return (
-    <div className="w-[300px] max-w-[300px] min-h-[50px] h-fit p-2 flex flex-row items-center gap-x-3 rounded-lg outline-1 outline outline-gray-400 outline-offset-2">
+    <div className="w-fit max-w-[80%]  min-h-[50px] h-fit p-2 flex flex-row flex-wrap items-center gap-x-3 rounded-lg outline-1 outline outline-gray-400 outline-offset-2">
       {props.data.map((i, idx) => (
-        <div
-          key={idx}
-          onClick={() => {
-            props.onSelect(i);
-          }}
-          style={
-            props.type === "COLOR"
-              ? {
-                  backgroundColor: i,
+        <div key={idx} className="w-fit h-fit">
+          {typeof i === "string" ? (
+            <div
+              key={idx}
+              onClick={() => {
+                props.onSelect(i);
+              }}
+              style={props.isSelected === i ? isSelectedStyle : {}}
+              className={`select_item cursor-pointer w-fit h-fit p-2 max-w-[200px] break-words rounded-lg transition-all duration-30 hover:bg-black hover:text-white`}
+            >
+              {props.type === "TEXT" && (i as string)}
+            </div>
+          ) : (
+            <div
+              style={{
+                ...(props.isSelected === i.val ? isSelectedStyle : {}),
+              }}
+              onClick={() => {
+                props.onSelect(i.val);
+              }}
+              className="w-fit h-fit flex flex-row gap-x-3 p-2 items-center rounded-lg cursor-pointer justify-center hover:outline-2 hover:outline  hover:outline-gray-500 hover:outline-offset-2 active:outline-1 active:outline  active:outline-gray-300 active:outline-offset-2  "
+            >
+              <div
+                className="rounded-full"
+                style={{
+                  backgroundColor: i.val,
                   width: "30px",
                   height: "30px",
-                  ...(props.isSelected === i ? isSelectedStyle : {}),
-                }
-              : props.isSelected === i
-              ? isSelectedStyle
-              : {}
-          }
-          className={`select_item cursor-pointer w-fit h-fit p-2 max-w-[200px] break-words rounded-lg transition-all duration-300 ${
-            props.type === "COLOR"
-              ? "hover:outline-2 hover:outline  hover:outline-gray-500 hover:outline-offset-2 active:outline-1 active:outline  active:outline-gray-300 active:outline-offset-2 "
-              : "hover:bg-black hover:text-white"
-          }`}
-        >
-          {props.type === "TEXT" && i}
+                }}
+              ></div>
+
+              {i.name && (
+                <div className="w-fit h-fit text-lg font-bold"> {i.name}</div>
+              )}
+            </div>
+          )}
         </div>
       ))}
     </div>

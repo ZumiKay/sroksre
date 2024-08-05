@@ -6,7 +6,6 @@ import {
   ProductInfo,
   SelectType,
   VariantColorValueType,
-  Varianttype,
   useGlobalContext,
 } from "@/src/context/GlobalContext";
 import PrimaryButton from "./Button";
@@ -15,9 +14,9 @@ import { AnimatePresence, motion } from "framer-motion";
 import ReactSelect from "react-select/async";
 import makeAnimated from "react-select/animated";
 
-import { removeSpaceAndToLowerCase } from "@/src/lib/utilities";
 import { GetProductName } from "../dashboard/inventory/varaint_action";
 import { errorToast } from "./Loading";
+import { Button } from "@nextui-org/react";
 interface toggleprops {
   name: string;
   isAdmin: boolean;
@@ -236,6 +235,12 @@ interface Toggleselectprops {
   data: Array<string> | VariantColorValueType[];
   clickfunction?: (idx: number, type: string) => void;
   selected?: string[];
+  promo?: boolean;
+  onClear?: (
+    data: string[] | VariantColorValueType[],
+    selectedvalue: string[],
+    promo?: boolean
+  ) => void;
 }
 export function ToggleSelect({
   type,
@@ -243,29 +248,59 @@ export function ToggleSelect({
   title,
   clickfunction,
   selected,
+  onClear,
+  promo,
 }: Toggleselectprops) {
   const [open, setopen] = useState(false);
 
   return (
     <motion.div
-      initial={{ height: "50px" }}
+      initial={{ height: "100%" }}
       whileHover={{ backgroundColor: "#f1f1f1" }}
       whileTap={{ backgroundColor: "#f1f1f1" }}
-      animate={open ? { height: "200px" } : {}}
-      className="toggleselect w-full h-fit rounded-lg border-2 border-black flex flex-col items-start gap-y-3"
+      animate={open ? { height: "100%" } : {}}
+      className="toggleselect w-full h-fit rounded-lg border-2 border-black flex flex-col items-start gap-y-3 relative"
     >
-      <h3
+      <div
         onClick={() => setopen(!open)}
-        className="title text-lg font-semibold w-full text-left sticky top-0 cursor-pointer p-2"
+        className="title h-fit text-lg font-semibold w-full text-left cursor-pointer p-2 flex flex-row items-center justify-between"
       >
-        {type === "color"
-          ? selected
-            ? "Selected Color"
-            : "Color"
-          : selected
-          ? `Selected ${title}`
-          : title}
-      </h3>
+        <div className="w-full h-full">
+          {type === "color" ? (
+            selected ? (
+              "Clear Color"
+            ) : (
+              "Color"
+            )
+          ) : selected ? (
+            data.some((i) => selected.includes(i as string)) ? (
+              <div className="w-fit h-fit">
+                {" "}
+                <p className="font-bold text-red-400">Selected</p>
+                <p>{title}</p>{" "}
+              </div>
+            ) : (
+              title
+            )
+          ) : (
+            title
+          )}
+        </div>
+        {selected &&
+          data.some((i) =>
+            selected.includes(typeof i === "string" ? i : i.val)
+          ) && (
+            <Button
+              onClick={() => onClear && onClear(data, selected, promo)}
+              size="sm"
+              variant="bordered"
+              color="danger"
+            >
+              Clear
+            </Button>
+          )}
+      </div>
+
       {open && (
         <div className="w-full max-h-[150px] overflow-y-auto ">
           <motion.div
@@ -273,24 +308,24 @@ export function ToggleSelect({
             animate={{ opacity: 1 }}
             className="selectitem_container grid grid-cols-3 gap-y-3 h-full  w-fit gap-x-3 p-2 transition-all"
           >
-            {data.map((i: any, idx) => (
+            {data.map((i, idx) => (
               <div
                 key={idx}
-                className="selectitem min-w-[50px] rounded-md cursor-pointer w-fit max-w-[150px] h-fit break-words bg-white hover:bg-gray-100 active:bg-gray-100 p-2"
+                className="selectitem min-w-[50px] rounded-lg cursor-pointer w-fit h-fit break-words bg-white active:bg-gray-100 p-2"
                 onClick={() => {
                   clickfunction && clickfunction(idx, type);
                 }}
                 style={
-                  selected?.includes(i.val ?? i)
+                  selected?.includes(typeof i === "string" ? i : i.val)
                     ? { backgroundColor: "gray" }
                     : {}
                 }
               >
                 {" "}
-                {type === "color" ? (
-                  <div className="w-fit h-fit flex flex-row p-2 items-center justify-center rounded-lg border border-black">
+                {type === "color" && typeof i !== "string" ? (
+                  <div className="w-fit h-fit flex flex-row gap-x-3 p-2 items-center justify-center rounded-full border border-black">
                     <div
-                      className={`colorplattet w-[40px] h-[40px]`}
+                      className={`colorplattet w-[30px] h-[30px] rounded-full`}
                       style={
                         i
                           ? {
@@ -308,7 +343,9 @@ export function ToggleSelect({
                     )}
                   </div>
                 ) : (
-                  <h3 className="label text-lg text-center font-normal">{i}</h3>
+                  <h3 className="label w-fit h-fit text-lg text-center font-normal">
+                    {i as string}
+                  </h3>
                 )}
               </div>
             ))}

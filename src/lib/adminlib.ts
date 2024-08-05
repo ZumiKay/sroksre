@@ -323,8 +323,14 @@ export const CreateProduct = async (
             Prisma.stock.create({
               data: {
                 product_id: created.id,
-                variant_val: i.variant_val,
-                qty: i.qty,
+                Stockvalue: {
+                  createMany: {
+                    data: {
+                      variant_val: i.stockvalue,
+                      qty: i.qty,
+                    },
+                  },
+                },
               },
             })
           )
@@ -387,41 +393,60 @@ const updateDetails = async (details: [] | ProductInfo[], id: number) => {
 };
 
 const updateProductVariantStock = async (
-  varaintstock: Stocktype[],
+  variantstock: Stocktype[],
   id: number
-) => {
+): Promise<boolean | null> => {
   try {
-    const stockIdsToDelete = varaintstock
+    const stockIdsToDelete = variantstock
       .filter((i) => i.id)
       .map((i) => i.id) as number[];
+
+    // Delete stocks that are not in the provided list
     await Prisma.stock.deleteMany({
       where: {
         AND: [{ product_id: id }, { id: { notIn: stockIdsToDelete } }],
       },
     });
-    await Promise.all(
-      varaintstock.map((stock) => {
-        if (stock.id) {
-          return Prisma.stock.update({
-            where: {
-              id: stock.id,
-            },
+
+    const updatePromises: any = [];
+    const createPromises: any = [];
+
+    variantstock.forEach((stock) => {
+      if (stock.id) {
+        stock.stockvalue.forEach((i) =>
+          updatePromises.push(
+            Prisma.stockvalue.update({
+              where: {
+                id: i.id,
+              },
+              data: {
+                qty: i.qty,
+                variant_val: i.variant_val,
+              },
+            })
+          )
+        );
+      } else {
+        createPromises.push(
+          Prisma.stock.create({
             data: {
-              variant_val: stock.variant_val as any,
-              qty: stock.qty,
-            },
-          });
-        } else {
-          return Prisma.stock.create({
-            data: {
-              variant_val: stock.variant_val as any,
-              qty: stock.qty,
               product_id: id,
+              Stockvalue: {
+                createMany: {
+                  data: stock.stockvalue.map((i) => ({
+                    qty: i.qty,
+                    variant_val: i.variant_val,
+                  })),
+                },
+              },
             },
-          });
-        }
-      })
-    );
+          })
+        );
+      }
+    });
+
+    await Promise.all([...updatePromises, ...createPromises]);
+
     return true;
   } catch (error) {
     console.log("Edit Product", error);
@@ -568,35 +593,25 @@ export const EditProduct = async (
       return { success: false };
     }
 
-    const isCategoryValid =
-      Object.entries(category).length !== 0 &&
-      category.parent_id !== 0 &&
-      category.child_id !== 0;
-    const isStockValid = stock && stock !== 0;
-
-    if (isCategoryValid && isStockValid) {
-      const updateData: any = {
-        name,
-        description,
-        price: price && parseFloat(price.toString()),
-      };
-
-      if (isStockValid) {
-        updateData.stock = stock && parseInt(stock.toString(), 10);
-      }
-
-      if (category && isCategoryValid) {
-        updateData.parentcategory_id = parseInt(
-          category.parent_id.toString(),
-          10
-        );
-        updateData.childcategory_id =
-          category.child_id && parseInt(category.child_id.toString(), 10);
-      }
-
+    const isCategoryChange =
+      existProduct.parentcategory_id !== category.parent_id ||
+      (category.child_id &&
+        existProduct.childcategory_id !== category.child_id);
+    const isStockValid = stock && stock !== 0 && existProduct.stock !== stock;
+    if (isCategoryChange) {
       await Prisma.products.update({
         where: { id },
-        data: updateData,
+        data: {
+          parentcategory_id: category.parent_id,
+          childcategory_id: category.child_id,
+        },
+      });
+    }
+
+    if (isStockValid) {
+      await Prisma.products.update({
+        where: { id },
+        data: { stock: parseInt(stock.toString()) },
       });
     }
 
@@ -823,9 +838,10 @@ export const GetAllProduct = async (
           if (isStock) {
             totallowstock += product.stock && product.stock <= 1 ? 1 : 0;
           } else if (isVariant) {
-            product.Stock.forEach((variant) => {
-              totallowstock += variant.qty <= 1 ? 1 : 0;
-            });
+            //Low stock display
+            // product.Stock.forEach((variant) => {
+            //   totallowstock += variant <= 1 ? 1 : 0;
+            // });
           } else {
             const sizeDetails =
               product.details &&
@@ -889,38 +905,6 @@ export const GetAllProduct = async (
           ];
 
           return conditions.every((i) => i);
-        });
-
-        if (sk && sk === "Low") {
-          products = products.filter((item) => {
-            const isLowStockVariant =
-              item.Stock && item.Stock.some((i) => i.qty <= 3);
-            const isLowStock = item.stock && item.stock <= 3;
-            const isLowStockSize =
-              item.stocktype === "size" &&
-              item.details.some((i) => {
-                if (i.info_type === "SIZE") {
-                  const value = i.info_value as unknown as infovaluetype[];
-                  return value.some((size) => size.qty <= 13);
-                }
-                return false;
-              });
-
-            return isLowStockVariant || isLowStock || isLowStockSize;
-          });
-        }
-
-        products = products.map((i) => {
-          const isLowStock = i.stock && i.stock <= 3;
-          const isLowStockVariant = i.Stock && i.Stock.some((j) => j.qty <= 3);
-          const isSize = i.details.find((j) => j.info_type === "SIZE")
-            ?.info_value as unknown as infovaluetype[];
-          const isLowStockSize = isSize && isSize.some((j) => j.qty <= 3);
-
-          if (isLowStock || isLowStockVariant || isLowStockSize) {
-            return { ...i, lowstock: true };
-          }
-          return i;
         });
 
         totalproduct = products.length;

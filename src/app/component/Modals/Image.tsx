@@ -1,4 +1,8 @@
-import { ApiRequest, useEffectOnce } from "@/src/context/CustomHook";
+import {
+  ApiRequest,
+  Delayloading,
+  useEffectOnce,
+} from "@/src/context/CustomHook";
 import {
   BannerState,
   productcoverstype,
@@ -6,7 +10,12 @@ import {
   useGlobalContext,
 } from "@/src/context/GlobalContext";
 import { ChangeEvent, useRef, useState } from "react";
-import { errorToast, infoToast, successToast } from "../Loading";
+import {
+  ContainerLoading,
+  errorToast,
+  infoToast,
+  successToast,
+} from "../Loading";
 import Image from "next/image";
 import CloseIcon from "../../../../public/Image/Close.svg";
 import PrimaryButton, { InputFileUpload } from "../Button";
@@ -53,6 +62,7 @@ export const ImageUpload = (props: imageuploadprops) => {
   const [selectedImg, setselected] = useState(-1);
   const [isEdit, setisEdit] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [loading, setloading] = useState(false);
 
   //Initialize
   useEffectOnce(() => {
@@ -87,7 +97,7 @@ export const ImageUpload = (props: imageuploadprops) => {
       const allowedFileType =
         props.type === "createbanner"
           ? ["image/jpeg", "image/png"]
-          : ["image/jpeg", "image/png", "image/svg+xml"];
+          : ["image/jpeg", "image/webp", "image/png", "image/svg+xml"];
       if (Imgurl.length + filesArray.length > props.limit) {
         errorToast(`Can Upload ${props.limit} Images Only`);
         return;
@@ -106,17 +116,20 @@ export const ImageUpload = (props: imageuploadprops) => {
 
       if (filteredFileUrl.length > 0) {
         if (Imgurltemp.length > 0 && Imgurltemp.every((i) => i.isSave)) {
-          const deleteImage = await ApiRequest(
-            "/api/products/cover",
-            setisLoading,
-            "DELETE",
-            "JSON",
-            { covers: Imgurltemp, type: props.type }
-          );
-          if (!deleteImage.success) {
-            errorToast("Error Occured");
-            return;
-          }
+          const asyncdeleteimage = async () => {
+            const deleteImage = await ApiRequest(
+              "/api/products/cover",
+              undefined,
+              "DELETE",
+              "JSON",
+              { covers: Imgurltemp, type: props.type }
+            );
+            if (!deleteImage.success) {
+              errorToast("Error Occured");
+              return;
+            }
+          };
+          await Delayloading(asyncdeleteimage, setloading, 1000);
         }
         seturltemp([]);
       }
@@ -175,7 +188,9 @@ export const ImageUpload = (props: imageuploadprops) => {
   //Saved to storage
   const handleSave = async () => {
     const URL = "/api/products/cover";
+
     try {
+      setloading(true);
       const filedata = new FormData();
 
       if (Files.length === 0) {
@@ -189,11 +204,12 @@ export const ImageUpload = (props: imageuploadprops) => {
 
       const uploadImg = await ApiRequest(
         URL,
-        setisLoading,
+        undefined,
         "POST",
         "FILE",
         filedata
       );
+
       if (!uploadImg.success) {
         errorToast("Failed To Save");
         return;
@@ -201,13 +217,10 @@ export const ImageUpload = (props: imageuploadprops) => {
       //Delete Images
 
       if (Imgurltemp.length > 0) {
-        const deleteImage = await ApiRequest(
-          URL,
-          setisLoading,
-          "DELETE",
-          "JSON",
-          { covers: Imgurltemp, type: props.type }
-        );
+        const deleteImage = await ApiRequest(URL, undefined, "DELETE", "JSON", {
+          covers: Imgurltemp,
+          type: props.type,
+        });
         if (!deleteImage.success) {
           errorToast("Error Occured");
           return;
@@ -264,6 +277,8 @@ export const ImageUpload = (props: imageuploadprops) => {
     } catch (error) {
       console.error("handleSave", error);
       errorToast("Failed To Save");
+    } finally {
+      setloading(false);
     }
   };
   const handleCancel = () => {
@@ -292,11 +307,11 @@ export const ImageUpload = (props: imageuploadprops) => {
       open={openmodal.imageupload}
       className="Uploadimagemodal fixed w-screen h-screen flex flex-col items-center justify-center top-0 left-0 z-[120] bg-white"
     >
+      {loading && <ContainerLoading />}
       <Image
         src={CloseIcon}
         alt="close"
         onClick={() => handleCancel()}
-        hidden={SpecificAccess(isLoading)}
         className="w-[50px] h-[50px] absolute top-5 right-10 object-contain transition hover:-translate-y-2 active:-translate-y-2"
       />
       <div className="uploadImage__container w-[80%] max-h-[600px] flex flex-row justify-start items-center gap-x-5">
@@ -343,7 +358,6 @@ export const ImageUpload = (props: imageuploadprops) => {
             height="50px"
             color="#44C3A0"
             radius="10px"
-            status={SpecificAccess(isLoading) ? "loading" : "authenticated"}
             disable={!isEdit}
           />
           <PrimaryButton

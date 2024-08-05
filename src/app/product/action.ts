@@ -1,7 +1,6 @@
 "use server";
 
 import {
-  infovaluetype,
   ProductState,
   VariantColorValueType,
 } from "@/src/context/GlobalContext";
@@ -9,6 +8,7 @@ import Prisma from "@/src/lib/prisma";
 import {
   caculateArrayPagination,
   getDiscountedPrice,
+  GetOneWeekAgoDate,
   removeSpaceAndToLowerCase,
 } from "@/src/lib/utilities";
 import { cache } from "react";
@@ -19,6 +19,7 @@ export const GetListProduct = cache(
     show: string,
     parentcate_id: string,
     childcate_id?: string,
+    latestcate?: boolean,
     filtervalue?: {
       color?: string[];
       size?: string[];
@@ -26,7 +27,9 @@ export const GetListProduct = cache(
       promo?: string[];
       search?: string;
       selectpids?: string[];
-    }
+    },
+    all?: string,
+    sort?: number
   ) => {
     let data = {
       parentcate_id: parseInt(parentcate_id),
@@ -43,16 +46,16 @@ export const GetListProduct = cache(
     const isFilter =
       filtervalue?.color ||
       filtervalue?.other ||
-      filtervalue?.size ||
       filtervalue?.selectpids ||
-      filtervalue?.promo;
+      filtervalue?.promo ||
+      filtervalue?.search;
 
     try {
       let totalproduct = 0;
 
       let products = await Prisma.products.findMany({
-        where:
-          data.parentcate_id !== 0 && !childcate_id
+        where: !latestcate
+          ? data.parentcate_id !== 0 && !childcate_id
             ? {
                 parentcategory_id: data.parentcate_id,
               }
@@ -63,7 +66,16 @@ export const GetListProduct = cache(
                   childcategory_id: data.childcate_id,
                 },
               }
-            : {},
+            : all && all === "1"
+            ? {}
+            : {}
+          : {
+              createdAt: { gte: GetOneWeekAgoDate() },
+            },
+
+        orderBy: {
+          price: sort ? (sort === 1 ? "asc" : "desc") : "asc",
+        },
         select: {
           id: true,
           name: true,
@@ -190,42 +202,37 @@ export const GetListProduct = cache(
             });
           };
 
-          const isColor = matchesVariant("COLOR", filtervalue.color);
-          const isText = matchesVariant("TEXT", filtervalue.other);
+          const isColor = filtervalue.color
+            ? matchesVariant("COLOR", filtervalue.color)
+            : false;
+          const isText = filtervalue.other
+            ? matchesVariant("TEXT", filtervalue.other)
+            : false;
 
-          const Sizes = prod.details
-            .filter((i) => i.info_type === "SIZE")
-            .map((i) => i.info_value) as unknown as infovaluetype[];
+          const isPromo = filtervalue.promo
+            ? prod.promotion &&
+              filtervalue.promo.some(
+                (i) =>
+                  prod.promotion?.name &&
+                  removeSpaceAndToLowerCase(i) ===
+                    removeSpaceAndToLowerCase(prod.promotion?.name)
+              )
+            : false;
 
-          const isSize =
-            filtervalue.size &&
-            Sizes.some((i) => filtervalue.size?.includes(i.val));
+          const isName = filtervalue.search
+            ? removeSpaceAndToLowerCase(prod.name).includes(
+                removeSpaceAndToLowerCase(filtervalue.search)
+              )
+            : false;
 
-          const isPromo =
-            filtervalue.promo &&
-            prod.promotion &&
-            filtervalue.promo.includes(prod.promotion.id.toString());
+          const isProduct = filtervalue.selectpids
+            ? filtervalue.selectpids.includes(prod.id.toString())
+            : false;
 
-          const isName =
-            filtervalue.search &&
-            removeSpaceAndToLowerCase(prod.name).includes(
-              removeSpaceAndToLowerCase(filtervalue.search)
-            );
+          const conditions = [isColor, isText, isPromo, isName, isProduct];
 
-          const isProduct =
-            filtervalue.selectpids &&
-            filtervalue.selectpids.includes(prod.id.toString());
-
-          const conditions = [
-            filtervalue.color ? isColor : true,
-            filtervalue.other ? isText : true,
-            filtervalue.size ? isSize : true,
-            filtervalue.promo ? isPromo : true,
-            filtervalue.search ? isName : true,
-            filtervalue.selectpids ? isProduct : true,
-          ];
-
-          return conditions.every((condition) => condition);
+          // Check if at least one condition is true
+          return conditions.some((condition) => condition);
         });
 
         filterproduct = caculateArrayPagination(
@@ -239,21 +246,30 @@ export const GetListProduct = cache(
         ? totalproduct
         : isFilter
         ? products.length
-        : await Prisma.products.count({
-            where:
-              parentcate_id && !childcate_id
-                ? {
-                    parentcategory_id: data.parentcate_id,
-                  }
-                : parentcate_id && childcate_id
-                ? {
-                    AND: {
-                      parentcategory_id: data.parentcate_id,
-                      childcategory_id: data.childcate_id,
-                    },
-                  }
-                : {},
-          });
+        : await Prisma.products.count(
+            all
+              ? { where: {} }
+              : {
+                  where: !latestcate
+                    ? parentcate_id && !childcate_id
+                      ? {
+                          parentcategory_id: data.parentcate_id,
+                        }
+                      : parentcate_id && childcate_id
+                      ? {
+                          AND: {
+                            parentcategory_id: data.parentcate_id,
+                            childcategory_id: data.childcate_id,
+                          },
+                        }
+                      : {}
+                    : {
+                        createdAt: {
+                          gte: GetOneWeekAgoDate(),
+                        },
+                      },
+                }
+          );
 
       isFilter && (products = filterproduct);
       let result = products.map((prod) => {
@@ -350,36 +366,39 @@ export interface filtervaluetype {
   }[];
   search?: string;
 }
-export const getFilterValue = async (parent_id: number, child_id?: number) => {
+export const getFilterValue = async (
+  parent_id: number,
+  child_id?: number,
+  latest?: boolean
+) => {
   try {
     let filtervalues: filtervaluetype = {
       variant: {
-        color: [{ val: "" }],
-        text: [
-          {
-            id: 0,
-            option_title: "",
-            option_value: [""],
-          },
-        ],
+        color: [],
+        text: [],
       },
       promo: [],
       promotion: [],
     };
     const result = await Prisma.products.findMany({
-      where:
-        parent_id && !child_id
+      where: !latest
+        ? parent_id && !child_id
           ? {
               parentcategory_id: parent_id,
             }
           : parent_id && child_id
           ? {
-              AND: {
-                parentcategory_id: parent_id,
-                childcategory_id: child_id,
-              },
+              AND: [
+                { parentcategory_id: parent_id },
+                { childcategory_id: child_id },
+              ],
             }
-          : {},
+          : {}
+        : {
+            createdAt: {
+              gte: GetOneWeekAgoDate(),
+            },
+          },
 
       select: {
         stocktype: true,
@@ -400,23 +419,21 @@ export const getFilterValue = async (parent_id: number, child_id?: number) => {
     }
 
     result.forEach((i) => {
-      if (i.stocktype === "size") {
-        const size = i.details
-          .filter((j) => j.info_type === "SIZE")
-          .map((i) => i.info_value) as unknown as infovaluetype[];
-        filtervalues.size = size.map((i) => i.val);
-      } else if (i.stocktype === "variant") {
+      if (i.stocktype === "variant") {
         const color = i.Variant.filter(
           (j) => j.option_type === "COLOR"
         ).flatMap((j) => j.option_value) as VariantColorValueType[];
         const text = i.Variant.filter((j) => j.option_type === "TEXT");
 
-        filtervalues.variant.color = color;
-        filtervalues.variant.text = text.map((i) => ({
-          id: i.id,
-          option_title: i.option_title,
-          option_value: i.option_value as string[],
-        }));
+        filtervalues.variant.color = [...filtervalues.variant.color, ...color];
+        filtervalues.variant.text = [
+          ...filtervalues.variant.text,
+          ...text.map((i) => ({
+            id: i.id,
+            option_title: i.option_title,
+            option_value: i.option_value as string[],
+          })),
+        ];
       }
 
       if (i.promotion) {
@@ -437,6 +454,7 @@ export const getFilterValue = async (parent_id: number, child_id?: number) => {
 
     if (filtervalues.promotion) {
       filtervalues.promotion = getUniqueOptionValues(filtervalues.promotion);
+
       result.forEach((prod) => {
         if (
           prod.promotion &&

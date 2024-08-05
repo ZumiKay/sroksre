@@ -1,6 +1,7 @@
 "use client";
 import {
   ProductStockType,
+  Stocktype,
   useGlobalContext,
   VariantColorValueType,
 } from "@/src/context/GlobalContext";
@@ -9,7 +10,6 @@ import { FormEvent, useEffect, useState } from "react";
 import { RGBColor } from "react-color";
 import { ApiRequest, Delayloading } from "@/src/context/CustomHook";
 import tinycolor from "tinycolor2";
-import { Deletevairiant } from "../../dashboard/inventory/varaint_action";
 import Modal from "../Modals";
 import { motion } from "framer-motion";
 import PrimaryButton, { Selection } from "../Button";
@@ -18,8 +18,8 @@ import Variantimg from "../../../../public/Image/Variant.png";
 import Variantstockimg from "../../../../public/Image/Stock.png";
 import {
   ColorSelectModal,
-  GenerateCombinations,
   ManageStockContainer,
+  MapSelectedValuesToVariant,
 } from "./VariantModalComponent";
 import { Badge, Button } from "@nextui-org/react";
 import TemplateContainer, {
@@ -259,15 +259,24 @@ export const Variantcontainer = ({
     }
   };
 
-  const handleUpdateVariantOption = () => {
+  const handleUpdateVariantOption = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
     const update = { ...temp };
+    const variant = [...(product.variants ?? [])];
 
+    const isExist =
+      variant &&
+      variant
+        .filter((fil) => fil.option_type === "TEXT")
+        .some((i) => i.option_value.includes(option));
+
+    if (isExist) {
+      errorToast("Option Exist");
+      return;
+    }
     if (edit === -1) {
       update.value?.push(option);
     } else if (update.value) {
-      if (product.varaintstock) {
-      }
-
       update.value[edit] = option;
       setedit(-1);
     }
@@ -276,16 +285,49 @@ export const Variantcontainer = ({
   };
   const handleVariantEdit = (idx: number) => {
     if (product.variants) {
-      const data = product.variants[idx];
-      if (data) {
-        setname(data.option_title);
+      const variantToEdit = product.variants[idx];
+      if (variantToEdit) {
+        setname(variantToEdit.option_title);
         settemp({
-          name: data.option_title,
-          value: [...data.option_value],
-          type: data.option_type as "COLOR" | "TEXT",
+          name: variantToEdit.option_title,
+          value: [...variantToEdit.option_value],
+          type: variantToEdit.option_type as "COLOR" | "TEXT",
         });
+
         setadded(idx);
+
         setnew("info");
+
+        if (product.varaintstock) {
+          let updatedStock = [...product.varaintstock];
+          updatedStock = updatedStock.map((stock) => {
+            const updatedVariantValues = stock.stockvalue.map((val, valIdx) => {
+              const currentVariant =
+                product.variants && product.variants[valIdx];
+              if (!currentVariant) return val;
+
+              const variantValue = currentVariant.option_value;
+              return val.variant_val.map((v, vIdx) => {
+                const newValue = variantValue[vIdx];
+                return newValue
+                  ? typeof newValue === "string"
+                    ? newValue
+                    : newValue.val
+                  : v;
+              }) as string[];
+            });
+
+            return {
+              ...stock,
+              variant_val: updatedVariantValues,
+            };
+          });
+
+          setproduct((prev) => ({
+            ...prev,
+            varaintstock: updatedStock,
+          }));
+        }
       }
     }
   };
@@ -293,22 +335,31 @@ export const Variantcontainer = ({
     const { variants, varaintstock } = product;
     if (!variants || idx < 0 || idx >= variants.length) return;
 
-    const variantId = variants[idx].id;
-
-    if (globalindex.producteditindex !== -1 && variantId !== undefined) {
-      const req = await Deletevairiant(variantId);
-      if (!req.success) {
-        errorToast(req.message ?? "Error Occured");
-        return;
-      }
-    }
-
-    const updatedVariants = variants.filter((_, index) => index !== idx);
+    const updatedVariants = variants.filter((_, i) => i !== idx);
 
     if (varaintstock) {
+      let updatedStock = [...varaintstock];
+
+      updatedStock = updatedStock.filter((stock) => {
+        const match = stock.stockvalue.every((val, valIdx) => {
+          const currentVariant = updatedVariants[valIdx];
+          if (!currentVariant) return false;
+
+          const variantValue = currentVariant.option_value;
+          return variantValue.some(
+            (v) =>
+              (typeof v === "string" ? val.variant_val : v.val) ===
+              val.variant_val
+          );
+        });
+
+        return !match;
+      });
+
       setproduct((prev) => ({
         ...prev,
         variants: updatedVariants,
+        varaintstock: updatedStock,
       }));
     } else {
       setproduct((prev) => ({
@@ -321,12 +372,9 @@ export const Variantcontainer = ({
   };
 
   const handleDeleteVaraint = (idx: number) => {
-    if (edit !== -1) {
-      let update = { ...temp };
-      update?.value?.splice(idx, 1);
-      settemp(update as variantdatatype);
-      setedit(-1);
-    }
+    let update = { ...temp };
+    update?.value?.splice(idx, 1);
+    settemp(update as variantdatatype);
   };
 
   const handleSelectTemplate = (id: number) => {
@@ -402,15 +450,25 @@ export const Variantcontainer = ({
 
     const stockArray = product.varaintstock ? [...product.varaintstock] : [];
 
-    const stockValues = GenerateCombinations(Object.values(selectedvalues));
-    const newStock = {
-      variant_val: stockValues,
+    const stockValues = MapSelectedValuesToVariant(
+      selectedvalues,
+      product.variants?.map((i) => i.option_title) ?? []
+    );
+
+    const newStock: Stocktype = {
       qty: parseInt(stock, 10),
+      stockvalue: stockValues.map((i) => ({
+        qty: parseInt(stock, 10),
+        variant_val: i,
+      })),
     };
 
     if (edit === -1) {
       const isOverlap = stockArray.some((item) =>
-        HasPartialOverlap(item.variant_val, stockValues)
+        HasPartialOverlap(
+          item.stockvalue.map((i) => i.variant_val),
+          stockValues
+        )
       );
 
       if (isOverlap) {
@@ -612,7 +670,6 @@ export const Variantcontainer = ({
               <div className="color_container w-full h-fit flex flex-col gap-y-5">
                 <ColorSelectModal
                   handleAddColor={handleAddColor}
-                  handleDeleteVaraint={handleDeleteVaraint}
                   edit={edit}
                   setedit={setedit}
                   open={open.addcolor}
@@ -670,7 +727,10 @@ export const Variantcontainer = ({
               <>
                 {open.addoption && (
                   <Modal closestate="none" customZIndex={150}>
-                    <form className="addoption w-1/3 h-1/3 bg-white p-3 flex flex-col gap-y-5 items-center justify-start rounded-md">
+                    <form
+                      onSubmit={(e) => handleUpdateVariantOption(e)}
+                      className="addoption w-1/3 h-1/3 bg-white p-3 flex flex-col gap-y-5 items-center justify-start rounded-md"
+                    >
                       <input
                         name="option"
                         placeholder="Option (Required)"
@@ -683,11 +743,8 @@ export const Variantcontainer = ({
                         <PrimaryButton
                           text={edit === -1 ? "Create" : "Update"}
                           color="#35C191"
-                          type="button"
+                          type="submit"
                           disable={option === ""}
-                          onClick={() => {
-                            handleUpdateVariantOption();
-                          }}
                           width="100%"
                           textsize="12px"
                           radius="10px"
@@ -709,21 +766,6 @@ export const Variantcontainer = ({
                           height="35px"
                         />
                       </div>
-                      {edit !== -1 && (
-                        <PrimaryButton
-                          text="Delete"
-                          type="button"
-                          textsize="12px"
-                          radius="10px"
-                          width="100%"
-                          onClick={() => {
-                            handleDeleteVaraint(edit);
-                            setopen((prev) => ({ ...prev, addoption: false }));
-                          }}
-                          height="40px"
-                          color="lightcoral"
-                        />
-                      )}
                     </form>
                   </Modal>
                 )}
@@ -745,13 +787,19 @@ export const Variantcontainer = ({
                       </h3>
                     )}
                     {temp?.value.map((i, idx) => (
-                      <h3
-                        key={idx}
-                        onClick={() => handleColorSelect(idx, "text")}
-                        className="option text-[15px] cursor-pointer p-2 rounded-lg text-black outline outline-2 outline-black font-normal transition duration-200 w-fit h-fit"
+                      <Badge
+                        content="-"
+                        color="danger"
+                        onClick={() => handleDeleteVaraint(idx)}
                       >
-                        {i.toString()}
-                      </h3>
+                        <h3
+                          key={idx}
+                          onClick={() => handleColorSelect(idx, "text")}
+                          className="option text-[15px] cursor-pointer p-2 rounded-lg text-black outline outline-2 outline-black font-normal transition duration-200 w-fit h-fit"
+                        >
+                          {i.toString()}
+                        </h3>
+                      </Badge>
                     ))}
                   </div>
                 </div>
@@ -872,28 +920,6 @@ export const Variantcontainer = ({
       </div>
 
       <div className="flex flex-row justify-end gap-x-5 w-full h-fit bg-white rounded-b-lg p-2">
-        {newadd === "stockinfo" && edit !== -1 && (
-          <PrimaryButton
-            text="Delete"
-            type="button"
-            onClick={() => {
-              let updatestock = product.varaintstock;
-
-              updatestock && updatestock.splice(addstock, 1);
-              setaddstock(-1);
-              setproduct((prev) => ({
-                ...prev,
-                varaintstock: updatestock,
-              }));
-              setnew("stock");
-            }}
-            width="30%"
-            height="40px"
-            radius="10px"
-            color="#674C54"
-          />
-        )}
-
         <PrimaryButton
           text={newadd !== "none" ? "Back" : "Close"}
           onClick={() => handleBack()}

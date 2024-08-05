@@ -1,4 +1,3 @@
-import { ProductState } from "@/src/context/GlobalContext";
 import {
   CreateProduct,
   DeleteProduct,

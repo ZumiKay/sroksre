@@ -12,6 +12,7 @@ import { Banner } from "../component/HomePage/Component";
 import { format } from "date-fns";
 import { getDiscountedPrice } from "@/src/lib/utilities";
 import { cache } from "react";
+import NotFound from "../not-found";
 
 interface ProductParam {
   p?: string;
@@ -28,6 +29,8 @@ interface ProductParam {
   ppid?: string;
   pids?: string;
   bid?: string;
+  all?: string;
+  sort?: string;
 }
 export const revalidate = 3600;
 
@@ -143,6 +146,12 @@ export function IsNumber(str: string) {
   // Check if the parsed number is not NaN and is finite
   return !isNaN(num) && isFinite(num);
 }
+
+const isArrayWithEmptyStrings = (arr?: string[]): boolean => {
+  if (!arr) return false;
+  return arr.every((item) => item === "");
+};
+
 export default async function ProductsPage({
   searchParams,
 }: {
@@ -162,6 +171,8 @@ export default async function ProductsPage({
     ppid,
     pids,
     bid,
+    all,
+    sort,
   } = searchParams as unknown as ProductParam;
 
   const isColor = color?.split(",");
@@ -172,15 +183,41 @@ export default async function ProductsPage({
   const page = p ?? "1";
   const limit = show ?? "1";
 
+  if (searchParams && Object.entries(searchParams).length === 0) {
+    return NotFound();
+  }
+
+  //Verify all search Params///
+  if (
+    isArrayWithEmptyStrings(isColor) ||
+    isArrayWithEmptyStrings(isSize) ||
+    isArrayWithEmptyStrings(isOther) ||
+    isArrayWithEmptyStrings(isPromo) ||
+    isArrayWithEmptyStrings(isSelectProduct) ||
+    (p && p === "") ||
+    (limit && limit === "") ||
+    (all && all === "") ||
+    (bid && bid === "") ||
+    (search && search === "") ||
+    (promoid && promoid === "") ||
+    (ppid && ppid === "") ||
+    (pids && pids === "") ||
+    (pid && pid === "") ||
+    (cid && cid === "") ||
+    (sort && (sort === "" || parseInt(sort) > 2))
+  ) {
+    return notFound();
+  }
   if (
     !IsNumber(limit) ||
     (pid && !IsNumber(pid)) ||
-    (cid ? !IsNumber(cid) : false) ||
+    (cid && !IsNumber(cid)) ||
     !IsNumber(page) ||
-    (promo && !IsNumber(promo)) ||
     (promoid && !IsNumber(promoid)) ||
     (ppid && !IsNumber(ppid)) ||
-    (bid && !IsNumber(bid))
+    (bid && !IsNumber(bid)) ||
+    (all && !IsNumber(all)) ||
+    (sort && !IsNumber(sort))
   ) {
     return notFound();
   }
@@ -191,6 +228,8 @@ export default async function ProductsPage({
     return notFound();
   }
 
+  ///////////
+
   const promotion =
     promoid &&
     (await fetchPromotion(parseInt(promoid), parseInt(page), parseInt(limit)));
@@ -198,14 +237,23 @@ export default async function ProductsPage({
   const allpromotion = ppid && (await getAllPromotion());
   const allproduct =
     !ppid &&
-    (await GetListProduct(page, limit, pid ?? "0", cid, {
-      color: isColor,
-      size: isSize,
-      other: isOther,
-      promo: isPromo,
-      selectpids: isSelectProduct,
-      search,
-    }));
+    (await GetListProduct(
+      page,
+      limit,
+      pid ?? "0",
+      cid,
+      cate.type === "latest",
+      {
+        color: isColor,
+        size: isSize,
+        other: isOther,
+        promo: isPromo,
+        selectpids: isSelectProduct,
+        search,
+      },
+      all,
+      sort ? parseInt(sort) : undefined
+    ));
 
   if (allproduct && !allproduct.success) {
     throw Error(allproduct.error);
@@ -213,8 +261,6 @@ export default async function ProductsPage({
   if (promoid && !promotion) {
     return notFound();
   }
-
-  console.log(cate);
 
   const banner = bid && (await GetBannerLink(parseInt(bid, 10)));
 
@@ -239,13 +285,15 @@ export default async function ProductsPage({
               ? promotion.name
               : banner
               ? banner.name
+              : all
+              ? "All Products"
               : (cate && (cate.sub ? cate.sub.name : cate.name)) ?? ""
           }`}
         </h2>
         <div className="path_container flex flex-row items-center gap-x-3 w-full pl-5 text-left text-lg font-light border-b-2 border-b-black p-2">
           <Link href={"/"}>
             <div className="transition hover:text-gray-300 cursor-pointer">
-              Home /
+              Home / {all ? "All" : ""}
             </div>
           </Link>
           <Link
@@ -267,16 +315,16 @@ export default async function ProductsPage({
             </Link>
           )}
         </div>
-        {pid && (
+        {(all || pid) && (
           <div className="filter_container  min-w-[350px] h-[40px] mt-3 pl-5 flex flex-row gap-x-3 items-center ">
             {/* sort selection */}
             <ProductFilterButton
               pid={pid ?? "0"}
               cid={cid}
               color={isColor}
-              size={isSize}
               other={isOther}
               search={search}
+              promo={isPromo}
               isPromotion={!!promoid}
               productcount={
                 allproduct && allproduct.count

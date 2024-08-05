@@ -12,8 +12,8 @@ import {
   ProductStockType,
   Productinitailizestate,
   Stocktype,
+  VariantColorValueType,
   Varianttype,
-  infovaluetype,
 } from "@/src/context/GlobalContext";
 import { ChangeEvent, useEffect, useState } from "react";
 import { ApiRequest, useEffectOnce } from "@/src/context/CustomHook";
@@ -54,23 +54,26 @@ const errormessInitialize = {
 const getQtyBasedOnOptions = (
   variantstock: Stocktype[],
   orderdetail: Productorderdetailtype[]
-) => {
-  let totalqty = 0;
+): number => {
+  // Create a Set of order detail values for faster lookup
+  const orderdetailValuesSet = new Set(
+    orderdetail.map((i) => i.option_value).filter(Boolean)
+  );
 
-  let orderdetailvalue = orderdetail.map((i) => i.option_value).filter(Boolean);
+  for (const stock of variantstock) {
+    for (const variant of stock.variant_val) {
+      const filteredVariant = variant.filter((val) => val !== "null");
 
-  variantstock.forEach((i) => {
-    const varaint_val = i.variant_val.filter((val) => val !== "null");
-
-    if (
-      varaint_val.length === orderdetailvalue.length &&
-      varaint_val.every((val) => orderdetailvalue.includes(val))
-    ) {
-      totalqty = i.qty;
+      if (
+        filteredVariant.length === orderdetailValuesSet.size &&
+        filteredVariant.every((val) => orderdetailValuesSet.has(val))
+      ) {
+        return stock.qty; // Early return on first match
+      }
     }
-  });
+  }
 
-  return totalqty;
+  return 0;
 };
 
 const Productdetailinitialize: Productordertype = {
@@ -206,70 +209,31 @@ export default function ProductDetail({ params, isAdmin }: productdetailprops) {
           orderDetail.details.filter((i) => i)
         )
       : 0;
+
     setqty(maxqty);
     if (
       orderDetail.details
         .filter((i) => i)
-        .every((i) => i.option_value.length === 0)
+        .every((i) =>
+          typeof i.option_value === "string"
+            ? i.option_value.length === 0
+            : i.option_value.val.length === 0
+        )
     ) {
       mess.qty = "";
     } else {
       mess.qty = maxqty === 0 ? "Product Unvaliable" : "";
     }
     mess.option = "";
-    await inCartCheck(
-      orderDetail.details.filter((i) => i && i.option_title.length !== 0)
-    );
+
+    if (maxqty) {
+      await inCartCheck(
+        orderDetail.details.filter((i) => i && i.option_title.length !== 0)
+      );
+    }
     setmess(mess);
 
     setproductorderdetail(orderDetail);
-  };
-
-  const handleSelectSize = async (event: ChangeEvent<HTMLSelectElement>) => {
-    const { value } = event.target;
-    let orderdetail = { ...productorderdetail } as Productordertype;
-    let probdetail = [...orderdetail.details].filter((i) => i);
-    const isExist = probdetail.findIndex((i) => i.option_type === "SIZE");
-    if (isExist === -1) {
-      probdetail.push({
-        option_title: "Size",
-        option_type: "SIZE",
-        option_value: value,
-      });
-    } else {
-      if (value.length === 0) {
-        probdetail.splice(isExist, 1);
-        setincart(false);
-      } else {
-        probdetail[isExist].option_value = value;
-      }
-
-      //check in cart
-    }
-    let size = prob.details.filter((i) => i.info_type === "SIZE");
-    let toqty = 0;
-
-    size.forEach((i) => {
-      i.info_value.forEach((j) => {
-        const { val, qty } = j as infovaluetype;
-        if (val === value) {
-          toqty = qty;
-        }
-      });
-    });
-
-    if (value.length === 0) {
-      toqty = 0;
-    }
-    await inCartCheck(
-      probdetail.filter((i) => i && i.option_title.length !== 0)
-    );
-    setmess(errormessInitialize);
-    setqty(toqty);
-
-    setproductorderdetail(
-      (prev) => ({ ...prev, details: probdetail } as Productordertype)
-    );
   };
 
   const handleChange = (
@@ -310,6 +274,7 @@ export default function ProductDetail({ params, isAdmin }: productdetailprops) {
           style={{ height: "50px", width: "200px", maxWidth: "250px" }}
           onChange={(e) => handleChange(e, isStock)}
           disable={max === 0 || incart}
+          value={productorderdetail.quantity}
           name="quantity"
         />
 
@@ -326,32 +291,10 @@ export default function ProductDetail({ params, isAdmin }: productdetailprops) {
     );
   };
 
-  const size = () => {
-    const sizedata = prob.details.find((i) => i.info_type === "SIZE")
-      ?.info_value as infovaluetype[];
-    const data = sizedata.map((i) => i.val);
-
-    return (
-      <div className="w-full h-fit flex flex-col gap-y-1">
-        <label htmlFor="size" className="text-lg font-bold">
-          Size
-        </label>
-        <Selection
-          onChange={handleSelectSize}
-          default="Size"
-          defaultValue={""}
-          data={data}
-          style={{ height: "50px", width: "200px", maxWidth: "250px" }}
-        />
-        {stock(qty)}
-      </div>
-    );
-  };
-
   const Variant = (
     name: string,
     type: "COLOR" | "TEXT",
-    data: string[],
+    data: (string | VariantColorValueType)[],
     idx: number
   ) => {
     let orderdetail = { ...productorderdetail } as Productordertype;
@@ -390,8 +333,6 @@ export default function ProductDetail({ params, isAdmin }: productdetailprops) {
       ) : (
         Productunvaliable
       )
-    ) : type === "size" ? (
-      size()
     ) : prob.variants ? (
       <>
         {prob.variants.map((i, idx) =>
@@ -436,7 +377,13 @@ export default function ProductDetail({ params, isAdmin }: productdetailprops) {
     } else {
       const isSelectedDetails =
         details.filter((i) => i).length !== 0 &&
-        details.filter((i) => i).some((i) => i.option_value.length !== 0);
+        details
+          .filter((i) => i)
+          .some((i) =>
+            typeof i.option_value === "string"
+              ? i.option_value.length !== 0
+              : i.option_value.val.length !== 0
+          );
 
       const isValid = isSelectedDetails && ishaveQty;
 
@@ -543,10 +490,11 @@ export default function ProductDetail({ params, isAdmin }: productdetailprops) {
           </h3>
           <ShowPrice price={prob.price} discount={prob.discount} />
 
-          <label className="text-lg font-bold">Other Version</label>
-
           {prob.relatedproduct && prob.relatedproduct.length > 0 && (
-            <ShowRelated />
+            <>
+              <label className="text-lg font-bold">Other Version</label>
+              <ShowRelated />
+            </>
           )}
 
           <div className="w-full h-fit flex flex-col gap-y-5">

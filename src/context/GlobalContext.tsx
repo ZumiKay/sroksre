@@ -81,8 +81,12 @@ export interface Varianttype {
 }
 export interface Stocktype {
   id?: number;
-  variant_val: string[][];
   qty: number;
+  stockvalue: {
+    id?: number;
+    qty: number;
+    variant_val: string[];
+  }[];
 }
 
 export interface Relatedproducttype {

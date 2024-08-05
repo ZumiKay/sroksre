@@ -124,7 +124,9 @@ export async function GET(
         discount: true,
         stock: true,
         stocktype: true,
-        Variant: true,
+        Variant: {
+          orderBy: { id: "asc" },
+        },
         Stock: true,
         description: true,
         parentcategory_id: true,
@@ -214,8 +216,7 @@ export async function GET(
       },
       select: {
         id: true,
-        qty: true,
-        variant_val: true,
+        Stockvalue: true,
       },
     });
 
@@ -223,15 +224,6 @@ export async function GET(
       { data: { varaintstock: stock, variants: variant } },
       { status: 200 }
     );
-  } else if (ty === "size") {
-    const size = await Prisma.products.findUnique({
-      where: { id: pid },
-      select: {
-        details: true,
-      },
-    });
-
-    response = Response.json({ data: size?.details }, { status: 200 });
   } else {
     response = new Response(null, { status: 404 });
   }

@@ -12,15 +12,6 @@ import { SketchPicker } from "react-color";
 import { Input } from "@nextui-org/react";
 import { StockSelect } from "./Stock";
 
-const convertSelectedValuesToSet = (
-  selectedValues: { [key: string]: string[] } | undefined
-): Set<string> => {
-  if (!selectedValues) return new Set([]);
-
-  const flattenedValues = Object.values(selectedValues).flat();
-  return new Set(flattenedValues);
-};
-
 interface ManageStockContainerProps {
   newadd: string;
   stock: string;
@@ -36,15 +27,32 @@ interface ManageStockContainerProps {
   >;
 }
 
-export function GenerateCombinations(arrays: string[][]): string[][] {
+function GenerateCombinations(arrays: (string[] | undefined)[]): string[][] {
   if (arrays.length === 0) return [[]];
 
   const [first, ...rest] = arrays;
   const restCombinations = GenerateCombinations(rest);
 
-  return first.flatMap((value) =>
-    restCombinations.map((combination) => [value, ...combination])
+  if (first) {
+    return first.flatMap((value) =>
+      restCombinations.map((combination) => [value, ...combination])
+    );
+  } else {
+    return restCombinations.map((combination) => ["", ...combination]);
+  }
+}
+
+export function MapSelectedValuesToVariant(
+  selectedValues: { [key: string]: string[] },
+  variantKeys: string[]
+): string[][] {
+  const arrays: (string[] | undefined)[] = variantKeys.map(
+    (key) => selectedValues[key] || [""]
   );
+
+  const combinations = GenerateCombinations(arrays);
+
+  return combinations;
 }
 
 const groupSelectedValue = (data: string[][], variants: Varianttype[]) => {
@@ -83,9 +91,14 @@ export function ManageStockContainer({
 }: ManageStockContainerProps) {
   const { product, setproduct } = useGlobalContext();
 
-  const handleSelectVariant = (value: Set<string>, label: string) => {
+  const handleSelectVariant = (
+    value: Set<string>,
+    label: string,
+    varIdx: number
+  ) => {
     setselectedstock((prevSelectedStock) => {
       const updatedStock = { ...prevSelectedStock };
+
       updatedStock[label] = Array.from(value);
       return updatedStock;
     });
@@ -120,14 +133,16 @@ export function ManageStockContainer({
           <div className="createstock_container flex flex-col w-full h-full items-center justify-start mt-2">
             <h2 className="text-lg font-medium">Please Choose Variants</h2>
             <div className="variantlist relative border-b-0 border-2 border-gray-300 rounded-lg flex flex-col items-center justify-start gap-y-5 w-[90%] h-full max-h-[60vh] p-5 overflow-y-auto">
-              {product.variants?.map((item) => {
+              {product.variants?.map((item, idx) => {
                 return (
                   <StockSelect
                     key={item.option_title}
                     id={item.id}
                     data={{ type: item.option_type, value: item.option_value }}
                     label={item.option_title}
-                    onSelect={(e) => handleSelectVariant(e, item.option_title)}
+                    onSelect={(e) =>
+                      handleSelectVariant(e, item.option_title, idx)
+                    }
                     value={selectedstock[item.option_title] ?? []}
                   />
                 );
@@ -228,7 +243,7 @@ interface ColorSelectModal {
   open: boolean;
   setopen: (val: boolean) => void;
   setedit: React.Dispatch<React.SetStateAction<number>>;
-  handleDeleteVaraint: (idx: number) => void;
+
   color: Colortype;
   name: string;
   setcolor: (value: Colortype | string) => void;
@@ -238,7 +253,6 @@ export const ColorSelectModal = ({
   handleAddColor,
   edit,
   setedit,
-  handleDeleteVaraint,
   color,
   setcolor,
   name,
@@ -303,31 +317,16 @@ export const ColorSelectModal = ({
               }
             ></div>
 
-            <PrimaryButton
-              text={edit === -1 ? "Confirm" : "Update"}
-              type="submit"
-              disable={color.hex === ""}
-              width="100%"
-              textsize="13px"
-              radius="10px"
-              height="35px"
-            />
             <div className="action-btn flex flex-row w-full gap-x-3">
-              {edit !== -1 && (
-                <PrimaryButton
-                  text="Delete"
-                  color="lightcoral"
-                  type="button"
-                  onClick={() => {
-                    handleDeleteVaraint(edit);
-                    setopen(false);
-                  }}
-                  width="100%"
-                  textsize="12px"
-                  radius="10px"
-                  height="35px"
-                />
-              )}
+              <PrimaryButton
+                text={edit === -1 ? "Confirm" : "Update"}
+                type="submit"
+                disable={color.hex === ""}
+                width="100%"
+                textsize="13px"
+                radius="10px"
+                height="35px"
+              />
               <PrimaryButton
                 text="Close"
                 color="black"

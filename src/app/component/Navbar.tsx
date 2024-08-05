@@ -123,8 +123,9 @@ export default function Navbar({
   }, []);
 
   return (
-    <nav className="navbar__container sticky top-0 z-[99] w-full h-[60px] bg-[#F3F3F3] flex flex-row justify-between item-center pl-5 pr-5">
-      <div className="first_section  w-1/2 h-fit p-1">
+    <nav className="navbar__container sticky top-0 z-[99] w-full h-[60px] bg-[#F3F3F3] flex flex-row justify-between item-center">
+      {categories && <CategoriesContainer setopen={setcategories} />}
+      <div className="first_section  w-1/2 h-fit pl-3">
         <Image
           className="menu_icon w-[50px] h-[50px] object-fill transition rounded-md"
           onClick={() => setcategories(!categories)}
@@ -132,7 +133,6 @@ export default function Navbar({
           alt="menu"
           style={categories ? { backgroundColor: "lightgray" } : {}}
         />
-        {categories && <CategoriesContainer setopen={setcategories} />}
       </div>
       <div className="second_section  w-full h-fit relative top-2 flex justify-center">
         <Image
@@ -142,7 +142,7 @@ export default function Navbar({
           onClick={() => router.push("/")}
         />
       </div>
-      <div className="third_section  w-1/2 h-full flex flex-row gap-x-10 items-center justify-end pr-10c">
+      <div className="third_section  w-1/2 h-full flex flex-row gap-x-10 items-center justify-end pr-10">
         <Image
           src={Search}
           alt="search"
@@ -206,7 +206,7 @@ export default function Navbar({
   );
 }
 const CategoriesContainer = (props: { setopen: any }) => {
-  const [allcate, setallcate] = useState<Array<CateogoryState> | []>([]);
+  const [allcate, setallcate] = useState<Array<CateogoryState>>();
   const [loading, setloading] = useState(true);
   const router = useRouter();
   const fetchcate = async () => {
@@ -224,42 +224,68 @@ const CategoriesContainer = (props: { setopen: any }) => {
       onMouseLeave={() => props.setopen(false)}
       className="categories__container grid md:grid-cols-6 sm:grid-cols-4  place-items-start w-full min-h-[50vh] absolute top-[57px] z-[99] bg-[#F3F3F3] "
     >
-      {loading && <LoadingText />}
-      {allcate.map((i) => (
-        <div
-          key={i.id}
-          className="category flex flex-col w-[15vw] min-w-[10vw] pt-10  items-center justify-start p-1"
-        >
+      {loading ? (
+        <LoadingText />
+      ) : (
+        <div className="category flex flex-col w-[15vw] min-w-[10vw] pt-10  items-center justify-start p-1 gap-y-5">
           <h3
-            onClick={() =>
-              router.push(
-                `/product?${
-                  i.type === "normal" ? `pid=${i.id}` : `ppid=${i.id}`
-                }`
-              )
-            }
-            className="category_header bg-[#495464] transition cursor-pointer hover:bg-white hover:text-black active:bg-white active:text-black rounded-md p-3 min-w-[150px] h-fit  break-words  text-center text-white font-medium"
+            onClick={() => router.push("/product?all=1")}
+            className="category_header  bg-[#495464] transition cursor-pointer hover:bg-white hover:text-black active:bg-white active:text-black rounded-md p-3 min-w-[150px] h-fit  break-words  text-center text-white font-medium"
           >
-            {" "}
-            {i.name}
+            All
           </h3>
-          <div className="category_subheader h-full grid row-span-3 gap-y-5 pt-7 font-normal text-center">
-            {i.subcategories.map((sub) => (
-              <Link
-                key={sub.id}
-                href={`/product?pid=${i.id}${
-                  sub.type === "normal"
-                    ? `&cid=${sub.id}`
-                    : `&promoid=${sub.pid}`
-                }`}
-                scroll={true}
+          {allcate
+            ?.filter((i) => i.type === "latest" || i.type === "popular")
+            .map((item, idx) => (
+              <h3
+                key={idx}
+                onClick={() => router.push(`/product?pid=${item.id}`)}
+                className="category_header bg-[#495464] transition cursor-pointer hover:bg-white hover:text-black active:bg-white active:text-black rounded-md p-3 min-w-[150px] h-fit  break-words  text-center text-white font-medium"
               >
-                <h4 className="subcategory"> {sub.name} </h4>
-              </Link>
+                {" "}
+                {item.name}
+              </h3>
             ))}
-          </div>
         </div>
-      ))}
+      )}
+
+      {allcate
+        ?.filter((i) => i.type !== "latest")
+        .map((i) => (
+          <div
+            key={i.id}
+            className="category flex flex-col w-[15vw] min-w-[10vw] pt-10  items-center justify-start p-1"
+          >
+            <h3
+              onClick={() =>
+                router.push(
+                  `/product?${
+                    i.type === "normal" ? `pid=${i.id}` : `ppid=${i.id}`
+                  }`
+                )
+              }
+              className="category_header bg-[#495464] transition cursor-pointer hover:bg-white hover:text-black active:bg-white active:text-black rounded-md p-3 min-w-[150px] h-fit  break-words  text-center text-white font-medium"
+            >
+              {" "}
+              {i.name}
+            </h3>
+            <div className="category_subheader h-full grid row-span-3 gap-y-5 pt-7 font-normal text-center">
+              {i.subcategories.map((sub) => (
+                <Link
+                  key={sub.id}
+                  href={`/product?pid=${i.id}${
+                    sub.type === "normal"
+                      ? `&cid=${sub.id}`
+                      : `&promoid=${sub.pid}`
+                  }`}
+                  scroll={true}
+                >
+                  <h4 className="subcategory"> {sub.name} </h4>
+                </Link>
+              ))}
+            </div>
+          </div>
+        ))}
     </div>
   );
 };
