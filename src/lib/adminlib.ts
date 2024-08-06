@@ -434,7 +434,7 @@ const updateProductVariantStock = async (
               Stockvalue: {
                 createMany: {
                   data: stock.stockvalue.map((i) => ({
-                    qty: i.qty,
+                    qty: i.qty ?? 0,
                     variant_val: i.variant_val,
                   })),
                 },

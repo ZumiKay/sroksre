@@ -49,6 +49,24 @@ export const Colorinitalize: Colortype = {
   },
 };
 
+export const ArraysAreEqualSets = (
+  array1: string[],
+  array2: string[]
+): boolean => {
+  if (array1.length !== array2.length) return false;
+
+  const set1 = new Set(array1);
+  const set2 = new Set(array2);
+
+  if (set1.size !== set2.size) return false;
+
+  const set1Array = Array.from(set1);
+  for (let i = 0; i < set1Array.length; i++) {
+    if (!set2.has(set1Array[i])) return false;
+  }
+
+  return true;
+};
 export type Variantcontainertype =
   | "variant"
   | "stock"
@@ -85,6 +103,7 @@ export const Variantcontainer = ({
   const [name, setname] = useState("");
   const [stock, setstock] = useState("");
   const [templates, settemplates] = useState<VariantTemplateType[] | []>([]);
+  const [editsubstockidx, seteditsubstockidx] = useState(-1);
   const [edittemplate, setedittemplate] = useState<
     VariantTemplateType | undefined
   >(undefined);
@@ -128,25 +147,6 @@ export const Variantcontainer = ({
       setproduct((prev) => ({ ...prev, ...response.data }));
     };
     await Delayloading(asyncfetchdata, setloading, 1000);
-  };
-  const handleUpdateVariant = async (idx: number) => {
-    setloading(true);
-
-    const updateReq = await ApiRequest(
-      "/api/products/crud",
-      undefined,
-      "PUT",
-      "JSON",
-      {
-        id: idx,
-        ...product,
-      }
-    );
-    setloading(false);
-    if (!updateReq.success) {
-      return null;
-    }
-    return true;
   };
 
   useEffect(() => {
@@ -438,13 +438,17 @@ export const Variantcontainer = ({
     }
   };
 
-  const handleCreateAndUpdateVariantStock = () => {
+  const handleCreateAndUpdateVariantStock = (addnew?: boolean) => {
     if (
       !selectedvalues ||
       !stock ||
       Object.values(selectedvalues).some((v) => v.length === 0)
     ) {
-      setnew("stock");
+      if (edit !== -1 && !addnew) setedit(-1);
+      if (selectedvalues) setselectedvalues(undefined);
+      if (stock) setstock("");
+      if (!addnew) setnew("stock");
+
       return;
     }
 
@@ -455,15 +459,16 @@ export const Variantcontainer = ({
       product.variants?.map((i) => i.option_title) ?? []
     );
 
+    const parsedQty = parseInt(stock, 10);
+
     const newStock: Stocktype = {
-      qty: parseInt(stock, 10),
+      qty: parsedQty,
       stockvalue: stockValues.map((i) => ({
-        qty: parseInt(stock, 10),
+        qty: parsedQty,
         variant_val: i,
       })),
     };
-
-    if (edit === -1) {
+    if (edit === -1 || newadd) {
       const isOverlap = stockArray.some((item) =>
         HasPartialOverlap(
           item.stockvalue.map((i) => i.variant_val),
@@ -473,18 +478,37 @@ export const Variantcontainer = ({
 
       if (isOverlap) {
         errorToast("Stock Existed");
+        setstock("");
+        setselectedvalues(undefined);
         return;
       }
+    }
+
+    if (edit === -1) {
       stockArray.push(newStock);
     } else {
-      stockArray[edit] = newStock;
-      setedit(-1);
+      const existingStock = stockArray[edit];
+      const updatedStockValue = existingStock.stockvalue.map((i) => {
+        const isMatch = stockValues.some((val) =>
+          ArraysAreEqualSets(val, i.variant_val)
+        );
+        return isMatch ? { ...i, qty: parsedQty } : i;
+      });
+
+      if (addnew) {
+        stockValues.forEach((i) => {
+          updatedStockValue.push({ qty: parsedQty, variant_val: i });
+        });
+      }
+
+      stockArray[edit].stockvalue = updatedStockValue;
+      if (!addnew) setedit(-1);
     }
 
     setproduct((prev) => ({ ...prev, varaintstock: stockArray }));
     setselectedvalues(undefined);
     setstock("");
-    setnew("stock");
+    if (!addnew) setnew("stock");
   };
 
   const handleDeleteColor = (idx: number) => {
@@ -583,6 +607,11 @@ export const Variantcontainer = ({
               setaddstock={setaddstock}
               selectedstock={selectedvalues ?? {}}
               setselectedstock={setselectedvalues}
+              editsubidx={editsubstockidx}
+              seteditsubidx={seteditsubstockidx}
+              handleUpdateStock={(isAddnew) =>
+                handleCreateAndUpdateVariantStock(isAddnew)
+              }
             />
           )
         )}
@@ -885,7 +914,13 @@ export const Variantcontainer = ({
                 </div>
               </div>
               <div
-                onClick={() => setnew("stock")}
+                onClick={() => {
+                  if (!product.variants || product.variants.length === 0) {
+                    errorToast("Please Create Variant");
+                    return;
+                  }
+                  setnew("stock");
+                }}
                 className="card w-[350px] h-[250px] bg-blue-300 rounded-lg grid place-content-center place-items-center transition duration-200 cursor-pointer hover:bg-transparent hover:outline hover:outline-1 hover:outline-black"
               >
                 <Image
@@ -920,15 +955,17 @@ export const Variantcontainer = ({
       </div>
 
       <div className="flex flex-row justify-end gap-x-5 w-full h-fit bg-white rounded-b-lg p-2">
-        <PrimaryButton
-          text={newadd !== "none" ? "Back" : "Close"}
-          onClick={() => handleBack()}
-          type="button"
-          width="30%"
-          height="40px"
-          color="lightcoral"
-          radius="10px"
-        />
+        {editsubstockidx === -1 && (
+          <PrimaryButton
+            text={newadd !== "none" ? "Back" : "Close"}
+            onClick={() => handleBack()}
+            type="button"
+            width="30%"
+            height="40px"
+            color="lightcoral"
+            radius="10px"
+          />
+        )}
       </div>
     </Modal>
   );

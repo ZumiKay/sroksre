@@ -127,7 +127,18 @@ export async function GET(
         Variant: {
           orderBy: { id: "asc" },
         },
-        Stock: true,
+        Stock: {
+          select: {
+            id: true,
+            Stockvalue: {
+              select: {
+                id: true,
+                qty: true,
+                variant_val: true,
+              },
+            },
+          },
+        },
         description: true,
         parentcategory_id: true,
         childcategory_id: true,
@@ -216,7 +227,13 @@ export async function GET(
       },
       select: {
         id: true,
-        Stockvalue: true,
+        Stockvalue: {
+          select: {
+            id: true,
+            qty: true,
+            variant_val: true,
+          },
+        },
       },
     });
 

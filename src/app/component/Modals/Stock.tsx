@@ -18,7 +18,8 @@ import {
   Theme,
   useTheme,
 } from "@mui/material";
-import { useEffect } from "react";
+
+import { Chip as NextChip } from "@nextui-org/chip";
 
 export const UpdateStockModal = ({
   action,
@@ -138,15 +139,15 @@ export function StockSelect({
         <Select
           labelId="demo-multiple-chip-label"
           id="demo-multiple-chip"
+          value={value}
           multiple
-          value={value[0] === "" ? [] : value}
           onChange={(e) => {
             const { value } = e.target;
-            const setvalue = new Set(value);
+            const setvalue = new Set(value as string[]);
             onSelect(setvalue);
           }}
           input={<OutlinedInput id="select-multiple-chip" label="Chip" />}
-          renderValue={(selected) =>
+          renderValue={(selected: string[]) =>
             selected.length > 0 && (
               <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
                 {selected.map((value) => (
@@ -221,5 +222,30 @@ export function StockSelect({
         </Select>
       </FormControl>
     </div>
+  );
+}
+
+interface Stockcardprops {
+  label: string;
+  color?: string;
+  onClick?: () => void;
+}
+
+export function StockCard({ label, color, onClick }: Stockcardprops) {
+  return (
+    <NextChip
+      onClick={() => onClick && onClick()}
+      size="lg"
+      startContent={
+        color && (
+          <div
+            style={{ backgroundColor: color }}
+            className="w-[20px] h-[20px] rounded-full"
+          ></div>
+        )
+      }
+    >
+      {label}
+    </NextChip>
   );
 }
