@@ -3,7 +3,7 @@ import {
   VariantColorValueType,
   Varianttype,
 } from "@/src/context/GlobalContext";
-import React, { ChangeEvent, FormEvent, useState } from "react";
+import React, { ChangeEvent, FormEvent, useEffect, useState } from "react";
 import PrimaryButton from "../Button";
 import {
   ArraysAreEqualSets,
@@ -34,6 +34,9 @@ interface ManageStockContainerProps {
   handleUpdateStock: (isAddnew?: boolean) => void;
   editsubidx: number;
   seteditsubidx: React.Dispatch<React.SetStateAction<number>>;
+  setadded: React.Dispatch<React.SetStateAction<number>>;
+  isAddNew: boolean;
+  setisAddNew: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 function GenerateCombinations(arrays: (string[] | undefined)[]): string[][] {
@@ -100,9 +103,30 @@ export function ManageStockContainer({
   handleUpdateStock,
   editsubidx,
   seteditsubidx,
+  setadded,
+  isAddNew,
+  setisAddNew,
 }: ManageStockContainerProps) {
   const { product, setproduct } = useGlobalContext();
-  const [isAddNew, setisAddNew] = useState(false);
+  const [lowstock, setlowstock] = useState(0);
+
+  const countLowStock = () => {
+    let totallowstock = 0;
+
+    product.varaintstock?.forEach((stock) => {
+      stock.Stockvalue.forEach((i) => {
+        if (i.qty <= 5) {
+          totallowstock += 1;
+        }
+      });
+    });
+
+    setlowstock(totallowstock);
+  };
+
+  useEffect(() => {
+    countLowStock();
+  }, [product]);
 
   const handleSelectVariant = (value: Set<string>, label: string) => {
     setselectedstock((prevSelectedStock) => {
@@ -118,7 +142,7 @@ export function ManageStockContainer({
     //extract reponsible stock value for selected value
     if (product.varaintstock && product.variants) {
       const createdstock = groupSelectedValue(
-        product.varaintstock[idx].stockvalue.map((i) => i.variant_val),
+        product.varaintstock[idx].Stockvalue.map((i) => i.variant_val),
         product.variants
       );
       setselectedstock(createdstock as any);
@@ -150,7 +174,7 @@ export function ManageStockContainer({
 
     const updatedStock = product.varaintstock.map((stock) => ({
       ...stock,
-      stockvalue: stock.stockvalue.filter((_, stockIdx) => stockIdx !== idx),
+      stockvalue: stock.Stockvalue.splice(idx, 1),
     }));
 
     setproduct((prev) => ({ ...prev, varaintstock: updatedStock }));
@@ -196,7 +220,7 @@ export function ManageStockContainer({
 
     const hasChangedVariantValues = stockValues.some(
       (val) =>
-        !updatestockvalue.stockvalue.some((i) =>
+        !updatestockvalue.Stockvalue.some((i) =>
           ArraysAreEqualSets(val, i.variant_val)
         )
     );
@@ -206,7 +230,7 @@ export function ManageStockContainer({
         (item, idx) =>
           idx !== edit &&
           HasPartialOverlap(
-            item.stockvalue.map((i) => i.variant_val),
+            item.Stockvalue.map((i) => i.variant_val),
             stockValues
           )
       );
@@ -215,15 +239,15 @@ export function ManageStockContainer({
         return;
       }
 
-      updatestockvalue.stockvalue.splice(idx, 1);
+      updatestockvalue.Stockvalue.splice(idx, 1);
       stockValues.forEach((i) => {
-        updatestockvalue.stockvalue.push({
+        updatestockvalue.Stockvalue.push({
           qty: parseInt(stock, 10),
           variant_val: i,
         });
       });
     } else {
-      updatestockvalue.stockvalue[idx].qty = parseInt(stock, 10);
+      updatestockvalue.Stockvalue[idx].qty = parseInt(stock, 10);
     }
 
     setproduct((prev) => ({ ...prev, varaintstock: stockArray }));
@@ -236,7 +260,7 @@ export function ManageStockContainer({
     if (!product || !product.variants) return null;
 
     const { variants, varaintstock } = product;
-    const stockValues = varaintstock && varaintstock[edit].stockvalue;
+    const stockValues = varaintstock && varaintstock[edit].Stockvalue;
 
     return stockValues?.map((i, idx) => (
       <Badge
@@ -248,7 +272,8 @@ export function ManageStockContainer({
           onClick={() => {
             handleSubStockClick(i.variant_val, i.qty.toString(), idx);
           }}
-          className="w-fit h-fit flex flex-col gap-y-3 border-2 border-gray-300 rounded-lg p-2 cursor-pointer transition-colors hover:border-gray-500 active:border-black"
+          style={i.qty <= 5 ? { border: "3px solid lightcoral" } : {}}
+          className="w-fit h-fit flex flex-col gap-y-3 rounded-lg p-2 border-2 border-gray-300 cursor-pointer transition-colors hover:border-gray-500 active:border-black"
         >
           {i.variant_val.map((item, idx) => {
             const variant = variants[idx];
@@ -263,7 +288,7 @@ export function ManageStockContainer({
             return (
               <StockCard
                 key={`${i.variant_val}-${idx}`}
-                label={item}
+                label={isColor ? selectedValue?.name ?? "" : item}
                 color={selectedValue ? selectedValue.val : undefined}
               />
             );
@@ -273,14 +298,41 @@ export function ManageStockContainer({
     ));
   };
 
+  const handleBackEditSubStock = () => {
+    if (editsubidx !== -1) {
+      setselectedstock(undefined);
+      setstock("");
+      seteditsubidx(-1);
+    } else if (isAddNew) {
+      setisAddNew(false);
+    }
+  };
+
   return (
     <>
       <div className="stock_container w-full h-full relative">
         {newadd === "stockinfo" ? (
-          <div className="createstock_container flex flex-col w-full h-full items-center justify-start mt-2">
+          <div className="createstock_container flex flex-col w-full h-full items-center justify-start gap-y-3">
+            {(editsubidx !== -1 || isAddNew) && (
+              <Button
+                className="self-start ml-2"
+                color="danger"
+                variant="bordered"
+                startContent={<div> {"<"}</div>}
+                onClick={() => handleBackEditSubStock()}
+              >
+                Back
+              </Button>
+            )}
             <h3 className="text-lg font-medium">
               {edit === -1 ? "Please Choose Variant" : "Edit Stock"}{" "}
             </h3>
+
+            {lowstock !== 0 && (
+              <div className="text-red-500 text-sm font-medium">
+                Low Stock: {lowstock}
+              </div>
+            )}
 
             {edit === -1 || isAddNew || editsubidx !== -1 ? (
               <div className="variantlist relative border-b-0 border-2 border-gray-300 rounded-lg flex flex-col items-center justify-start gap-y-5 w-[90%] h-full max-h-[60vh] p-5 overflow-y-auto">
@@ -316,14 +368,14 @@ export function ManageStockContainer({
                   fullWidth
                   startContent={<div className="font-light text-3xl"> + </div>}
                   variant="bordered"
-                  color={isAddNew ? "danger" : "primary"}
+                  color={isAddNew ? "success" : "primary"}
                   onClick={() =>
                     editsubidx === -1
                       ? handleAddNewSubStock()
                       : handleUpdateSubStock(editsubidx)
                   }
                 >
-                  {editsubidx !== -1 ? "Update" : isAddNew ? "Back" : "Add New"}
+                  {editsubidx !== -1 ? "Update" : "Add New"}
                 </Button>
               )}
               {(edit === -1 || isAddNew || editsubidx !== -1) && (
@@ -352,6 +404,11 @@ export function ManageStockContainer({
                 product.varaintstock.map((i, idx) => (
                   <div
                     key={idx}
+                    style={
+                      i.isLowStock
+                        ? { borderRight: "5px solid lightcoral" }
+                        : {}
+                    }
                     className="stockcard w-full h-[50px] flex flex-row items-center justify-evenly p-2 outline outline-2 outline-gray-300 rounded-lg transition duration-200 hover:bg-gray-300"
                   >
                     <h3 className="name text-lg font-semibold w-full">
@@ -398,6 +455,7 @@ export function ManageStockContainer({
                   errorToast("Please Create Variant");
                   return;
                 }
+                setadded(1);
                 setnew("stockinfo");
               }}
             />

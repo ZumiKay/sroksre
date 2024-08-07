@@ -59,7 +59,6 @@ export default function PaginationCustom({
   setshow,
   onSelectShowPerPage,
 }: PaginationCustomProps) {
-  const { setreloaddata } = useGlobalContext();
   const router = useRouter();
   const searchParam = useSearchParams();
 
@@ -68,7 +67,7 @@ export default function PaginationCustom({
     params.set("p", `${p}`);
     setpage && setpage(p);
     router.replace(`?${params}`, { scroll: false });
-    setreloaddata(true);
+    router.refresh();
   };
 
   return (

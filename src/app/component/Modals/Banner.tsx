@@ -43,7 +43,6 @@ export const BannerModal = () => {
     setglobalindex,
     setisLoading,
     isLoading,
-    setreloaddata,
   } = useGlobalContext();
   const [isEdit, setisEdit] = useState(false);
   const router = useRouter();
@@ -187,8 +186,8 @@ export const BannerModal = () => {
         successToast("Banner Updated");
       }
       setisEdit(false);
-      setreloaddata(true);
       setbanner(BannerInitialize);
+      router.refresh();
     } else {
       errorToast("Image is required");
     }

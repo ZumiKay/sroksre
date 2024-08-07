@@ -326,7 +326,7 @@ export const CreateProduct = async (
                 Stockvalue: {
                   createMany: {
                     data: {
-                      variant_val: i.stockvalue,
+                      variant_val: i.Stockvalue,
                       qty: i.qty,
                     },
                   },
@@ -410,22 +410,59 @@ const updateProductVariantStock = async (
 
     const updatePromises: any = [];
     const createPromises: any = [];
+    const deleteStockValuePromises: any = [];
 
-    variantstock.forEach((stock) => {
+    for (const stock of variantstock) {
       if (stock.id) {
-        stock.stockvalue.forEach((i) =>
-          updatePromises.push(
-            Prisma.stockvalue.update({
+        // Get existing stock values to identify which ones to delete
+        const existingStockValues = await Prisma.stockvalue.findMany({
+          where: {
+            stockId: stock.id,
+          },
+        });
+
+        const stockValueIdsToDelete = existingStockValues
+          .filter(
+            (existing) =>
+              !stock.Stockvalue.some((current) => current.id === existing.id)
+          )
+          .map((sv) => sv.id);
+
+        if (stockValueIdsToDelete.length > 0) {
+          deleteStockValuePromises.push(
+            Prisma.stockvalue.deleteMany({
               where: {
-                id: i.id,
-              },
-              data: {
-                qty: i.qty,
-                variant_val: i.variant_val,
+                id: { in: stockValueIdsToDelete },
               },
             })
-          )
-        );
+          );
+        }
+
+        stock.Stockvalue.forEach((i) => {
+          if (i.id) {
+            updatePromises.push(
+              Prisma.stockvalue.update({
+                where: {
+                  id: i.id,
+                },
+                data: {
+                  qty: i.qty,
+                  variant_val: i.variant_val,
+                },
+              })
+            );
+          } else {
+            updatePromises.push(
+              Prisma.stockvalue.create({
+                data: {
+                  stockId: stock.id as number,
+                  qty: i.qty ?? 0,
+                  variant_val: i.variant_val,
+                },
+              })
+            );
+          }
+        });
       } else {
         createPromises.push(
           Prisma.stock.create({
@@ -433,7 +470,7 @@ const updateProductVariantStock = async (
               product_id: id,
               Stockvalue: {
                 createMany: {
-                  data: stock.stockvalue.map((i) => ({
+                  data: stock.Stockvalue.map((i) => ({
                     qty: i.qty ?? 0,
                     variant_val: i.variant_val,
                   })),
@@ -443,9 +480,13 @@ const updateProductVariantStock = async (
           })
         );
       }
-    });
+    }
 
-    await Promise.all([...updatePromises, ...createPromises]);
+    await Promise.all([
+      ...updatePromises,
+      ...createPromises,
+      ...deleteStockValuePromises,
+    ]);
 
     return true;
   } catch (error) {
@@ -827,8 +868,23 @@ export const GetAllProduct = async (
     if (!promotionid || promotionid === -1) {
       if (ty === "all") {
         let totallowstock = 0;
-        const allproduct = await Prisma.products.findMany({
-          select: { details: true, stock: true, Stock: true, stocktype: true },
+        let allproduct = await Prisma.products.findMany({
+          select: {
+            details: true,
+            stock: true,
+            Stock: {
+              select: {
+                id: true,
+                Stockvalue: {
+                  select: {
+                    id: true,
+                    qty: true,
+                  },
+                },
+              },
+            },
+            stocktype: true,
+          },
         });
         totalproduct = allproduct.length;
         allproduct.forEach((product) => {
@@ -839,16 +895,12 @@ export const GetAllProduct = async (
             totallowstock += product.stock && product.stock <= 1 ? 1 : 0;
           } else if (isVariant) {
             //Low stock display
-            // product.Stock.forEach((variant) => {
-            //   totallowstock += variant <= 1 ? 1 : 0;
-            // });
-          } else {
-            const sizeDetails =
-              product.details &&
-              (product?.details?.find((detail) => detail.info_type === "SIZE")
-                ?.info_value as any[]);
-            let isSizeLowStock = sizeDetails?.some((size) => size.qty <= 1);
-            isSizeLowStock && (totallowstock += 1);
+            product.Stock.forEach((stock) => {
+              const hasLowStock = stock.Stockvalue.some((i) => i.qty <= 5);
+              if (hasLowStock) {
+                totallowstock += 1;
+              }
+            });
           }
         });
 
@@ -874,7 +926,17 @@ export const GetAllProduct = async (
             price: true,
             stock: true,
             discount: true,
-            Stock: true,
+            Stock: {
+              select: {
+                id: true,
+                Stockvalue: {
+                  select: {
+                    id: true,
+                    qty: true,
+                  },
+                },
+              },
+            },
             stocktype: true,
             details: true,
             parentcategory_id: true,
@@ -888,24 +950,35 @@ export const GetAllProduct = async (
           },
         });
 
-        products = products.filter((prod) => {
-          const isName =
-            query &&
-            removeSpaceAndToLowerCase(prod.name).includes(
-              removeSpaceAndToLowerCase(query)
-            );
+        products = products
+          .filter((prod) => {
+            const isName =
+              query &&
+              removeSpaceAndToLowerCase(prod.name).includes(
+                removeSpaceAndToLowerCase(query)
+              );
 
-          const isPid = parent_cate && prod.parentcategory_id === parent_cate;
-          const isChildId = child_cate && prod.childcategory_id === child_cate;
+            const isPid = parent_cate && prod.parentcategory_id === parent_cate;
+            const isChildId =
+              child_cate && prod.childcategory_id === child_cate;
 
-          const conditions = [
-            query ? isName : true,
-            parent_cate ? isPid : true,
-            child_cate ? isChildId : true,
-          ];
+            const conditions = [
+              query ? isName : true,
+              parent_cate ? isPid : true,
+              child_cate ? isChildId : true,
+            ];
 
-          return conditions.every((i) => i);
-        });
+            return conditions.every((i) => i);
+          })
+          .map((prod) => {
+            let lowstock = false;
+            if (prod.Stock) {
+              prod.Stock.forEach((stock) => {
+                lowstock = stock.Stockvalue.some((sub) => sub.qty <= 5);
+              });
+            }
+            return { ...prod, lowstock };
+          });
 
         totalproduct = products.length;
 

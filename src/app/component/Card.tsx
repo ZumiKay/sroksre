@@ -298,7 +298,7 @@ export default function Card(props: cardprops) {
       </div>
       {openmodal && (
         <>
-          {openmodal[`variant${props.id}`] && (
+          {openmodal[closename] && (
             <Variantcontainer
               type="stock"
               editindex={props.id}
@@ -308,9 +308,7 @@ export default function Card(props: cardprops) {
           {props.id && openmodal[`size${props.id}`] && (
             <Sizecontainer index={props.id} type="edit" closename={closename} />
           )}
-          {openmodal[`stock${props.id}`] && (
-            <UpdateStockModal closename={closename} />
-          )}
+          {openmodal[closename] && <UpdateStockModal closename={closename} />}
         </>
       )}
     </>

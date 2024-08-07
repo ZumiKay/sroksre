@@ -4,7 +4,7 @@ import Prisma from "../../../../lib/prisma";
 import { NextRequest } from "next/server";
 
 import { calculateDiscountProductPrice } from "@/src/lib/utilities";
-import { VariantColorValueType } from "@/src/context/GlobalContext";
+import { Stocktype, VariantColorValueType } from "@/src/context/GlobalContext";
 
 function queryStringToObject(queryString: string) {
   const pairs = queryString.split("_");
@@ -237,8 +237,14 @@ export async function GET(
       },
     });
 
+    const Stock = stock.map((i) => {
+      const isLowStock = i.Stockvalue.some((sub) => sub.qty <= 5);
+
+      return { ...i, isLowStock };
+    });
+
     response = Response.json(
-      { data: { varaintstock: stock, variants: variant } },
+      { data: { varaintstock: Stock, variants: variant } },
       { status: 200 }
     );
   } else {

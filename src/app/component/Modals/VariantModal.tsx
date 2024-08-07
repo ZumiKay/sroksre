@@ -78,13 +78,16 @@ export type Variantcontainertype =
 export const Variantcontainer = ({
   type,
   editindex,
+  closename,
 }: {
   type?: "stock";
   editindex?: number;
+  closename?: string;
 }) => {
-  const { setopenmodal, product, setproduct, globalindex } = useGlobalContext();
+  const { setopenmodal, product, setproduct } = useGlobalContext();
   const [temp, settemp] = useState<variantdatatype>();
   const [reloadtemp, setreloadtemp] = useState(true);
+  const [reloadstock, setreloadstock] = useState(false);
 
   const [colordata, setcolordata] = useState({
     color: Colorinitalize,
@@ -104,6 +107,7 @@ export const Variantcontainer = ({
   const [stock, setstock] = useState("");
   const [templates, settemplates] = useState<VariantTemplateType[] | []>([]);
   const [editsubstockidx, seteditsubstockidx] = useState(-1);
+  const [addNewSubStock, setaddNewSubStock] = useState(false);
   const [edittemplate, setedittemplate] = useState<
     VariantTemplateType | undefined
   >(undefined);
@@ -144,9 +148,10 @@ export const Variantcontainer = ({
         errorToast("Error Connection");
         return;
       }
+
       setproduct((prev) => ({ ...prev, ...response.data }));
     };
-    await Delayloading(asyncfetchdata, setloading, 1000);
+    await Delayloading(asyncfetchdata, setloading, 500);
   };
 
   useEffect(() => {
@@ -154,7 +159,7 @@ export const Variantcontainer = ({
       type &&
       type === ProductStockType.stock &&
       fetchstock(editindex);
-  }, []);
+  }, [reloadstock]);
 
   useEffect(() => {
     FetchTemplate();
@@ -190,12 +195,6 @@ export const Variantcontainer = ({
       ];
     } else {
       if (added !== -1) {
-        if (product.varaintstock) {
-          const stock = [...product.varaintstock];
-
-          setproduct((prev) => ({ ...prev, varaintstock: stock }));
-        }
-
         update[added] = {
           option_title: name,
           option_type: temp?.type as "COLOR" | "TEXT",
@@ -301,7 +300,7 @@ export const Variantcontainer = ({
         if (product.varaintstock) {
           let updatedStock = [...product.varaintstock];
           updatedStock = updatedStock.map((stock) => {
-            const updatedVariantValues = stock.stockvalue.map((val, valIdx) => {
+            const updatedVariantValues = stock.Stockvalue.map((val, valIdx) => {
               const currentVariant =
                 product.variants && product.variants[valIdx];
               if (!currentVariant) return val;
@@ -341,7 +340,7 @@ export const Variantcontainer = ({
       let updatedStock = [...varaintstock];
 
       updatedStock = updatedStock.filter((stock) => {
-        const match = stock.stockvalue.every((val, valIdx) => {
+        const match = stock.Stockvalue.every((val, valIdx) => {
           const currentVariant = updatedVariants[valIdx];
           if (!currentVariant) return false;
 
@@ -420,14 +419,8 @@ export const Variantcontainer = ({
       setopenmodal((prev) => ({ ...prev, addproductvariant: false }));
       return;
     } else {
-      if (newadd === "stockinfo") {
-        if (!selectedvalues && !stock) {
-          setnew("stock");
-          return;
-        }
-
+      if (newadd === "stockinfo" || editindex) {
         handleCreateAndUpdateVariantStock();
-
         return;
       }
       if (newadd === "type") {
@@ -438,7 +431,7 @@ export const Variantcontainer = ({
     }
   };
 
-  const handleCreateAndUpdateVariantStock = (addnew?: boolean) => {
+  const handleCreateAndUpdateVariantStock = async (addnew?: boolean) => {
     if (
       !selectedvalues ||
       !stock ||
@@ -447,8 +440,13 @@ export const Variantcontainer = ({
       if (edit !== -1 && !addnew) setedit(-1);
       if (selectedvalues) setselectedvalues(undefined);
       if (stock) setstock("");
+
       if (!addnew) setnew("stock");
 
+      if (added === -1 && edit === -1 && closename) {
+        setopenmodal((prev) => ({ ...prev, [closename]: false }));
+      }
+      setadded(-1);
       return;
     }
 
@@ -463,7 +461,7 @@ export const Variantcontainer = ({
 
     const newStock: Stocktype = {
       qty: parsedQty,
-      stockvalue: stockValues.map((i) => ({
+      Stockvalue: stockValues.map((i) => ({
         qty: parsedQty,
         variant_val: i,
       })),
@@ -471,7 +469,7 @@ export const Variantcontainer = ({
     if (edit === -1 || newadd) {
       const isOverlap = stockArray.some((item) =>
         HasPartialOverlap(
-          item.stockvalue.map((i) => i.variant_val),
+          item.Stockvalue.map((i) => i.variant_val),
           stockValues
         )
       );
@@ -488,7 +486,7 @@ export const Variantcontainer = ({
       stockArray.push(newStock);
     } else {
       const existingStock = stockArray[edit];
-      const updatedStockValue = existingStock.stockvalue.map((i) => {
+      const updatedStockValue = existingStock.Stockvalue.map((i) => {
         const isMatch = stockValues.some((val) =>
           ArraysAreEqualSets(val, i.variant_val)
         );
@@ -501,9 +499,11 @@ export const Variantcontainer = ({
         });
       }
 
-      stockArray[edit].stockvalue = updatedStockValue;
+      stockArray[edit].Stockvalue = updatedStockValue;
       if (!addnew) setedit(-1);
     }
+
+    //update Stock When In Product Edit Mode
 
     setproduct((prev) => ({ ...prev, varaintstock: stockArray }));
     setselectedvalues(undefined);
@@ -515,6 +515,31 @@ export const Variantcontainer = ({
     const update = { ...temp };
     update.value?.splice(idx, 1);
     settemp(update as any);
+  };
+
+  const handleSaveUpdateSubStock = async () => {
+    setloading(true);
+    const res = await ApiRequest(
+      "/api/products/crud",
+      undefined,
+      "PUT",
+      "JSON",
+      {
+        id: editindex,
+        varaintstock: product.varaintstock,
+        type: "editvariantstock",
+      }
+    );
+    setloading(false);
+    if (!res.success) {
+      errorToast("Error occured");
+      return;
+    }
+    setedit(-1);
+    setselectedvalues(undefined);
+    setstock("");
+    setnew("stock");
+    setreloadstock(true);
   };
 
   return (
@@ -609,6 +634,9 @@ export const Variantcontainer = ({
               setselectedstock={setselectedvalues}
               editsubidx={editsubstockidx}
               seteditsubidx={seteditsubstockidx}
+              setadded={setadded}
+              isAddNew={addNewSubStock}
+              setisAddNew={setaddNewSubStock}
               handleUpdateStock={(isAddnew) =>
                 handleCreateAndUpdateVariantStock(isAddnew)
               }
@@ -954,7 +982,23 @@ export const Variantcontainer = ({
         )}
       </div>
 
-      <div className="flex flex-row justify-end gap-x-5 w-full h-fit bg-white rounded-b-lg p-2">
+      <div className="flex flex-row justify-end gap-x-5 w-full h-fit bg-white rounded-b-lg p-2 border-t-2 border-gray-500">
+        {editindex &&
+          closename &&
+          edit !== -1 &&
+          editsubstockidx === -1 &&
+          !addNewSubStock && (
+            <Button
+              onClick={() => handleSaveUpdateSubStock()}
+              className="w-[30%]"
+              color="success"
+              variant="bordered"
+              isLoading={loading}
+            >
+              Update
+            </Button>
+          )}
+
         {editsubstockidx === -1 && (
           <PrimaryButton
             text={newadd !== "none" ? "Back" : "Close"}

@@ -463,8 +463,8 @@ export const ConfirmModal = () => {
     setinventoryfilter,
     globalindex,
     setglobalindex,
-    setreloaddata,
   } = useGlobalContext();
+  const router = useRouter();
   const handleConfirm = async (confirm: boolean) => {
     if (confirm) {
       const URL = "/api/image";
@@ -572,7 +572,7 @@ export const ConfirmModal = () => {
           setglobalindex((prev) => ({ ...prev, useredit: -1 }));
           setopenmodal((prev) => ({ ...prev, createUser: false }));
         }
-        setreloaddata(true);
+        router.refresh();
       }
     }
 

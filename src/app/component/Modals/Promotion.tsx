@@ -39,7 +39,6 @@ export const CreatePromotionModal = ({
     isLoading,
     globalindex,
     setglobalindex,
-    setreloaddata,
   } = useGlobalContext();
 
   const router = useRouter();
@@ -119,10 +118,11 @@ export const CreatePromotionModal = ({
         param.delete(key);
       }
     });
-    setreloaddata(true);
+
     setglobalindex((prev) => ({ ...prev, promotioneditindex: -1 }));
     setopenmodal((prev) => ({ ...prev, createPromotion: false }));
     router.push(`?${param}`);
+    router.refresh();
   };
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     setpromotion((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -151,10 +151,10 @@ export const CreatePromotionModal = ({
     });
 
     setpromotion(PromotionInitialize);
-    setreloaddata(true);
     setglobalindex((prev) => ({ ...prev, promotioneditindex: -1 }));
     setopenmodal((prev) => ({ ...prev, createPromotion: false }));
     router.push(`?${param}`);
+    router.refresh();
   };
   const handleSelectProduct = (type: "product" | "banner") => {
     const param = new URLSearchParams(searchParams);
@@ -276,14 +276,9 @@ export const CreatePromotionModal = ({
 };
 
 export const DiscountModals = () => {
-  const {
-    promotion,
-    allData,
-    setpromotion,
-    globalindex,
-    setopenmodal,
-    setreloaddata,
-  } = useGlobalContext();
+  const { promotion, allData, setpromotion, globalindex, setopenmodal } =
+    useGlobalContext();
+  const router = useRouter();
   const [discount, setdiscount] = useState<number>(0);
 
   useEffect(() => {
@@ -349,13 +344,13 @@ export const DiscountModals = () => {
 
     //update product
 
-    setreloaddata(true);
-
     setpromotion((prev) => ({ ...prev, Products: promoproduct }));
 
     setopenmodal((prev) => ({ ...prev, discount: false }));
 
     successToast("Discount Set");
+
+    router.refresh();
   };
 
   return (

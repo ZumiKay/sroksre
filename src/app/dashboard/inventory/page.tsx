@@ -82,8 +82,6 @@ export default function Inventory({
     setpromotion,
     itemlength,
     setitemlength,
-    reloaddata,
-    setreloaddata,
   } = useGlobalContext();
   const {
     ty: type,
@@ -139,11 +137,9 @@ export default function Inventory({
     if (isValid) {
       return redirect(`/dashboard/inventory?ty=${type}&p=1&limit=1`);
     }
-    if (reloaddata) {
-      fetchdata(promotion.id);
-    }
+
+    fetchdata(promotion.id);
   }, [
-    type,
     page,
     limit,
     status,
@@ -154,7 +150,7 @@ export default function Inventory({
     childcate,
     expiredate,
     promotion.id,
-    reloaddata,
+    type,
   ]);
 
   const fetchdata = async (pid?: number) => {
@@ -277,13 +273,12 @@ export default function Inventory({
       };
 
       await Delayloading(makerequest, setloaded, 500);
+      console.log("Fetch data");
 
       ///Make Request
     } catch (error) {
       console.log("Inventory Fetch Error", error);
       errorToast("Error Occrued, Relaod is Required");
-    } finally {
-      setreloaddata(false);
     }
   };
 
@@ -294,7 +289,6 @@ export default function Inventory({
     param.set("limit", value.toString());
     setpage(1);
     router.push(`?${param}`);
-    setreloaddata(true);
   };
 
   const handleUpdateProductBannerPromotion = async (
@@ -358,7 +352,6 @@ export default function Inventory({
   const handleFilter = (e: ChangeEvent<HTMLSelectElement>) => {
     const params = new URLSearchParams(searchParam);
     const value = e.target.value.toLowerCase();
-    setalldata(AllDataInitialize);
 
     params.set("ty", value);
     params.set("p", "1");
@@ -373,7 +366,6 @@ export default function Inventory({
     setpage(1);
     setshow("1");
 
-    setreloaddata(true);
     router.push(`?${params}`);
   };
 

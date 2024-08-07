@@ -24,6 +24,7 @@ import { Variantcontainer } from "./VariantModal";
 import { ImageUpload } from "./Image";
 import { Input } from "@nextui-org/react";
 import { VariantIcon } from "../Asset";
+import { useRouter } from "next/navigation";
 
 const stockTypeData = [
   {
@@ -46,8 +47,9 @@ export function CreateProducts() {
     setglobalindex,
     isLoading,
     setisLoading,
-    setreloaddata,
   } = useGlobalContext();
+
+  const router = useRouter();
 
   const [edit, setedit] = useState({
     productdetail: false,
@@ -181,9 +183,9 @@ export function CreateProducts() {
       successToast(`${product.name} Updated`);
     }
 
-    setreloaddata(true);
-
     setedit((prev) => ({ ...prev, productinfo: false }));
+    setopenmodal((prev) => ({ ...prev, createProduct: false }));
+    router.refresh();
   };
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {

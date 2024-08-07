@@ -20,6 +20,7 @@ import {
 } from "@mui/material";
 
 import { Chip as NextChip } from "@nextui-org/chip";
+import { useRouter } from "next/navigation";
 
 export const UpdateStockModal = ({
   action,
@@ -28,14 +29,9 @@ export const UpdateStockModal = ({
   action?: () => void;
   closename: string;
 }) => {
-  const {
-    product,
-    setproduct,
-    setreloaddata,
-    setopenmodal,
-    isLoading,
-    setisLoading,
-  } = useGlobalContext();
+  const { product, setproduct, setopenmodal, isLoading, setisLoading } =
+    useGlobalContext();
+  const router = useRouter();
 
   const handleUpdate = async () => {
     const update = await ApiRequest(
@@ -51,9 +47,10 @@ export const UpdateStockModal = ({
     }
 
     setproduct(Productinitailizestate);
-    setreloaddata(true);
+
     successToast("Stock Updated");
     setopenmodal((prev) => ({ ...prev, [closename]: false }));
+    router.refresh();
   };
   return (
     <Modal closestate={closename}>
