@@ -1,6 +1,7 @@
 "use server";
 
 import Prisma from "@/src/lib/prisma";
+import { revalidatePath } from "next/cache";
 
 interface returntype {
   success: boolean;
@@ -10,7 +11,10 @@ interface returntype {
 export interface Addpolicytype {
   id?: number;
   title: string;
-  paragraph: string[];
+  Paragraph: {
+    id?: number;
+    content: string;
+  }[];
 }
 
 export interface Addquestiontype {
@@ -43,7 +47,7 @@ export const AddPolicyOrQuestion = async (
           title: policy.title,
           Paragraph: {
             createMany: {
-              data: policy.paragraph.map((p) => ({ content: p })),
+              data: policy.Paragraph.map((p) => ({ content: p.content })),
             },
           },
         },
@@ -52,6 +56,8 @@ export const AddPolicyOrQuestion = async (
       return { success: false, message: "Invalid request" };
     }
 
+    revalidatePath("/privacyandpolicy");
+
     return { success: true, message: "Created Successfully" };
   } catch (error) {
     console.log("Create Policy Error", error);
@@ -59,19 +65,25 @@ export const AddPolicyOrQuestion = async (
   }
 };
 
-interface updatepolicytype {
-  id: number;
-  title: string;
-  paragraph: {
-    id: number;
-    content: string;
-  };
-}
+export const getPolicy = async (qid?: number, pid?: number) => {
+  if (!qid && !pid) {
+    return { success: false, message: "Invalid data" };
+  }
+
+  const result = await (qid
+    ? Prisma.question.findUnique({ where: { id: qid } })
+    : Prisma.policy.findUnique({
+        where: { id: pid },
+        include: { Paragraph: true },
+      }));
+
+  return { success: true, data: result };
+};
 
 export const updateQuestionOrPolicy = async (
   type: "question" | "policy",
   question?: Addquestiontype,
-  policy?: updatepolicytype
+  policy?: Addpolicytype
 ): Promise<returntype> => {
   if (!type && !question && !policy) {
     return { success: false, message: "Invalid request" };
@@ -88,24 +100,22 @@ export const updateQuestionOrPolicy = async (
         },
       });
     } else {
-      await Prisma.policy.update({
-        where: {
-          id: policy?.id as number,
-        },
-        data: {
-          title: policy?.title,
-          Paragraph: {
-            update: {
-              where: { id: policy?.paragraph.id },
-              data: {
-                content: policy?.paragraph.content,
+      if (policy?.Paragraph && policy.Paragraph.length > 0) {
+        await Promise.all(
+          policy.Paragraph.map((i) =>
+            Prisma.paragraph.upsert({
+              where: { id: i.id || 0 },
+              update: { content: i.content },
+              create: {
+                policyId: policy?.id as number,
+                content: i.content,
               },
-            },
-          },
-        },
-      });
+            })
+          )
+        );
+      }
     }
-
+    revalidatePath("/privacyandpolicy");
     return { success: true, message: "Update successfuly" };
   } catch (error) {
     console.log("Update Policy", error);
@@ -133,14 +143,56 @@ export const DeleteQP = async ({
       await Prisma.question.delete({ where: { id: qid } });
     } else if (pid && !ppid) {
       await Prisma.policy.delete({ where: { id: pid } });
-    } else if (pid && ppid) {
-      await Prisma.paragraph.delete({ where: { id: ppid } });
-      await Prisma.policy.delete({ where: { id: pid } });
+    } else if (pid || ppid) {
+      ppid && (await Prisma.paragraph.delete({ where: { id: ppid } }));
+      pid && (await Prisma.policy.delete({ where: { id: pid } }));
     }
 
+    revalidatePath("/privacyandpolicy");
     return { success: true, message: "Delete successfully" };
   } catch (error) {
     console.log("Delete Policy", error);
     return { success: false, message: "Error occured" };
   }
 };
+
+export const getAllPolicy = async () => {
+  const result = await Prisma.policy.findMany({
+    select: {
+      id: true,
+      title: true,
+    },
+  });
+  return result;
+};
+
+export const getPolicyById = async (id: number) => {
+  if (id === 0) {
+    const questions = await Prisma.question.findMany({
+      select: {
+        id: true,
+        question: true,
+        answer: true,
+      },
+    });
+    return questions;
+  }
+
+  const result = await Prisma.policy.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      title: true,
+      Paragraph: {
+        select: {
+          id: true,
+          content: true,
+        },
+      },
+    },
+  });
+
+  return result;
+};
+
+export const getAllQuestion = async () => {};

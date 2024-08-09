@@ -1,13 +1,15 @@
 import { PromotionState } from "@/src/context/GlobalContext";
-import Prisma from "@/src/lib/prisma";
+
 import { NextRequest } from "next/server";
-import { extractQueryParams } from "../banner/route";
+import { extractQueryParams, generateLink } from "../banner/route";
 import {
   caculateArrayPagination,
   calculatePagination,
+  removeSpaceAndToLowerCase,
 } from "@/src/lib/utilities";
 import { revalidateTag } from "next/cache";
-import dayjs, { Dayjs } from "dayjs";
+import dayjs from "dayjs";
+import Prisma from "@/src/lib/prisma";
 
 export async function POST(request: NextRequest) {
   try {
@@ -26,7 +28,9 @@ export async function POST(request: NextRequest) {
         name: promodata.name,
         description: promodata.description,
         banner_id: promodata.banner_id,
-        expireAt: new Date(promodata.expireAt.toString()),
+        expireAt: promodata.expireAt
+          ? new Date(promodata.expireAt.toString())
+          : new Date(),
       },
     });
 
@@ -45,6 +49,21 @@ export async function POST(request: NextRequest) {
         })
       )
     );
+
+    if (promodata.banner_id) {
+      const link = generateLink(
+        "promotion",
+        undefined,
+        undefined,
+        undefined,
+        promodata.banner_id,
+        create.id
+      );
+      await Prisma.banner.update({
+        where: { id: promodata.banner_id },
+        data: { link },
+      });
+    }
 
     revalidateTag("promotion");
     return Response.json({ data: { id: create.id } }, { status: 200 });
@@ -72,8 +91,9 @@ export async function PUT(request: NextRequest) {
         existingPromotion &&
         (existingPromotion.name !== updatedata.name ||
           existingPromotion.description !== updatedata.description ||
-          existingPromotion.expireAt !==
-            new Date(updatedata.expireAt.toString()))
+          (updatedata.expireAt &&
+            existingPromotion.expireAt !==
+              new Date(updatedata.expireAt.toString())))
       );
     };
 
@@ -83,7 +103,7 @@ export async function PUT(request: NextRequest) {
         data: {
           name: updatedata.name,
           description: updatedata.description,
-          expireAt: updatedata.expireAt as unknown as Date,
+          expireAt: new Date(updatedata.expireAt as any),
         },
       });
     };
@@ -100,6 +120,15 @@ export async function PUT(request: NextRequest) {
           where: { id: updatedata.id },
           data: { banner_id: updatedata.banner_id },
         });
+        const banner = await Prisma.banner.findUnique({
+          where: { id: existingBanner.banner_id as number },
+        });
+        if (banner) {
+          await Prisma.banner.update({
+            where: { id: banner.id },
+            data: { link: null },
+          });
+        }
       }
     } else if (updatedata.type === "editproducts") {
       await Promise.all(
@@ -156,8 +185,6 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    revalidateTag("promotion");
-    revalidateTag("product");
     return Response.json({ message: "Update Successfully" }, { status: 200 });
   } catch (error) {
     console.error("Edit Promotion", error);
@@ -169,16 +196,30 @@ export async function DELETE(request: NextRequest) {
   try {
     const { id } = await request.json();
 
+    const promo = await Prisma.promotion.findUnique({ where: { id } });
+
     //delete product promotion
+    if (!promo) {
+      throw new Error("Promotion not found");
+    }
     await Prisma.products.updateMany({
       where: {
-        promotion_id: id,
+        promotion_id: promo.id,
       },
       data: {
         promotion_id: null,
         discount: null,
       },
     });
+
+    if (promo.banner_id) {
+      await Prisma.banner.update({
+        where: {
+          id: promo.banner_id as number,
+        },
+        data: { link: null },
+      });
+    }
 
     await Prisma.promotion.delete({ where: { id } });
 
@@ -197,68 +238,62 @@ interface customparamPromotion {
   ty?: string;
   p?: number;
   q?: string;
+  expired?: number;
 }
+
 export async function GET(request: NextRequest) {
   try {
     const URL = request.nextUrl.toString();
     const param: customparamPromotion = extractQueryParams(URL);
-    let modified;
+    let modified = {};
+    let expirecount = 0;
+
+    const now = dayjs(new Date());
+
+    // Count expired promotions
+    const countexpiredPromo = await Prisma.promotion.findMany({
+      select: { expireAt: true },
+    });
+
+    expirecount = countexpiredPromo.filter(
+      (i) => dayjs(i.expireAt).isBefore(now) || dayjs(i.expireAt).isSame(now)
+    ).length;
+
+    // Base query condition
+    const baseCondition = {
+      name: param.q
+        ? {
+            contains: removeSpaceAndToLowerCase(param.q),
+            mode: "insensitive",
+          }
+        : {},
+      expireAt: param.exp
+        ? {
+            lt: new Date(param.exp as string),
+          }
+        : param.expired
+        ? {
+            lte: new Date(),
+          }
+        : {},
+    };
 
     const total = await Prisma.promotion.count({
       where:
-        param.q || param.exp
-          ? {
-              name: param.q
-                ? {
-                    contains: decodeURIComponent(param.q)
-                      .toString()
-                      .toLowerCase(),
-                  }
-                : {},
-              expireAt: param.exp
-                ? {
-                    lt: new Date(param.exp as string),
-                  }
-                : {},
-            }
-          : {},
+        param.q || param.exp || param.expired ? (baseCondition as any) : {},
     });
+
     const { startIndex, endIndex } = calculatePagination(
       total,
       param.lt as number,
       param.p as number
     );
 
-    if (param.ty === "all") {
-      modified = await Prisma.promotion.findMany({
-        where:
-          param.q || param.exp
-            ? {
-                name: param.q
-                  ? {
-                      contains: decodeURIComponent(param.q)
-                        .toString()
-                        .toLowerCase(),
-                      mode: "insensitive",
-                    }
-                  : undefined,
-                expireAt: param.exp
-                  ? {
-                      lt: new Date(param.exp as string),
-                    }
-                  : undefined,
-              }
-            : {},
-        take: endIndex - startIndex + 1,
-        skip: startIndex,
-        select: {
-          id: true,
-          name: true,
-          banner: true,
-        },
-      });
-    } else if (param.ty === "filter") {
-      let allpromo = await Prisma.promotion.findMany({
+    if (param.ty === "all" || param.ty === "filter") {
+      const promotions = await Prisma.promotion.findMany({
+        where: param.ty === "filter" ? (baseCondition as any) : undefined,
+        take: param.ty === "all" ? endIndex - startIndex + 1 : undefined,
+        skip: param.ty === "all" ? startIndex : undefined,
         select: {
           id: true,
           name: true,
@@ -266,32 +301,34 @@ export async function GET(request: NextRequest) {
           expireAt: true,
         },
       });
-      const compareDatesIgnoringSeconds = (date1: Dayjs, date2: Dayjs) => {
-        const formattedDate1 = date1.format("YYYY-MM-DD HH:mm");
-        const formattedDate2 = date2.format("YYYY-MM-DD HH:mm");
 
-        const isSameDateTime = formattedDate1 === formattedDate2;
+      modified = promotions.map((i) => ({
+        ...i,
+        isExpired:
+          dayjs(i.expireAt).isBefore(now) || dayjs(i.expireAt).isSame(now),
+      }));
 
-        return isSameDateTime;
-      };
-      allpromo = allpromo.filter((promo) => {
-        const matchName =
-          param.q &&
-          promo.name
-            .toLowerCase()
-            .includes(decodeURIComponent(param.q).toLowerCase());
-
-        const matchExpiredDate = compareDatesIgnoringSeconds(
-          dayjs(param.exp),
-          dayjs(promo.expireAt)
+      if (param.ty === "filter") {
+        modified = caculateArrayPagination(
+          modified as any,
+          param.p ?? 1,
+          param.lt ?? 1
         );
-
-        return param.exp && param.q
-          ? matchName && matchExpiredDate
-          : matchName || matchExpiredDate;
+      }
+    } else if (param.ty === "selection") {
+      const promotions = await Prisma.promotion.findMany({
+        where: baseCondition.name as any,
+        select: {
+          id: true,
+          name: true,
+        },
+        take: param.lt,
       });
 
-      modified = caculateArrayPagination(allpromo, param.p ?? 1, param.lt ?? 1);
+      return Response.json(
+        { data: promotions, isLimit: promotions.length <= 5 },
+        { status: 200 }
+      );
     } else {
       const promotion = await Prisma.promotion.findUnique({
         where: {
@@ -299,10 +336,11 @@ export async function GET(request: NextRequest) {
         },
         include: { banner: true, Products: true },
       });
+
       if (promotion) {
         const modifiedProducts = promotion.Products.map((j) => {
           const price = parseFloat(j.price.toString());
-          const discount = parseFloat(j.discount?.toString() as string);
+          const discount = parseFloat(j.discount?.toString() as string) || 0;
 
           return {
             ...j,
@@ -314,18 +352,19 @@ export async function GET(request: NextRequest) {
           };
         });
 
-        modified = {
-          ...promotion,
-
-          Products: modifiedProducts,
-        };
+        modified = { ...promotion, Products: modifiedProducts };
       }
     }
 
-    const totalpromo = param.lt && Math.ceil(total / param.lt);
+    const totalpromo = param.lt ? Math.ceil(total / param.lt) : undefined;
 
     return Response.json(
-      { data: modified, total: total, totalpage: totalpromo },
+      {
+        data: modified,
+        expirecount,
+        total,
+        totalpage: totalpromo,
+      },
       { status: 200 }
     );
   } catch (error) {

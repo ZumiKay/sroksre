@@ -11,7 +11,6 @@ import {
   totalpricetype,
 } from "@/src/context/OrderContext";
 import { Orderproduct } from "@prisma/client";
-import { shippingtype } from "../component/Modals";
 import { revalidatePath } from "next/cache";
 import {
   CountryCode,
@@ -29,6 +28,7 @@ import {
 } from "../component/ServerComponents";
 import { infovaluetype, Stocktype } from "@/src/context/GlobalContext";
 import nodemailer from "nodemailer";
+import { shippingtype } from "../component/Modals/User";
 
 interface Returntype<k = string> {
   success: boolean;
@@ -60,6 +60,7 @@ export async function Createorder(data: {
   incartProduct: number[];
 }): Promise<Returntype<any>> {
   const user = await getUser();
+
   const userid = user?.id;
   let orderId = "";
   try {
@@ -79,7 +80,7 @@ export async function Createorder(data: {
     if (!checkOrder) {
       const create = await Prisma.orders.create({
         data: {
-          buyer_id: userid as string,
+          buyer_id: userid as any,
           status: Allstatus.unpaid,
           price: data.price as any,
           shippingtype: Shippingservice[2].value,
@@ -248,6 +249,18 @@ export async function updateStatus(
 
     // Execute all updates concurrently
     await Promise.all(updates);
+    await Prisma.products.updateMany({
+      where: {
+        id: {
+          in: order.Orderproduct.map((i) => i.productId),
+        },
+      },
+      data: {
+        amount_sold: {
+          increment: 1,
+        },
+      },
+    });
 
     // Update order status
     await Prisma.orders.update({

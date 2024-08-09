@@ -24,7 +24,6 @@ export const verifySession = async (sessionid: string) => {
   });
   if (session) {
     return true;
-  } else {
-    return false;
   }
+  return false;
 };

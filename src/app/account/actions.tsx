@@ -4,7 +4,7 @@ import { Role } from "@prisma/client";
 import { handleEmail, OrderReciptEmail } from "../checkout/action";
 
 export interface userdata {
-  id?: string;
+  id?: number;
   email?: string;
   password?: string;
   confirmpassword?: string;

@@ -1,3 +1,4 @@
+const MillionLint = require("@million/lint");
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
@@ -25,6 +26,11 @@ const nextConfig = {
       "Acg0Px9dS0RhfeZYuZ2cDMTziacWUMn5f0R_7QWdBqx5YJtXj-gXHMGR7kPKqpBDgRdz5sUYbZWCrA9Q",
     BASE_URL: "http://localhost:3000",
   },
+  webpack: (config, options) => {
+    if (!options.dev) {
+      config.devtool = options.isServer ? false : "source-map";
+    }
+    return config;
+  },
 };
-
 module.exports = nextConfig;

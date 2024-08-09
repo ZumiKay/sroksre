@@ -4,6 +4,8 @@ import {
   ProductInfo,
   ProductState,
   Stocktype,
+  SubcategoriesState,
+  VariantColorValueType,
   Varianttype,
   infovaluetype,
   userdata,
@@ -15,6 +17,7 @@ import {
 } from "./utilities";
 
 import Prisma from "./prisma";
+import { Categorytype } from "../app/api/categories/route";
 
 //
 //
@@ -26,10 +29,8 @@ import Prisma from "./prisma";
 
 export interface Categorydata {
   name: string;
-  subcategories: {
-    id?: number;
-    name: string;
-  }[];
+  type?: Categorytype;
+  subcategories: Array<SubcategoriesState>;
 }
 interface ReturnType {
   success: boolean;
@@ -75,27 +76,59 @@ export interface updateCategoryData extends Categorydata {
   id: number;
   childid: number[];
 }
-export const updateCategory = async (
-  data: updateCategoryData
-): Promise<ReturnType> => {
+export const updateCategory = async (data: updateCategoryData) => {
   try {
-    const update = await Prisma.parentcategories.update({
+    // Fetch the existing category data
+    const existingCategory = await Prisma.parentcategories.findUnique({
       where: {
         id: data.id,
       },
-      data: {
-        name: data.name,
+      include: {
+        sub: true,
       },
     });
 
-    if (!update) {
-      return { success: false };
+    if (!existingCategory) {
+      return { success: false, error: "Category not found" };
+    }
+
+    // Check if the parent category name has changed
+    if (
+      existingCategory.name === data.name &&
+      JSON.stringify(
+        existingCategory.sub.map((child) => ({
+          id: child.id,
+          name: child.name,
+          type: child.type,
+          pid: child.pid,
+        }))
+      ) === JSON.stringify(data.subcategories)
+    ) {
+      // No changes detected
+      return { success: true, message: "No changes detected" };
+    }
+
+    // Update the parent category name if it has changed
+    if (existingCategory.name !== data.name) {
+      const update = await Prisma.parentcategories.update({
+        where: {
+          id: data.id,
+        },
+        data: {
+          name: data.name,
+        },
+      });
+
+      if (!update) {
+        return { success: false, error: "Failed to update category" };
+      }
     }
 
     const childIds = data.subcategories
       .filter((child) => child.id)
       .map((child) => child.id);
 
+    // Delete child categories that are not in the new list
     await Prisma.childcategories.deleteMany({
       where: {
         parentcategoriesId: data.id,
@@ -103,6 +136,7 @@ export const updateCategory = async (
       },
     });
 
+    // Upsert child categories (create new ones or update existing ones)
     await Promise.all(
       data.subcategories.map((child) =>
         Prisma.childcategories.upsert({
@@ -111,9 +145,13 @@ export const updateCategory = async (
           },
           update: {
             name: child.name,
+            type: child.type,
+            pid: child.pid,
           },
           create: {
             name: child.name,
+            type: child.type,
+            pid: child.pid,
             Parentcategories: {
               connect: {
                 id: data.id,
@@ -136,22 +174,53 @@ export interface Deletecategorydata {
 }
 export const deleteCategory = async (data: Deletecategorydata) => {
   try {
-    const deletechild = Prisma.childcategories.deleteMany({
-      where: {
-        parentcategoriesId: { in: data.id },
-      },
-    });
-    const deleteparent = Prisma.parentcategories.deleteMany({
+    const categories = await Prisma.parentcategories.findMany({
       where: {
         id: { in: data.id },
       },
+      select: {
+        id: true,
+        type: true,
+      },
     });
-    await Prisma.$transaction([deletechild, deleteparent]);
+
+    await Prisma.$transaction(async (prisma) => {
+      await Promise.all(
+        categories.map((cate) =>
+          cate.type === "normal"
+            ? prisma.products.updateMany({
+                where: {
+                  parentcategory_id: cate.id,
+                },
+                data: {
+                  parentcategory_id: null,
+                },
+              })
+            : prisma.productcategory.deleteMany({
+                where: {
+                  autocategory_id: cate.id,
+                },
+              })
+        )
+      );
+
+      await prisma.childcategories.deleteMany({
+        where: {
+          parentcategoriesId: { in: data.id },
+        },
+      });
+
+      await prisma.parentcategories.deleteMany({
+        where: {
+          id: { in: data.id },
+        },
+      });
+    });
 
     return { success: true };
   } catch (error) {
     console.error("Delete Category", error);
-    throw new Error("Error Occured");
+    throw new Error("Error Occurred");
   }
 };
 //
@@ -181,8 +250,8 @@ export const CreateProduct = async (
           price: parseFloat(data.price.toString()),
           stock: parseInt(`${data.stock}`),
           stocktype: data.stocktype,
-          parentcategory_id: parseInt(data.category.parent_id.toString()),
-          childcategory_id: parseInt(data.category.child_id.toString()),
+          parentcategory_id: data.category.parent_id,
+          childcategory_id: data.category?.child_id,
           covers: {
             createMany: {
               data: data.covers.map((i) => ({
@@ -254,8 +323,14 @@ export const CreateProduct = async (
             Prisma.stock.create({
               data: {
                 product_id: created.id,
-                variant_val: i.variant_val,
-                qty: i.qty,
+                Stockvalue: {
+                  createMany: {
+                    data: {
+                      variant_val: i.Stockvalue,
+                      qty: i.qty,
+                    },
+                  },
+                },
               },
             })
           )
@@ -318,46 +393,101 @@ const updateDetails = async (details: [] | ProductInfo[], id: number) => {
 };
 
 const updateProductVariantStock = async (
-  varaintstock: Stocktype[],
+  variantstock: Stocktype[],
   id: number
-) => {
+): Promise<boolean | null> => {
   try {
-    const stockIdsToDelete = varaintstock
+    const stockIdsToDelete = variantstock
       .filter((i) => i.id)
       .map((i) => i.id) as number[];
+
+    // Delete stocks that are not in the provided list
     await Prisma.stock.deleteMany({
       where: {
         AND: [{ product_id: id }, { id: { notIn: stockIdsToDelete } }],
       },
     });
-    await Promise.all(
-      varaintstock.map((stock) => {
-        if (stock.id) {
-          return Prisma.stock.update({
-            where: {
-              id: stock.id,
-            },
-            data: {
-              variant_val: stock.variant_val,
-              qty: stock.qty,
-            },
-          });
-        } else {
-          return Prisma.stock.create({
-            data: {
-              variant_val: stock.variant_val.map((i) => {
-                if (i === null) {
-                  return `${i}`;
-                }
-                return i;
-              }),
-              qty: stock.qty,
-              product_id: id,
-            },
-          });
+
+    const updatePromises: any = [];
+    const createPromises: any = [];
+    const deleteStockValuePromises: any = [];
+
+    for (const stock of variantstock) {
+      if (stock.id) {
+        // Get existing stock values to identify which ones to delete
+        const existingStockValues = await Prisma.stockvalue.findMany({
+          where: {
+            stockId: stock.id,
+          },
+        });
+
+        const stockValueIdsToDelete = existingStockValues
+          .filter(
+            (existing) =>
+              !stock.Stockvalue.some((current) => current.id === existing.id)
+          )
+          .map((sv) => sv.id);
+
+        if (stockValueIdsToDelete.length > 0) {
+          deleteStockValuePromises.push(
+            Prisma.stockvalue.deleteMany({
+              where: {
+                id: { in: stockValueIdsToDelete },
+              },
+            })
+          );
         }
-      })
-    );
+
+        stock.Stockvalue.forEach((i) => {
+          if (i.id) {
+            updatePromises.push(
+              Prisma.stockvalue.update({
+                where: {
+                  id: i.id,
+                },
+                data: {
+                  qty: i.qty,
+                  variant_val: i.variant_val,
+                },
+              })
+            );
+          } else {
+            updatePromises.push(
+              Prisma.stockvalue.create({
+                data: {
+                  stockId: stock.id as number,
+                  qty: i.qty ?? 0,
+                  variant_val: i.variant_val,
+                },
+              })
+            );
+          }
+        });
+      } else {
+        createPromises.push(
+          Prisma.stock.create({
+            data: {
+              product_id: id,
+              Stockvalue: {
+                createMany: {
+                  data: stock.Stockvalue.map((i) => ({
+                    qty: i.qty ?? 0,
+                    variant_val: i.variant_val,
+                  })),
+                },
+              },
+            },
+          })
+        );
+      }
+    }
+
+    await Promise.all([
+      ...updatePromises,
+      ...createPromises,
+      ...deleteStockValuePromises,
+    ]);
+
     return true;
   } catch (error) {
     console.log("Edit Product", error);
@@ -392,7 +522,7 @@ const handleUpdateProductVariant = async (
             data: {
               option_title: i.option_title,
               option_type: i.option_type,
-              option_value: i.option_value,
+              option_value: i.option_value as any,
             },
           });
         } else {
@@ -401,7 +531,7 @@ const handleUpdateProductVariant = async (
               product_id: id,
               option_title: i.option_title,
               option_type: i.option_type,
-              option_value: i.option_value,
+              option_value: i.option_value as any,
             },
           });
         }
@@ -435,17 +565,40 @@ export const EditProduct = async (
 
     //update stocktype and detail of stock
 
-    await Prisma.products.update({
+    const existProduct = await Prisma.products.findUnique({
       where: { id },
-      data: {
-        stock:
-          stocktype === "variant" || stocktype === "size" ? null : undefined,
-        stocktype,
-        price: parseFloat(price.toString()),
+      include: {
+        Variant: true,
+        Stock: true,
+        covers: true,
+        details: true,
+        relatedproduct: true,
       },
     });
 
-    if (name || description) {
+    if (!existProduct) {
+      return { success: false };
+    }
+
+    if (
+      (stocktype !== undefined || price !== undefined) &&
+      (existProduct.stocktype !== stocktype || existProduct.price !== price)
+    ) {
+      await Prisma.products.update({
+        where: { id },
+        data: {
+          stock:
+            stocktype === "variant" || stocktype === "size" ? null : undefined,
+          stocktype,
+          price: parseFloat(price?.toString()),
+        },
+      });
+    }
+
+    if (
+      (name || description) &&
+      (existProduct.name !== name || existProduct.description !== description)
+    ) {
       await Prisma.products.update({
         where: { id },
         data: { name, description },
@@ -454,16 +607,6 @@ export const EditProduct = async (
 
     if (type) {
       if (type === "editsize") {
-        const response = await Prisma.products.findUnique({
-          where: { id },
-          select: {
-            details: true,
-          },
-        });
-        if (!response) {
-          return { success: false };
-        }
-
         const updatedetail = await updateDetails(details, id);
         if (updatedetail) {
           return { success: true };
@@ -491,37 +634,25 @@ export const EditProduct = async (
       return { success: false };
     }
 
-    const isCategoryValid =
-      Object.entries(category).length !== 0 &&
-      category.parent_id !== 0 &&
-      category.child_id !== 0;
-    const isStockValid = stock && stock !== 0;
-
-    if (isCategoryValid && isStockValid) {
-      const updateData: any = {
-        name,
-        description,
-        price: parseFloat(price.toString()),
-      };
-
-      if (isStockValid) {
-        updateData.stock = parseInt(stock.toString(), 10);
-      }
-
-      if (isCategoryValid) {
-        updateData.parentcategory_id = parseInt(
-          category.parent_id.toString(),
-          10
-        );
-        updateData.childcategory_id = parseInt(
-          category.child_id.toString(),
-          10
-        );
-      }
-
+    const isCategoryChange =
+      existProduct.parentcategory_id !== category.parent_id ||
+      (category.child_id &&
+        existProduct.childcategory_id !== category.child_id);
+    const isStockValid = stock && stock !== 0 && existProduct.stock !== stock;
+    if (isCategoryChange) {
       await Prisma.products.update({
         where: { id },
-        data: updateData,
+        data: {
+          parentcategory_id: category.parent_id,
+          childcategory_id: category.child_id,
+        },
+      });
+    }
+
+    if (isStockValid) {
+      await Prisma.products.update({
+        where: { id },
+        data: { stock: parseInt(stock.toString()) },
       });
     }
 
@@ -597,13 +728,8 @@ export const EditProduct = async (
           },
         });
       } else {
-        const prevdata = await Prisma.products.findUnique({
-          where: { id },
-          select: { relatedproduct: true },
-        });
-
-        if (prevdata?.relatedproduct) {
-          const ids = prevdata.relatedproduct?.productId as number[];
+        if (existProduct.relatedproduct) {
+          const ids = existProduct.relatedproduct.productId as number[];
 
           const notinids = ids.filter((i) => !relatedproductid.includes(i));
 
@@ -729,7 +855,8 @@ export const GetAllProduct = async (
   priceorder?: number,
   detailcolor?: string,
   detailsize?: string,
-  detailtext?: string
+  detailtext?: string,
+  selectpromo?: number
 ): Promise<GetProductReturnType> => {
   try {
     let totalproduct: number = 0;
@@ -738,11 +865,26 @@ export const GetAllProduct = async (
     let allproduct: any = [];
     let lowstock = 0;
 
-    if (!promotionid) {
+    if (!promotionid || promotionid === -1) {
       if (ty === "all") {
         let totallowstock = 0;
-        const allproduct = await Prisma.products.findMany({
-          select: { details: true, stock: true, Stock: true, stocktype: true },
+        let allproduct = await Prisma.products.findMany({
+          select: {
+            details: true,
+            stock: true,
+            Stock: {
+              select: {
+                id: true,
+                Stockvalue: {
+                  select: {
+                    id: true,
+                    qty: true,
+                  },
+                },
+              },
+            },
+            stocktype: true,
+          },
         });
         totalproduct = allproduct.length;
         allproduct.forEach((product) => {
@@ -752,16 +894,12 @@ export const GetAllProduct = async (
           if (isStock) {
             totallowstock += product.stock && product.stock <= 1 ? 1 : 0;
           } else if (isVariant) {
-            product.Stock.forEach((variant) => {
-              totallowstock += variant.qty <= 1 ? 1 : 0;
-            });
-          } else {
-            const sizeDetails =
-              product.details &&
-              (product?.details?.find((detail) => detail.info_type === "SIZE")
-                ?.info_value as any[]);
-            sizeDetails?.forEach((size) => {
-              totallowstock += size.qty <= 1 ? 1 : 0;
+            //Low stock display
+            product.Stock.forEach((stock) => {
+              const hasLowStock = stock.Stockvalue.some((i) => i.qty <= 5);
+              if (hasLowStock) {
+                totallowstock += 1;
+              }
             });
           }
         });
@@ -769,31 +907,13 @@ export const GetAllProduct = async (
         lowstock = totallowstock;
 
         filteroptions = {};
-      } else if (ty === "filter") {
-        const namequery = decodeURIComponent(query ?? "")
-          .toString()
-          .toLowerCase();
-        filteroptions = {
-          name: query
-            ? {
-                contains: namequery,
-                mode: "insensitive",
-              }
-            : undefined,
-          parentcategory_id: parent_cate ?? undefined,
-          childcategory_id: child_cate ?? undefined,
-        };
-        totalproduct = await Prisma.products.count({
-          where: {
-            ...filteroptions,
-          },
-        });
       }
 
       if (ty === "filter" || ty === "all") {
         let products = await Prisma.products.findMany({
           where: {
             ...filteroptions,
+            ...(selectpromo === 1 && { promotion_id: null }),
           },
           select: {
             id: true,
@@ -806,9 +926,23 @@ export const GetAllProduct = async (
             price: true,
             stock: true,
             discount: true,
-            Stock: true,
+            Stock: {
+              select: {
+                id: true,
+                Stockvalue: {
+                  select: {
+                    id: true,
+                    qty: true,
+                  },
+                },
+              },
+            },
             stocktype: true,
             details: true,
+            parentcategory_id: true,
+            childcategory_id: true,
+            promotion_id: true,
+            promotion: true,
           },
 
           orderBy: {
@@ -816,28 +950,45 @@ export const GetAllProduct = async (
           },
         });
 
-        if (sk && sk === "Low") {
-          products = products.filter((item) => {
-            const isLowStockVariant =
-              item.Stock && item.Stock.some((i) => i.qty <= 1);
-            const isLowStock = item.stock && item.stock <= 1;
+        products = products
+          .filter((prod) => {
+            const isName =
+              query &&
+              removeSpaceAndToLowerCase(prod.name).includes(
+                removeSpaceAndToLowerCase(query)
+              );
 
-            return isLowStockVariant || isLowStock;
+            const isPid = parent_cate && prod.parentcategory_id === parent_cate;
+            const isChildId =
+              child_cate && prod.childcategory_id === child_cate;
+
+            const isLowStock =
+              sk && sk === "Low" && prod.Stock
+                ? prod.Stock.some((stock) =>
+                    stock.Stockvalue.some((i) => i.qty <= 5)
+                  )
+                : prod.stock
+                ? prod.stock <= 5
+                : false;
+
+            const conditions = [
+              query ? isName : true,
+              parent_cate ? isPid : true,
+              child_cate ? isChildId : true,
+              sk ? isLowStock : true,
+            ];
+
+            return conditions.every((i) => i);
+          })
+          .map((prod) => {
+            let lowstock = false;
+            if (prod.Stock) {
+              prod.Stock.forEach((stock) => {
+                lowstock = stock.Stockvalue.some((sub) => sub.qty <= 5);
+              });
+            }
+            return { ...prod, lowstock };
           });
-        }
-
-        products = products.map((i) => {
-          const isLowStock = i.stock && i.stock <= 1;
-          const isLowStockVariant = i.Stock && i.Stock.some((j) => j.qty <= 1);
-          const isSize = i.details.find((j) => j.info_type === "SIZE")
-            ?.info_value as unknown as infovaluetype[];
-          const isLowStockSize = isSize && isSize.some((j) => j.qty <= 1);
-
-          if (isLowStock || isLowStockVariant || isLowStockSize) {
-            return { ...i, lowstock: true };
-          }
-          return i;
-        });
 
         totalproduct = products.length;
 
@@ -875,15 +1026,20 @@ export const GetAllProduct = async (
           const size = i.details.find((j) => j.info_type === "SIZE") as any;
 
           if (color || size) {
-            const productColors = color?.option_value
-              .filter((k) => k !== "")
-              .map((l) => {
-                return l.replace("#", "");
+            const opt_val = color?.option_value as
+              | string[]
+              | VariantColorValueType[];
+            const productColors = opt_val
+              .filter((k: any) => k.val !== "")
+              .map((l: any) => {
+                return l.val.replace("#", "");
               });
+
             const productSize = size?.info_value.map((l: string) => {
               return removeSpaceAndToLowerCase(l);
             });
-            const otherFilter = text?.option_value.map((l) => {
+            const text_value = text?.option_value as string[];
+            const otherFilter = text_value?.map((l) => {
               return removeSpaceAndToLowerCase(l);
             });
 
@@ -919,6 +1075,9 @@ export const GetAllProduct = async (
           },
           promotion_id: true,
         },
+        orderBy: {
+          id: "asc",
+        },
       });
 
       const filterproduct =
@@ -939,7 +1098,7 @@ export const GetAllProduct = async (
         ...(i.discount && {
           discount: {
             percent: i.discount,
-            newPrice: (
+            newprice: (
               parseFloat(i.price.toString()) -
               (parseFloat(i.price.toString()) * i.discount) / 100
             ).toFixed(2),
@@ -1080,6 +1239,15 @@ export interface admindata {
 }
 
 export const Createadmin = async (data: userdata) => {
+  const isExist = await Prisma.user.findFirst({
+    where: {
+      email: data.email,
+    },
+  });
+
+  if (isExist) {
+    return null;
+  }
   const createdAdmin = await Prisma.user.create({
     data: {
       firstname: data.firstname as string,

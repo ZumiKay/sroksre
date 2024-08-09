@@ -1,57 +1,110 @@
 import { NextRequest } from "next/server";
 import { extractQueryParams } from "../banner/route";
 import Prisma from "@/src/lib/prisma";
-import { caculateArrayPagination } from "@/src/lib/utilities";
+import {
+  caculateArrayPagination,
+  calculatePagination,
+  removeSpaceAndToLowerCase,
+} from "@/src/lib/utilities";
 import { UserState } from "@/src/context/GlobalContext";
 import { revalidateTag } from "next/cache";
+import { IsNumber } from "../../product/page";
 
 interface Userparam {
   lt?: number;
   ty?: "all" | "filter" | "uid";
   p?: number;
-  n?: string;
-  e?: string;
+  search?: string;
 }
 
 export async function GET(request: NextRequest) {
   try {
     const url = request.nextUrl.toString();
     const params: Userparam = extractQueryParams(url);
-    let alluser = await Prisma.user.findMany({});
-    let totaluser: number = 0;
-    let total: number = 0;
+
+    let total = await Prisma.user.count({
+      where: params.search
+        ? !isNaN(Number(params.p))
+          ? {
+              id: parseInt(params.search.toString()),
+            }
+          : {
+              OR: [
+                {
+                  email: {
+                    contains: removeSpaceAndToLowerCase(params.search),
+                    mode: "insensitive",
+                  },
+                },
+                {
+                  firstname: {
+                    contains: removeSpaceAndToLowerCase(params.search),
+                    mode: "insensitive",
+                  },
+                },
+                {
+                  lastname: {
+                    contains: removeSpaceAndToLowerCase(params.search),
+                    mode: "insensitive",
+                  },
+                },
+              ],
+            }
+        : {},
+    });
+    let result;
+    const { startIndex, endIndex } = calculatePagination(
+      total,
+      params.lt as number,
+      params.p as number
+    );
 
     if (params.ty === "all") {
-      totaluser = alluser.length;
-      total = alluser.length;
-    } else {
-      const filtered = alluser.filter((i) => {
-        const isName =
-          params.n &&
-          (i.firstname.toLowerCase().includes(params.n.toLowerCase()) ||
-            (i.lastname &&
-              i.lastname.toLowerCase().includes(params.n.toLowerCase())));
-
-        const isEmail =
-          params.e && i.email.toLowerCase().includes(params.e.toLowerCase());
-
-        return isName || isEmail;
+      result = await Prisma.user.findMany({
+        take: endIndex - startIndex + 1,
+        skip: startIndex,
       });
-
-      total = filtered.length;
-      alluser = filtered;
+    } else {
+      result = await Prisma.user.findMany({
+        where: params.search
+          ? !isNaN(Number(params.p))
+            ? {
+                id: parseInt(params.search.toString()),
+              }
+            : {
+                OR: [
+                  {
+                    email: {
+                      contains: removeSpaceAndToLowerCase(params.search),
+                      mode: "insensitive",
+                    },
+                  },
+                  {
+                    firstname: {
+                      contains: removeSpaceAndToLowerCase(params.search),
+                      mode: "insensitive",
+                    },
+                  },
+                  {
+                    lastname: {
+                      contains: removeSpaceAndToLowerCase(params.search),
+                      mode: "insensitive",
+                    },
+                  },
+                ],
+              }
+          : {},
+        take: endIndex - startIndex + 1,
+        skip: startIndex,
+      });
     }
-    const result = caculateArrayPagination(
-      alluser,
-      params.p as number,
-      params.lt as number
-    );
+
     const caculatePage = params.lt && Math.ceil(total / params.lt);
 
     return Response.json(
       {
         data: result.map((i) => ({ ...i, password: null })),
-        total: totaluser,
+        total,
         totalpage: caculatePage,
       },
       { status: 200 }

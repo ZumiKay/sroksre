@@ -1,4 +1,3 @@
-import { ProductState } from "@/src/context/GlobalContext";
 import {
   CreateProduct,
   DeleteProduct,
@@ -9,9 +8,9 @@ import Prisma from "@/src/lib/prisma";
 import { revalidateTag } from "next/cache";
 import { NextRequest } from "next/server";
 export async function POST(req: NextRequest) {
-  const data: ProductState = await req.json();
+  const { createdproduct } = await req.json();
 
-  const created = await CreateProduct(data);
+  const created = await CreateProduct(createdproduct);
   if (created.success) {
     return Response.json({ data: { id: created.id } }, { status: 200 });
   } else {
@@ -22,7 +21,6 @@ export async function PUT(req: NextRequest) {
   const data: updateProductData = await req.json();
   const updated = await EditProduct(data);
   if (updated.success) {
-    revalidateTag("product");
     return Response.json({ message: "Product Updated" }, { status: 200 });
   } else {
     return Response.json({ message: updated.error }, { status: 500 });

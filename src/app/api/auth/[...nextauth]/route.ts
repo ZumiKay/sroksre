@@ -5,19 +5,32 @@ import CredentialProvider from "next-auth/providers/credentials";
 import { handleCheckandRegisterUser, userlogin } from "@/src/lib/userlib";
 import { NextAuthOptions } from "next-auth";
 import {
-  checkloggedsession,
   generateRandomPassword,
+  getOneWeekFromToday,
 } from "@/src/lib/utilities";
 import { Role } from "@prisma/client";
-import { signOut } from "next-auth/react";
-import Prisma from "@/src/lib/prisma";
+
+interface JwtType {
+  name: string;
+  email: string;
+  session_id: string;
+  picture?: string;
+  image?: string;
+  id: number;
+  role: Role;
+  iat: number;
+  exp: number;
+  jti: string;
+}
+
 export const authOptions: NextAuthOptions = {
   pages: {
     signIn: "../../../account/page.tsx",
+    error: "/error.tsx",
   },
   session: {
     strategy: "jwt",
-    maxAge: 60 * 60 * 48,
+    maxAge: 60 * 60 * 24 * 7,
   },
 
   providers: [
@@ -44,69 +57,58 @@ export const authOptions: NextAuthOptions = {
         if (!credentails.email || !credentails.password) {
           return null;
         }
+
         const login = await userlogin(credentails);
         if (!login.success) {
           return null;
-        } else {
-          return login.data;
         }
+
+        return login.data;
       },
     }),
   ],
   callbacks: {
     async signIn(param): Promise<any> {
-      if (param.user.id) {
+      if (param.account?.provider !== "credentials") {
         const checkuser = await handleCheckandRegisterUser({
-          id: param.user.id,
           data: {
             firstname: param.user.name as string,
             email: param.user.email as string,
             password: generateRandomPassword(),
+            type: param.account?.provider,
           },
+          expireSession: getOneWeekFromToday(),
         });
         if (!checkuser.success) {
           return false;
         }
       }
-      return true;
+      return param.user;
     },
 
     async jwt(params): Promise<any> {
-      const uid = params.token?.sub;
+      if (params.token) {
+        let user = params?.user as any;
+        const jwt = params.token as unknown as JwtType;
 
-      const getRole = await Prisma.user.findUnique({
-        where: { id: uid },
-        select: { role: true },
-      });
+        let token = {
+          email: user?.email ?? jwt.email,
+          session_id: user?.sessionid ?? jwt.session_id,
+          role: user?.role ?? jwt.role,
+          id: user?.id ?? jwt.id,
+        };
 
-      let modifiedtoken = {
-        ...params.token,
-        ...{ ...params.user, role: getRole?.role },
-      };
-
-      return modifiedtoken;
+        return token;
+      }
+      return null;
     },
     async session(params): Promise<any> {
       //checksesstion
-      const verified = await checkloggedsession(params.token.sub as string);
 
-      if (verified.success) {
-        let modifieddata = { ...params.token };
-        if (modifieddata.jti || modifieddata.exp || modifieddata.iat) {
-          delete modifieddata.jti;
-          delete modifieddata.exp;
-          delete modifieddata.iat;
-        }
-        if (!modifieddata.role) {
-          modifieddata.role = Role.USER;
-        }
+      let session = { ...params.session };
+      session.user = { ...params.token };
 
-        params.session.user = { ...modifieddata };
-
-        return params.session;
-      }
-      await signOut();
-      return null;
+      return session;
     },
   },
 };

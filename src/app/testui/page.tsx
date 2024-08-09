@@ -1,3 +1,3 @@
 export default async function TestUi() {
-  return <div className="h-screen w-screen"></div>;
+  return <div className="h-screen w-screen flex flex-col items-center"></div>;
 }

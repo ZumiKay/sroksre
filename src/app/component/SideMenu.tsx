@@ -1,87 +1,302 @@
 "use client";
-import Image, { StaticImageData } from "next/image";
-import DefaultProfile from "../../../public/Image/profile.svg";
+import { StaticImageData } from "next/image";
 import PrimaryButton, { Selection } from "./Button";
-import { ChangeEvent, SetStateAction, useEffect, useState } from "react";
+import React, { ChangeEvent, SetStateAction, useEffect, useState } from "react";
 import { SecondayCard } from "./Card";
 import { signOut } from "next-auth/react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Modal from "./Modals";
 import {
   BannerInitialize,
   FilterValue,
-  FiltervalueInitialize,
   Productinitailizestate,
   PromotionInitialize,
+  Sessiontype,
   useGlobalContext,
 } from "@/src/context/GlobalContext";
-import { ApiRequest } from "@/src/context/CustomHook";
-import { LoadingText, errorToast, successToast } from "./Loading";
+import {
+  ApiRequest,
+  Delayloading,
+  useClickOutside,
+  useEffectOnce,
+} from "@/src/context/CustomHook";
+import {
+  ContainerLoading,
+  LoadingText,
+  errorToast,
+  successToast,
+} from "./Loading";
 import { motion } from "framer-motion";
 
 import { DateTimePicker } from "@mui/x-date-pickers";
-import dayjs from "dayjs";
+import dayjs, { Dayjs } from "dayjs";
 import { ToggleSelect } from "./ToggleMenu";
 import { Deletecart, Getcarts } from "../product/detail/[id]/action";
 import { Productordertype, totalpricetype } from "@/src/context/OrderContext";
 import { Createorder } from "../checkout/action";
+import { formatDate } from "./EmailTemplate";
+import {
+  getSubCategories,
+  InventoryParamType,
+} from "../dashboard/inventory/varaint_action";
+import { BannerSize, BannerType } from "./Modals/Banner";
+import Link from "next/link";
+import {
+  Bin_Icon,
+  EditIcon,
+  InventoryIcon,
+  OrderIcon,
+  PencilEditIcon,
+  ProfileIcon,
+  UserIcon,
+} from "./Asset";
+import { Homeeditmenu } from "./HomePage/EditMenu";
+import { Addicon } from "./Icons/Homepage";
+import { Homeitemtype } from "../severactions/containeraction";
+import { Checkbox } from "@nextui-org/react";
+import { SelectionCustom } from "./Pagination_Component";
 
 interface accountmenuprops {
   setProfile: (value: SetStateAction<boolean>) => void;
+  session?: Sessiontype;
 }
-export default function AccountMenu(props: accountmenuprops) {
-  const Router = useRouter();
-  return (
-    <aside
-      onMouseEnter={() => props.setProfile(true)}
-      onMouseLeave={() => props.setProfile(false)}
-      className="Account__container fixed right-0 top-0 w-[20vw] h-full z-40 bg-[#FFFFFF] flex flex-col items-center"
-    >
-      <div className="profile_container flex flex-row items-center justify-center w-[90%]">
-        <Image
-          src={DefaultProfile}
-          alt="profile"
-          className="profile w-[100px] h-[100px] rounded-xl object-cover"
-        />
-        <div className="username flex flex-col w-full items-center">
-          <h1 className="account_name font-bold text-xl  max-w-[200px] break-words">
-            Account Name
-          </h1>
-          <h3 className="userid font-normal text-md"> useID </h3>
-        </div>
-      </div>
 
-      <ul className="menu_container flex flex-col items-center w-full gap-y-10 mt-[10vh] mb-[10vh]">
-        <li
-          onClick={() => Router.push("/dashboard")}
-          className="side_link w-[80%] p-2 text-white text-center bg-[#495464] font-bold text-lg rounded-md "
-        >
-          My Profile
-        </li>
-        <li
-          onClick={() => Router.push("/dashboard/order")}
-          className="side_link w-[80%] p-2 text-white text-center bg-[#495464] font-bold text-lg rounded-md "
-        >
-          {" "}
-          My Order{" "}
-        </li>
-        <li
-          onClick={() => Router.push("/dashboard/products")}
-          className="side_link w-[80%] p-2 text-white text-center bg-[#495464] font-bold text-lg rounded-md"
-        >
-          {" "}
-          My Product{" "}
-        </li>
-      </ul>
-      <PrimaryButton
-        text="SignOut"
-        type="button"
-        color="#F08080"
-        width="80%"
-        radius="10px"
-        onClick={() => signOut()}
-      />
-    </aside>
+const AccountMenuItems = [
+  {
+    name: "Profile",
+    icon: <ProfileIcon />,
+    link: "/dashboard",
+  },
+  {
+    name: "My Order",
+    icon: <OrderIcon />,
+    link: "/dashboard/order",
+  },
+  {
+    name: "Inventory",
+    icon: <InventoryIcon />,
+    link: "/dashboard/inventory",
+  },
+  {
+    name: "Users",
+    icon: <UserIcon />,
+    link: "/dashboard/usermanagement",
+  },
+  {
+    name: "Edit Home",
+    icon: <EditIcon />,
+    link: "",
+  },
+];
+
+export default function AccountMenu(props: accountmenuprops) {
+  const pathname = usePathname();
+  const { openmodal, setopenmodal } = useGlobalContext();
+  const [loading, setloading] = useState(false);
+  const [Homeitems, sethomeitems] = useState<Homeitemtype[]>([]);
+  const [isEdit, setisEdit] = useState(false);
+  const [selected, setselected] = useState<number[] | undefined>([]);
+  const router = useRouter();
+  const ref = useClickOutside(() => props.setProfile(false));
+
+  const handleSignOut = async () => {
+    setloading(true);
+
+    const deleteSession = await ApiRequest(
+      "/api/users/logout",
+      undefined,
+      "DELETE"
+    );
+
+    if (!deleteSession.success) {
+      errorToast(deleteSession.message ?? "Error occured");
+    } else {
+      await signOut();
+    }
+
+    setloading(false);
+  };
+
+  const handleEdit = async () => {
+    if (!isEdit) {
+      setisEdit(true);
+    } else if (isEdit) {
+      //edit index of home items
+
+      setloading(true);
+      const updateidx = await ApiRequest(
+        "/api/home",
+        undefined,
+        "PUT",
+        "JSON",
+        { ty: "idx", edititems: Homeitems.map((i, idx) => ({ id: i.id, idx })) }
+      );
+
+      setloading(false);
+      if (!updateidx.success) {
+        errorToast("Error Occurred");
+        return;
+      }
+
+      setisEdit(false);
+      router.refresh();
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!selected?.length) {
+      errorToast("No item selected");
+      return;
+    }
+    const homeitem_id = selected.map((idx) => Homeitems[idx].id);
+
+    const deleteItemsAsync = async () => {
+      const deletereq = await ApiRequest(
+        "/api/home",
+        undefined,
+        "DELETE",
+        "JSON",
+        { id: homeitem_id }
+      );
+
+      if (!deletereq.success) {
+        errorToast(deletereq.message ?? "Error Occurred");
+        return;
+      }
+
+      const updatedItems = Homeitems.filter((i) => !homeitem_id.includes(i.id));
+      sethomeitems(updatedItems);
+      setselected(undefined);
+      successToast("Deleted Successfully");
+    };
+
+    await Delayloading(deleteItemsAsync, setloading, 500);
+  };
+
+  const handleOnEdit = (idx: number) => {
+    const updateselected = [...(selected ?? [])];
+    const isExist = updateselected.findIndex((i) => i === idx);
+    if (isExist !== -1) {
+      updateselected.splice(isExist, 1);
+    } else {
+      updateselected.push(idx);
+    }
+    setselected(updateselected);
+  };
+
+  return (
+    <motion.aside
+      ref={ref}
+      initial={{ x: "100%" }}
+      animate={{ x: 0 }}
+      exit={{ x: "100%" }}
+      transition={{ duration: 0.5 }}
+      onMouseEnter={() => props.setProfile(true)}
+      className="fixed right-0 top-0 w-[20vw] h-full z-40 bg-[#FFFFFF] flex flex-col items-center"
+    >
+      {openmodal?.editHome ? (
+        <div className="w-[90%] h-full flex flex-col items-center gap-y-10">
+          <h3
+            onClick={() =>
+              setopenmodal((prev) => ({ ...prev, editHome: false }))
+            }
+            className="w-full h-fit text-left text-lg font-bold cursor-pointer  transition hover:text-white active:text-white pl-2"
+          >
+            {`< Back`}
+          </h3>
+          <Homeeditmenu
+            isEdit={isEdit}
+            onEdit={handleOnEdit}
+            items={Homeitems}
+            setItems={sethomeitems}
+          />
+          <div className="w-full h-[40px] flex flex-row gap-x-5 justify-start">
+            <PrimaryButton
+              type="button"
+              text={isEdit ? "Delete" : "Add New"}
+              color={isEdit ? "lightcoral" : "white"}
+              height="50px"
+              width="100%"
+              hoverColor="lightgray"
+              textcolor={isEdit ? "white" : "black"}
+              status={loading ? "loading" : "authenticated"}
+              disable={isEdit && selected?.length === 0}
+              radius="10px"
+              border="1px solid lightgray"
+              onClick={() =>
+                isEdit
+                  ? handleDelete()
+                  : setopenmodal((prev) => ({ ...prev, homecontainer: true }))
+              }
+              Icon={isEdit ? <Bin_Icon /> : <Addicon />}
+            />
+
+            <PrimaryButton
+              type="button"
+              onClick={() => handleEdit()}
+              text={isEdit ? "Done" : "Edit"}
+              radius="10px"
+              height="50px"
+              hoverColor="lightgray"
+              width="100%"
+              border="1px solid lightgray"
+              color="white"
+              textcolor="black"
+              Icon={
+                <div className="w-[30px] h-[30px] bg-white rounded-full">
+                  <PencilEditIcon />
+                </div>
+              }
+            />
+          </div>
+        </div>
+      ) : (
+        <>
+          <ul className="menu_container flex flex-col items-center w-full gap-y-10 mt-[10vh] mb-[10vh]">
+            {AccountMenuItems.filter((i) =>
+              pathname !== "/" ? i.name !== AccountMenuItems[4].name : true
+            ).map((item, idx) => (
+              <li
+                key={idx}
+                className="side_link w-[80%] h-[50px] text-center font-bold text-lg rounded-md transition hover:bg-gray-200 active:bg-gray-200 "
+              >
+                {item.link === "" ? (
+                  <div
+                    onClick={() => {
+                      setopenmodal((prev) => ({ ...prev, editHome: true }));
+                      props.setProfile(false);
+                    }}
+                    className="w-full h-full flex flex-row items-center gap-x-5 pl-2 rounded-lg transition hover:bg-gray-200 active:bg-gray-200"
+                  >
+                    {item.icon}
+                    <h3 className="text-lg font-bold cursor-pointer">
+                      {item.name}
+                    </h3>
+                  </div>
+                ) : (
+                  <Link
+                    href={item.link}
+                    className="w-full h-full flex flex-row items-center gap-x-5 pl-2 rounded-lg transition hover:bg-gray-200 active:bg-gray-200"
+                  >
+                    {item.icon}
+                    <h3 className="text-lg font-bold">{item.name}</h3>
+                  </Link>
+                )}
+              </li>
+            ))}
+          </ul>
+          <PrimaryButton
+            text="Logout"
+            type="button"
+            color="#F08080"
+            width="80%"
+            status={loading ? "loading" : "authenticated"}
+            radius="10px"
+            onClick={() => handleSignOut()}
+          />
+        </>
+      )}
+    </motion.aside>
   );
 }
 interface cardmenuprops {
@@ -110,8 +325,6 @@ export function CartMenu(props: cardmenuprops) {
       settotal(carts.total);
 
       setitem(carts.data);
-
-      console.log(carts);
     };
 
     fetchcart();
@@ -138,7 +351,6 @@ export function CartMenu(props: cardmenuprops) {
 
   const handleCheckout = async () => {
     const params = new URLSearchParams(searchparams);
-    let orderId = "";
 
     if (!cartItem || cartItem.length === 0) {
       errorToast("No items in cart");
@@ -158,7 +370,6 @@ export function CartMenu(props: cardmenuprops) {
         errorToast("Error Occured");
         return;
       }
-      orderId = createOrder.data.orderId;
 
       params.set("orderid", createOrder.data.encrypt ?? "");
       params.set("step", "1");
@@ -255,6 +466,7 @@ export const ConfirmModal = () => {
     globalindex,
     setglobalindex,
   } = useGlobalContext();
+  const router = useRouter();
   const handleConfirm = async (confirm: boolean) => {
     if (confirm) {
       const URL = "/api/image";
@@ -358,14 +570,11 @@ export const ConfirmModal = () => {
           return;
         }
 
-        itemlist.splice(idx as number, 1);
-
-        setalldata((prev) => ({ ...prev, [type as string]: itemlist }));
         if (type === "user") {
           setglobalindex((prev) => ({ ...prev, useredit: -1 }));
           setopenmodal((prev) => ({ ...prev, createUser: false }));
         }
-        successToast("Delete Successfully");
+        router.refresh();
       }
     }
 
@@ -423,145 +632,198 @@ export const ConfirmModal = () => {
 };
 
 const statusFilter = ["Low"];
+
+interface filtercategorytype {
+  id: number;
+  name: string;
+}
+interface categoriestype {
+  parentcates: Array<filtercategorytype>;
+  childcate?: Array<filtercategorytype>;
+}
+
+const fetchsubcate = async (value: string) => {
+  const getsub = getSubCategories.bind(null, parseInt(value));
+  const getreq = await getsub();
+  return getreq;
+};
 export const FilterMenu = ({
   type,
   totalproduct,
+  categories,
+  name,
+  expiredAt,
+  param,
+  setisFilter,
+  expired,
+  reloadData,
+  setfilterdata,
 }: {
-  type?: "usermanagement" | "listproduct";
+  type?: string;
   totalproduct?: number;
+  categories?: {
+    parentid?: number;
+    childid?: number;
+  };
+  expiredAt?: string;
+  name?: string;
+  stock?: string;
+  expired?: string;
+  param?: InventoryParamType;
+  setisFilter?: React.Dispatch<React.SetStateAction<boolean>>;
+  reloadData?: () => void;
+  setfilterdata?: React.Dispatch<
+    React.SetStateAction<InventoryParamType | undefined>
+  >;
 }) => {
-  const {
-    allData,
-    setalldata,
-    subcate,
-    setsubcate,
-    setopenmodal,
-    allfiltervalue,
-    setallfilterval,
-    inventoryfilter,
-    promotion,
-    listproductfilter,
-    setlistprodfil,
-    listproductfilval,
-  } = useGlobalContext();
-  const isFilter = allfiltervalue.find((i) =>
-    type ? i.page === type : i.page === inventoryfilter
-  );
+  const { setopenmodal, promotion, listproductfilval } = useGlobalContext();
+
+  const [loading, setloading] = useState(false);
+
   const [selectdate, setselectdate] = useState(false);
-  const [filtervalue, setfilter] = useState<FilterValue>(FiltervalueInitialize);
+  const [category, setcategory] = useState<categoriestype | undefined>(
+    undefined
+  );
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const [filtervalue, setfilter] = useState<FilterValue>({
+    parentcate: categories?.parentid ?? undefined,
+    childcate: categories?.childid ?? undefined,
+    name: param?.name,
+    expiredate: expiredAt ? dayjs(expiredAt).toISOString() : undefined,
+    bannersize: param?.bannersize ?? undefined,
+    bannertype: param?.bannertype ?? undefined,
+    search: param?.search,
+    status: param?.status,
+    expired: expired,
+  });
   const [filterdata, setdata] = useState<{
-    size?: Array<String>;
-    color?: Array<String>;
-    text?: Array<String>;
+    size?: Array<string>;
+    color?: Array<string>;
+    text?: Array<string>;
   }>({});
 
   const fetchcate = async () => {
-    const categories = await ApiRequest("/api/categories", undefined, "GET");
-    if (!categories.success) {
-      errorToast("Error Connection");
-      return;
-    }
-    setalldata((prev) => ({ ...prev, category: categories.data }));
+    const asycnfetchdata = async () => {
+      const categories = await ApiRequest("/api/categories", undefined, "GET");
+      if (!categories.success) {
+        errorToast("Error Connection");
+        return;
+      }
+      setcategory({
+        parentcates: categories.data,
+      });
+    };
+
+    await Delayloading(asycnfetchdata, setloading, 1000);
   };
 
-  useEffect(() => {
+  useEffectOnce(() => {
     if (type === "listproduct") {
       setdata(listproductfilval);
 
       return;
     }
-    setfilter(isFilter?.filter ?? FiltervalueInitialize);
-    inventoryfilter === "product" && !type && fetchcate();
-  }, []);
-  const handleFilter = () => {
-    if (type !== "listproduct") {
-      const Allfilterdata = [...allfiltervalue];
 
-      if (!isFilter) {
-        Allfilterdata.push({
-          page: inventoryfilter as any,
-          filter: filtervalue,
-        });
-      } else {
-        const idx = Allfilterdata.findIndex((i) =>
-          type ? i.page === type : i.page === inventoryfilter
-        );
-        Allfilterdata[idx] = {
-          page: type ? type : (inventoryfilter as any),
-          filter: filtervalue,
-        };
+    type === "product" && fetchcate();
+  });
+
+  useEffect(() => {
+    const getsub = async () => {
+      if (filtervalue.parentcate) {
+        const data = await fetchsubcate(filtervalue.parentcate.toString());
+        setcategory((prev) => ({ ...prev, childcate: data.data } as any));
       }
-      setallfilterval(Allfilterdata);
-    }
+    };
+    getsub();
+  }, [filtervalue.parentcate]);
+  const handleFilter = () => {
+    const params = new URLSearchParams(searchParams);
+    const filtervalues = Object.entries(filtervalue);
+
+    filtervalues.map(([key, value]) => {
+      if (key === "expiredate" && value) {
+        const val = dayjs(value);
+        params.set(key, formatDate(val.toDate()));
+        setfilterdata &&
+          setfilterdata((prev) => ({
+            ...prev,
+            [key]: formatDate(val.toDate()),
+          }));
+      }
+      if (key !== "p" && value && value !== "none") {
+        params.set(key, value);
+        setfilterdata && setfilterdata((prev) => ({ ...prev, [key]: value }));
+      }
+    });
+
+    params.set("p", "1");
+
+    router.push(`?${params}`);
+
+    setisFilter && setisFilter(true);
+
+    reloadData && reloadData();
 
     setopenmodal((prev) => ({ ...prev, filteroption: false }));
   };
   const handleSelect = (e: ChangeEvent<HTMLSelectElement>) => {
     const { name, value } = e.target;
-    let filterdata: FilterValue = FiltervalueInitialize;
 
-    if (name === "parent_cateogory") {
-      const findsubcate = allData.category.find(
-        (i) => i.id === parseInt(value)
-      );
-      filterdata = {
-        ...filtervalue,
-        category: { ...filtervalue.category, parent_id: parseInt(value) },
-      };
-      setsubcate(findsubcate?.subcategories ?? []);
-    } else if (name === "sub_category") {
-      filterdata = {
-        ...filtervalue,
-        category: { ...filtervalue.category, child_id: parseInt(value) },
-      };
-    } else if (name === "status") {
-      filterdata = { ...filtervalue, status: value };
+    setfilter((prev) => ({ ...prev, [name]: value }));
+
+    if (name === "parentcate") {
+      const params = new URLSearchParams(searchParams);
+      params.delete("childcate");
+      router.push(`?${params}`);
     }
-    setfilter(filterdata);
   };
   const handleClear = () => {
-    if (type !== "listproduct") {
-      const Allfilterdata = [...allfiltervalue];
-      const idx = Allfilterdata.findIndex((i) =>
-        type ? i.page === type : i.page === inventoryfilter
-      );
-      Allfilterdata[idx].filter = FiltervalueInitialize;
-      setallfilterval(Allfilterdata);
-      setfilter({
-        ...FiltervalueInitialize,
-        status: "",
-      });
-    } else {
-      setlistprodfil({
-        color: [],
-        size: [],
-        text: [],
-      });
-    }
+    const params = new URLSearchParams(searchParams);
+    Object.entries(filtervalue).map(([key, _]) => {
+      if (key !== "p") {
+        params.delete(key);
+      }
+    });
+
+    params.set("p", "1");
+
+    setfilterdata && setfilterdata({});
+
+    router.push(`?${params}`);
+
+    reloadData ? reloadData() : router.refresh();
+
+    setopenmodal((prev) => ({ ...prev, filteroption: false }));
   };
   return (
     <Modal
       customwidth="fit-content"
       customheight="fit-content"
       closestate={selectdate ? "discount" : "filteroption"}
+      customZIndex={200}
     >
+      {loading && <ContainerLoading />}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         className="filtermenu w-[50vw] h-fit bg-white p-5 rounded-md flex flex-col justify-center gap-y-5"
       >
-        <input
-          type="text"
-          name="name"
-          placeholder="Search Name"
-          value={filtervalue.name}
-          onChange={(e) =>
-            setfilter((prev) => ({ ...prev, name: e.target.value }))
-          }
-          className="search w-full pl-2 h-[50px] rounded-md border border-gray-300"
-          hidden={type === "listproduct"}
-        />
+        {type !== "usermanagement" && (
+          <input
+            type="text"
+            name="name"
+            placeholder="Search Name"
+            value={filtervalue.name}
+            onChange={(e) =>
+              setfilter((prev) => ({ ...prev, name: e.target.value }))
+            }
+            className="search w-full pl-2 h-[50px] rounded-md border border-gray-300"
+            hidden={type === "listproduct"}
+          />
+        )}
         {type === "listproduct" &&
           (filterdata.color || filterdata.size || filterdata.text) && (
             <>
@@ -589,81 +851,113 @@ export const FilterMenu = ({
         {type === "usermanagement" && (
           <input
             type="text"
-            name="email"
-            placeholder="Email"
-            value={filtervalue.email}
+            name="search"
+            placeholder="Search (ID , Email)"
+            value={filtervalue.search}
             onChange={(e) =>
-              setfilter((prev) => ({ ...prev, email: e.target.value }))
+              setfilter((prev) => ({ ...prev, search: e.target.value }))
             }
             className="search w-full pl-2 h-[50px] rounded-md border border-gray-300"
           />
         )}
-        {type !== "usermanagement" && (
+        {type === "banner" && (
           <>
-            {inventoryfilter === "promotion" && (
-              <>
-                <div
-                  onMouseEnter={() => setselectdate(true)}
-                  onMouseLeave={() => setselectdate(false)}
-                  className="w-full h-[50px] relative z-[100]"
-                >
-                  <DateTimePicker
-                    sx={{ width: "100%" }}
-                    value={
-                      filtervalue.expiredate
-                        ? dayjs(filtervalue.expiredate)
-                        : null
-                    }
-                    onChange={(e) => {
-                      if (e) {
-                        setfilter((prev) => ({
-                          ...prev,
-                          expiredate: dayjs(e),
-                        }));
-                      }
-                    }}
-                  />{" "}
-                </div>
-              </>
-            )}
-            {type !== "listproduct" && inventoryfilter === "product" && (
-              <>
-                <Selection
-                  name="parent_cateogory"
-                  type="category"
-                  default="Parent Category"
-                  value={filtervalue.category.parent_id}
-                  onChange={handleSelect}
-                />
-                {filtervalue.category.parent_id !== 0 && (
-                  <Selection
-                    type="subcategory"
-                    subcategory={subcate}
-                    name="sub_category"
-                    default="Sub Category"
-                    value={filtervalue.category.child_id}
-                    onChange={handleSelect}
-                  />
-                )}
-                <Selection
-                  default="Stock"
-                  onChange={handleSelect}
-                  name="status"
-                  value={filtervalue.status}
-                  data={statusFilter}
-                />
-                {promotion.selectproduct && (
-                  <Selection default="Discount" name="discount" />
-                )}
-              </>
-            )}{" "}
+            <div className="w-full h-fit flex flex-col gap-y-5">
+              <label className="w-full text-lg font-medium">Banner Type</label>
+              <Selection
+                name="bannertype"
+                data={[{ label: "None", value: "none" }, ...BannerType]}
+                value={filtervalue.bannertype}
+                onChange={handleSelect}
+              />
+            </div>
+            <div className="w-full h-fit flex flex-col gap-y-5">
+              <label className="w-full text-lg font-medium">Banner Size</label>
+              <Selection
+                name="bannersize"
+                data={[{ label: "None", value: "none" }, ...BannerSize]}
+                onChange={handleSelect}
+                value={filtervalue.bannersize}
+              />
+            </div>
           </>
         )}
+        {type === "promotion" && (
+          <>
+            <div
+              onMouseEnter={() => setselectdate(true)}
+              onMouseLeave={() => setselectdate(false)}
+              className="w-full h-[50px] relative z-[100]"
+            >
+              <DateTimePicker
+                sx={{ width: "100%" }}
+                value={
+                  filtervalue.expiredate ? dayjs(filtervalue.expiredate) : null
+                }
+                onChange={(e) => {
+                  if (e) {
+                    setfilter((prev) => ({
+                      ...prev,
+                      expiredate: dayjs(e).toISOString(),
+                    }));
+                  }
+                }}
+              />{" "}
+            </div>
+
+            <SelectionCustom
+              data={[{ label: "Expired", value: "1" }]}
+              label="status"
+              value={filtervalue.expired}
+              placeholder="Status"
+              onChange={(value) =>
+                setfilter((prev) => ({ ...prev, expired: value as string }))
+              }
+            />
+          </>
+        )}
+        {type === "product" && (
+          <>
+            <Selection
+              name="parentcate"
+              data={category?.parentcates?.map((i) => ({
+                label: i.name,
+                value: i.id,
+              }))}
+              default="Parent Category"
+              value={filtervalue.parentcate}
+              onChange={handleSelect}
+            />
+            {filtervalue.parentcate !== 0 && (
+              <Selection
+                type="subcategory"
+                subcategory={category?.childcate}
+                name="childcate"
+                default="Sub Category"
+                value={filtervalue.childcate}
+                onChange={handleSelect}
+              />
+            )}
+            <Selection
+              default="Stock"
+              onChange={handleSelect}
+              name="status"
+              value={filtervalue.status}
+              data={statusFilter}
+            />
+            {promotion.selectproduct && (
+              <Selection default="Discount" name="discount" />
+            )}
+          </>
+        )}{" "}
         {type !== "listproduct" ? (
           <PrimaryButton
             type="button"
             onClick={() => handleFilter()}
             text="Filter"
+            disable={Object.entries(filtervalue).every(
+              ([i, j]) => !j || j === "none"
+            )}
             radius="10px"
             width="100%"
           />
@@ -678,20 +972,11 @@ export const FilterMenu = ({
             width="100%"
           />
         )}
-
         <PrimaryButton
           type="button"
           onClick={() => handleClear()}
           text="Clear"
           color="lightcoral"
-          disable={
-            type !== "listproduct"
-              ? !isFilter
-                ? true
-                : false
-              : listproductfilter.color.length === 0 &&
-                listproductfilter.size.length === 0
-          }
           radius="10px"
           width="100%"
         />
@@ -725,6 +1010,51 @@ export const Alertmodal = () => {
             width="100%"
             height="50px"
             onClick={() => handleClose()}
+          />
+        </div>
+      </div>
+    </Modal>
+  );
+};
+
+interface ConfirmModal {
+  actions: {
+    yes: (...arg: any) => Promise<void>;
+    no: (...arg: any) => void;
+  };
+  loading: boolean;
+}
+
+export const PrimaryConfirmModal = ({ actions, loading }: ConfirmModal) => {
+  const handleConfirm = async () => {
+    await actions.yes();
+  };
+
+  const handleReject = () => actions.no();
+
+  return (
+    <Modal closestate={"confirmmodal"} customZIndex={200}>
+      <div className="confirm_container flex flex-col justify-center items-center gap-y-5 bg-white w-[250px] h-[280px] rounded-md">
+        <h3 className="question text-lg font-bold text-black">
+          {" "}
+          Are You Sure ?
+        </h3>
+        <div className="btn_container w-4/5 h-fit flex flex-col justify-center items-center gap-y-3">
+          <PrimaryButton
+            type="button"
+            text="Yes"
+            radius="10px"
+            status={loading ? "loading" : "authenticated"}
+            onClick={handleConfirm}
+            color="#35C191"
+          />
+          <PrimaryButton
+            type="button"
+            text="No"
+            onClick={handleReject}
+            radius="10px"
+            disable={loading}
+            color="#F08080"
           />
         </div>
       </div>

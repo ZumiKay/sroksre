@@ -13,10 +13,10 @@ const DashboardLayout = async ({ children }: { children: React.ReactNode }) => {
   }
 
   return (
-    <section className="min-h-screen w-full h-full">
+    <section className="min-h-screen w-full h-fit">
       <TopModal />
 
-      <DashboordNavBar session={session ?? undefined} />
+      {/* <DashboordNavBar session={session ?? undefined} /> */}
       {children}
     </section>
   );

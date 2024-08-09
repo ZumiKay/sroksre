@@ -19,7 +19,7 @@ export const GetOrder = async (
   type?: string,
   page?: number,
   limit?: number,
-  userid?: string
+  userid?: number
 ) => {
   if (id && type) {
     if (type === AllorderType.orderdetail) {
@@ -136,7 +136,7 @@ interface filtertype {
   todate?: string;
   startprice?: number;
   endprice?: number;
-  userid?: string;
+  userid?: number;
 }
 
 export const getFilterOrder = async ({
@@ -335,7 +335,7 @@ export const ExportOrderData = async (filterdata: Filterdatatype) => {
           removeSpaceAndToLowerCase(
             data.user.firstname + (data.user.lastname ?? "")
           ).includes(removeSpaceAndToLowerCase(filterdata.q))) ||
-        data.user.id === filterdata.q;
+        data.user.id.toString() === filterdata.q;
 
       const isPrice =
         filterdata.startprice && filterdata.endprice

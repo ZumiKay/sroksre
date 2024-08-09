@@ -1,18 +1,11 @@
 "use client";
-import {
-  CSSProperties,
-  ReactNode,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { CSSProperties, ReactNode, useEffect, useState } from "react";
 import "../globals.css";
-import { INVENTORYENUM } from "../dashboard/products/page";
+
 import {
   ProductInfo,
-  Relatedproducttype,
-  Varianttype,
+  SelectType,
+  VariantColorValueType,
   useGlobalContext,
 } from "@/src/context/GlobalContext";
 import PrimaryButton from "./Button";
@@ -21,11 +14,9 @@ import { AnimatePresence, motion } from "framer-motion";
 import ReactSelect from "react-select/async";
 import makeAnimated from "react-select/animated";
 
-import { removeSpaceAndToLowerCase } from "@/src/lib/utilities";
-import {
-  GetProductName,
-  GetRelatedProduct,
-} from "../dashboard/products/varaint_action";
+import { GetProductName } from "../dashboard/inventory/varaint_action";
+import { errorToast } from "./Loading";
+import { Button } from "@nextui-org/react";
 interface toggleprops {
   name: string;
   isAdmin: boolean;
@@ -79,7 +70,7 @@ export default function ToggleMenu(props: toggleprops) {
           >
             {props.data?.map(
               (obj, index) =>
-                obj.info_type !== INVENTORYENUM.size && (
+                obj.info_type !== "SIZE" && (
                   <div
                     key={index}
                     className="text-base font-normal flex flex-row items-center gap-x-5"
@@ -119,8 +110,8 @@ interface toggledownmenuprops {
 export function ToggleDownMenu(props: toggledownmenuprops) {
   return (
     <div
-      style={{ ...props.style, display: props.open ? "none" : "" }}
-      className="toggleDownMenu__container w-full h-fit border-l-2 border-l-black flex flex-col items-start gap-y-5 pl-2"
+      style={{ ...props.style, display: !props.open ? "none" : "" }}
+      className="toggleDownMenu__container w-full h-[75vh] flex flex-col items-start gap-y-5 pl-2 overflow-y-auto overflow-x-hidden"
     >
       {props.children}
     </div>
@@ -131,24 +122,20 @@ export function AddSubCategoryMenu({ index }: { index: number }) {
   const { category, setcategory, setopenmodal, allData } = useGlobalContext();
   const [name, setname] = useState("");
   const [editIdx, setedit] = useState(-1);
-  const [showform, setshow] = useState(false);
 
   useEffect(() => {
-    index !== -1 && setcategory(allData.category[index]);
+    index !== -1 && allData.category && setcategory(allData.category[index]);
   }, []);
 
   const handleAdd = () => {
     const updatecate = [...category.subcategories];
     const isExist = updatecate.some((i) => i.name === name);
     if (isExist) {
-      toast.error("Sub Cateogory Exist", {
-        autoClose: 2000,
-        pauseOnHover: true,
-      });
+      errorToast("Cateogory Exist");
       return;
     }
     if ((name.length > 0 && editIdx < 0) || updatecate.length === 0) {
-      updatecate.push({ name: name });
+      updatecate.push({ name: name, type: "normal" });
     } else {
       updatecate[editIdx].name = name;
     }
@@ -171,10 +158,7 @@ export function AddSubCategoryMenu({ index }: { index: number }) {
     setcategory((prev) => ({ ...prev, subcategories: subcate }));
   };
   return (
-    <div
-      onClick={() => setshow(true)}
-      className="AddSubCategory_menu w-full h-fit p-1 flex flex-col justify-center gap-y-5 transition rounded-md outline outline-2 outline-gray-300"
-    >
+    <div className="AddSubCategory_menu w-full h-fit p-1 flex flex-col justify-center gap-y-5 transition rounded-md outline outline-2 outline-gray-300">
       <h2 className="text-lg font-bold">Sub Categories</h2>
       <div className="subcategory_list grid grid-cols-5 gap-y-3 p-4 place-content-start h-full  max-h-[120px] overflow-y-auto">
         {category.subcategories?.map((cat, index) => (
@@ -218,27 +202,29 @@ export function AddSubCategoryMenu({ index }: { index: number }) {
             setname(e.target.value);
           }}
         />
-        <PrimaryButton
-          type="button"
-          text={editIdx < 0 ? "Add" : "Edit"}
-          onClick={() => handleAdd()}
-          width="100%"
-          height="30px"
-          textsize="12px"
-          color="#44C3A0"
-          radius="10px"
-          disable={name.length === 0}
-        />
-        <PrimaryButton
-          type="button"
-          text={"Delete"}
-          onClick={() => handleCancel()}
-          width="100%"
-          height="30px"
-          textsize="12px"
-          color="lightcoral"
-          radius="10px"
-        />
+        <div className="w-full h-fit flex flex-row items-center gap-x-5">
+          <PrimaryButton
+            type="button"
+            text={editIdx < 0 ? "Add" : "Edit"}
+            onClick={() => handleAdd()}
+            width="100%"
+            height="30px"
+            textsize="12px"
+            color="#44C3A0"
+            radius="10px"
+            disable={name.length === 0}
+          />
+          <PrimaryButton
+            type="button"
+            text={"Delete"}
+            onClick={() => handleCancel()}
+            width="100%"
+            height="30px"
+            textsize="12px"
+            color="lightcoral"
+            radius="10px"
+          />
+        </div>
       </div>
     </div>
   );
@@ -246,65 +232,75 @@ export function AddSubCategoryMenu({ index }: { index: number }) {
 interface Toggleselectprops {
   type: "color" | "size" | "text";
   title: string;
-  data: Array<String>;
-  variantdata?: Array<Varianttype>;
+  data: Array<string> | VariantColorValueType[];
+  clickfunction?: (idx: number, type: string) => void;
+  selected?: string[];
+  promo?: boolean;
+  onClear?: (
+    data: string[] | VariantColorValueType[],
+    selectedvalue: string[],
+    promo?: boolean
+  ) => void;
 }
 export function ToggleSelect({
   type,
   data,
   title,
-  variantdata,
+  clickfunction,
+  selected,
+  onClear,
+  promo,
 }: Toggleselectprops) {
   const [open, setopen] = useState(false);
-  const { listproductfilter, setlistprodfil } = useGlobalContext();
 
-  const handleClick = (idx: number, parent_idx?: number) => {
-    const selectedData = removeSpaceAndToLowerCase(
-      parent_idx && variantdata
-        ? variantdata[parent_idx].option_value[idx]
-        : data[idx]
-    );
-    const update = { ...listproductfilter };
-
-    const updateArray = (array: string[], value: string) => {
-      const isExist = array.findIndex((i) => i === value);
-      if (isExist !== -1) {
-        array.splice(isExist, 1);
-      } else {
-        array.push(value);
-      }
-    };
-
-    if (type === "color") {
-      updateArray(update.color, selectedData as string);
-    } else if (type === "size") {
-      updateArray(update.size, selectedData as string);
-    } else {
-      updateArray(update.text, selectedData as string);
-    }
-
-    setlistprodfil(update);
-  };
   return (
     <motion.div
-      initial={{ height: "50px" }}
+      initial={{ height: "100%" }}
       whileHover={{ backgroundColor: "#f1f1f1" }}
       whileTap={{ backgroundColor: "#f1f1f1" }}
-      animate={open ? { height: "200px" } : {}}
-      className="toggleselect w-full h-fit rounded-lg border-2 border-black flex flex-col items-start gap-y-3"
+      animate={open ? { height: "100%" } : {}}
+      className="toggleselect w-full h-fit rounded-lg border-2 border-black flex flex-col items-start gap-y-3 relative"
     >
-      <h3
+      <div
         onClick={() => setopen(!open)}
-        className="title text-lg font-semibold w-full text-left sticky top-0 cursor-pointer p-2"
+        className="title h-fit text-lg font-semibold w-full text-left cursor-pointer p-2 flex flex-row items-center justify-between"
       >
-        {type === "color"
-          ? listproductfilter.color.length > 0
-            ? "Selected Color"
-            : "Color"
-          : listproductfilter.size.length > 0
-          ? `Selected ${title}`
-          : title}
-      </h3>
+        <div className="w-full h-full">
+          {type === "color" ? (
+            selected ? (
+              "Clear Color"
+            ) : (
+              "Color"
+            )
+          ) : selected ? (
+            data.some((i) => selected.includes(i as string)) ? (
+              <div className="w-fit h-fit">
+                {" "}
+                <p className="font-bold text-red-400">Selected</p>
+                <p>{title}</p>{" "}
+              </div>
+            ) : (
+              title
+            )
+          ) : (
+            title
+          )}
+        </div>
+        {selected &&
+          data.some((i) =>
+            selected.includes(typeof i === "string" ? i : i.val)
+          ) && (
+            <Button
+              onClick={() => onClear && onClear(data, selected, promo)}
+              size="sm"
+              variant="bordered"
+              color="danger"
+            >
+              Clear
+            </Button>
+          )}
+      </div>
+
       {open && (
         <div className="w-full max-h-[150px] overflow-y-auto ">
           <motion.div
@@ -312,61 +308,47 @@ export function ToggleSelect({
             animate={{ opacity: 1 }}
             className="selectitem_container grid grid-cols-3 gap-y-3 h-full  w-fit gap-x-3 p-2 transition-all"
           >
-            {variantdata
-              ? variantdata.map((item, idx) => (
-                  <div key={idx} className="w-full h-fit flex flex-col gap-y-3">
-                    <h3 className="name text-lg font-semibold w-full text-left pl-2">
-                      {item.option_title}
-                    </h3>
-                    <div className="filterval w-full h-fit grid grid-cols-3">
-                      {item.option_value.map((i, index) => (
-                        <h4
-                          onClick={() => handleClick(index, idx)}
-                          key={index}
-                          className="text-lg p-1 font-normal bg-gray-300 text-black rounded-lg cursor-pointer transition duration-200 hover:bg-gray-100 active:bg-gray-100 break-all"
-                        >
-                          {" "}
-                          {i}{" "}
-                        </h4>
-                      ))}
-                    </div>
+            {data.map((i, idx) => (
+              <div
+                key={idx}
+                className="selectitem min-w-[50px] rounded-lg cursor-pointer w-fit h-fit break-words bg-white active:bg-gray-100 p-2"
+                onClick={() => {
+                  clickfunction && clickfunction(idx, type);
+                }}
+                style={
+                  selected?.includes(typeof i === "string" ? i : i.val)
+                    ? { backgroundColor: "gray" }
+                    : {}
+                }
+              >
+                {" "}
+                {type === "color" && typeof i !== "string" ? (
+                  <div className="w-fit h-fit flex flex-row gap-x-3 p-2 items-center justify-center rounded-full border border-black">
+                    <div
+                      className={`colorplattet w-[30px] h-[30px] rounded-full`}
+                      style={
+                        i
+                          ? {
+                              backgroundColor: i.val,
+                              backgroundPosition: "center",
+                            }
+                          : {}
+                      }
+                    ></div>
+                    {i.name && (
+                      <div className="text-lg w-fit h-fit font-bold">
+                        {" "}
+                        {i.name}{" "}
+                      </div>
+                    )}
                   </div>
-                ))
-              : data.map((i, idx) => (
-                  <div
-                    key={idx}
-                    className="selectitem min-w-[50px] rounded-md cursor-pointer w-fit max-w-[150px] h-fit break-words bg-white hover:bg-gray-100 active:bg-gray-100 p-2"
-                    onClick={() => handleClick(idx)}
-                    style={
-                      listproductfilter[type].find(
-                        (j) => j === removeSpaceAndToLowerCase(i)
-                      )
-                        ? { backgroundColor: "gray" }
-                        : {}
-                    }
-                  >
-                    {" "}
-                    {type === "color" ? (
-                      <>
-                        <div
-                          className={`colorplattet w-[40px] h-[40px]`}
-                          style={
-                            i
-                              ? {
-                                  backgroundColor: i as string,
-                                  backgroundPosition: "center",
-                                }
-                              : {}
-                          }
-                        ></div>
-                      </>
-                    ) : (
-                      <h3 className="label text-lg text-center font-normal">
-                        {i}
-                      </h3>
-                    )}{" "}
-                  </div>
-                ))}
+                ) : (
+                  <h3 className="label w-fit h-fit text-lg text-center font-normal">
+                    {i as string}
+                  </h3>
+                )}
+              </div>
+            ))}
           </motion.div>
         </div>
       )}
@@ -376,10 +358,6 @@ export function ToggleSelect({
 
 const animatedComponents = makeAnimated();
 
-interface Selecttype {
-  label: string;
-  value: string;
-}
 const getOptions = async (value: string, selectedvalue?: string[]) => {
   const product = GetProductName.bind(null, value);
   const searchreq = await product();
@@ -398,7 +376,7 @@ const getOptions = async (value: string, selectedvalue?: string[]) => {
 export const SearchAndMultiSelect = () => {
   const { product, setproduct } = useGlobalContext();
 
-  const [selected, setselected] = useState<Selecttype[] | undefined>(undefined);
+  const [selected, setselected] = useState<SelectType[] | undefined>(undefined);
 
   useEffect(() => {
     if (product.relatedproduct) {
@@ -410,9 +388,9 @@ export const SearchAndMultiSelect = () => {
     }
   }, [product.relatedproduct]);
 
-  const handleSelectChange = (val: Selecttype[] | null) => {
+  const handleSelectChange = (val: SelectType[] | null) => {
     const selected = val ?? [];
-    const productId = selected.map((i) => parseInt(i.value));
+    const productId = selected.map((i) => parseInt(i.value.toString()));
 
     setselected(selected);
     setproduct((prev) => ({ ...prev, relatedproductid: productId }));
@@ -427,10 +405,10 @@ export const SearchAndMultiSelect = () => {
       loadOptions={(value) =>
         getOptions(
           value,
-          selected?.map((i) => i.value)
+          selected?.map((i) => i.value as string)
         ) as any
       }
-      onChange={(val) => handleSelectChange(val as Selecttype[] | null)}
+      onChange={(val) => handleSelectChange(val as SelectType[] | null)}
       isMulti
     />
   );

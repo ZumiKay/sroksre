@@ -9,6 +9,6 @@ export async function POST(request: NextRequest) {
   if (createadmin) {
     return Response.json({ message: "Admin Created" }, { status: 200 });
   } else {
-    return Response.error();
+    return Response.json({ message: "Error Occured" }, { status: 400 });
   }
 }

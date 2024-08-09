@@ -2,7 +2,7 @@
 import ReactDOMServer from "react-dom/server";
 import { ChangeEvent, useEffect, useRef, useState } from "react";
 import PrimaryButton, { Selection } from "../../component/Button";
-import Modal, { shippingtype } from "../../component/Modals";
+import Modal from "../../component/Modals";
 import { useGlobalContext, userdata } from "@/src/context/GlobalContext";
 import { DateTimePicker, LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
@@ -26,6 +26,8 @@ import dayjs, { Dayjs } from "dayjs";
 import { OrderUserType } from "../../checkout/action";
 import * as XLSX from "xlsx";
 import { isObjectEmpty } from "@/src/lib/utilities";
+import { shippingtype } from "../../component/Modals/User";
+import PaginationCustom from "../../component/Pagination_Component";
 
 export const SelectionSSR = ({
   name,
@@ -635,39 +637,34 @@ export const PaginationSSR = ({
 }: {
   total: number;
   pages?: number;
-  limit?: number;
+  limit?: string;
 }) => {
   const [page, setpage] = useState(pages ?? 1);
-  const [show, setshow] = useState(limit ?? 1);
+  const [show, setshow] = useState(limit ?? "1");
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const handleChangePage = (value: number | string, type: string) => {
+  const handleSelectPage = (value: number | string) => {
     const searchparam = new URLSearchParams(searchParams);
 
-    if (type === "page") {
-      searchparam.set("page", value.toString());
-    }
-    if (type === "limit") {
-      searchparam.set("page", "1");
-      searchparam.set("show", value.toString());
-      setpage(1);
-    }
+    searchparam.set("p", "1");
+    searchparam.set("show", `${value}`);
+    setpage(1);
 
-    router.push(`/dashboard/order?${searchparam}`);
-    router.refresh();
+    router.replace(`?${searchparam}`, { scroll: false });
   };
 
   return (
-    <PaginationComponent
-      page={page}
-      show={show}
-      setpage={setpage}
-      setshow={setshow}
-      type="order"
-      count={total}
-      onchange={handleChangePage}
-    />
+    <div className="w-full h-fit mt-[10%]">
+      <PaginationCustom
+        page={page}
+        show={show}
+        setpage={setpage}
+        setshow={setshow}
+        count={total}
+        onSelectShowPerPage={handleSelectPage}
+      />
+    </div>
   );
 };
 
@@ -904,7 +901,16 @@ export const OrderProductDetailsModal = ({
               details={prob.details}
               price={{
                 price: prob.product?.price as number,
-                discount: prob.product?.discount,
+                discount: prob.product?.discount
+                  ? {
+                      percent: parseFloat(
+                        prob.product?.discount?.percent as any
+                      ),
+                      newprice: parseFloat(
+                        prob.product?.discount?.newprice as any
+                      ),
+                    }
+                  : undefined,
               }}
             />
           ))}

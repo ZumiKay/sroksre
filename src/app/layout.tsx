@@ -9,6 +9,9 @@ import "react-toastify/dist/ReactToastify.css";
 import { GlobalContextProvider } from "../context/GlobalContext";
 import { CartIndicator } from "./component/ServerComponents";
 import { getUser } from "../context/OrderContext";
+import { NextUIProvider } from "@nextui-org/react";
+import { Suspense } from "react";
+import { ContainerLoading } from "./component/Loading";
 
 const prompt = Prompt({
   weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
@@ -35,15 +38,22 @@ export default async function RootLayout({
           crossOrigin="anonymous"
         ></script>
       </head>
-      <body className={prompt.className} style={{ minHeight: "100vh" }}>
+      <body
+        className={prompt.className}
+        style={{ minHeight: "100vh", height: "100%", width: "100%" }}
+      >
         <GlobalContextProvider>
           {" "}
-          <Navbar session={session ?? undefined}>
-            <CartIndicator />
-          </Navbar>
-          <ToastContainer />
-          {children}
-          <Footer />
+          <NextUIProvider>
+            <div className="w-full h-full relative">
+              <Navbar session={session ?? undefined}>
+                <CartIndicator />
+              </Navbar>
+              <ToastContainer />
+              <Suspense fallback={<ContainerLoading />}>{children}</Suspense>
+              <Footer />
+            </div>
+          </NextUIProvider>
         </GlobalContextProvider>
       </body>
     </html>

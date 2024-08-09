@@ -214,7 +214,8 @@
   position: relative;
   transform: translateZ(0) scale(1);
   backface-visibility: hidden;
-  transform-origin: 0 0; /* see note above */
+  transform-origin: 0 0;
+  /* see note above */
 }
 
 .ldio-jhvhak8eufc div {
@@ -276,10 +277,18 @@
 
 .toggleselect[data-isopen=true] {
   height: 100%;
- 
+}
 
+.addbannerContainer .addbannerscroll__container ::-webkit-scrollbar {
+  width: 10px;
+}
+.addbannerContainer .addbannerscroll__container ::-webkit-scrollbar-track {
+  background: #000000;
+  border-radius: 1px;
+}
+.addbannerContainer .addbannerscroll__container ::-webkit-scrollbar-thumb {
+  background: black;
+  border-radius: 5px;
 }
 
 /*# sourceMappingURL=globals.css.map */
-
-

@@ -5,7 +5,10 @@ import { AnimationControls, motion, useAnimation } from "framer-motion";
 import { ChangeEvent, FormEvent, ReactNode, useEffect, useState } from "react";
 import ReactDOMServer from "react-dom/server";
 
-import { useGlobalContext } from "@/src/context/GlobalContext";
+import {
+  useGlobalContext,
+  VariantColorValueType,
+} from "@/src/context/GlobalContext";
 import {
   Orderpricetype,
   Ordertype,
@@ -25,13 +28,16 @@ import {
 } from "../checkout/action";
 import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 import { errorToast, LoadingText, successToast } from "./Loading";
-import { shippingtype } from "./Modals";
 import { Checkbox, FormControlLabel } from "@mui/material";
 import { LogoVector } from "./Asset";
 import { twj } from "tw-to-css";
 import { calculatePrice } from "../checkout/page";
 import { OrderReceiptTemplate } from "./EmailTemplate";
 import Image from "next/image";
+// import { SendNotification } from "@/src/socket";
+import Link from "next/link";
+import { shippingtype } from "./Modals/User";
+import { Chip } from "@nextui-org/react";
 
 //Step assets
 const LineSvg = ({
@@ -242,23 +248,21 @@ export const Checkoutproductcard = ({
   );
 };
 
-const detailcard = (text: string, bg?: string) => {
+const detailcard = (data: string | VariantColorValueType) => {
   return (
-    <div
-      style={
-        bg
-          ? {
-              width: "30px",
-              backgroundColor: bg,
-              borderRadius: "100%",
-              height: "30px",
-            }
-          : {}
+    <Chip
+      startContent={
+        typeof data !== "string" ? (
+          <div
+            style={{ backgroundColor: data.val }}
+            className="w-[20px] h-[20px] rounded-full"
+          ></div>
+        ) : undefined
       }
-      className="detailinfo w-fit max-w-full grid place-content-center h-fit break-all text-lg bg-gray-300 text-center font-medium p-1 rounded-lg"
+      size="md"
     >
-      {text}
-    </div>
+      {typeof data === "string" ? data : data.name}
+    </Chip>
   );
 };
 
@@ -316,7 +320,7 @@ const ShowDetails = ({
           <h3>Color: </h3>
           {details
             ?.filter((opt) => opt.option_type === "COLOR")
-            ?.map((opt) => detailcard("", opt.option_value))}
+            ?.map((opt) => detailcard(opt.option_value))}
         </div>
       )}
     </>
@@ -477,19 +481,16 @@ export const Navigatebutton = ({
   title: string;
   to: string;
 }) => {
-  const handleClick = () => {
-    alert("clicked");
-  };
-
   return (
-    <PrimaryButton
-      text={title}
-      onClick={() => handleClick()}
-      type="button"
-      height="50px"
-      width="100%"
-      radius="10px"
-    />
+    <Link href={to}>
+      <PrimaryButton
+        text={title}
+        type="button"
+        height="50px"
+        width="100%"
+        radius="10px"
+      />
+    </Link>
   );
 };
 
@@ -619,7 +620,7 @@ export function SelectionSSR(props: {
     <select
       onChange={handleChange}
       value={props.selectedvalue}
-      className={`select__container border border-1 border-black rounded-md w-full h-full p-2`}
+      className={`select__container border-1 border-black rounded-md w-full h-full p-2`}
     >
       <option value="">None</option>
       {props.data.map((i, idx) => (
@@ -897,17 +898,16 @@ export function Paypalbutton({
               const transaction =
                 orderData?.purchase_units?.[0]?.payments?.captures?.[0] ||
                 orderData?.purchase_units?.[0]?.payments?.authorizations?.[0];
-              successToast(`PURCAHSE ${transaction.status}`);
 
               //update order status and send email
 
-              const htmltemplate = ReactDOMServer.renderToStaticMarkup(
+              const htmltemplate = ReactDOMServer.renderToString(
                 <OrderReceiptTemplate
                   order={{ ...order, status: "Paid" }}
                   isAdmin={false}
                 />
               );
-              const adminhtmltemplate = ReactDOMServer.renderToStaticMarkup(
+              const adminhtmltemplate = ReactDOMServer.renderToString(
                 <OrderReceiptTemplate
                   order={{ ...order, status: "Paid" }}
                   isAdmin={true}
@@ -927,6 +927,14 @@ export function Paypalbutton({
                 errorToast(makeReq.message ?? "");
                 return;
               }
+              // await SendNotification({
+              //   type: "New Order",
+              //   content: `Order #${orderId} has requested`,
+              //   checked: false,
+              //   link: `${process.env.BASE_URL}/dashboard/order?&q=${orderId}`,
+              // });
+
+              successToast(`Purchase Complete`);
 
               router.replace(`/checkout?orderid=${encripyid}&step=4`);
             }

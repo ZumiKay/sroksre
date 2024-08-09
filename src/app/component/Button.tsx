@@ -5,7 +5,10 @@ import "../globals.css";
 import * as React from "react";
 import { styled } from "@mui/material/styles";
 import Button from "@mui/material/Button";
-import { CateogoryState, useGlobalContext } from "@/src/context/GlobalContext";
+import {
+  CateogoryState,
+  VariantColorValueType,
+} from "@/src/context/GlobalContext";
 import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
 import FormControl from "@mui/material/FormControl";
@@ -88,11 +91,11 @@ export default function PrimaryButton(props: buttonpros) {
       {props.status === "loading" ? (
         <h3 className="loading-text font-bold w-full h-fit"> Loading...</h3>
       ) : (
-        <h3 className="flex flex-row items-center justify-center">
+        <div className="w-full h-full flex flex-row items-center justify-center gap-x-2">
           {" "}
-          {props.Icon && <span className="mr-2"> {props.Icon} </span>}{" "}
-          {props.text}{" "}
-        </h3>
+          {props.Icon && props.Icon}
+          <p>{props.text}</p>{" "}
+        </div>
       )}
     </button>
   );
@@ -141,7 +144,7 @@ export function Selection(props: selectprops) {
 
       <select
         disabled={props.disable ? props.disable : false}
-        className={`select border border-1 border-black rounded-md ${
+        className={`select border-1 border-black rounded-md ${
           props.label ? "w-1/2" : "w-full"
         } h-full p-2`}
         onChange={props.onChange}
@@ -210,7 +213,7 @@ export const InputFileUpload = React.forwardRef(
         <VisuallyHiddenInput
           ref={ref}
           multiple={props.multiple}
-          accept=".jpg, .png"
+          accept=".jpg, .png , .webp"
           onChange={props.onChange}
           type="file"
         />
@@ -219,82 +222,11 @@ export const InputFileUpload = React.forwardRef(
   }
 );
 
-export const ColorSelect = ({
-  index,
-  type,
-  width,
-  height,
-  data,
-  label,
-  added,
-  edit,
-  value,
-}: {
-  index: number;
-  type: "COLOR" | "TEXT";
-  width: string;
-  height: string;
-  data: Array<string>;
-  label: string;
-  added: number;
-  edit: number;
-  onChange?: (event: SelectChangeEvent<any>) => void;
-  value?: string;
-}) => {
-  const { product, setproduct } = useGlobalContext();
-  const [state, setstate] = useState(value ? value : "");
-
-  const handleChange = (e: SelectChangeEvent<any>) => {
-    const { value } = e.target;
-
-    let stock = product.varaintstock;
-    const idx = edit !== -1 ? edit : added;
-
-    if (stock) {
-      if (value === "none") {
-        stock[idx].variant_val[index] = "";
-      } else {
-        stock[idx].variant_val[index] = value;
-      }
-    }
-    setstate(value);
-
-    setproduct((prev) => ({ ...prev, varaintstock: stock }));
-  };
-  return (
-    <FormControl sx={{ width: width, height: height, minWidth: "100px" }}>
-      <InputLabel id="demo-simple-select-label">{label}</InputLabel>
-      <Select
-        key={index}
-        labelId="demo-simple-select-label"
-        id="demo-simple-select"
-        label={label}
-        onChange={handleChange}
-        value={state}
-      >
-        <MenuItem value={"none"}>None</MenuItem>
-
-        {data.map((i) => (
-          <MenuItem value={i}>
-            {" "}
-            <div
-              className="w-[20px] h-[20px] rounded-2xl"
-              style={type === "COLOR" ? { backgroundColor: i } : {}}
-            >
-              {`${type === "TEXT" ? i : ""}`}
-            </div>{" "}
-          </MenuItem>
-        ))}
-      </Select>
-    </FormControl>
-  );
-};
-
 interface Selectcontainerprops {
-  data: Array<string>;
+  data: Array<string | VariantColorValueType>;
   type: "TEXT" | "COLOR";
   onSelect: (value: string) => void;
-  isSelected?: string;
+  isSelected?: string | VariantColorValueType;
 }
 const isSelectedStyle: CSSProperties = {
   outline: "2px solid black",
@@ -304,32 +236,44 @@ const isSelectedStyle: CSSProperties = {
 
 export const SelectContainer = (props: Selectcontainerprops) => {
   return (
-    <div className="w-[300px] max-w-[300px] min-h-[50px] h-fit p-2 flex flex-row items-center gap-x-3 rounded-lg outline-1 outline outline-gray-400 outline-offset-2">
+    <div className="w-fit max-w-[80%]  min-h-[50px] h-fit p-2 flex flex-row flex-wrap items-center gap-x-3 rounded-lg outline-1 outline outline-gray-400 outline-offset-2">
       {props.data.map((i, idx) => (
-        <div
-          key={idx}
-          onClick={() => {
-            props.onSelect(i);
-          }}
-          style={
-            props.type === "COLOR"
-              ? {
-                  backgroundColor: i,
+        <div key={idx} className="w-fit h-fit">
+          {typeof i === "string" ? (
+            <div
+              key={idx}
+              onClick={() => {
+                props.onSelect(i);
+              }}
+              style={props.isSelected === i ? isSelectedStyle : {}}
+              className={`select_item cursor-pointer w-fit h-fit p-2 max-w-[200px] break-words rounded-lg transition-all duration-30 hover:bg-black hover:text-white`}
+            >
+              {props.type === "TEXT" && (i as string)}
+            </div>
+          ) : (
+            <div
+              style={{
+                ...(props.isSelected === i.val ? isSelectedStyle : {}),
+              }}
+              onClick={() => {
+                props.onSelect(i.val);
+              }}
+              className="w-fit h-fit flex flex-row gap-x-3 p-2 items-center rounded-lg cursor-pointer justify-center hover:outline-2 hover:outline  hover:outline-gray-500 hover:outline-offset-2 active:outline-1 active:outline  active:outline-gray-300 active:outline-offset-2  "
+            >
+              <div
+                className="rounded-full"
+                style={{
+                  backgroundColor: i.val,
                   width: "30px",
                   height: "30px",
-                  ...(props.isSelected === i ? isSelectedStyle : {}),
-                }
-              : props.isSelected === i
-              ? isSelectedStyle
-              : {}
-          }
-          className={`select_item cursor-pointer w-fit h-fit p-2 max-w-[200px] break-words rounded-lg transition-all duration-300 ${
-            props.type === "COLOR"
-              ? "hover:outline-2 hover:outline  hover:outline-gray-500 hover:outline-offset-2 active:outline-1 active:outline  active:outline-gray-300 active:outline-offset-2 "
-              : "hover:bg-black hover:text-white"
-          }`}
-        >
-          {props.type === "TEXT" && i}
+                }}
+              ></div>
+
+              {i.name && (
+                <div className="w-fit h-fit text-lg font-bold"> {i.name}</div>
+              )}
+            </div>
+          )}
         </div>
       ))}
     </div>

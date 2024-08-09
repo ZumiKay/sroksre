@@ -7,7 +7,7 @@ import { hashedpassword } from "@/src/lib/userlib";
 import { compareSync } from "bcryptjs";
 import { generateRandomNumber } from "@/src/lib/utilities";
 import { revalidateTag } from "next/cache";
-import { handleEmail } from "../checkout/action";
+
 import { getUser } from "@/src/context/OrderContext";
 
 interface returntype {
@@ -21,8 +21,11 @@ export async function Editprofileaction(
   type: "name" | "email" | "password" | "shipping" | "none"
 ): Promise<returntype> {
   try {
-    const user = await getServerSession(authOptions);
-    const uID: any = user?.user && "sub" in user.user && user.user.sub;
+    const user = await getUser();
+
+    if (!user) {
+      return { success: false, message: "Unauthorized" };
+    }
 
     if (type === "name") {
       const formedname = data.get("name");
@@ -32,8 +35,25 @@ export async function Editprofileaction(
         lastname: namess.lastname,
       };
 
+      const isName = await Prisma.user.findFirst({
+        where: {
+          OR: [
+            {
+              firstname: names.firstname,
+            },
+            {
+              lastname: names.lastname,
+            },
+          ],
+        },
+      });
+
+      if (isName) {
+        return { success: false, message: "Name is already in used" };
+      }
+
       await Prisma.user.update({
-        where: { id: uID as string },
+        where: { id: user.id },
         data: {
           firstname: names.firstname as string,
           lastname: names.lastname as string,
@@ -43,33 +63,33 @@ export async function Editprofileaction(
       const email = data.get("email");
 
       await Prisma.user.update({
-        where: { id: uID },
+        where: { id: user.id },
         data: {
           email: email as string,
         },
       });
       await Prisma.usersession.deleteMany({
         where: {
-          user_id: uID,
+          user_id: user.id,
         },
       });
     } else {
       let password = data.get("password")?.toString() as string;
       let pass = JSON.parse(password);
-      let user = await Prisma.user.findUnique({ where: { id: uID } });
-      if (user) {
-        const isValid = compareSync(pass.oldpassword as string, user?.password);
+      let User = await Prisma.user.findUnique({ where: { id: user.id } });
+      if (User) {
+        const isValid = compareSync(pass.oldpassword as string, User?.password);
         if (isValid) {
           let newpassword = pass.newpassword as string;
           await Prisma.user.update({
             where: {
-              id: uID as string,
+              id: user.id,
             },
             data: {
               password: hashedpassword(newpassword),
             },
           });
-          await Prisma.usersession.deleteMany({ where: { user_id: uID } });
+          await Prisma.usersession.deleteMany({ where: { user_id: user.id } });
         } else {
           return { success: false, message: "Invalid Password" };
         }
@@ -108,7 +128,7 @@ export async function Addaddress(
     if (!isEdit) {
       const created = await Prisma.address.create({
         data: {
-          userId: user?.id as string,
+          userId: user.id,
           ...address,
         },
       });
@@ -117,7 +137,7 @@ export async function Addaddress(
     } else {
       await Prisma.address.updateMany({
         where: {
-          userId: user?.id as string,
+          userId: user.id,
           id: id,
         },
         data: {
@@ -208,5 +228,24 @@ export const VerifyEmail = async (
   } catch (error) {
     console.log("Verify Email", error);
     return { success: false, message: "Error Occured" };
+  }
+};
+
+export const checkloggedsession = async (sessionid: string) => {
+  try {
+    const usersession = await Prisma.usersession.findUnique({
+      where: {
+        session_id: sessionid,
+      },
+    });
+
+    if (usersession) {
+      return { success: true };
+    }
+
+    return { success: false };
+  } catch (error) {
+    console.error("Error checking session:", error);
+    return { success: false, error: "Error checking session" };
   }
 };

@@ -25,15 +25,10 @@ export default async function GET(req: NextRequest) {
         where: {
           product_id: pid,
         },
+        include: { Stockvalue: true },
       });
 
       if (stock.length > 0 || variant.length > 0) {
-        result = variant.map((i) =>
-          stock.some((j) =>
-            j.variant_val.every((k) => i.option_value.includes(k))
-          )
-        );
-
         return Response.json({ data: result }, { status: 200 });
       } else {
         return notFound();

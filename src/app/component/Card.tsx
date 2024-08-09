@@ -14,7 +14,6 @@ import Checkmark from "../../../public/Image/Checkmark.svg";
 import { SubInventoryMenu } from "./Navbar";
 import LoadingIcon, { errorToast } from "./Loading";
 import { useRouter } from "next/navigation";
-import { Sizecontainer, UpdateStockModal, Variantcontainer } from "./Modals";
 
 import {
   Orderpricetype,
@@ -22,7 +21,9 @@ import {
   totalpricetype,
 } from "@/src/context/OrderContext";
 import { Editcart } from "../product/detail/[id]/action";
-import { motion } from "framer-motion";
+import { Variantcontainer } from "./Modals/VariantModal";
+import { Sizecontainer } from "./Modals/Product";
+import { UpdateStockModal } from "./Modals/Stock";
 
 interface cardprops {
   name: string;
@@ -35,7 +36,7 @@ interface cardprops {
   id?: number;
   discount?: {
     percent: number;
-    newPrice: string;
+    newprice: string;
   };
   stock?: number;
   lowstock?: boolean;
@@ -53,9 +54,6 @@ const editactionMenu = [
   },
 ];
 
-interface openstockmodaltype {
-  [key: string]: boolean;
-}
 export default function Card(props: cardprops) {
   const {
     promotion,
@@ -69,6 +67,7 @@ export default function Card(props: cardprops) {
   } = useGlobalContext();
   const route = useRouter();
   const isProduct = promotion.Products.find((i) => i.id === props.id);
+  const [previewphoto, setpreviewphoto] = useState(false);
 
   const [state, setstate] = useState({
     detail: false,
@@ -98,8 +97,8 @@ export default function Card(props: cardprops) {
             id: id,
             discount: {
               percent: 0,
-              newPrice: "",
-              oldPrice: parseFloat(props.price),
+              newprice: "",
+              oldprice: parseFloat(props.price),
             },
           };
           promo.push(option);
@@ -110,7 +109,7 @@ export default function Card(props: cardprops) {
         if (isProduct) {
           const isExist = promotion.tempproduct?.includes(id);
           !isExist && temp.push(id);
-          let allproduct = [...allData.product];
+          let allproduct = [...(allData.product ?? [])];
           allproduct = allproduct.map((i) => {
             if (i.id === id) {
               return { ...i, discount: undefined };
@@ -125,8 +124,8 @@ export default function Card(props: cardprops) {
             id: id,
             discount: {
               percent: 0,
-              newPrice: "",
-              oldPrice: parseFloat(props.price),
+              newprice: "",
+              oldprice: parseFloat(props.price),
             },
           });
         }
@@ -176,20 +175,22 @@ export default function Card(props: cardprops) {
 
   const hasDiscount = props.discount;
   const showOriginalPrice = (
-    <h4 className="text-sm font-semibold">${props.price}</h4>
+    <h4 className="text-sm font-semibold">
+      ${parseFloat(props.price).toFixed(2)}
+    </h4>
   );
   const showDiscountPrice = (
     <div className="price_con flex flex-row flex-wrap items-center gap-x-5 w-full h-fit">
-      <h4 className="text-sm font-semibold line-through decoration-red-300 decoration-2">
-        ${props.price}
+      <h4 className="text-lg font-light line-through decoration-red-300 decoration-2">
+        ${parseFloat(props.price).toFixed(2)}
       </h4>
 
-      <h4 className="text-sm font-semibold text-red-500">
+      <h4 className="text-lg font-semibold text-red-500">
         -{hasDiscount?.percent ?? 0}%
       </h4>
 
-      <h4 className="text-sm font-semibold">{`${
-        hasDiscount?.newPrice ? `$${hasDiscount?.newPrice}` : ""
+      <h4 className="text-lg font-medium">{`${
+        hasDiscount?.newprice ? `$${hasDiscount?.newprice}` : ""
       }`}</h4>
     </div>
   );
@@ -226,22 +227,27 @@ export default function Card(props: cardprops) {
         ref={ref}
         onMouseEnter={() => handeMouseEvent("enter")}
         onMouseLeave={() => handeMouseEvent("leave")}
-        className={`card__container w-[550px] h-[550px]
+        className={`card__container w-[500px] h-[500px]
        hover:border-[2px] hover:border-gray-300 ${
          isProduct ? "border border-gray-300" : ""
-       }`}
+       } max-smaller_screen:w-[350px] max-smaller_screen:h-[350px] max-small_phone:w-[300px] max-small_phone:h-[300px]`}
       >
         <div
           onClick={() => {
             if (promotion.selectproduct) {
               handleSelectDiscount(props.id as number, "create");
             } else if (!props.isAdmin) {
-              route.push(`/product/detail/${props.id}`);
+              !previewphoto && route.push(`/product/detail/${props.id}`);
             }
           }}
           className="cardimage__container flex flex-col justify-center items-center relative w-full h-full border border-gray-300"
         >
-          <PrimaryPhoto showcount={false} data={props.img} hover={false} />
+          <PrimaryPhoto
+            showcount={false}
+            data={props.img}
+            hover={false}
+            setclick={setpreviewphoto}
+          />
 
           <span className="absolute top-3 right-3">
             {shouldShowCheckmark
@@ -270,13 +276,11 @@ export default function Card(props: cardprops) {
           )}
         </div>
         <section className="card_detail w-full h-[90px] font-semibold bg-white flex flex-col justify-center gap-y-3 border-[0.5px] border-t-0 border-solid border-gray-400 pl-2 rounded-b-md text-sm">
-          <h4 className="card_info w-[400px] h-[50px] overflow-y-auto text-lg">
+          <h4 className="card_info w-full max-w-[400px] h-[50px] overflow-y-auto text-lg">
             {props.name.length > 0 ? props.name : "No Product Created"}
           </h4>
 
-          {hasDiscount || promotion.selectproduct
-            ? showDiscountPrice
-            : showOriginalPrice}
+          {hasDiscount ? showDiscountPrice : showOriginalPrice}
         </section>
         {props.button && (
           <PrimaryButton type="button" text="Add To Cart" width={"100%"} />
@@ -294,7 +298,7 @@ export default function Card(props: cardprops) {
       </div>
       {openmodal && (
         <>
-          {openmodal[`variant${props.id}`] && (
+          {openmodal[closename] && (
             <Variantcontainer
               type="stock"
               editindex={props.id}
@@ -304,9 +308,7 @@ export default function Card(props: cardprops) {
           {props.id && openmodal[`size${props.id}`] && (
             <Sizecontainer index={props.id} type="edit" closename={closename} />
           )}
-          {openmodal[`stock${props.id}`] && (
-            <UpdateStockModal closename={closename} />
-          )}
+          {openmodal[closename] && <UpdateStockModal closename={closename} />}
         </>
       )}
     </>
@@ -475,17 +477,19 @@ interface Bannercardprops {
   type: "banner" | "promotion";
   id?: number;
   promodata?: PromotionState;
+  bannersize?: "normal" | "small";
+  isExpired?: boolean;
 }
-export const BannerCard = ({ data, index, id, type }: Bannercardprops) => {
-  const {
-    promotion,
-    setpromotion,
-    allData,
-    setalldata,
-    openmodal,
-    isLoading,
-    setisLoading,
-  } = useGlobalContext();
+export const BannerCard = ({
+  data,
+  index,
+  id,
+  type,
+  isExpired,
+  bannersize,
+}: Bannercardprops) => {
+  const { promotion, setpromotion, openmodal, isLoading, setisLoading } =
+    useGlobalContext();
   const ref = useRef<HTMLDivElement | null>(null);
   const isBanner = promotion.banner_id === id;
   const [open, setopen] = useState(false);
@@ -499,8 +503,6 @@ export const BannerCard = ({ data, index, id, type }: Bannercardprops) => {
       opencon: "",
     },
   ];
-  type === "banner" && actionMenu.push({ value: "Show At Home", opencon: "" });
-
   const handleSelectBanner = () => {
     if (promotion.selectbanner) {
       let ID = 0;
@@ -508,30 +510,6 @@ export const BannerCard = ({ data, index, id, type }: Bannercardprops) => {
       setpromotion((prev) => ({
         ...prev,
         banner_id: ID === 0 ? undefined : ID,
-      }));
-    } else if (openmodal.managebanner) {
-      //set banner as show
-
-      let allbanner = [...allData.banner];
-      let tempbanner = [...(allData.tempbanner ?? [])];
-      const isTemp = tempbanner.findIndex((i) => i.id === id);
-      if (isTemp === -1) {
-        tempbanner.push({
-          id: allbanner[index].id as number,
-          show: allbanner[index].show as boolean,
-        });
-      } else {
-        tempbanner.splice(isTemp, 1);
-      }
-      if (allbanner[index].show) {
-        allbanner[index].show = false;
-      } else {
-        allbanner[index].show = true;
-      }
-      setalldata((prev) => ({
-        ...prev,
-        banner: allbanner,
-        tempbanner: tempbanner,
       }));
     }
   };
@@ -543,14 +521,23 @@ export const BannerCard = ({ data, index, id, type }: Bannercardprops) => {
         setopen(false);
       }}
       onClick={() => handleSelectBanner()}
-      className={`Banner__container relative w-full h-full flex flex-col justify-start transition-all rounded-t-lg border-t border-l border-r border-gray-300  duration-300 hover:-translate-y-3`}
+      className={`Banner__container relative w-full h-full transition-all rounded-t-lg border-t border-l border-r border-gray-300  duration-300 hover:-translate-y-3`}
     >
+      {isExpired && (
+        <h3
+          className={
+            "status w-full h-fit p-2 bg-red-300 font-bold text-lg text-white"
+          }
+        >
+          Expired
+        </h3>
+      )}
       <div className="relative w-full h-full">
         <Image
           src={data.url ?? ""}
           alt={`Banner`}
           className="banner w-full h-full object-cover"
-          loading="eager"
+          loading="lazy"
           onLoad={() =>
             setisLoading((prev) => ({
               ...prev,
@@ -563,8 +550,8 @@ export const BannerCard = ({ data, index, id, type }: Bannercardprops) => {
               IMAGE: { ...prev.IMAGE, [`Banner${index}`]: false },
             }))
           }
-          width={1000}
-          height={1000}
+          width={600}
+          height={600}
         />
         {`Banner${index}` in isLoading.IMAGE &&
           !isLoading.IMAGE[`Banner${index}`] && (
@@ -578,14 +565,14 @@ export const BannerCard = ({ data, index, id, type }: Bannercardprops) => {
       <h3 className="Banner text-xl w-full p-1 bg-[#495464] rounded-b-lg  font-bold text-white">
         {data.name.length === 0 ? "No name" : data.name}
       </h3>
+
       <span
         onClick={() =>
           (!promotion.selectbanner || !openmodal.managebanner) && setopen(true)
         }
         className="action_container absolute top-0 right-0"
       >
-        {((type === "banner" && isBanner && promotion.selectbanner) ||
-          (allData.banner[index]?.show && openmodal.managebanner)) && (
+        {type === "banner" && isBanner && promotion.selectbanner && (
           <Image
             src={Checkmark}
             alt="checkmark"

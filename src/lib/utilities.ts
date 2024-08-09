@@ -12,10 +12,15 @@ import {
   infovaluetype,
 } from "../context/GlobalContext";
 
-import { Orderpricetype, Productordertype } from "../context/OrderContext";
+import {
+  getUser,
+  Orderpricetype,
+  Productordertype,
+} from "../context/OrderContext";
 import { createCipheriv, createDecipheriv, randomBytes } from "crypto";
 import { calculatePrice } from "../app/checkout/page";
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
+import { signOut } from "next-auth/react";
 
 export const AllOrderStatusColor: Record<string, string> = {
   incart: "#495464",
@@ -41,6 +46,24 @@ export const postRequest = async (url: string, data: any) => {
   } else {
     return { status: post.status, message: jsonRes.message };
   }
+};
+
+export const LoggedOut = async () => {
+  const user = await getUser();
+
+  if (user) {
+    await Prisma.usersession.delete({ where: { session_id: user.session_id } });
+    await signOut();
+  }
+
+  return true;
+};
+
+export const GetOneWeekAgoDate = () => {
+  const today = new Date();
+  const oneWeekAgo = new Date(today);
+  oneWeekAgo.setDate(today.getDate() - 7);
+  return oneWeekAgo;
 };
 
 export const UploadImageToStorage = async (
@@ -133,24 +156,11 @@ export const checkpassword = (password: string) => {
   return { isValid, error };
 };
 
-export const checkloggedsession = async (uid: string) => {
-  try {
-    const usersession = await Prisma.usersession.findMany({
-      where: {
-        user_id: uid,
-      },
-    });
-
-    if (usersession.length > 0) {
-      return { success: true };
-    }
-
-    return { success: false };
-  } catch (error) {
-    console.error("Error checking session:", error);
-    return { success: false, error: "Error checking session" };
-  }
-};
+export function getOneWeekFromToday(): Date {
+  const today = new Date();
+  const oneWeekFromToday = new Date(today.setDate(today.getDate() + 7));
+  return oneWeekFromToday;
+}
 
 export const transformData = (data: any) => {
   const transformedData: any = {};
@@ -169,6 +179,36 @@ export const transformData = (data: any) => {
 
   return transformedData;
 };
+
+export function isIntOrBigInt(value: string) {
+  // Check if the string is a valid integer
+  function isInt(str: string) {
+    const intRegex = /^-?\d+$/;
+    if (!intRegex.test(str)) return false;
+    const num = Number(str);
+    return Number.isSafeInteger(num);
+  }
+
+  // Check if the string is a valid BigInt
+  function isBigInt(str: string) {
+    const bigIntRegex = /^-?\d+$/;
+    if (!bigIntRegex.test(str)) return false;
+    try {
+      BigInt(str);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  if (isInt(value)) {
+    return { type: "Int", value: Number(value) };
+  } else if (isBigInt(value)) {
+    return { type: "BigInt", value: BigInt(value) };
+  } else {
+    return { type: "Invalid", value: null };
+  }
+}
 
 export const findDuplicateStockIndices = (stocks: Stocktype[]): number[] => {
   const seen: Map<string, number[]> = new Map();
@@ -327,6 +367,40 @@ export const calculateDiscountProductPrice = (data: {
   }
 
   return { price: data.price };
+};
+
+export function stringToBoolean(str: string) {
+  if (typeof str !== "string") {
+    throw new Error("Input must be a string");
+  }
+
+  switch (str.toLowerCase().trim()) {
+    case "true":
+      return true;
+    case "false":
+      return false;
+    default:
+      return null;
+  }
+}
+
+export const HasPartialOverlap = (
+  arr1: string[][],
+  arr2: string[][]
+): boolean => {
+  const set1 = new Set(arr1.map((subArr) => subArr.join(",")));
+  const set2 = new Set(arr2.map((subArr) => subArr.join(",")));
+
+  const array1 = Array.from(set1);
+  const array2 = Array.from(set2);
+
+  for (let val of array1) {
+    if (array2.includes(val)) {
+      return true;
+    }
+  }
+
+  return false;
 };
 //Email Template
 //
