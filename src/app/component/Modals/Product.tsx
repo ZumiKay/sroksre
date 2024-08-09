@@ -12,7 +12,13 @@ import {
   SubcategoriesState,
   useGlobalContext,
 } from "@/src/context/GlobalContext";
-import { ChangeEvent, FormEvent, useEffect, useRef, useState } from "react";
+import React, {
+  ChangeEvent,
+  FormEvent,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { ContainerLoading, errorToast, successToast } from "../Loading";
 import { motion } from "framer-motion";
 import { PrimaryPhoto } from "../PhotoComponent";
@@ -47,9 +53,8 @@ export function CreateProducts() {
     setglobalindex,
     isLoading,
     setisLoading,
+    setreloaddata,
   } = useGlobalContext();
-
-  const router = useRouter();
 
   const [edit, setedit] = useState({
     productdetail: false,
@@ -185,7 +190,7 @@ export function CreateProducts() {
 
     setedit((prev) => ({ ...prev, productinfo: false }));
     setopenmodal((prev) => ({ ...prev, createProduct: false }));
-    router.refresh();
+    setreloaddata(true);
   };
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {

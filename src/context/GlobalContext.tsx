@@ -141,6 +141,7 @@ export interface FilterValue {
   bannertype?: string;
   bannersize?: string;
   search?: string;
+  expired?: string;
 }
 
 interface Listproductfilter {

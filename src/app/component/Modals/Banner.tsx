@@ -43,9 +43,8 @@ export const BannerModal = () => {
     setglobalindex,
     setisLoading,
     isLoading,
+    setreloaddata,
   } = useGlobalContext();
-  const [isEdit, setisEdit] = useState(false);
-  const router = useRouter();
 
   const Linktype = [
     {
@@ -121,10 +120,6 @@ export const BannerModal = () => {
       : setisLoading((prev) => ({ ...prev, GET: false }));
   }, []);
 
-  useEffect(() => {
-    const isEdit = banner.image.url.length !== 0 && banner.name.length !== 0;
-    setisEdit(isEdit);
-  }, [banner]);
   const handleCreate = async () => {
     const allbanner = [...(allData.banner ?? [])];
     const URL = "/api/banner";
@@ -164,6 +159,7 @@ export const BannerModal = () => {
         }
         setbanner(BannerInitialize);
         successToast("Banner Created");
+        setreloaddata(true);
       } else {
         const update = await ApiRequest(
           URL,
@@ -184,10 +180,9 @@ export const BannerModal = () => {
         setglobalindex((prev) => ({ ...prev, bannereditindex: -1 }));
 
         successToast("Banner Updated");
+        setreloaddata(true);
       }
-      setisEdit(false);
       setbanner(BannerInitialize);
-      router.refresh();
     } else {
       errorToast("Image is required");
     }

@@ -962,10 +962,20 @@ export const GetAllProduct = async (
             const isChildId =
               child_cate && prod.childcategory_id === child_cate;
 
+            const isLowStock =
+              sk && sk === "Low" && prod.Stock
+                ? prod.Stock.some((stock) =>
+                    stock.Stockvalue.some((i) => i.qty <= 5)
+                  )
+                : prod.stock
+                ? prod.stock <= 5
+                : false;
+
             const conditions = [
               query ? isName : true,
               parent_cate ? isPid : true,
               child_cate ? isChildId : true,
+              sk ? isLowStock : true,
             ];
 
             return conditions.every((i) => i);

@@ -1,11 +1,6 @@
 "use server";
 
-import {
-  FilterValue,
-  infovaluetype,
-  Stocktype,
-  Varianttype,
-} from "@/src/context/GlobalContext";
+import { FilterValue, Varianttype } from "@/src/context/GlobalContext";
 import { getUser } from "@/src/context/OrderContext";
 import Prisma from "@/src/lib/prisma";
 import {
@@ -88,59 +83,6 @@ export async function Deletevairiant(id: number): Promise<Returntype> {
   } catch (error) {
     console.log("Variant", error);
     return { success: false };
-  }
-}
-
-interface stocktype extends Stocktype {
-  product_id: number;
-}
-export async function CreateStock(data: stocktype): Promise<Returntype> {
-  try {
-    const create = await Prisma.stock.create({
-      data: {
-        product_id: data.product_id,
-        qty: data.qty,
-        variant_val: data.variant_val,
-      },
-    });
-    if (create) {
-      return { success: true, data: { id: create.id } };
-    }
-    return { success: false, message: "Failed To Create" };
-  } catch (error) {
-    console.log("Stock", error);
-    return { success: false };
-  } finally {
-    await Prisma.$disconnect();
-  }
-}
-
-export async function Editstock(data: stocktype): Promise<Returntype> {
-  try {
-    await Prisma.stock.update({
-      where: { id: data.id },
-      data: {
-        variant_val: data.variant_val,
-        qty: data.qty,
-      },
-    });
-    return { success: true, message: "Update Sucessfully" };
-  } catch (error) {
-    console.log("Stock", error);
-    return { success: false, message: "Failed To Update" };
-  } finally {
-    await Prisma.$disconnect();
-  }
-}
-export async function Deletestock(id: number): Promise<Returntype> {
-  try {
-    await Prisma.stock.delete({ where: { id } });
-    return { success: true, message: "Delete Successfully" };
-  } catch (error) {
-    console.log("Stock", error);
-    return { success: false, message: "Failed To Delete" };
-  } finally {
-    await Prisma.$disconnect();
   }
 }
 
@@ -266,20 +208,31 @@ export const getTotalOfItems = async (
       if (filtervalue?.status) {
         let product = await Prisma.products.findMany({
           where: {},
-          select: { stock: true, stocktype: true, Stock: true, details: true },
+          select: {
+            stock: true,
+            stocktype: true,
+            Stock: {
+              select: {
+                id: true,
+                Stockvalue: {
+                  select: {
+                    id: true,
+                    qty: true,
+                  },
+                },
+              },
+            },
+            details: true,
+          },
         });
 
         product = product.filter((prod) => {
           const isVariant =
-            prod.stocktype === "variant" && prod.Stock.some((i) => i.qty <= 3);
-          const isSize =
-            prod.stocktype === "size" &&
-            prod.details.some((i) => {
-              const value = i.info_value as unknown as infovaluetype[];
-              return value.some((j) => j.qty <= 3);
-            });
+            prod.stocktype === "variant" &&
+            prod.Stock.some((i) => i.Stockvalue.some(({ qty }) => qty <= 5));
+
           const isStock = prod.stock && prod.stock <= 3;
-          return isVariant || isSize || isStock;
+          return isVariant || isStock;
         });
         result = product.length;
       }
@@ -347,6 +300,7 @@ export interface InventoryParamType {
   bannertype?: string;
   bannersize?: string;
   search?: string;
+  expired?: string;
 }
 
 export const DeleteTempImage = async () => {

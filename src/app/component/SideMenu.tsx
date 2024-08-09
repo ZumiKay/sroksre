@@ -20,7 +20,7 @@ import {
   useClickOutside,
   useEffectOnce,
 } from "@/src/context/CustomHook";
-import LoadingIcon, {
+import {
   ContainerLoading,
   LoadingText,
   errorToast,
@@ -53,6 +53,8 @@ import {
 import { Homeeditmenu } from "./HomePage/EditMenu";
 import { Addicon } from "./Icons/Homepage";
 import { Homeitemtype } from "../severactions/containeraction";
+import { Checkbox } from "@nextui-org/react";
+import { SelectionCustom } from "./Pagination_Component";
 
 interface accountmenuprops {
   setProfile: (value: SetStateAction<boolean>) => void;
@@ -653,6 +655,9 @@ export const FilterMenu = ({
   expiredAt,
   param,
   setisFilter,
+  expired,
+  reloadData,
+  setfilterdata,
 }: {
   type?: string;
   totalproduct?: number;
@@ -663,8 +668,13 @@ export const FilterMenu = ({
   expiredAt?: string;
   name?: string;
   stock?: string;
+  expired?: string;
   param?: InventoryParamType;
   setisFilter?: React.Dispatch<React.SetStateAction<boolean>>;
+  reloadData?: () => void;
+  setfilterdata?: React.Dispatch<
+    React.SetStateAction<InventoryParamType | undefined>
+  >;
 }) => {
   const { setopenmodal, promotion, listproductfilval } = useGlobalContext();
 
@@ -685,6 +695,8 @@ export const FilterMenu = ({
     bannersize: param?.bannersize ?? undefined,
     bannertype: param?.bannertype ?? undefined,
     search: param?.search,
+    status: param?.status,
+    expired: expired,
   });
   const [filterdata, setdata] = useState<{
     size?: Array<string>;
@@ -732,22 +744,31 @@ export const FilterMenu = ({
 
     filtervalues.map(([key, value]) => {
       if (key === "expiredate" && value) {
-        const val = value as Dayjs;
+        const val = dayjs(value);
         params.set(key, formatDate(val.toDate()));
+        setfilterdata &&
+          setfilterdata((prev) => ({
+            ...prev,
+            [key]: formatDate(val.toDate()),
+          }));
       }
       if (key !== "p" && value && value !== "none") {
         params.set(key, value);
+        setfilterdata && setfilterdata((prev) => ({ ...prev, [key]: value }));
       }
     });
+
     params.set("p", "1");
 
     router.push(`?${params}`);
 
     setisFilter && setisFilter(true);
 
+    reloadData && reloadData();
+
     setopenmodal((prev) => ({ ...prev, filteroption: false }));
   };
-  const handleSelect = async (e: ChangeEvent<HTMLSelectElement>) => {
+  const handleSelect = (e: ChangeEvent<HTMLSelectElement>) => {
     const { name, value } = e.target;
 
     setfilter((prev) => ({ ...prev, [name]: value }));
@@ -768,9 +789,11 @@ export const FilterMenu = ({
 
     params.set("p", "1");
 
+    setfilterdata && setfilterdata({});
+
     router.push(`?${params}`);
 
-    router.refresh();
+    reloadData ? reloadData() : router.refresh();
 
     setopenmodal((prev) => ({ ...prev, filteroption: false }));
   };
@@ -881,6 +904,16 @@ export const FilterMenu = ({
                 }}
               />{" "}
             </div>
+
+            <SelectionCustom
+              data={[{ label: "Expired", value: "1" }]}
+              label="status"
+              value={filtervalue.expired}
+              placeholder="Status"
+              onChange={(value) =>
+                setfilter((prev) => ({ ...prev, expired: value as string }))
+              }
+            />
           </>
         )}
         {type === "product" && (

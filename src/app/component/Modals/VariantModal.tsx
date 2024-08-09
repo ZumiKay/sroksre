@@ -27,6 +27,7 @@ import TemplateContainer, {
 } from "./Variantcomponent/TemplateContainer";
 import { VariantTemplateType } from "./Variantcomponent/Action";
 import { HasPartialOverlap } from "@/src/lib/utilities";
+import { useRouter } from "next/navigation";
 
 interface variantdatatype {
   id?: number;
@@ -84,10 +85,10 @@ export const Variantcontainer = ({
   editindex?: number;
   closename?: string;
 }) => {
+  const router = useRouter();
   const { setopenmodal, product, setproduct } = useGlobalContext();
   const [temp, settemp] = useState<variantdatatype>();
   const [reloadtemp, setreloadtemp] = useState(true);
-  const [reloadstock, setreloadstock] = useState(false);
 
   const [colordata, setcolordata] = useState({
     color: Colorinitalize,
@@ -159,7 +160,7 @@ export const Variantcontainer = ({
       type &&
       type === ProductStockType.stock &&
       fetchstock(editindex);
-  }, [reloadstock]);
+  }, []);
 
   useEffect(() => {
     FetchTemplate();
@@ -539,7 +540,6 @@ export const Variantcontainer = ({
     setselectedvalues(undefined);
     setstock("");
     setnew("stock");
-    setreloadstock(true);
   };
 
   return (

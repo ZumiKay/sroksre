@@ -81,6 +81,7 @@ export const ApiRequest = async (
   lowstock?: number;
   valid?: boolean;
   totalfilter?: number;
+  expirecount?: number;
   message?: string;
   isLimit?: boolean;
 }> => {
@@ -113,6 +114,7 @@ export const ApiRequest = async (
         totalfilter: method === "GET" && responseJson?.totalfilter,
         valid: responseJson.valid ?? undefined,
         isLimit: method === "GET" && responseJson?.isLimit,
+        expirecount: method === "GET" && responseJson?.expirecount,
       };
     } else {
       return { success: true, message: responseJson.message };

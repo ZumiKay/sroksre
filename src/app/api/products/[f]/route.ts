@@ -214,6 +214,9 @@ export async function GET(
       where: {
         product_id: pid,
       },
+      orderBy: {
+        id: "asc",
+      },
       select: {
         id: true,
         option_title: true,

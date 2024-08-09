@@ -1,10 +1,10 @@
-import { ApiRequest } from "@/src/context/CustomHook";
+import { ApiRequest, useEffectOnce } from "@/src/context/CustomHook";
 import {
   PromotionInitialize,
   useGlobalContext,
 } from "@/src/context/GlobalContext";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ChangeEvent, FormEvent, useEffect, useState } from "react";
+import React, { ChangeEvent, FormEvent, useEffect, useState } from "react";
 import { errorToast, infoToast, successToast } from "../Loading";
 import Modal from "../Modals";
 import { motion } from "framer-motion";
@@ -27,8 +27,10 @@ interface InventoryParamType {
 }
 export const CreatePromotionModal = ({
   searchparams,
+  settype,
 }: {
   searchparams: InventoryParamType;
+  settype: (type: string) => void;
 }) => {
   const {
     openmodal,
@@ -39,6 +41,7 @@ export const CreatePromotionModal = ({
     isLoading,
     globalindex,
     setglobalindex,
+    setreloaddata,
   } = useGlobalContext();
 
   const router = useRouter();
@@ -111,9 +114,11 @@ export const CreatePromotionModal = ({
         globalindex.promotioneditindex === -1 ? "Created" : "Updated"
       }`
     );
-    Object.entries(searchparams).forEach(([key, value]) => {
+    Object.keys(searchparams).forEach((key) => {
       if (key === "ty") {
-        param.set("ty", "promotion");
+        const type = "promotion";
+        param.set("ty", type);
+        settype(type);
       } else {
         param.delete(key);
       }
@@ -121,8 +126,9 @@ export const CreatePromotionModal = ({
 
     setglobalindex((prev) => ({ ...prev, promotioneditindex: -1 }));
     setopenmodal((prev) => ({ ...prev, createPromotion: false }));
+
     router.push(`?${param}`);
-    router.refresh();
+    setreloaddata(true);
   };
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     setpromotion((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -142,9 +148,11 @@ export const CreatePromotionModal = ({
       return;
     }
 
-    Object.entries(searchparams).forEach(([key, _]) => {
+    Object.keys(searchParams).forEach((key) => {
       if (key === "ty") {
-        param.set("ty", "promotion");
+        const type = "promotion";
+        param.set("ty", type);
+        settype(type);
       } else {
         param.delete(key);
       }
@@ -154,28 +162,34 @@ export const CreatePromotionModal = ({
     setglobalindex((prev) => ({ ...prev, promotioneditindex: -1 }));
     setopenmodal((prev) => ({ ...prev, createPromotion: false }));
     router.push(`?${param}`);
-    router.refresh();
+    setreloaddata(true);
   };
-  const handleSelectProduct = (type: "product" | "banner") => {
+  const handleSelectProductAndBanner = (type: "product" | "banner") => {
     const param = new URLSearchParams(searchParams);
+
     const isSelect = promotion.Products.every((i) => i.id !== 0);
 
     setpromotion((prev) => ({
       ...prev,
-      products: !isSelect ? [] : prev.Products,
-      [type === "product" ? "selectproduct" : "selectbanner"]:
-        !prev[type === "product" ? "selectproduct" : "selectbanner"],
+      products: isSelect ? prev.Products : [],
+      selectbanner: type === "banner",
+      selectproduct: type === "product",
     }));
-    infoToast("Start selection by click on card");
 
-    Object.entries(searchparams).forEach(([key, value]) => {
-      if (key === "ty") {
-        param.set("ty", type);
-      } else {
+    infoToast("Start selection by clicking on the card");
+
+    // Remove all parameters except 'ty'
+    param.forEach((_, key) => {
+      if (key !== "ty") {
         param.delete(key);
       }
     });
-    router.push(`?${param}`);
+
+    param.set("ty", type);
+
+    settype(type);
+    router.push(`?${param}`, { scroll: false });
+    setreloaddata(true);
     setopenmodal((prev) => ({ ...prev, createPromotion: false }));
   };
 
@@ -196,7 +210,7 @@ export const CreatePromotionModal = ({
             name="name"
             placeholder="Name"
             value={promotion.name}
-            className="w-full h-[50px] pl-2 border border-gray-200 text-lg font-bold"
+            className="w-full h-[50px] pl-2 border border-gray-200 text-lg font-medium"
             onChange={handleChange}
             required
           />
@@ -206,7 +220,7 @@ export const CreatePromotionModal = ({
             value={promotion.description}
             onChange={handleChange}
             placeholder="Description"
-            className="w-full h-[50px] pl-2 border border-gray-200 text-lg font-bold"
+            className="w-full h-[50px] pl-2 border border-gray-200 text-lg font-medium"
           />
           <label className="w-full text-lg font-bold text-left">
             Expire Date*
@@ -224,7 +238,7 @@ export const CreatePromotionModal = ({
           <PrimaryButton
             text={promotion.banner_id ? "Edit Banner" : "Select Banner"}
             onClick={() => {
-              handleSelectProduct("banner");
+              handleSelectProductAndBanner("banner");
             }}
             type="button"
             color="#3D788E"
@@ -238,7 +252,7 @@ export const CreatePromotionModal = ({
                 ? "Edit Products"
                 : "Select Product"
             }
-            onClick={() => handleSelectProduct("product")}
+            onClick={() => handleSelectProductAndBanner("product")}
             type="button"
             radius="10px"
             width="100%"
@@ -276,12 +290,17 @@ export const CreatePromotionModal = ({
 };
 
 export const DiscountModals = () => {
-  const { promotion, allData, setpromotion, globalindex, setopenmodal } =
-    useGlobalContext();
-  const router = useRouter();
+  const {
+    promotion,
+    allData,
+    setpromotion,
+    globalindex,
+    setopenmodal,
+    setreloaddata,
+  } = useGlobalContext();
   const [discount, setdiscount] = useState<number>(0);
 
-  useEffect(() => {
+  useEffectOnce(() => {
     if (globalindex.promotionproductedit !== -1) {
       const idx = promotion.Products.findIndex(
         (i) => i.id === globalindex.promotionproductedit
@@ -290,9 +309,9 @@ export const DiscountModals = () => {
       const percent = promo?.percent;
       setdiscount(percent ?? 0);
     }
-  }, []);
+  });
 
-  const handleDiscount = async (e: FormEvent<HTMLFormElement>) => {
+  const handleDiscount = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     let promoproduct = [...promotion.Products];
     let allproduct = [...(allData.product ?? [])];
@@ -304,22 +323,15 @@ export const DiscountModals = () => {
       oldprice: price,
     });
 
-    if (producteditidx === -1) {
-      promoproduct = promoproduct.map((i) => ({
-        ...i,
-        discount: calculateDiscount(i.discount?.oldprice as number),
-      })); // set discount for all selected product
-    } else {
-      promoproduct = promoproduct.map((i) => {
-        if (i.id === producteditidx) {
-          return {
-            ...i,
-            discount: calculateDiscount(i.discount?.oldprice as number),
-          };
-        }
-        return i;
-      });
-    }
+    promoproduct = promoproduct.map((i) => {
+      if (producteditidx === -1 || i.id === producteditidx) {
+        return {
+          ...i,
+          discount: calculateDiscount(i.discount?.oldprice ?? 0),
+        };
+      }
+      return i;
+    });
 
     //update product discount
     allproduct = allproduct.map((product) => {
@@ -345,12 +357,8 @@ export const DiscountModals = () => {
     //update product
 
     setpromotion((prev) => ({ ...prev, Products: promoproduct }));
-
+    setreloaddata(true);
     setopenmodal((prev) => ({ ...prev, discount: false }));
-
-    successToast("Discount Set");
-
-    router.refresh();
   };
 
   return (

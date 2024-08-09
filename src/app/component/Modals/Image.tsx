@@ -20,7 +20,6 @@ import Image from "next/image";
 import CloseIcon from "../../../../public/Image/Close.svg";
 import PrimaryButton, { InputFileUpload } from "../Button";
 import CropImage from "../Cropimage";
-import { useRouter } from "next/navigation";
 
 export type Imgurl = {
   url: string;
@@ -50,8 +49,8 @@ export const ImageUpload = (props: imageuploadprops) => {
     openmodal,
     setopenmodal,
     globalindex,
+    setreloaddata,
   } = useGlobalContext();
-  const router = useRouter();
   const [Imgurl, seturl] = useState<Imgurl[]>([]);
   const [Imgurltemp, seturltemp] = useState<Imgurl[]>([]);
   const [Files, setfiles] = useState<File[]>([]);
@@ -179,7 +178,7 @@ export const ImageUpload = (props: imageuploadprops) => {
     if (!update.success) {
       return null;
     }
-    router.refresh();
+    setreloaddata(true);
     return true;
   };
 
@@ -265,7 +264,6 @@ export const ImageUpload = (props: imageuploadprops) => {
         return newFiles;
       });
       setisEdit(false);
-      router.refresh();
 
       setopenmodal({
         ...openmodal,
@@ -277,6 +275,7 @@ export const ImageUpload = (props: imageuploadprops) => {
       errorToast("Failed To Save");
     } finally {
       setloading(false);
+      setreloaddata(true);
     }
   };
   const handleCancel = () => {

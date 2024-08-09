@@ -8,11 +8,7 @@ import {
 } from "@/src/context/GlobalContext";
 import { SubInventoryMenu } from "../../component/Navbar";
 import { ChangeEvent, useEffect, useRef, useState } from "react";
-import {
-  ApiRequest,
-  Delayloading,
-  useEffectOnce,
-} from "@/src/context/CustomHook";
+import { ApiRequest, Delayloading } from "@/src/context/CustomHook";
 import { ContainerLoading, errorToast } from "../../component/Loading";
 import { FilterMenu } from "../../component/SideMenu";
 import dayjs from "dayjs";
@@ -82,6 +78,8 @@ export default function Inventory({
     setpromotion,
     itemlength,
     setitemlength,
+    reloaddata,
+    setreloaddata,
   } = useGlobalContext();
   const {
     ty: type,
@@ -94,6 +92,7 @@ export default function Inventory({
     expiredate,
     bannersize,
     bannertype,
+    expired,
   } = searchParams as InventoryParamType;
   const btnref = useRef<HTMLDivElement | null>(null);
   const router = useRouter();
@@ -103,63 +102,59 @@ export default function Inventory({
   const [page, setpage] = useState(p ? parseInt(p) : 1);
   const [itemscount, setitemcount] = useState(0);
   const [lowstock, setlowstock] = useState(0);
+  const [ty, settype] = useState(type);
+  const [promoexpire, setpromoexpire] = useState(0);
 
-  const [isFilter, setisFilter] = useState(false);
-
-  useEffectOnce(() => {
-    const checkfilter =
-      type === "product"
-        ? !!status ||
-          !!name ||
-          !!childcate ||
-          !!parentcate ||
-          !!promotion.selectproduct
-        : type === "banner"
-        ? !!name || !!bannersize || !!bannertype
-        : !!name || !!expiredate;
-
-    setisFilter(checkfilter);
+  const [filtervalue, setfiltervalue] = useState<InventoryParamType>({
+    parentcate,
+    childcate,
+    name,
+    expiredate,
+    bannersize,
+    bannertype,
+    status,
+    expired,
   });
 
   useEffect(() => {
-    if (!type || !p || !limit) {
+    if (!type) {
       return redirect(
         `/dashboard/inventory${defaultparams(type ?? "product")}`
       );
     }
 
     const isValid =
-      !IsNumber(p) ||
-      !IsNumber(limit) ||
+      (p && !IsNumber(p)) ||
+      (limit && !IsNumber(limit)) ||
       (parentcate && !IsNumber(parentcate)) ||
-      (childcate && !IsNumber(childcate));
+      (childcate && !IsNumber(childcate)) ||
+      (expired && !IsNumber(expired));
 
     if (isValid) {
       return redirect(`/dashboard/inventory?ty=${type}&p=1&limit=1`);
     }
-
-    fetchdata(promotion.id);
-  }, [
-    page,
-    limit,
-    status,
-    name,
-    bannersize,
-    bannertype,
-    parentcate,
-    childcate,
-    expiredate,
-    promotion.id,
-    type,
-  ]);
+    if (reloaddata) {
+      fetchdata(promotion.id);
+    }
+  }, [reloaddata]);
 
   const fetchdata = async (pid?: number) => {
     try {
       setalldata(AllDataInitialize);
       let apiUrl: string = "";
       let transformFunction: (item: any) => any = () => {};
+      const {
+        status,
+        name,
+        childcate,
+        parentcate,
+        bannersize,
+        bannertype,
+        expired,
+        expiredate,
+      } = filtervalue;
 
-      if (type === "product") {
+      if (ty === "product") {
         apiUrl =
           status || name || childcate || parentcate || promotion.selectproduct
             ? `/api/products/ty=filter_p=${page}_limit=${show}${
@@ -179,7 +174,7 @@ export default function Inventory({
           parentcategory_id: undefined,
           childcategory_id: undefined,
         });
-      } else if (type === "banner") {
+      } else if (ty === "banner") {
         apiUrl =
           name || bannersize || bannertype
             ? `/api/banner?ty=filter&limit=${show}&p=${page}${
@@ -196,12 +191,14 @@ export default function Inventory({
           createdAt: undefined,
           updatedAt: undefined,
         });
-      } else {
+      } else if (ty === "promotion") {
         apiUrl =
-          name || expiredate
+          name || expiredate || expired
             ? `/api/promotion?ty=filter&lt=${show}&p=${page ?? "1"}${
                 name ? `&q=${name}` : ""
-              }${expiredate ? `&exp=${dayjs(expiredate).toISOString()}` : ""}`
+              }${expiredate ? `&exp=${dayjs(expiredate).toISOString()}` : ""}${
+                expired ? `&expired=${expired}` : ""
+              }`
             : `/api/promotion?ty=all&lt=${show}&p=${page ?? "1"}`;
         transformFunction = (item: any) => ({
           ...item,
@@ -222,13 +219,13 @@ export default function Inventory({
           "GET",
           undefined,
           undefined,
-          type
+          ty
         );
 
         if (allfetchdata.success) {
           let modifieddata = allfetchdata.data?.map(transformFunction);
 
-          if (type === "product") {
+          if (ty === "product") {
             setlowstock(allfetchdata.lowstock as number);
           }
 
@@ -251,9 +248,10 @@ export default function Inventory({
             });
           }
 
-          setalldata({ [type as string]: modifieddata });
+          setalldata({ [ty as string]: modifieddata });
+          setpromoexpire(allfetchdata?.expirecount ?? 0);
 
-          if (type === "promotion") {
+          if (ty === "promotion") {
             let tempromoproduct = [...(promotion.tempproductstate ?? [])];
             tempromoproduct = modifieddata.map((i: any) => i.products);
             setpromotion((prev) => ({
@@ -273,12 +271,13 @@ export default function Inventory({
       };
 
       await Delayloading(makerequest, setloaded, 500);
-      console.log("Fetch data");
 
       ///Make Request
     } catch (error) {
       console.log("Inventory Fetch Error", error);
       errorToast("Error Occrued, Relaod is Required");
+    } finally {
+      setreloaddata(false);
     }
   };
 
@@ -289,6 +288,7 @@ export default function Inventory({
     param.set("limit", value.toString());
     setpage(1);
     router.push(`?${param}`);
+    setreloaddata(true);
   };
 
   const handleUpdateProductBannerPromotion = async (
@@ -323,7 +323,7 @@ export default function Inventory({
 
   const handleDoneButton = async () => {
     if (promotion.selectbanner || promotion.selectproduct) {
-      if (promotion.selectproduct) {
+      if (promotion.selectproduct && promotion.tempproduct) {
         const updateproduct = await handleUpdateProductBannerPromotion(
           promotion,
           "product"
@@ -331,7 +331,7 @@ export default function Inventory({
         if (!updateproduct) {
           errorToast("Failed to update");
         }
-      } else if (promotion.selectbanner) {
+      } else if (promotion.selectbanner && promotion.banner_id) {
         const updatebanner = await handleUpdateProductBannerPromotion(
           promotion,
           "banner"
@@ -366,7 +366,9 @@ export default function Inventory({
     setpage(1);
     setshow("1");
 
-    router.push(`?${params}`);
+    settype(value);
+    router.push(`?${params}`, { scroll: false });
+    setreloaddata(true);
   };
 
   return (
@@ -434,8 +436,9 @@ export default function Inventory({
                 ) : (
                   type === "promotion" && (
                     <PrimaryButton
-                      text={`Expire: `}
+                      text={`Expire: ${promoexpire} `}
                       style={{ minWidth: "150px" }}
+                      onClick={() => {}}
                       type="button"
                       radius="10px"
                     />
@@ -488,14 +491,18 @@ export default function Inventory({
               radius="10px"
               style={{ minWidth: "150px" }}
               type="button"
-              text={isFilter ? "Clear Filter" : "Filter"}
+              text={
+                Object.values(filtervalue).some((i) => i !== undefined)
+                  ? "Clear Filter"
+                  : "Filter"
+              }
               onClick={() =>
                 setopenmodal((prev) => ({ ...prev, filteroption: true }))
               }
             />
           </div>
         </div>
-        <div className="productlist w-full h-fit mt-10 grid grid-cols-3 max-small_screen:grid-cols-2 max-small_tablet:grid-cols-1 gap-x-5 gap-y-32 place-items-center">
+        <div className="productlist w-[95%] h-fit mt-10 grid grid-cols-3 max-small_screen:grid-cols-2 max-small_tablet:grid-cols-1 gap-x-5 gap-y-32 place-items-center">
           {loaded ? (
             <ContainerLoading />
           ) : (
@@ -557,39 +564,38 @@ export default function Inventory({
                     />
                   </div>
                 ))}
-
-              <h3
-                hidden={allData[type as any]?.length !== 0}
-                className="w-fit ml-10 h-fit font-normal text-xl text-red-400 p-3 border-2 border-red-300 rounded-lg"
-              >
-                {type === "banner" ? (
-                  <>
-                    {allData.banner?.length === 0 && (
-                      <>
-                        No Banner (Create Banner by Click on Action and Banner)
-                      </>
-                    )}
-                  </>
-                ) : type === "promotion" ? (
-                  <>
-                    {allData?.promotion?.length === 0 && (
-                      <>
-                        No Promotion (Create Promotion by Click on Action and
-                        Promotion)
-                      </>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    {allData.product?.length === 0 && (
-                      <>
-                        No Product (Create Product by Click on Action and
-                        Product)
-                      </>
-                    )}
-                  </>
-                )}
-              </h3>
+              {!allData[type as any] && (
+                <h3 className="w-fit ml-10 h-fit font-normal text-xl text-red-400 p-3 border-2 border-red-300 rounded-lg">
+                  {type === "banner" ? (
+                    <>
+                      {allData.banner?.length === 0 && (
+                        <>
+                          No Banner (Create Banner by Click on Action and
+                          Banner)
+                        </>
+                      )}
+                    </>
+                  ) : type === "promotion" ? (
+                    <>
+                      {allData?.promotion?.length === 0 && (
+                        <>
+                          No Promotion (Create Promotion by Click on Action and
+                          Promotion)
+                        </>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      {allData.product?.length === 0 && (
+                        <>
+                          No Product (Create Product by Click on Action and
+                          Product)
+                        </>
+                      )}
+                    </>
+                  )}
+                </h3>
+              )}
             </>
           )}
         </div>
@@ -599,7 +605,10 @@ export default function Inventory({
           {openmodal.createCategory && <Category />}
           {openmodal.createBanner && <BannerModal />}
           {openmodal.createPromotion && (
-            <CreatePromotionModal searchparams={searchParams as any} />
+            <CreatePromotionModal
+              searchparams={searchParams as any}
+              settype={settype}
+            />
           )}
           {openmodal.filteroption && (
             <FilterMenu
@@ -611,9 +620,11 @@ export default function Inventory({
               expiredAt={
                 expiredate ? dayjs(expiredate).toISOString() : undefined
               }
-              type={type}
+              type={ty}
               param={searchParams}
-              setisFilter={setisFilter}
+              expired={expired}
+              reloadData={() => setreloaddata(true)}
+              setfilterdata={setfiltervalue as any}
             />
           )}
           {openmodal.discount && <DiscountModals />}
@@ -626,6 +637,7 @@ export default function Inventory({
           count={itemscount}
           show={show}
           onSelectShowPerPage={handleShowPerPage}
+          onPageChange={() => setreloaddata(true)}
           setshow={setshow}
         />
       </div>

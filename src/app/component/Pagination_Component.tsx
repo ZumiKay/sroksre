@@ -10,7 +10,7 @@ import {
   SelectItem,
 } from "@nextui-org/react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { SelectType, useGlobalContext } from "@/src/context/GlobalContext";
+import { SelectType } from "@/src/context/GlobalContext";
 import { IsNumber } from "../product/page";
 
 interface PaginationCustomProps {
@@ -20,6 +20,7 @@ interface PaginationCustomProps {
   setshow: React.Dispatch<React.SetStateAction<string>>;
   count: number;
   onSelectShowPerPage?: (value: number | string) => void;
+  onPageChange?: () => void;
 }
 
 const numberperpage = [1, 5, 10, 20, 30, 40, 50];
@@ -58,6 +59,7 @@ export default function PaginationCustom({
   show,
   setshow,
   onSelectShowPerPage,
+  onPageChange,
 }: PaginationCustomProps) {
   const router = useRouter();
   const searchParam = useSearchParams();
@@ -67,7 +69,7 @@ export default function PaginationCustom({
     params.set("p", `${p}`);
     setpage && setpage(p);
     router.replace(`?${params}`, { scroll: false });
-    router.refresh();
+    onPageChange && onPageChange();
   };
 
   return (
@@ -104,8 +106,8 @@ interface SelectionCustomProps {
   data: Array<SelectType>;
   label: string;
   placeholder: string;
-  setvalue: React.Dispatch<React.SetStateAction<string>>;
-  value: number | string;
+  setvalue?: React.Dispatch<React.SetStateAction<string>>;
+  value?: number | string;
   onChange?: (value: number | string) => void;
   style?: CSSProperties;
   textplacement?: "outside" | "outside-left" | "inside";
@@ -128,11 +130,11 @@ export const SelectionCustom = ({
       className="w-full"
       value={value}
       labelPlacement={textplacement}
-      defaultSelectedKeys={[value]}
+      defaultSelectedKeys={value ? [value] : undefined}
       style={style}
       onChange={(e) => {
         const { value } = e.target;
-        setvalue(value);
+        setvalue && setvalue(value);
         onChange && onChange(IsNumber(value) ? parseInt(value) : value);
       }}
     >
