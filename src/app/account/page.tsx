@@ -108,6 +108,8 @@ export default function AuthenticatePage() {
       const template = ReactDOMServer.renderToString(
         <CredentialEmail {...vfydata} />
       );
+
+      console.log({ template });
       const sendemail = SendVfyEmail.bind(
         null,
         template,
@@ -118,6 +120,7 @@ export default function AuthenticatePage() {
       setloading("authenticated");
       if (!makereq.success) {
         errorToast("Error occured");
+        setloading("authenticated");
         return;
       }
       if (type === "register") {
@@ -129,6 +132,7 @@ export default function AuthenticatePage() {
       successToast("Please Check You Email");
       setdata((prev) => ({ ...prev, email: "" }));
     } else {
+      setloading("authenticated");
       errorToast(verifyreq.error ?? "Error Occured");
       type === "register" && setverify((prev) => ({ ...prev, [types]: false }));
     }

@@ -13,7 +13,7 @@ import {
   Productinitailizestate,
   Stocktype,
   VariantColorValueType,
-  Varianttype,
+  useGlobalContext,
 } from "@/src/context/GlobalContext";
 import { ChangeEvent, useEffect, useState } from "react";
 import { ApiRequest, useEffectOnce } from "@/src/context/CustomHook";
@@ -57,18 +57,20 @@ const getQtyBasedOnOptions = (
 ): number => {
   // Create a Set of order detail values for faster lookup
   const orderdetailValuesSet = new Set(
-    orderdetail.map((i) => i.option_value).filter(Boolean)
+    orderdetail.map((i) => i.value).filter(Boolean)
   );
 
   for (const stock of variantstock) {
-    for (const variant of stock.variant_val) {
-      const filteredVariant = variant.filter((val) => val !== "null");
+    for (const variant of stock.Stockvalue) {
+      const filteredVariant = variant.variant_val.filter(
+        (val) => val !== "null"
+      );
 
       if (
         filteredVariant.length === orderdetailValuesSet.size &&
         filteredVariant.every((val) => orderdetailValuesSet.has(val))
       ) {
-        return stock.qty; // Early return on first match
+        return variant.qty; // Early return on first match
       }
     }
   }
@@ -84,6 +86,7 @@ const Productdetailinitialize: Productordertype = {
 };
 
 export default function ProductDetail({ params, isAdmin }: productdetailprops) {
+  const { setcarttotal } = useGlobalContext();
   const [productorderdetail, setproductorderdetail] =
     useState<Productordertype>(Productdetailinitialize);
   const [prob, setprob] = useState<ProductState>(Productinitailizestate);
@@ -93,7 +96,6 @@ export default function ProductDetail({ params, isAdmin }: productdetailprops) {
   const [errormess, setmess] = useState(errormessInitialize);
   const [selectloading, setselectloading] = useState(false);
   const [isInWishlist, setisInWishlist] = useState(false);
-  const router = useRouter();
 
   const InitializeProductOrder = (data: ProductState) => {
     let type = data.stocktype;
@@ -162,43 +164,41 @@ export default function ProductDetail({ params, isAdmin }: productdetailprops) {
   });
 
   const handleSelectVariant = async (idx: number, value: string) => {
-    const Allvariant = prob.variants as Varianttype[];
+    const Allvariant = [...(prob.variants ?? [])];
     const variant = Allvariant[idx];
     let mess = { ...errormess };
 
     let orderDetail = { ...productorderdetail } as Productordertype;
+    if (!orderDetail.details) {
+      return;
+    }
     const isValid = orderDetail.details.filter((i) => i);
     const isExist =
-      isValid.length !== 0
-        ? isValid.findIndex((i) => i.option_title === variant.option_title)
-        : -1;
+      isValid.length !== 0 ? isValid.findIndex((i) => i.id === variant.id) : -1;
 
     let selectedvariant: Productorderdetailtype = {
-      ...variant,
-      option_value: value,
+      variant_id: variant.id ?? 0,
+      value: value,
     };
 
     const isSelected =
       isValid.length !== 0
         ? orderDetail.details[idx]
-          ? orderDetail.details[idx].option_value ===
-            selectedvariant.option_value
+          ? orderDetail.details[idx].value === selectedvariant.value
           : false
         : false;
 
     if (isSelected) {
       orderDetail.details[idx] = {
-        option_title: "",
-        option_type: "",
-        option_value: "",
+        variant_id: 0,
+        value: "",
       };
       setincart(false);
     } else {
       if (isExist === -1) {
         orderDetail.details[idx] = selectedvariant;
       } else if (isExist !== -1) {
-        orderDetail.details[isExist].option_value =
-          selectedvariant.option_value;
+        orderDetail.details[isExist].value = selectedvariant.value;
       }
     }
 
@@ -210,15 +210,8 @@ export default function ProductDetail({ params, isAdmin }: productdetailprops) {
         )
       : 0;
 
-    setqty(maxqty);
     if (
-      orderDetail.details
-        .filter((i) => i)
-        .every((i) =>
-          typeof i.option_value === "string"
-            ? i.option_value.length === 0
-            : i.option_value.val.length === 0
-        )
+      orderDetail.details.filter((i) => i).every((i) => i.value.length === 0)
     ) {
       mess.qty = "";
     } else {
@@ -228,11 +221,11 @@ export default function ProductDetail({ params, isAdmin }: productdetailprops) {
 
     if (maxqty) {
       await inCartCheck(
-        orderDetail.details.filter((i) => i && i.option_title.length !== 0)
+        orderDetail.details.filter((i) => i && i.value.length !== 0)
       );
     }
     setmess(mess);
-
+    setqty(maxqty);
     setproductorderdetail(orderDetail);
   };
 
@@ -292,6 +285,7 @@ export default function ProductDetail({ params, isAdmin }: productdetailprops) {
   };
 
   const Variant = (
+    id: number,
     name: string,
     type: "COLOR" | "TEXT",
     data: (string | VariantColorValueType)[],
@@ -299,9 +293,9 @@ export default function ProductDetail({ params, isAdmin }: productdetailprops) {
   ) => {
     let orderdetail = { ...productorderdetail } as Productordertype;
     const detail = orderdetail.details
-      .filter((i) => i)
-      .find((i) => i.option_title === name);
-    const selected = detail ? detail.option_value : undefined;
+      ?.filter((i) => i)
+      .find((i) => i.variant_id === id);
+    const selected = detail ? detail.value : undefined;
 
     return (
       <div key={idx} className="w-full h-fit flex flex-col gap-y-5">
@@ -336,7 +330,7 @@ export default function ProductDetail({ params, isAdmin }: productdetailprops) {
     ) : prob.variants ? (
       <>
         {prob.variants.map((i, idx) =>
-          Variant(i.option_title, i.option_type, i.option_value, idx)
+          Variant(i.id ?? 0, i.option_title, i.option_type, i.option_value, idx)
         )}
         {prob.varaintstock && prob.varaintstock.length !== 0
           ? stock(qty)
@@ -376,14 +370,9 @@ export default function ProductDetail({ params, isAdmin }: productdetailprops) {
       }
     } else {
       const isSelectedDetails =
+        details &&
         details.filter((i) => i).length !== 0 &&
-        details
-          .filter((i) => i)
-          .some((i) =>
-            typeof i.option_value === "string"
-              ? i.option_value.length !== 0
-              : i.option_value.val.length !== 0
-          );
+        details.filter((i) => i).some((i) => i.value.length !== 0);
 
       const isValid = isSelectedDetails && ishaveQty;
 
@@ -425,7 +414,7 @@ export default function ProductDetail({ params, isAdmin }: productdetailprops) {
       price: { price: 0 },
     }));
     setincart(true);
-    router.refresh();
+    setcarttotal((prev) => prev + 1);
   };
 
   const ShowRelated = () => {

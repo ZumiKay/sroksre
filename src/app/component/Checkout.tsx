@@ -12,16 +12,14 @@ import {
 import {
   Orderpricetype,
   Ordertype,
-  Productorderdetailtype,
   Productordertype,
 } from "@/src/context/OrderContext";
-import PrimaryButton, { Selection } from "./Button";
+import PrimaryButton from "./Button";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   CaptureOrder,
   Createpaypalorder,
   getAddress,
-  getOrderAddress,
   handleShippingAdddress,
   updateShippingService,
   updateStatus,
@@ -37,7 +35,9 @@ import Image from "next/image";
 // import { SendNotification } from "@/src/socket";
 import Link from "next/link";
 import { shippingtype } from "./Modals/User";
-import { Chip } from "@nextui-org/react";
+import { Selecteddetailcard } from "./Card";
+import { ApiRequest } from "@/src/context/CustomHook";
+import { SelectionCustom } from "./Pagination_Component";
 
 //Step assets
 const LineSvg = ({
@@ -209,60 +209,44 @@ export const StepComponent = ({
 
 export const Checkoutproductcard = ({
   qty,
-  total,
   price,
   cover,
   details,
   name,
+  total,
 }: {
   qty: number;
-  total: number;
   price: Orderpricetype;
   cover: string;
   name: string;
-  details?: Productorderdetailtype[];
+  total: number;
+  details?: (string | VariantColorValueType)[];
 }) => {
   return (
     <div
       key={cover}
-      className={"w-full h-[250px] bg-white rounded-lg flex flex-row gap-x-5"}
+      className={"w-full h-fit bg-white rounded-lg flex flex-row gap-x-5"}
     >
       <Image
         src={cover}
         width={200}
         height={200}
         alt="thumbnail"
-        className="w-[150px] h-auto rounded-lg object-cover"
+        className="w-[150px] h-auto rounded-lg object-contain"
         loading="lazy"
       />
       <div className="w-[60%] min-h-[200px] flex flex-col items-start gap-y-3 relative">
         <h3 className="text-xl font-bold w-fit h-fit">{name}</h3>
-        {details && (
-          <div className="w-full flex flex-col max-h-[120px] overflow-y-auto gap-y-5">
-            <ShowDetails details={details ?? []} />
+        {details && details.length > 0 && (
+          <div className="w-full flex flex-row gap-3 h-fit">
+            {details.map((item, idx) => (
+              <Selecteddetailcard key={idx} text={item} />
+            ))}
           </div>
         )}
         <ShowPrice total={total} qty={qty} price={price} />
       </div>
     </div>
-  );
-};
-
-const detailcard = (data: string | VariantColorValueType) => {
-  return (
-    <Chip
-      startContent={
-        typeof data !== "string" ? (
-          <div
-            style={{ backgroundColor: data.val }}
-            className="w-[20px] h-[20px] rounded-full"
-          ></div>
-        ) : undefined
-      }
-      size="md"
-    >
-      {typeof data === "string" ? data : data.name}
-    </Chip>
   );
 };
 
@@ -275,8 +259,8 @@ const ShowPrice = ({
   total: number;
   qty: number;
 }) => {
-  const isDiscount = price.discount;
-  const Price = parseFloat(price.price.toString()).toFixed(2);
+  const isDiscount = price.discount && price.discount;
+  const Price = price.price;
 
   return (
     <div className="w-full h-fit flex flex-row items-center justify-between absolute bottom-5">
@@ -299,31 +283,6 @@ const ShowPrice = ({
         ${parseFloat(total.toString()).toFixed(2)}
       </h3>
     </div>
-  );
-};
-
-const ShowDetails = ({
-  details,
-}: {
-  details: Array<Productorderdetailtype>;
-}) => {
-  return (
-    <>
-      <div className="w-full h-fit grid grid-cols-3 gap-x-5 gap-y-5">
-        {details
-          ?.filter((opt) => opt.option_type !== "COLOR")
-          ?.map((opt) => detailcard(opt.option_value))}
-      </div>
-
-      {details?.filter((i) => i.option_type === "COLOR").length !== 0 && (
-        <div className="w-full h-fit flex flex-row gap-x-5 items-center">
-          <h3>Color: </h3>
-          {details
-            ?.filter((opt) => opt.option_type === "COLOR")
-            ?.map((opt) => detailcard(opt.option_value))}
-        </div>
-      )}
-    </>
   );
 };
 
@@ -520,7 +479,8 @@ export const FormWrapper = ({
     const value = current.toString();
     const query = `?${value}`;
 
-    router.push(`${pathname}${query}`);
+    router.push(`${pathname}${query}`, { scroll: false });
+    router.refresh();
   };
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -528,7 +488,6 @@ export const FormWrapper = ({
     setloading(true);
 
     const isShipping = event.currentTarget["shipping"];
-    const isPayment = event.currentTarget["isPayment"];
     const isSaved = event?.currentTarget["save"]?.value;
 
     if (isShipping) {
@@ -656,37 +615,29 @@ const shippingInitialize: Addresstype = {
 
 export function ShippingForm({ orderid }: { orderid: string }) {
   const [address, setaddress] = useState<Addresstype[] | undefined>(undefined);
+  const [loading, setloading] = useState(false);
   const [selectedaddress, setselectedaddress] =
     useState<Addresstype>(shippingInitialize);
 
   const [select, setselect] = useState(0);
   const [save, setsave] = useState(0);
   const fetchdata = async () => {
-    await fetchselectedData();
-    const fetchshipping = await getAddress();
-    setaddress(fetchshipping as any);
-  };
-
-  const fetchselectedData = async () => {
-    const getselectedAddress = getOrderAddress.bind(null, orderid);
-
-    const request = await getselectedAddress();
-
-    if (request?.shipping_id && request?.shipping) {
-      if (!request.shipping.userId) {
-        setselect(0);
-      }
-      setselect(request.shipping_id);
-      setselectedaddress(request.shipping as any);
+    const fetchshipping = getAddress.bind(null, orderid);
+    const fetch = await fetchshipping();
+    if (fetch.selectedaddress) {
+      setselect(fetch.selectedaddress.shipping?.id ?? 0);
+      setselectedaddress(fetch.selectedaddress.shipping as any);
     } else {
       setselect(0);
     }
+    setaddress(fetch.address as any);
   };
 
   useEffect(() => {
     fetchdata();
   }, []);
-  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+
+  const handleChange = async (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
 
     setselectedaddress((prev) => ({ ...prev, id: -1 }));
@@ -694,11 +645,26 @@ export function ShippingForm({ orderid }: { orderid: string }) {
     setselectedaddress((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSelect = (e: ChangeEvent<HTMLSelectElement>) => {
-    const value = parseInt(e.target.value);
+  const handleSelect = async (value: number) => {
     setselect(value);
 
     setselectedaddress(shippingInitialize);
+
+    if (value === 0) {
+      setloading(true);
+      const updatereq = await ApiRequest(
+        "/api/order",
+        undefined,
+        "PUT",
+        "JSON",
+        { id: orderid, ty: "removeAddress" }
+      );
+      setloading(false);
+      if (!updatereq.success) {
+        errorToast("Can't Update Address");
+        return;
+      }
+    }
 
     if (value === -1) {
       return;
@@ -720,18 +686,26 @@ export function ShippingForm({ orderid }: { orderid: string }) {
         <h3 className="title text-2xl font-bold pb-5"> Shipping Address </h3>
 
         <div className="shippingform w-[70%] h-fit p-2 flex flex-col gap-y-5 items-center">
-          <Selection
+          <SelectionCustom
+            label="Address"
+            placeholder={
+              address && selectedaddress
+                ? `Address ${
+                    address.findIndex((i) => i.id === selectedaddress.id) + 1
+                  }`
+                : "None"
+            }
+            isLoading={loading}
             data={[
+              { label: "None", value: 0 },
               ...(address?.map((i, idx) => ({
                 label: `Address ${idx + 1}`,
                 value: i.id,
               })) ?? []),
               { label: "Custom", value: -1 },
             ]}
-            default="None"
-            defaultValue={0}
-            value={!selectedaddress?.id ? select : selectedaddress.id}
-            onChange={handleSelect}
+            value={select}
+            onChange={(value) => handleSelect(value as number)}
           />
 
           <input
@@ -743,7 +717,7 @@ export function ShippingForm({ orderid }: { orderid: string }) {
             <>
               <input
                 className="w-full h-[50px] p-1  font-medium text-sm"
-                placeholder="House or Apartment Id"
+                placeholder="Street Name or Id"
                 name="street"
                 value={selectedaddress?.street}
                 onChange={handleChange}
@@ -885,22 +859,12 @@ export function Paypalbutton({
             if (errorDetail?.issue === "INSTRUMENT_DECLINED") {
               return actions.restart();
             } else if (errorDetail) {
-              // (2) Other non-recoverable errors -> Show a failure message
               throw new Error(
                 `${errorDetail.description} (${orderData.debug_id})`
               );
             } else if (!orderData.purchase_units) {
               throw new Error(JSON.stringify(orderData));
             } else {
-              // (3) Successful transaction -> Show confirmation or thank you message
-              // Or go to another URL:  actions.redirect('thank_you.html');
-
-              const transaction =
-                orderData?.purchase_units?.[0]?.payments?.captures?.[0] ||
-                orderData?.purchase_units?.[0]?.payments?.authorizations?.[0];
-
-              //update order status and send email
-
               const htmltemplate = ReactDOMServer.renderToString(
                 <OrderReceiptTemplate
                   order={{ ...order, status: "Paid" }}
@@ -1015,7 +979,7 @@ export function OrderEmail<t extends OrderUserType>({
                   parseFloat(prob.product?.price.toString() as string)
                 }
                 name={prob.product?.name as string}
-                details={prob.details as Array<Productorderdetailtype>}
+                details={prob.selectedvariant}
               />
             );
           })}

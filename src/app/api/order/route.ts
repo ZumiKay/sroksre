@@ -1,52 +1,72 @@
-import { SendOrderEmail } from "../../checkout/action";
+import { Shippingservice } from "@/src/context/Checkoutcontext";
+import { totalpricetype } from "@/src/context/OrderContext";
+import Prisma from "@/src/lib/prisma";
+import { calculateDiscountProductPrice } from "@/src/lib/utilities";
+import { NextRequest } from "next/server";
 
-export async function GET() {
+//Edit Created Order Information
+export async function PUT(req: NextRequest) {
   try {
-    return Response.json({ message: "Sent" }, { status: 200 });
+    const { id, ty } = await req.json();
+    if (!id) {
+      return Response.json({}, { status: 403 });
+    }
+
+    const order = await Prisma.orders.findUnique({
+      where: { id },
+      select: {
+        price: true,
+        Orderproduct: {
+          select: {
+            quantity: true,
+            product: {
+              select: {
+                price: true,
+                discount: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!order) {
+      return Response.json({}, { status: 404 });
+    }
+
+    if (ty === "removeAddress") {
+      const updatedTotalPrice = order.Orderproduct.reduce((total, item) => {
+        const { price, discount } = item.product;
+
+        const calculatedPrice = calculateDiscountProductPrice({
+          price,
+          discount: discount ? discount : undefined,
+        });
+
+        const estimatedprice = calculatedPrice.discount
+          ? calculatedPrice.discount.newprice
+          : calculatedPrice.price;
+
+        return total + (estimatedprice ?? 0) * item.quantity;
+      }, 0);
+      const updateprice: totalpricetype = {
+        total: updatedTotalPrice,
+        subtotal: updatedTotalPrice,
+        shipping: 0,
+      };
+
+      await Prisma.orders.update({
+        where: { id },
+        data: {
+          price: updateprice as any,
+          shippingtype: Shippingservice[2].value, //Update to Pickup
+        },
+      });
+    }
+
+    return Response.json({}, { status: 200 });
   } catch (error) {
-    return Response.json({ message: error }, { status: 500 });
+    console.log("Update Order", error);
+    return Response.json({ message: "Error Occured" }, { status: 500 });
   }
 }
-
-const testEmail = (body: string) => `
-<!doctype html>
-<html xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
-
-<head>
-  <title>
-  </title>
-  <!--[if !mso]><!-->
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <!--<![endif]-->
-  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!--[if mso]>
-        <noscript>
-        <xml>
-        <o:OfficeDocumentSettings>
-          <o:AllowPNG/>
-          <o:PixelsPerInch>96</o:PixelsPerInch>
-        </o:OfficeDocumentSettings>
-        </xml>
-        </noscript>
-        <![endif]-->
-  <!--[if lte mso 11]>
-        <style type="text/css">
-          .mj-outlook-group-fix { width:100% !important; }
-        </style>
-        <![endif]-->
-  <!--[if !mso]><!-->
-  <link href="https://fonts.googleapis.com/css?family=Ubuntu:300,400,500,700" rel="stylesheet" type="text/css">
-  <style type="text/css">
-    @import url(https://fonts.googleapis.com/css?family=Ubuntu:300,400,500,700);
-  </style>
-  <!--<![endif]-->
-</head>
-
-<body>
-   ${body}
-</body>
-
-</html>
-
-`;

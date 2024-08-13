@@ -1,5 +1,3 @@
-import { handleEmail } from "@/src/app/checkout/action";
-import { RenderCredentailEmailToString } from "@/src/app/component/SevComponent";
 import Prisma from "@/src/lib/prisma";
 import {
   generateRandomNumber,

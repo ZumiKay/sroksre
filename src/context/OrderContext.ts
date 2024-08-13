@@ -31,22 +31,21 @@ export enum Allstatus {
 }
 
 export interface Productorderdetailtype {
-  id?: number;
-  option_title: string;
-  option_type: string;
-  option_value: string | VariantColorValueType;
-  [key: string]: any;
+  variant_id: number;
+  value: string;
+  [key: string]: string | number | VariantColorValueType | undefined;
 }
 
 export interface Productordertype {
   id: number;
-  details: Array<Productorderdetailtype>;
+  details?: Array<Productorderdetailtype>;
   quantity: number;
   price: Orderpricetype;
   productId?: number;
   maxqty?: number;
   product?: ProductState;
   orderId?: string;
+  selectedvariant?: (string | VariantColorValueType)[];
 }
 
 export interface Orderpricetype {

@@ -13,9 +13,12 @@ import {
   totalpricetype,
 } from "@/src/context/OrderContext";
 import { notFound, redirect } from "next/navigation";
-import { AllOrderStatusColor } from "@/src/lib/utilities";
+import {
+  AllOrderStatusColor,
+  removeSpaceAndToLowerCase,
+} from "@/src/lib/utilities";
 import { Suspense } from "react";
-import { LoadingText } from "../../component/Loading";
+import { ContainerLoading } from "../../component/Loading";
 import { OrderUserType } from "../../checkout/action";
 import { getCheckoutdata } from "../../checkout/page";
 import { Role } from "@prisma/client";
@@ -71,7 +74,7 @@ export default async function OrderManagement({
     status: selectedStatus ?? [""],
     page: parseInt(page as string),
     limit: parseInt(show as string),
-    search: q as string,
+    search: q ? removeSpaceAndToLowerCase(q as string) : undefined,
     startprice: parseFloat((startprice as string) ?? "0"),
     endprice: parseFloat((endprice as string) ?? "0"),
     fromdate: fromdate ? fromdate : undefined,
@@ -79,25 +82,23 @@ export default async function OrderManagement({
     userid: getuser.role === "USER" ? getuser.id : undefined,
   });
 
-  const isFilter =
-    selectedStatus || q || fromdate || todate || startprice || endprice;
+  const isFilter = q || fromdate || todate || startprice || endprice;
 
   const total = Math.ceil(
     (isFilter ? filterorder.total ?? 0 : req?.total) / parseInt(show as string)
   );
 
-  const orders = isFilter
-    ? filterorder.data
-    : (req?.order as unknown as AllorderStatus[]);
+  const orders =
+    isFilter || selectedStatus
+      ? filterorder.data
+      : (req?.order as unknown as AllorderStatus[]);
 
   return (
-    <Suspense fallback={<LoadingText />}>
-      <main className="order__container w-full flex flex-col items-start gap-y-5 pl-2 pr-2 relative">
-        <div className="filter_container w-[40%] inline-flex gap-x-5 items-center h-fit mt-5">
-          <div className="w-full h-fit inline-flex items-center">
-            <label className="font-bold">Filter by:</label>
-            <MultipleSelect />
-          </div>
+    <Suspense fallback={<ContainerLoading />}>
+      <main className="order__container w-full min-h-screen flex flex-col items-start gap-y-5 pl-2 pr-2 relative">
+        <div className="filter_container w-fit inline-flex gap-x-5 items-center h-fit mt-5">
+          <MultipleSelect />
+
           <FilterButton
             isFilter={!isFilter}
             data={{ todate, fromdate, q, startprice, endprice }}
@@ -140,13 +141,15 @@ export default async function OrderManagement({
             </tbody>
           </table>
         </div>
-        <div className="w-full h-fit relative mt-10">
-          <PaginationSSR
-            total={total}
-            pages={parseInt(page as string)}
-            limit={parseInt(show as string)}
-          />
-        </div>
+        {orders && orders.length !== 0 && (
+          <div className="w-full h-fit relative mt-10 bottom-0">
+            <PaginationSSR
+              total={total}
+              pages={parseInt(page as string)}
+              limit={show}
+            />
+          </div>
+        )}
       </main>
     </Suspense>
   );
@@ -283,20 +286,6 @@ export const DataRow = async ({
                 type={AllorderType.orderaction}
                 name="Action"
                 color="#44C3A0"
-                height="40px"
-                width="50%"
-                data={{ action: orderData as OrderUserType }}
-                id={data.id}
-                isAdmin={isAdmin}
-              />
-            </td>
-            <td className="rounded-r-lg">
-              {" "}
-              <ButtonSsr
-                idx={idx}
-                type={AllorderType.orderupdatestatus}
-                name="Update"
-                color="#BC871E"
                 height="40px"
                 width="50%"
                 data={{ action: orderData as OrderUserType }}

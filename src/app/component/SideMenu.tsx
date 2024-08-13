@@ -29,9 +29,8 @@ import {
 import { motion } from "framer-motion";
 
 import { DateTimePicker } from "@mui/x-date-pickers";
-import dayjs, { Dayjs } from "dayjs";
+import dayjs from "dayjs";
 import { ToggleSelect } from "./ToggleMenu";
-import { Deletecart, Getcarts } from "../product/detail/[id]/action";
 import { Productordertype, totalpricetype } from "@/src/context/OrderContext";
 import { Createorder } from "../checkout/action";
 import { formatDate } from "./EmailTemplate";
@@ -66,26 +65,36 @@ const AccountMenuItems = [
     name: "Profile",
     icon: <ProfileIcon />,
     link: "/dashboard",
+    isAdmin: true,
+    isUser: true,
   },
   {
     name: "My Order",
     icon: <OrderIcon />,
     link: "/dashboard/order",
+    isAdmin: true,
+    isUser: true,
   },
   {
     name: "Inventory",
     icon: <InventoryIcon />,
     link: "/dashboard/inventory",
+    isAdmin: true,
+    isUser: false,
   },
   {
     name: "Users",
     icon: <UserIcon />,
     link: "/dashboard/usermanagement",
+    isAdmin: true,
+    isUser: false,
   },
   {
     name: "Edit Home",
     icon: <EditIcon />,
     link: "",
+    isAdmin: true,
+    isUser: false,
   },
 ];
 
@@ -255,35 +264,39 @@ export default function AccountMenu(props: accountmenuprops) {
           <ul className="menu_container flex flex-col items-center w-full gap-y-10 mt-[10vh] mb-[10vh]">
             {AccountMenuItems.filter((i) =>
               pathname !== "/" ? i.name !== AccountMenuItems[4].name : true
-            ).map((item, idx) => (
-              <li
-                key={idx}
-                className="side_link w-[80%] h-[50px] text-center font-bold text-lg rounded-md transition hover:bg-gray-200 active:bg-gray-200 "
-              >
-                {item.link === "" ? (
-                  <div
-                    onClick={() => {
-                      setopenmodal((prev) => ({ ...prev, editHome: true }));
-                      props.setProfile(false);
-                    }}
-                    className="w-full h-full flex flex-row items-center gap-x-5 pl-2 rounded-lg transition hover:bg-gray-200 active:bg-gray-200"
-                  >
-                    {item.icon}
-                    <h3 className="text-lg font-bold cursor-pointer">
-                      {item.name}
-                    </h3>
-                  </div>
-                ) : (
-                  <Link
-                    href={item.link}
-                    className="w-full h-full flex flex-row items-center gap-x-5 pl-2 rounded-lg transition hover:bg-gray-200 active:bg-gray-200"
-                  >
-                    {item.icon}
-                    <h3 className="text-lg font-bold">{item.name}</h3>
-                  </Link>
-                )}
-              </li>
-            ))}
+            )
+              .filter((i) =>
+                props.session?.role === "ADMIN" ? i.isAdmin : i.isUser
+              )
+              .map((item, idx) => (
+                <li
+                  key={idx}
+                  className="side_link w-[80%] h-[50px] text-center font-bold text-lg rounded-md transition hover:bg-gray-200 active:bg-gray-200 "
+                >
+                  {item.link === "" ? (
+                    <div
+                      onClick={() => {
+                        setopenmodal((prev) => ({ ...prev, editHome: true }));
+                        props.setProfile(false);
+                      }}
+                      className="w-full h-full flex flex-row items-center gap-x-5 pl-2 rounded-lg transition hover:bg-gray-200 active:bg-gray-200"
+                    >
+                      {item.icon}
+                      <h3 className="text-lg font-bold cursor-pointer">
+                        {item.name}
+                      </h3>
+                    </div>
+                  ) : (
+                    <Link
+                      href={item.link}
+                      className="w-full h-full flex flex-row items-center gap-x-5 pl-2 rounded-lg transition hover:bg-gray-200 active:bg-gray-200"
+                    >
+                      {item.icon}
+                      <h3 className="text-lg font-bold">{item.name}</h3>
+                    </Link>
+                  )}
+                </li>
+              ))}
           </ul>
           <PrimaryButton
             text="Logout"
@@ -302,12 +315,14 @@ export default function AccountMenu(props: accountmenuprops) {
 interface cardmenuprops {
   img: string | StaticImageData;
   setcart: (value: SetStateAction<boolean>) => void;
+  setcarttotal: React.Dispatch<React.SetStateAction<number>>;
 }
 
 export function CartMenu(props: cardmenuprops) {
   const router = useRouter();
   const searchparams = useSearchParams();
   const [cartItem, setitem] = useState<Array<Productordertype> | []>([]);
+  const [reloadcart, setreloadcart] = useState(true);
   const [loading, setloading] = useState({
     fetch: true,
     checkout: false,
@@ -317,32 +332,46 @@ export function CartMenu(props: cardmenuprops) {
     undefined
   );
 
-  useEffect(() => {
-    const fetchcart = async () => {
-      const carts = await Getcarts();
-      setloading((prev) => ({ ...prev, fetch: false }));
+  const fetchcart = async () => {
+    setloading((prev) => ({ ...prev, fetch: true }));
 
-      settotal(carts.total);
-
-      setitem(carts.data);
+    const asyncfetchcart = async () => {
+      const response = await ApiRequest("/api/order/cart", undefined, "GET");
+      if (!response.success) {
+        errorToast("Error Occured");
+        return;
+      }
+      setitem(response.data);
+      settotal({ subtotal: response.total ?? 0, total: response.total ?? 0 });
     };
 
-    fetchcart();
-  }, []);
+    await Delayloading(
+      asyncfetchcart,
+      (value) => setloading((prev) => ({ ...prev, fetch: value })),
+      500
+    );
 
-  const removecart = async (id: number, idx: number) => {
-    const deletereq = Deletecart.bind(null, id);
-    const makereq = await deletereq();
-    if (!makereq.success) {
-      errorToast("Can't delete cart");
+    setreloadcart(false);
+  };
+
+  useEffect(() => {
+    if (reloadcart) fetchcart();
+  }, [reloadcart]);
+
+  const removecart = async (id: number) => {
+    const deletereq = await ApiRequest(
+      "/api/order/cart",
+      undefined,
+      "DELETE",
+      "JSON",
+      { id }
+    );
+    if (!deletereq.success) {
+      errorToast("Can't Delete Cart");
       return;
     }
-    let updatecart = [...cartItem];
-
-    updatecart.splice(idx, 1);
-    settotal(makereq.total);
-    setitem(updatecart);
-    router.refresh();
+    props.setcarttotal((prev) => (prev !== 0 ? prev - 1 : prev));
+    setreloadcart(true);
   };
 
   const subprice = totalprice
@@ -383,12 +412,12 @@ export function CartMenu(props: cardmenuprops) {
         document.body.style.overflow = "auto";
         props.setcart(false);
       }}
-      className="Cart__Sidemenu fixed h-full w-[700px] right-0 bg-white z-40 flex flex-col items-center gap-y-5 pb-2"
+      className="Cart__Sidemenu fixed h-full w-[700px] right-0 bg-white z-40 flex flex-col items-center gap-y-5"
     >
       <h1 className="heading text-xl font-bold text-center w-full">
         Shopping Cart <span>( {cartItem?.length} item )</span>
       </h1>
-      <div className="card_container flex flex-col w-[95%] gap-y-5 h-full max-h-[75vh] overflow-y-auto">
+      <div className="card_container flex flex-col w-[95%] gap-y-5 h-full max-h-[70vh] overflow-y-auto">
         {loading.fetch && <LoadingText style={{ left: "40%" }} />}
         {(!cartItem || cartItem.length === 0) && (
           <h3 className="text-xl font-bold text-red-500 w-full h-fit text-center">
@@ -398,7 +427,7 @@ export function CartMenu(props: cardmenuprops) {
         {cartItem?.map((i, idx) => {
           return (
             <SecondayCard
-              key={i.id}
+              key={idx}
               id={i.id}
               img={
                 i.product?.covers.length !== 0
@@ -408,10 +437,11 @@ export function CartMenu(props: cardmenuprops) {
               name={i.product?.name ?? ""}
               maxqty={i.maxqty}
               selectedqty={i.quantity}
-              selecteddetail={i.details.filter((i) => i)}
+              selecteddetail={i.selectedvariant}
               price={i.price}
-              removecart={() => removecart(i.id, idx)}
+              removecart={() => removecart(i.id)}
               settotal={settotal}
+              setreloadcart={setreloadcart}
             />
           );
         })}

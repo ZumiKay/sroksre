@@ -4,15 +4,23 @@ import Prisma from "@/src/lib/prisma";
 import { AllorderType } from "./page";
 import {
   caculateArrayPagination,
+  calculateDiscountProductPrice,
   calculatePagination,
   getDiscountedPrice,
+  OrderReciptEmail,
   removeSpaceAndToLowerCase,
 } from "@/src/lib/utilities";
 import { revalidatePath } from "next/cache";
-import { totalpricetype } from "@/src/context/OrderContext";
-import { OrderReciptEmail, SendOrderEmail } from "../../checkout/action";
+import {
+  Productorderdetailtype,
+  Productordertype,
+  totalpricetype,
+} from "@/src/context/OrderContext";
+import { SendOrderEmail } from "../../checkout/action";
 import { Filterdatatype } from "./OrderComponent";
 import dayjs from "dayjs";
+import { VariantColorValueType } from "@/src/context/GlobalContext";
+import { getCheckoutdata } from "../../checkout/page";
 
 export const GetOrder = async (
   id?: string,
@@ -47,43 +55,9 @@ export const GetOrder = async (
       }
       return detail;
     } else if (type === AllorderType.orderproduct) {
-      const orderproducts = await Prisma.orders.findUnique({
-        where: { id },
-        select: {
-          Orderproduct: {
-            select: {
-              id: true,
-              details: true,
-              quantity: true,
-              product: {
-                select: {
-                  id: true,
-                  covers: true,
-                  name: true,
-                  price: true,
-                  discount: true,
-                },
-              },
-            },
-          },
-        },
-      });
-      const modified = orderproducts?.Orderproduct.map((prob) => {
-        if (prob.product.discount) {
-          return {
-            ...prob,
-            product: {
-              ...prob.product,
-              discount: getDiscountedPrice(
-                prob.product.discount,
-                prob.product.price
-              ),
-            },
-          };
-        }
-        return prob;
-      });
-      return modified;
+      const orderproduct = await getCheckoutdata(undefined, userid);
+
+      return orderproduct?.Orderproduct;
     }
   }
 
@@ -165,6 +139,7 @@ export const getFilterOrder = async ({
           select: {
             firstname: true,
             lastname: true,
+            email: true,
           },
         },
         createdAt: true,
@@ -176,10 +151,11 @@ export const getFilterOrder = async ({
       const price = data.price as unknown as totalpricetype;
       const isOrder = data.id === search;
       const isBuyer =
-        search &&
-        removeSpaceAndToLowerCase(
-          data.user.firstname + data.user?.lastname ?? ""
-        ).includes(removeSpaceAndToLowerCase(search));
+        (search &&
+          removeSpaceAndToLowerCase(
+            data.user.firstname + (data.user?.lastname ?? "")
+          ).includes(search)) ||
+        search === data.user.email;
       const isStatus = status?.includes(data.status);
       const isPrice =
         startprice && endprice
@@ -216,8 +192,10 @@ export const updateOrderStatus = async (
   email: string
 ): Promise<Returntype> => {
   try {
-    const order = await Prisma.orders.findUnique({
+    // Combine finding and updating the order in one step
+    const updatedOrder = await Prisma.orders.update({
       where: { id },
+      data: { status },
       select: {
         user: {
           select: {
@@ -227,26 +205,18 @@ export const updateOrderStatus = async (
       },
     });
 
-    if (order) {
-      await Prisma.orders.update({
-        where: { id },
-        data: {
-          status: status,
-        },
-      });
-
-      const emailtempalte = OrderReciptEmail(email);
-      const subject = `Order #${id} receipt has update status to ${status}`;
-      await SendOrderEmail(emailtempalte, order.user.email, subject);
-    } else {
+    if (!updatedOrder) {
       return { success: false, message: "Order not found" };
     }
 
-    revalidatePath("dashboard/order");
-    return { success: true, message: "Update Successfully" };
-  } catch (error) {
-    console.log("update status", error);
+    // Prepare and send the email notification
+    const emailTemplate = OrderReciptEmail(email);
+    const subject = `Order #${id} receipt has been updated to ${status}`;
+    await SendOrderEmail(emailTemplate, updatedOrder.user.email, subject);
 
+    return { success: true, message: "Update Successful" };
+  } catch (error) {
+    console.error("Failed to update order status:", error);
     return { success: false, message: "Failed to update" };
   }
 };
@@ -335,7 +305,8 @@ export const ExportOrderData = async (filterdata: Filterdatatype) => {
           removeSpaceAndToLowerCase(
             data.user.firstname + (data.user.lastname ?? "")
           ).includes(removeSpaceAndToLowerCase(filterdata.q))) ||
-        data.user.id.toString() === filterdata.q;
+        data.user.id.toString() === filterdata.q ||
+        data.user.email === filterdata.q;
 
       const isPrice =
         filterdata.startprice && filterdata.endprice

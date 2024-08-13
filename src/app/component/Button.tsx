@@ -226,7 +226,7 @@ interface Selectcontainerprops {
   data: Array<string | VariantColorValueType>;
   type: "TEXT" | "COLOR";
   onSelect: (value: string) => void;
-  isSelected?: string | VariantColorValueType;
+  isSelected?: string;
 }
 const isSelectedStyle: CSSProperties = {
   outline: "2px solid black",

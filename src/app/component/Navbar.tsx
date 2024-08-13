@@ -47,15 +47,10 @@ import { checkloggedsession } from "../dashboard/action";
 import Homecontainermodal from "./HomePage/Modals";
 import { AnimatePresence } from "framer-motion";
 
-export default function Navbar({
-  children,
-  session,
-}: {
-  children: ReactNode;
-  session?: Usersessiontype;
-}) {
-  const { cart, setcart } = useGlobalContext();
+export default function Navbar({ session }: { session?: Usersessiontype }) {
+  const { cart, setcart, carttotal, setcarttotal } = useGlobalContext();
   const [categories, setcategories] = useState(false);
+
   const [profile, setprofile] = useState(false);
   const [opennotification, setnotification] = useState(false);
   const [checkNotification, setchecknotify] = useState<number | undefined>(0);
@@ -69,6 +64,10 @@ export default function Navbar({
   const notiref = useRef<any>(null);
   //checkout loggedin session
   useEffectOnce(() => {
+    InitialMethod();
+  });
+
+  const InitialMethod = async () => {
     if (session) {
       const checksession = async () => {
         const checked = checkloggedsession.bind(null, session.session_id);
@@ -78,12 +77,25 @@ export default function Navbar({
 
           setTimeout(() => {
             signOut();
-          }, 3000);
+          }, 2000);
         }
       };
-      checksession();
+      await checksession();
     }
-  });
+    await getCartTotal();
+  };
+
+  const getCartTotal = async () => {
+    const request = await ApiRequest(
+      "/api/order/cart?count=1",
+      undefined,
+      "GET"
+    );
+    if (!request.success) {
+      return;
+    }
+    setcarttotal(request.data);
+  };
 
   useEffect(() => {
     if (session?.role === "ADMIN") {
@@ -157,7 +169,9 @@ export default function Navbar({
               className="cart w-[30px] h-[30px] object-contain transition hover:-translate-y-2"
               onMouseEnter={() => setcart(true)}
             />
-            {children}
+            <span className="text-[13px] w-[20px] h-[20px] grid place-content-center absolute -bottom-6 top-0 -right-3 bg-gray-500 text-white rounded-[50%]">
+              {carttotal}
+            </span>
           </div>
         )}
 
@@ -201,7 +215,13 @@ export default function Navbar({
         <Homecontainermodal setprofile={setprofile} />
       )}
 
-      {cart && <CartMenu img={DefaultImage} setcart={setcart} />}
+      {cart && (
+        <CartMenu
+          img={DefaultImage}
+          setcart={setcart}
+          setcarttotal={setcarttotal}
+        />
+      )}
     </nav>
   );
 }

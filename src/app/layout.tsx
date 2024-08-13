@@ -46,9 +46,7 @@ export default async function RootLayout({
           {" "}
           <NextUIProvider>
             <div className="w-full h-full relative">
-              <Navbar session={session ?? undefined}>
-                <CartIndicator />
-              </Navbar>
+              <Navbar session={session ?? undefined} />
               <ToastContainer />
               <Suspense fallback={<ContainerLoading />}>{children}</Suspense>
               <Footer />

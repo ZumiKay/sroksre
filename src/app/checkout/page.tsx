@@ -16,15 +16,13 @@ import Prisma from "@/src/lib/prisma";
 import {
   Allstatus,
   Orderpricetype,
-  Ordertype,
   Productorderdetailtype,
-  Productordertype,
   totalpricetype,
 } from "@/src/context/OrderContext";
 import { calculateDiscountProductPrice, decrypt } from "@/src/lib/utilities";
 import { checkOrder, OrderUserType } from "./action";
 import { SuccessVector } from "../component/Asset";
-import { OrderDetailType } from "../dashboard/order/OrderComponent";
+import { VariantColorValueType } from "@/src/context/GlobalContext";
 
 export default async function Checkoutpage({
   searchParams,
@@ -64,9 +62,7 @@ export default async function Checkoutpage({
           <StepIndicator step={step} />
           <FormWrapper step={step} order_id={orderid}>
             <BackAndEdit step={step} />
-
             <ShowBody />
-
             <div className="submit-btn w-[150px] h-fit">
               <Proceedbutton step={step} />
             </div>
@@ -82,19 +78,12 @@ export default async function Checkoutpage({
 
 //Component
 
-export const getCheckoutdata = async (orderid: string) => {
-  let result = await Prisma.orders.findUnique({
-    where: {
-      id: orderid,
-    },
+export const getCheckoutdata = async (orderid?: string, userid?: number) => {
+  const result = await Prisma.orders.findFirst({
+    where: userid ? { user: { id: userid } } : { id: orderid },
     include: {
       user: {
-        select: {
-          id: true,
-          firstname: true,
-          lastname: true,
-          email: true,
-        },
+        select: { id: true, firstname: true, lastname: true, email: true },
       },
       Orderproduct: {
         include: {
@@ -104,6 +93,10 @@ export const getCheckoutdata = async (orderid: string) => {
               discount: true,
               name: true,
               price: true,
+              Variant: {
+                orderBy: { id: "asc" },
+                select: { id: true, option_value: true },
+              },
             },
           },
         },
@@ -111,37 +104,47 @@ export const getCheckoutdata = async (orderid: string) => {
     },
   });
 
-  if (!result) {
-    return null;
-  }
+  if (!result) return null;
 
-  const total = result?.price as unknown as totalpricetype;
-  result = {
+  const updatedOrderProducts = result.Orderproduct.map((orderProduct) => {
+    {
+      const detail = orderProduct.details as Productorderdetailtype[];
+      const selectedVariantDetails = orderProduct.product.Variant.map(
+        (variant, idx) => {
+          const detailValue = detail[idx].value;
+          const optionValues = variant.option_value as (
+            | string
+            | VariantColorValueType
+          )[];
+
+          return optionValues.find((val) =>
+            typeof val === "string"
+              ? val === detailValue
+              : val.val === detailValue
+          );
+        }
+      ).filter(Boolean);
+
+      return {
+        ...orderProduct,
+        selectedvariant: selectedVariantDetails,
+        price: calculateDiscountProductPrice({
+          price: orderProduct.product.price,
+          discount: orderProduct.product.discount ?? undefined,
+        }),
+        product: {
+          ...orderProduct.product,
+        },
+      };
+    }
+  });
+
+  return {
     ...result,
-
-    price: total,
-    Orderproduct: result.Orderproduct.map((i) => ({
-      ...i,
-      product: {
-        ...i.product,
-        price: i.product.discount
-          ? calculateDiscountProductPrice({
-              price: i.product.price,
-              discount: i.product.discount,
-            })
-          : i.product.price,
-      },
-    })) as any,
-  } as any;
-
-  const modified = {
-    ...result,
-
-    price: total,
+    Orderproduct: updatedOrderProducts,
   };
-
-  return modified;
 };
+
 export const calculatePrice = (price: number, percent: number) =>
   price - (price * percent) / 100;
 
@@ -158,20 +161,19 @@ const OrderSummary = async ({ orderId }: { orderId: string }) => {
       <h3 className="title text-2xl font-bold pb-5">Order Summary</h3>
 
       <div className="productlist w-full h-full flex flex-col gap-y-5 p-2">
-        {orderData?.Orderproduct?.map((order) => {
-          const price = order.product.price as unknown as Orderpricetype;
+        {orderData.Orderproduct.map((order) => {
+          const price = order.price;
+          const total =
+            order.quantity * (price.discount?.newprice ?? price.price);
           return (
             <Checkoutproductcard
               key={order.id}
               qty={order.quantity}
               cover={order.product.covers[0].url}
               price={price}
-              total={
-                order.quantity *
-                (price.discount ? price.discount.newprice ?? 0 : price.price)
-              }
+              total={total}
               name={order.product.name}
-              details={order.details as Array<Productorderdetailtype>}
+              details={order.selectedvariant as any}
             />
           );
         })}

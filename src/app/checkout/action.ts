@@ -1,6 +1,5 @@
 "use server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "../api/auth/[...nextauth]/route";
+
 import Prisma from "@/src/lib/prisma";
 import {
   Allstatus,
@@ -21,7 +20,11 @@ import {
   Shippingservice,
 } from "@/src/context/Checkoutcontext";
 
-import { calculateDiscountPrice, encrypt } from "@/src/lib/utilities";
+import {
+  calculateDiscountPrice,
+  encrypt,
+  OrderReciptEmail,
+} from "@/src/lib/utilities";
 import {
   getQtyBasedOnOptions,
   ProductStockType,
@@ -37,13 +40,23 @@ interface Returntype<k = string> {
   status?: number;
 }
 
-export async function getAddress() {
-  const user: any = await getServerSession(authOptions);
-  const userid = user?.user?.sub ?? "";
+export async function getAddress(orderid?: string) {
+  const user = await getUser();
 
-  const address = await Prisma.address.findMany({ where: { userId: userid } });
+  const address = await Prisma.address.findMany({
+    where: { userId: user?.id },
+  });
 
-  return address;
+  let selectedaddress;
+
+  if (orderid) {
+    selectedaddress = await Prisma.orders.findUnique({
+      where: { id: orderid },
+      select: { shipping_id: true, shipping: true },
+    });
+  }
+
+  return { address, selectedaddress };
 }
 
 export async function getOrderAddress(orderId: string) {
@@ -161,27 +174,28 @@ export async function updateStatus(
   try {
     const order = await Prisma.orders.findUnique({
       where: { id: orderid },
-      include: {
+      select: {
+        id: true,
         user: {
           select: {
-            id: true,
             email: true,
-            firstname: true,
           },
         },
         Orderproduct: {
-          include: {
+          select: {
+            productId: true,
+            quantity: true,
             product: {
               select: {
                 id: true,
                 stocktype: true,
-                Stock: true,
-                stock: true,
-                details: true,
-                price: true,
-                discount: true,
-                covers: true,
-                name: true,
+                Stock: {
+                  select: {
+                    Stockvalue: {
+                      select: { id: true },
+                    },
+                  },
+                },
               },
             },
           },
@@ -193,106 +207,65 @@ export async function updateStatus(
       return { success: false, status: 404 };
     }
 
-    // Batch updates
-    const updates: Array<Record<string, any>> = [];
+    // Prepare updates
+    const productUpdates: Array<Promise<any>> = [];
+    const stockUpdates: Array<Promise<any>> = [];
 
     order.Orderproduct.forEach((cart) => {
-      const stocktype = cart.product.stocktype;
-      const detail = cart.details as Productorderdetailtype[];
+      const { stocktype, Stock } = cart.product;
 
       if (stocktype === ProductStockType.stock) {
-        updates.push(
+        productUpdates.push(
           Prisma.products.update({
             where: { id: cart.product.id },
-            data: {
-              stock: {
-                decrement: cart.quantity,
-              },
-            },
-          })
-        );
-      } else if (stocktype === ProductStockType.size) {
-        const info = cart.product.details as unknown as infovaluetype[];
-        const updatedInfo = info.map((i) => {
-          if (i.val === detail[0].option_value) {
-            i.qty -= cart.quantity;
-          }
-          return i;
-        });
-
-        updates.push(
-          Prisma.info.updateMany({
-            where: { product_id: cart.product.id },
-            data: {
-              info_value: updatedInfo as any,
-            },
+            data: { stock: { decrement: cart.quantity } },
           })
         );
       } else {
-        const stock = cart.product.Stock as unknown as Stocktype[];
-        const prevqty = getQtyBasedOnOptions(stock, detail);
-
-        updates.push(
-          Prisma.stock.update({
-            where: {
-              id: prevqty.id,
-            },
-            data: {
-              qty: {
-                decrement: cart.quantity,
-              },
-            },
+        const stockValueIds = Stock.flatMap((sk) =>
+          sk.Stockvalue.map((sv) => sv.id)
+        );
+        stockUpdates.push(
+          Prisma.stockvalue.updateMany({
+            where: { id: { in: stockValueIds } },
+            data: { qty: { decrement: cart.quantity } },
           })
         );
       }
     });
 
     // Execute all updates concurrently
-    await Promise.all(updates);
-    await Prisma.products.updateMany({
-      where: {
-        id: {
-          in: order.Orderproduct.map((i) => i.productId),
+    await Promise.all([
+      ...productUpdates,
+      ...stockUpdates,
+      Prisma.products.updateMany({
+        where: {
+          id: { in: order.Orderproduct.map((i) => i.productId) },
         },
-      },
-      data: {
-        amount_sold: {
-          increment: 1,
-        },
-      },
-    });
+        data: { amount_sold: { increment: 1 } },
+      }),
+      Prisma.orders.update({
+        where: { id: orderid },
+        data: { status: Allstatus.paid },
+      }),
+      Prisma.orderproduct.updateMany({
+        where: { orderId: orderid },
+        data: { status: Allstatus.paid },
+      }),
+    ]);
 
-    // Update order status
-    await Prisma.orders.update({
-      where: { id: orderid },
-      data: {
-        status: Allstatus.paid,
-      },
-    });
-
-    await Prisma.orderproduct.updateMany({
-      where: { orderId: orderid },
-      data: { status: Allstatus.paid },
-    });
-
+    // Prepare email sending concurrently
     const emailSubject = `Order #${order.id} receipt and processing for shipping`;
-
     const htmltemplate = OrderReciptEmail(html);
 
-    // Send order email
-    await SendOrderEmail(htmltemplate, order.user.email, emailSubject);
-
-    //Send for admin
-    await SendOrderEmail(
-      adminhtml,
-      process.env.EMAIL as string,
-      `Order #${order.id} request`
-    );
-
-    // Invalidate cache or revalidate path
-
-    revalidatePath("/");
-    revalidatePath("checkout");
+    await Promise.all([
+      SendOrderEmail(htmltemplate, order.user.email, emailSubject),
+      SendOrderEmail(
+        adminhtml,
+        process.env.EMAIL as string,
+        `Order #${order.id} request`
+      ),
+    ]);
 
     return { success: true, message: "Payment completed" };
   } catch (error) {
@@ -321,6 +294,7 @@ export async function handleShippingAdddress(
           songkhat: shippingdata.songkhat,
           province: shippingdata.province,
           postalcode: shippingdata.postalcode,
+          street: shippingdata.street,
         },
       });
       shipId = create.id;
@@ -637,67 +611,18 @@ export const handleEmail = async (data: Emaildata) => {
       pass: process.env.EMAIL_APPKEY,
     },
   });
+
   const mailoptions = {
     from: data.from ? data.from : `SrokSre <${process.env.EMAIL}>`,
     to: `<${data.to}>`,
     subject: data.subject,
-
-    html: data.html ? OrderReciptEmail(data.html) : "",
+    html: OrderReciptEmail(data.html ?? ""),
   };
   try {
     await transporter.sendMail(mailoptions);
     return { success: true };
   } catch (error) {
     console.log("Send Email", error);
-    return { success: true };
+    return { success: false };
   }
 };
-
-//Html Template
-
-export const OrderReciptEmail = (body: string) => `
-<!doctype html>
-<html xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
-
-<head>
-  <title>
-  </title>
-  <!--[if !mso]><!-->
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <!--<![endif]-->
-  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!--[if mso]>
-    <noscript>
-        <xml>
-        <o:OfficeDocumentSettings>
-          <o:AllowPNG/>
-          <o:PixelsPerInch>96</o:PixelsPerInch>
-        </o:OfficeDocumentSettings>
-        </xml>
-    </noscript>
-  <![endif]-->
-  <!--[if lte mso 11]>
-  <style type="text/css">
-  body {
-    font-family: "Prompt", sans-serif;
-  }
-</style>
-  <![endif]-->
-  <!--[if !mso]><!-->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Prompt:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
-  <style type="text/css">
-  @import url('https://fonts.googleapis.com/css2?family=Prompt:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap')
-  </style>
-  <!--<![endif]-->
-</head>
-
-<body style="font-family: "Prompt", sans-serif; width: fit-content;">
-   ${body}
-</body>
-
-</html>
-
-`;

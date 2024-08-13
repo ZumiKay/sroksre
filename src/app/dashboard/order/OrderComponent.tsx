@@ -21,13 +21,14 @@ import {
   OrderReceiptTemplate,
 } from "../../component/EmailTemplate";
 import { deleteOrder, ExportOrderData, updateOrderStatus } from "./action";
-import { errorToast, infoToast, successToast } from "../../component/Loading";
+import { errorToast, successToast } from "../../component/Loading";
 import dayjs, { Dayjs } from "dayjs";
 import { OrderUserType } from "../../checkout/action";
 import * as XLSX from "xlsx";
 import { isObjectEmpty } from "@/src/lib/utilities";
 import { shippingtype } from "../../component/Modals/User";
 import PaginationCustom from "../../component/Pagination_Component";
+import { Input } from "@nextui-org/react";
 
 export const SelectionSSR = ({
   name,
@@ -99,7 +100,7 @@ export const DownloadButton = () => {
           OrderDate: i.createdAt,
           ProductName: j.product.name,
           ProductPricePerUnit: j.product.price,
-          ProductDisount: j.product.discount ? j.product.discount * 100 : 0,
+          ProductDisount: j.product.discount,
           ShippingType: i.shippingtype,
           ShippingPrice: price.shipping ?? 0,
           TotalPrice: price.total,
@@ -223,7 +224,7 @@ export const FilterButton = ({
     const pararr = Array.from(params.keys());
 
     pararr.forEach((key) => {
-      if (key !== "page" && key !== "show") {
+      if (key !== "page" && key !== "show" && key !== "status") {
         if (params.has(key)) {
           params.delete(key);
         }
@@ -399,7 +400,7 @@ const FilterMenu = ({
   close: "exportoption" | "filteroption";
   handleNext?: (
     data: Filterdatatype,
-    settotalcount: React.Dispatch<React.SetStateAction<number>>
+    settotalcount?: React.Dispatch<React.SetStateAction<number>>
   ) => void;
   loading?: boolean;
 }) => {
@@ -407,9 +408,7 @@ const FilterMenu = ({
   const router = useRouter();
   const searchParams = useSearchParams();
   const [filterdata, setfilterdata] = useState<Filterdatatype>({});
-  const formref = useRef<HTMLFormElement>(null);
   const [isFilter, setisFilter] = useState(false);
-  const [totalfildata, settotalfildata] = useState(0);
 
   useEffect(() => {
     if (
@@ -438,7 +437,6 @@ const FilterMenu = ({
       }
     });
     router.push(`?${params}`);
-    infoToast("Filtered Successfully");
     setisFilter(true);
   };
 
@@ -475,7 +473,7 @@ const FilterMenu = ({
       errorToast("Filename required");
       return;
     }
-    handleNext && handleNext(filterdata, settotalfildata);
+    handleNext && handleNext(filterdata);
   };
 
   return (
@@ -485,19 +483,19 @@ const FilterMenu = ({
           <h2 className="font-bold text-2xl" hidden={type !== "filter"}>
             Filter by
           </h2>
-          <label
-            htmlFor="search"
-            className="text-lg w-full text-left font-bold"
-          >
-            {type === "export" ? "Customer (ID or Name)" : "Search"}
-          </label>
-          <input
+
+          <Input
             type="text"
             value={filterdata.q}
             onChange={handleChange}
+            label={
+              type === "export"
+                ? "Customer (ID or Name)"
+                : "Search (Customer Email , Name , Order Id)"
+            }
             name="q"
-            className="w-full h-[50px] rounded-lg border border-black pl-2"
-            placeholder="Search"
+            size="lg"
+            className="w-full"
           />
 
           <label className="text-lg w-full text-left font-bold">
@@ -895,23 +893,15 @@ export const OrderProductDetailsModal = ({
             <Checkoutproductcard
               key={prob.id}
               qty={prob.quantity}
-              total={(prob.product?.price as number) * prob.quantity}
               cover={prob.product?.covers[0].url as string}
               name={prob.product?.name as string}
-              details={prob.details}
-              price={{
-                price: prob.product?.price as number,
-                discount: prob.product?.discount
-                  ? {
-                      percent: parseFloat(
-                        prob.product?.discount?.percent as any
-                      ),
-                      newprice: parseFloat(
-                        prob.product?.discount?.newprice as any
-                      ),
-                    }
-                  : undefined,
-              }}
+              details={prob.selectedvariant}
+              price={prob.price}
+              total={
+                prob.quantity *
+                (((prob.price.discount?.newprice ??
+                  prob.product?.price) as number) ?? 0)
+              }
             />
           ))}
         </div>
@@ -966,17 +956,11 @@ export const ActionModal = ({
                 />
                 <PrimaryButton
                   type="button"
-                  text="Contact buyer"
-                  radius="10px"
-                  width="90%"
-                />
-                <PrimaryButton
-                  type="button"
                   text="Delete"
                   width="90%"
                   onClick={() => handleClick("delete")}
                   radius="10px"
-                  color="red"
+                  color="lightcoral"
                 />
               </div>
 
@@ -986,7 +970,7 @@ export const ActionModal = ({
                 width="90%"
                 onClick={() => handleClose()}
                 radius="10px"
-                color="lightcoral"
+                color="black"
               />
             </div>{" "}
           </>
@@ -1011,6 +995,7 @@ const UpdateStatus = ({
   oid: string;
   order: OrderUserType;
 }) => {
+  const router = useRouter();
   const [status, setstatus] = useState("");
   const [loading, setloading] = useState(false);
   const handleSelect = (e: ChangeEvent<HTMLSelectElement>) => {
@@ -1043,6 +1028,7 @@ const UpdateStatus = ({
     }
     successToast(update.message);
     setstatus("");
+    router.refresh();
   };
   return (
     <div className="w-full h-full flex flex-col gap-y-10">

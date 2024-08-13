@@ -111,6 +111,8 @@ interface SelectionCustomProps {
   onChange?: (value: number | string) => void;
   style?: CSSProperties;
   textplacement?: "outside" | "outside-left" | "inside";
+  isLoading?: boolean;
+  size?: "sm" | "md" | "lg";
 }
 
 export const SelectionCustom = ({
@@ -122,6 +124,8 @@ export const SelectionCustom = ({
   setvalue,
   onChange,
   textplacement,
+  isLoading,
+  size,
 }: SelectionCustomProps) => {
   return (
     <Select
@@ -129,9 +133,11 @@ export const SelectionCustom = ({
       placeholder={placeholder}
       className="w-full"
       value={value}
+      size={size ?? "md"}
       labelPlacement={textplacement}
       defaultSelectedKeys={value ? [value] : undefined}
       style={style}
+      isLoading={!!isLoading}
       onChange={(e) => {
         const { value } = e.target;
         setvalue && setvalue(value);

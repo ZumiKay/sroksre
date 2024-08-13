@@ -1,10 +1,10 @@
 import {
   Orderpricetype,
-  Productorderdetailtype,
   Productordertype,
   totalpricetype,
 } from "@/src/context/OrderContext";
 import { OrderUserType } from "../checkout/action";
+import { VariantColorValueType } from "@/src/context/GlobalContext";
 
 interface OerderEmailProps {
   order: OrderUserType;
@@ -46,7 +46,7 @@ export function formatDate(date: Date) {
 }
 
 const ShowCard = ({ orderProduct }: { orderProduct: Productordertype }) => {
-  const price = orderProduct.product?.price as unknown as Orderpricetype;
+  const price = orderProduct.price;
   const isDiscount = price.discount;
 
   const Totalprice =
@@ -61,7 +61,7 @@ const ShowCard = ({ orderProduct }: { orderProduct: Productordertype }) => {
         cover: orderProduct.product?.covers[0].url as string,
         name: orderProduct.product?.name as string,
         quantity: orderProduct.quantity,
-        details: orderProduct.details,
+        details: orderProduct.selectedvariant as any,
         price: price,
         total: Totalprice,
       }}
@@ -124,8 +124,8 @@ export function OrderReceiptTemplate({ order, isAdmin }: OerderEmailProps) {
             >
               {!isAdmin && (
                 <h3>
-                  <strong> Hi, {order.user.firstname} </strong> we received your
-                  order and is processing for shipping
+                  <strong> Hi, {order.user?.firstname ?? ""} </strong> we
+                  received your order and is processing for shipping
                 </h3>
               )}
               <h3 style={{ fontWeight: "700" }}>Order #: {order.id}</h3>
@@ -231,7 +231,7 @@ interface ProductEmailCardProps {
   cover: string;
   name: string;
   quantity: number;
-  details: Productorderdetailtype[];
+  details: (string | VariantColorValueType)[];
   price: Orderpricetype;
   total: number;
 }
@@ -241,17 +241,17 @@ const OrderProductEmailCard = ({ data }: { data: ProductEmailCardProps }) => {
   const ShowPrice = () => {
     return (
       <p>
+        <span
+          style={{
+            textDecoration: isDiscount ? "line-through" : "none",
+            color: "red",
+            marginRight: "10px",
+          }}
+        >
+          ${data.price.price}
+        </span>
         {isDiscount && (
           <>
-            <span
-              style={{
-                textDecoration: "line-through",
-                color: "red",
-                marginRight: "10px",
-              }}
-            >
-              ${data.price.price}
-            </span>
             <span style={{ color: "red", marginRight: "10px" }}>
               -{isDiscount.percent ?? "0.00"}%
             </span>
@@ -287,11 +287,10 @@ const OrderProductEmailCard = ({ data }: { data: ProductEmailCardProps }) => {
         </td>
         <td style={{ verticalAlign: "top", textAlign: "left", border: 0 }}>
           <p style={{ fontWeight: "700" }}>{data.name}</p>
-          {data.details
-            .filter((i) => i.option_type !== "COLOR")
-            .map((info) => (
+          {data.details.map((info, idx) =>
+            typeof info === "string" ? (
               <p
-                key={info.id}
+                key={idx}
                 style={{
                   backgroundColor: "#f2f2f2",
                   width: "150px",
@@ -302,24 +301,45 @@ const OrderProductEmailCard = ({ data }: { data: ProductEmailCardProps }) => {
                   marginBottom: "10px",
                 }}
               >
-                {info.option_value}
+                {info}
               </p>
-            ))}
-
-          {data.details
-            .filter((i) => i.option_type === "COLOR")
-            .map((color) => (
+            ) : (
               <div
-                key={color.id}
+                key={idx}
                 style={{
-                  width: "35px",
-                  height: "35px",
-                  borderRadius: "100%",
-                  backgroundColor: color.option_value,
+                  width: "150px",
+                  maxWidth: "100%",
+                  backgroundColor: "#f2f2f2",
+                  borderRadius: "10px",
                   marginBottom: "10px",
+                  padding: "5px",
                 }}
-              ></div>
-            ))}
+              >
+                <div
+                  style={{
+                    width: "25px",
+                    height: "25px",
+                    borderRadius: "100%",
+                    backgroundColor: info.val,
+                    display: "inline-block",
+                    verticalAlign: "middle",
+                  }}
+                ></div>
+                {info.name && (
+                  <span
+                    style={{
+                      fontWeight: "normal",
+                      display: "inline-block",
+                      wordBreak: "break-all",
+                      paddingLeft: "5px",
+                    }}
+                  >
+                    {info.name}
+                  </span>
+                )}
+              </div>
+            )
+          )}
         </td>
       </tr>
       <tr

@@ -14,11 +14,9 @@ import {
 import Prisma from "@/src/lib/prisma";
 import {
   calculateCartTotalPrice,
-  calculateDiscountProductPrice,
   getDiscountedPrice,
   getmaxqtybaseStockType,
 } from "@/src/lib/utilities";
-import e from "express";
 import { getServerSession } from "next-auth";
 import { revalidatePath } from "next/cache";
 
@@ -36,10 +34,9 @@ interface returntype {
 export async function Addtocart(data: Productordertype): Promise<returntype> {
   try {
     const { details, quantity, id } = data;
-    const user = await getServerSession(authOptions);
-    const userid = user?.user as Usersessiontype;
+    const user = await getUser();
 
-    if (!userid) {
+    if (!user) {
       return {
         success: false,
         user: false,
@@ -61,19 +58,12 @@ export async function Addtocart(data: Productordertype): Promise<returntype> {
     await Prisma.orderproduct.create({
       data: {
         productId: id,
-        user_id: userid.id,
+        user_id: user.id,
         quantity: quantity,
-        details: details.filter((i) => i) ?? [],
+        details: details ?? "",
         status: Allstatus.incart,
       },
     });
-    await Prisma.products.update({
-      where: { id },
-      data: { amount_wishlist: { increment: 1 } },
-    });
-
-    revalidatePath(`/product/detail/${data.productId}`);
-    revalidatePath("/checkout");
 
     return { success: true, message: "Added to cart" };
   } catch (error) {
@@ -167,7 +157,6 @@ export async function Editcart(data: {
       data: { quantity: data.qty },
     });
 
-    revalidatePath("/checkout");
     return { success: true, total: totalPrice };
   } catch (error) {
     console.log("edit cart", error);
@@ -258,7 +247,7 @@ export async function Getcarts(): Promise<returntype> {
             stocktype: true,
             stock: true,
             Stock: true,
-            details: true,
+            Variant: true,
           },
         },
       },
@@ -267,7 +256,11 @@ export async function Getcarts(): Promise<returntype> {
     let cartitems = orderprodct.map((i) => {
       return {
         ...i,
+        details: i.product.Variant.filter((variant) => {
+          const detail = i.details as number[];
 
+          return detail.includes(variant.id);
+        }),
         product: {
           ...i.product,
           varaintstock: i.product.Stock,
@@ -294,7 +287,7 @@ export async function Getcarts(): Promise<returntype> {
 
           const maxqty = getmaxqtybaseStockType(
             i.product as unknown as ProductState,
-            detail.filter((i) => i).map((i) => i.option_value)
+            detail.map((i) => i.value)
           );
 
           return { ...i, price, maxqty };
@@ -362,17 +355,19 @@ export async function CheckCart(
 
     if (selectedDetail) {
       const cartItems = orderProducts as unknown as Productordertype[];
-      isInCart = cartItems.some((cart) => {
-        const detail = cart.details.filter((i) => i);
-        const areArraysEqual =
-          detail.length === selectedDetail.length &&
-          detail.every((obj, index) =>
-            Object.entries(obj).every(
-              ([key, value]) => value === selectedDetail[index][key]
-            )
-          );
-        return areArraysEqual;
-      });
+      if (cartItems.some((i) => i.details)) {
+        isInCart = cartItems.some((cart) => {
+          const detail = cart.details?.filter((i) => i);
+          const areArraysEqual =
+            detail?.length === selectedDetail.length &&
+            detail?.every((obj, index) =>
+              Object.entries(obj).every(
+                ([key, value]) => value === selectedDetail[index][key]
+              )
+            );
+          return areArraysEqual;
+        });
+      }
     } else {
       isInCart =
         orderProducts.filter(

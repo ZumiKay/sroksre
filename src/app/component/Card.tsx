@@ -2,11 +2,13 @@
 import Image, { StaticImageData } from "next/image";
 import PrimaryButton, { Selection } from "./Button";
 import "../globals.css";
-import { ChangeEvent, useRef, useState } from "react";
+import { ChangeEvent, useEffect, useRef, useState } from "react";
 
 import { PrimaryPhoto } from "./PhotoComponent";
 import {
   PromotionState,
+  VariantColorValueType,
+  Varianttype,
   productcoverstype,
   useGlobalContext,
 } from "@/src/context/GlobalContext";
@@ -15,15 +17,14 @@ import { SubInventoryMenu } from "./Navbar";
 import LoadingIcon, { errorToast } from "./Loading";
 import { useRouter } from "next/navigation";
 
-import {
-  Orderpricetype,
-  Productorderdetailtype,
-  totalpricetype,
-} from "@/src/context/OrderContext";
+import { Orderpricetype, totalpricetype } from "@/src/context/OrderContext";
 import { Editcart } from "../product/detail/[id]/action";
 import { Variantcontainer } from "./Modals/VariantModal";
 import { Sizecontainer } from "./Modals/Product";
 import { UpdateStockModal } from "./Modals/Stock";
+import { Chip } from "@nextui-org/react";
+import { ApiRequest } from "@/src/context/CustomHook";
+import { SelectionCustom } from "./Pagination_Component";
 
 interface cardprops {
   name: string;
@@ -319,18 +320,45 @@ interface SecondayCardprops {
   img: string | StaticImageData;
   name: string;
   price: Orderpricetype;
-  selecteddetail: Array<Productorderdetailtype>;
+  selecteddetail?: (string | VariantColorValueType)[];
   selectedqty: number;
   maxqty?: number;
   width?: string;
   action?: boolean;
   removecart: () => Promise<void>;
   settotal: (param?: totalpricetype) => void;
+  setreloadcart: (value: boolean) => void;
 }
+export const Selecteddetailcard = ({
+  text,
+  key,
+}: {
+  text: string | VariantColorValueType;
+  key: number;
+}) => (
+  <Chip
+    key={key}
+    variant="bordered"
+    size="lg"
+    startContent={
+      typeof text !== "string" && (
+        <div
+          style={{ backgroundColor: text.val }}
+          className="w-[25px] h-[25px] rounded-full"
+        ></div>
+      )
+    }
+  >
+    {typeof text === "string" ? text : text.name}
+  </Chip>
+);
+
 export function SecondayCard(props: SecondayCardprops) {
   const [editqty, seteditqty] = useState(props.selectedqty);
   const [loading, setloading] = useState(false);
+  const router = useRouter();
   const price = parseFloat(props.price.price.toString()).toFixed(2);
+
   const showprice = () => {
     const hasdiscount = (
       <div className="w-fit h-full flex flex-row gap-x-5">
@@ -355,35 +383,27 @@ export function SecondayCard(props: SecondayCardprops) {
     );
   };
 
-  const handleEditQty = async ({ target }: ChangeEvent<HTMLSelectElement>) => {
+  const handleEditQty = async (value: string) => {
     //update cartitem
-    const value = parseInt(`${target.value}`);
-    const updatereq = Editcart.bind(null, { id: props.id, qty: value });
-    const update = await updatereq();
+    const val = parseInt(`${value}`);
+    setloading(true);
+    const updatereq = await ApiRequest(
+      "/api/order/cart",
+      undefined,
+      "PUT",
+      "JSON",
+      { id: props.id, qty: val }
+    );
+    setloading(false);
 
-    if (!update.success) {
+    if (!updatereq.success) {
       errorToast("Can't update quantity");
       return;
     }
-    seteditqty(target.value !== "" ? value : 0);
-    props.settotal(update.total);
+    seteditqty(value !== "" ? val : 0);
+    props.setreloadcart(true);
+    router.refresh();
   };
-
-  const selecteddetailcard = (text: string, key: string, type: string) => (
-    <div
-      key={key}
-      style={
-        type === "COLOR"
-          ? { backgroundColor: text, width: "40px", height: "40px" }
-          : {}
-      }
-      className={`max-w-[125px] break-words  h-fit p-1 bg-white outline-1 outline outline-gray-400 text-lg font-medium rounded-lg ${
-        type === "COLOR" ? `bg-[${text}]` : ""
-      }`}
-    >
-      {type !== "COLOR" ? text : ""}
-    </div>
-  );
 
   const handleDelete = async () => {
     setloading(true);
@@ -391,54 +411,53 @@ export function SecondayCard(props: SecondayCardprops) {
     setloading(false);
   };
   return (
-    <div className="w-full h-fit flex flex-col  items-end gap-y-5">
+    <div className="w-full h-full flex flex-col items-end gap-y-5 p-2">
       <div
         style={{ width: props.width }}
-        className="secondarycard__container flex flex-row items-start bg-[#F4FAFF] justify-between w-full gap-x-2"
+        className="secondarycard__container flex flex-row items-start bg-[#F4FAFF] justify-between w-full gap-x-2 relative"
       >
         <Image
           src={props.img}
           alt="cover"
-          className="cardimage w-[250px] h-[350px] object-cover"
+          className="cardimage w-[250px] h-auto object-contain rounded-lg"
           width={600}
           height={600}
           quality={50}
           loading="lazy"
         />
         <div className="product_detail flex flex-col items-start gap-y-5 w-full">
-          <div className="product_info flex flex-col gap-y-5 max-w-[250px] break-words">
+          <div className="product_info flex flex-col gap-y-5 w-[90%] break-words">
             <h3 className="text-lg font-bold w-fit"> {props.name}</h3>
             {showprice()}
           </div>
 
-          <div className="selecteddetails flex flex-row items-center gap-x-3 w-full h-fit max-h-[200px]">
-            {props.selecteddetail.map((detail) =>
-              selecteddetailcard(
-                detail.option_value,
-                detail.option_title,
-                detail.option_type
-              )
-            )}
+          <div className="selecteddetails flex flex-row items-center flex-wrap gap-3 w-full h-fit max-h-[200px]">
+            {props.selecteddetail?.map((selected, idx) => (
+              <Selecteddetailcard key={idx} text={selected} />
+            ))}
           </div>
-          <div className="qty flex flex-col gap-y-1 w-full h-fit">
+          <div className="qty flex flex-col gap-y-1 w-[200px] h-fit">
             <label className="text-lg font-bold">Quantity</label>
-            <Selection
-              value={editqty}
-              onChange={handleEditQty}
-              data={Array.from({ length: props.maxqty ?? 0 }).map(
-                (_, idx) => idx + 1
-              )}
-              style={{ width: "90%", height: "fit-content" }}
+            <SelectionCustom
+              label="QTY"
+              placeholder="Select"
+              size="sm"
+              value={editqty.toString()}
+              isLoading={loading}
+              onChange={(value) => handleEditQty(value as string)}
+              data={Array.from({ length: props.maxqty ?? 0 }).map((_, idx) => ({
+                label: (idx + 1).toString(),
+                value: (idx + 1).toString(),
+              }))}
             />
           </div>
-
-          <i
-            onClick={() => handleDelete()}
-            className={`fa-solid fa-trash relative transition duration-300 active:text-white ${
-              loading ? "animate-spin" : ""
-            }`}
-          ></i>
         </div>
+        <i
+          onClick={() => handleDelete()}
+          className={`fa-solid fa-trash absolute bottom-2 right-1 transition duration-300 active:text-white ${
+            loading ? "animate-spin" : ""
+          }`}
+        ></i>
       </div>
       {props.action && (
         <div className="actions w-[75%] flex flex-row items-center justify-start gap-x-5">

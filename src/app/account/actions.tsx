@@ -1,7 +1,7 @@
 "use server";
 
 import { Role } from "@prisma/client";
-import { handleEmail, OrderReciptEmail } from "../checkout/action";
+import { handleEmail } from "../checkout/action";
 
 export interface userdata {
   id?: number;
@@ -22,11 +22,15 @@ export const SendVfyEmail = async (
   subject: string
 ) => {
   try {
-    await handleEmail({
+    const sent = await handleEmail({
       subject,
       to,
-      html: OrderReciptEmail(html),
+      html,
     });
+
+    if (!sent.success) {
+      return { success: false };
+    }
 
     return { success: true };
   } catch (error) {

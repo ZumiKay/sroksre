@@ -98,11 +98,11 @@ model Childcategories {
 }
 
 model Products {
-  id                Int            @id @default(autoincrement())
+  id                Int               @id @default(autoincrement())
   name              String
-  price             Float          @default(0.00)
-  description       String         @default("")
-  stocktype         String         @default("stock")
+  price             Float             @default(0.00)
+  description       String            @default("")
+  stocktype         String            @default("stock")
   stock             Int?
   covers            Productcover[]
   details           Info[]
@@ -110,30 +110,26 @@ model Products {
   childcategory_id  Int?
   order_id          String?
   review_id         Int?
-  amount_sold       Int?           @default(0)
-  amount_incart     Int?           @default(0)
-  amount_wishlist   Int?           @default(0)
-
-  promotion_id Int?
-  discount     Float?
-  promotion    Promotion? @relation(fields: [promotion_id], references: [id], onDelete: SetNull)
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
-
-  parentcateogries Parentcategories? @relation(fields: [parentcategory_id], references: [id])
-  childcategories  Childcategories?  @relation(fields: [childcategory_id], references: [id])
-
-  Variant      Variant[]
-  Stock        Stock[]
-  Orderproduct Orderproduct[]
-
-  relatedproductId Int?
-  relatedproduct   Producttype?      @relation(fields: [relatedproductId], references: [id])
-  User             User?             @relation(fields: [userId], references: [id])
-  userId           Int?
-  Wishlist         Wishlist[]
-  Containeritems   Containeritems[]
-  Autocategory     Productcategory[]
+  amount_sold       Int?              @default(0)
+  amount_incart     Int?              @default(0)
+  amount_wishlist   Int?              @default(0)
+  promotion_id      Int?
+  discount          Float?
+  promotion         Promotion?        @relation(fields: [promotion_id], references: [id], onDelete: SetNull)
+  parentcateogries  Parentcategories? @relation(fields: [parentcategory_id], references: [id])
+  childcategories   Childcategories?  @relation(fields: [childcategory_id], references: [id])
+  Variant           Variant[]
+  Stock             Stock[]
+  Orderproduct      Orderproduct[]
+  relatedproductId  Int?
+  relatedproduct    Producttype?      @relation(fields: [relatedproductId], references: [id])
+  User              User?             @relation(fields: [userId], references: [id])
+  userId            Int?
+  Wishlist          Wishlist[]
+  Containeritems    Containeritems[]
+  Autocategory      Productcategory[]
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
 }
 
 model Productcategory {
@@ -188,7 +184,7 @@ model Orderproduct {
   user_id   Int
   status    String   @default("incart")
   quantity  Int
-  details   Json
+  details   Json?
   orderId   String?
   user      User     @relation(fields: [user_id], references: [id])
   order     Orders?  @relation(fields: [orderId], references: [id])

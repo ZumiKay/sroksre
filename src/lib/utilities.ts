@@ -17,7 +17,12 @@ import {
   Orderpricetype,
   Productordertype,
 } from "../context/OrderContext";
-import { createCipheriv, createDecipheriv, randomBytes } from "crypto";
+import {
+  CipherKey,
+  createCipheriv,
+  createDecipheriv,
+  randomBytes,
+} from "crypto";
 import { calculatePrice } from "../app/checkout/page";
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import { signOut } from "next-auth/react";
@@ -217,8 +222,8 @@ export const findDuplicateStockIndices = (stocks: Stocktype[]): number[] => {
 
   stocks.forEach((stock, index) => {
     const key = JSON.stringify({
-      variant_id: stock.variant_id,
-      variant_val: stock.variant_val,
+      variant_id: stock.id,
+      variant_val: stock.Stockvalue,
     });
 
     if (seen.has(key)) {
@@ -241,7 +246,6 @@ export const calculateCartTotalPrice = (
   return cartItems.reduce((total, item) => {
     const { quantity, price } = item;
 
-    console.log(price);
     const effectivePrice = price.discount
       ? price.discount.newprice
       : price.price;
@@ -253,37 +257,24 @@ export const getmaxqtybaseStockType = (
   product: ProductState,
   selected_detail: Array<string>
 ) => {
-  const { stocktype, varaintstock, stock, details } = product;
+  const { stocktype, varaintstock, stock } = product;
 
   let qty = 0;
 
   if (stocktype === "stock") {
     qty = stock as number;
   } else if (stocktype === "variant") {
+    const selectedvalueset = new Set(selected_detail.map((i) => i));
     varaintstock?.forEach((variant) => {
-      const isStock = variant.variant_val.some((value) =>
-        selected_detail.includes(value)
-      );
-
-      if (isStock) {
-        qty = variant.qty;
-        return true;
-      }
-      return false;
+      variant.Stockvalue.forEach((stock) => {
+        if (
+          stock.variant_val.length === selectedvalueset.size &&
+          stock.variant_val.every((i) => selectedvalueset.has(i))
+        ) {
+          qty = stock.qty;
+        }
+      });
     });
-  } else {
-    const sizeInfo = details.find((detail) => detail.info_type === "SIZE");
-
-    if (sizeInfo) {
-      const size = sizeInfo.info_value.find(
-        (value) => (value as infovaluetype).val === selected_detail[0]
-      );
-
-      if (size) {
-        const result = size as infovaluetype;
-        qty = result.qty;
-      }
-    }
   }
 
   return qty;
@@ -292,25 +283,40 @@ export const getmaxqtybaseStockType = (
 export const encrypt = (text: string, key: string) => {
   const algorithm = "aes-256-cbc";
 
-  const iv = randomBytes(16);
-  const cipher = createCipheriv(algorithm, Buffer.from(key, "hex"), iv);
-  let encrypted = cipher.update(text);
-  encrypted = Buffer.concat([encrypted, cipher.final()]);
+  // Ensure the key is 32 bytes (256 bits)
+  const keyBuffer = Buffer.from(
+    key.padEnd(32, "0").slice(0, 32),
+    "utf-8"
+  ) as unknown as CipherKey;
+
+  const iv = randomBytes(16); // Initialization vector
+  const cipher = createCipheriv(algorithm, keyBuffer, iv as any);
+
+  let encrypted = cipher.update(text, "utf-8");
+  encrypted = Buffer.concat([encrypted as any, cipher.final()]);
+
   return iv.toString("hex") + ":" + encrypted.toString("hex");
 };
 
 export const decrypt = (text: string, key: string) => {
   const algorithm = "aes-256-cbc";
   const textParts = text.split(":");
+
   const iv = Buffer.from(textParts.shift() as string, "hex");
   const encryptedText = Buffer.from(textParts.join(":"), "hex");
 
-  const keyBuffer = Buffer.from(key, "hex");
+  // Ensure the key is 32 bytes (256 bits)
+  const keyBuffer = Buffer.from(
+    key.padEnd(32, "0").slice(0, 32),
+    "utf-8"
+  ) as unknown as CipherKey;
 
-  const decipher = createDecipheriv(algorithm, keyBuffer, iv);
-  let decrypted = decipher.update(encryptedText);
-  decrypted = Buffer.concat([decrypted, decipher.final()]);
-  return decrypted.toString();
+  const decipher = createDecipheriv(algorithm, keyBuffer, iv as any);
+
+  let decrypted = decipher.update(encryptedText as any);
+  decrypted = Buffer.concat([decrypted as any, decipher.final()]);
+
+  return decrypted.toString("utf-8");
 };
 
 export const calculateDiscountPrice = (
@@ -360,7 +366,9 @@ export const calculateDiscountProductPrice = (data: {
     return {
       price: data.price,
       discount: {
-        newprice: data.price - (data.price * data.discount) / 100,
+        newprice: parseFloat(
+          (data.price - (data.price * data.discount) / 100).toFixed(2)
+        ),
         percent: data.discount,
       },
     };
@@ -511,6 +519,53 @@ export const normalemailtemplate = (
       </footer>
     </div>
   </body>
+`;
+
+export const OrderReciptEmail = (body: string) => `
+<!doctype html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+
+<head>
+  <title>
+  </title>
+  <!--[if !mso]><!-->
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <!--<![endif]-->
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--[if mso]>
+    <noscript>
+        <xml>
+        <o:OfficeDocumentSettings>
+          <o:AllowPNG/>
+          <o:PixelsPerInch>96</o:PixelsPerInch>
+        </o:OfficeDocumentSettings>
+        </xml>
+    </noscript>
+  <![endif]-->
+  <!--[if lte mso 11]>
+  <style type="text/css">
+  body {
+    font-family: "Prompt", sans-serif;
+  }
+</style>
+  <![endif]-->
+  <!--[if !mso]><!-->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Prompt:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
+  <style type="text/css">
+  @import url('https://fonts.googleapis.com/css2?family=Prompt:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap')
+  </style>
+  <!--<![endif]-->
+</head>
+
+<body style="font-family: "Prompt", sans-serif; width: fit-content;">
+   ${body}
+</body>
+
+</html>
+
 `;
 
 export const listofprovinces = [

@@ -551,6 +551,8 @@ interface ContextType {
   setorder: React.Dispatch<React.SetStateAction<Ordertype | undefined>>;
   cart: boolean;
   setcart: React.Dispatch<React.SetStateAction<boolean>>;
+  carttotal: number;
+  setcarttotal: React.Dispatch<React.SetStateAction<number>>;
 }
 const GlobalContext = React.createContext<ContextType | null>(null);
 
@@ -576,6 +578,7 @@ export const GlobalContextProvider = ({
   const [reloaddata, setreloaddata] = useState(true);
   const [order, setorder] = useState<Ordertype | undefined>(undefined);
   const [cart, setcart] = useState(false);
+  const [carttotal, setcarttotal] = useState(0);
 
   const [listproductfilter, setlistprodfil] = useState<Listproductfilter>({
     size: [],
@@ -640,6 +643,8 @@ export const GlobalContextProvider = ({
         setallfilterval,
         user,
         setuser,
+        carttotal,
+        setcarttotal,
       }}
     >
       {children}
