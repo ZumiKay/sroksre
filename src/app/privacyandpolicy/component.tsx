@@ -24,16 +24,6 @@ interface sidebarContentType {
   content: string;
 }
 
-const getData = async (qid: number, pid: number) => {
-  const fetchdata = getPolicy.bind(null, qid, pid);
-
-  const result = await fetchdata();
-  if (result.success) {
-    return result.data;
-  } else {
-    return null;
-  }
-};
 export const PolicyButton = ({
   title,
   color,
@@ -308,7 +298,13 @@ export const AddPolicyModal = ({ qa, plc, edit, openstate }: Policydata) => {
               required
             />
             {state.Paragraph.map((par, idx) => (
-              <div className="w-full h-fit">
+              <div className="w-full h-fit flex flex-col gap-5">
+                <TextField
+                  name={`sub${idx + 1}`}
+                  fullWidth
+                  type="text"
+                  label={`Sub Title #${idx + 1}`}
+                />
                 <Textarea
                   key={idx}
                   minRows={5}

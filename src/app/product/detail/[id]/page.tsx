@@ -7,10 +7,11 @@ export default async function DetailPage({
   params,
   searchParams,
 }: {
-  params: { id: number };
+  params: { id: string };
   searchParams?: { [key: string]: string | undefined };
 }) {
   const { rl } = searchParams as any;
+
   const user = await getUser();
 
   if (rl && !IsNumber(rl)) {

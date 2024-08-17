@@ -15,7 +15,6 @@ import { notFound, redirect } from "next/navigation";
 import Prisma from "@/src/lib/prisma";
 import {
   Allstatus,
-  Orderpricetype,
   Productorderdetailtype,
   totalpricetype,
 } from "@/src/context/OrderContext";

@@ -6,7 +6,6 @@ import {
 import {
   BannerState,
   productcoverstype,
-  SpecificAccess,
   useGlobalContext,
 } from "@/src/context/GlobalContext";
 import { ChangeEvent, useRef, useState } from "react";

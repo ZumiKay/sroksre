@@ -886,7 +886,9 @@ export const OrderProductDetailsModal = ({
           <CloseVector width="100%" height="100%" />
         </div>
 
-        <h3 className="w-full text-center font-bold text-xl">{`Products (${data?.length})`}</h3>
+        <h3 className="w-full text-center font-bold text-xl">{`Products (${
+          data?.length ?? 0
+        })`}</h3>
 
         <div className="productlist w-[90%] max-h-[60vh] overflow-y-auto flex flex-col items-center gap-y-5">
           {data?.map((prob) => (
@@ -996,10 +998,10 @@ const UpdateStatus = ({
   order: OrderUserType;
 }) => {
   const router = useRouter();
-  const [status, setstatus] = useState("");
+  const [status, setstatus] = useState(order.status ?? "");
   const [loading, setloading] = useState(false);
   const handleSelect = (e: ChangeEvent<HTMLSelectElement>) => {
-    setstatus(e.target.value);
+    setstatus(e.target.value as typeof order.status);
   };
 
   const handleCancel = () => {
@@ -1027,7 +1029,6 @@ const UpdateStatus = ({
       return;
     }
     successToast(update.message);
-    setstatus("");
     router.refresh();
   };
   return (
@@ -1038,6 +1039,7 @@ const UpdateStatus = ({
         <label className="w-full text-lg font-bold text-left">Status</label>
         <Selection
           default="Status"
+          value={status}
           data={Object.entries(Allstatus).map(([_, val]) => val)}
           onChange={handleSelect}
         />

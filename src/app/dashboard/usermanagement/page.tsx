@@ -4,12 +4,17 @@ import PrimaryButton from "../../component/Button";
 import { UserCard } from "../../component/Card";
 
 import { ApiRequest, Delayloading } from "@/src/context/CustomHook";
-import { LoadingText, errorToast } from "../../component/Loading";
+import {
+  ContainerLoading,
+  LoadingText,
+  errorToast,
+} from "../../component/Loading";
 import { ChangeEvent, useEffect, useState } from "react";
 import PaginationComponent from "../../component/Pagination";
 import { FilterMenu } from "../../component/SideMenu";
 import { Createusermodal } from "../../component/Modals/User";
 import { useRouter, useSearchParams } from "next/navigation";
+import PaginationCustom from "../../component/Pagination_Component";
 
 interface usermangementFilterType {
   search?: string;
@@ -35,7 +40,7 @@ export default function UsermanagementPage({
     setopenmodal((prev) => ({ ...prev, createUser: true }));
   };
   const [page, setpage] = useState(parseInt(p ?? "1"));
-  const [showperpage, setshow] = useState(parseInt(lt ?? "1"));
+  const [showperpage, setshow] = useState(lt ?? "1");
   const [isFilter, setisFilter] = useState(!!search);
   const [loading, setloading] = useState(false);
   const router = useRouter();
@@ -58,6 +63,7 @@ export default function UsermanagementPage({
         total: user.total ?? 0,
         totalpage: user.totalpage ?? 0,
       });
+      console.log({ user });
 
       setalldata({ user: user.data });
     };
@@ -72,7 +78,8 @@ export default function UsermanagementPage({
     router.refresh();
   };
   return (
-    <div className="usermanagement_container relative w-full h-fit min-h-[80vh]">
+    <div className="usermanagement_container relative w-full h-fit">
+      {loading && <ContainerLoading />}
       <header className="usermanagement_heade w-[500px] h-fit p-3 flex flex-row gap-x-5">
         <PrimaryButton
           type="button"
@@ -100,8 +107,7 @@ export default function UsermanagementPage({
           width="100%"
         />
       </header>
-      <div className="userlist w-full h-full grid grid-cols-3 gap-x-10 gap-y-10 place-items-center mt-5">
-        {loading && <LoadingText />}
+      <div className="userlist w-full h-fit min-h-[70vh] grid grid-cols-3 gap-x-10 gap-y-10 place-content-start place-items-center mt-5">
         {allData.user?.map((i, idx) => (
           <UserCard
             index={idx}
@@ -112,19 +118,19 @@ export default function UsermanagementPage({
           />
         ))}
       </div>
-      <PaginationComponent
-        count={itemlength.totalpage}
-        page={page}
-        show={showperpage}
-        setshow={setshow}
-        setpage={setpage}
-        onchange={(value, type) => {
-          if (type === "limit") {
+
+      <div className="w-full h-fit mt-16">
+        <PaginationCustom
+          count={itemlength.totalpage}
+          page={page}
+          show={showperpage}
+          setshow={setshow}
+          setpage={setpage}
+          onSelectShowPerPage={(value) => {
             handleSelectShow(value.toString());
-          }
-        }}
-        type="usermanagement"
-      />
+          }}
+        />
+      </div>
 
       {openmodal.createUser && <Createusermodal />}
       {openmodal.filteroption && (

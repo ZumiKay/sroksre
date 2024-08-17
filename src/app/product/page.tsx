@@ -298,7 +298,7 @@ export default async function ProductsPage({
           </Link>
           <Link
             href={`/product?${
-              cate.type === "sale" ? `ppid=${pid}` : `pid=${pid}`
+              cate.type === "sale" ? `ppid=${cate.id}` : `pid=${pid}`
             }&page=1$limit=1`}
           >
             <div className="transition hover:text-gray-300 cursor-pointer">

@@ -2,7 +2,7 @@
 import { StaticImageData } from "next/image";
 import PrimaryButton, { Selection } from "./Button";
 import React, { ChangeEvent, SetStateAction, useEffect, useState } from "react";
-import { SecondayCard } from "./Card";
+import { CardSkeleton, SecondayCard } from "./Card";
 import { signOut } from "next-auth/react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Modal from "./Modals";
@@ -20,7 +20,7 @@ import {
   useClickOutside,
   useEffectOnce,
 } from "@/src/context/CustomHook";
-import {
+import LoadingIcon, {
   ContainerLoading,
   LoadingText,
   errorToast,
@@ -319,10 +319,12 @@ interface cardmenuprops {
 }
 
 export function CartMenu(props: cardmenuprops) {
+  const { setreloadcart } = useGlobalContext();
   const router = useRouter();
   const searchparams = useSearchParams();
   const [cartItem, setitem] = useState<Array<Productordertype> | []>([]);
-  const [reloadcart, setreloadcart] = useState(true);
+  const [reloaddata, setreloaddata] = useState(true);
+
   const [loading, setloading] = useState({
     fetch: true,
     checkout: false,
@@ -333,14 +335,13 @@ export function CartMenu(props: cardmenuprops) {
   );
 
   const fetchcart = async () => {
-    setloading((prev) => ({ ...prev, fetch: true }));
-
     const asyncfetchcart = async () => {
       const response = await ApiRequest("/api/order/cart", undefined, "GET");
       if (!response.success) {
         errorToast("Error Occured");
         return;
       }
+
       setitem(response.data);
       settotal({ subtotal: response.total ?? 0, total: response.total ?? 0 });
     };
@@ -351,12 +352,12 @@ export function CartMenu(props: cardmenuprops) {
       500
     );
 
-    setreloadcart(false);
+    setreloaddata(false);
   };
 
   useEffect(() => {
-    if (reloadcart) fetchcart();
-  }, [reloadcart]);
+    if (reloaddata) fetchcart();
+  }, [reloaddata]);
 
   const removecart = async (id: number) => {
     const deletereq = await ApiRequest(
@@ -372,6 +373,7 @@ export function CartMenu(props: cardmenuprops) {
     }
     props.setcarttotal((prev) => (prev !== 0 ? prev - 1 : prev));
     setreloadcart(true);
+    setreloaddata(true);
   };
 
   const subprice = totalprice
@@ -412,18 +414,19 @@ export function CartMenu(props: cardmenuprops) {
         document.body.style.overflow = "auto";
         props.setcart(false);
       }}
-      className="Cart__Sidemenu fixed h-full w-[700px] right-0 bg-white z-40 flex flex-col items-center gap-y-5"
+      className="Cart__Sidemenu fixed h-full w-[700px] right-0 bg-white z-40 flex flex-col items-center gap-y-5 transition-all"
     >
       <h1 className="heading text-xl font-bold text-center w-full">
         Shopping Cart <span>( {cartItem?.length} item )</span>
       </h1>
       <div className="card_container flex flex-col w-[95%] gap-y-5 h-full max-h-[70vh] overflow-y-auto">
-        {loading.fetch && <LoadingText style={{ left: "40%" }} />}
         {(!cartItem || cartItem.length === 0) && (
           <h3 className="text-xl font-bold text-red-500 w-full h-fit text-center">
             No items
           </h3>
         )}
+        {loading.fetch && Array.from({ length: 3 }).map(() => <CardSkeleton />)}
+
         {cartItem?.map((i, idx) => {
           return (
             <SecondayCard
@@ -441,7 +444,7 @@ export function CartMenu(props: cardmenuprops) {
               price={i.price}
               removecart={() => removecart(i.id)}
               settotal={settotal}
-              setreloadcart={setreloadcart}
+              setreloadcart={setreloaddata}
             />
           );
         })}

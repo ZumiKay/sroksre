@@ -1,5 +1,4 @@
 import {
-  SpecificAccess,
   useGlobalContext,
   Userinitialize,
   UserState,
@@ -32,20 +31,13 @@ import { CloseVector } from "../Asset";
 import { listofprovinces } from "@/src/lib/utilities";
 
 export const Createusermodal = () => {
-  const {
-    allData,
-    setalldata,
-    globalindex,
-    setglobalindex,
-    setopenmodal,
-    setisLoading,
-    isLoading,
-  } = useGlobalContext();
+  const { allData, setalldata, globalindex, setglobalindex, setopenmodal } =
+    useGlobalContext();
   const [data, setdata] = useState<UserState>(Userinitialize);
   const [showpass, setshowpass] = useState({
     passowrd: false,
-    confirmpassword: false,
   });
+  const [loading, setloading] = useState(false);
 
   useEffect(() => {
     if (globalindex.useredit !== -1) {
@@ -56,21 +48,19 @@ export const Createusermodal = () => {
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const editindex = globalindex.useredit;
-    const { password, confirmpassword } = data;
+
     const URL = "/api/auth/register";
     const method = editindex === -1 ? "POST" : "PUT";
 
-    if (editindex === -1 && password !== confirmpassword) {
-      errorToast("Confirm Password Not Match");
-      return;
-    }
     if (editindex !== -1) {
       delete data.password;
       delete data.confirmpassword;
     }
 
     //register User
-    const register = await ApiRequest(URL, setisLoading, method, "JSON", data);
+    setloading(true);
+    const register = await ApiRequest(URL, undefined, method, "JSON", data);
+    setloading(false);
     if (!register.success) {
       errorToast(register.error ?? "Failed to register");
       return;
@@ -106,16 +96,16 @@ export const Createusermodal = () => {
   };
   return (
     <Modal closestate="createUser">
-      <div className="relative w-full h-[600px] bg-white p-5 flex flex-col items-end gap-y-5 rounded-lg">
-        <h3 className="text-lg font-semibold absolute top-5 left-5">
+      <div className="relative w-full h-fit bg-white p-5 flex flex-col items-end gap-y-5 rounded-lg">
+        <h3 className="text-lg font-semibold">
           {" "}
-          #{data.id}{" "}
+          {globalindex.useredit !== -1 ? `#${data.id}` : "Register User"}{" "}
         </h3>
 
         <Image
           src={CloseIcon}
           alt="closeicon"
-          hidden={SpecificAccess(isLoading)}
+          hidden={loading}
           onClick={() => handleCancel()}
           width={1000}
           height={1000}
@@ -197,57 +187,13 @@ export const Createusermodal = () => {
                   required
                 />
               </FormControl>
-              <FormControl
-                sx={{
-                  m: 1,
-                  width: "100%",
-                  height: "50px",
-                  borderRadius: "10px",
-                }}
-                variant="outlined"
-              >
-                <InputLabel htmlFor="outlined-adornment-password">
-                  Confirm Passoword
-                </InputLabel>
-                <OutlinedInput
-                  id="outlined-adornment-password"
-                  type={showpass.confirmpassword ? "text" : "password"}
-                  name="confirmpassword"
-                  onChange={handleChange}
-                  endAdornment={
-                    <InputAdornment position="end">
-                      <IconButton
-                        aria-label="toggle password visibility"
-                        onClick={() =>
-                          setshowpass((prev) => ({
-                            ...prev,
-                            confirmpassword: !prev.confirmpassword,
-                          }))
-                        }
-                        edge="end"
-                      >
-                        {showpass?.confirmpassword ? (
-                          <VisibilityOff />
-                        ) : (
-                          <Visibility />
-                        )}
-                      </IconButton>
-                    </InputAdornment>
-                  }
-                  label="Confirm Password"
-                  required
-                />
-              </FormControl>{" "}
             </>
           )}
 
           <PrimaryButton
             color="#0097FA"
             text={globalindex.useredit === -1 ? "Create" : "Update"}
-            disable={isLoading.GET}
-            status={
-              isLoading.POST || isLoading.PUT ? "loading" : "authenticated"
-            }
+            status={loading ? "loading" : "authenticated"}
             type="submit"
             width="100%"
             height="50px"
@@ -788,7 +734,7 @@ export const EditProfile = ({
             <PrimaryButton
               type="button"
               text="Cancel"
-              disable={SpecificAccess(loading)}
+              disable={Object.values(loading).some((i) => i)}
               onClick={() => {
                 setopenmodal((prev) => ({ ...prev, editprofile: false }));
               }}

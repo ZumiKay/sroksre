@@ -1,7 +1,6 @@
 import {
   BannerInitialize,
   SelectType,
-  SpecificAccess,
   useGlobalContext,
 } from "@/src/context/GlobalContext";
 import { ChangeEvent, useEffect, useState } from "react";
@@ -11,7 +10,7 @@ import {
   getProductForBanner,
   getPromotionForBanner,
 } from "../../severactions/actions";
-import { ApiRequest } from "@/src/context/CustomHook";
+import { ApiRequest, useEffectOnce } from "@/src/context/CustomHook";
 import { errorToast, successToast } from "../Loading";
 import Modal from "../Modals";
 import { motion } from "framer-motion";
@@ -41,10 +40,10 @@ export const BannerModal = () => {
     setalldata,
     globalindex,
     setglobalindex,
-    setisLoading,
-    isLoading,
     setreloaddata,
   } = useGlobalContext();
+
+  const [loading, setloading] = useState(false);
 
   const Linktype = [
     {
@@ -102,25 +101,27 @@ export const BannerModal = () => {
     return null;
   };
 
-  useEffect(() => {
+  useEffectOnce(() => {
     const fetchdata = async () => {
+      setloading(true);
       const request = await ApiRequest(
         `/api/banner?ty=edit&p=${globalindex.bannereditindex}`,
-        setisLoading,
+        undefined,
         "GET"
       );
+      setloading(false);
+
       if (request.success) {
         setbanner(request.data);
       } else {
         errorToast("Error Connection");
       }
     };
-    globalindex.bannereditindex !== -1
-      ? fetchdata()
-      : setisLoading((prev) => ({ ...prev, GET: false }));
-  }, []);
+    globalindex.bannereditindex !== -1 && fetchdata();
+  });
 
   const handleCreate = async () => {
+    setloading(true);
     const allbanner = [...(allData.banner ?? [])];
     const URL = "/api/banner";
 
@@ -146,13 +147,8 @@ export const BannerModal = () => {
     }
     if (banner.image.name !== "") {
       if (globalindex.bannereditindex === -1) {
-        const create = await ApiRequest(
-          URL,
-          setisLoading,
-          "POST",
-          "JSON",
-          banner
-        );
+        const create = await ApiRequest(URL, undefined, "POST", "JSON", banner);
+        setloading(false);
         if (!create.success) {
           errorToast("Failed To Create");
           return;
@@ -161,13 +157,8 @@ export const BannerModal = () => {
         successToast("Banner Created");
         setreloaddata(true);
       } else {
-        const update = await ApiRequest(
-          URL,
-          setisLoading,
-          "PUT",
-          "JSON",
-          banner
-        );
+        const update = await ApiRequest(URL, undefined, "PUT", "JSON", banner);
+        setloading(false);
         if (!update.success) {
           errorToast("Failed To Update");
           return;
@@ -398,13 +389,13 @@ export const BannerModal = () => {
             text={globalindex.bannereditindex !== -1 ? "Edit" : "Create"}
             width="100%"
             type="button"
-            status={SpecificAccess(isLoading) ? "loading" : "authenticated"}
+            status={loading ? "loading" : "authenticated"}
             radius="10px"
           />
           <PrimaryButton
             text="Cancel"
             onClick={() => handleCancel()}
-            disable={SpecificAccess(isLoading)}
+            disable={loading}
             color="lightcoral"
             type="button"
             width="100%"

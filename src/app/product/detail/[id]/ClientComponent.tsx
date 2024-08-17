@@ -39,7 +39,7 @@ import Card from "@/src/app/component/Card";
 import { ShowPrice } from "./Component";
 
 interface productdetailprops {
-  params: { id: number };
+  params: { id: string };
   isAdmin?: boolean;
 }
 
@@ -86,7 +86,7 @@ const Productdetailinitialize: Productordertype = {
 };
 
 export default function ProductDetail({ params, isAdmin }: productdetailprops) {
-  const { setcarttotal } = useGlobalContext();
+  const { setcarttotal, reloadcart, setreloadcart } = useGlobalContext();
   const [productorderdetail, setproductorderdetail] =
     useState<Productordertype>(Productdetailinitialize);
   const [prob, setprob] = useState<ProductState>(Productinitailizestate);
@@ -117,51 +117,83 @@ export default function ProductDetail({ params, isAdmin }: productdetailprops) {
   };
 
   const fetchproductdetail = async () => {
-    setloading(true);
-    const productrequest = await ApiRequest(
-      `/api/products/ty=info_pid=${params.id}`,
-      undefined,
-      "GET"
-    );
+    try {
+      const productId = parseInt(params.id, 10);
+      setloading(true);
+      const productrequest = await ApiRequest(
+        `/api/products/ty=info_pid=${params.id}`,
+        undefined,
+        "GET"
+      );
 
-    setloading(false);
-    if (!productrequest.success) {
-      errorToast("Error Connection");
-      return;
+      setloading(false);
+      if (!productrequest.success) {
+        errorToast("Error Connection");
+        return;
+      }
+
+      const checkwishlist = Checkwishlist.bind(null, productId);
+      const wishlistResult = await checkwishlist();
+
+      if (!wishlistResult) {
+        errorToast("Error connection");
+        return;
+      }
+
+      setisInWishlist(wishlistResult.isExist);
+
+      const { data } = productrequest;
+
+      InitializeProductOrder(data);
+
+      setprob(data);
+      setmess((prev) => ({
+        ...prev,
+        option:
+          data.stocktype === "size"
+            ? "Please select size"
+            : "Please select option",
+      }));
+    } catch (error) {
+      console.log("Fetch Product Detail", error);
+      errorToast("Error Occured");
     }
-
-    const checkcart = CheckCart.bind(null, undefined, params.id);
-    const checkwishlist = Checkwishlist.bind(null, params.id);
-    const [cartResult, wishlistResult] = await Promise.all([
-      checkcart(),
-      checkwishlist(),
-    ]);
-
-    if (!cartResult.success || !wishlistResult) {
-      errorToast("Error connection");
-      return;
-    }
-
-    setincart(cartResult.incart as boolean);
-    setisInWishlist(wishlistResult.isExist);
-
-    const { data } = productrequest;
-
-    InitializeProductOrder(data);
-
-    setprob(data);
-    setmess((prev) => ({
-      ...prev,
-      option:
-        data.stocktype === "size"
-          ? "Please select size"
-          : "Please select option",
-    }));
   };
 
   useEffectOnce(() => {
     fetchproductdetail();
   });
+
+  const InitialCheckCart = async () => {
+    try {
+      const checkcart = CheckCart.bind(
+        null,
+        productorderdetail.details,
+        parseInt(params.id)
+      );
+      const req = await checkcart();
+
+      console.log({ req });
+
+      if (!req.success) {
+        errorToast("Error Occured");
+        return;
+      }
+
+      setincart(req.incart ?? false);
+    } catch (error) {
+      console.log("Check cart", error);
+      return;
+    } finally {
+      setreloadcart(false);
+    }
+  };
+
+  useEffect(() => {
+    if (reloadcart) {
+      InitialCheckCart();
+    }
+  }, [reloadcart]);
 
   const handleSelectVariant = async (idx: number, value: string) => {
     const Allvariant = [...(prob.variants ?? [])];
@@ -488,7 +520,9 @@ export default function ProductDetail({ params, isAdmin }: productdetailprops) {
 
           <div className="w-full h-fit flex flex-col gap-y-5">
             <h3 className="error_mess text-lg text-red-500 font-bold w-full h-full">
-              {errormess.option}
+              {prob.stocktype === ProductStockType.stock
+                ? errormess.qty
+                : errormess.option}
             </h3>
             <div className="w-full h-fit  overflow-x-hidden pl-3 overflow-y-auto flex flex-col gap-y-5">
               <ShowOptionandStock />
@@ -548,7 +582,7 @@ export const ShowSimilarProduct = ({
   child_id,
   promoid,
 }: {
-  pid: number;
+  pid: string;
   parent_id: number;
   child_id?: number;
   promoid?: number;
@@ -564,7 +598,7 @@ export const ShowSimilarProduct = ({
     setloading(true);
     const getreq = getRelatedProduct.bind(
       null,
-      parseInt(pid.toString()),
+      parseInt(pid, 10),
       parent_id,
       limit,
       child_id,

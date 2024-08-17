@@ -1,14 +1,13 @@
 "use client";
 import Image, { StaticImageData } from "next/image";
-import PrimaryButton, { Selection } from "./Button";
+import PrimaryButton from "./Button";
 import "../globals.css";
-import { ChangeEvent, useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 
 import { PrimaryPhoto } from "./PhotoComponent";
 import {
   PromotionState,
   VariantColorValueType,
-  Varianttype,
   productcoverstype,
   useGlobalContext,
 } from "@/src/context/GlobalContext";
@@ -18,11 +17,10 @@ import LoadingIcon, { errorToast } from "./Loading";
 import { useRouter } from "next/navigation";
 
 import { Orderpricetype, totalpricetype } from "@/src/context/OrderContext";
-import { Editcart } from "../product/detail/[id]/action";
 import { Variantcontainer } from "./Modals/VariantModal";
 import { Sizecontainer } from "./Modals/Product";
 import { UpdateStockModal } from "./Modals/Stock";
-import { Chip } from "@nextui-org/react";
+import { Chip, Skeleton } from "@nextui-org/react";
 import { ApiRequest } from "@/src/context/CustomHook";
 import { SelectionCustom } from "./Pagination_Component";
 
@@ -402,7 +400,6 @@ export function SecondayCard(props: SecondayCardprops) {
     }
     seteditqty(value !== "" ? val : 0);
     props.setreloadcart(true);
-    router.refresh();
   };
 
   const handleDelete = async () => {
@@ -486,6 +483,15 @@ export function SecondayCard(props: SecondayCardprops) {
     </div>
   );
 }
+
+export const CardSkeleton = () => {
+  return (
+    <div className=" w-full flex items-start gap-3 h-fit">
+      <Skeleton className="flex rounded-lg w-[250px] h-[150px]" />
+      <Skeleton className="h-[150px] w-[100%] rounded-lg" />
+    </div>
+  );
+};
 
 interface Bannercardprops {
   data: {

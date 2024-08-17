@@ -547,6 +547,8 @@ interface ContextType {
   seterror: React.Dispatch<React.SetStateAction<boolean>>;
   reloaddata: boolean;
   setreloaddata: React.Dispatch<React.SetStateAction<boolean>>;
+  reloadcart: boolean;
+  setreloadcart: React.Dispatch<React.SetStateAction<boolean>>;
   order: Ordertype | undefined;
   setorder: React.Dispatch<React.SetStateAction<Ordertype | undefined>>;
   cart: boolean;
@@ -576,6 +578,7 @@ export const GlobalContextProvider = ({
   const [userinfo, setuserinfo] = useState({});
   const [error, seterror] = useState<boolean>(false);
   const [reloaddata, setreloaddata] = useState(true);
+  const [reloadcart, setreloadcart] = useState(true);
   const [order, setorder] = useState<Ordertype | undefined>(undefined);
   const [cart, setcart] = useState(false);
   const [carttotal, setcarttotal] = useState(0);
@@ -610,7 +613,8 @@ export const GlobalContextProvider = ({
         order,
         cart,
         setcart,
-
+        reloadcart,
+        setreloadcart,
         setorder,
         seterror,
         promotion,
@@ -682,8 +686,4 @@ export const SaveCheck = (
       deletecallback: deletecallback,
     },
   };
-};
-
-export const SpecificAccess = (obj: Object): boolean => {
-  return Object.values(obj).some((value) => value === true);
 };

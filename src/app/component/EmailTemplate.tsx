@@ -125,7 +125,7 @@ export function OrderReceiptTemplate({ order, isAdmin }: OerderEmailProps) {
               {!isAdmin && (
                 <h3>
                   <strong> Hi, {order.user?.firstname ?? ""} </strong> we
-                  received your order and is processing for shipping
+                  received your order.
                 </h3>
               )}
               <h3 style={{ fontWeight: "700" }}>Order #: {order.id}</h3>

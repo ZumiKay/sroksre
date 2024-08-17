@@ -353,7 +353,7 @@ export async function CheckCart(
       return { success: true };
     }
 
-    if (selectedDetail) {
+    if (selectedDetail && selectedDetail.length > 0) {
       const cartItems = orderProducts as unknown as Productordertype[];
       if (cartItems.some((i) => i.details)) {
         isInCart = cartItems.some((cart) => {
@@ -369,10 +369,7 @@ export async function CheckCart(
         });
       }
     } else {
-      isInCart =
-        orderProducts.filter(
-          (i) => i.product.stocktype === ProductStockType.stock
-        ).length !== 0;
+      isInCart = orderProducts.some((cart) => cart.productId === product_id);
     }
 
     return { success: true, incart: isInCart };

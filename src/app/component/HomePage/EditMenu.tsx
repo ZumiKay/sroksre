@@ -175,7 +175,7 @@ export const Homeeditmenu = ({
             <HomeitemsSkeleton key={idx} />
           ))}
 
-        {!loading && items.length === 0 && (
+        {!items && (
           <h3 className="text-lg font-normal border-2 border-red-300 p-1 w-full rounded-medium">
             No Items
           </h3>
