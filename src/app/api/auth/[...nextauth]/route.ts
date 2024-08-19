@@ -2,12 +2,13 @@ import NextAuth from "next-auth/next";
 import GoogleProvider from "next-auth/providers/google";
 import DiscordProvider from "next-auth/providers/discord";
 import CredentialProvider from "next-auth/providers/credentials";
-import { handleCheckandRegisterUser, userlogin } from "@/src/lib/userlib";
-import { NextAuthOptions } from "next-auth";
 import {
-  generateRandomPassword,
-  getOneWeekFromToday,
-} from "@/src/lib/utilities";
+  getOAuthInfo,
+  handleCheckandRegisterUser,
+  userlogin,
+} from "@/src/lib/userlib";
+import { NextAuthOptions } from "next-auth";
+import { generateRandomPassword } from "@/src/lib/utilities";
 import { Role } from "@prisma/client";
 
 interface JwtType {
@@ -76,13 +77,14 @@ export const authOptions: NextAuthOptions = {
             email: param.user.email as string,
             password: generateRandomPassword(),
             type: param.account?.provider,
+            oauthId: param.user.id,
           },
-          expireSession: getOneWeekFromToday(),
         });
         if (!checkuser.success) {
           return false;
         }
       }
+
       return param.user;
     },
 
@@ -90,13 +92,26 @@ export const authOptions: NextAuthOptions = {
       if (params.token) {
         let user = params?.user as any;
         const jwt = params.token as unknown as JwtType;
-
         let token = {
           email: user?.email ?? jwt.email,
           session_id: user?.sessionid ?? jwt.session_id,
           role: user?.role ?? jwt.role,
           id: user?.id ?? jwt.id,
         };
+
+        if (
+          params.account?.provider &&
+          params.account.provider !== "credentials"
+        ) {
+          const oauthUser = await getOAuthInfo(user.id, user.email);
+
+          token = {
+            ...token,
+            id: oauthUser?.id,
+            role: oauthUser?.role,
+            session_id: oauthUser.session_id,
+          };
+        }
 
         return token;
       }

@@ -32,6 +32,11 @@ export const verifyUser = async (
       }
 
       const password = hashedpassword(dt.password as string);
+      const user = await Prisma.user.findFirst({
+        where: { vfy: dt.cid as string },
+        select: { id: true },
+      });
+
       await Prisma.user.updateMany({
         where: {
           vfy: dt.cid as string,
@@ -41,6 +46,9 @@ export const verifyUser = async (
           vfy: null,
         },
       });
+
+      //Delete Session
+      await Prisma.usersession.deleteMany({ where: { user_id: user?.id } });
 
       return {
         message: "Password Updated",

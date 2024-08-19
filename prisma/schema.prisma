@@ -23,10 +23,11 @@ enum Imagetemptype {
 
 model User {
   id           Int            @id @default(autoincrement())
+  oauthId      String?
   type         String?
   firstname    String
   lastname     String?
-  email        String         @unique
+  email        String
   role         Role           @default(USER)
   phonenumber  String?        @unique
   password     String         @unique
@@ -71,7 +72,7 @@ model Address {
 model Usersession {
   session_id String   @id @default(uuid())
   user_id    Int
-  user       User     @relation(fields: [user_id], references: [id])
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
   createdAt  DateTime @default(now())
   expireAt   DateTime
 }
@@ -154,7 +155,7 @@ model Tempimage {
   id      Int    @id @default(autoincrement())
   name    String
   user_id Int
-  user    User   @relation(fields: [user_id], references: [id])
+  user    User   @relation(fields: [user_id], references: [id], onDelete: Cascade)
 }
 
 model Producttype {
@@ -174,7 +175,7 @@ model Orders {
   updatedAt    DateTime       @updatedAt
   shipping_id  Int?
   shipping     Address?       @relation(fields: [shipping_id], references: [id])
-  user         User           @relation(fields: [buyer_id], references: [id])
+  user         User           @relation(fields: [buyer_id], references: [id], onDelete: Cascade)
   Orderproduct Orderproduct[]
 }
 
@@ -186,9 +187,9 @@ model Orderproduct {
   quantity  Int
   details   Json?
   orderId   String?
-  user      User     @relation(fields: [user_id], references: [id])
-  order     Orders?  @relation(fields: [orderId], references: [id])
-  product   Products @relation(fields: [productId], references: [id])
+  user      User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  order     Orders?  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product   Products @relation(fields: [productId], references: [id], onDelete: Cascade)
 }
 
 model Banner {
@@ -258,7 +259,7 @@ model Questions {
   question  String
   answer_id Int
   user_id   Int
-  user      User      @relation(fields: [user_id], references: [id])
+  user      User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
   answers   Answers[]
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -331,23 +332,22 @@ model Policy {
 
 model Paragraph {
   id        Int      @id @default(autoincrement())
+  title     String?
   policyId  Int
   content   String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  policy Policy @relation(fields: [policyId], references: [id], onDelete: Cascade)
+  policy    Policy   @relation(fields: [policyId], references: [id], onDelete: Cascade)
 }
 
 model Notification {
-  id      Int      @id @default(autoincrement())
-  type    String
-  content String
-  checked Boolean? @default(false)
-  link    String?
-
+  id        Int      @id @default(autoincrement())
+  type      String
+  content   String
+  checked   Boolean? @default(false)
+  link      String?
   userid    Int
-  user      User     @relation(fields: [userid], references: [id])
+  user      User     @relation(fields: [userid], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

@@ -20,12 +20,7 @@ import {
   useClickOutside,
   useEffectOnce,
 } from "@/src/context/CustomHook";
-import LoadingIcon, {
-  ContainerLoading,
-  LoadingText,
-  errorToast,
-  successToast,
-} from "./Loading";
+import { ContainerLoading, errorToast, successToast } from "./Loading";
 import { motion } from "framer-motion";
 
 import { DateTimePicker } from "@mui/x-date-pickers";
@@ -52,7 +47,6 @@ import {
 import { Homeeditmenu } from "./HomePage/EditMenu";
 import { Addicon } from "./Icons/Homepage";
 import { Homeitemtype } from "../severactions/containeraction";
-import { Checkbox } from "@nextui-org/react";
 import { SelectionCustom } from "./Pagination_Component";
 
 interface accountmenuprops {
@@ -488,8 +482,6 @@ export const ConfirmModal = () => {
     setopenmodal,
     isLoading,
     setisLoading,
-    allData,
-    setalldata,
     product,
     setproduct,
     banner,
@@ -500,6 +492,7 @@ export const ConfirmModal = () => {
     setglobalindex,
   } = useGlobalContext();
   const router = useRouter();
+  const searchParam = useSearchParams();
   const handleConfirm = async (confirm: boolean) => {
     if (confirm) {
       const URL = "/api/image";
@@ -571,8 +564,8 @@ export const ConfirmModal = () => {
 
   const handleConfirmDelete = async (confirm: boolean) => {
     const { type, index } = openmodal.confirmmodal;
+    const param = new URLSearchParams(searchParam);
 
-    const itemlist = allData[type as keyof typeof allData] || [];
     const URL =
       type === "product"
         ? "/api/products/crud"
@@ -589,7 +582,6 @@ export const ConfirmModal = () => {
         setglobalindex((prev) => ({ ...prev, promotioneditindex: -1 }));
         setopenmodal((prev) => ({ ...prev, createPromotion: false }));
       } else {
-        const idx = itemlist.find((i: any) => i.id === index);
         const deleteRequest = await ApiRequest(
           URL,
           setisLoading,
@@ -607,6 +599,10 @@ export const ConfirmModal = () => {
           setglobalindex((prev) => ({ ...prev, useredit: -1 }));
           setopenmodal((prev) => ({ ...prev, createUser: false }));
         }
+
+        param.set("p", "1");
+        router.push(`?${param}`, { scroll: false });
+        openmodal.confirmmodal.onDelete && openmodal.confirmmodal.onDelete();
         router.refresh();
       }
     }

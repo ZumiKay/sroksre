@@ -7,7 +7,6 @@ import Footer from "./component/Footer";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { GlobalContextProvider } from "../context/GlobalContext";
-import { CartIndicator } from "./component/ServerComponents";
 import { getUser } from "../context/OrderContext";
 import { NextUIProvider } from "@nextui-org/react";
 import { Suspense } from "react";
@@ -46,7 +45,8 @@ export default async function RootLayout({
           {" "}
           <NextUIProvider>
             <div className="w-full h-full relative">
-              <Navbar session={session ?? undefined} />
+              <Navbar session={session as any} />
+
               <ToastContainer />
               <Suspense fallback={<ContainerLoading />}>{children}</Suspense>
               <Footer />

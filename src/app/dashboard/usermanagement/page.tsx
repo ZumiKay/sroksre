@@ -4,13 +4,8 @@ import PrimaryButton from "../../component/Button";
 import { UserCard } from "../../component/Card";
 
 import { ApiRequest, Delayloading } from "@/src/context/CustomHook";
-import {
-  ContainerLoading,
-  LoadingText,
-  errorToast,
-} from "../../component/Loading";
-import { ChangeEvent, useEffect, useState } from "react";
-import PaginationComponent from "../../component/Pagination";
+import { ContainerLoading, errorToast } from "../../component/Loading";
+import { useEffect, useState } from "react";
 import { FilterMenu } from "../../component/SideMenu";
 import { Createusermodal } from "../../component/Modals/User";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -63,7 +58,6 @@ export default function UsermanagementPage({
         total: user.total ?? 0,
         totalpage: user.totalpage ?? 0,
       });
-      console.log({ user });
 
       setalldata({ user: user.data });
     };
@@ -132,7 +126,7 @@ export default function UsermanagementPage({
         />
       </div>
 
-      {openmodal.createUser && <Createusermodal />}
+      {openmodal.createUser && <Createusermodal setpage={setpage} />}
       {openmodal.filteroption && (
         <FilterMenu
           type="usermanagement"

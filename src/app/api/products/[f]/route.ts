@@ -29,7 +29,7 @@ interface paramsType {
   cc?: number;
   sk?: string;
   p?: number;
-  pid?: number;
+  pid?: string;
   po?: number;
   dc?: string;
   ds?: string;
@@ -46,6 +46,8 @@ export async function GET(
   const { ty, limit, q, pc, sk, cc, p, pid, po, dc, ds, dt, vr, vs, sp } =
     queryStringToObject(params.f) as paramsType;
 
+  const productId = pid ? parseInt(pid, 10) : undefined;
+
   let response;
   if (ty === "all" || ty === "filter" || ty === "detail") {
     const allProduct = await GetAllProduct(
@@ -56,7 +58,7 @@ export async function GET(
       pc,
       sk,
       cc,
-      pid,
+      productId,
       po,
       dc,
       ds,
@@ -116,7 +118,7 @@ export async function GET(
     response = Response.json({ data: allvalarr }, { status: 200 });
   } else if (ty === "info") {
     const product = await Prisma.products.findUnique({
-      where: { id: pid },
+      where: { id: productId },
       select: {
         id: true,
         name: true,
@@ -212,7 +214,7 @@ export async function GET(
   } else if (ty === "stock") {
     const variant = await Prisma.variant.findMany({
       where: {
-        product_id: pid,
+        product_id: productId,
       },
       orderBy: {
         id: "asc",
@@ -226,7 +228,7 @@ export async function GET(
     });
     const stock = await Prisma.stock.findMany({
       where: {
-        product_id: pid,
+        product_id: productId,
       },
       select: {
         id: true,

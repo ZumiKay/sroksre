@@ -106,7 +106,7 @@ export async function GET(req: NextRequest) {
   try {
     const user = await getUser();
     if (!user) {
-      return Response.json({}, { status: 401 });
+      return Response.json({}, { status: 200 });
     }
 
     if (count) {

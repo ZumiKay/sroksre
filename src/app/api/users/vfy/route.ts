@@ -3,6 +3,7 @@ import {
   generateRandomNumber,
   generateRandomPassword,
 } from "@/src/lib/utilities";
+import { z } from "zod";
 
 import { NextRequest } from "next/server";
 
@@ -12,9 +13,17 @@ interface Vfydatatype {
   type: "register" | "forgot";
 }
 
+const verifyEmail = z.object({ email: z.string().email() });
+
 export async function POST(request: NextRequest) {
   try {
     const data: Vfydatatype = await request.json();
+
+    if (!data.email) {
+      return Response.json({}, { status: 400 });
+    }
+
+    verifyEmail.parse({ email: data.email });
 
     const otp = generateRandomNumber();
 
@@ -49,12 +58,12 @@ export async function POST(request: NextRequest) {
         ? await Prisma.user.create({
             data: {
               firstname: "",
-              email: data.email as string,
+              email: "",
               password: generateRandomPassword(),
               vfy: otp,
             },
           })
-        : await Prisma.user.update({
+        : await Prisma.user.updateMany({
             where: { email: data.email },
             data: {
               vfy: otp,
@@ -68,7 +77,13 @@ export async function POST(request: NextRequest) {
     } else {
       return Response.json({ message: "Email already exist" }, { status: 500 });
     }
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.issues) {
+      return Response.json(
+        { message: error.issues[0].message },
+        { status: 500 }
+      );
+    }
     console.log("Verify User", error);
     return Response.json({ message: "Error Occured" }, { status: 500 });
   }

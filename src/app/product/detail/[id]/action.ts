@@ -507,7 +507,7 @@ export const Checkwishlist = async (pid: number) => {
   const user = await getUser();
 
   if (!user) {
-    return;
+    return { isExist: false };
   }
 
   try {

@@ -57,7 +57,7 @@ export default async function PrivacyandPolicy({
       <div className="w-full content pl-[25%] pr-[10%] pt-5">
         {!params?.p ? (
           <>
-            <h2 className="text-3xl font-bold w-full">
+            <h2 className="text-5xl font-bold w-full">
               Policies and More Informations
             </h2>
           </>
@@ -73,7 +73,12 @@ export default async function PrivacyandPolicy({
                     color="#4688A0"
                     policydata={policy as Addpolicytype}
                   />
-                  <PolicyButton title="Delete" ty="delete" color="lightcoral" />
+                  <PolicyButton
+                    title="Delete"
+                    ty="delete"
+                    color="lightcoral"
+                    pid={pageId}
+                  />
                 </div>
               )}
             </div>
@@ -109,12 +114,15 @@ const PolicyContent = ({ paragrah, question, isAdmin }: Policycontent) => {
     <div className="w-full h-fit flex flex-col gap-y-5">
       {paragrah ? (
         paragrah.Paragraph.map((i) => (
-          <p
-            key={i.id}
-            className="w-full font-normal text-sm h-fit break-words"
-          >
-            {i.content}
-          </p>
+          <div className="w-full h-fit flex flex-col gap-5">
+            {i.title && <h3 className="text-xl font-bold">{i.title}</h3>}
+            <p
+              key={i.id}
+              className="w-full font-normal text-lg h-fit break-words"
+            >
+              {i.content}
+            </p>
+          </div>
         ))
       ) : (
         <>

@@ -42,11 +42,26 @@ import {
 } from "../severactions/notification_action";
 import { Box, CircularProgress } from "@mui/material";
 
-import { signOut } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import { checkloggedsession } from "../dashboard/action";
 import Homecontainermodal from "./HomePage/Modals";
 import { AnimatePresence } from "framer-motion";
 
+const InitialMethod = async (session?: Usersessiontype) => {
+  if (session) {
+    const checksession = async () => {
+      const checked = checkloggedsession.bind(null, session.session_id);
+      const makereq = await checked();
+      if (!makereq.success) {
+        infoToast("Session expired please login again");
+        setTimeout(() => {
+          signOut();
+        }, 2000);
+      }
+    };
+    await checksession();
+  }
+};
 export default function Navbar({ session }: { session?: Usersessiontype }) {
   const { cart, setcart, carttotal, setcarttotal } = useGlobalContext();
   const [categories, setcategories] = useState(false);
@@ -64,26 +79,12 @@ export default function Navbar({ session }: { session?: Usersessiontype }) {
   const notiref = useRef<any>(null);
   //checkout loggedin session
   useEffectOnce(() => {
-    InitialMethod();
+    getCartTotal();
   });
 
-  const InitialMethod = async () => {
-    if (session) {
-      const checksession = async () => {
-        const checked = checkloggedsession.bind(null, session.session_id);
-        const makereq = await checked();
-        if (!makereq.success) {
-          infoToast("Session expired please login again");
-
-          setTimeout(() => {
-            signOut();
-          }, 2000);
-        }
-      };
-      await checksession();
-    }
-    await getCartTotal();
-  };
+  useEffect(() => {
+    InitialMethod(session);
+  }, [session]);
 
   const getCartTotal = async () => {
     const request = await ApiRequest(
@@ -170,7 +171,7 @@ export default function Navbar({ session }: { session?: Usersessiontype }) {
               onMouseEnter={() => setcart(true)}
             />
             <span className="text-[13px] w-[20px] h-[20px] grid place-content-center absolute -bottom-6 top-0 -right-3 bg-gray-500 text-white rounded-[50%]">
-              {carttotal}
+              {carttotal ?? 0}
             </span>
           </div>
         )}

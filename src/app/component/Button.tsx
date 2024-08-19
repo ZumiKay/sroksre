@@ -91,7 +91,7 @@ export default function PrimaryButton(props: buttonpros) {
       {props.status === "loading" ? (
         <h3 className="loading-text font-bold w-full h-fit"> Loading...</h3>
       ) : (
-        <div className="w-full h-full flex flex-row items-center justify-center gap-x-2">
+        <div className="w-full h-full flex flex-row items-center justify-center gap-5 ">
           {" "}
           {props.Icon && props.Icon}
           <p>{props.text}</p>{" "}

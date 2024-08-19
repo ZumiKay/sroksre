@@ -3,7 +3,7 @@ import {
   Userinitialize,
   UserState,
 } from "@/src/context/GlobalContext";
-import { ChangeEvent, FormEvent, useEffect, useState } from "react";
+import React, { ChangeEvent, FormEvent, useEffect, useState } from "react";
 import { errorToast, LoadingText, successToast } from "../Loading";
 import { ApiRequest } from "@/src/context/CustomHook";
 import Modal from "../Modals";
@@ -29,8 +29,13 @@ import { signOut } from "next-auth/react";
 import { PasswordInput, TextInput } from "../FormComponent";
 import { CloseVector } from "../Asset";
 import { listofprovinces } from "@/src/lib/utilities";
+import { useRouter } from "next/navigation";
 
-export const Createusermodal = () => {
+export const Createusermodal = ({
+  setpage,
+}: {
+  setpage: React.Dispatch<React.SetStateAction<number>>;
+}) => {
   const { allData, setalldata, globalindex, setglobalindex, setopenmodal } =
     useGlobalContext();
   const [data, setdata] = useState<UserState>(Userinitialize);
@@ -38,6 +43,7 @@ export const Createusermodal = () => {
     passowrd: false,
   });
   const [loading, setloading] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     if (globalindex.useredit !== -1) {
@@ -65,15 +71,11 @@ export const Createusermodal = () => {
       errorToast(register.error ?? "Failed to register");
       return;
     }
-    let alluser = [...(allData.user ?? [])];
-    editindex === -1
-      ? alluser.push(data)
-      : (alluser[alluser.findIndex((i) => i.id === data.id)] = data);
-    setalldata({ user: alluser });
 
     successToast(`User ${editindex === -1 ? "Created" : "Updated"}`);
     editindex === -1 && setdata(Userinitialize);
     setglobalindex((prev) => ({ ...prev, useredit: -1 }));
+    router.refresh();
   };
   const handleCancel = () => {
     setopenmodal((prev) => ({ ...prev, createUser: false }));
@@ -91,26 +93,29 @@ export const Createusermodal = () => {
         closecon: "createUser",
         index: id,
         type: "user",
+        onDelete: () => setpage(1),
       },
     }));
   };
   return (
     <Modal closestate="createUser">
       <div className="relative w-full h-fit bg-white p-5 flex flex-col items-end gap-y-5 rounded-lg">
-        <h3 className="text-lg font-semibold">
-          {" "}
-          {globalindex.useredit !== -1 ? `#${data.id}` : "Register User"}{" "}
-        </h3>
+        <div className="w-full h-fit flex flex-row-reverse items-center justify-between">
+          <Image
+            src={CloseIcon}
+            alt="closeicon"
+            hidden={loading}
+            onClick={() => handleCancel()}
+            width={1000}
+            height={1000}
+            className="w-[30px] h-[30px] object-contain"
+          />
+          <h3 className="text-lg font-semibold">
+            {" "}
+            {globalindex.useredit !== -1 ? `#${data.id}` : "Register User"}{" "}
+          </h3>
+        </div>
 
-        <Image
-          src={CloseIcon}
-          alt="closeicon"
-          hidden={loading}
-          onClick={() => handleCancel()}
-          width={1000}
-          height={1000}
-          className="w-[30px] h-[30px] object-contain"
-        />
         <form
           onSubmit={handleSubmit}
           className="form_container w-full h-full flex flex-col items-center gap-y-5"
@@ -205,6 +210,10 @@ export const Createusermodal = () => {
                 color="lightcoral"
                 text="Delete"
                 type="button"
+                disable={
+                  allData.user &&
+                  allData.user[globalindex.useredit].role === "ADMIN"
+                }
                 onClick={() => handleDelete(data.id as number)}
                 width="100%"
                 height="50px"

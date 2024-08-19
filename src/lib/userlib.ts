@@ -5,7 +5,6 @@ import Prisma from "./prisma";
 import { userdata } from "../app/account/actions";
 
 import { checkpassword, getOneWeekFromToday } from "./utilities";
-import { handleEmail } from "../app/checkout/action";
 
 export enum Role {
   USER = "USER",
@@ -14,6 +13,7 @@ export enum Role {
 }
 export interface RegisterUser {
   id?: number;
+  oauthId?: string;
   firstname: string;
   email: string;
   password: string;
@@ -129,6 +129,16 @@ interface ReturnType {
 export const registerUser = async (data: RegisterUser): Promise<ReturnType> => {
   try {
     validateUserInput.parse(data);
+
+    const isExist = await Prisma.user.findFirst({
+      where: { email: data.email },
+      select: { email: true },
+    });
+
+    if (isExist) {
+      return { success: false, message: "User exist" };
+    }
+
     const isValid = checkpassword(data.password);
     if (isValid.isValid) {
       const password = hashedpassword(data.password);
@@ -164,26 +174,24 @@ export const registerUser = async (data: RegisterUser): Promise<ReturnType> => {
 
 export const handleCheckandRegisterUser = async ({
   data,
-  expireSession,
 }: {
   data: RegisterUser;
-  expireSession: Date;
-}): Promise<{ success: boolean; message?: string }> => {
+}): Promise<{ success: boolean; message?: string; data?: userdata }> => {
   try {
-    const existingUser = await Prisma.user.findUnique({
+    const existingUser = await Prisma.user.findFirst({
       where: { email: data.email },
     });
 
     if (existingUser) {
-      await Prisma.usersession.create({
+      return {
+        success: true,
         data: {
-          user_id: existingUser.id,
-          expireAt: expireSession,
+          id: existingUser.id,
+          role: "USER",
+          email: existingUser.email,
         },
-      });
-      return { success: true };
+      };
     }
-    let plainpassword = data.password;
 
     const hashedPassword = hashedpassword(data.password);
     data.password = hashedPassword;
@@ -191,26 +199,22 @@ export const handleCheckandRegisterUser = async ({
     const createdUser = await Prisma.user.create({
       data: {
         ...data,
-        sessions: {
-          create: {
-            expireAt: expireSession,
-          },
-        },
       },
     });
 
     if (!createdUser) {
       return { success: false, message: "Failed to create user" };
     }
-    await handleEmail({
-      warn: "Your email will be only use for this time unless you subscribe to our newletter",
-      to: createdUser.email,
-      subject: "Login Information",
-      title: "For Login As Credentials",
-      message: `Password: ${plainpassword} <br/>`,
-    });
 
-    return { success: true, message: "User created successfully" };
+    return {
+      success: true,
+      message: "User created successfully",
+      data: {
+        id: createdUser.id,
+        role: "USER",
+        email: createdUser.email,
+      },
+    };
   } catch (error) {
     console.error("Register User", error);
     return {
@@ -218,4 +222,26 @@ export const handleCheckandRegisterUser = async ({
       message: "An error occurred during user registration",
     };
   }
+};
+
+export const getOAuthInfo = async (oauthId: string, email: string) => {
+  const user = await Prisma.user.findFirst({
+    where: { OR: [{ email }, { oauthId }] },
+    select: {
+      id: true,
+      role: true,
+      email: true,
+    },
+  });
+
+  let session_id;
+
+  if (user) {
+    const session = await Prisma.usersession.create({
+      data: { user_id: user.id, expireAt: getOneWeekFromToday() },
+    });
+    session_id = session.session_id;
+  }
+
+  return { ...user, session_id };
 };

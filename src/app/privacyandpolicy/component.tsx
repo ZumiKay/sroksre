@@ -18,6 +18,7 @@ import {
 import { errorToast, successToast } from "../component/Loading";
 import { TabArrow } from "../component/Asset";
 import { PrimaryConfirmModal } from "../component/SideMenu";
+import { Button } from "@nextui-org/react";
 
 interface sidebarContentType {
   id: number;
@@ -38,10 +39,14 @@ export const PolicyButton = ({
   pid?: number;
 }) => {
   const [loading, setloading] = useState(false);
+  const router = useRouter();
   let openstate = "editpolicy";
   const { openmodal, setopenmodal } = useGlobalContext();
   const handleEdit = () => {
-    setopenmodal((prev) => ({ ...prev, [openstate]: true }));
+    if (ty === "edit") setopenmodal((prev) => ({ ...prev, [openstate]: true }));
+
+    if (ty === "delete")
+      setopenmodal((prev) => ({ ...prev, primaryconfirm: true }));
   };
 
   //Delete policy
@@ -55,6 +60,7 @@ export const PolicyButton = ({
 
     if (delreq.success) {
       successToast(delreq.message as string);
+      router.push("/privacyandpolicy");
     } else {
       errorToast(delreq.message as string);
     }
@@ -186,14 +192,18 @@ export const AddPolicyModal = ({ qa, plc, edit, openstate }: Policydata) => {
   };
 
   const handleParagraphChange = (
-    e: ChangeEvent<HTMLTextAreaElement>,
+    e: ChangeEvent<HTMLTextAreaElement> | string,
     idx: number
   ) => {
     const updateparagraph = [...state.Paragraph];
-    const { value } = e.target;
 
-    updateparagraph[idx].content = value;
+    if (typeof e !== "string") {
+      const { value } = e.target;
 
+      updateparagraph[idx].content = value;
+    } else {
+      updateparagraph[idx].title = e;
+    }
     setstate((prev) => ({ ...prev, Paragraph: updateparagraph }));
   };
   const handleDelete = async (
@@ -276,7 +286,7 @@ export const AddPolicyModal = ({ qa, plc, edit, openstate }: Policydata) => {
     <Modal closestate={openstate ?? "addpolicy"} customZIndex={150}>
       <form
         onSubmit={handleSubmit}
-        className="w-full h-screen bg-white rounded-lg flex flex-col items-center gap-y-5 p-5"
+        className="w-full h-[80vh] bg-white rounded-lg flex flex-col items-center gap-y-5 p-5"
       >
         <Selection
           data={["Policy", "Question"]}
@@ -297,36 +307,44 @@ export const AddPolicyModal = ({ qa, plc, edit, openstate }: Policydata) => {
               fullWidth
               required
             />
-            {state.Paragraph.map((par, idx) => (
-              <div className="w-full h-fit flex flex-col gap-5">
-                <TextField
-                  name={`sub${idx + 1}`}
-                  fullWidth
-                  type="text"
-                  label={`Sub Title #${idx + 1}`}
-                />
-                <Textarea
-                  key={idx}
-                  minRows={5}
-                  value={state.Paragraph[idx].content}
-                  onChange={(e) => handleParagraphChange(e, idx)}
-                  variant="outlined"
-                  placeholder="Paragraph"
-                  required
-                />
-                <i
-                  onClick={() => handleDelete(idx, par.id, "paragraph")}
-                  className={`fa-solid fa-trash relative transition duration-300 active:text-white left-[97%]`}
-                ></i>
-              </div>
-            ))}
+            <div className="w-full h-fit max-h-[90%] overflow-y-auto overflow-x-hidden pt-5">
+              {state.Paragraph.map((par, idx) => (
+                <div className="w-full h-fit  flex flex-col gap-5">
+                  <TextField
+                    name={`sub${idx + 1}`}
+                    fullWidth
+                    type="text"
+                    label={`Sub Title #${idx + 1}`}
+                    value={par.title}
+                    onChange={({ target }) =>
+                      handleParagraphChange(target.value as string, idx)
+                    }
+                  />
+                  <Textarea
+                    key={idx}
+                    minRows={5}
+                    value={state.Paragraph[idx].content}
+                    onChange={(e) => handleParagraphChange(e, idx)}
+                    variant="outlined"
+                    placeholder="Paragraph"
+                    required
+                  />
+                  <i
+                    onClick={() => handleDelete(idx, par.id, "paragraph")}
+                    className={`fa-solid fa-trash relative transition duration-300 active:text-white left-[97%]`}
+                  ></i>
+                </div>
+              ))}
+            </div>
 
-            <PrimaryButton
+            <Button
               onClick={AddMoreParagraph}
               type="button"
-              text="Add paragraph"
-              radius="10px"
-            />
+              variant="bordered"
+              color="primary"
+            >
+              Add New
+            </Button>
           </>
         ) : (
           <div className="question w-full h-fit flex flex-col gap-y-5">

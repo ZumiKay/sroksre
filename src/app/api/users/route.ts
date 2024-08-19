@@ -83,6 +83,7 @@ export async function DELETE(request: NextRequest) {
   try {
     const { id } = await request.json();
     await Prisma.usersession.deleteMany({ where: { user_id: id } });
+    await Prisma.wishlist.deleteMany({ where: { uid: id } });
 
     await Prisma.user.delete({ where: { id } });
 

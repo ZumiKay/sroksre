@@ -1,5 +1,5 @@
 "use client";
-import { ChangeEvent, FormEvent, useState } from "react";
+import { ChangeEvent, useState } from "react";
 
 import PrimaryButton from "../component/Button";
 import { Checkbox, FormControlLabel } from "@mui/material";
@@ -13,6 +13,13 @@ import ReactDOMServer from "react-dom/server";
 import { CredentialEmail } from "../component/EmailTemplate";
 import { SendVfyEmail } from "./actions";
 
+const validatePassword = (password: string) => {
+  return (
+    password.length >= 8 &&
+    /[!@#$%^&*(),.?":{}|<>]/.test(password) &&
+    /\d/.test(password)
+  );
+};
 export default function AuthenticatePage() {
   const { setisLoading, isLoading } = useGlobalContext();
   const [type, settype] = useState<"login" | "register" | "forget">("login");
@@ -28,115 +35,140 @@ export default function AuthenticatePage() {
     email: false,
     cid: false,
   });
+
   const router = useRouter();
-  const handleSumbit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (type === "login") {
-      if (!data.email || !data.password) {
-        errorToast("Fill in the required information ");
+  const handleLogin = async () => {
+    if (!data.email || !data.password) {
+      errorToast("Fill in the required information ");
+      return;
+    }
+    setloading("loading");
+
+    await signIn("credentials", {
+      email: data.email,
+      password: data.password,
+      redirect: false,
+    }).then((res) => {
+      setloading("authenticated");
+      if (res?.ok) {
+        successToast("Logged In");
+        router.replace("/dashboard");
+        router.refresh();
+      }
+      if (res?.error) {
+        if (res.status === 401) {
+          errorToast("Incorrect Informations");
+          return;
+        }
+      }
+    });
+  };
+
+  const handleRegisterUser = async () => {
+    if (
+      data.password &&
+      data.password === data.confirmpassword &&
+      data.agreement
+    ) {
+      if (!validatePassword(data.password)) {
+        errorToast("Invalid Password");
         return;
       }
+
       setloading("loading");
 
-      await signIn("credentials", {
-        email: data.email,
-        password: data.password,
-        redirect: false,
-      }).then((res) => {
-        setloading("authenticated");
-        if (res?.ok) {
-          successToast("Logged In");
-          router.replace("/dashboard");
-        }
-        if (res?.error) {
-          if (res.status === 401) {
-            errorToast("Incorrect Informations");
-            return;
-          }
-        }
-      });
-    } else {
-      if (data.password === data.confirmpassword && data.agreement) {
-        setloading("loading");
+      const request = await postRequest("/api/auth/register", data);
+      setloading("authenticated");
 
-        const request = await postRequest("/api/auth/register", data);
-        request && setloading("authenticated");
-
-        if (request.status === 500) {
-          const error = request.message;
-          if (error === "false") {
-            errorToast("Invalid Password");
-          } else {
-            errorToast(request.message);
-          }
-        } else if (request.message === "Registered") {
-          successToast("Account Registered");
-          settype("login");
+      if (request.status === 500) {
+        const error = request.message;
+        if (error === "false") {
+          errorToast("Invalid Password");
+        } else {
+          errorToast(request.message);
         }
-      } else if (!data.agreement) {
-        errorToast("Please Check Our Policy");
-      } else {
-        errorToast("Invalid Confirm Passwords");
+      } else if (request.message === "Registered") {
+        successToast("Account Registered");
+        settype("login");
       }
+    } else if (!data.agreement) {
+      errorToast("Please Check Our Policy");
+    } else {
+      errorToast("Invalid Confirm Passwords");
     }
   };
+
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { value, name, checked } = e.target;
     setdata({ ...data, [name]: name === "agreement" ? checked : value });
   };
   const handleConfirm = async (types: "email" | "cid") => {
-    const URL = `/api/users/vfy${types === "cid" ? `?cid=${data.cid}` : ""}`;
-    setloading("loading");
-    if (!data.email) {
+    const isEmailType = types === "email";
+    const URL = `/api/users/vfy${types === "cid" ? `/${data.cid}` : ""}`;
+
+    if (isEmailType && !data.email) {
       errorToast("Email Required");
-      return;
+      return setloading("authenticated");
     }
 
+    setloading("loading");
+    const requestBody = isEmailType ? { email: data.email, type } : undefined;
+    const method = isEmailType ? "POST" : "GET";
+
+    // Make API request
     const verifyreq = await ApiRequest(
       URL,
       undefined,
-      types === "email" ? "POST" : "GET",
+      method,
       "JSON",
-      types === "email"
-        ? type === "register"
-          ? { email: data.email, type }
-          : { email: data.email, type: type }
-        : undefined
+      requestBody
     );
+
+    if (types === "cid") setloading("authenticated");
+
     if (verifyreq.success) {
       const vfydata = verifyreq.data;
-      const template = ReactDOMServer.renderToString(
-        <CredentialEmail {...vfydata} />
-      );
 
-      console.log({ template });
-      const sendemail = SendVfyEmail.bind(
-        null,
-        template,
-        data.email,
-        `${type === "register" ? "Email Verification" : "Reset Password"}`
-      );
-      const makereq = await sendemail();
-      setloading("authenticated");
-      if (!makereq.success) {
-        errorToast("Error occured");
+      if (isEmailType && data.email) {
+        const emailSubject =
+          type === "register" ? "Email Verification" : "Reset Password";
+        const emailTemplate = ReactDOMServer.renderToString(
+          <CredentialEmail {...vfydata} />
+        );
+        const sendemail = SendVfyEmail.bind(
+          null,
+          emailTemplate,
+          data.email,
+          emailSubject
+        );
+
+        const makereq = await sendemail();
         setloading("authenticated");
-        return;
+
+        if (!makereq.success) {
+          errorToast("Error occurred");
+          return;
+        }
+
+        successToast("Please Check Your Email");
+        setdata((prev) => ({ ...prev, email: "" }));
       }
+
       if (type === "register") {
         setverify((prev) => ({ ...prev, [types]: true }));
-        if (verifyreq.data) {
-          setdata((prev) => ({ ...prev, id: verifyreq.data.id }));
-        }
+        if (vfydata?.id) setdata((prev) => ({ ...prev, id: vfydata.id }));
       }
-      successToast("Please Check You Email");
-      setdata((prev) => ({ ...prev, email: "" }));
     } else {
+      // Handle error scenario
       setloading("authenticated");
-      errorToast(verifyreq.error ?? "Error Occured");
-      type === "register" && setverify((prev) => ({ ...prev, [types]: false }));
+      errorToast(verifyreq.error ?? "Error Occurred");
+
+      if (type === "register") {
+        setverify((prev) => ({ ...prev, [types]: false }));
+      }
     }
   };
+
   const handleBack = async () => {
     if (verify.email) {
       const deletecid = await ApiRequest(
@@ -156,13 +188,8 @@ export default function AuthenticatePage() {
   };
 
   return (
-    <div className="authentication__container flex flex-row gap-x-4 justify-between w-full min-h-[90vh] mt-4">
-      <div className="banner__section w-full h-full"></div>
-
-      <form
-        onSubmit={handleSumbit}
-        className="from__container bg-[#495464] flex text-lg flex-col justify-center items-center gap-y-10 w-full h-[100vh]"
-      >
+    <div className="authentication__container  w-full min-h-[90vh] mt-4 flex items-center justify-center">
+      <div className=" bg-[#495464] shadow-large flex text-lg flex-col justify-center items-center gap-y-10 w-[70%] h-[70vh] p-5 rounded-lg">
         {type === "register" && (!verify.cid || !verify.email) && (
           <div className="w-[80%] flex flex-col gap-y-5">
             {!verify.email ? (
@@ -238,33 +265,37 @@ export default function AuthenticatePage() {
                   onChange={handleChange}
                   required
                 />
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={data.agreement}
-                      onChange={handleChange}
-                      className="checkbox w-fit"
-                      name="agreement"
-                    />
-                  }
-                  label=<h3
-                    className="text-white"
-                    style={{ color: data.agreement ? "white" : "pink" }}
-                  >
-                    {" "}
-                    Agree to policy and agreement{" "}
-                  </h3>
-                />{" "}
+                <div className="w-[80%] h-fit">
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={data.agreement}
+                        onChange={handleChange}
+                        className="checkbox w-fit"
+                        name="agreement"
+                        color="primary"
+                      />
+                    }
+                    label=<h3
+                      className="text-white text-lg font-bold"
+                      style={{ color: data.agreement ? "white" : "lightcoral" }}
+                    >
+                      {" "}
+                      Agree to policy and agreement{" "}
+                    </h3>
+                  />
+                </div>
               </>
             )}
-            <div className="form_actions flex flex-col gap-y-5 w-[80%] ">
+            <div className="form_actions flex flex-row gap-5 w-[80%] ">
               {verify.cid && verify.email ? (
                 <PrimaryButton
                   text="Create Account"
-                  type="submit"
+                  type="button"
                   color="#3D788E"
+                  onClick={() => handleRegisterUser()}
                   width="100%"
-                  height="70px"
+                  height="40px"
                   radius="10px"
                   status={loading}
                 />
@@ -274,7 +305,7 @@ export default function AuthenticatePage() {
                   text={!verify.email ? "Next" : "Confirm"}
                   color="#3D788E"
                   width="100%"
-                  height="70px"
+                  height="40px"
                   radius="10px"
                   status={loading}
                   onClick={() => handleConfirm(!verify.email ? "email" : "cid")}
@@ -285,7 +316,7 @@ export default function AuthenticatePage() {
                 text="Back"
                 color="#F08080"
                 width="100%"
-                height="70px"
+                height="40px"
                 radius="10px"
                 status={isLoading.DELETE ? "loading" : "authenticated"}
                 onClick={() => handleBack()}
@@ -313,41 +344,42 @@ export default function AuthenticatePage() {
                   onChange={handleChange}
                 />
 
-                <label
+                <div
                   onClick={() => {
                     settype("forget");
                   }}
-                  className="text-md font-normal text-sm relative -right-[28%] underline text-white hover:text-black"
+                  className="w-[80%] text-lg underline text-right text-white cursor-pointer hover:text-black active:text-black"
                 >
                   Forget Password?
-                </label>
+                </div>
                 <div className="form_actions flex flex-col gap-y-5 w-[80%] ">
                   <PrimaryButton
-                    type="submit"
+                    type="button"
+                    onClick={() => handleLogin()}
                     text="Login"
                     color="#438D86"
                     width="100%"
-                    height="70px"
+                    height="50px"
                     radius="10px"
                     status={loading}
                   />
 
-                  <PrimaryButton
-                    type="button"
-                    text="Register"
-                    color="#3D788E"
-                    width="100%"
-                    height="70px"
-                    radius="10px"
+                  <div
                     onClick={() => settype("register")}
-                  />
-                  <div className="signinWith__container w-full flex flex-row justify-between items-center gap-x-2">
+                    className="w-full text-right text-lg font-medium underline text-white cursor-pointer hover:text-black active:text-black"
+                  >
+                    Create Account ?
+                  </div>
+                  <label className="text-lg font-bold text-white">
+                    Sign with:{" "}
+                  </label>
+                  <div className="signinWith__container w-full flex flex-row items-center gap-x-2 flex-wrap">
                     <PrimaryButton
                       type="button"
-                      text="Signin with Discord"
-                      width="50%"
+                      text="Discord"
+                      width="250px"
                       color="black"
-                      height="70px"
+                      height="50px"
                       radius="10px"
                       Icon={
                         <i className="fa-brands fa-discord text-lg text-blue-900"></i>
@@ -356,11 +388,11 @@ export default function AuthenticatePage() {
                     />
                     <PrimaryButton
                       type="button"
-                      text="Signin with Gmail"
+                      text="Gmail"
                       hoverColor="black"
                       hoverTextColor="white"
-                      width="50%"
-                      height="70px"
+                      width="250px"
+                      height="50px"
                       color="white"
                       textcolor="black"
                       radius="10px"
@@ -380,7 +412,7 @@ export default function AuthenticatePage() {
                   text="Verify"
                   color="#3D788E"
                   width="80%"
-                  height="70px"
+                  height="50px"
                   radius="10px"
                   onClick={() => handleConfirm("email")}
                   status={loading}
@@ -390,7 +422,7 @@ export default function AuthenticatePage() {
                   text="Back"
                   color="lightcoral"
                   width="80%"
-                  height="70px"
+                  height="50px"
                   radius="10px"
                   disable={loading === "loading"}
                   onClick={() => settype("login")}
@@ -399,7 +431,42 @@ export default function AuthenticatePage() {
             )}
           </>
         )}
-      </form>
+      </div>
     </div>
   );
 }
+
+const PasswordRequirement = [
+  { label: "8 Characters", value: "char" },
+  { label: "Contain special character", value: "spec" },
+  { label: "Contain number", value: "num" },
+];
+
+export const PasswordVerification = ({ password }: { password: string }) => {
+  // Function to check if the password meets the requirements
+  const validatePassword = (password: string) => ({
+    char: password.length >= 8,
+    spec: /[!@#$%^&*(),.?":{}|<>]/.test(password),
+    num: /\d/.test(password),
+  });
+
+  const validationStatus: Record<string, any> = validatePassword(password);
+
+  return (
+    <div className="password_verification w-full h-fit flex flex-col gap-5">
+      {PasswordRequirement.map((requirement, idx) => {
+        const isValid = validationStatus[requirement.value];
+        return (
+          <span
+            key={idx}
+            className={`text-sm font-normal ${
+              !isValid ? "text-red-500" : "text-green-500"
+            }`}
+          >
+            {requirement.label}
+          </span>
+        );
+      })}
+    </div>
+  );
+};

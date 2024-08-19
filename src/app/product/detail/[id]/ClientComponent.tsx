@@ -129,6 +129,7 @@ export default function ProductDetail({ params, isAdmin }: productdetailprops) {
       setloading(false);
       if (!productrequest.success) {
         errorToast("Error Connection");
+
         return;
       }
 

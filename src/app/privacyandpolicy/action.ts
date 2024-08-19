@@ -13,6 +13,7 @@ export interface Addpolicytype {
   title: string;
   Paragraph: {
     id?: number;
+    title?: string;
     content: string;
   }[];
 }
@@ -47,7 +48,10 @@ export const AddPolicyOrQuestion = async (
           title: policy.title,
           Paragraph: {
             createMany: {
-              data: policy.Paragraph.map((p) => ({ content: p.content })),
+              data: policy.Paragraph.map((p) => ({
+                title: p.title,
+                content: p.content,
+              })),
             },
           },
         },
@@ -105,8 +109,9 @@ export const updateQuestionOrPolicy = async (
           policy.Paragraph.map((i) =>
             Prisma.paragraph.upsert({
               where: { id: i.id || 0 },
-              update: { content: i.content },
+              update: { title: i.title, content: i.content },
               create: {
+                title: i.title,
                 policyId: policy?.id as number,
                 content: i.content,
               },
@@ -184,8 +189,10 @@ export const getPolicyById = async (id: number) => {
       id: true,
       title: true,
       Paragraph: {
+        orderBy: { id: "asc" },
         select: {
           id: true,
+          title: true,
           content: true,
         },
       },
@@ -194,5 +201,3 @@ export const getPolicyById = async (id: number) => {
 
   return result;
 };
-
-export const getAllQuestion = async () => {};

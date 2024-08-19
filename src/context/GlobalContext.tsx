@@ -193,6 +193,7 @@ export interface UserState {
   confirmpassword?: string;
   newpassword?: string;
   phonenumber?: string;
+  role?: Role;
   firstname: string;
   email: string;
   createdAt?: Date;
@@ -274,6 +275,7 @@ type confirmmodaltype = {
   closecon: string;
   index?: number | string;
   type?: "product" | "banner" | "promotion" | "promotioncancel" | "user";
+  onDelete?: () => void;
 };
 
 type alerttype = {
