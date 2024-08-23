@@ -4,7 +4,6 @@ import Prisma from "@/src/lib/prisma";
 import {
   Allstatus,
   Ordertype,
-  Productorderdetailtype,
   Productordertype,
   getUser,
   totalpricetype,
@@ -25,11 +24,7 @@ import {
   encrypt,
   OrderReciptEmail,
 } from "@/src/lib/utilities";
-import {
-  getQtyBasedOnOptions,
-  ProductStockType,
-} from "../component/ServerComponents";
-import { infovaluetype, Stocktype } from "@/src/context/GlobalContext";
+import { ProductStockType } from "../component/ServerComponents";
 import nodemailer from "nodemailer";
 import { shippingtype } from "../component/Modals/User";
 

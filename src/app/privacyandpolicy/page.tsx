@@ -74,6 +74,13 @@ export default async function PrivacyandPolicy({
                     policydata={policy as Addpolicytype}
                   />
                   <PolicyButton
+                    title="Show"
+                    ty="showtype"
+                    color="black"
+                    showtype={(policy as Addpolicytype).showtype}
+                    pid={pageId}
+                  />
+                  <PolicyButton
                     title="Delete"
                     ty="delete"
                     color="lightcoral"

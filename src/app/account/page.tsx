@@ -1,17 +1,23 @@
 "use client";
 import { ChangeEvent, useState } from "react";
-
 import PrimaryButton from "../component/Button";
 import { Checkbox, FormControlLabel } from "@mui/material";
 import { signIn } from "next-auth/react";
 import { postRequest } from "@/src/lib/utilities";
 import { errorToast, successToast } from "../component/Loading";
 import { useRouter } from "next/navigation";
-import { useGlobalContext, userdata } from "@/src/context/GlobalContext";
+import {
+  useGlobalContext,
+  userdata,
+  Userinitialize,
+} from "@/src/context/GlobalContext";
 import { ApiRequest } from "@/src/context/CustomHook";
 import ReactDOMServer from "react-dom/server";
 import { CredentialEmail } from "../component/EmailTemplate";
 import { SendVfyEmail } from "./actions";
+import { PasswordInput } from "../component/FormComponent";
+import RecapchaContainer from "../component/RecaphaComponent";
+import { VerifyRecapcha } from "../severactions/RecapchaAction";
 
 const validatePassword = (password: string) => {
   return (
@@ -30,6 +36,7 @@ export default function AuthenticatePage() {
     email: "",
     password: "",
     agreement: false,
+    recapcha: null,
   });
   const [verify, setverify] = useState({
     email: false,
@@ -42,6 +49,7 @@ export default function AuthenticatePage() {
       errorToast("Fill in the required information ");
       return;
     }
+
     setloading("loading");
 
     await signIn("credentials", {
@@ -66,6 +74,16 @@ export default function AuthenticatePage() {
 
   const handleRegisterUser = async () => {
     if (
+      !data.password ||
+      !data.firstname ||
+      !data.confirmpassword ||
+      !data.recapcha
+    ) {
+      errorToast("Fill in all required");
+      return;
+    }
+
+    if (
       data.password &&
       data.password === data.confirmpassword &&
       data.agreement
@@ -76,6 +94,16 @@ export default function AuthenticatePage() {
       }
 
       setloading("loading");
+
+      //verify bot
+      const verify = VerifyRecapcha.bind(null, data.recapcha);
+      const req = await verify();
+
+      if (!req.success) {
+        setloading("authenticated");
+        errorToast("Invalid Recapcha");
+        return;
+      }
 
       const request = await postRequest("/api/auth/register", data);
       setloading("authenticated");
@@ -89,6 +117,8 @@ export default function AuthenticatePage() {
         }
       } else if (request.message === "Registered") {
         successToast("Account Registered");
+        setdata(Userinitialize);
+        setverify({ email: false, cid: false });
         settype("login");
       }
     } else if (!data.agreement) {
@@ -151,7 +181,7 @@ export default function AuthenticatePage() {
         }
 
         successToast("Please Check Your Email");
-        setdata((prev) => ({ ...prev, email: "" }));
+        setdata((prev) => ({ ...prev, password: "", confirmpassword: "" }));
       }
 
       if (type === "register") {
@@ -176,7 +206,7 @@ export default function AuthenticatePage() {
         setisLoading,
         "DELETE",
         "JSON",
-        { type: "email", email: data.email }
+        { type: "email", cid: data.cid }
       );
       if (!deletecid.success) {
         errorToast("Error Occured");
@@ -189,7 +219,7 @@ export default function AuthenticatePage() {
 
   return (
     <div className="authentication__container  w-full min-h-[90vh] mt-4 flex items-center justify-center">
-      <div className=" bg-[#495464] shadow-large flex text-lg flex-col justify-center items-center gap-y-10 w-[70%] h-[70vh] p-5 rounded-lg">
+      <div className=" bg-[#495464] shadow-large flex text-lg flex-col justify-center items-center gap-y-10 w-[70%] min-h-[70vh] h-fit p-5 rounded-lg">
         {type === "register" && (!verify.cid || !verify.email) && (
           <div className="w-[80%] flex flex-col gap-y-5">
             {!verify.email ? (
@@ -237,33 +267,34 @@ export default function AuthenticatePage() {
                   required
                 />
                 <div className="w-full flex flex-col gap-y-2 items-center justify-center ">
-                  {type === "register" &&
-                    data.password &&
-                    data.password?.length < 8 && (
-                      <span className="text-sm font-bold text-red-300">
-                        {" "}
-                        Password Need to contains at least one Uppercase,
-                        Special Character and has 8 in length{" "}
-                      </span>
-                    )}
-                  <input
-                    type="password"
+                  <PasswordInput
                     name="password"
-                    value={data.password}
-                    className="password w-[80%] p-3 rounded-md"
-                    placeholder="Password"
+                    label="Password"
+                    type="auth"
+                    width="80%"
+                    variant="filled"
                     onChange={handleChange}
-                    required
+                    require
                   />
                 </div>
-                <input
-                  type="password"
-                  value={data.confirmpassword}
+                <PasswordInput
                   name="confirmpassword"
-                  className="confirm_password w-[80%] p-3 rounded-md"
-                  placeholder="Confirm Password"
+                  label="Confirm Password"
+                  width="80%"
+                  type="auth"
+                  variant="filled"
                   onChange={handleChange}
-                  required
+                  require
+                />
+                <div className="w-[80%] h-fit">
+                  <PasswordVerification password={data.password ?? ""} />
+                </div>
+
+                <RecapchaContainer
+                  captchaValue={data.recapcha}
+                  setcaptchaValue={(value) =>
+                    setdata((prev) => ({ ...prev, recapcha: value }))
+                  }
                 />
                 <div className="w-[80%] h-fit">
                   <FormControlLabel
@@ -276,13 +307,17 @@ export default function AuthenticatePage() {
                         color="primary"
                       />
                     }
-                    label=<h3
-                      className="text-white text-lg font-bold"
-                      style={{ color: data.agreement ? "white" : "lightcoral" }}
-                    >
-                      {" "}
-                      Agree to policy and agreement{" "}
-                    </h3>
+                    label={
+                      <h3
+                        className="text-white text-lg font-bold"
+                        style={{
+                          color: data.agreement ? "white" : "lightcoral",
+                        }}
+                      >
+                        {" "}
+                        Agree to policy and agreement{" "}
+                      </h3>
+                    }
                   />
                 </div>
               </>
@@ -336,12 +371,12 @@ export default function AuthenticatePage() {
             />
             {type === "login" && (
               <>
-                <input
-                  type="password"
+                <PasswordInput
+                  label="Password"
+                  type="auth"
                   name="password"
-                  placeholder="Password"
-                  className="email w-[80%] p-3 rounded-md"
                   onChange={handleChange}
+                  width="80%"
                 />
 
                 <div
@@ -365,7 +400,10 @@ export default function AuthenticatePage() {
                   />
 
                   <div
-                    onClick={() => settype("register")}
+                    onClick={() => {
+                      setdata(Userinitialize);
+                      settype("register");
+                    }}
                     className="w-full text-right text-lg font-medium underline text-white cursor-pointer hover:text-black active:text-black"
                   >
                     Create Account ?
@@ -453,20 +491,21 @@ export const PasswordVerification = ({ password }: { password: string }) => {
   const validationStatus: Record<string, any> = validatePassword(password);
 
   return (
-    <div className="password_verification w-full h-fit flex flex-col gap-5">
+    <ul className="password_verification w-full h-fit flex flex-col gap-5 bg-white p-3 rounded-lg">
+      <li className="text-lg font-bold">Your password must contains: </li>
       {PasswordRequirement.map((requirement, idx) => {
         const isValid = validationStatus[requirement.value];
         return (
-          <span
+          <li
             key={idx}
-            className={`text-sm font-normal ${
-              !isValid ? "text-red-500" : "text-green-500"
+            className={`text-sm font-bold ${
+              !isValid ? "text-red-400" : "text-green-500"
             }`}
           >
-            {requirement.label}
-          </span>
+            - {requirement.label}
+          </li>
         );
       })}
-    </div>
+    </ul>
   );
 };

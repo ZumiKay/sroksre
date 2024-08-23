@@ -3,8 +3,11 @@ import Prisma from "../../../../lib/prisma";
 
 import { NextRequest } from "next/server";
 
-import { calculateDiscountProductPrice } from "@/src/lib/utilities";
-import { Stocktype, VariantColorValueType } from "@/src/context/GlobalContext";
+import {
+  calculateDiscountProductPrice,
+  removeSpaceAndToLowerCase,
+} from "@/src/lib/utilities";
+import { VariantColorValueType } from "@/src/context/GlobalContext";
 
 function queryStringToObject(queryString: string) {
   const pairs = queryString.split("_");
@@ -252,6 +255,38 @@ export async function GET(
       { data: { varaintstock: Stock, variants: variant } },
       { status: 200 }
     );
+  } else if (ty === "search") {
+    if (!q) {
+      return Response.json({ data: [] }, { status: 200 });
+    }
+
+    const searchproduct = await Prisma.products.findMany({
+      where: {
+        name: {
+          contains: removeSpaceAndToLowerCase(q),
+          mode: "insensitive",
+        },
+      },
+      select: {
+        id: true,
+        name: true,
+        covers: { select: { name: true, url: true } },
+        parentcategory_id: true,
+        childcategory_id: true,
+        price: true,
+        discount: true,
+      },
+    });
+    let result = searchproduct.map((i) => ({
+      ...i,
+      price: calculateDiscountProductPrice({
+        price: i.price,
+        discount: i.discount ?? undefined,
+      }),
+      covers: i.covers[0],
+    }));
+
+    response = Response.json({ data: result }, { status: 200 });
   } else {
     response = new Response(null, { status: 404 });
   }

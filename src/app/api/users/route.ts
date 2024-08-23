@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
               },
             ],
           }
-      : {};
+      : { email: { not: "" } };
 
     const total = await Prisma.user.count({ where: searchCondition });
 
@@ -81,11 +81,13 @@ export async function GET(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const { id } = await request.json();
-    await Prisma.usersession.deleteMany({ where: { user_id: id } });
-    await Prisma.wishlist.deleteMany({ where: { uid: id } });
+    const { id, type } = await request.json();
 
-    await Prisma.user.delete({ where: { id } });
+    await Prisma.wishlist.deleteMany({ where: { uid: id } });
+    await Prisma.orderproduct.deleteMany({ where: { user_id: id } });
+    await Prisma.orders.deleteMany({ where: { buyer_id: id } });
+    await Prisma.usersession.deleteMany({ where: { user_id: id } });
+    await Prisma.user.delete({ where: { id: id } });
 
     return Response.json({ message: "User Deleted" }, { status: 200 });
   } catch (error) {

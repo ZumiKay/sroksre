@@ -25,7 +25,20 @@ export async function POST(request: NextRequest) {
 
     verifyEmail.parse({ email: data.email });
 
-    const otp = generateRandomNumber();
+    let isUniqueOtp = false;
+    let otp = generateRandomNumber();
+
+    while (!isUniqueOtp) {
+      const isNotUniqiueOtp = await Prisma.user.findFirst({
+        where: { vfy: otp },
+      });
+
+      if (isNotUniqiueOtp) {
+        otp = generateRandomNumber();
+      } else {
+        isUniqueOtp = true;
+      }
+    }
 
     const isUser =
       data.type === "register"
@@ -50,7 +63,7 @@ export async function POST(request: NextRequest) {
           data.type === "register"
             ? "Please use this code for verify email"
             : "Please use this link for reset password",
-        warn: "Your email will be use for this purpose only except if you subscribe to our newletter",
+        warn: "Your emaikl will be use for this purpose only except if you subscribe to our newletter",
       };
 
       //initial user
@@ -92,15 +105,16 @@ export async function POST(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const data = await request.json();
+
     if (data.type === "email") {
       const allowdelete = await Prisma.user.findFirst({
         where: {
-          email: data.email,
+          vfy: data.cid,
         },
       });
       if (allowdelete?.vfy) {
         await Prisma.user.deleteMany({
-          where: { email: { equals: data.email as string } },
+          where: { vfy: { equals: data.cid as string } },
         });
         return Response.json({ status: 200 });
       } else {

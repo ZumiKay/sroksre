@@ -548,8 +548,16 @@ export const EditProfile = ({
         )}
         {type === "password" && (
           <>
-            <PasswordInput name="oldpassword" label="Old Password" />{" "}
-            <PasswordInput name="newpassword" label="New Password" />{" "}
+            <PasswordInput
+              type="userinfo"
+              name="oldpassword"
+              label="Old Password"
+            />{" "}
+            <PasswordInput
+              type="userinfo"
+              name="newpassword"
+              label="New Password"
+            />{" "}
           </>
         )}
         {type === "shipping" && (

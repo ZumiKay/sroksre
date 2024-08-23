@@ -5,7 +5,6 @@ export async function GET(
   { params }: { params: { cid: string } }
 ) {
   try {
-    console.log({ params });
     if (params.cid) {
       const user = await Prisma.user.findFirst({
         where: { vfy: params.cid },

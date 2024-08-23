@@ -4,7 +4,6 @@ import { Stepindicatortype } from "@/src/context/Checkoutcontext";
 import { AnimationControls, motion, useAnimation } from "framer-motion";
 import { ChangeEvent, FormEvent, ReactNode, useEffect, useState } from "react";
 import ReactDOMServer from "react-dom/server";
-
 import {
   useGlobalContext,
   VariantColorValueType,
@@ -27,9 +26,6 @@ import {
 import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 import { errorToast, LoadingText, successToast } from "./Loading";
 import { Checkbox, FormControlLabel } from "@mui/material";
-import { LogoVector } from "./Asset";
-import { twj } from "tw-to-css";
-import { calculatePrice } from "../checkout/page";
 import { OrderReceiptTemplate } from "./EmailTemplate";
 import Image from "next/image";
 // import { SendNotification } from "@/src/socket";

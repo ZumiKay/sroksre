@@ -5,7 +5,6 @@ import PrimaryButton, {
   SelectContainer,
   Selection,
 } from "../../../component/Button";
-
 import ToggleMenu from "../../../component/ToggleMenu";
 import {
   ProductState,
@@ -33,10 +32,10 @@ import {
   Checkwishlist,
   getRelatedProduct,
 } from "./action";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Card from "@/src/app/component/Card";
 import { ShowPrice } from "./Component";
+import { Addpolicytype } from "@/src/app/privacyandpolicy/action";
 
 interface productdetailprops {
   params: { id: string };
@@ -96,6 +95,7 @@ export default function ProductDetail({ params, isAdmin }: productdetailprops) {
   const [errormess, setmess] = useState(errormessInitialize);
   const [selectloading, setselectloading] = useState(false);
   const [isInWishlist, setisInWishlist] = useState(false);
+  const [policy, setpolicy] = useState<Array<Addpolicytype>>([]);
 
   const InitializeProductOrder = (data: ProductState) => {
     let type = data.stocktype;
@@ -125,11 +125,15 @@ export default function ProductDetail({ params, isAdmin }: productdetailprops) {
         undefined,
         "GET"
       );
+      const policyrequest = await ApiRequest(
+        "/api/policy?type=productdetail",
+        undefined,
+        "GET"
+      );
 
       setloading(false);
       if (!productrequest.success) {
         errorToast("Error Connection");
-
         return;
       }
 
@@ -148,6 +152,7 @@ export default function ProductDetail({ params, isAdmin }: productdetailprops) {
       InitializeProductOrder(data);
 
       setprob(data);
+      setpolicy(policyrequest.data);
       setmess((prev) => ({
         ...prev,
         option:
@@ -173,8 +178,6 @@ export default function ProductDetail({ params, isAdmin }: productdetailprops) {
         parseInt(params.id)
       );
       const req = await checkcart();
-
-      console.log({ req });
 
       if (!req.success) {
         errorToast("Error Occured");
@@ -561,7 +564,14 @@ export default function ProductDetail({ params, isAdmin }: productdetailprops) {
               data={prob.details.filter((i) => i.info_type !== "SIZE")}
             />
 
-            <ToggleMenu name="Shipping & Return" isAdmin={false} />
+            {policy.map((pol) => (
+              <ToggleMenu
+                key={pol.id}
+                name={pol.title}
+                isAdmin={false}
+                paragraph={pol.Paragraph}
+              />
+            ))}
           </div>
         </div>
       </div>

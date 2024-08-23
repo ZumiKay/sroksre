@@ -29,6 +29,7 @@ export interface userdata {
   role?: Role;
   agreement?: boolean;
   cid?: string;
+  recapcha: string | null;
 }
 export interface infovaluetype {
   qty: number;
@@ -203,6 +204,7 @@ export interface Userdatastate {
   firstname?: string;
   lastname?: string;
   email?: string;
+  role?: Role;
   oldpassword?: string;
   newpassword?: string;
 }
@@ -274,8 +276,16 @@ type confirmmodaltype = {
   confirm: boolean;
   closecon: string;
   index?: number | string;
-  type?: "product" | "banner" | "promotion" | "promotioncancel" | "user";
+  Warn?: string;
+  type?:
+    | "product"
+    | "banner"
+    | "promotion"
+    | "promotioncancel"
+    | "user"
+    | "userinfo";
   onDelete?: () => void;
+  onAsyncDelete?: () => Promise<void>;
 };
 
 type alerttype = {
@@ -490,12 +500,13 @@ const LoadingStateInitialized: LoadingState = {
   IMAGE: {},
 };
 
-export const Userinitialize: UserState = {
+export const Userinitialize: userdata = {
   firstname: "",
   lastname: "",
   email: "",
   password: "",
   confirmpassword: "",
+  recapcha: null,
 };
 
 export const ProductStockType = {
@@ -539,8 +550,8 @@ interface ContextType {
   setallfilterval: React.Dispatch<
     React.SetStateAction<Array<AllFilterValueState>>
   >;
-  user: UserState;
-  setuser: React.Dispatch<React.SetStateAction<UserState>>;
+  user: userdata;
+  setuser: React.Dispatch<React.SetStateAction<userdata>>;
   listproductfilter: Listproductfilter;
   setlistprodfil: React.Dispatch<React.SetStateAction<Listproductfilter>>;
   listproductfilval: Listproductfilter;

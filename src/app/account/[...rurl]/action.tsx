@@ -15,7 +15,7 @@ export const verifyUser = async (
   try {
     const dt = {
       password: data.get("password"),
-      cfpassword: data.get("cfpassword"),
+      cfpassword: data.get("confirmpassword"),
       cid: data.get("cid"),
     };
 

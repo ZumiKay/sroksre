@@ -573,7 +573,9 @@ export const ConfirmModal = () => {
         ? "/api/banner"
         : type === "promotion"
         ? "/api/promotion"
-        : "/api/users";
+        : type === "user"
+        ? "/api/users"
+        : "/api/users/info";
 
     if (confirm) {
       if (type === "promotioncancel") {
@@ -587,7 +589,7 @@ export const ConfirmModal = () => {
           setisLoading,
           "DELETE",
           "JSON",
-          { id: index }
+          type !== "userinfo" ? { id: index } : {}
         );
 
         if (!deleteRequest.success) {
@@ -600,9 +602,14 @@ export const ConfirmModal = () => {
           setopenmodal((prev) => ({ ...prev, createUser: false }));
         }
 
-        param.set("p", "1");
-        router.push(`?${param}`, { scroll: false });
+        if (type === "user") {
+          param.set("p", "1");
+          router.push(`?${param}`, { scroll: false });
+        }
+        openmodal.confirmmodal.onAsyncDelete &&
+          (await openmodal.confirmmodal.onAsyncDelete());
         openmodal.confirmmodal.onDelete && openmodal.confirmmodal.onDelete();
+
         router.refresh();
       }
     }
@@ -625,9 +632,9 @@ export const ConfirmModal = () => {
   return (
     <Modal closestate={"confirmmodal"} customZIndex={200}>
       <div className="confirm_container flex flex-col justify-center items-center gap-y-5 bg-white w-[250px] h-[280px] rounded-md">
-        <h3 className="question text-lg font-bold text-black">
+        <h3 className="question w-full text-center text-lg font-bold text-black">
           {" "}
-          Are You Sure ?
+          {openmodal.confirmmodal.Warn ?? "Are you sure ?"}
         </h3>
         <div className="btn_container w-4/5 h-fit flex flex-col justify-center items-center gap-y-3">
           <PrimaryButton

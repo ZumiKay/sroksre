@@ -11,6 +11,7 @@ import { CSSProperties, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Orderpricetype } from "@/src/context/OrderContext";
+import Link from "next/link";
 
 export const BannerSkeleton = () => {
   return (
@@ -299,6 +300,7 @@ export const Banner: React.FC<BannerProps> = (props) => {
 };
 
 interface ProductCardProps {
+  id: number;
   img: {
     name: string;
     url: string;
@@ -306,17 +308,21 @@ interface ProductCardProps {
   name: string;
   price: Orderpricetype;
 }
-const ProductCard = (props: ProductCardProps) => {
+export const ProductCard = (props: ProductCardProps) => {
   return (
     <div className="card w-[350px] h-fit flex flex-col">
-      <Image
-        src={props.img.url}
-        alt={props.img.name}
-        width={"600"}
-        height={"600"}
-        loading="lazy"
-        className="w-full h-[500px] object-cover cursor-pointer"
-      />
+      <div
+        onClick={() => (window.location.href = `/product/detail/${props.id}`)}
+      >
+        <Image
+          src={props.img.url}
+          alt={props.img.name}
+          width={"600"}
+          height={"600"}
+          loading="lazy"
+          className="w-full h-[500px] object-cover cursor-pointer"
+        />
+      </div>
 
       <div className="detail w-full h-fit flex flex-col gap-y-5">
         <h3 className="text-lg font-bold w-full h-fit text-left">
@@ -345,6 +351,7 @@ const ProductCard = (props: ProductCardProps) => {
 interface ScrollableContainerProps {
   title: string;
   items: {
+    id: number;
     img: {
       url: string;
       name: string;
@@ -398,6 +405,7 @@ export const ScrollableContainer = (props: ScrollableContainerProps) => {
           {props.items.map((data, idx) => (
             <ProductCard
               key={idx}
+              id={data.id}
               img={data.img}
               name={data.name}
               price={data.price}

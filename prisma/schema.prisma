@@ -328,6 +328,7 @@ model Policy {
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
   Paragraph Paragraph[]
+  showtype  String?
 }
 
 model Paragraph {

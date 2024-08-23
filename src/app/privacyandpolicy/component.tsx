@@ -6,19 +6,19 @@ import Modal from "../component/Modals";
 import { TextField } from "@mui/material";
 import Textarea from "@mui/joy/Textarea";
 import { useGlobalContext } from "@/src/context/GlobalContext";
-import { ChangeEvent, FormEvent, use, useEffect, useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useState } from "react";
 import {
   AddPolicyOrQuestion,
   Addpolicytype,
   Addquestiontype,
   DeleteQP,
-  getPolicy,
-  updateQuestionOrPolicy,
 } from "./action";
 import { errorToast, successToast } from "../component/Loading";
 import { TabArrow } from "../component/Asset";
 import { PrimaryConfirmModal } from "../component/SideMenu";
 import { Button } from "@nextui-org/react";
+import { ApiRequest } from "@/src/context/CustomHook";
+import { Showtypemodal } from "./secondcomponent";
 
 interface sidebarContentType {
   id: number;
@@ -31,12 +31,14 @@ export const PolicyButton = ({
   policydata,
   ty,
   pid,
+  showtype,
 }: {
   title: string;
-  ty: "edit" | "delete";
+  ty: "edit" | "delete" | "showtype";
   color: string;
   policydata?: Addpolicytype;
   pid?: number;
+  showtype?: string[];
 }) => {
   const [loading, setloading] = useState(false);
   const router = useRouter();
@@ -47,6 +49,9 @@ export const PolicyButton = ({
 
     if (ty === "delete")
       setopenmodal((prev) => ({ ...prev, primaryconfirm: true }));
+
+    if (ty === "showtype")
+      setopenmodal((prev) => ({ ...prev, showtype: true }));
   };
 
   //Delete policy
@@ -86,6 +91,9 @@ export const PolicyButton = ({
           }}
           loading={loading}
         />
+      )}
+      {openmodal.showtype && ty === "showtype" && pid && (
+        <Showtypemodal id={pid ?? 0} value={new Set(showtype ?? [""])} />
       )}
     </>
   );
@@ -162,6 +170,7 @@ const deleteRequest = async (qid?: number, pid?: number, ppid?: number) => {
 };
 
 export const AddPolicyModal = ({ qa, plc, edit, openstate }: Policydata) => {
+  const router = useRouter();
   const { setopenmodal } = useGlobalContext();
   const [loading, setloading] = useState({ post: false, delete: false });
   const [state, setstate] = useState<Addpolicytype>({
@@ -258,19 +267,18 @@ export const AddPolicyModal = ({ qa, plc, edit, openstate }: Policydata) => {
     setloading((prev) => ({ ...prev, post: true }));
     e.preventDefault();
 
-    const makereq = edit
-      ? updateQuestionOrPolicy.bind(
-          null,
-          type.toLowerCase() as any,
-          question && question[0],
-          state
-        )
-      : AddPolicyOrQuestion.bind(null, {
-          question: question,
+    const makereq = AddPolicyOrQuestion.bind(null, {
+      question: question,
+      policy: state,
+    });
+
+    const createReq = edit
+      ? await makereq()
+      : await ApiRequest("/api/policy", undefined, "PUT", "JSON", {
+          type: type.toLowerCase(),
+          question: question && question[0],
           policy: state,
         });
-
-    const createReq = await makereq();
     if (createReq.success) {
       successToast(createReq.message as string);
     } else {
@@ -281,6 +289,7 @@ export const AddPolicyModal = ({ qa, plc, edit, openstate }: Policydata) => {
     setstate({ title: "", Paragraph: [{ content: "" }] });
     setquestion([{ question: "", answer: "" }]);
     openstate && setopenmodal((prev) => ({ ...prev, [openstate]: false }));
+    router.refresh();
   };
   return (
     <Modal closestate={openstate ?? "addpolicy"} customZIndex={150}>
@@ -309,7 +318,7 @@ export const AddPolicyModal = ({ qa, plc, edit, openstate }: Policydata) => {
             />
             <div className="w-full h-fit max-h-[90%] overflow-y-auto overflow-x-hidden pt-5">
               {state.Paragraph.map((par, idx) => (
-                <div className="w-full h-fit  flex flex-col gap-5">
+                <div key={idx} className="w-full h-fit  flex flex-col gap-5">
                   <TextField
                     name={`sub${idx + 1}`}
                     fullWidth
@@ -331,7 +340,7 @@ export const AddPolicyModal = ({ qa, plc, edit, openstate }: Policydata) => {
                   />
                   <i
                     onClick={() => handleDelete(idx, par.id, "paragraph")}
-                    className={`fa-solid fa-trash relative transition duration-300 active:text-white left-[97%]`}
+                    className={`fa-solid fa-trash relative transition duration-300 active:text-white left-[97%] bottom-2`}
                   ></i>
                 </div>
               ))}
@@ -348,8 +357,8 @@ export const AddPolicyModal = ({ qa, plc, edit, openstate }: Policydata) => {
           </>
         ) : (
           <div className="question w-full h-fit flex flex-col gap-y-5">
-            {question?.map((i, idx) => (
-              <>
+            {question?.map((_, idx) => (
+              <div key={idx} className="w-full h-fit flex flex-col gap-y-5">
                 <label className="text-lg font-bold">
                   {" "}
                   {`Question ${idx + 1}`}{" "}
@@ -376,7 +385,7 @@ export const AddPolicyModal = ({ qa, plc, edit, openstate }: Policydata) => {
                   onClick={() => handleDelete(idx)}
                   className={`fa-solid fa-trash relative transition duration-300 active:text-white left-[97%]`}
                 ></i>
-              </>
+              </div>
             ))}
             {!edit && (
               <PrimaryButton

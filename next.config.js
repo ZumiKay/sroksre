@@ -25,6 +25,7 @@ const nextConfig = {
     PAYPAL_ID:
       "Acg0Px9dS0RhfeZYuZ2cDMTziacWUMn5f0R_7QWdBqx5YJtXj-gXHMGR7kPKqpBDgRdz5sUYbZWCrA9Q",
     BASE_URL: "http://localhost:3000",
+    CAPTCHA_KEY: "6Lcs1SoqAAAAAB-bcbCWItTYkRTkxqUx-O742Bnj",
   },
   webpack: (config, options) => {
     if (!options.dev) {

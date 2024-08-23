@@ -12,7 +12,6 @@ import {
   CSSProperties,
   forwardRef,
   MutableRefObject,
-  ReactNode,
   useEffect,
   useRef,
   useState,
@@ -42,10 +41,11 @@ import {
 } from "../severactions/notification_action";
 import { Box, CircularProgress } from "@mui/material";
 
-import { signOut, useSession } from "next-auth/react";
+import { signOut } from "next-auth/react";
 import { checkloggedsession } from "../dashboard/action";
 import Homecontainermodal from "./HomePage/Modals";
 import { AnimatePresence } from "framer-motion";
+import SearchContainer from "./Modals/Search";
 
 const InitialMethod = async (session?: Usersessiontype) => {
   if (session) {
@@ -63,7 +63,8 @@ const InitialMethod = async (session?: Usersessiontype) => {
   }
 };
 export default function Navbar({ session }: { session?: Usersessiontype }) {
-  const { cart, setcart, carttotal, setcarttotal } = useGlobalContext();
+  const { cart, setcart, carttotal, setcarttotal, setopenmodal, openmodal } =
+    useGlobalContext();
   const [categories, setcategories] = useState(false);
 
   const [profile, setprofile] = useState(false);
@@ -72,7 +73,6 @@ export default function Navbar({ session }: { session?: Usersessiontype }) {
   const [notification, setnotificationdata] = useState<
     Array<NotificationType> | undefined
   >(undefined);
-  const { openmodal } = useGlobalContext();
 
   const router = useRouter();
   const navref = useRef<any>(null);
@@ -160,6 +160,7 @@ export default function Navbar({ session }: { session?: Usersessiontype }) {
           src={Search}
           alt="search"
           className="search w-[50px] h-[50px] max-large_tablet:hidden object-contain transition hover:-translate-y-2"
+          onClick={() => setopenmodal((prev) => ({ ...prev, searchcon: true }))}
         />
 
         {session?.role !== Role.ADMIN && (
@@ -215,6 +216,10 @@ export default function Navbar({ session }: { session?: Usersessiontype }) {
       {openmodal?.homecontainer && (
         <Homecontainermodal setprofile={setprofile} />
       )}
+
+      <AnimatePresence>
+        {openmodal?.searchcon && <SearchContainer />}
+      </AnimatePresence>
 
       {cart && (
         <CartMenu

@@ -1,9 +1,11 @@
+
+
 {
   "name": "sroksre_ecomerce2",
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "node server.js",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
@@ -51,6 +53,7 @@
     "react-color": "^2.19.3",
     "react-dom": "^18",
     "react-easy-crop": "^5.0.5",
+    "react-google-recaptcha": "^3.1.0",
     "react-icons": "^4.12.0",
     "react-image-crop": "^11.0.5",
     "react-select": "^5.8.0",
@@ -79,6 +82,7 @@
     "@types/react-beautiful-dnd": "^13.1.8",
     "@types/react-color": "^3.0.11",
     "@types/react-dom": "^18",
+    "@types/react-google-recaptcha": "^2.1.9",
     "@types/tinycolor2": "^1.4.6",
     "autoprefixer": "^10.4.19",
     "i": "^0.3.7",

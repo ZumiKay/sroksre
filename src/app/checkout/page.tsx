@@ -22,6 +22,8 @@ import { calculateDiscountProductPrice, decrypt } from "@/src/lib/utilities";
 import { checkOrder, OrderUserType } from "./action";
 import { SuccessVector } from "../component/Asset";
 import { VariantColorValueType } from "@/src/context/GlobalContext";
+import { getPolicesByPage } from "../api/policy/route";
+import Link from "next/link";
 
 export default async function Checkoutpage({
   searchParams,
@@ -281,7 +283,9 @@ async function Totalprice({ orderID }: { orderID: string }) {
   );
 }
 
-const SuccessPage = ({ orderid }: { orderid: string }) => {
+const SuccessPage = async ({ orderid }: { orderid: string }) => {
+  const policy = await getPolicesByPage("checkout");
+
   return (
     <div className="success_page w-full h-full mt-5 flex flex-col items-center gap-y-20">
       <div className="header w-full h-[50px] flex flex-row items-center justify-start">
@@ -301,19 +305,26 @@ const SuccessPage = ({ orderid }: { orderid: string }) => {
           <p className="text-lg font-medium w-full h-fit">
             Receipt sent to your registered email.
           </p>
-
-          <p className="text-lg font-medium w-full h-fit">
-            Estimate arrival in 30 days.
-          </p>
-          <p className="text-lg font-medium w-full h-fit">
-            Please see <a className="font-bold italic">Shipping & Refund</a> for
-            more detail on order.
-          </p>
+          <h3 className="text-2xl font-bold">Need Help ?</h3>
+          <div className="w-full h-fit flex flex-row items-center gap-5 flex-wrap">
+            <Link className="text-lg font-bold" href={`/privacyandpolicy?p=0`}>
+              Questions
+            </Link>
+            {policy.map((pol) => (
+              <Link
+                key={pol.id}
+                className="text-lg font-bold"
+                href={`/privacyandpolicy?p${pol.id}`}
+              >
+                {pol.title}
+              </Link>
+            ))}
+          </div>
         </div>
       </div>
       <div className="footer_detail flex flex-col gap-y-5 w-[30%]">
         <p className="text-lg font-medium text-blue-500 cursor-pointer transition hover:text-white">
-          Need help? Please contact us via email
+          Any Problem? Please contact us via email
         </p>
         <Navigatebutton
           title="View Order"

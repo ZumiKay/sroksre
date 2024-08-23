@@ -65,14 +65,17 @@ export default async function Home() {
               <ScrollableContainer
                 key={i.idx}
                 title={i.name}
-                items={i.items.map((prod) => ({
-                  name: prod.item.name ?? "",
-                  img: {
-                    url: prod.item.image?.url ?? "",
-                    name: prod.item.image?.name ?? "",
-                  },
-                  price: prod.item.price as Orderpricetype,
-                }))}
+                items={i.items
+                  .filter((i) => i.item.id)
+                  .map((prod) => ({
+                    id: prod.item.id ?? 0,
+                    name: prod.item.name ?? "",
+                    img: {
+                      url: prod.item.image?.url ?? "",
+                      name: prod.item.image?.name ?? "",
+                    },
+                    price: prod.item.price as Orderpricetype,
+                  }))}
               />
             );
           }

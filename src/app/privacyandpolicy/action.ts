@@ -11,6 +11,7 @@ interface returntype {
 export interface Addpolicytype {
   id?: number;
   title: string;
+  showtype?: string[];
   Paragraph: {
     id?: number;
     title?: string;
@@ -84,50 +85,6 @@ export const getPolicy = async (qid?: number, pid?: number) => {
   return { success: true, data: result };
 };
 
-export const updateQuestionOrPolicy = async (
-  type: "question" | "policy",
-  question?: Addquestiontype,
-  policy?: Addpolicytype
-): Promise<returntype> => {
-  if (!type && !question && !policy) {
-    return { success: false, message: "Invalid request" };
-  }
-  try {
-    if (type === "question") {
-      await Prisma.question.update({
-        where: {
-          id: question?.id,
-        },
-        data: {
-          question: question?.question,
-          answer: question?.answer,
-        },
-      });
-    } else {
-      if (policy?.Paragraph && policy.Paragraph.length > 0) {
-        await Promise.all(
-          policy.Paragraph.map((i) =>
-            Prisma.paragraph.upsert({
-              where: { id: i.id || 0 },
-              update: { title: i.title, content: i.content },
-              create: {
-                title: i.title,
-                policyId: policy?.id as number,
-                content: i.content,
-              },
-            })
-          )
-        );
-      }
-    }
-    revalidatePath("/privacyandpolicy");
-    return { success: true, message: "Update successfuly" };
-  } catch (error) {
-    console.log("Update Policy", error);
-    return { success: false, message: "Error occured" };
-  }
-};
-
 interface deletepolicytype {
   pid?: number;
   qid?: number;
@@ -188,6 +145,7 @@ export const getPolicyById = async (id: number) => {
     select: {
       id: true,
       title: true,
+      showtype: true,
       Paragraph: {
         orderBy: { id: "asc" },
         select: {
@@ -199,5 +157,5 @@ export const getPolicyById = async (id: number) => {
     },
   });
 
-  return result;
+  return { ...result, showtype: result?.showtype?.split(",") };
 };

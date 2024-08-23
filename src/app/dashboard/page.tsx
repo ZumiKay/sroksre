@@ -16,6 +16,7 @@ import {
 } from "@/src/context/CustomHook";
 import { ContainerLoading } from "../component/Loading";
 import { EditProfile } from "../component/Modals/User";
+import { signOut } from "next-auth/react";
 
 interface userdata extends Userdatastate {
   open: {
@@ -155,62 +156,80 @@ export default function UserDashboard() {
         </div>
       </div>
       <div className="setting__section w-[80%] h-fit flex flex-col items-center gap-y-7">
-        <PrimaryButton
-          text="Whilist Products"
-          type="button"
-          width="100%"
-          hoverTextColor="white"
-          hoverColor="#2F4865"
-          radius="10px"
-          height="50px"
-          border="2px solid black"
-          color={userdata.open.whilist ? "#2F4865" : "white"}
-          textalign="left"
-          textcolor={userdata.open.whilist ? "white" : "black"}
-          textsize="20px"
-          postion={userdata.open.whilist ? "relative" : "sticky"}
-          top="0"
-          zI="20"
-          onClick={() => {
-            userdata.open.whilist && setwishlist(null);
-            setdata({
-              ...userdata,
-              open: {
-                ...userdata.open,
-                whilist: !userdata.open.whilist,
-              },
-            });
-          }}
-        />
+        {userinfo.role === "USER" && (
+          <>
+            <PrimaryButton
+              text="Whilist Products"
+              type="button"
+              width="100%"
+              hoverTextColor="white"
+              hoverColor="#2F4865"
+              radius="10px"
+              height="50px"
+              border="2px solid black"
+              color={userdata.open.whilist ? "#2F4865" : "white"}
+              textalign="left"
+              textcolor={userdata.open.whilist ? "white" : "black"}
+              textsize="20px"
+              postion={userdata.open.whilist ? "relative" : "sticky"}
+              top="0"
+              zI="20"
+              onClick={() => {
+                userdata.open.whilist && setwishlist(null);
+                setdata({
+                  ...userdata,
+                  open: {
+                    ...userdata.open,
+                    whilist: !userdata.open.whilist,
+                  },
+                });
+              }}
+            />
 
-        <ToggleDownMenu open={userdata.open.whilist}>
-          <div className="products w-full h-full grid grid-cols-2 gap-x-5 place-items-center place-content-start">
-            {wishlist?.map((prod) => (
-              <Card
-                key={prod.id}
-                id={prod.id}
-                name={prod.name}
-                price={prod.price.toFixed(2)}
-                discount={prod.discount}
-                img={prod.covers}
-              />
-            ))}
-          </div>
-        </ToggleDownMenu>
-
-        <PrimaryButton
-          text="Delete My Account"
-          type="button"
-          width="100%"
-          radius="10px"
-          hoverTextColor="white"
-          hoverColor="#2F4865"
-          height="50px"
-          color="#F08080"
-          textalign="left"
-          textcolor="white"
-          textsize="20px"
-        />
+            <ToggleDownMenu open={userdata.open.whilist}>
+              <div className="products w-full h-full grid grid-cols-2 gap-x-5 place-items-center place-content-start">
+                {wishlist?.map((prod) => (
+                  <Card
+                    key={prod.id}
+                    id={prod.id}
+                    name={prod.name}
+                    price={prod.price.toFixed(2)}
+                    discount={prod.discount}
+                    img={prod.covers}
+                  />
+                ))}
+              </div>
+            </ToggleDownMenu>
+            <PrimaryButton
+              text="Delete My Account"
+              type="button"
+              width="100%"
+              radius="10px"
+              hoverTextColor="white"
+              hoverColor="#2F4865"
+              height="50px"
+              color="#F08080"
+              textalign="left"
+              textcolor="white"
+              textsize="20px"
+              onClick={() =>
+                setopenmodal((prev) => ({
+                  ...prev,
+                  confirmmodal: {
+                    Warn: "Your Account Will Be Deleted ",
+                    open: true,
+                    confirm: false,
+                    type: "userinfo",
+                    closecon: "",
+                    onAsyncDelete: async () => {
+                      await signOut();
+                    },
+                  },
+                }))
+              }
+            />
+          </>
+        )}
       </div>
       {openmodal.editprofile && <EditProfile type={userdata.open.edittype} />}
     </main>
