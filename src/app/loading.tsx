@@ -1,8 +1,8 @@
-import { ContainerLoading, LoadingText } from "./component/Loading";
+import { ContainerLoading } from "./component/Loading";
 
 export default function Loading() {
   return (
-    <div className="h-fit w-full min-h-screen">
+    <div className="h-fit w-full min-h-screen z-[100]">
       {" "}
       <ContainerLoading />{" "}
     </div>

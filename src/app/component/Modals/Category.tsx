@@ -37,8 +37,13 @@ const selecttype: Array<SelectType> = [
   },
 ];
 
-const getPromotionSelection = async (search: string, limit: number = 5) => {
-  const url = `/api/promotion?ty=selection&lt${limit}`;
+export const GetPromotionSelection = async (
+  search: string,
+  limit: number = 1
+) => {
+  const url = `/api/promotion?ty=selection&lt=${limit}${
+    search !== "" ? `&q=${search}` : ""
+  }`;
   const request = await ApiRequest(url, undefined, "GET");
 
   if (!request.success) {
@@ -173,7 +178,7 @@ export const Category = () => {
               />
               {catetype === "sale" && (
                 <SelectAndSearchProduct
-                  getdata={(take, value) => getPromotionSelection(value, take)}
+                  getdata={(take, value) => GetPromotionSelection(value, take)}
                   placeholder="Select Promotion"
                   value={category.subcategories.map((sub) => ({
                     label: sub.name,
@@ -295,7 +300,7 @@ const EditCategory = ({
           setalldata((prev) => ({ ...prev, category: res.data }));
         }
       };
-      await Delayloading(request, setloading, 1000);
+      await Delayloading(request, setloading, 500);
     };
     fetchAllCate();
   }, []);
@@ -448,11 +453,11 @@ const EditCategory = ({
 
             {category.type === "sale" && (
               <SelectAndSearchProduct
-                getdata={(take, value) => getPromotionSelection(value, take)}
+                getdata={(take, value) => GetPromotionSelection(value, take)}
                 placeholder="Select Promotion"
                 value={category.subcategories.map((sub) => ({
                   label: sub.name,
-                  value: sub.id ?? 0,
+                  value: sub.pid ?? 0,
                 }))}
                 onSelect={(value) =>
                   handleSelectPromotion(value as Array<SelectType>)

@@ -22,11 +22,15 @@ import {
 import {
   calculateDiscountPrice,
   encrypt,
+  generateRandomNumber,
   OrderReciptEmail,
 } from "@/src/lib/utilities";
 import { ProductStockType } from "../component/ServerComponents";
 import nodemailer from "nodemailer";
 import { shippingtype } from "../component/Modals/User";
+import { getCheckoutdata } from "./page";
+import { generateInvoicePdf } from "../api/order/route";
+import { formatDate } from "../component/EmailTemplate";
 
 interface Returntype<k = string> {
   success: boolean;
@@ -86,8 +90,23 @@ export async function Createorder(data: {
     });
 
     if (!checkOrder) {
+      let generateID = "SSC" + generateRandomNumber();
+      let isExist = true;
+      while (isExist) {
+        const isId = await Prisma.orders.findUnique({
+          where: { id: generateID },
+        });
+        if (isId) {
+          isExist = true;
+          generateID = "SSC" + generateRandomNumber();
+        } else {
+          isExist = false;
+        }
+      }
+
       const create = await Prisma.orders.create({
         data: {
+          id: generateID,
           buyer_id: userid as any,
           status: Allstatus.unpaid,
           price: data.price as any,
@@ -153,12 +172,14 @@ export async function getOrderProduct(
 
 export interface OrderUserType extends Ordertype {
   user: {
+    id: number;
     firstname: string;
     lastname?: string;
     email: string;
   };
   Orderproduct: Productordertype[];
   createdAt: Date;
+  shipping?: shippingtype;
 }
 
 export async function updateStatus(
@@ -167,36 +188,7 @@ export async function updateStatus(
   adminhtml: string
 ): Promise<Returntype> {
   try {
-    const order = await Prisma.orders.findUnique({
-      where: { id: orderid },
-      select: {
-        id: true,
-        user: {
-          select: {
-            email: true,
-          },
-        },
-        Orderproduct: {
-          select: {
-            productId: true,
-            quantity: true,
-            product: {
-              select: {
-                id: true,
-                stocktype: true,
-                Stock: {
-                  select: {
-                    Stockvalue: {
-                      select: { id: true },
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-    });
+    const order = await getCheckoutdata(orderid);
 
     if (!order) {
       return { success: false, status: 404 };
@@ -253,12 +245,36 @@ export async function updateStatus(
     const emailSubject = `Order #${order.id} receipt and processing for shipping`;
     const htmltemplate = OrderReciptEmail(html);
 
+    const createInvoice = await generateInvoicePdf({
+      id: order.id,
+      product: order.Orderproduct.map((prob) => ({
+        id: prob.product.id,
+        name: prob.product.name,
+        price: prob.price,
+        selectedVariant: prob.selectedvariant.map((i) =>
+          typeof i === "string" ? i : i?.name ?? ""
+        ),
+        quantity: prob.quantity,
+        totalprice:
+          prob.quantity * (prob.price.discount?.newprice ?? prob.price.price),
+      })),
+      price: order.price as unknown as totalpricetype,
+      shipping: order.shipping as any,
+      createdAt: formatDate(order.createdAt),
+    });
+
     await Promise.all([
-      SendOrderEmail(htmltemplate, order.user.email, emailSubject),
+      SendOrderEmail(
+        htmltemplate,
+        order.user.email,
+        emailSubject,
+        createInvoice
+      ),
       SendOrderEmail(
         adminhtml,
         process.env.EMAIL as string,
-        `Order #${order.id} request`
+        `Order #${order.id} request`,
+        createInvoice
       ),
     ]);
 
@@ -284,6 +300,8 @@ export async function handleShippingAdddress(
       const create = await Prisma.address.create({
         data: {
           userId: isSave === "1" ? user.id : undefined,
+          firstname: shippingdata.firstname,
+          lastname: shippingdata.lastname,
           houseId: shippingdata.houseId.toString(),
           district: shippingdata.district,
           songkhat: shippingdata.songkhat,
@@ -321,17 +339,6 @@ export async function handleShippingAdddress(
     console.log("Shipping Address", error);
     return { success: false, message: "Error Occured" };
   }
-}
-
-export async function shippingType(
-  selected: { type: string; price: number },
-  orderId: string
-): Promise<Returntype> {
-  let order: Ordertype = (await Prisma.orders.findUnique({
-    where: { id: orderId },
-  })) as any;
-
-  return { success: true };
 }
 
 export async function updateShippingService(
@@ -565,7 +572,8 @@ export async function CaptureOrder(orderId: string): Promise<Returntype> {
 export const SendOrderEmail = async (
   html: string,
   to: string,
-  subject: string
+  subject: string,
+  attachment?: Uint8Array
 ) => {
   try {
     const transporter = nodemailer.createTransport({
@@ -582,7 +590,18 @@ export const SendOrderEmail = async (
       html: html,
     };
 
-    await transporter.sendMail(mailoptions);
+    await transporter.sendMail({
+      ...mailoptions,
+      attachments: attachment
+        ? [
+            {
+              filename: `Invoice.pdf`,
+              content: Buffer.from(attachment),
+              contentType: "apllication/pdf",
+            },
+          ]
+        : [],
+    });
   } catch (error) {
     console.log("Send email", error);
     throw new Error("Email can't sent");

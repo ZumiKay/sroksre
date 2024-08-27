@@ -186,8 +186,10 @@ export const CreatePromotionModal = ({
     });
 
     param.set("ty", type);
-
+    param.set("p", "1");
+    param.set("limit", "1");
     settype(type);
+
     router.push(`?${param}`, { scroll: false });
     setreloaddata(true);
     setopenmodal((prev) => ({ ...prev, createPromotion: false }));

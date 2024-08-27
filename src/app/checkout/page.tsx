@@ -86,14 +86,18 @@ export const getCheckoutdata = async (orderid?: string, userid?: number) => {
       user: {
         select: { id: true, firstname: true, lastname: true, email: true },
       },
+      shipping: true,
       Orderproduct: {
         include: {
           product: {
             select: {
+              id: true,
               covers: true,
               discount: true,
               name: true,
               price: true,
+              stocktype: true,
+              Stock: { select: { Stockvalue: true } },
               Variant: {
                 orderBy: { id: "asc" },
                 select: { id: true, option_value: true },

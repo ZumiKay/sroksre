@@ -11,6 +11,7 @@ import {
   FilterValue,
   Productinitailizestate,
   PromotionInitialize,
+  SelectType,
   Sessiontype,
   useGlobalContext,
 } from "@/src/context/GlobalContext";
@@ -48,6 +49,9 @@ import { Homeeditmenu } from "./HomePage/EditMenu";
 import { Addicon } from "./Icons/Homepage";
 import { Homeitemtype } from "../severactions/containeraction";
 import { SelectionCustom } from "./Pagination_Component";
+import { SelectAndSearchProduct } from "./Banner";
+import { GetPromotionSelection } from "./Modals/Category";
+import { Checkbox } from "@nextui-org/react";
 
 interface accountmenuprops {
   setProfile: (value: SetStateAction<boolean>) => void;
@@ -694,6 +698,7 @@ export const FilterMenu = ({
   expired,
   reloadData,
   setfilterdata,
+  isSetPromotion,
 }: {
   type?: string;
   totalproduct?: number;
@@ -708,11 +713,13 @@ export const FilterMenu = ({
   param?: InventoryParamType;
   setisFilter?: React.Dispatch<React.SetStateAction<boolean>>;
   reloadData?: () => void;
+  isSetPromotion?: boolean;
   setfilterdata?: React.Dispatch<
     React.SetStateAction<InventoryParamType | undefined>
   >;
 }) => {
-  const { setopenmodal, promotion, listproductfilval } = useGlobalContext();
+  const { setopenmodal, promotion, listproductfilval, globalindex } =
+    useGlobalContext();
 
   const [loading, setloading] = useState(false);
 
@@ -733,16 +740,19 @@ export const FilterMenu = ({
     search: param?.search,
     status: param?.status,
     expired: expired,
+    promoids: param?.promoids?.split(",").map((i) => parseInt(i, 10)),
   });
   const [filterdata, setdata] = useState<{
     size?: Array<string>;
     color?: Array<string>;
     text?: Array<string>;
   }>({});
+  const [promoval, setpromoval] = useState<SelectType[] | undefined>(undefined);
 
   const fetchcate = async () => {
     const asycnfetchdata = async () => {
       const categories = await ApiRequest("/api/categories", undefined, "GET");
+
       if (!categories.success) {
         errorToast("Error Connection");
         return;
@@ -752,7 +762,7 @@ export const FilterMenu = ({
       });
     };
 
-    await Delayloading(asycnfetchdata, setloading, 1000);
+    await Delayloading(asycnfetchdata, setloading, 500);
   };
 
   useEffectOnce(() => {
@@ -764,6 +774,23 @@ export const FilterMenu = ({
 
     type === "product" && fetchcate();
   });
+
+  useEffect(() => {
+    const fetchpromo = async () => {
+      if (!param?.promoids) {
+        return;
+      }
+      const data = await ApiRequest(
+        `/api/promotion?ty=byid&ids=${param.promoids}`,
+        undefined,
+        "GET"
+      );
+      if (data.success) {
+        setpromoval(data.data);
+      }
+    };
+    fetchpromo();
+  }, [filtervalue.promoids]);
 
   useEffect(() => {
     const getsub = async () => {
@@ -788,6 +815,12 @@ export const FilterMenu = ({
             [key]: formatDate(val.toDate()),
           }));
       }
+      if (key === "promoids" && value) {
+        const val = value as number[];
+        params.set("promoids", val.join(","));
+        setfilterdata && setfilterdata((prev) => ({ ...prev, [key]: value }));
+      }
+
       if (key !== "p" && value && value !== "none") {
         params.set(key, value);
         setfilterdata && setfilterdata((prev) => ({ ...prev, [key]: value }));
@@ -974,6 +1007,40 @@ export const FilterMenu = ({
                 onChange={handleSelect}
               />
             )}
+            {type === "product" &&
+              (globalindex.promotioneditindex !== -1 && isSetPromotion ? (
+                <Checkbox
+                  className="w-full h-[40px]"
+                  isSelected={!!filtervalue.promoids}
+                  onValueChange={(value) => {
+                    setfilter((prev) => ({
+                      ...prev,
+                      promoids: value
+                        ? [globalindex.promotioneditindex]
+                        : undefined,
+                    }));
+                  }}
+                >
+                  {" "}
+                  Show Only Discount{" "}
+                </Checkbox>
+              ) : (
+                <SelectAndSearchProduct
+                  getdata={(take, value) => GetPromotionSelection(value, take)}
+                  placeholder="Select Promotion"
+                  value={promoval}
+                  onSelect={(value) => {
+                    const val = value as SelectType[];
+                    setfilter((prev) => ({
+                      ...prev,
+                      promoids: val.map((i) =>
+                        parseInt(i.value.toString(), 10)
+                      ),
+                    }));
+                  }}
+                />
+              ))}
+
             <Selection
               default="Stock"
               onChange={handleSelect}

@@ -25,6 +25,8 @@ export async function GET(request: NextRequest) {
         select: {
           id: true,
           houseId: true,
+          firstname: true,
+          lastname: true,
           street: true,
           district: true,
           songkhat: true,

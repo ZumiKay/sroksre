@@ -11,7 +11,6 @@ import Prisma from "@/src/lib/prisma";
 import { Banner } from "../component/HomePage/Component";
 import { format } from "date-fns";
 import { getDiscountedPrice } from "@/src/lib/utilities";
-import { cache } from "react";
 import NotFound from "../not-found";
 
 interface ProductParam {
@@ -31,10 +30,11 @@ interface ProductParam {
   bid?: string;
   all?: string;
   sort?: string;
+  pcate?: string;
+  ccate?: string;
 }
-export const revalidate = 3600;
 
-const fetchPromotion = cache(async (id: number, page: number, show: number) => {
+const fetchPromotion = async (id: number, page: number, show: number) => {
   const skip = (page - 1) * show;
   const promotion = await Prisma.promotion.findUnique({
     where: {
@@ -56,7 +56,8 @@ const fetchPromotion = cache(async (id: number, page: number, show: number) => {
           name: true,
           price: true,
           discount: true,
-          covers: true,
+          covers: { select: { name: true, url: true } },
+          stock: true,
         },
         skip: skip,
         take: show,
@@ -66,6 +67,17 @@ const fetchPromotion = cache(async (id: number, page: number, show: number) => {
 
   let result = {
     ...promotion,
+    Products: promotion?.Products.map((prod) => {
+      if (prod.discount) {
+        const discount = getDiscountedPrice(prod.discount, prod.price);
+
+        return {
+          ...prod,
+          discount: { ...discount, newprice: discount.newprice.toFixed(2) },
+        };
+      }
+      return prod;
+    }),
 
     banner: {
       ...promotion?.banner,
@@ -77,9 +89,9 @@ const fetchPromotion = cache(async (id: number, page: number, show: number) => {
   };
 
   return result;
-});
+};
 
-const getAllPromotion = cache(async () => {
+const getAllPromotion = async () => {
   const promotions = await Prisma.promotion.findMany({
     select: {
       id: true,
@@ -132,7 +144,7 @@ const getAllPromotion = cache(async () => {
   }));
 
   return formattedPromotions;
-});
+};
 
 export function IsNumber(str: string) {
   // Check if the input is a string and not empty
@@ -173,6 +185,8 @@ export default async function ProductsPage({
     bid,
     all,
     sort,
+    pcate,
+    ccate,
   } = searchParams as unknown as ProductParam;
 
   const isColor = color?.split(",");
@@ -180,6 +194,8 @@ export default async function ProductsPage({
   const isOther = other?.split(",");
   const isPromo = promo?.split(",");
   const isSelectProduct = pids?.split(",");
+  const isParentCate = pcate?.split(",");
+  const isChildCate = ccate?.split(",");
   const page = p ?? "1";
   const limit = show ?? "1";
 
@@ -230,30 +246,35 @@ export default async function ProductsPage({
 
   ///////////
 
-  const promotion =
-    promoid &&
-    (await fetchPromotion(parseInt(promoid), parseInt(page), parseInt(limit)));
+  const promotion = promoid
+    ? await fetchPromotion(parseInt(promoid), parseInt(page), parseInt(limit))
+    : undefined;
 
   const allpromotion = ppid && (await getAllPromotion());
+
   const allproduct =
-    !ppid &&
-    (await GetListProduct(
-      page,
-      limit,
-      pid ?? "0",
-      cid,
-      cate.type === "latest",
-      {
-        color: isColor,
-        size: isSize,
-        other: isOther,
-        promo: isPromo,
-        selectpids: isSelectProduct,
-        search,
-      },
-      all,
-      sort ? parseInt(sort) : undefined
-    ));
+    (!ppid &&
+      (await GetListProduct(
+        page,
+        limit,
+        pid ?? "0",
+        cid,
+        cate.type === "latest",
+        {
+          color: isColor,
+          size: isSize,
+          other: isOther,
+          promo: isPromo,
+          parent_id: isParentCate,
+          child_id: isChildCate,
+          selectpids: isSelectProduct,
+          search,
+        },
+        all,
+        sort ? parseInt(sort) : undefined,
+        promoid
+      ))) ||
+    undefined;
 
   if (allproduct && !allproduct.success) {
     throw Error(allproduct.error);
@@ -271,8 +292,8 @@ export default async function ProductsPage({
           <Banner
             data={{
               image: {
-                url: promotion.banner.image.url,
-                name: promotion.banner.image.name,
+                url: promotion.banner.image?.url ?? "",
+                name: promotion.banner.image?.name,
               },
               name: "",
             }}
@@ -325,7 +346,9 @@ export default async function ProductsPage({
               other={isOther}
               search={search}
               promo={isPromo}
-              isPromotion={!!promoid}
+              pcate={isParentCate}
+              ccate={isChildCate}
+              isPromotion={promoid}
               productcount={
                 allproduct && allproduct.count
                   ? Math.ceil(allproduct.count * parseInt(limit))
@@ -337,17 +360,17 @@ export default async function ProductsPage({
         )}
       </div>
 
-      {allproduct && allproduct?.data ? (
+      {allproduct ? (
         <div className="listproduct grid grid-cols-3 w-full h-full place-content-center mt-5 p-3">
           {allproduct.data?.map((i, idx) => (
             <Card
               key={idx}
               name={i.name}
               price={i.price.toString()}
-              img={i.covers}
+              img={i.covers as any}
               index={idx}
-              discount={i.discount}
-              stock={i.stock}
+              discount={i.discount as any}
+              stock={i.stock || undefined}
               id={i.id}
               isAdmin={false}
             />

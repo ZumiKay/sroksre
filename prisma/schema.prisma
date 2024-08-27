@@ -56,6 +56,8 @@ model Wishlist {
 
 model Address {
   id         Int      @id @default(autoincrement())
+  firstname  String   @default("")
+  lastname   String   @default("")
   street     String?
   houseId    String
   province   String
@@ -165,7 +167,7 @@ model Producttype {
 }
 
 model Orders {
-  id           String         @id @default(uuid())
+  id           String         @id
   buyer_id     Int
   status       String
   estimate     DateTime?

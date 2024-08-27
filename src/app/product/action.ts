@@ -2,6 +2,7 @@
 
 import {
   ProductState,
+  SelectType,
   VariantColorValueType,
 } from "@/src/context/GlobalContext";
 import Prisma from "@/src/lib/prisma";
@@ -27,15 +28,19 @@ export const GetListProduct = cache(
       promo?: string[];
       search?: string;
       selectpids?: string[];
+      parent_id?: string[];
+      child_id?: string[];
     },
     all?: string,
-    sort?: number
+    sort?: number,
+    promoid?: string
   ) => {
     let data = {
       parentcate_id: parseInt(parentcate_id),
       childcate_id: childcate_id ? parseInt(childcate_id) : undefined,
       page: parseInt(page),
       show: parseInt(show),
+      promoid: promoid ? parseInt(promoid) : undefined,
     };
 
     let filterproduct = [];
@@ -48,13 +53,17 @@ export const GetListProduct = cache(
       filtervalue?.other ||
       filtervalue?.selectpids ||
       filtervalue?.promo ||
-      filtervalue?.search;
+      filtervalue?.search ||
+      filtervalue?.parent_id ||
+      filtervalue?.child_id;
 
     try {
       let totalproduct = 0;
 
       let products = await Prisma.products.findMany({
-        where: !latestcate
+        where: promoid
+          ? { promotion_id: data.promoid }
+          : !latestcate
           ? data.parentcate_id !== 0 && !childcate_id
             ? {
                 parentcategory_id: data.parentcate_id,
@@ -185,6 +194,7 @@ export const GetListProduct = cache(
       if (isFilter) {
         //filter base on color & size & other (custom variants)
 
+        console.log({ isFilter });
         products = products.filter((prod) => {
           const matchesVariant = (type: string, values?: string[]) => {
             if (!values) return false;
@@ -202,6 +212,16 @@ export const GetListProduct = cache(
             });
           };
 
+          const isParent =
+            filtervalue.parent_id &&
+            filtervalue.parent_id.some(
+              (i) => prod.parentcategory_id === parseInt(i)
+            );
+          const isChild =
+            filtervalue.child_id &&
+            filtervalue.child_id.some(
+              (i) => prod.childcategory_id === parseInt(i)
+            );
           const isColor = filtervalue.color
             ? matchesVariant("COLOR", filtervalue.color)
             : false;
@@ -229,7 +249,15 @@ export const GetListProduct = cache(
             ? filtervalue.selectpids.includes(prod.id.toString())
             : false;
 
-          const conditions = [isColor, isText, isPromo, isName, isProduct];
+          const conditions = [
+            isColor,
+            isText,
+            isPromo,
+            isName,
+            isProduct,
+            isParent,
+            isChild,
+          ];
 
           // Check if at least one condition is true
           return conditions.some((condition) => condition);
@@ -250,7 +278,9 @@ export const GetListProduct = cache(
             all
               ? { where: {} }
               : {
-                  where: !latestcate
+                  where: promoid
+                    ? { promotion_id: data.promoid }
+                    : !latestcate
                     ? parentcate_id && !childcate_id
                       ? {
                           parentcategory_id: data.parentcate_id,
@@ -365,6 +395,10 @@ export interface filtervaluetype {
     name: string;
   }[];
   search?: string;
+  category?: {
+    parent: Array<SelectType>;
+    child?: Array<SelectType>;
+  };
 }
 export const getFilterValue = async (
   parent_id: number,

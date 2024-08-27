@@ -856,7 +856,8 @@ export const GetAllProduct = async (
   detailcolor?: string,
   detailsize?: string,
   detailtext?: string,
-  selectpromo?: number
+  selectpromo?: number,
+  promotionids?: string
 ): Promise<GetProductReturnType> => {
   try {
     let totalproduct: number = 0;
@@ -913,7 +914,23 @@ export const GetAllProduct = async (
         let products = await Prisma.products.findMany({
           where: {
             ...filteroptions,
-            ...(selectpromo === 1 && { promotion_id: null }),
+            ...(!promotionids && selectpromo === 1
+              ? { promotion_id: null }
+              : {}),
+            ...(promotionids
+              ? {
+                  promotion: {
+                    id:
+                      promotionids.length > 1
+                        ? {
+                            in: promotionids
+                              .split(",")
+                              .map((i) => parseInt(i, 10)),
+                          }
+                        : { equals: parseInt(promotionids, 10) },
+                  },
+                }
+              : {}),
           },
           select: {
             id: true,
@@ -1063,6 +1080,12 @@ export const GetAllProduct = async (
       }
     } else {
       let product = await Prisma.products.findMany({
+        where: {
+          ...(promotionid !== -1
+            ? { OR: [{ promotion_id: null }, { promotion_id: promotionid }] }
+            : {}),
+          ...(promotionids ? { promotion_id: parseInt(promotionids, 10) } : {}),
+        },
         select: {
           id: true,
           discount: true,
@@ -1079,16 +1102,8 @@ export const GetAllProduct = async (
           id: "asc",
         },
       });
-
-      const filterproduct =
-        promotionid === -1
-          ? product.filter((i) => i.promotion_id === null)
-          : product.filter(
-              (i) => i.promotion_id === promotionid || i.promotion_id === null
-            );
-
-      totalproduct = filterproduct.length;
-      allproduct = caculateArrayPagination(filterproduct, page, limit);
+      totalproduct = product.length;
+      allproduct = caculateArrayPagination(product, page, limit);
     }
 
     const result = allproduct.map((i: any) => {

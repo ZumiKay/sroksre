@@ -9,6 +9,7 @@ import {
 } from "@/src/lib/adminlib";
 import Prisma from "@/src/lib/prisma";
 import { extractQueryParams } from "../banner/route";
+import dayjs, { Dayjs } from "dayjs";
 
 const categorytype = {
   normal: "normal",
@@ -181,20 +182,53 @@ export async function GET(req: NextRequest) {
         id: true,
         name: true,
         type: true,
-        sub: { select: { id: true, name: true, pid: true, type: true } },
+        sub: {
+          select: {
+            id: true,
+            name: true,
+            pid: true,
+            type: true,
+          },
+        },
       },
     });
 
-    const categories: any = [];
+    const now = dayjs(new Date());
 
-    allcat.forEach((obj) => {
-      categories.push({
-        id: obj.id,
-        name: obj.name,
-        type: obj.type,
-        subcategories: obj.sub,
+    const checkpromotion = async (pid: number) => {
+      const promotion = await Prisma.promotion.findUnique({
+        where: { id: pid },
+        select: {
+          expireAt: true,
+        },
       });
-    });
+
+      return (
+        dayjs(promotion?.expireAt).isBefore(now) ||
+        dayjs(promotion?.expireAt).isSame(now)
+      );
+    };
+
+    const categories = await Promise.all(
+      allcat.map(async (obj) => {
+        const subcategories =
+          obj.type !== "sale"
+            ? obj.sub
+            : await Promise.all(
+                obj.sub.map(async (i) => ({
+                  ...i,
+                  isExpired: i.pid ? await checkpromotion(i.pid) : undefined,
+                }))
+              );
+        return {
+          id: obj.id,
+          name: obj.name,
+          type: obj.type,
+          subcategories,
+        };
+      })
+    );
+
     return Response.json({ data: categories }, { status: 200 });
   } catch (error) {
     console.log("Fetch Categories");

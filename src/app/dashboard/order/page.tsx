@@ -17,8 +17,7 @@ import {
   AllOrderStatusColor,
   removeSpaceAndToLowerCase,
 } from "@/src/lib/utilities";
-import { Suspense } from "react";
-import { ContainerLoading } from "../../component/Loading";
+
 import { OrderUserType } from "../../checkout/action";
 import { getCheckoutdata } from "../../checkout/page";
 import { Role } from "@prisma/client";
@@ -74,7 +73,7 @@ export default async function OrderManagement({
     status: selectedStatus ?? [""],
     page: parseInt(page as string),
     limit: parseInt(show as string),
-    search: q ? removeSpaceAndToLowerCase(q as string) : undefined,
+    search: q ? removeSpaceAndToLowerCase(q.toString()) : undefined,
     startprice: parseFloat((startprice as string) ?? "0"),
     endprice: parseFloat((endprice as string) ?? "0"),
     fromdate: fromdate ? fromdate : undefined,
@@ -94,64 +93,62 @@ export default async function OrderManagement({
       : (req?.order as unknown as AllorderStatus[]);
 
   return (
-    <Suspense fallback={<ContainerLoading />}>
-      <main className="order__container w-full min-h-screen flex flex-col items-start gap-y-5 pl-2 pr-2 relative">
-        <div className="filter_container w-fit inline-flex gap-x-5 items-center h-fit mt-5">
-          <MultipleSelect />
+    <main className="order__container w-full min-h-screen flex flex-col items-start gap-y-5 pl-2 pr-2 relative">
+      <div className="filter_container w-fit inline-flex gap-x-5 items-center h-fit mt-5">
+        <MultipleSelect />
 
-          <FilterButton
-            isFilter={!isFilter}
-            data={{ todate, fromdate, q, startprice, endprice }}
+        <FilterButton
+          isFilter={!isFilter}
+          data={{ todate, fromdate, q, startprice, endprice }}
+        />
+        <DownloadButton />
+      </div>
+      <div className="orderlist w-full h-fit">
+        <table width={"100%"} className="ordertable text-lg font-medium">
+          <tbody>
+            <tr className="text-left bg-[#495464] text-white h-[50px] rounded-2xl">
+              <th className="rounded-l-lg pl-2">Order ID#</th>
+              <th align="left">Details</th>
+              <th>Products</th>
+              <th>Amount</th>
+              <th>Status</th>
+              <th></th>
+              <th className="rounded-r-lg"> </th>
+            </tr>
+            <tr className="h-[30px]">
+              <td></td>
+            </tr>
+
+            {!orders || orders.length === 0 ? (
+              <tr>
+                <td>
+                  <h3 className="w-full font-bold text-xl">No order</h3>
+                </td>
+              </tr>
+            ) : (
+              orders?.map((i, idx) => (
+                <DataRow
+                  key={`row${idx}`}
+                  idx={idx + 1}
+                  data={i as AllorderStatus}
+                  param={searchParams}
+                  isAdmin={getuser.role === Role.ADMIN}
+                />
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+      {orders && orders.length !== 0 && (
+        <div className="w-full h-fit relative mt-10 bottom-0">
+          <PaginationSSR
+            total={total}
+            pages={parseInt(page as string)}
+            limit={show}
           />
-          <DownloadButton />
         </div>
-        <div className="orderlist w-full h-fit">
-          <table width={"100%"} className="ordertable text-lg font-medium">
-            <tbody>
-              <tr className="text-left bg-[#495464] text-white h-[50px] rounded-2xl">
-                <th className="rounded-l-lg pl-2">Order ID#</th>
-                <th align="left">Details</th>
-                <th>Products</th>
-                <th>Amount</th>
-                <th>Status</th>
-                <th></th>
-                <th className="rounded-r-lg"> </th>
-              </tr>
-              <tr className="h-[30px]">
-                <td></td>
-              </tr>
-
-              {!orders || orders.length === 0 ? (
-                <tr>
-                  <td>
-                    <h3 className="w-full font-bold text-xl">No order</h3>
-                  </td>
-                </tr>
-              ) : (
-                orders?.map((i, idx) => (
-                  <DataRow
-                    key={`row${idx}`}
-                    idx={idx + 1}
-                    data={i as AllorderStatus}
-                    param={searchParams}
-                    isAdmin={getuser.role === Role.ADMIN}
-                  />
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-        {orders && orders.length !== 0 && (
-          <div className="w-full h-fit relative mt-10 bottom-0">
-            <PaginationSSR
-              total={total}
-              pages={parseInt(page as string)}
-              limit={show}
-            />
-          </div>
-        )}
-      </main>
-    </Suspense>
+      )}
+    </main>
   );
 }
 

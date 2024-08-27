@@ -9,9 +9,9 @@ import PrimaryButton, { Selection } from "./Button";
 import { getSubCategories } from "../dashboard/inventory/varaint_action";
 import SelectArrow from "../../../public/Image/Arrow_down.svg";
 import { AnimatePresence, motion } from "framer-motion";
-import { LoadingText } from "./Loading";
 
 import { DeleteIcon } from "./Asset";
+import { Skeleton } from "@nextui-org/react";
 
 //
 const animatedComponents = makeAnimated();
@@ -23,6 +23,24 @@ const getOptions = async (value: string) => {
     return data.data;
   }
   return null;
+};
+
+export const NormalSkeleton = ({
+  width,
+  height,
+  count,
+}: {
+  width: string;
+  height: string;
+  count: number;
+}) => {
+  return (
+    <div className="w-full h-fit flex flex-col gap-y-3">
+      {Array.from({ length: count }).map((_, idx) => (
+        <Skeleton key={idx} className="rounded-lg" style={{ height, width }} />
+      ))}
+    </div>
+  );
 };
 
 export const SearchAndSelectCategory = () => {
@@ -76,9 +94,7 @@ export const SearchAndSelectCategory = () => {
 };
 
 const isSelect = (select: SelectType[], value: SelectType) => {
-  const idx = select.findIndex((i) => i.value === value.value);
-
-  return idx !== -1 ? idx : null;
+  return select.findIndex((i) => i.value === value.value);
 };
 
 interface selectprops {
@@ -96,6 +112,7 @@ interface selectprops {
   singleselect?: boolean;
   placeholder?: string;
 }
+
 export const SelectAndSearchProduct = ({
   getdata,
   onSelect,
@@ -107,20 +124,20 @@ export const SelectAndSearchProduct = ({
   const [limit, setlimt] = useState<number>(3);
   const [loading, setloading] = useState(false);
   const [isLimit, setIsLimit] = useState(false);
-  const [options, setoptions] = useState<Array<SelectType> | undefined>(
-    undefined
-  );
+  const [options, setoptions] = useState<Array<SelectType> | undefined>();
   const [inputValue, setInputValue] = useState<string>("");
-  const [selectedvalue, setselectedvalue] = useState<SelectType[] | undefined>(
-    value
-  );
+  const [selectedvalue, setselectedvalue] = useState<
+    SelectType[] | undefined
+  >();
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const conref = useRef<HTMLDivElement>();
 
   useEffect(() => {
+    value && setselectedvalue(value);
+  }, [value]);
+  useEffect(() => {
     const fetchData = async () => {
       const res = await getdata(limit, inputValue);
-
       if (res && res.success) {
         setoptions(res.data);
         setIsLimit(res.isLimit ?? false);
@@ -158,7 +175,7 @@ export const SelectAndSearchProduct = ({
     const check = isSelect(selectedvalue ?? [], value);
     let selected = [...(selectedvalue ?? [])];
 
-    if (check !== null) {
+    if (check !== -1) {
       selected.splice(check, 1);
     } else {
       if (singleselect) {
@@ -205,10 +222,12 @@ export const SelectAndSearchProduct = ({
     <div
       ref={conref as any}
       onTouchCancel={() => setfocus(false)}
-      className="productselect w-full h-fit"
+      className="productselect w-full h-fit relative"
     >
       <div
-        onClick={() => setfocus(true)}
+        onClick={() => {
+          setfocus(true);
+        }}
         className="inputcontainer w-full min-h-[50px] relative h-fit flex flex-row items-center border border-black rounded-lg"
       >
         <div className="w-full max-w-[95%] h-fit flex flex-row flex-wrap items-center gap-5 p-1">
@@ -260,12 +279,10 @@ export const SelectAndSearchProduct = ({
             }}
             animate={focus && { opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="option_container w-full h-fit max-h-[400px] overflow-y-auto overflow-x-hidden bg-whtie p-2 flex flex-col items-center gap-y-5 border border-gray-300"
+            className="option_container z-50 absolute bg-white w-full h-fit max-h-[400px] overflow-y-auto overflow-x-hidden p-2 flex flex-col items-center gap-y-5 border border-gray-300"
           >
             {loading ? (
-              <div className="w-full h-[50px] flex justify-center items-center relative">
-                <LoadingText style={{ top: "10%", left: "45%" }} />
-              </div>
+              <NormalSkeleton width="100%" height="30px" count={3} />
             ) : (
               options?.map((i, idx) => (
                 <>
@@ -275,15 +292,16 @@ export const SelectAndSearchProduct = ({
                     onClick={() => handleSelectOption(i)}
                   >
                     <div
-                      className={`selectednumber cursor-pointer w-[30px] h-[30px] font-medium text-sm text-white rounded-[100%] ${
-                        isSelect(selectedvalue ?? [], i) !== null
-                          ? "bg-[#4688A0]"
-                          : "bg-gray-300"
-                      } grid place-content-center`}
+                      style={
+                        isSelect(selectedvalue ?? [], i) !== -1
+                          ? { backgroundColor: "#4688A0" }
+                          : { backgroundColor: "#d2d2d2" }
+                      }
+                      className={`selectednumber cursor-pointer w-[30px] h-[30px] font-medium text-sm text-white rounded-[100%] grid place-content-center`}
                     >
                       {!singleselect
                         ? `${
-                            isSelect(selectedvalue ?? [], i) !== null
+                            isSelect(selectedvalue ?? [], i) !== -1
                               ? (isSelect(selectedvalue ?? [], i) as any) + 1
                               : ""
                           }`
@@ -293,17 +311,17 @@ export const SelectAndSearchProduct = ({
                       {i.label}
                     </li>
                   </div>
-                  {!isLimit && (
-                    <PrimaryButton
-                      text="Load More"
-                      type="button"
-                      radius="10px"
-                      color="#438D86"
-                      onClick={() => loadMore()}
-                    />
-                  )}
                 </>
               ))
+            )}
+            {options && !isLimit && (
+              <PrimaryButton
+                text="Load More"
+                type="button"
+                radius="10px"
+                color="#438D86"
+                onClick={() => loadMore()}
+              />
             )}
           </motion.ul>
         )}

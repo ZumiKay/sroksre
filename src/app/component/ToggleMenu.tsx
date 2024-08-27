@@ -247,7 +247,7 @@ export function AddSubCategoryMenu({ index }: { index: number }) {
   );
 }
 interface Toggleselectprops {
-  type: "color" | "size" | "text";
+  type: "color" | "size" | "text" | "pcate" | "ccate";
   title: string;
   data: Array<string> | VariantColorValueType[];
   clickfunction?: (idx: number, type: string) => void;
@@ -256,7 +256,8 @@ interface Toggleselectprops {
   onClear?: (
     data: string[] | VariantColorValueType[],
     selectedvalue: string[],
-    promo?: boolean
+    promo?: boolean,
+    type?: string
   ) => void;
 }
 export function ToggleSelect({
@@ -269,7 +270,6 @@ export function ToggleSelect({
   promo,
 }: Toggleselectprops) {
   const [open, setopen] = useState(false);
-
   return (
     <motion.div
       initial={{ height: "100%" }}
@@ -308,7 +308,7 @@ export function ToggleSelect({
             selected.includes(typeof i === "string" ? i : i.val)
           ) && (
             <Button
-              onClick={() => onClear && onClear(data, selected, promo)}
+              onClick={() => onClear && onClear(data, selected, promo, type)}
               size="sm"
               variant="bordered"
               color="danger"

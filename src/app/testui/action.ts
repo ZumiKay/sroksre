@@ -1,77 +1,6 @@
-import { Shippingservice } from "@/src/context/Checkoutcontext";
-import { Orderpricetype, totalpricetype } from "@/src/context/OrderContext";
-import Prisma from "@/src/lib/prisma";
-import { calculateDiscountProductPrice } from "@/src/lib/utilities";
-import { NextRequest } from "next/server";
-import { PDFDocument, PDFPage, rgb, StandardFonts } from "pdf-lib";
-import { shippingtype } from "../../component/Modals/User";
+"use server";
 
-//Edit Created Order Information
-export async function PUT(req: NextRequest) {
-  try {
-    const { id, ty } = await req.json();
-    if (!id) {
-      return Response.json({}, { status: 403 });
-    }
-
-    const order = await Prisma.orders.findUnique({
-      where: { id },
-      select: {
-        price: true,
-        Orderproduct: {
-          select: {
-            quantity: true,
-            product: {
-              select: {
-                price: true,
-                discount: true,
-              },
-            },
-          },
-        },
-      },
-    });
-
-    if (!order) {
-      return Response.json({}, { status: 404 });
-    }
-
-    if (ty === "removeAddress") {
-      const updatedTotalPrice = order.Orderproduct.reduce((total, item) => {
-        const { price, discount } = item.product;
-
-        const calculatedPrice = calculateDiscountProductPrice({
-          price,
-          discount: discount ? discount : undefined,
-        });
-
-        const estimatedprice = calculatedPrice.discount
-          ? calculatedPrice.discount.newprice
-          : calculatedPrice.price;
-
-        return total + (estimatedprice ?? 0) * item.quantity;
-      }, 0);
-      const updateprice: totalpricetype = {
-        total: updatedTotalPrice,
-        subtotal: updatedTotalPrice,
-        shipping: 0,
-      };
-
-      await Prisma.orders.update({
-        where: { id },
-        data: {
-          price: updateprice as any,
-          shippingtype: Shippingservice[2].value, //Update to Pickup
-        },
-      });
-    }
-
-    return Response.json({}, { status: 200 });
-  } catch (error) {
-    console.log("Update Order", error);
-    return Response.json({ message: "Error Occured" }, { status: 500 });
-  }
-}
+import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 
 const getLogo = async () => {
   const url =
@@ -81,22 +10,7 @@ const getLogo = async () => {
   return jpgImageBytes;
 };
 
-interface GenerateInvoicePdf {
-  id: string;
-  product: {
-    id: number;
-    name: string;
-    price: Orderpricetype;
-    selectedVariant: string[];
-    quantity: number;
-    totalprice: number;
-  }[];
-  price: totalpricetype;
-  shipping?: shippingtype;
-  createdAt?: string;
-}
-
-export const generateInvoicePdf = async (Order: GenerateInvoicePdf) => {
+export const generateInvoicePdf = async () => {
   const pdfDoc = await PDFDocument.create();
 
   // Add a page to the PDF
@@ -163,105 +77,110 @@ export const generateInvoicePdf = async (Order: GenerateInvoicePdf) => {
     font,
     color: textColor,
   });
-  page.drawText(`URL   :${process.env.NEXTAUTH_URL}`, {
+  page.drawText(`URL   :localhost`, {
     x: 400,
     y: 775,
     size: fontSize,
     font,
     color: textColor,
   });
+  page.drawText(`Open   :Mon - Sat (Not on holiday):`, {
+    x: 400,
+    y: 760,
+    size: fontSize,
+    font,
+    color: textColor,
+  });
+  page.drawText(`9am to 9pm`, {
+    x: 400,
+    y: 745,
+    size: fontSize,
+    font,
+    color: textColor,
+  });
 
   // Draw customer information
+  page.drawText("Billing Address", {
+    x: 30,
+    y: 700,
+    size: fontSize,
+    font,
+    color: textColor,
+  });
+  page.drawText("Vish Singh", {
+    x: 30,
+    y: 680,
+    size: fontSize,
+    font,
+    color: textColor,
+  });
+  page.drawText("Regent Home Bangson 27", {
+    x: 30,
+    y: 665,
+    size: fontSize,
+    font,
+    color: textColor,
+  });
+  page.drawText("Building A, 873/1007", {
+    x: 30,
+    y: 650,
+    size: fontSize,
+    font,
+    color: textColor,
+  });
+  page.drawText("Chak Angre Kraom , 120602", {
+    x: 30,
+    y: 635,
+    size: fontSize,
+    font,
+    color: textColor,
+  });
 
-  if (Order.shipping) {
-    page.drawText("Billing Address", {
-      x: 30,
-      y: 700,
-      size: fontSize,
-      font,
-      color: textColor,
-    });
-    page.drawText(`${Order.shipping.firstname} ${Order.shipping.lastname}`, {
-      x: 30,
-      y: 680,
-      size: fontSize,
-      font,
-      color: textColor,
-    });
-    page.drawText(
-      `No${Order.shipping.houseId}, Street ${Order.shipping.street}`,
-      {
-        x: 30,
-        y: 665,
-        size: fontSize,
-        font,
-        color: textColor,
-      }
-    );
-    page.drawText(`${Order.shipping.district}, ${Order.shipping.songkhat}`, {
-      x: 30,
-      y: 650,
-      size: fontSize,
-      font,
-      color: textColor,
-    });
-    page.drawText(`${Order.shipping.province}, ${Order.shipping.postalcode}`, {
-      x: 30,
-      y: 635,
-      size: fontSize,
-      font,
-      color: textColor,
-    });
-
-    page.drawText("Shipping Address", {
-      x: 400,
-      y: 700,
-      size: fontSize,
-      font,
-      color: textColor,
-    });
-    page.drawText(`${Order.shipping.firstname} ${Order.shipping.lastname}`, {
-      x: 400,
-      y: 680,
-      size: fontSize,
-      font,
-      color: textColor,
-    });
-    page.drawText(
-      `No${Order.shipping.houseId}, Street ${Order.shipping.street}`,
-      {
-        x: 400,
-        y: 665,
-        size: fontSize,
-        font,
-        color: textColor,
-      }
-    );
-    page.drawText(`${Order.shipping.district}, ${Order.shipping.songkhat}`, {
-      x: 400,
-      y: 650,
-      size: fontSize,
-      font,
-      color: textColor,
-    });
-    page.drawText(`${Order.shipping.province}, ${Order.shipping.postalcode}`, {
-      x: 400,
-      y: 635,
-      size: fontSize,
-      font,
-      color: textColor,
-    });
-  }
+  page.drawText("Shipping Address", {
+    x: 400,
+    y: 700,
+    size: fontSize,
+    font,
+    color: textColor,
+  });
+  page.drawText("Vish Singh", {
+    x: 400,
+    y: 680,
+    size: fontSize,
+    font,
+    color: textColor,
+  });
+  page.drawText("Regent Home Bangson 27", {
+    x: 400,
+    y: 665,
+    size: fontSize,
+    font,
+    color: textColor,
+  });
+  page.drawText("Building A, 873/1007", {
+    x: 400,
+    y: 650,
+    size: fontSize,
+    font,
+    color: textColor,
+  });
+  page.drawText("Chak Angre Kraom", {
+    x: 400,
+    y: 635,
+    size: fontSize,
+    font,
+    color: textColor,
+  });
 
   // Draw order details
-  page.drawText(`Order No. ${Order.id}`, {
+  page.drawText(`Order No.   ATH68763166`, {
     x: 400,
     y: 600,
     size: fontSize,
     font,
     color: textColor,
   });
-  page.drawText(`Invoice date: ${Order.createdAt}`, {
+  page.drawText(`Invoice date:    20/08/2024`, {
     x: 400,
     y: 580,
     size: fontSize,
@@ -346,16 +265,59 @@ export const generateInvoicePdf = async (Order: GenerateInvoicePdf) => {
       qty: 1,
       price: "3,500.00",
     },
+    {
+      id: "IE4931",
+      name: "YZY FOAM RNRfdkafjdalkfd afkdafjlkd alfkldalf dafkldlajfkldjsaklfdlksa fldakjfkdlsamflkdsa flkdklfjkaldsfdsaf dsfkdjsafkldsjafkldsklfjsdklfjdskl",
+      variant: "Mx Granite/Mx Granite/Mx Granite",
+      qty: 1,
+      price: "3,500.00",
+    },
+    {
+      id: "IE4931",
+      name: "YZY FOAM RNRfdkafjdalkfd afkdafjlkd alfkldalf dafkldlajfkldjsaklfdlksa fldakjfkdlsamflkdsa flkdklfjkaldsfdsaf dsfkdjsafkldsjafkldsklfjsdklfjdskl",
+      variant: "Mx Granite/Mx Granite/Mx Granite",
+      qty: 1,
+      price: "3,500.00",
+    },
+    {
+      id: "IE4931",
+      name: "YZY FOAM RNRfdkafjdalkfd afkdafjlkd alfkldalf dafkldlajfkldjsaklfdlksa fldakjfkdlsamflkdsa flkdklfjkaldsfdsaf dsfkdjsafkldsjafkldsklfjsdklfjdskl",
+      variant: "Mx Granite/Mx Granite/Mx Granite",
+      qty: 1,
+      price: "3,500.00",
+    },
+    {
+      id: "IE4931",
+      name: "YZY FOAM RNRfdkafjdalkfd afkdafjlkd alfkldalf dafkldlajfkldjsaklfdlksa fldakjfkdlsamflkdsa flkdklfjkaldsfdsaf dsfkdjsafkldsjafkldsklfjsdklfjdskl",
+      variant: "Mx Granite/Mx Granite/Mx Granite",
+      qty: 1,
+      price: "3,500.00",
+    },
+
+    {
+      id: "IE4931",
+      name: "YZY FOAM RNRfdkafjdalkfd afkdafjlkd alfkldalf dafkldlajfkldjsaklfdlksa fldakjfkdlsamflkdsa flkdklfjkaldsfdsaf dsfkdjsafkldsjafkldsklfjsdklfjdskl",
+      variant: "Mx Granite/Mx Granite/Mx Granite",
+      qty: 1,
+      price: "3,500.00",
+    },
+    {
+      id: "IE4931",
+      name: "YZY FOAM RNRfdkafjdalkfd afkdafjlkd alfkldalf dafkldlajfkldjsaklfdlksa fldakjfkdlsamflkdsa flkdklfjkaldsfdsaf dsfkdjsafkldsjafkldsklfjsdklfjdskl",
+      variant: "Mx Granite/Mx Granite/Mx Granite",
+      qty: 1,
+      price: "3,500.00",
+    },
+    {
+      id: "IE4931",
+      name: "YZY FOAM RNRfdkafjdalkfd afkdafjlkd alfkldalf dafkldlajfkldjsaklfdlksa fldakjfkdlsamflkdsa flkdklfjkaldsfdsaf dsfkdjsafkldsjafkldsklfjsdklfjdskl",
+      variant: "Mx Granite/Mx Granite/Mx Granite",
+      qty: 1,
+      price: "3,500.00",
+    },
+
     // Add more products here...
   ];
-
-  const orderedProduct = Order.product.map((prob) => ({
-    id: prob.id,
-    name: prob.name,
-    variant: prob.selectedVariant.join("/"),
-    qty: prob.quantity,
-    price: prob.totalprice,
-  }));
 
   // Draw each product row in the table
   const wrapText = (text: string, maxWidth: number) => {
@@ -378,11 +340,18 @@ export const generateInvoicePdf = async (Order: GenerateInvoicePdf) => {
     return lines;
   };
 
-  for (const product of orderedProduct) {
+  const productColumnWidths = {
+    id: 65,
+    name: 330,
+    qty: 40,
+    price: 95,
+  };
+
+  for (const product of products) {
     y -= 20; // Move y-position down for the next row
     checkAndAddPage(); // Check if we need to add a new page
 
-    page.drawText(product.id.toString(), {
+    page.drawText(product.id, {
       x: 35,
       y,
       size: fontSize,
@@ -454,7 +423,7 @@ export const generateInvoicePdf = async (Order: GenerateInvoicePdf) => {
   }
 
   // Draw totals at the bottom of the table
-  page.drawText(`Sub Total USD ${Order.price.subtotal.toFixed(2)}`, {
+  page.drawText("Sub Total USD 100.00", {
     x: 30,
     y,
     size: fontSize,
@@ -462,7 +431,7 @@ export const generateInvoicePdf = async (Order: GenerateInvoicePdf) => {
     color: textColor,
   });
 
-  page.drawText(`Shipping USD ${Order.price.shipping?.toFixed(2)}`, {
+  page.drawText("Shipping & Handling USD 100.00", {
     x: 30,
     y: y - 20,
     size: fontSize,
@@ -479,7 +448,7 @@ export const generateInvoicePdf = async (Order: GenerateInvoicePdf) => {
     opacity: 1,
   });
 
-  page.drawText(`Total USD ${Order.price.total.toFixed(2)}`, {
+  page.drawText("Total USD 1,750.00", {
     x: 30,
     y: y - 50,
     size: fontSize,

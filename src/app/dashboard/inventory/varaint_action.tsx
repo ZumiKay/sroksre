@@ -301,6 +301,7 @@ export interface InventoryParamType {
   bannersize?: string;
   search?: string;
   expired?: string;
+  promoids?: string;
 }
 
 export const DeleteTempImage = async () => {

@@ -591,6 +591,8 @@ export function SelectionSSR(props: {
 
 interface Addresstype {
   id: number;
+  firstname: string;
+  lastname: string;
   street: string;
   houseId: string;
   province: string;
@@ -601,6 +603,8 @@ interface Addresstype {
 }
 const shippingInitialize: Addresstype = {
   id: 0,
+  firstname: "",
+  lastname: "",
   houseId: "",
   street: "",
   province: "",
@@ -711,6 +715,24 @@ export function ShippingForm({ orderid }: { orderid: string }) {
           />
           {select !== 0 && (
             <>
+              <div className="w-full h-fit flex flex-row items-center gap-x-5">
+                <input
+                  className="w-full h-[50px] p-1  font-medium text-sm"
+                  placeholder="Firstname"
+                  name="firstname"
+                  value={selectedaddress?.firstname}
+                  onChange={handleChange}
+                  required
+                />
+                <input
+                  className="w-full h-[50px] p-1  font-medium text-sm"
+                  placeholder="Lastname"
+                  name="lastname"
+                  value={selectedaddress?.lastname}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
               <input
                 className="w-full h-[50px] p-1  font-medium text-sm"
                 placeholder="Street Name or Id"
@@ -790,6 +812,7 @@ export function ShippingForm({ orderid }: { orderid: string }) {
 
 interface OrderUserType extends Ordertype {
   user: {
+    id: number;
     firstname: string;
     lastname?: string;
     email: string;
@@ -861,6 +884,15 @@ export function Paypalbutton({
             } else if (!orderData.purchase_units) {
               throw new Error(JSON.stringify(orderData));
             } else {
+              const getPolicy = await ApiRequest(
+                `/api/policy?type=email`,
+                undefined,
+                "GET"
+              );
+              if (!getPolicy.success) {
+                throw Error("Error Occured");
+              }
+
               const htmltemplate = ReactDOMServer.renderToString(
                 <OrderReceiptTemplate
                   order={{ ...order, status: "Paid" }}

@@ -8,13 +8,14 @@ import {
   VariantColorValueType,
 } from "@/src/context/GlobalContext";
 import Modal from "../component/Modals";
-import { TextField } from "@mui/material";
 import { useRouter, useSearchParams } from "next/navigation";
 import { filtervaluetype, getFilterValue } from "./action";
 import { ToggleSelect } from "../component/ToggleMenu";
 import Image from "next/image";
 import Card from "../component/Card";
 import { Input, Spacer } from "@nextui-org/react";
+import { ApiRequest, useEffectOnce } from "@/src/context/CustomHook";
+import { NormalSkeleton } from "../component/Banner";
 
 export const ProductFilterButton = ({
   pid,
@@ -26,6 +27,8 @@ export const ProductFilterButton = ({
   productcount,
   isPromotion,
   latest,
+  pcate,
+  ccate,
 }: {
   pid: string;
   cid?: string;
@@ -34,8 +37,10 @@ export const ProductFilterButton = ({
   promo?: string[];
   search?: string;
   productcount?: number;
-  isPromotion?: boolean;
+  isPromotion?: string;
   latest?: boolean;
+  pcate?: string[];
+  ccate?: string[];
 }) => {
   const { openmodal, setopenmodal } = useGlobalContext();
   return (
@@ -65,6 +70,8 @@ export const ProductFilterButton = ({
             other,
             search,
             promo,
+            pcate,
+            ccate,
           }}
           latest={latest}
         />
@@ -105,6 +112,18 @@ export const SortSelect = () => {
   );
 };
 
+const fetchcategories = async (ty: "parent" | "child", pid?: string) => {
+  const res = await ApiRequest(
+    `/api/categories/select?ty=${ty}${pid ? `&pid=${pid}` : ""}`,
+    undefined,
+    "GET"
+  );
+  if (!res.success) {
+    return { success: false };
+  }
+  return { success: true, data: res.data };
+};
+
 export const FilterContainer = ({
   pid,
   cid,
@@ -112,6 +131,7 @@ export const FilterContainer = ({
   productcount,
   isPromotion,
   latest,
+  promoid,
 }: {
   pid: string;
   cid?: string;
@@ -121,12 +141,16 @@ export const FilterContainer = ({
     other?: string[];
     promo?: string[];
     search?: string;
+    pcate?: string[];
+    ccate?: string[];
   };
   productcount?: number;
-  isPromotion?: boolean;
+  isPromotion?: string;
   latest?: boolean;
+  promoid?: string;
 }) => {
   const { setopenmodal } = useGlobalContext();
+  const [loading, setloading] = useState(false);
   const [filtervalue, setfiltervalue] = useState<filtervaluetype | undefined>(
     undefined
   );
@@ -134,11 +158,17 @@ export const FilterContainer = ({
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  useEffect(() => {
+  useEffectOnce(() => {
     selected?.search &&
       setfiltervalue((prev) => ({ ...prev, search: selected.search } as any));
 
     const getFiltervalue = async () => {
+      if (!pid && !cid) {
+        return;
+      }
+
+      setloading(true);
+
       const res = getFilterValue.bind(
         null,
         parseInt(pid),
@@ -146,13 +176,36 @@ export const FilterContainer = ({
         latest
       );
       const getreq = await res();
+      setloading(false);
 
       if (getreq) {
-        setfiltervalue(getreq);
+        setfiltervalue({
+          ...getreq,
+        });
       }
     };
+
     getFiltervalue();
-  }, []);
+  });
+
+  useEffect(() => {
+    if (isPromotion) {
+      const fetchcate = async () => {
+        setloading(true);
+        const res = await ApiRequest(
+          `/api/categories/select?ty=promocate&promoid=${isPromotion}`,
+          undefined,
+          "GET"
+        );
+        setloading(false);
+        if (!res.success) {
+          return;
+        }
+        setfiltervalue((prev) => ({ ...prev, category: res.data } as any));
+      };
+      fetchcate();
+    }
+  }, [isPromotion]);
 
   const handleClick = (idx: number, type: string, otheridx?: number) => {
     const param = new URLSearchParams(searchParams);
@@ -180,6 +233,10 @@ export const FilterContainer = ({
       toggleParam("other", val);
     } else if (type === "promo") {
       toggleParam("promo", filtervalue?.promo?.[idx].name);
+    } else if (type === "pcate") {
+      toggleParam("pcate", filtervalue?.category?.parent[idx].value.toString());
+    } else if (type === "ccate" && filtervalue?.category?.child) {
+      toggleParam("ccate", filtervalue?.category?.child[idx].value.toString());
     }
 
     router.push(`?${param}`, { scroll: false });
@@ -202,7 +259,8 @@ export const FilterContainer = ({
   const handleClearSpecific = (
     data: string[] | VariantColorValueType[],
     selectedValue: string[],
-    promo?: boolean
+    promo?: boolean,
+    type?: string
   ) => {
     const param = new URLSearchParams(searchParams);
 
@@ -220,6 +278,9 @@ export const FilterContainer = ({
             } else {
               param.set("other", updatedOtherValues.join(","));
             }
+          }
+          if (type === "pcate" || type === "ccate") {
+            param.delete(type);
           }
 
           if (param.has("promo") && selectedValue.includes(item) && promo) {
@@ -259,6 +320,37 @@ export const FilterContainer = ({
             size="lg"
           />
 
+          {loading && <NormalSkeleton width="100%" height="50px" count={3} />}
+
+          {isPromotion && filtervalue?.category && (
+            <>
+              <ToggleSelect
+                title="Main Category"
+                type="pcate"
+                clickfunction={handleClick}
+                selected={filtervalue.category.parent
+                  ?.filter((i) => selected?.pcate?.includes(i.value.toString()))
+                  ?.map((i) => i.label)}
+                data={filtervalue.category.parent?.map((i) => i.label)}
+                onClear={handleClearSpecific}
+              />
+              {filtervalue.category.child && (
+                <ToggleSelect
+                  title="Sub Category"
+                  type="ccate"
+                  selected={filtervalue.category.child
+                    ?.filter((i) =>
+                      selected?.ccate?.includes(i.value.toString())
+                    )
+                    ?.map((i) => i.label)}
+                  clickfunction={handleClick}
+                  data={filtervalue.category.child?.map((i) => i.label)}
+                  onClear={handleClearSpecific}
+                />
+              )}
+            </>
+          )}
+
           {filtervalue && (
             <>
               {filtervalue?.variant?.color.length > 0 && (
@@ -274,7 +366,10 @@ export const FilterContainer = ({
 
               <h3
                 className="text-lg font-bold"
-                hidden={filtervalue.variant?.text.length === 0}
+                hidden={
+                  filtervalue.variant?.text.length === 0 ||
+                  !filtervalue.variant?.text
+                }
               >
                 {selected?.other ? "Clear Filter" : "Other"}
               </h3>
@@ -292,7 +387,8 @@ export const FilterContainer = ({
                 ))}
 
               <Spacer />
-              {!isPromotion &&
+              {!promoid &&
+                !isPromotion &&
                 filtervalue?.promotion &&
                 filtervalue?.promotion.length > 0 && (
                   <ToggleSelect

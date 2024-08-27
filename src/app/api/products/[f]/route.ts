@@ -32,7 +32,8 @@ interface paramsType {
   cc?: number;
   sk?: string;
   p?: number;
-  pid?: string;
+  pid?: string; //Promotion id
+  pids?: string; //Promotion Ids
   po?: number;
   dc?: string;
   ds?: string;
@@ -46,7 +47,7 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { f: string } }
 ) {
-  const { ty, limit, q, pc, sk, cc, p, pid, po, dc, ds, dt, vr, vs, sp } =
+  const { ty, limit, q, pc, sk, cc, p, pid, po, dc, ds, dt, vr, vs, sp, pids } =
     queryStringToObject(params.f) as paramsType;
 
   const productId = pid ? parseInt(pid, 10) : undefined;
@@ -66,7 +67,8 @@ export async function GET(
       dc,
       ds,
       dt,
-      sp
+      sp,
+      pids?.toString()
     );
 
     const total = await Prisma.products.count();

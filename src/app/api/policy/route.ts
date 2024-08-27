@@ -68,7 +68,7 @@ export const getPolicesByPage = async (page: showtype) =>
       },
     },
     select:
-      page === "footer" || page === "checkout"
+      page !== "productdetail"
         ? { id: true, title: true }
         : {
             id: true,

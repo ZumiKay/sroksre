@@ -143,6 +143,7 @@ export interface FilterValue {
   bannersize?: string;
   search?: string;
   expired?: string;
+  promoids?: number[];
 }
 
 interface Listproductfilter {
@@ -357,6 +358,7 @@ export interface SubcategoriesState {
   type?: "normal" | "promo";
   pid?: number;
   name: string;
+  isExpired?: boolean;
 }
 
 export interface LoadingState {

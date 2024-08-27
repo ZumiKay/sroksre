@@ -10,6 +10,8 @@ import { GlobalContextProvider } from "../context/GlobalContext";
 import { getUser } from "../context/OrderContext";
 import { NextUIProvider } from "@nextui-org/react";
 import { Suspense } from "react";
+import Loading from "./loading";
+import { LayoutTransition } from "./component/Layout";
 import { ContainerLoading } from "./component/Loading";
 
 const prompt = Prompt({
@@ -44,13 +46,20 @@ export default async function RootLayout({
         <GlobalContextProvider>
           {" "}
           <NextUIProvider>
-            <div className="w-full h-full relative">
-              <Navbar session={session as any} />
-
-              <ToastContainer />
-              <Suspense fallback={<ContainerLoading />}>{children}</Suspense>
-              <Footer />
-            </div>
+            <Suspense fallback={<ContainerLoading />}>
+              <div className="w-full h-full relative">
+                <Navbar session={session as any} />
+                <ToastContainer />{" "}
+                <LayoutTransition
+                  initial={{ opacity: 0, y: -20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                >
+                  {children}
+                </LayoutTransition>
+                <Footer />
+              </div>
+            </Suspense>
           </NextUIProvider>
         </GlobalContextProvider>
       </body>

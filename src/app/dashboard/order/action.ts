@@ -4,22 +4,15 @@ import Prisma from "@/src/lib/prisma";
 import { AllorderType } from "./page";
 import {
   caculateArrayPagination,
-  calculateDiscountProductPrice,
   calculatePagination,
-  getDiscountedPrice,
   OrderReciptEmail,
   removeSpaceAndToLowerCase,
 } from "@/src/lib/utilities";
 import { revalidatePath } from "next/cache";
-import {
-  Productorderdetailtype,
-  Productordertype,
-  totalpricetype,
-} from "@/src/context/OrderContext";
+import { totalpricetype } from "@/src/context/OrderContext";
 import { SendOrderEmail } from "../../checkout/action";
 import { Filterdatatype } from "./OrderComponent";
 import dayjs from "dayjs";
-import { VariantColorValueType } from "@/src/context/GlobalContext";
 import { getCheckoutdata } from "../../checkout/page";
 
 export const GetOrder = async (
@@ -149,7 +142,9 @@ export const getFilterOrder = async ({
 
     order = order.filter((data) => {
       const price = data.price as unknown as totalpricetype;
-      const isOrder = data.id === search;
+
+      const isOrder = search && search === removeSpaceAndToLowerCase(data.id);
+
       const isBuyer =
         (search &&
           removeSpaceAndToLowerCase(

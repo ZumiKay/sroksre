@@ -1,10 +1,6 @@
-import {
-  useGlobalContext,
-  Userinitialize,
-  UserState,
-} from "@/src/context/GlobalContext";
+import { useGlobalContext, Userinitialize } from "@/src/context/GlobalContext";
 import React, { ChangeEvent, FormEvent, useEffect, useState } from "react";
-import { errorToast, LoadingText, successToast } from "../Loading";
+import { errorToast, successToast } from "../Loading";
 import { ApiRequest } from "@/src/context/CustomHook";
 import Modal from "../Modals";
 import Image from "next/image";
@@ -30,15 +26,17 @@ import { PasswordInput, TextInput } from "../FormComponent";
 import { CloseVector } from "../Asset";
 import { listofprovinces } from "@/src/lib/utilities";
 import { useRouter } from "next/navigation";
+import { userdata } from "../../account/actions";
+import { Skeleton } from "@nextui-org/react";
 
 export const Createusermodal = ({
   setpage,
 }: {
   setpage: React.Dispatch<React.SetStateAction<number>>;
 }) => {
-  const { allData, setalldata, globalindex, setglobalindex, setopenmodal } =
+  const { allData, globalindex, setglobalindex, setopenmodal } =
     useGlobalContext();
-  const [data, setdata] = useState<UserState>(Userinitialize);
+  const [data, setdata] = useState<userdata>(Userinitialize);
   const [showpass, setshowpass] = useState({
     passowrd: false,
   });
@@ -143,13 +141,7 @@ export const Createusermodal = ({
             name="email"
             required
           />
-          <TextInput
-            type="text"
-            placeholder="Phone Number"
-            value={data.phonenumber}
-            onChange={handleChange}
-            name="phonenumber"
-          />
+
           {globalindex.useredit === -1 && (
             <>
               <FormControl
@@ -245,6 +237,8 @@ export interface editprofiledata {
 }
 export interface shippingtype {
   id?: number;
+  firstname: string;
+  lastname: string;
   street?: string;
   province: string;
   houseId: number;
@@ -286,17 +280,10 @@ export const EditProfile = ({
 
     if (shipping && index >= 0 && index < shipping.length) {
       let selectedShipping = shipping[index];
-      const isNotEmpty = Object.entries(selectedShipping).every(
-        ([key, val]) => {
-          if (typeof val === "string") {
-            return val.trim() !== "";
-          }
-          if (typeof val === "number") {
-            return val !== 0;
-          }
-          return Boolean(val);
-        }
-      );
+      const isNotEmpty = Object.values(selectedShipping).some((val) => {
+        return val?.toString().trim() !== "";
+      });
+
       if (!isNotEmpty) {
         errorToast("All field is required");
         return;
@@ -350,7 +337,7 @@ export const EditProfile = ({
     let del = update.shipping;
 
     if (del && del[index].id) {
-      const deletedaddress = Deleteaddress.bind(false, del[index].id as number);
+      const deletedaddress = Deleteaddress.bind(null, del[index].id as number);
       const deleted = await deletedaddress();
       if (!deleted.success) {
         errorToast("Error Occured");
@@ -563,7 +550,7 @@ export const EditProfile = ({
         {type === "shipping" && (
           <div className="relative w-full min-h-[20vh] max-h-[80vh]">
             {loading.get ? (
-              <LoadingText />
+              <AddressSkeleton />
             ) : (
               <>
                 {!data.shipping ||
@@ -636,6 +623,22 @@ export const EditProfile = ({
                             }}
                             data={listofprovinces}
                           />
+                          <div className="w-full h-fit flex flex-row items-center gap-x-5">
+                            <TextInput
+                              name="firstname"
+                              type="text"
+                              onChange={(e) => Handleaddresschange(e, idx)}
+                              value={i.firstname}
+                              placeholder="Firstname"
+                            />
+                            <TextInput
+                              name="lastname"
+                              type="text"
+                              onChange={(e) => Handleaddresschange(e, idx)}
+                              value={i.lastname}
+                              placeholder="Lastname"
+                            />
+                          </div>
                           <TextInput
                             name="street"
                             type="text"
@@ -720,6 +723,8 @@ export const EditProfile = ({
                 return;
               }
               address?.push({
+                firstname: "",
+                lastname: "",
                 street: "",
                 province: "",
                 district: "",
@@ -764,5 +769,15 @@ export const EditProfile = ({
         )}
       </div>
     </Modal>
+  );
+};
+
+const AddressSkeleton = () => {
+  return (
+    <div className=" w-full flex flex-col items-start gap-y-3 h-fit">
+      <Skeleton className="h-[50px] w-full rounded-lg" />
+      <Skeleton className="h-[50px] w-full rounded-lg" />
+      <Skeleton className="h-[50px] w-full rounded-lg" />
+    </div>
   );
 };

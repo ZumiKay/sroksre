@@ -147,8 +147,6 @@ export async function Addaddress(
       message = "Address Updated";
     }
 
-    revalidateTag("userinfo");
-
     return { success: true, message: message, data: { id: id } };
   } catch (error) {
     console.log("Add Address", error);
@@ -158,22 +156,15 @@ export async function Addaddress(
 
 export const Deleteaddress = async (id: number): Promise<returntype> => {
   try {
-    const user = await getServerSession(authOptions);
-    const uID: any = user?.user && "sub" in user.user && user.user.sub;
-
     await Prisma.address.delete({
       where: {
-        userId: uID,
         id: id,
       },
     });
-    revalidateTag("userinfo");
 
     return { success: true, message: "Address Deleted" };
   } catch (error) {
     return { success: false, message: "Failed To Delete" };
-  } finally {
-    await Prisma.$disconnect();
   }
 };
 
@@ -183,8 +174,8 @@ export const VerifyEmail = async (
   code?: string
 ): Promise<returntype> => {
   try {
-    const user = await getServerSession(authOptions);
-    const uID: any = user?.user && "sub" in user.user && user.user.sub;
+    const user = await getUser();
+
     if (!verified) {
       const isEmail = await Prisma.user.findFirst({
         where: {
@@ -198,7 +189,7 @@ export const VerifyEmail = async (
 
       await Prisma.user.update({
         where: {
-          id: uID,
+          id: user?.id,
         },
         data: {
           vfy: otp,

@@ -1,12 +1,11 @@
 "use client";
 import ReactDOMServer from "react-dom/server";
-import { ChangeEvent, useEffect, useRef, useState } from "react";
+import { ChangeEvent, useEffect, useState } from "react";
 import PrimaryButton, { Selection } from "../../component/Button";
 import Modal from "../../component/Modals";
 import { useGlobalContext, userdata } from "@/src/context/GlobalContext";
 import { DateTimePicker, LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
-import PaginationComponent from "../../component/Pagination";
 import { CloseVector } from "../../component/Asset";
 import {
   Allstatus,
@@ -364,14 +363,7 @@ export const ButtonSsr = ({
               order={data?.action as unknown as OrderUserType}
             />
           ) : (
-            <>
-              <ActionModal
-                close={() => handleClose()}
-                types="status"
-                oid={id}
-                order={data as unknown as OrderUserType}
-              />
-            </>
+            <></>
           )}
         </>
       )}
@@ -925,17 +917,18 @@ export const ActionModal = ({
 }) => {
   const [actiontype, setactiontype] = useState<string>(types);
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const handleClick = (type: string) => {
     setactiontype(type);
   };
 
   const handleClose = () => {
-    const url = new URL(window.location.href);
-    url.searchParams.delete("id");
-    url.searchParams.delete("ty");
+    const url = new URLSearchParams(searchParams);
+    url.delete("id");
+    url.delete("ty");
     close();
-    router.replace(url.pathname + url.search);
+    router.push(`?${url}`, { scroll: false });
   };
   return (
     <Modal
@@ -998,11 +991,15 @@ const UpdateStatus = ({
   order: OrderUserType;
 }) => {
   const router = useRouter();
-  const [status, setstatus] = useState(order.status ?? "");
+  const [status, setstatus] = useState("");
   const [loading, setloading] = useState(false);
   const handleSelect = (e: ChangeEvent<HTMLSelectElement>) => {
     setstatus(e.target.value as typeof order.status);
   };
+
+  useEffect(() => {
+    setstatus(order?.status);
+  }, [order?.status]);
 
   const handleCancel = () => {
     setactiontype("none");
@@ -1040,14 +1037,14 @@ const UpdateStatus = ({
         <Selection
           default="Status"
           value={status}
-          data={Object.entries(Allstatus).map(([_, val]) => val)}
+          data={Object.entries(Allstatus).map(([_, val]) => val) ?? []}
           onChange={handleSelect}
         />
       </div>
       <div className="btn_container w-full h-fit inline-flex gap-x-5">
         <PrimaryButton
           type="button"
-          disable={status.length === 0 || status === order.status}
+          disable={status?.length === 0 || status === order?.status}
           text="Update"
           status={loading ? "loading" : "authenticated"}
           onClick={() => handleUpdate()}

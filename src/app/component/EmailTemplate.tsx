@@ -73,8 +73,10 @@ export function OrderReceiptTemplate({ order, isAdmin }: OerderEmailProps) {
     <div
       style={{
         width: "100%",
+        height: "auto",
         display: "grid",
         placeItems: "center",
+        placeContent: "center",
       }}
     >
       <table
@@ -83,15 +85,16 @@ export function OrderReceiptTemplate({ order, isAdmin }: OerderEmailProps) {
           backgroundColor: "#f2f2f2",
           display: "flex",
           flexDirection: "column",
+          justifyContent: "center",
           alignItems: "center",
-          width: "30%",
-          minWidth: "450px",
+          width: "100%",
           height: "100%",
           border: 0,
         }}
         align="center"
       >
         <tbody style={{ textAlign: "center", border: 0 }}>
+          <tr></tr>
           <tr>
             <td colSpan={2} align="center">
               <img
@@ -110,7 +113,7 @@ export function OrderReceiptTemplate({ order, isAdmin }: OerderEmailProps) {
             <td colSpan={2} height={"100px"} valign="middle">
               <h3 style={{ fontSize: "20px", fontWeight: "700" }}>
                 {isAdmin
-                  ? `Order for ${order.user.firstname}`
+                  ? `Order for ${order.user.firstname}#${order.user.id}`
                   : `Thank you for shopping with us`}
               </h3>
             </td>
@@ -123,11 +126,20 @@ export function OrderReceiptTemplate({ order, isAdmin }: OerderEmailProps) {
               style={{ textAlign: "left", paddingLeft: "5%", fontSize: "15px" }}
             >
               {!isAdmin && (
-                <h3>
-                  <strong> Hi, {order.user?.firstname ?? ""} </strong> we
-                  received your order.
+                <h3 style={{ height: "50px" }}>
+                  <strong>{`Hi, ${order.user?.firstname ?? ""}`} </strong>
+                  {"we received your order."}
                 </h3>
               )}
+              <h3
+                style={{
+                  fontSize: "25px",
+                  fontWeight: 800,
+                  height: "50px",
+                }}
+              >
+                Order Summary
+              </h3>
               <h3 style={{ fontWeight: "700" }}>Order #: {order.id}</h3>
               <h3 style={{ fontWeight: "700" }}>
                 Order on {formatDate(order.createdAt)}
@@ -140,17 +152,64 @@ export function OrderReceiptTemplate({ order, isAdmin }: OerderEmailProps) {
               >
                 {`Order status: ${order.status.toUpperCase()}`}
               </h3>
+
+              {order.shipping && (
+                <>
+                  <h3
+                    style={{
+                      fontSize: "25px",
+                      fontWeight: 800,
+                      height: "30px",
+                    }}
+                  >
+                    Shipping Address
+                  </h3>
+                  <h3
+                    style={{
+                      fontSize: "15px",
+                      fontWeight: 500,
+                    }}
+                  >
+                    {" "}
+                    {`${order.shipping.firstname} ${order.shipping.lastname}`}
+                  </h3>
+                  <h3
+                    style={{
+                      fontSize: "15px",
+                      fontWeight: 500,
+                    }}
+                  >
+                    {" "}
+                    {`No${order.shipping.houseId}, Street ${order.shipping.street}`}{" "}
+                  </h3>
+                  <h3
+                    style={{
+                      fontSize: "15px",
+                      fontWeight: 500,
+                    }}
+                  >
+                    {`${order.shipping.district}, ${order.shipping.songkhat}`}{" "}
+                  </h3>
+                  <h3
+                    style={{
+                      fontSize: "15px",
+                      fontWeight: 500,
+                    }}
+                  >
+                    {" "}
+                    {`${order.shipping.province}, ${order.shipping.postalcode}`}{" "}
+                  </h3>
+                </>
+              )}
             </td>
           </tr>
-          <tr style={{ height: "20px" }}>
-            <td></td>
-          </tr>
+
           {order.Orderproduct.map((prob) => {
             return <ShowCard orderProduct={prob} />;
           })}
 
           <tr style={{ height: "70px", width: "100%" }}>
-            <td colSpan={isAdmin ? 2 : 1} width={isAdmin ? "100%" : "50%"}>
+            <td colSpan={2} width={"95%"}>
               <a
                 style={{
                   width: "100%",
@@ -167,28 +226,56 @@ export function OrderReceiptTemplate({ order, isAdmin }: OerderEmailProps) {
                 View Order
               </a>
             </td>
-            {!isAdmin && (
-              <td width={"50%"}>
-                <a
-                  style={{
-                    width: "100%",
-                    padding: "10px",
-                    backgroundColor: "#495464",
-                    border: "0px",
-                    borderRadius: "10px",
-                    color: "white",
-                    fontSize: "17px",
-                    fontWeight: "600",
-                  }}
-                  href={process.env.BASE_URL}
-                >
-                  Contiue Shopping
-                </a>
-              </td>
-            )}
           </tr>
 
           <TotalPrice data={order.price} />
+
+          <tr style={{ width: "100%", height: "auto" }}>
+            <td colSpan={2} align="left">
+              <h3 style={{ fontWeight: 800, fontSize: "30px" }}>Need Help ?</h3>
+              <a
+                style={{
+                  fontSize: "25px",
+                  fontWeight: "600",
+                  padding: "10px",
+                }}
+                href={process.env.BASE_URL + "/contact"}
+              >
+                Contact
+              </a>
+            </td>
+          </tr>
+
+          <tr>
+            <td colSpan={2} align="left">
+              <a
+                style={{
+                  fontSize: "25px",
+                  fontWeight: "600",
+                  padding: "10px",
+                }}
+                href={process.env.BASE_URL + "/privacyandpolicy"}
+              >
+                Policy and Condition
+              </a>
+            </td>
+          </tr>
+          <tr>
+            <td colSpan={2} align="left">
+              <a
+                style={{
+                  fontSize: "25px",
+                  fontWeight: "600",
+                  padding: "10px",
+                }}
+                href={process.env.BASE_URL + "/privacyandpolicy?p=0"}
+              >
+                FAQs
+              </a>
+            </td>
+          </tr>
+
+          <tr></tr>
         </tbody>
       </table>
     </div>
@@ -273,6 +360,7 @@ const OrderProductEmailCard = ({ data }: { data: ProductEmailCardProps }) => {
           backgroundColor: "white",
           padding: "10px",
           borderRadius: "10px",
+          width: "100%",
           border: 0,
         }}
       >
@@ -345,6 +433,7 @@ const OrderProductEmailCard = ({ data }: { data: ProductEmailCardProps }) => {
       <tr
         style={{
           backgroundColor: "white",
+          width: "auto",
           fontWeight: "600",
           fontSize: "16px",
           border: 0,
@@ -381,6 +470,8 @@ export function CredentialEmail({
         className="info_table"
         style={{
           backgroundColor: "white",
+          backgroundImage: `url("https://firebasestorage.googleapis.com/v0/b/sroksre-442c0.appspot.com/o/sideImage%2Fblank-white-landscape-7sn5o1woonmklx1h.jpg?alt=media&token=d1c1c1a3-3de4-41cc-84da-bb50c1c6d190")`,
+          backgroundRepeat: "repeat",
           display: "flex",
           flexDirection: "column",
           alignItems: "center",

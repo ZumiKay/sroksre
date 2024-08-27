@@ -30,7 +30,6 @@ import { Variantcontainer } from "./VariantModal";
 import { ImageUpload } from "./Image";
 import { Input } from "@nextui-org/react";
 import { VariantIcon } from "../Asset";
-import { useRouter } from "next/navigation";
 
 const stockTypeData = [
   {

@@ -205,7 +205,7 @@ export default function Navbar({ session }: { session?: Usersessiontype }) {
           alt="profile"
           className="cart w-[40px] h-[40px] max-large_tablet:w-[50px] max-large_tablet:h-[50px]  object-contain transition hover:-translate-y-2"
           onMouseEnter={() => session && setprofile(true)}
-          onClick={() => !session && router.push("/account")}
+          onClick={() => !session && router.push("/account", { scroll: false })}
         />
       </div>
 
@@ -296,19 +296,21 @@ const CategoriesContainer = (props: { setopen: any }) => {
               {i.name}
             </h3>
             <div className="category_subheader h-full grid row-span-3 gap-y-5 pt-7 font-normal text-center">
-              {i.subcategories.map((sub) => (
-                <Link
-                  key={sub.id}
-                  href={`/product?pid=${i.id}${
-                    sub.type === "normal"
-                      ? `&cid=${sub.id}`
-                      : `&promoid=${sub.pid}`
-                  }`}
-                  scroll={true}
-                >
-                  <h4 className="subcategory"> {sub.name} </h4>
-                </Link>
-              ))}
+              {i.subcategories
+                .filter((i) => (i.isExpired ? !i.isExpired : true))
+                .map((sub) => (
+                  <Link
+                    key={sub.id}
+                    href={`/product?pid=${i.id}${
+                      sub.type === "normal"
+                        ? `&cid=${sub.id}`
+                        : `&promoid=${sub.pid}`
+                    }`}
+                    scroll={true}
+                  >
+                    <h4 className="subcategory"> {sub.name} </h4>
+                  </Link>
+                ))}
             </div>
           </div>
         ))}

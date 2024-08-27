@@ -93,6 +93,7 @@ export default function Inventory({
     bannersize,
     bannertype,
     expired,
+    promoids,
   } = searchParams as InventoryParamType;
   const btnref = useRef<HTMLDivElement | null>(null);
   const router = useRouter();
@@ -104,7 +105,6 @@ export default function Inventory({
   const [lowstock, setlowstock] = useState(0);
   const [ty, settype] = useState(type);
   const [promoexpire, setpromoexpire] = useState(0);
-
   const [filtervalue, setfiltervalue] = useState<InventoryParamType>({
     parentcate,
     childcate,
@@ -114,6 +114,7 @@ export default function Inventory({
     bannertype,
     status,
     expired,
+    promoids,
   });
 
   useEffect(() => {
@@ -152,18 +153,26 @@ export default function Inventory({
         bannertype,
         expired,
         expiredate,
+        promoids,
       } = filtervalue;
 
       if (ty === "product") {
         apiUrl =
-          status || name || childcate || parentcate || promotion.selectproduct
+          status ||
+          name ||
+          childcate ||
+          parentcate ||
+          promotion.selectproduct ||
+          promoids
             ? `/api/products/ty=filter_p=${page}_limit=${show}${
                 status ? `_sk=${status}` : ""
               }${name ? `_q=${name}` : ""}${
                 parentcate ? `_pc=${parentcate}` : ""
               }${childcate ? `_cc=${childcate}` : ""}${
                 pid ? `_pid=${pid}` : ""
-              }${promotion.selectproduct ? "_sp=1" : ""}`
+              }${promotion.selectproduct ? "_sp=1" : ""}${
+                promoids ? `_pids=${promoids}` : ""
+              }`
             : `/api/products/ty=all_limit=${show}_p=${page}`;
         transformFunction = (item: any) => ({
           ...item,
@@ -353,19 +362,19 @@ export default function Inventory({
     const params = new URLSearchParams(searchParam);
     const value = e.target.value.toLowerCase();
 
-    params.set("ty", value);
-    params.set("p", "1");
-    params.set("limit", "1");
+    //Reset Search Params
+    Object.keys(filtervalue).map((key) => {
+      if (key !== "ty" && key !== "p" && key !== "limit") {
+        params.delete(key);
+      } else if (key !== "ty") {
+        params.set(key, "1");
+      }
+    });
 
-    params.delete("status");
-    params.delete("expiredate");
-    params.delete("name");
-    params.delete("parentcate");
-    params.delete("childcate");
+    params.set("ty", value);
 
     setpage(1);
     setshow("1");
-
     settype(value);
     router.push(`?${params}`, { scroll: false });
     setreloaddata(true);
@@ -625,6 +634,7 @@ export default function Inventory({
               expired={expired}
               reloadData={() => setreloaddata(true)}
               setfilterdata={setfiltervalue as any}
+              isSetPromotion={promotion.selectproduct}
             />
           )}
           {openmodal.discount && <DiscountModals />}
