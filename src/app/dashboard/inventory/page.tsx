@@ -1,18 +1,17 @@
 "use client";
 import PrimaryButton, { Selection } from "../../component/Button";
 import Card, { BannerCard } from "../../component/Card";
-import {
-  AllDataInitialize,
-  PromotionState,
-  useGlobalContext,
-} from "@/src/context/GlobalContext";
+import { PromotionState, useGlobalContext } from "@/src/context/GlobalContext";
 import { SubInventoryMenu } from "../../component/Navbar";
-import { ChangeEvent, useEffect, useRef, useState } from "react";
-import { ApiRequest, Delayloading } from "@/src/context/CustomHook";
+import { useEffect, useRef, useState } from "react";
+import {
+  ApiRequest,
+  Delayloading,
+  useScreenSize,
+} from "@/src/context/CustomHook";
 import { ContainerLoading, errorToast } from "../../component/Loading";
 import { FilterMenu } from "../../component/SideMenu";
 import dayjs from "dayjs";
-
 import { AnimatePresence } from "framer-motion";
 import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
@@ -26,7 +25,9 @@ import {
   CreatePromotionModal,
   DiscountModals,
 } from "../../component/Modals/Promotion";
-import PaginationCustom from "../../component/Pagination_Component";
+import PaginationCustom, {
+  SelectionCustom,
+} from "../../component/Pagination_Component";
 
 const createmenu = [
   {
@@ -78,8 +79,6 @@ export default function Inventory({
     setpromotion,
     itemlength,
     setitemlength,
-    reloaddata,
-    setreloaddata,
   } = useGlobalContext();
   const {
     ty: type,
@@ -103,6 +102,7 @@ export default function Inventory({
   const [page, setpage] = useState(p ? parseInt(p) : 1);
   const [itemscount, setitemcount] = useState(0);
   const [lowstock, setlowstock] = useState(0);
+  const [reloaddata, setreloaddata] = useState(true);
   const [ty, settype] = useState(type);
   const [promoexpire, setpromoexpire] = useState(0);
   const [filtervalue, setfiltervalue] = useState<InventoryParamType>({
@@ -134,6 +134,7 @@ export default function Inventory({
     if (isValid) {
       return redirect(`/dashboard/inventory?ty=${type}&p=1&limit=1`);
     }
+
     if (reloaddata) {
       fetchdata(promotion.id);
     }
@@ -141,7 +142,6 @@ export default function Inventory({
 
   const fetchdata = async (pid?: number) => {
     try {
-      setalldata(AllDataInitialize);
       let apiUrl: string = "";
       let transformFunction: (item: any) => any = () => {};
       const {
@@ -358,9 +358,8 @@ export default function Inventory({
     }
   };
 
-  const handleFilter = (e: ChangeEvent<HTMLSelectElement>) => {
+  const handleFilter = (value: string) => {
     const params = new URLSearchParams(searchParam);
-    const value = e.target.value.toLowerCase();
 
     //Reset Search Params
     Object.keys(filtervalue).map((key) => {
@@ -380,22 +379,66 @@ export default function Inventory({
     setreloaddata(true);
   };
 
+  const InventoryModals = () => {
+    return (
+      <AnimatePresence>
+        {openmodal.createProduct && (
+          <CreateProducts setreloaddata={setreloaddata} />
+        )}
+        {openmodal.createCategory && <Category />}
+        {openmodal.createBanner && (
+          <BannerModal setreloaddata={setreloaddata} />
+        )}
+        {openmodal.createPromotion && (
+          <CreatePromotionModal
+            searchparams={searchParams as any}
+            settype={settype}
+            setreloaddata={setreloaddata}
+          />
+        )}
+        {openmodal.filteroption && (
+          <FilterMenu
+            name={name}
+            categories={{
+              parentid: parseInt(parentcate as string),
+              childid: parseInt(childcate as string),
+            }}
+            expiredAt={expiredate ? dayjs(expiredate).toISOString() : undefined}
+            type={ty}
+            param={searchParams}
+            expired={expired}
+            reloadData={() => setreloaddata(true)}
+            setfilterdata={setfiltervalue as any}
+            isSetPromotion={promotion.selectproduct}
+          />
+        )}
+        {openmodal.discount && <DiscountModals setreloaddata={setreloaddata} />}
+      </AnimatePresence>
+    );
+  };
+
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
+      <InventoryModals />
       <div className="inventory__container w-full h-full min-h-screen relative flex flex-col items-center pb-[200px]">
-        <div className="inventory_header bg-white sticky z-30 top-[6vh] w-full h-full p-2 border-b border-black">
+        <div className="inventory_header bg-white sticky z-30 top-[55px] w-full h-full p-2 border-b border-black">
           <div className="w-full flex flex-row items-center overflow-x-auto gap-x-5 scrollbar-hide">
             {!promotion.selectproduct &&
             !promotion.selectbanner &&
             !openmodal.managebanner ? (
               <>
-                <Selection
-                  default="Filter Items"
-                  style={{ width: "150px", minWidth: "150px" }}
-                  data={Filteroptions}
-                  value={type}
-                  onChange={handleFilter}
-                />
+                <div className="w-fit h-full">
+                  <SelectionCustom
+                    label="Filter"
+                    data={Filteroptions}
+                    placeholder="Item"
+                    value={type}
+                    onChange={(val) =>
+                      handleFilter(val.toString().toLowerCase())
+                    }
+                    style={{ width: "275px" }}
+                  />
+                </div>
                 <div
                   ref={btnref}
                   className="createbtn_container flex flex-col justify-center items-start"
@@ -511,7 +554,13 @@ export default function Inventory({
             />
           </div>
         </div>
-        <div className="productlist w-[95%] h-fit mt-10 grid grid-cols-3 max-small_screen:grid-cols-2 max-small_tablet:grid-cols-1 gap-x-5 gap-y-32 place-items-center">
+        <div
+          className={`productlist w-[95%] max-smallest_phone:w-full h-fit mt-10 grid grid-cols-3 
+        max-small_screen:grid-cols-2 gap-x-5 gap-y-32
+        max-small_phone:gap-x-0 max-smallest_tablet:grid-cols-1 
+        ${type === "product" ? "max-smallest_tablet:grid-cols-2 " : ""}
+        place-items-center`}
+        >
           {loaded ? (
             <ContainerLoading />
           ) : (
@@ -537,12 +586,20 @@ export default function Inventory({
                 allData?.banner?.map((obj, idx) => (
                   <div
                     key={idx}
-                    style={
-                      obj.size === "small"
-                        ? { width: "400px", height: "500px" }
-                        : { width: "550px", height: "350px" }
-                    }
-                    className="banner-card w-[500px] h-[350px]"
+                    className={`banner-card
+                      ${
+                        obj.size !== "small"
+                          ? `w-[500px] h-[350px] max-smaller_screen:w-[400px] 
+                          max-smaller_screen:h-[250px]
+                          max-smallest_screen1:w-[300px] 
+                          max-smallest_screen1:h-[150px]
+                          max-smallest_tablet:w-[250px]
+                          max-smallest_tablet:h-[150px]
+                          `
+                          : "w-[400px] h-[500px] max-smallest_screen1:w-[150px] max-smallest_screen1:h-[250px]"
+                      }
+                      
+                      `}
                   >
                     <BannerCard
                       key={obj.name}
@@ -559,7 +616,15 @@ export default function Inventory({
                 ))}
               {type === "promotion" &&
                 allData?.promotion?.map((obj, idx) => (
-                  <div key={idx} className="banner-card w-[500px] h-[300px]">
+                  <div
+                    key={idx}
+                    className="banner-card w-[500px] h-[300px]
+                          max-smaller_screen:w-[400px] 
+                          max-smaller_screen:h-[250px]
+                          max-smallest_screen1:w-[300px] 
+                          max-smallest_screen1:h-[150px]
+                          max-smallest_phone:w-[250px]"
+                  >
                     <BannerCard
                       key={obj.name}
                       data={{
@@ -608,37 +673,6 @@ export default function Inventory({
             </>
           )}
         </div>
-
-        <AnimatePresence>
-          {openmodal.createProduct && <CreateProducts />}
-          {openmodal.createCategory && <Category />}
-          {openmodal.createBanner && <BannerModal />}
-          {openmodal.createPromotion && (
-            <CreatePromotionModal
-              searchparams={searchParams as any}
-              settype={settype}
-            />
-          )}
-          {openmodal.filteroption && (
-            <FilterMenu
-              name={name}
-              categories={{
-                parentid: parseInt(parentcate as string),
-                childid: parseInt(childcate as string),
-              }}
-              expiredAt={
-                expiredate ? dayjs(expiredate).toISOString() : undefined
-              }
-              type={ty}
-              param={searchParams}
-              expired={expired}
-              reloadData={() => setreloaddata(true)}
-              setfilterdata={setfiltervalue as any}
-              isSetPromotion={promotion.selectproduct}
-            />
-          )}
-          {openmodal.discount && <DiscountModals />}
-        </AnimatePresence>
       </div>
       <div className="w-full h-fit">
         <PaginationCustom

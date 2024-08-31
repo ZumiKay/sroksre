@@ -12,11 +12,17 @@ const config: Config = {
   theme: {
     extend: {
       screens: {
-        smaller_screen: "1000px",
+        smaller_screen: "1155px",
         small_screen: "1490px",
+        medium_screen: "1600px",
         large_tablet: "768px",
+        smallest_screen: "800px",
+        smallest_screen1: "850px",
         small_tablet: "700px",
-        small_phone: "400px",
+        smallest_tablet: "650px",
+        large_phone: "550px",
+        small_phone: "432px",
+        smallest_phone: "385px",
       },
       backgroundImage: {
         "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",

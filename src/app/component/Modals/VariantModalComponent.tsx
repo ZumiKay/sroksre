@@ -17,6 +17,7 @@ import { SketchPicker } from "react-color";
 import { Badge, Button, Input } from "@nextui-org/react";
 import { StockCard, StockSelect } from "./Stock";
 import { HasPartialOverlap } from "@/src/lib/utilities";
+import { useScreenSize } from "@/src/context/CustomHook";
 
 interface ManageStockContainerProps {
   newadd: string;
@@ -491,6 +492,7 @@ export const ColorSelectModal = ({
   setopen,
 }: ColorSelectModal) => {
   const [colorpicker, setcolorpicker] = useState(false);
+  const { isTablet, isMobile } = useScreenSize();
   return (
     <>
       <div
@@ -506,7 +508,11 @@ export const ColorSelectModal = ({
         Add Color
       </div>
       {open && (
-        <Modal closestate="none" customwidth="30vw" customheight="30vh">
+        <Modal
+          closestate="none"
+          customwidth={isTablet ? "50vw" : isMobile ? "90vw" : "30vw"}
+          customheight="30vh"
+        >
           <form
             onSubmit={(e) => {
               handleAddColor(e);
@@ -576,7 +582,7 @@ export const ColorSelectModal = ({
               <div className="absolute w-fit h-fit top-0 z-50">
                 {" "}
                 <SketchPicker
-                  width="29vw"
+                  width={isTablet || isMobile ? "90vw" : "29vw"}
                   color={color.rgb as any}
                   onChange={(value, _) => {
                     setcolor({

@@ -20,12 +20,12 @@ export default async function Home() {
 
   return (
     <main className="Home__Container w-full h-full grid place-content-center gap-y-10 min-h-screen">
-      <div className="w-[95vw] h-full flex flex-col items-center gap-y-10">
-        {items.map((i) => {
+      <div className="w-[95vw] h-full flex flex-col items-center gap-y-5">
+        {items.map((i, idx) => {
           if (i.type === "banner") {
             return (
               <Banner
-                key={i.idx}
+                key={idx}
                 data={{
                   image: {
                     url: i.items[0].item.image?.url ?? "",
@@ -38,17 +38,18 @@ export default async function Home() {
           } else if (i.type === "slide") {
             return (
               <SlideShow
-                key={i.idx}
+                key={idx}
                 data={i.items.map((data) => ({
                   img: data.item.image?.url ?? "",
                   name: data.item.name,
+                  link: data.item.link,
                 }))}
               />
             );
           } else if (i.type === "category") {
             return (
               <CategoryContainer
-                key={i.idx}
+                key={idx}
                 name={i.name}
                 data={i.items.map((i) => ({
                   image: {
@@ -63,7 +64,7 @@ export default async function Home() {
           } else {
             return (
               <ScrollableContainer
-                key={i.idx}
+                key={idx}
                 title={i.name}
                 items={i.items
                   .filter((i) => i.item.id)

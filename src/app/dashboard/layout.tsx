@@ -4,8 +4,7 @@ import TopModal from "./TopModal";
 
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
-import { ContainerLoading } from "../component/Loading";
-import { LayoutTransition } from "../component/Layout";
+import Loading from "./loading";
 
 const DashboardLayout = async ({ children }: { children: React.ReactNode }) => {
   const session = await getUser();
@@ -15,12 +14,12 @@ const DashboardLayout = async ({ children }: { children: React.ReactNode }) => {
   }
 
   return (
-    <section className="min-h-screen w-full h-fit">
+    <section className="min-h-screen w-full h-full">
       <TopModal />
 
       {/* <DashboordNavBar session={session ?? undefined} /> */}
 
-      <Suspense fallback={<ContainerLoading />}>{children}</Suspense>
+      <Suspense fallback={<Loading />}>{children}</Suspense>
     </section>
   );
 };

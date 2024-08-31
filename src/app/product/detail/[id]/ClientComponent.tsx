@@ -491,22 +491,28 @@ export default function ProductDetail({ params, isAdmin }: productdetailprops) {
   return (
     <div className="productdetail__container h-full pt-5">
       {loading && <ContainerLoading />}
-      <div className="product_section flex flex-row w-full h-fit">
-        <div className="product_image h-fit  grid grid-cols-2 gap-y-2  place-items-start w-full">
+      <div className="product_section flex flex-row w-full h-fit max-smallest_tablet:flex-col max-smallest_tablet:items-center">
+        <div
+          className="product_image h-fit  grid grid-cols-2 gap-y-2  place-items-start w-full max-large_tablet:flex 
+          max-large_tablet:flex-row max-large_tablet:justify-between max-large_tablet:items-center 
+          max-large_tablet:overflow-x-auto 
+        
+        "
+        >
           {prob.covers.map((img) => (
             <Image
               key={img.name}
               src={img.url || Default}
               alt={"Cover"}
-              className="product_cover w-[450px] h-[550px] object-cover"
+              className="product_cover w-[450px] h-full max-h-[550px] max-large_tablet:w-full max-large_tablet:h-[450px] object-cover"
               width={1000}
               height={1000}
               loading="lazy"
             />
           ))}
         </div>
-        <div className="product_detail  w-3/4 flex flex-col pl-4 gap-y-10 h-fit">
-          <h3 className="product_name text-3xl font-bold max-h-[105px] pt-1 break-words overflow-y-auto">
+        <div className="product_detail  w-3/4 max-smallest_tablet:w-[95vw] max-smallest_tablet:pl-0 flex flex-col pl-4 gap-y-10 h-fit">
+          <h3 className="product_name text-3xl font-bold h-fit pt-1 break-words">
             {" "}
             {prob.name}{" "}
           </h3>
@@ -528,11 +534,11 @@ export default function ProductDetail({ params, isAdmin }: productdetailprops) {
                 ? errormess.qty
                 : errormess.option}
             </h3>
-            <div className="w-full h-fit  overflow-x-hidden pl-3 overflow-y-auto flex flex-col gap-y-5">
+            <div className="w-full h-fit overflow-x-hidden overflow-y-auto flex flex-col gap-y-5">
               <ShowOptionandStock />
             </div>
 
-            <div className="product_action pt-2 flex flex-col items-center gap-y-2">
+            <div className="product_action w-full pt-2 flex flex-col items-center gap-y-2">
               <PrimaryButton
                 type="submit"
                 text={incart ? "In Cart" : "Add To Cart"}
@@ -575,7 +581,7 @@ export default function ProductDetail({ params, isAdmin }: productdetailprops) {
           </div>
         </div>
       </div>
-      <div className="relatedproduct__section w-full h-full mt-10 flex flex-col items-center gap-y-10">
+      <div className="relatedproduct__section w-full h-full mt-10 flex flex-col gap-y-10">
         <ShowSimilarProduct
           pid={params.id}
           parent_id={prob.category.parent_id}
@@ -636,8 +642,10 @@ export const ShowSimilarProduct = ({
           <h3 className="text-lg font-bold w-full h-fit text-left pl-2">
             You might also like:
           </h3>
-          <div className="w-full h-fit grid grid-cols-3 gap-x-5 gap-y-32 p-5">
+
+          <div className="w-full h-[500px] max-small_phone:h-[400px] max-large_tablet:h-[450px] flex flex-row overflow-x-auto gap-x-5">
             {loading && <ContainerLoading />}
+
             {relatedproduct?.map((prod, idx) => (
               <Card
                 key={idx}
@@ -650,6 +658,7 @@ export const ShowSimilarProduct = ({
               />
             ))}
           </div>
+
           {!isLimit && (
             <PrimaryButton
               type="button"

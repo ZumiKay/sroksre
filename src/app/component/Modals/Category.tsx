@@ -7,7 +7,11 @@ import {
 } from "@/src/context/GlobalContext";
 import React, { useEffect, useState } from "react";
 import { errorToast, LoadingText, successToast } from "../Loading";
-import { ApiRequest, Delayloading } from "@/src/context/CustomHook";
+import {
+  ApiRequest,
+  Delayloading,
+  useScreenSize,
+} from "@/src/context/CustomHook";
 import { motion } from "framer-motion";
 import Modal from "../Modals";
 import { AddSubCategoryMenu } from "../ToggleMenu";
@@ -68,7 +72,7 @@ export const Category = () => {
     setalldata,
   } = useGlobalContext();
   const [show, setshow] = useState<"Create" | "Edit">("Create");
-
+  const { isTablet, isMobile } = useScreenSize();
   const [loading, setloading] = useState(false);
   const [catetype, setcatetype] = useState<Categorytype>("normal");
 
@@ -148,17 +152,23 @@ export const Category = () => {
   };
 
   return (
-    <Modal closestate="createCategory" customheight="600px" customZIndex={150}>
+    <Modal
+      closestate="createCategory"
+      customheight={"100vh"}
+      customwidth={"100vw"}
+      bgblur={true}
+      customZIndex={150}
+    >
       <motion.div
         initial={{ y: 1000 }}
         animate={{ y: 0 }}
         exit={{ y: -1000 }}
-        className="category relative rounded-md p-2 w-full min-h-[600px] max-h-[700px] flex flex-col items-center bg-white gap-y-5"
+        className="category relative rounded-md p-2 w-full h-full flex flex-col items-center bg-white gap-y-5"
       >
         <CategoryNavBar />
         {show === "Create" ? (
           <>
-            <div className="w-[80%] h-fit">
+            <div className="w-full h-fit">
               <SelectionCustom
                 value={catetype}
                 setvalue={setcatetype as any}
@@ -238,7 +248,7 @@ export const Category = () => {
                   disable={category.name.length === 0}
                 />
               ))}
-            <div className="flex flex-row justify-start gap-x-5 h-[40px] w-[90%] absolute bottom-5">
+            <div className="flex flex-row justify-start gap-x-5 h-[40px] w-[90%] bg-black absolute bottom-5">
               <PrimaryButton
                 width="100%"
                 height="100%"

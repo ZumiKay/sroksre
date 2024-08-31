@@ -14,8 +14,13 @@ import { ToggleSelect } from "../component/ToggleMenu";
 import Image from "next/image";
 import Card from "../component/Card";
 import { Input, Spacer } from "@nextui-org/react";
-import { ApiRequest, useEffectOnce } from "@/src/context/CustomHook";
+import {
+  ApiRequest,
+  useEffectOnce,
+  useScreenSize,
+} from "@/src/context/CustomHook";
 import { NormalSkeleton } from "../component/Banner";
+import { CloseVector } from "../component/Asset";
 
 export const ProductFilterButton = ({
   pid,
@@ -51,7 +56,7 @@ export const ProductFilterButton = ({
           type="button"
           text={color || other || promo || search ? "Clear Filter" : "Filter"}
           radius="10px"
-          width="100%"
+          style={{ maxWidth: "100px" }}
           height="100%"
           onClick={() => {
             setopenmodal((prev) => ({ ...prev, filteroption: true }));
@@ -107,21 +112,9 @@ export const SortSelect = () => {
           value: 2,
         },
       ]}
-      style={{ height: "100%" }}
+      style={{ height: "100%", width: "150px", minWidth: "150px" }}
     />
   );
-};
-
-const fetchcategories = async (ty: "parent" | "child", pid?: string) => {
-  const res = await ApiRequest(
-    `/api/categories/select?ty=${ty}${pid ? `&pid=${pid}` : ""}`,
-    undefined,
-    "GET"
-  );
-  if (!res.success) {
-    return { success: false };
-  }
-  return { success: true, data: res.data };
 };
 
 export const FilterContainer = ({
@@ -151,6 +144,7 @@ export const FilterContainer = ({
 }) => {
   const { setopenmodal } = useGlobalContext();
   const [loading, setloading] = useState(false);
+  const { isMobile } = useScreenSize();
   const [filtervalue, setfiltervalue] = useState<filtervaluetype | undefined>(
     undefined
   );
@@ -299,8 +293,19 @@ export const FilterContainer = ({
 
   return (
     <Modal closestate="filteroption" customZIndex={200}>
-      <div className="w-full h-full bg-white rounded-lg p-3 flex flex-col gap-y-5 items-center relative">
-        <div className="w-full max-h-[400px] h-auto overflow-y-auto overflow-x-hidden flex flex-col gap-y-5 p-3">
+      <div className="w-[500px] max-large_phone:w-[100vw] h-full bg-white rounded-lg p-3 flex flex-col gap-y-5 items-center relative">
+        {isMobile && (
+          <div
+            className="absolute top-1 right-1 w-fit h-fit"
+            onClick={() => {
+              setopenmodal((prev) => ({ ...prev, filteroption: false }));
+            }}
+          >
+            {" "}
+            <CloseVector width="30px" height="30px" />{" "}
+          </div>
+        )}
+        <div className="w-full max-h-[400px] h-auto overflow-y-auto overflow-x-hidden flex flex-col gap-y-5 p-3 mt-2">
           <Input
             isClearable
             fullWidth

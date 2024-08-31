@@ -3,7 +3,7 @@ import { Button, Select, SelectItem } from "@nextui-org/react";
 import Modal from "../component/Modals";
 import React, { ChangeEvent, useState } from "react";
 import { showtype } from "../api/policy/route";
-import { ApiRequest } from "@/src/context/CustomHook";
+import { ApiRequest, useScreenSize } from "@/src/context/CustomHook";
 import { errorToast } from "../component/Loading";
 import { useGlobalContext } from "@/src/context/GlobalContext";
 import { useRouter } from "next/navigation";
@@ -26,6 +26,7 @@ export const Showtypemodal = ({
   const router = useRouter();
   const [values, setValues] = React.useState(value ?? new Set([""]));
   const [loading, setloading] = useState(false);
+  const { isTablet, isMobile } = useScreenSize();
 
   const handleSelectionChange = (e: ChangeEvent<HTMLSelectElement>) => {
     setValues(new Set(e.target.value.split(",")));
@@ -51,7 +52,11 @@ export const Showtypemodal = ({
   };
 
   return (
-    <Modal closestate="showtype">
+    <Modal
+      customwidth={isMobile ? "100vw" : isTablet ? "90vw" : ""}
+      closestate="showtype"
+      customZIndex={200}
+    >
       <div className="w-full h-full bg-white rounded-lg p-3 flex flex-col gap-y-5">
         <h3 className="text-2xl font-bold">Set Policy For Display</h3>
         <Select
@@ -76,6 +81,17 @@ export const Showtypemodal = ({
           onClick={() => handleUpdatePolicy()}
         >
           Confirm
+        </Button>
+        <Button
+          fullWidth
+          isLoading={loading}
+          size="sm"
+          color="danger"
+          variant="solid"
+          style={!isMobile ? { display: "none" } : {}}
+          onClick={() => setopenmodal((prev) => ({ ...prev, showtype: false }))}
+        >
+          Close
         </Button>
       </div>
     </Modal>

@@ -1,5 +1,5 @@
 "use client";
-import { Card, Skeleton } from "@nextui-org/react";
+import { Button, Card, Skeleton } from "@nextui-org/react";
 import {
   AnimatePresence,
   motion,
@@ -11,7 +11,6 @@ import { CSSProperties, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Orderpricetype } from "@/src/context/OrderContext";
-import Link from "next/link";
 
 export const BannerSkeleton = () => {
   return (
@@ -32,11 +31,10 @@ export const BannerSkeleton = () => {
 
 interface bannerprops {
   type?: "slide" | "banner";
-
-  link?: string;
   data: {
     img: string;
     name?: string;
+    link?: string;
   }[];
 }
 
@@ -88,54 +86,50 @@ export const SlideShow = (props: bannerprops) => {
   };
 
   return (
-    <div
-      key={props.link}
-      className="banner__container w-full h-fit relative overflow-x-hidden"
-    >
-      <div className="w-full h-[850px] relative overflow-hidden">
-        <AnimatePresence initial={false}>
+    <div className="banner__container w-full h-fit relative overflow-x-hidden">
+      <div className="w-full h-auto max-h-[95vh] min-h-[500px] relative overflow-hidden">
+        <AnimatePresence initial={false} mode="wait">
           {props.data.map(
             (data, idx) =>
               idx === currentSlide && (
-                <>
+                <div
+                  onMouseEnter={() => setIsPaused(true)}
+                  onMouseLeave={() => setIsPaused(false)}
+                  onTouchStart={() => setIsPaused(true)}
+                  onTouchEnd={() => setIsPaused(false)}
+                  key={idx}
+                  className="w-full h-auto relative"
+                >
                   <motion.img
-                    key={idx}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 1 }}
                     alt={data.name}
                     src={data.img}
-                    className="w-full h-full object-cover absolute"
+                    className="w-full h-auto min-h-[500px] object-cover relative"
                     width={1000}
                     height={1000}
                     loading="lazy"
                   />
                   <motion.h3
-                    key={idx + 1}
                     initial={{ left: "10px" }}
                     animate={{ left: "5%" }}
                     transition={{ duration: 3, ease: "easeInOut" }}
-                    className="title w-1/2 h-[200px] text-5xl text-white font-bold absolute top-[75%] left-5"
+                    onClick={() =>
+                      data.link && (window.location.href = data.link)
+                    }
+                    className="title w-full h-[200px] max-small_phone:text-3xl cursor-pointer text-5xl text-white font-bold absolute top-[75%] left-5"
                   >
                     {data.name}
                   </motion.h3>
-                </>
+                </div>
               )
           )}
         </AnimatePresence>
       </div>
 
-      <div className="control_item h-[50px] w-full flex flex-row justify-between items-center bg-[#495464]">
-        <div className="w-full h-[50px]">
-          <PrimaryButton
-            type="button"
-            text="Explore"
-            color="black"
-            width="200px"
-            height="100%"
-          />
-        </div>
+      <div className="control_item h-fit min-h-[50px] w-full flex flex-row justify-between items-center bg-[#495464] flex-wrap">
         <div className="indicator justify-end w-full flex flex-row gap-x-1 pr-2">
           {props.data.map((data, idx) => (
             <div
@@ -199,7 +193,7 @@ interface Categorycardprops {
 const CategoryCard = (props: Categorycardprops) => {
   const router = useRouter();
   return (
-    <div className="cate_card w-[500px] h-[700px]">
+    <div key={props.data.name} className="cate_card w-[500px] h-[700px]">
       <motion.img
         initial={{ left: "-20px" }}
         whileInView={{ left: 0 }}
@@ -212,7 +206,7 @@ const CategoryCard = (props: Categorycardprops) => {
         loading="lazy"
         onClick={() => props.data.link && router.push(props.data.link)}
       />
-      <div className="name text-[32px] grid place-content-center font-bold text-white w-full h-[50px] bg-[#495464] p-2 text-center">
+      <div className="name text-[32px] grid place-content-center font-bold text-white w-full min-h-[50px] h-fit bg-[#495464] p-2 text-center">
         {props.data.name}
       </div>
     </div>
@@ -238,8 +232,9 @@ export const CategoryContainer = ({ name, data }: CategoryContainerProps) => {
         {name}
       </h3>
       <div className="categories mt-5 w-full h-fit flex flex-row flex-wrap justify-center gap-20">
-        {data.map((cate) => (
+        {data.map((cate, idx) => (
           <CategoryCard
+            key={idx}
             data={{
               image: cate.image,
               name: cate.name,
@@ -269,12 +264,12 @@ export const Banner: React.FC<BannerProps> = (props) => {
     target: imgref,
     offset: ["start end", "end start"],
   });
-  const translateY = useTransform(scrollYProgress, [0, 1], ["20%", "-2%"]);
+  const translateY = useTransform(scrollYProgress, [0, 1], ["10%", "-2%"]);
   return (
     <div
       key={props.data.name}
       style={props.style}
-      className="w-full h-[90vh] flex flex-col overflow-hidden bg-white relative"
+      className="w-full h-auto max-h-[90vh] flex flex-col overflow-hidden bg-white relative"
       ref={imgref}
     >
       <motion.img
@@ -282,7 +277,7 @@ export const Banner: React.FC<BannerProps> = (props) => {
         alt={props.data.image.name}
         style={{ translateY }}
         loading="lazy"
-        className="object-cover w-full h-full"
+        className="object-cover w-full h-auto max-h-[90vh] min-h-[600px]"
       />
       <motion.h3
         initial={{ paddingLeft: "0px" }}
@@ -291,7 +286,7 @@ export const Banner: React.FC<BannerProps> = (props) => {
           duration: 2,
           ease: "linear",
         }}
-        className="w-[70%] h-fit absolute bottom-20 text-white font-black text-5xl"
+        className="w-[85%] h-fit absolute bottom-20 text-white font-black text-5xl"
       >
         {props.data.name}
       </motion.h3>
@@ -310,7 +305,7 @@ interface ProductCardProps {
 }
 export const ProductCard = (props: ProductCardProps) => {
   return (
-    <div className="card w-[350px] h-fit flex flex-col">
+    <div key={props.id} className="card w-[350px] h-fit flex flex-col">
       <div
         onClick={() => (window.location.href = `/product/detail/${props.id}`)}
       >
@@ -373,7 +368,7 @@ export const ScrollableContainer = (props: ScrollableContainerProps) => {
     }
   };
   return (
-    <div className="w-full h-fit">
+    <div key={props.title} className="w-full h-fit">
       <div className="header w-full h-[60px] flex flex-row items-center justify-between bg-[#495464] p-2">
         <h3 className="text-2xl text-white font-bold w-full text-left">
           {props.title}

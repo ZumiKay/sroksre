@@ -3,14 +3,12 @@ import { Prompt } from "next/font/google";
 import "./globals.css";
 import Navbar from "./component/Navbar";
 import Footer from "./component/Footer";
-
 import { ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import "react-toastify/ReactToastify.css";
 import { GlobalContextProvider } from "../context/GlobalContext";
 import { getUser } from "../context/OrderContext";
 import { NextUIProvider } from "@nextui-org/react";
 import { Suspense } from "react";
-import Loading from "./loading";
 import { LayoutTransition } from "./component/Layout";
 import { ContainerLoading } from "./component/Loading";
 

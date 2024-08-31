@@ -328,7 +328,7 @@ export function ToggleSelect({
             {data.map((i, idx) => (
               <div
                 key={idx}
-                className="selectitem min-w-[50px] rounded-lg cursor-pointer w-fit h-fit break-words bg-white active:bg-gray-100 p-2"
+                className="selectitem min-w-[50px] rounded-lg cursor-pointer w-fit h-fit break-words border border-black bg-white active:bg-gray-100 p-2"
                 onClick={() => {
                   clickfunction && clickfunction(idx, type);
                 }}

@@ -18,10 +18,10 @@ import { useRouter } from "next/navigation";
 
 import { Orderpricetype, totalpricetype } from "@/src/context/OrderContext";
 import { Variantcontainer } from "./Modals/VariantModal";
-import { Sizecontainer } from "./Modals/Product";
+
 import { UpdateStockModal } from "./Modals/Stock";
 import { Chip, Skeleton } from "@nextui-org/react";
-import { ApiRequest } from "@/src/context/CustomHook";
+import { ApiRequest, useScreenSize } from "@/src/context/CustomHook";
 import { SelectionCustom } from "./Pagination_Component";
 
 interface cardprops {
@@ -40,6 +40,10 @@ interface cardprops {
   stock?: number;
   lowstock?: boolean;
   stocktype?: string;
+  width?: string;
+  height?: string;
+  isMobile?: boolean;
+  isTablet?: boolean;
 }
 const editactionMenu = [
   {
@@ -67,6 +71,8 @@ export default function Card(props: cardprops) {
   const route = useRouter();
   const isProduct = promotion.Products.find((i) => i.id === props.id);
   const [previewphoto, setpreviewphoto] = useState(false);
+  const [hover, sethover] = useState(false);
+  const { isMobile, isTablet } = useScreenSize();
 
   const [state, setstate] = useState({
     detail: false,
@@ -168,8 +174,6 @@ export default function Card(props: cardprops) {
     ></i>
   );
 
-  const showHeart = <i className="fa-solid fa-heart "></i>;
-
   //Price Condition
 
   const hasDiscount = props.discount;
@@ -180,7 +184,7 @@ export default function Card(props: cardprops) {
   );
   const showDiscountPrice = (
     <div className="price_con flex flex-row flex-wrap items-center gap-x-5 w-full h-fit">
-      <h4 className="text-lg font-light line-through decoration-red-300 decoration-2">
+      <h4 className="text-sm font-light line-through decoration-red-300 decoration-2">
         ${parseFloat(props.price).toFixed(2)}
       </h4>
 
@@ -188,7 +192,7 @@ export default function Card(props: cardprops) {
         -{hasDiscount?.percent ?? 0}%
       </h4>
 
-      <h4 className="text-lg font-medium">{`${
+      <h4 className="text-sm font-medium">{`${
         hasDiscount?.newprice ? `$${hasDiscount?.newprice}` : ""
       }`}</h4>
     </div>
@@ -224,12 +228,37 @@ export default function Card(props: cardprops) {
       <div
         key={props.index}
         ref={ref}
-        onMouseEnter={() => handeMouseEvent("enter")}
-        onMouseLeave={() => handeMouseEvent("leave")}
+        style={{ width: props.width, height: props.height }}
+        onMouseEnter={() => {
+          handeMouseEvent("enter");
+          sethover(true);
+        }}
+        onMouseLeave={() => {
+          handeMouseEvent("leave");
+          sethover(false);
+        }}
+        onTouchStart={() => {
+          handeMouseEvent("enter");
+          sethover(true);
+        }}
+        onTouchCancel={() => {
+          handeMouseEvent("leave");
+          sethover(false);
+        }}
         className={`card__container w-[500px] h-[500px]
        hover:border-[2px] hover:border-gray-300 ${
          isProduct ? "border border-gray-300" : ""
-       } max-smaller_screen:w-[350px] max-smaller_screen:h-[350px] max-small_phone:w-[300px] max-small_phone:h-[300px]`}
+       } max-smaller_screen:w-[350px] 
+        max-smaller_screen:h-[350px] 
+        max-large_tablet:w-[250px] 
+        max-large_tablet:h-[250px]
+        max-large_phone:w-[200px]
+        max-large_phone:h-[200px]
+        max-small_phone:w-[180px]
+        max-small_phone:h-[300px]
+        max-smallest_phone:w-[150px]
+        max-smallest_phone:h-[250px]
+        `}
       >
         <div
           onClick={() => {
@@ -239,13 +268,15 @@ export default function Card(props: cardprops) {
               !previewphoto && route.push(`/product/detail/${props.id}`);
             }
           }}
-          className="cardimage__container flex flex-col justify-center items-center relative w-full h-full border border-gray-300"
+          className="cardimage__container flex flex-col justify-center items-center relative w-full h-full bg-gray-50"
         >
           <PrimaryPhoto
             showcount={false}
             data={props.img}
-            hover={false}
+            hover={hover}
             setclick={setpreviewphoto}
+            isMobile={isMobile}
+            isTablet={isTablet}
           />
 
           <span className="absolute top-3 right-3">
@@ -253,7 +284,7 @@ export default function Card(props: cardprops) {
               ? showCheckmark
               : state.hover && props.isAdmin
               ? showEllipsis
-              : showHeart}
+              : ""}
           </span>
           {state.editaction && (
             <SubInventoryMenu
@@ -274,8 +305,8 @@ export default function Card(props: cardprops) {
             />
           )}
         </div>
-        <section className="card_detail w-full h-[90px] font-semibold bg-white flex flex-col justify-center gap-y-3 border-[0.5px] border-t-0 border-solid border-gray-400 pl-2 rounded-b-md text-sm">
-          <h4 className="card_info w-full max-w-[400px] h-[50px] overflow-y-auto text-lg">
+        <section className="card_detail w-full h-fit font-semibold bg-white flex flex-col justify-center gap-y-3  pl-2 rounded-b-md text-sm">
+          <h4 className="card_info w-full max-w-[400px] h-fit text-lg">
             {props.name.length > 0 ? props.name : "No Product Created"}
           </h4>
 
@@ -304,9 +335,7 @@ export default function Card(props: cardprops) {
               closename={closename}
             />
           )}
-          {props.id && openmodal[`size${props.id}`] && (
-            <Sizecontainer index={props.id} type="edit" closename={closename} />
-          )}
+
           {openmodal[closename] && <UpdateStockModal closename={closename} />}
         </>
       )}
@@ -587,7 +616,7 @@ export const BannerCard = ({
           )}
       </div>
 
-      <h3 className="Banner text-xl w-full p-1 bg-[#495464] rounded-b-lg  font-bold text-white">
+      <h3 className="Banner text-xl w-full h-fit break-words p-1 bg-[#495464] rounded-b-lg  font-bold text-white">
         {data.name.length === 0 ? "No name" : data.name}
       </h3>
 

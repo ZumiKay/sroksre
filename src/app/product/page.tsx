@@ -286,7 +286,7 @@ export default async function ProductsPage({
   const banner = bid && (await GetBannerLink(parseInt(bid, 10)));
 
   return (
-    <div className="products_page relative w-full min-h-[100vh] h-full flex flex-col gap-y-10">
+    <div className="products_page relative w-full min-h-[100vh] h-full flex flex-col justify-center items-center gap-y-20">
       <div className="header_section w-full h-fit flex flex-col items-start gap-y-5">
         {promotion && promotion.banner && (
           <Banner
@@ -311,33 +311,43 @@ export default async function ProductsPage({
               : (cate && (cate.sub ? cate.sub.name : cate.name)) ?? ""
           }`}
         </h2>
-        <div className="path_container flex flex-row items-center gap-x-3 w-full pl-5 text-left text-lg font-light border-b-2 border-b-black p-2">
+        <div
+          className="path_container h-full flex flex-row items-center 
+        max-smallest_phone:flex max-smallest_phone:flex-col 
+        gap-x-3 w-full pl-5 text-left text-lg font-light border-b-2 border-b-black p-2
+        max-smallest_phone:items-start
+        "
+        >
           <Link href={"/"}>
             <div className="transition hover:text-gray-300 cursor-pointer">
-              Home / {all ? "All" : ""}
+              Home {all ? "All" : ""}
             </div>
           </Link>
+          <div className="w-[3px] h-[25px] bg-black rotate-[190deg]"></div>
           <Link
             href={`/product?${
               cate.type === "sale" ? `ppid=${cate.id}` : `pid=${pid}`
             }&page=1$limit=1`}
           >
             <div className="transition hover:text-gray-300 cursor-pointer">
-              {`${cate.name ? `${cate.name} /` : ""}`}
+              {`${cate.name ? `${cate.name}` : ""}`}
             </div>
           </Link>
+          <div
+            hidden={!cate.sub || !promotion}
+            className="w-[3px] h-[25px] bg-black rotate-[190deg]"
+          ></div>
+
           {((cate && cate.sub) || promotion) && (
             <Link href={`/product?pid=${pid}&cid=${cid}&page=1&limit=1`}>
-              {" "}
               <div className="transition hover:text-gray-300 cursor-pointer">
                 {promotion ? promotion.name : cate && cate.sub && cate.sub.name}{" "}
-                /
-              </div>{" "}
+              </div>
             </Link>
           )}
         </div>
         {(all || pid) && (
-          <div className="filter_container  min-w-[350px] h-[40px] mt-3 pl-5 flex flex-row gap-x-3 items-center ">
+          <div className="filter_container  w-full pr-2 pl-2 h-[40px] flex flex-row justify-center">
             {/* sort selection */}
             <ProductFilterButton
               pid={pid ?? "0"}
@@ -361,7 +371,20 @@ export default async function ProductsPage({
       </div>
 
       {allproduct ? (
-        <div className="listproduct grid grid-cols-3 w-full h-full place-content-center mt-5 p-3">
+        <div
+          className="listproduct grid 
+        grid-cols-3 
+        gap-x-5
+        gap-y-32 
+        place-content-center 
+        w-fit h-full mb-10
+        max-small_screen:grid-cols-2
+        max-small_phone:p-1
+        max-smallest_phone:gap-x-2
+        max-smallest_phone:p-0
+        
+        "
+        >
           {allproduct.data?.map((i, idx) => (
             <Card
               key={idx}

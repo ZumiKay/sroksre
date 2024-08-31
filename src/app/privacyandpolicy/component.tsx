@@ -17,7 +17,7 @@ import { errorToast, successToast } from "../component/Loading";
 import { TabArrow } from "../component/Asset";
 import { PrimaryConfirmModal } from "../component/SideMenu";
 import { Button } from "@nextui-org/react";
-import { ApiRequest } from "@/src/context/CustomHook";
+import { ApiRequest, useScreenSize } from "@/src/context/CustomHook";
 import { Showtypemodal } from "./secondcomponent";
 
 interface sidebarContentType {
@@ -107,6 +107,7 @@ export const SidePolicyBar = ({
   data: sidebarContentType[];
 }) => {
   const { openmodal, setopenmodal } = useGlobalContext();
+  const [open, setopen] = useState(false);
   const router = useRouter();
   const searchparams = useSearchParams();
 
@@ -119,7 +120,19 @@ export const SidePolicyBar = ({
   };
   return (
     <>
-      <nav className="sidebar fixed left-0 w-[280px] h-fit p-3 flex flex-col items-start gap-y-5 bg-white rounded-lg">
+      <div
+        onClick={() => setopen(!open)}
+        className="w-fit h-fit text-xl z-50 bg-gray-100 rounded-lg p-2 cursor-pointer smallest_screen:hidden flex items-center justify-center fixed top-20 right-2 transition-colors duration-100 hover:bg-black active:bg-black"
+      >
+        {" "}
+        {open ? "X" : "Menu"}{" "}
+      </div>
+      <motion.aside
+        style={open ? { display: "block" } : {}}
+        className="sidebar fixed bg-white  left-0 w-[250px] h-fit p-3 flex flex-col items-start gap-y-10 rounded-lg
+      max-smallest_screen:hidden max-smallest_screen:top-[130px] max-smallest_screen:left-[60%] max-small_phone:left-[40%] z-50
+      "
+      >
         {data.map((i, idx) => (
           <div
             key={idx}
@@ -142,7 +155,7 @@ export const SidePolicyBar = ({
             radius="10px"
           />
         )}
-      </nav>
+      </motion.aside>
       {openmodal.addpolicy && <AddPolicyModal />}
     </>
   );
@@ -173,6 +186,7 @@ export const AddPolicyModal = ({ qa, plc, edit, openstate }: Policydata) => {
   const router = useRouter();
   const { setopenmodal } = useGlobalContext();
   const [loading, setloading] = useState({ post: false, delete: false });
+  const { isTablet, isMobile } = useScreenSize();
   const [state, setstate] = useState<Addpolicytype>({
     title: "",
     Paragraph: [{ content: "" }],
@@ -292,10 +306,14 @@ export const AddPolicyModal = ({ qa, plc, edit, openstate }: Policydata) => {
     router.refresh();
   };
   return (
-    <Modal closestate={openstate ?? "addpolicy"} customZIndex={150}>
+    <Modal
+      customwidth={isMobile ? "100vw" : isTablet ? "90vw" : ""}
+      closestate={openstate ?? "addpolicy"}
+      customZIndex={150}
+    >
       <form
         onSubmit={handleSubmit}
-        className="w-full h-[80vh] bg-white rounded-lg flex flex-col items-center gap-y-5 p-5"
+        className="w-full h-[80vh] max-small_phone:h-full bg-white rounded-lg flex flex-col items-center gap-y-5 p-5"
       >
         <Selection
           data={["Policy", "Question"]}
@@ -340,7 +358,7 @@ export const AddPolicyModal = ({ qa, plc, edit, openstate }: Policydata) => {
                   />
                   <i
                     onClick={() => handleDelete(idx, par.id, "paragraph")}
-                    className={`fa-solid fa-trash relative transition duration-300 active:text-white left-[97%] bottom-2`}
+                    className={`fa-solid fa-trash relative transition duration-300 active:text-white left-[90%] bottom-2`}
                   ></i>
                 </div>
               ))}
@@ -383,7 +401,7 @@ export const AddPolicyModal = ({ qa, plc, edit, openstate }: Policydata) => {
                 />
                 <i
                   onClick={() => handleDelete(idx)}
-                  className={`fa-solid fa-trash relative transition duration-300 active:text-white left-[97%]`}
+                  className={`fa-solid fa-trash relative transition duration-300 active:text-white left-[90%]`}
                 ></i>
               </div>
             ))}

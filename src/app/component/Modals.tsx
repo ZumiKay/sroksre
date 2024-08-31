@@ -19,7 +19,6 @@ export default function Modal({
   customZIndex?: number;
   customwidth?: string;
   customheight?: string;
-
   bgblur?: boolean;
   action?: () => void;
   closestate:
@@ -70,7 +69,7 @@ export default function Modal({
       <div
         ref={ref}
         style={{ width: customwidth, height: customheight }}
-        className="w-1/2 h-1/2 flex flex-col justify-center items-center"
+        className="w-1/2 h-1/2 max-small_phone:h-screen flex flex-col justify-center items-center"
       >
         {children}
       </div>

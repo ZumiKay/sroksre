@@ -30,7 +30,12 @@ import {
   useGlobalContext,
   Usersessiontype,
 } from "@/src/context/GlobalContext";
-import { ApiRequest, useEffectOnce } from "@/src/context/CustomHook";
+import {
+  ApiRequest,
+  useClickOutside,
+  useEffectOnce,
+  useScreenSize,
+} from "@/src/context/CustomHook";
 import { errorToast, infoToast, LoadingText } from "./Loading";
 import { Role } from "@prisma/client";
 import {
@@ -46,6 +51,7 @@ import { checkloggedsession } from "../dashboard/action";
 import Homecontainermodal from "./HomePage/Modals";
 import { AnimatePresence } from "framer-motion";
 import SearchContainer from "./Modals/Search";
+import { CloseVector } from "./Asset";
 
 const InitialMethod = async (session?: Usersessiontype) => {
   if (session) {
@@ -73,6 +79,8 @@ export default function Navbar({ session }: { session?: Usersessiontype }) {
   const [notification, setnotificationdata] = useState<
     Array<NotificationType> | undefined
   >(undefined);
+
+  const { isTablet, isMobile } = useScreenSize();
 
   const router = useRouter();
   const navref = useRef<any>(null);
@@ -138,28 +146,36 @@ export default function Navbar({ session }: { session?: Usersessiontype }) {
   return (
     <nav className="navbar__container sticky top-0 z-[99] w-full h-[60px] bg-[#F3F3F3] flex flex-row justify-between item-center">
       {categories && <CategoriesContainer setopen={setcategories} />}
-      <div className="first_section  w-1/2 h-fit pl-3">
+
+      <div className="first_section  w-1/2 h-full flex items-center pl-3">
         <Image
-          className="menu_icon w-[50px] h-[50px] object-fill transition rounded-md"
+          className="menu_icon w-[30px] h-[30px] object-fill transition rounded-md"
           onClick={() => setcategories(!categories)}
           src={Menu}
           alt="menu"
           style={categories ? { backgroundColor: "lightgray" } : {}}
+        />
+
+        <Image
+          src={Search}
+          alt="search"
+          className="search w-[40px] h-[40px] object-contain hidden max-smallest_tablet:block transition hover:-translate-y-2"
+          onClick={() => setopenmodal((prev) => ({ ...prev, searchcon: true }))}
         />
       </div>
       <div className="second_section  w-full h-fit relative top-2 flex justify-center">
         <Image
           src={Logo}
           alt="logo"
-          className="Logo w-[100px] h-[50px] object-contain grayscale"
+          className="Logo w-[100px] h-[50px] max-small_phone:w-[70px] max-small_phone:[30px] object-contain grayscale"
           onClick={() => router.push("/")}
         />
       </div>
-      <div className="third_section  w-1/2 h-full flex flex-row gap-x-10 items-center justify-end pr-10">
+      <div className="third_section  w-1/2 h-full flex flex-row gap-x-10 max-small_phone:gap-x-3 items-center justify-end pr-5 max-small_phone:pr-2">
         <Image
           src={Search}
           alt="search"
-          className="search w-[50px] h-[50px] max-large_tablet:hidden object-contain transition hover:-translate-y-2"
+          className="search w-[50px] h-[50px] object-contain transition hover:-translate-y-2 max-smallest_tablet:hidden"
           onClick={() => setopenmodal((prev) => ({ ...prev, searchcon: true }))}
         />
 
@@ -179,7 +195,7 @@ export default function Navbar({ session }: { session?: Usersessiontype }) {
 
         {session?.role === Role.ADMIN && (
           <>
-            <div className="w-[30px] h-[30px] relative max-large_tablet:hidden">
+            <div className="w-[30px] h-[30px] max-smallest_tablet:w-[25px] max-smallest_tablet:h-[25px] max-small_phone:w-[25px] max-small_phone:h-[25px] relative">
               <Image
                 ref={navref}
                 src={!opennotification ? Bell : ActiveBell}
@@ -187,14 +203,11 @@ export default function Navbar({ session }: { session?: Usersessiontype }) {
                 onClick={() => setnotification(!opennotification)}
                 width={30}
                 height={30}
-                className="bell min-w-[30px] min-h-[30px] object-fill transition-all active:bg-gray-200 active:shadow-xl rounded-xl"
+                className="bell min-w-[30px] min-h-[30px] max-smallest_tablet:min-w-[25px] max-smallest_tablet:min-h-[25px] max-small_phone:min-w-[25px] max-small_phone:min-h-[25px] object-fill transition-all active:bg-gray-200 active:shadow-xl rounded-xl"
               />
 
               {checkNotification !== 0 && (
                 <span className="absolute top-0 -right-1 w-[10px] h-[10px] rounded-2xl bg-red-500"></span>
-              )}
-              {opennotification && (
-                <NotificationMenu notification={notification} ref={notiref} />
               )}
             </div>
           </>
@@ -203,7 +216,7 @@ export default function Navbar({ session }: { session?: Usersessiontype }) {
         <Image
           src={Profile}
           alt="profile"
-          className="cart w-[40px] h-[40px] max-large_tablet:w-[50px] max-large_tablet:h-[50px]  object-contain transition hover:-translate-y-2"
+          className="cart w-[40px] h-[40px] max-small_phone:w-[30px] max-small_phone:h-[30px] object-contain transition hover:-translate-y-2"
           onMouseEnter={() => session && setprofile(true)}
           onClick={() => !session && router.push("/account", { scroll: false })}
         />
@@ -214,11 +227,15 @@ export default function Navbar({ session }: { session?: Usersessiontype }) {
       </AnimatePresence>
 
       {openmodal?.homecontainer && (
-        <Homecontainermodal setprofile={setprofile} />
+        <Homecontainermodal
+          setprofile={setprofile}
+          isTablet={isTablet}
+          isPhone={isMobile}
+        />
       )}
 
       <AnimatePresence>
-        {openmodal?.searchcon && <SearchContainer />}
+        {openmodal?.searchcon && <SearchContainer isMobile={isMobile} />}
       </AnimatePresence>
 
       {cart && (
@@ -226,6 +243,13 @@ export default function Navbar({ session }: { session?: Usersessiontype }) {
           img={DefaultImage}
           setcart={setcart}
           setcarttotal={setcarttotal}
+        />
+      )}
+      {opennotification && (
+        <NotificationMenu
+          close={() => setnotification(false)}
+          notification={notification}
+          ref={notiref}
         />
       )}
     </nav>
@@ -248,25 +272,25 @@ const CategoriesContainer = (props: { setopen: any }) => {
   return (
     <div
       onMouseLeave={() => props.setopen(false)}
-      className="categories__container grid md:grid-cols-6 sm:grid-cols-4  place-items-start w-full min-h-[50vh] absolute top-[57px] z-[99] bg-[#F3F3F3] "
+      className="categories__container w-full max-h-screen min-h-[50vh] h-full absolute top-[57px] z-[99] bg-[#F3F3F3] flex flex-row gap-5 items-start justify-start flex-wrap overflow-y-auto overflow-x-hidden max-small_phone:justify-center max-small_phone:h-screen"
     >
       {loading ? (
         <LoadingText />
       ) : (
-        <div className="category flex flex-col w-[15vw] min-w-[10vw] pt-10  items-center justify-start p-1 gap-y-5">
-          <h3
+        <div className="ategory flex flex-col w-[200px] max-small_phone:w-[90%] pt-10 items-center justify-start p-1 gap-y-5">
+          {/* <h3
             onClick={() => router.push("/product?all=1")}
-            className="category_header  bg-[#495464] transition cursor-pointer hover:bg-white hover:text-black active:bg-white active:text-black rounded-md p-3 min-w-[150px] h-fit  break-words  text-center text-white font-medium"
+            className="category_header  bg-[#495464] transition cursor-pointer hover:bg-white hover:text-black active:bg-white active:text-black rounded-md p-3 w-full h-fit  break-words  text-center text-white font-medium"
           >
             All
-          </h3>
+          </h3> */}
           {allcate
             ?.filter((i) => i.type === "latest" || i.type === "popular")
             .map((item, idx) => (
               <h3
                 key={idx}
                 onClick={() => router.push(`/product?pid=${item.id}`)}
-                className="category_header bg-[#495464] transition cursor-pointer hover:bg-white hover:text-black active:bg-white active:text-black rounded-md p-3 min-w-[150px] h-fit  break-words  text-center text-white font-medium"
+                className="category_header bg-[#495464] transition cursor-pointer hover:bg-white hover:text-black active:bg-white active:text-black rounded-md p-3 w-full h-fit  break-words  text-center text-white font-medium"
               >
                 {" "}
                 {item.name}
@@ -280,7 +304,7 @@ const CategoriesContainer = (props: { setopen: any }) => {
         .map((i) => (
           <div
             key={i.id}
-            className="category flex flex-col w-[15vw] min-w-[10vw] pt-10  items-center justify-start p-1"
+            className="category flex flex-col w-[200px] max-small_phone:w-[90%] pt-10 items-center justify-start p-1"
           >
             <h3
               onClick={() =>
@@ -290,12 +314,12 @@ const CategoriesContainer = (props: { setopen: any }) => {
                   }`
                 )
               }
-              className="category_header bg-[#495464] transition cursor-pointer hover:bg-white hover:text-black active:bg-white active:text-black rounded-md p-3 min-w-[150px] h-fit  break-words  text-center text-white font-medium"
+              className="category_header w-full bg-[#495464] transition cursor-pointer hover:bg-white hover:text-black active:bg-white active:text-black rounded-md p-3 h-fit  break-words  text-center text-white font-medium"
             >
               {" "}
               {i.name}
             </h3>
-            <div className="category_subheader h-full grid row-span-3 gap-y-5 pt-7 font-normal text-center">
+            <div className="category_subheader w-full h-fit flex flex-col gap-y-5 pt-5 font-normal text-center">
               {i.subcategories
                 .filter((i) => (i.isExpired ? !i.isExpired : true))
                 .map((sub) => (
@@ -394,6 +418,10 @@ export const SubInventoryMenu = (props: Subinventorymenuprops) => {
     setpromotion,
   } = useGlobalContext();
 
+  const ref = useClickOutside(() =>
+    setopenmodal((prev) => ({ ...prev, subcreatemenu_ivt: false }))
+  );
+
   const handleClick = (obj: { value: string; opencon: string }) => {
     const index = props.index as number;
 
@@ -444,6 +472,7 @@ export const SubInventoryMenu = (props: Subinventorymenuprops) => {
   };
   return (
     <div
+      ref={ref}
       style={props.style}
       className="subinventorymenu flex flex-col w-[149px] rounded-b-xl absolute h-fit p-1 bg-white"
     >
@@ -464,8 +493,10 @@ export const NotificationMenu = forwardRef(
   (
     {
       notification,
+      close,
     }: {
       notification?: NotificationType[];
+      close: () => void;
     },
     ref
   ) => {
@@ -539,8 +570,14 @@ export const NotificationMenu = forwardRef(
         onScroll={() => {
           handleScroll();
         }}
-        className="notification absolute w-[350px] h-[400px] z-[150] right-2 top-14 flex flex-col gap-x-5 bg-white rounded-lg overflow-x-hidden overflow-y-auto"
+        className="notification absolute w-[350px] h-[400px] z-[150] right-2 top-14 flex flex-col gap-x-5 bg-white rounded-lg overflow-x-hidden overflow-y-auto max-smallest_tablet:right-0 max-smallest_tablet:top-0 max-smallest_tablet:w-[100vw] max-smallest_tablet:h-[100vh]"
       >
+        <div
+          onClick={() => close()}
+          className="w-fit h-fit hidden max-smallest_tablet:block absolute top-1 right-2 z-50"
+        >
+          <CloseVector width="30px" height="30px" />
+        </div>
         <h3
           className="font-bold bg-white text-lg w-full sticky top-0 z-10 text-left p-2 border-b-2 border-b-gray-300
       "

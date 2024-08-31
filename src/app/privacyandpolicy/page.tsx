@@ -42,7 +42,11 @@ export default async function PrivacyandPolicy({
           : undefined
         : undefined;
 
-    return <h3 className="font-bold text-5xl">{title}</h3>;
+    return (
+      <h3 className="font-bold text-5xl w-[95%] max-small_phone:w-[90%] break-words">
+        {title}
+      </h3>
+    );
   };
 
   return (
@@ -54,7 +58,7 @@ export default async function PrivacyandPolicy({
           ...allpolicy.map((i) => ({ id: i.id, content: i.title })),
         ]}
       />
-      <div className="w-full content pl-[25%] pr-[10%] pt-5">
+      <div className="w-full content max-smallest_screen:pl-[5%] pl-[25%] pr-[10%] pt-5">
         {!params?.p ? (
           <>
             <h2 className="text-5xl font-bold w-full">
@@ -63,29 +67,31 @@ export default async function PrivacyandPolicy({
           </>
         ) : (
           <>
-            <div className="w-full h-fit flex flex-row items-center justify-between mb-10">
+            <div className="w-full h-fit flex flex-col items-start gap-y-5 mb-10">
               <ShowTitle />
               {pageId !== 0 && (
-                <div className="w-fit h-[40px] flex flex-row gap-x-6 items-center">
-                  <PolicyButton
-                    title="Edit"
-                    ty="edit"
-                    color="#4688A0"
-                    policydata={policy as Addpolicytype}
-                  />
-                  <PolicyButton
-                    title="Show"
-                    ty="showtype"
-                    color="black"
-                    showtype={(policy as Addpolicytype).showtype}
-                    pid={pageId}
-                  />
-                  <PolicyButton
-                    title="Delete"
-                    ty="delete"
-                    color="lightcoral"
-                    pid={pageId}
-                  />
+                <div className="w-full overflow-x-auto">
+                  <div className="w-full min-w-[280px] h-[40px] flex flex-row gap-6 items-center justify-start">
+                    <PolicyButton
+                      title="Edit"
+                      ty="edit"
+                      color="#4688A0"
+                      policydata={policy as Addpolicytype}
+                    />
+                    <PolicyButton
+                      title="Show"
+                      ty="showtype"
+                      color="black"
+                      showtype={(policy as Addpolicytype).showtype}
+                      pid={pageId}
+                    />
+                    <PolicyButton
+                      title="Delete"
+                      ty="delete"
+                      color="lightcoral"
+                      pid={pageId}
+                    />
+                  </div>
                 </div>
               )}
             </div>

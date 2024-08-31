@@ -28,9 +28,11 @@ interface InventoryParamType {
 export const CreatePromotionModal = ({
   searchparams,
   settype,
+  setreloaddata,
 }: {
   searchparams: InventoryParamType;
   settype: (type: string) => void;
+  setreloaddata: React.Dispatch<React.SetStateAction<boolean>>;
 }) => {
   const {
     openmodal,
@@ -41,7 +43,6 @@ export const CreatePromotionModal = ({
     isLoading,
     globalindex,
     setglobalindex,
-    setreloaddata,
   } = useGlobalContext();
 
   const router = useRouter();
@@ -285,21 +286,24 @@ export const CreatePromotionModal = ({
         </form>
       </motion.div>
       {openmodal.imageupload && (
-        <ImageUpload mutitlple={false} limit={1} type="createpromotion" />
+        <ImageUpload
+          mutitlple={false}
+          limit={1}
+          type="createpromotion"
+          setreloaddata={setreloaddata}
+        />
       )}
     </Modal>
   );
 };
 
-export const DiscountModals = () => {
-  const {
-    promotion,
-    allData,
-    setpromotion,
-    globalindex,
-    setopenmodal,
-    setreloaddata,
-  } = useGlobalContext();
+export const DiscountModals = ({
+  setreloaddata,
+}: {
+  setreloaddata: React.Dispatch<React.SetStateAction<boolean>>;
+}) => {
+  const { promotion, allData, setpromotion, globalindex, setopenmodal } =
+    useGlobalContext();
   const [discount, setdiscount] = useState<number>(0);
 
   useEffectOnce(() => {

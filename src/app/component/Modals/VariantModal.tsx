@@ -8,7 +8,11 @@ import {
 import { ContainerLoading, errorToast } from "../Loading";
 import { FormEvent, useEffect, useState } from "react";
 import { RGBColor } from "react-color";
-import { ApiRequest, Delayloading } from "@/src/context/CustomHook";
+import {
+  ApiRequest,
+  Delayloading,
+  useScreenSize,
+} from "@/src/context/CustomHook";
 import tinycolor from "tinycolor2";
 import Modal from "../Modals";
 import { motion } from "framer-motion";
@@ -27,7 +31,6 @@ import TemplateContainer, {
 } from "./Variantcomponent/TemplateContainer";
 import { VariantTemplateType } from "./Variantcomponent/Action";
 import { HasPartialOverlap } from "@/src/lib/utilities";
-import { useRouter } from "next/navigation";
 
 interface variantdatatype {
   id?: number;
@@ -85,7 +88,6 @@ export const Variantcontainer = ({
   editindex?: number;
   closename?: string;
 }) => {
-  const router = useRouter();
   const { setopenmodal, product, setproduct } = useGlobalContext();
   const [temp, settemp] = useState<variantdatatype>();
   const [reloadtemp, setreloadtemp] = useState(true);
@@ -108,6 +110,7 @@ export const Variantcontainer = ({
   const [stock, setstock] = useState("");
   const [templates, settemplates] = useState<VariantTemplateType[] | []>([]);
   const [editsubstockidx, seteditsubstockidx] = useState(-1);
+  const { isDesktop } = useScreenSize();
   const [addNewSubStock, setaddNewSubStock] = useState(false);
   const [edittemplate, setedittemplate] = useState<
     VariantTemplateType | undefined
@@ -543,8 +546,13 @@ export const Variantcontainer = ({
   };
 
   return (
-    <Modal closestate={"none"} customZIndex={150} customheight="70vh">
-      <div className="relative productvariant_creation rounded-t-md w-full min-h-full max-h-[70vh] overflow-x-hidden overflow-y-auto bg-white flex flex-col items-center justify-start pt-5 gap-y-5">
+    <Modal
+      closestate={"none"}
+      customwidth={!isDesktop ? "100vw" : "50vw"}
+      customheight={!isDesktop ? "100vh" : "70vh"}
+      customZIndex={150}
+    >
+      <div className="relative productvariant_creation rounded-t-md w-full h-full bg-white flex flex-col items-center justify-start pt-5 gap-y-5">
         {loading && <ContainerLoading />}
         <h3 className="title text-2xl font-bold text-left w-full h-[50px] pl-2 border-b-1 border-black ">
           {newadd === "variant" || newadd === "type" || newadd === "info"
@@ -914,7 +922,9 @@ export const Variantcontainer = ({
             <div className="w-[90%] h-full grid grid-cols-1 gap-5 place-items-center">
               <div
                 onClick={() => setnew("variant")}
-                className="card w-[350px] h-[250px] bg-blue-300 rounded-lg grid place-content-center place-items-center transition duration-200 cursor-pointer hover:bg-transparent hover:outline hover:outline-1 hover:outline-black"
+                className="card w-[350px] h-[250px] 
+                max-smallest_phone:w-[275px]
+              bg-blue-300 rounded-lg grid place-content-center place-items-center transition duration-200 cursor-pointer hover:bg-transparent hover:outline hover:outline-1 hover:outline-black"
               >
                 <Image
                   src={Variantimg}
@@ -949,7 +959,7 @@ export const Variantcontainer = ({
                   }
                   setnew("stock");
                 }}
-                className="card w-[350px] h-[250px] bg-blue-300 rounded-lg grid place-content-center place-items-center transition duration-200 cursor-pointer hover:bg-transparent hover:outline hover:outline-1 hover:outline-black"
+                className="card w-[350px] h-[250px] max-smallest_phone:w-[275px] bg-blue-300 rounded-lg grid place-content-center place-items-center transition duration-200 cursor-pointer hover:bg-transparent hover:outline hover:outline-1 hover:outline-black"
               >
                 <Image
                   src={Variantstockimg}

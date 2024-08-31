@@ -1,7 +1,7 @@
 "use client";
 import Modal from "../Modals";
 import { Button, CircularProgress, Input } from "@nextui-org/react";
-import { Search_Icon } from "../Asset";
+import { CloseVector, Search_Icon } from "../Asset";
 import { ProductCard } from "../HomePage/Component";
 import { useGlobalContext } from "@/src/context/GlobalContext";
 import { motion } from "framer-motion";
@@ -18,7 +18,7 @@ interface Searchproducttype {
   price: Orderpricetype;
   covers: { name: string; url: string };
 }
-export default function SearchContainer() {
+export default function SearchContainer({ isMobile }: { isMobile: boolean }) {
   const { setopenmodal } = useGlobalContext();
   const [product, setproduct] = useState<Searchproducttype[]>([]);
   const [search, setsearch] = useState("");
@@ -44,7 +44,11 @@ export default function SearchContainer() {
   };
 
   return (
-    <Modal closestate="searchcon" customwidth="100vw" customheight="70vh">
+    <Modal
+      closestate="searchcon"
+      customwidth="100vw"
+      customheight={isMobile ? "100vh" : "70vh"}
+    >
       <motion.div
         initial={{ y: -500, height: 40 }}
         animate={{ y: 0, height: "100%" }}
@@ -53,7 +57,7 @@ export default function SearchContainer() {
           duration: 0.25,
           ease: "easeInOut",
         }}
-        className="search_container w-full h-full bg-white p-3 rounded-lg flex flex-col items-center justify-center gap-y-5"
+        className="search_container w-full h-full bg-white p-3 rounded-lg flex flex-col items-center justify-center max-small_phone:justify-start gap-y-5"
       >
         <div className="w-full h-fit flex flex-row items-center justify-evenly">
           <Input
@@ -72,18 +76,26 @@ export default function SearchContainer() {
             color="default"
             onKeyDown={handleSearch}
           />
+
           <Button
-            className="w-[150px] h-[40px] font-bold"
+            className="w-[150px] h-[40px] font-bold max-smallest_tablet:hidden"
             onClick={() =>
               setopenmodal((prev) => ({ ...prev, searchcon: false }))
             }
           >
             Cancel
           </Button>
+          <div
+            onClick={() =>
+              setopenmodal((prev) => ({ ...prev, searchcon: false }))
+            }
+            className="w-fit h-fit hidden max-small_phone:block"
+          >
+            <CloseVector width="30px" height="30px" />
+          </div>
         </div>
 
         <div className="previewsearch_res w-full h-[60vh] flex flex-row justify-center flex-wrap gap-3 overflow-y-auto overflow-x-hidden">
-          {loading && <LoadingText />}
           {product.map((prob) => (
             <ProductCard
               id={prob.id}

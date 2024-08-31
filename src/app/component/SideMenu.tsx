@@ -20,6 +20,7 @@ import {
   Delayloading,
   useClickOutside,
   useEffectOnce,
+  useScreenSize,
 } from "@/src/context/CustomHook";
 import { ContainerLoading, errorToast, successToast } from "./Loading";
 import { motion } from "framer-motion";
@@ -38,6 +39,7 @@ import { BannerSize, BannerType } from "./Modals/Banner";
 import Link from "next/link";
 import {
   Bin_Icon,
+  CloseVector,
   EditIcon,
   InventoryIcon,
   OrderIcon,
@@ -103,8 +105,10 @@ export default function AccountMenu(props: accountmenuprops) {
   const [Homeitems, sethomeitems] = useState<Homeitemtype[]>([]);
   const [isEdit, setisEdit] = useState(false);
   const [selected, setselected] = useState<number[] | undefined>([]);
+
   const router = useRouter();
   const ref = useClickOutside(() => props.setProfile(false));
+  const { isMobile } = useScreenSize();
 
   const handleSignOut = async () => {
     setloading(true);
@@ -199,7 +203,7 @@ export default function AccountMenu(props: accountmenuprops) {
       exit={{ x: "100%" }}
       transition={{ duration: 0.5 }}
       onMouseEnter={() => props.setProfile(true)}
-      className="fixed right-0 top-0 w-[20vw] h-full z-40 bg-[#FFFFFF] flex flex-col items-center"
+      className="fixed right-0 top-0 w-[430px] max-small_phone:w-full h-full z-40 bg-[#FFFFFF] flex flex-col items-center"
     >
       {openmodal?.editHome ? (
         <div className="w-[90%] h-full flex flex-col items-center gap-y-10">
@@ -275,7 +279,6 @@ export default function AccountMenu(props: accountmenuprops) {
                     <div
                       onClick={() => {
                         setopenmodal((prev) => ({ ...prev, editHome: true }));
-                        props.setProfile(false);
                       }}
                       className="w-full h-full flex flex-row items-center gap-x-5 pl-2 rounded-lg transition hover:bg-gray-200 active:bg-gray-200"
                     >
@@ -306,6 +309,15 @@ export default function AccountMenu(props: accountmenuprops) {
             onClick={() => handleSignOut()}
           />
         </>
+      )}
+      {isMobile && (
+        <div
+          onClick={() => props.setProfile(false)}
+          className="w-fit h-fit absolute top-1 right-1"
+        >
+          {" "}
+          <CloseVector width="35px" height="35px" />{" "}
+        </div>
       )}
     </motion.aside>
   );
@@ -878,8 +890,16 @@ export const FilterMenu = ({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="filtermenu w-[50vw] h-fit bg-white p-5 rounded-md flex flex-col justify-center gap-y-5"
+        className="filtermenu w-[50vw] relative max-smallest_screen:w-[90vw] max-small_phone:pt-10 max-small_phone:w-screen max-small_phone:justify-start max-small_phone:h-screen h-fit bg-white p-5 rounded-md flex flex-col justify-center gap-y-5"
       >
+        <div
+          onClick={() =>
+            setopenmodal((prev) => ({ ...prev, filteroption: false }))
+          }
+          className="absolute w-fit h-fit top-1 right-1 hidden max-small_phone:block"
+        >
+          <CloseVector width="30px" height="30px" />
+        </div>
         {type !== "usermanagement" && (
           <input
             type="text"

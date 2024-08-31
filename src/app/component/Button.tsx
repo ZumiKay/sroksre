@@ -146,7 +146,7 @@ export function Selection(props: selectprops) {
         disabled={props.disable ? props.disable : false}
         className={`select border-1 border-black rounded-md ${
           props.label ? "w-1/2" : "w-full"
-        } h-full p-2`}
+        } h-full p-2 bg-white`}
         onChange={props.onChange}
         required={props.required}
         value={props.value}

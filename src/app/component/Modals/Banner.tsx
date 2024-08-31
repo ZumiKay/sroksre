@@ -30,7 +30,11 @@ export const BannerSize = [
   { label: "Normal", value: "normal" },
 ];
 
-export const BannerModal = () => {
+export const BannerModal = ({
+  setreloaddata,
+}: {
+  setreloaddata: React.Dispatch<React.SetStateAction<boolean>>;
+}) => {
   const {
     openmodal,
     setopenmodal,
@@ -40,7 +44,6 @@ export const BannerModal = () => {
     setalldata,
     globalindex,
     setglobalindex,
-    setreloaddata,
   } = useGlobalContext();
 
   const [loading, setloading] = useState(false);
@@ -410,6 +413,7 @@ export const BannerModal = () => {
           mutitlple={false}
           type="createbanner"
           bannertype={banner.size === "large" ? undefined : banner.size}
+          setreloaddata={setreloaddata}
         />
       )}
     </Modal>
