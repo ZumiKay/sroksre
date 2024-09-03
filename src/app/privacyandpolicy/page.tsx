@@ -69,7 +69,7 @@ export default async function PrivacyandPolicy({
           <>
             <div className="w-full h-fit flex flex-col items-start gap-y-5 mb-10">
               <ShowTitle />
-              {pageId !== 0 && (
+              {pageId !== 0 && user && user.role === "ADMIN" && (
                 <div className="w-full overflow-x-auto">
                   <div className="w-full min-w-[280px] h-[40px] flex flex-row gap-6 items-center justify-start">
                     <PolicyButton

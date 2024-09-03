@@ -1,7 +1,7 @@
 import { useGlobalContext, Userinitialize } from "@/src/context/GlobalContext";
 import React, { ChangeEvent, FormEvent, useEffect, useState } from "react";
 import { errorToast, successToast } from "../Loading";
-import { ApiRequest } from "@/src/context/CustomHook";
+import { ApiRequest, useScreenSize } from "@/src/context/CustomHook";
 import Modal from "../Modals";
 import Image from "next/image";
 import CloseIcon from "../../../../public/Image/Close.svg";
@@ -41,6 +41,7 @@ export const Createusermodal = ({
     passowrd: false,
   });
   const [loading, setloading] = useState(false);
+  const { isTablet, isMobile } = useScreenSize();
   const router = useRouter();
 
   useEffect(() => {
@@ -96,8 +97,13 @@ export const Createusermodal = ({
     }));
   };
   return (
-    <Modal closestate="createUser">
-      <div className="relative w-full h-fit bg-white p-5 flex flex-col items-end gap-y-5 rounded-lg">
+    <Modal
+      customwidth={isTablet ? "80vw" : isMobile ? "100vw" : "60vw"}
+      customheight={isMobile ? "100vh" : "fit-content"}
+      closestate="createUser"
+      customZIndex={200}
+    >
+      <div className="relative w-full max-small_phone:h-full h-fit bg-white p-5 flex flex-col items-end gap-y-5 rounded-lg">
         <div className="w-full h-fit flex flex-row-reverse items-center justify-between">
           <Image
             src={CloseIcon}
@@ -255,6 +261,7 @@ export const EditProfile = ({
   type: "name" | "email" | "password" | "shipping" | "none";
 }) => {
   const [open, setopen] = useState<any>({});
+  const { isTablet, isMobile } = useScreenSize();
   const [loading, setloading] = useState({
     post: false,
     get: true,
@@ -344,7 +351,6 @@ export const EditProfile = ({
         return;
       }
     }
-    successToast("Address Deleted");
 
     del?.splice(index, 1);
     setdata(update);
@@ -485,8 +491,21 @@ export const EditProfile = ({
   };
 
   return (
-    <Modal closestate="editprofile" customheight="fit-content">
-      <div className="editprofile_container relative flex flex-col items-center gap-y-5 w-full h-auto  max-h-[80vh] bg-white rounded-lg p-3">
+    <Modal
+      customwidth={isTablet ? "80vw" : isMobile ? "100vw" : "50vw"}
+      closestate="editprofile"
+      customheight={isMobile ? "100vh" : "fit-content"}
+      customZIndex={200}
+    >
+      <div className="editprofile_container relative flex flex-col items-center gap-y-5 w-full h-full overflow-y-auto bg-white rounded-lg p-3">
+        <div
+          onClick={() =>
+            setopenmodal((prev) => ({ ...prev, editprofile: false }))
+          }
+          className="w-fit h-fit hidden max-small_phone:block relative top-1"
+        >
+          <CloseVector width="25px" height="25px" />
+        </div>
         {type === "name" && (
           <>
             <TextInput
@@ -562,7 +581,7 @@ export const EditProfile = ({
                 {data.shipping?.map((i, idx) => (
                   <div
                     key={idx}
-                    className={`address_container p-3 mb-5 transition w-full min-h-[50px] rounded-lg h-fit hover:border hover:border-gray-400 ${
+                    className={`address_container relative p-3 mb-5 transition w-full min-h-[50px] rounded-lg h-fit hover:border hover:border-gray-400 ${
                       open ? (open[`sub${idx + 1}`] ? "bg-gray-700" : "") : ""
                     }`}
                   >
@@ -589,7 +608,7 @@ export const EditProfile = ({
 
                     {open && open[`sub${idx + 1}`] && (
                       <>
-                        <div className="addressform relative w-full h-fit flex flex-col items-center gap-y-5 p-5">
+                        <div className="addressform  rela  w-full h-fit flex flex-col items-center gap-y-5 p-5">
                           <span
                             onClick={() => {
                               const update = Object.entries(open).map(
@@ -604,9 +623,9 @@ export const EditProfile = ({
 
                               setopen(Object.fromEntries(update));
                             }}
-                            className="absolute -top-7 right-0 transition hover:translate-x-1 "
+                            className="absolute top-1 right-1 transition hover:translate-x-1 "
                           >
-                            <CloseVector width="30px" height="30px" />
+                            <CloseVector width="25px" height="25px" />
                           </span>
                           <Selection
                             style={{ width: "100%", height: "50px" }}

@@ -94,50 +94,57 @@ export default async function OrderManagement({
 
   return (
     <main className="order__container w-full min-h-screen flex flex-col items-start gap-y-5 pl-2 pr-2 relative">
-      <div className="filter_container w-fit inline-flex gap-x-5 items-center h-fit mt-5">
-        <MultipleSelect />
+      <div
+        className="filter_container w-full flex flex-row items-center gap-x-5 
+      max-large_phone:justify-center
+      max-large_phone:flex-col max-large_phone:gap-y-5"
+      >
+        <div className="w-[300px] max-small_phone:w-[95%]">
+          <MultipleSelect />
+        </div>
 
-        <FilterButton
-          isFilter={!isFilter}
-          data={{ todate, fromdate, q, startprice, endprice }}
-        />
-        <DownloadButton />
+        <div className="w-full h-full flex flex-row items-center gap-x-3 max-large_phone:justify-center">
+          <FilterButton
+            isFilter={!isFilter}
+            data={{ todate, fromdate, q, startprice, endprice }}
+          />
+          <DownloadButton />
+        </div>
       </div>
-      <div className="orderlist w-full h-fit">
-        <table width={"100%"} className="ordertable text-lg font-medium">
-          <tbody>
-            <tr className="text-left bg-[#495464] text-white h-[50px] rounded-2xl">
-              <th className="rounded-l-lg pl-2">Order ID#</th>
-              <th align="left">Details</th>
-              <th>Products</th>
-              <th>Amount</th>
-              <th>Status</th>
-              <th></th>
-              <th className="rounded-r-lg"> </th>
-            </tr>
-            <tr className="h-[30px]">
-              <td></td>
-            </tr>
-
-            {!orders || orders.length === 0 ? (
-              <tr>
-                <td>
-                  <h3 className="w-full font-bold text-xl">No order</h3>
-                </td>
+      <div className="w-full h-full overflow-x-auto">
+        <div className="orderlist min-w-[950px] w-full h-fit">
+          <table width={"100%"} className="ordertable text-lg font-medium">
+            <thead>
+              <tr className="text-left bg-[#495464] text-white h-[50px] rounded-2xl">
+                <th className="rounded-l-lg pl-2">Order ID#</th>
+                <th align="left">Details</th>
+                <th> Products </th>
+                <th> Amount</th>
+                <th>Status</th>
+                <th></th>
+                <th className="rounded-r-lg"> </th>
               </tr>
-            ) : (
-              orders?.map((i, idx) => (
-                <DataRow
-                  key={`row${idx}`}
-                  idx={idx + 1}
-                  data={i as AllorderStatus}
-                  param={searchParams}
-                  isAdmin={getuser.role === Role.ADMIN}
-                />
-              ))
-            )}
-          </tbody>
-        </table>
+              <tr className="h-[30px]"></tr>
+            </thead>
+            <tbody>
+              {!orders || orders.length === 0 ? (
+                <tr>
+                  <td className="w-full font-bold text-xl">No order</td>
+                </tr>
+              ) : (
+                orders?.map((i, idx) => (
+                  <DataRow
+                    key={`row${idx}`}
+                    idx={idx + 1}
+                    data={i as AllorderStatus}
+                    param={searchParams}
+                    isAdmin={getuser.role === Role.ADMIN}
+                  />
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
       {orders && orders.length !== 0 && (
         <div className="w-full h-fit relative mt-10 bottom-0">
@@ -275,9 +282,7 @@ export const DataRow = async ({
         </td>
         {isAdmin ? (
           <>
-            {" "}
             <td>
-              {" "}
               <ButtonSsr
                 idx={idx}
                 type={AllorderType.orderaction}
@@ -289,7 +294,7 @@ export const DataRow = async ({
                 id={data.id}
                 isAdmin={isAdmin}
               />
-            </td>{" "}
+            </td>
           </>
         ) : (
           <></>

@@ -365,12 +365,12 @@ export default function Inventory({
     Object.keys(filtervalue).map((key) => {
       if (key !== "ty" && key !== "p" && key !== "limit") {
         params.delete(key);
-      } else if (key !== "ty") {
-        params.set(key, "1");
       }
     });
 
     params.set("ty", value);
+    params.set("p", "1");
+    params.set("limit", "1");
 
     setpage(1);
     setshow("1");
@@ -379,47 +379,38 @@ export default function Inventory({
     setreloaddata(true);
   };
 
-  const InventoryModals = () => {
-    return (
-      <AnimatePresence>
-        {openmodal.createProduct && (
-          <CreateProducts setreloaddata={setreloaddata} />
-        )}
-        {openmodal.createCategory && <Category />}
-        {openmodal.createBanner && (
-          <BannerModal setreloaddata={setreloaddata} />
-        )}
-        {openmodal.createPromotion && (
-          <CreatePromotionModal
-            searchparams={searchParams as any}
-            settype={settype}
-            setreloaddata={setreloaddata}
-          />
-        )}
-        {openmodal.filteroption && (
-          <FilterMenu
-            name={name}
-            categories={{
-              parentid: parseInt(parentcate as string),
-              childid: parseInt(childcate as string),
-            }}
-            expiredAt={expiredate ? dayjs(expiredate).toISOString() : undefined}
-            type={ty}
-            param={searchParams}
-            expired={expired}
-            reloadData={() => setreloaddata(true)}
-            setfilterdata={setfiltervalue as any}
-            isSetPromotion={promotion.selectproduct}
-          />
-        )}
-        {openmodal.discount && <DiscountModals setreloaddata={setreloaddata} />}
-      </AnimatePresence>
-    );
-  };
-
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
-      <InventoryModals />
+      {openmodal.createProduct && (
+        <CreateProducts setreloaddata={setreloaddata} />
+      )}
+      {openmodal.createCategory && <Category />}
+      {openmodal.createBanner && <BannerModal setreloaddata={setreloaddata} />}
+      {openmodal.createPromotion && (
+        <CreatePromotionModal
+          searchparams={searchParams as any}
+          settype={settype}
+          setreloaddata={setreloaddata}
+        />
+      )}
+      {openmodal.filteroption && (
+        <FilterMenu
+          name={name}
+          categories={{
+            parentid: parseInt(parentcate as string),
+            childid: parseInt(childcate as string),
+          }}
+          expiredAt={expiredate ? dayjs(expiredate).toISOString() : undefined}
+          type={ty}
+          param={searchParams}
+          expired={expired}
+          reloadData={() => setreloaddata(true)}
+          setfilterdata={setfiltervalue as any}
+          isSetPromotion={promotion.selectproduct}
+        />
+      )}
+      {openmodal.discount && <DiscountModals setreloaddata={setreloaddata} />}
+
       <div className="inventory__container w-full h-full min-h-screen relative flex flex-col items-center pb-[200px]">
         <div className="inventory_header bg-white sticky z-30 top-[55px] w-full h-full p-2 border-b border-black">
           <div className="w-full flex flex-row items-center overflow-x-auto gap-x-5 scrollbar-hide">
@@ -439,35 +430,12 @@ export default function Inventory({
                     style={{ width: "275px" }}
                   />
                 </div>
-                <div
-                  ref={btnref}
-                  className="createbtn_container flex flex-col justify-center items-start"
-                >
-                  <PrimaryButton
-                    color="#6FCF97"
-                    radius="10px"
-                    type="button"
-                    style={{ minWidth: "150px" }}
-                    width="150px"
-                    text="Action"
-                    onClick={() =>
-                      setopenmodal({
-                        ...openmodal,
-                        subcreatemenu_ivt: !openmodal.subcreatemenu_ivt,
-                      })
-                    }
-                    Icon={
-                      <i className="fa-solid fa-plus text-sm text-black"></i>
-                    }
-                  />
-                  {openmodal.subcreatemenu_ivt && (
-                    <SubInventoryMenu
-                      data={createmenu as any}
-                      open="subcreatemenu_ivt"
-                      style={{ top: "100%" }}
-                    />
-                  )}
-                </div>
+
+                <SubInventoryMenu
+                  data={createmenu as any}
+                  open="subcreatemenu_ivt"
+                />
+
                 <PrimaryButton
                   color="#60513C"
                   width="150px"
@@ -519,6 +487,7 @@ export default function Inventory({
               <PrimaryButton
                 type="button"
                 text="Add New"
+                style={{ minWidth: "150px" }}
                 radius="10px"
                 onClick={() =>
                   setopenmodal((prev) => ({ ...prev, createBanner: true }))
@@ -533,6 +502,7 @@ export default function Inventory({
                   type="button"
                   status={isLoading.PUT ? "loading" : "authenticated"}
                   radius="10px"
+                  style={{ minWidth: "150px" }}
                   onClick={() => handleDoneButton()}
                 />
               </>
@@ -674,6 +644,7 @@ export default function Inventory({
           )}
         </div>
       </div>
+
       <div className="w-full h-fit">
         <PaginationCustom
           page={page}

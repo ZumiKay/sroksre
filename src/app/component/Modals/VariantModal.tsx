@@ -223,8 +223,8 @@ export const Variantcontainer = ({
   const handleAddColor = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const { color, name } = colordata;
-    if (color?.hex === "") {
-      errorToast("Please Select Color");
+    if (color?.hex === "" || !name) {
+      errorToast(color.hex === "" ? "Please Select Color" : "Name is Required");
       return;
     }
     const update = { ...temp };

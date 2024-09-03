@@ -33,7 +33,7 @@ export const BannerSize = [
 export const BannerModal = ({
   setreloaddata,
 }: {
-  setreloaddata: React.Dispatch<React.SetStateAction<boolean>>;
+  setreloaddata?: React.Dispatch<React.SetStateAction<boolean>>;
 }) => {
   const {
     openmodal,
@@ -158,7 +158,7 @@ export const BannerModal = ({
         }
         setbanner(BannerInitialize);
         successToast("Banner Created");
-        setreloaddata(true);
+        setreloaddata && setreloaddata(true);
       } else {
         const update = await ApiRequest(URL, undefined, "PUT", "JSON", banner);
         setloading(false);
@@ -174,7 +174,7 @@ export const BannerModal = ({
         setglobalindex((prev) => ({ ...prev, bannereditindex: -1 }));
 
         successToast("Banner Updated");
-        setreloaddata(true);
+        setreloaddata && setreloaddata(true);
       }
       setbanner(BannerInitialize);
     } else {
@@ -213,17 +213,12 @@ export const BannerModal = ({
 
   return (
     <Modal
-      customwidth="100%"
+      customwidth="100vw"
       customheight="100vh"
       closestate="createBanner"
       customZIndex={200}
     >
-      <motion.div
-        initial={{ y: 1000 }}
-        animate={{ y: 0 }}
-        exit={{ opacity: 0 }}
-        className="bannermodal_content bg-white p-3 relative rounded-lg w-auto min-w-1/2 max-w-full min-h-screen max-h-[80vh] overflow-y-auto overflow-x-hidden h-full flex flex-col gap-y-5 items-center"
-      >
+      <div className="bannermodal_content bg-white p-3 relative rounded-lg w-full min-h-screen max-h-[80vh] overflow-y-auto overflow-x-hidden h-full flex flex-col gap-y-5 items-center">
         {banner.image && banner.image.url.length !== 0 && (
           <div
             style={banner.size === "normal" ? { width: "100%" } : {}}
@@ -386,7 +381,7 @@ export const BannerModal = ({
           />
         </div>
 
-        <div className="actions_con w-2/3 flex flex-row gap-x-10 relative bottom-0 ">
+        <div className="actions_con w-full flex flex-row gap-x-10 relative bottom-0 ">
           <PrimaryButton
             onClick={() => handleCreate()}
             text={globalindex.bannereditindex !== -1 ? "Edit" : "Create"}
@@ -405,7 +400,7 @@ export const BannerModal = ({
             radius="10px"
           />
         </div>
-      </motion.div>
+      </div>
 
       {openmodal.imageupload && (
         <ImageUpload

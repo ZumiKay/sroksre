@@ -219,9 +219,15 @@ export default function AuthenticatePage() {
 
   return (
     <div className="authentication__container  w-full min-h-[90vh] mt-4 flex items-center justify-center">
-      <div className=" bg-[#495464] shadow-large flex text-lg flex-col justify-center items-center gap-y-10 w-[70%] min-h-[70vh] h-fit p-5 rounded-lg">
+      <div
+        className={`bg-[#495464] shadow-large flex text-lg flex-col justify-center items-center gap-y-10 
+          max-large_phone:w-[90%] max-small_phone:w-[97%]
+          w-[70%] min-h-[70vh] 
+          h-fit p-5 
+          rounded-lg`}
+      >
         {type === "register" && (!verify.cid || !verify.email) && (
-          <div className="w-[80%] flex flex-col gap-y-5">
+          <div className="w-[80%] max-small_phone:w-[97%] flex flex-col gap-y-5">
             {!verify.email ? (
               <input
                 type="email"
@@ -322,7 +328,7 @@ export default function AuthenticatePage() {
                 </div>
               </>
             )}
-            <div className="form_actions flex flex-row gap-5 w-[80%] ">
+            <div className="form_actions flex flex-row gap-5 w-[80%] max-small_phone:w-[100%]">
               {verify.cid && verify.email ? (
                 <PrimaryButton
                   text="Create Account"
@@ -364,20 +370,22 @@ export default function AuthenticatePage() {
               type="email"
               name="email"
               placeholder="Email Address"
-              className="email w-[80%] p-3 rounded-md"
+              className="email w-[80%] max-small_phone:w-full p-3 rounded-md"
               value={data.email}
               onChange={handleChange}
               required
             />
             {type === "login" && (
               <>
-                <PasswordInput
-                  label="Password"
-                  type="auth"
-                  name="password"
-                  onChange={handleChange}
-                  width="80%"
-                />
+                <div className="h-full flex justify-start w-[83%] max-small_phone:w-[103%]">
+                  <PasswordInput
+                    label="Password"
+                    type="auth"
+                    name="password"
+                    onChange={handleChange}
+                    width="100%"
+                  />
+                </div>
 
                 <div
                   onClick={() => {
@@ -411,7 +419,7 @@ export default function AuthenticatePage() {
                   <label className="text-lg font-bold text-white">
                     Sign with:{" "}
                   </label>
-                  <div className="signinWith__container w-full flex flex-row items-center gap-x-2 flex-wrap">
+                  <div className="signinWith__container w-full flex flex-row items-center gap-x-2 gap-y-5 max-large_phone:flex-col">
                     <PrimaryButton
                       type="button"
                       text="Discord"

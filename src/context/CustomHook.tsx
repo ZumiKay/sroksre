@@ -263,6 +263,7 @@ export const useScreenSize = () => {
     isMobile: false,
     isTablet: false,
     isDesktop: false,
+    isSmallDesktop: false,
   });
 
   useEffect(() => {
@@ -270,12 +271,16 @@ export const useScreenSize = () => {
       isMobile: window && window?.innerWidth <= 432,
       isTablet: window && window?.innerWidth >= 432 && window?.innerWidth < 768,
       isDesktop: window && window?.innerWidth >= 768,
+      isSmallDesktop:
+        window && window.innerWidth >= 768 && window.innerWidth < 850,
     });
 
     const handleResize = () => {
       setScreenSize({
         isMobile: window.innerWidth <= 432,
         isTablet: window.innerWidth >= 432 && window.innerWidth < 768,
+        isSmallDesktop:
+          window && window.innerWidth >= 768 && window.innerWidth < 850,
         isDesktop: window.innerWidth >= 768,
       });
     };

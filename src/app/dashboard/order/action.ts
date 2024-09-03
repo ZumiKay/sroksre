@@ -293,7 +293,7 @@ export const ExportOrderData = async (filterdata: Filterdatatype) => {
     orderdata = orderdata.filter((data) => {
       const price = data.price as unknown as totalpricetype;
 
-      const isOrder = data.id === filterdata.q;
+      const isOrder = filterdata.q && data.id === filterdata.q;
 
       const isBuyer =
         (filterdata.q &&

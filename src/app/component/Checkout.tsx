@@ -101,7 +101,9 @@ const CircleSvg = ({
       onClick={() => {
         handleClick && handleClick();
       }}
-      className="w-[70px] h-[70px] relative grid place-items-center"
+      className="w-[70px] h-[70px] 
+     
+       relative grid place-items-center"
     >
       <svg height="100%" width="100%" xmlns="http://www.w3.org/2000/svg">
         {active && LinearGradient("#495464", control)}
@@ -187,16 +189,28 @@ export const StepComponent = ({
   return (
     <div
       key={data.idx}
-      className="step_container w-[180px] max-h-[300px] h-fit flex flex-row"
+      className={`step_container w-[180px]  max-h-[300px] h-fit flex flex-row justify-center 
+      max-small_phone:w-[150px] max-smallest_phone:w-[120px] ${
+        data.step === 2
+          ? "max-large_phone:grid max-large_phone:place-content-start"
+          : ""
+      } max-smallest_phone:grid max-smallest_phone:place-content-start`}
       style={data.noline ? { display: "grid", placeContent: "start" } : {}}
     >
-      <div className="indicator h-fit w-[100%] flex flex-col items-center ">
+      <div className="indicator h-[150px] w-[100%] max-small_phone:h-[100px] flex flex-col items-center">
         <CircleSvg control={sequence} step={data.step} active={isActive} />
         <h3 className="title text-lg font-medium w-full h-fit text-center">
           {data.title}
         </h3>
       </div>
-      <div hidden={data.noline} className="w-full h-fit">
+      <div
+        hidden={data.noline}
+        className={`w-full h-fit ${
+          data.step === 2 ? "max-large_phone:hidden" : ""
+        } ${data.step === 1 ? "max-smallest_phone:hidden" : ""} ${
+          data.step === 3 ? "max-smallest_phone:hidden" : ""
+        }`}
+      >
         <LineSvg control={linesequence} active={isActive} />
       </div>
     </div>
@@ -221,7 +235,9 @@ export const Checkoutproductcard = ({
   return (
     <div
       key={cover}
-      className={"w-full h-fit bg-white rounded-lg flex flex-row gap-x-5"}
+      className={
+        "w-full h-fit bg-white rounded-lg flex flex-row gap-x-5 items-center max-large_phone:flex-col max-large_phone:gap-y-5"
+      }
     >
       <Image
         src={cover}
@@ -231,10 +247,10 @@ export const Checkoutproductcard = ({
         className="w-[150px] h-auto rounded-lg object-contain"
         loading="lazy"
       />
-      <div className="w-[60%] min-h-[200px] flex flex-col items-start gap-y-3 relative">
+      <div className="w-[60%] max-large_phone:w-[90%] min-h-[200px] h-fit flex flex-col items-start gap-y-3 relative">
         <h3 className="text-xl font-bold w-fit h-fit">{name}</h3>
         {details && details.length > 0 && (
-          <div className="w-full flex flex-row gap-3 h-fit">
+          <div className="w-full flex flex-row gap-3 flex-wrap h-fit">
             {details.map((item, idx) => (
               <Selecteddetailcard key={idx} text={item} />
             ))}
@@ -259,8 +275,8 @@ const ShowPrice = ({
   const Price = price.price;
 
   return (
-    <div className="w-full h-fit flex flex-row items-center justify-between absolute bottom-5">
-      <div className="price flex flex-row items-center gap-x-3 w-full h-full">
+    <div className="w-full h-fit flex flex-row items-center justify-between">
+      <div className="price flex flex-row items-center max-small_phone:flex-wrap gap-x-3 w-full h-full">
         <h3
           hidden={!isDiscount}
           className="text-lg font-normal text-red-500 line-through"
@@ -362,7 +378,16 @@ export const StepIndicator = ({ step }: { step: number }) => {
     );
   }, [step]);
   return (
-    <div className="step_containter w-full h-fit flex flex-row justify-center pt-2">
+    <div
+      className="step_containter w-full h-fit flex flex-row justify-center items-center pt-2 
+      pl-10
+    max-small_tablet:pl-10 
+    max-small_phone:flex-wrap
+    max-large_phone:justify-center 
+    max-large_phone:items-center max-small_phone:justify-center max-small_phone:pl-[15%]
+    max-smallest_phone:grid max-smallest_phone:grid-cols-2
+    "
+    >
       {stepdata?.map((i, idx) => (
         <StepComponent
           key={idx}
@@ -395,7 +420,10 @@ export const BackAndEdit = ({ step }: { step: number }) => {
     }
   };
   return (
-    <div className="btn-1 flex flex-col items-center gap-y-3 w-[150px] h-fit">
+    <div
+      className={`btn-1 flex flex-col items-center gap-3 w-[150px] h-fit 
+        max-small_tablet:w-full max-small_tablet:order-3 max-small_tablet:flex-row`}
+    >
       <PrimaryButton
         text={step === 1 ? "Edit" : "Back"}
         color="lightcoral"
@@ -545,7 +573,10 @@ export const FormWrapper = ({
   return (
     <form
       onSubmit={handleSubmit}
-      className="checked_body w-full h-fit flex flex-row justify-center gap-x-5"
+      className={`checked_body w-full h-fit flex flex-row justify-center gap-x-5 
+        max-smaller_screen:justify-between max-smaller_screen:pl-1 max-smaller_screen:pr-1
+        max-small_tablet:flex-col max-small_tablet:gap-y-5
+        `}
     >
       {loading && <LoadingText />}
       {children}
@@ -679,13 +710,17 @@ export function ShippingForm({ orderid }: { orderid: string }) {
       initial={{ y: 20, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 1, ease: "easeInOut" }}
-      className="w-fit h-full flex flex-row gap-x-5"
+      className="w-fit max-smaller_screen:w-full h-full flex flex-row gap-x-5"
     >
       <input type="hidden" name="shipping" value={"shipping"} />
-      <div className="checkout_container bg-[#F1F1F1] w-[50vw] h-fit p-2 rounded-lg shadow-lg flex flex-col items-center">
+      <div
+        className="checkout_container bg-[#F1F1F1] w-[50vw]
+      max-smaller_screen:w-full
+       h-fit p-2 rounded-lg shadow-lg flex flex-col items-center"
+      >
         <h3 className="title text-2xl font-bold pb-5"> Shipping Address </h3>
 
-        <div className="shippingform w-[70%] h-fit p-2 flex flex-col gap-y-5 items-center">
+        <div className="shippingform w-[70%] max-large_phone:w-full h-fit p-2 flex flex-col gap-y-5 items-center">
           <SelectionCustom
             label="Address"
             placeholder={

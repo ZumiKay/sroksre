@@ -203,8 +203,17 @@ export async function updateStatus(
 
       if (stocktype === ProductStockType.stock) {
         productUpdates.push(
-          Prisma.products.update({
-            where: { id: cart.product.id },
+          Prisma.products.updateMany({
+            where: {
+              AND: [
+                {
+                  id: cart.product.id,
+                },
+                {
+                  stock: { not: 0 },
+                },
+              ],
+            },
             data: { stock: { decrement: cart.quantity } },
           })
         );
@@ -214,7 +223,14 @@ export async function updateStatus(
         );
         stockUpdates.push(
           Prisma.stockvalue.updateMany({
-            where: { id: { in: stockValueIds } },
+            where: {
+              AND: [
+                {
+                  id: { in: stockValueIds },
+                },
+                { qty: { not: 0 } },
+              ],
+            },
             data: { qty: { decrement: cart.quantity } },
           })
         );

@@ -74,34 +74,36 @@ export default function UsermanagementPage({
   return (
     <div className="usermanagement_container relative w-full h-fit">
       {loading && <ContainerLoading />}
-      <header className="usermanagement_heade w-[500px] h-fit p-3 flex flex-row gap-x-5">
-        <PrimaryButton
-          type="button"
-          text="Add"
-          onClick={() => handleAdd()}
-          color="#0097FA"
-          Icon={<i className="fa-solid fa-plus font-bold text-lg"></i>}
-          width="100%"
-          radius="10px"
-        />
-        <PrimaryButton
-          color="#4688A0"
-          radius="10px"
-          type="button"
-          text={isFilter ? "Clear Filter" : "Filter"}
-          onClick={() =>
-            setopenmodal((prev) => ({ ...prev, filteroption: true }))
-          }
-          width="100%"
-        />
-        <PrimaryButton
-          radius="10px"
-          type="button"
-          text={`Total: ${itemlength.total}`}
-          width="100%"
-        />
-      </header>
-      <div className="userlist w-full h-fit min-h-[70vh] grid grid-cols-3 gap-x-10 gap-y-10 place-content-start place-items-center mt-5">
+      <div className="w-full h-fit overflow-x-auto">
+        <div className="usermanagement_heade w-[500px] h-fit p-3 flex flex-row gap-x-5">
+          <PrimaryButton
+            type="button"
+            text="Add"
+            onClick={() => handleAdd()}
+            color="#0097FA"
+            Icon={<i className="fa-solid fa-plus font-bold text-lg"></i>}
+            width="150px"
+            radius="10px"
+          />
+          <PrimaryButton
+            color="#4688A0"
+            radius="10px"
+            type="button"
+            text={isFilter ? "Clear Filter" : "Filter"}
+            onClick={() =>
+              setopenmodal((prev) => ({ ...prev, filteroption: true }))
+            }
+            width="150px"
+          />
+          <PrimaryButton
+            radius="10px"
+            type="button"
+            text={`Total: ${itemlength.total}`}
+            width="150px"
+          />
+        </div>
+      </div>
+      <div className="userlist w-full h-fit mt-10 flex flex-row gap-5 flex-wrap justify-center">
         {allData.user?.map((i, idx) => (
           <UserCard
             index={idx}

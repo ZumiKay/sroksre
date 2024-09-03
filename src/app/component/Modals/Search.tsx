@@ -95,7 +95,7 @@ export default function SearchContainer({ isMobile }: { isMobile: boolean }) {
           </div>
         </div>
 
-        <div className="previewsearch_res w-full h-[60vh] flex flex-row justify-center flex-wrap gap-3 overflow-y-auto overflow-x-hidden">
+        <div className="previewsearch_res w-full h-[60vh] max-small_phone:h-[90vh] flex flex-row justify-center flex-wrap gap-3 overflow-y-auto overflow-x-hidden">
           {product.map((prob) => (
             <ProductCard
               id={prob.id}

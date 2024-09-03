@@ -177,7 +177,7 @@ export function AddSubCategoryMenu({ index }: { index: number }) {
   return (
     <div className="AddSubCategory_menu w-full h-fit p-1 flex flex-col justify-center gap-y-5 transition rounded-md outline outline-2 outline-gray-300">
       <h2 className="text-lg font-bold">Sub Categories</h2>
-      <div className="subcategory_list grid grid-cols-5 gap-y-3 p-4 place-content-start h-full  max-h-[120px] overflow-y-auto">
+      <div className="subcategory_list flex flex-row flex-wrap gap-5 p-4 place-content-start h-full  max-h-[120px] overflow-y-auto">
         {category.subcategories?.map((cat, index) => (
           <div
             key={index}

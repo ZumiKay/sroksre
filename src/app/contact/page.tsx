@@ -20,10 +20,10 @@ export default async function ContactPage() {
   const user = await getUser();
   const userdata = await Prisma.user.findUnique({ where: { id: user?.id } });
   return (
-    <div className="w-[70%] h-full min-h-screen pl-10 flex flex-col gap-y-20">
+    <div className="w-[70%] max-large_phone:w-[95%] h-full min-h-screen pl-10 max-smallest_phone:pl-2 flex flex-col gap-y-20">
       <h2 className="text-5xl font-bold w-full h-fit">Contact Us</h2>
 
-      <div className="info_table w-[300px] h-[350px] bg-[#CFDBEE] p-2 flex flex-col gap-y-7 rounded-lg">
+      <div className="info_table w-[300px] h-[350px] max-smallest_phone:w-[250px] max-smallest_phone:h-[350px] bg-[#CFDBEE] p-2 flex flex-col gap-y-7 rounded-lg">
         {ContactItems.map((i) => (
           <div
             key={ContactItems.indexOf(i)}

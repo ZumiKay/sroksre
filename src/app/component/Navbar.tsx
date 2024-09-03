@@ -36,7 +36,12 @@ import {
   useEffectOnce,
   useScreenSize,
 } from "@/src/context/CustomHook";
-import { errorToast, infoToast, LoadingText } from "./Loading";
+import {
+  ContainerLoading,
+  errorToast,
+  infoToast,
+  LoadingText,
+} from "./Loading";
 import { Role } from "@prisma/client";
 import {
   CheckedNotification,
@@ -52,6 +57,14 @@ import Homecontainermodal from "./HomePage/Modals";
 import { AnimatePresence } from "framer-motion";
 import SearchContainer from "./Modals/Search";
 import { CloseVector } from "./Asset";
+import {
+  Button,
+  Dropdown,
+  DropdownItem,
+  DropdownMenu,
+  DropdownTrigger,
+} from "@nextui-org/react";
+import PrimaryButton from "./Button";
 
 const InitialMethod = async (session?: Usersessiontype) => {
   if (session) {
@@ -180,11 +193,11 @@ export default function Navbar({ session }: { session?: Usersessiontype }) {
         />
 
         {session?.role !== Role.ADMIN && (
-          <div className="cart_container relative max-large_tablet:hidden">
+          <div className="cart_container relative">
             <Image
               src={Cart}
               alt="cart"
-              className="cart w-[30px] h-[30px] object-contain transition hover:-translate-y-2"
+              className="cart min-w-[30px] min-h-[30px] max-w-[30px] max-h-[30px] w-full h-full object-contain transition hover:-translate-y-2 max-small_phone:w-[30px] max-small_phone:h-[30px]"
               onMouseEnter={() => setcart(true)}
             />
             <span className="text-[13px] w-[20px] h-[20px] grid place-content-center absolute -bottom-6 top-0 -right-3 bg-gray-500 text-white rounded-[50%]">
@@ -216,7 +229,7 @@ export default function Navbar({ session }: { session?: Usersessiontype }) {
         <Image
           src={Profile}
           alt="profile"
-          className="cart w-[40px] h-[40px] max-small_phone:w-[30px] max-small_phone:h-[30px] object-contain transition hover:-translate-y-2"
+          className="cart w-[40px] h-[40px] max-small_phone:w-[35px] max-small_phone:h-[35px] object-contain transition hover:-translate-y-2"
           onMouseEnter={() => session && setprofile(true)}
           onClick={() => !session && router.push("/account", { scroll: false })}
         />
@@ -258,6 +271,7 @@ export default function Navbar({ session }: { session?: Usersessiontype }) {
 const CategoriesContainer = (props: { setopen: any }) => {
   const [allcate, setallcate] = useState<Array<CateogoryState>>();
   const [loading, setloading] = useState(true);
+  const ref = useClickOutside(() => props.setopen(false));
   const router = useRouter();
   const fetchcate = async () => {
     const request = await ApiRequest("/api/categories", undefined, "GET");
@@ -275,7 +289,7 @@ const CategoriesContainer = (props: { setopen: any }) => {
       className="categories__container w-full max-h-screen min-h-[50vh] h-full absolute top-[57px] z-[99] bg-[#F3F3F3] flex flex-row gap-5 items-start justify-start flex-wrap overflow-y-auto overflow-x-hidden max-small_phone:justify-center max-small_phone:h-screen"
     >
       {loading ? (
-        <LoadingText />
+        <ContainerLoading />
       ) : (
         <div className="ategory flex flex-col w-[200px] max-small_phone:w-[90%] pt-10 items-center justify-start p-1 gap-y-5">
           {/* <h3
@@ -418,10 +432,6 @@ export const SubInventoryMenu = (props: Subinventorymenuprops) => {
     setpromotion,
   } = useGlobalContext();
 
-  const ref = useClickOutside(() =>
-    setopenmodal((prev) => ({ ...prev, subcreatemenu_ivt: false }))
-  );
-
   const handleClick = (obj: { value: string; opencon: string }) => {
     const index = props.index as number;
 
@@ -471,21 +481,34 @@ export const SubInventoryMenu = (props: Subinventorymenuprops) => {
     }
   };
   return (
-    <div
-      ref={ref}
-      style={props.style}
-      className="subinventorymenu flex flex-col w-[149px] rounded-b-xl absolute h-fit p-1 bg-white"
-    >
-      {props.data.map((obj, index) => (
-        <h3
-          key={index}
-          onClick={() => handleClick(obj)}
-          className="font-bold cursor-pointer text-[17px] w-full p-2 transition text-black hover:bg-black hover:text-white"
+    <Dropdown>
+      <DropdownTrigger>
+        <Button
+          color={props.type ? "default" : "success"}
+          variant="solid"
+          endContent={
+            !props.type ? (
+              <i className="fa-solid fa-plus text-sm font-bold text-white"></i>
+            ) : undefined
+          }
+          style={props.type ? { minWidth: "20px" } : {}}
+          className="font-bold text-white min-w-[150px]"
         >
-          {obj.value}
-        </h3>
-      ))}
-    </div>
+          {props.type ? (
+            <i className="fa-solid fa-ellipsis-vertical text-lg text-black  w-fit h-fit p-2 transition hover:bg-gray-300"></i>
+          ) : (
+            "Create"
+          )}
+        </Button>
+      </DropdownTrigger>
+      <DropdownMenu aria-label="Dynamic Actions" items={props.data}>
+        {(item) => (
+          <DropdownItem key={item.opencon} onClick={() => handleClick(item)}>
+            {item.value}
+          </DropdownItem>
+        )}
+      </DropdownMenu>
+    </Dropdown>
   );
 };
 

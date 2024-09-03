@@ -92,7 +92,7 @@ export default function PaginationCustom({
             }))}
             label="Show Per Page"
             placeholder=""
-            value={show ?? "1"}
+            value={show}
             setvalue={setshow}
             onChange={(val) => onSelectShowPerPage && onSelectShowPerPage(val)}
           />
@@ -135,7 +135,7 @@ export const SelectionCustom = ({
       value={value}
       size={size ?? "md"}
       labelPlacement={textplacement}
-      defaultSelectedKeys={value ? [value] : undefined}
+      selectedKeys={value ? [value] : undefined}
       style={style}
       isLoading={!!isLoading}
       onChange={(e) => {

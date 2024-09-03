@@ -23,8 +23,6 @@ import { ContainerLoading, errorToast, successToast } from "../Loading";
 import { motion } from "framer-motion";
 import { PrimaryPhoto } from "../PhotoComponent";
 import PrimaryButton, { Selection } from "../Button";
-
-import Modal from "../Modals";
 import ToggleMenu, { SearchAndMultiSelect } from "../ToggleMenu";
 import { Variantcontainer } from "./VariantModal";
 import { ImageUpload } from "./Image";
@@ -234,13 +232,7 @@ export function CreateProducts({
   };
 
   return (
-    <motion.dialog
-      initial={{ y: 1000 }}
-      animate={{ y: 0 }}
-      exit={{ y: 1000 }}
-      open={openmodal.createProduct}
-      className="createProduct__container z-[200] flex items-center justify-center fixed top-0 left-0 bg-white min-h-screen h-fit w-screen"
-    >
+    <div className="createProduct__container z-[200] flex items-center justify-center fixed top-0 left-0 bg-white min-h-screen h-fit w-screen">
       {(loading || isLoading.PUT || isLoading.POST) && <ContainerLoading />}
       <form
         onSubmit={handleSubmit}
@@ -275,8 +267,7 @@ export function CreateProducts({
           <div
             className="productinfo flex flex-col justify-center items-end w-1/2 
           h-fit gap-y-5
-          max-smallest_screen:w-[90%]
-          
+          max-smallest_screen:w-[90%]  
           "
           >
             <Input
@@ -343,12 +334,10 @@ export function CreateProducts({
                   label="Sub Category"
                   textplacement="outside"
                   data={
-                    cate
-                      ?.find((i) => i.id === product.category.parent_id)
-                      ?.subcategories.map((i) => ({
-                        label: i.name,
-                        value: i.id ?? 0,
-                      })) ?? []
+                    subcate.map((sub) => ({
+                      label: sub.name,
+                      value: sub.id ?? 0,
+                    })) ?? []
                   }
                   placeholder="Select"
                   value={product.category.child_id ?? undefined}
@@ -505,7 +494,7 @@ export function CreateProducts({
         />
       )}
       {openmodal.addproductvariant && <Variantcontainer />}
-    </motion.dialog>
+    </div>
   );
 }
 

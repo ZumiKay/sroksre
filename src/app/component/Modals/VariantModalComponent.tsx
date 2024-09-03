@@ -527,6 +527,7 @@ export const ColorSelectModal = ({
               label="Name"
               onChange={(e) => setcolor(e.target.value as string)}
               value={name}
+              required
             />
             <label
               htmlFor="color"

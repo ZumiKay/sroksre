@@ -64,7 +64,7 @@ export default async function Checkoutpage({
           <FormWrapper step={step} order_id={orderid}>
             <BackAndEdit step={step} />
             <ShowBody />
-            <div className="submit-btn w-[150px] h-fit">
+            <div className="submit-btn w-[150px] max-small_tablet:w-full h-fit">
               <Proceedbutton step={step} />
             </div>
           </FormWrapper>
@@ -161,7 +161,12 @@ const OrderSummary = async ({ orderId }: { orderId: string }) => {
   }
 
   return (
-    <div className="checkout_container bg-[#F1F1F1] w-[50vw] h-fit p-2 rounded-lg shadow-lg animate-fade-in">
+    <div
+      className={`checkout_container bg-[#F1F1F1] w-[50vw] h-fit p-2 
+    max-smaller_screen:w-full
+    rounded-lg shadow-lg 
+    animate-fade-in`}
+    >
       <input type="hidden" name="summary" value={"summary"} />
       <h3 className="title text-2xl font-bold pb-5">Order Summary</h3>
 
@@ -211,7 +216,7 @@ const PaymentDetail = async ({
   }
 
   return (
-    <div className="checkout_container bg-[#F1F1F1] w-[50vw] h-fit p-2 rounded-lg shadow-lg animate-fade-in">
+    <div className="checkout_container bg-[#F1F1F1] w-[50vw] max-smaller_screen:w-full h-fit p-2 rounded-lg shadow-lg animate-fade-in">
       <input type="hidden" value={"payment"} name="payment" />
       <div className="w-full h-fit bg-white flex flex-col gap-y-5 items-center p-2">
         <h1 className="text-3xl font-medium w-full text-start h-fit">
@@ -222,7 +227,7 @@ const PaymentDetail = async ({
           Shipping Services
         </h3>
 
-        <div className="shipping_service w-full h-fit grid grid-cols-3 gap-x-5 place-items-center">
+        <div className="shipping_service w-full h-fit flex flex-row gap-3 flex-wrap justify-center">
           {(order?.shipping_id
             ? Shippingservice
             : Shippingservice.filter((i) => i.value === "Pickup")
@@ -270,7 +275,7 @@ async function Totalprice({ orderID }: { orderID: string }) {
   const total = await getOrderTotal(orderID);
 
   return (
-    <div className="price_container w-[50vw] p-2 h-[200px] flex flex-row justify-between items-center  mt-10 border-t-2 border-dashed border-t-black">
+    <div className="price_container w-[50vw] max-smaller_screen:w-[80%] p-2 h-[200px] flex flex-row justify-between items-center  mt-10 border-t-2 border-dashed border-t-black">
       <ul className="price-tag list-none w-fit h-fit flex flex-col gap-y-5 self-end">
         <li>Subtotal</li>
         <li>Shipping Fee</li>
@@ -294,12 +299,12 @@ const SuccessPage = async ({ orderid }: { orderid: string }) => {
     <div className="success_page w-full h-full mt-5 flex flex-col items-center gap-y-20">
       <div className="header w-full h-[50px] flex flex-row items-center justify-start">
         <div className="line1 w-[50%] h-[10px] bg-[#495464] text-[#495464]"></div>
-        <div className="content w-[40%]  p-4 bg-[#495464] text-white rounded-lg text-xl font-bold text-center">
+        <div className="content w-[50%] max-large_tablet:w-[80%] max-large_phone:w-full max-small_phone:mt-10 p-4 bg-[#495464] text-white rounded-lg text-xl font-bold text-center">
           Thank for your purchase
         </div>
         <div className="line1 w-1/2 h-[10px] bg-[#495464] text-xs text-[#495464]"></div>
       </div>
-      <div className="order_detail w-[30%] h-fit flex flex-col gap-y-10 items-center">
+      <div className="order_detail w-[80%] h-fit flex flex-col gap-y-10 items-center">
         <SuccessVector />
 
         <div className="w-full h-fit flex flex-col gap-y-5">
@@ -311,14 +316,17 @@ const SuccessPage = async ({ orderid }: { orderid: string }) => {
           </p>
           <h3 className="text-2xl font-bold">Need Help ?</h3>
           <div className="w-full h-fit flex flex-row items-center gap-5 flex-wrap">
-            <Link className="text-lg font-bold" href={`/privacyandpolicy?p=0`}>
+            <Link
+              className="text-lg font-bold underline"
+              href={`/privacyandpolicy?p=0`}
+            >
               Questions
             </Link>
             {policy.map((pol) => (
               <Link
                 key={pol.id}
-                className="text-lg font-bold"
-                href={`/privacyandpolicy?p${pol.id}`}
+                className="text-lg font-bold hover:text-gray-300 active:text-gray-300 underline"
+                href={`/privacyandpolicy?p=${pol.id}`}
               >
                 {pol.title}
               </Link>
@@ -326,7 +334,7 @@ const SuccessPage = async ({ orderid }: { orderid: string }) => {
           </div>
         </div>
       </div>
-      <div className="footer_detail flex flex-col gap-y-5 w-[30%]">
+      <div className="footer_detail flex flex-col gap-y-5 w-[80%]">
         <p className="text-lg font-medium text-blue-500 cursor-pointer transition hover:text-white">
           Any Problem? Please contact us via email
         </p>

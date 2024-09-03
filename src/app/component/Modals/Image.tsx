@@ -32,7 +32,7 @@ interface imageuploadprops {
   mutitlple: boolean;
   type: "createproduct" | "createbanner" | "createpromotion";
   bannertype?: string;
-  setreloaddata: React.Dispatch<React.SetStateAction<boolean>>;
+  setreloaddata?: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 const filetourl = (file: File[]) => {
@@ -177,7 +177,7 @@ export const ImageUpload = (props: imageuploadprops) => {
     if (!update.success) {
       return null;
     }
-    props.setreloaddata(true);
+    props.setreloaddata && props.setreloaddata(true);
     return true;
   };
 
@@ -274,7 +274,7 @@ export const ImageUpload = (props: imageuploadprops) => {
       errorToast("Failed To Save");
     } finally {
       setloading(false);
-      props.setreloaddata(true);
+      props.setreloaddata && props.setreloaddata(true);
     }
   };
   const handleCancel = () => {

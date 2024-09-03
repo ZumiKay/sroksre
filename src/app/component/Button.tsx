@@ -324,9 +324,9 @@ export function MultipleSelect() {
   };
 
   return (
-    <div className="w-fit">
+    <div className="w-full">
       <ThemeProvider theme={Mutiselectstatuscolor}>
-        <FormControl sx={{ m: 1, width: 300 }}>
+        <FormControl sx={{ m: 1, width: "100%" }}>
           <InputLabel id="demo-multiple-chip-label" filled>
             Status
           </InputLabel>

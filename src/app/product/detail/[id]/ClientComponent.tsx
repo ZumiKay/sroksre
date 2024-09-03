@@ -255,6 +255,8 @@ export default function ProductDetail({ params, isAdmin }: productdetailprops) {
     }
     mess.option = "";
 
+    console.log({ maxqty });
+
     if (maxqty) {
       await inCartCheck(
         orderDetail.details.filter((i) => i && i.value.length !== 0)
@@ -308,7 +310,7 @@ export default function ProductDetail({ params, isAdmin }: productdetailprops) {
         />
 
         <h3 className="text-lg text-red-500 w-full text-left font-bold">
-          {`${showLowStock ? "Low on stock" : ""}`}
+          {`  ${max === 0 ? "" : showLowStock ? "Low on stock" : ""}`}
         </h3>
         <h3
           hidden={errormess.qty.length === 0}
@@ -358,7 +360,7 @@ export default function ProductDetail({ params, isAdmin }: productdetailprops) {
     );
 
     return type === "stock" ? (
-      prob.stock ? (
+      prob.stock && prob.stock > 0 ? (
         stock(prob.stock, true)
       ) : (
         Productunvaliable
@@ -370,7 +372,9 @@ export default function ProductDetail({ params, isAdmin }: productdetailprops) {
         )}
         {prob.varaintstock && prob.varaintstock.length !== 0
           ? stock(qty)
-          : Productunvaliable}
+          : qty === 0
+          ? Productunvaliable
+          : ""}
       </>
     ) : (
       <></>
@@ -534,7 +538,7 @@ export default function ProductDetail({ params, isAdmin }: productdetailprops) {
                 ? errormess.qty
                 : errormess.option}
             </h3>
-            <div className="w-full h-fit overflow-x-hidden overflow-y-auto flex flex-col gap-y-5">
+            <div className="w-full h-fit overflow-x-hidden overflow-y-auto flex flex-col gap-y-5 max-large_phone:pl-2">
               <ShowOptionandStock />
             </div>
 

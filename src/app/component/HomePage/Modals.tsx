@@ -392,7 +392,7 @@ const Homecontainermodal = ({
       }
     }
 
-    if (data.items.length === 0) {
+    if (data.items.length === 0 && !data.scrollabletype) {
       errorToast(
         `Please Add ${data.type === "scrollable" ? "Product" : "Banner"}`
       );

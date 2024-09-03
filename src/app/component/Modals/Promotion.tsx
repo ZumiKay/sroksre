@@ -1,4 +1,8 @@
-import { ApiRequest, useEffectOnce } from "@/src/context/CustomHook";
+import {
+  ApiRequest,
+  useEffectOnce,
+  useScreenSize,
+} from "@/src/context/CustomHook";
 import {
   PromotionInitialize,
   useGlobalContext,
@@ -47,6 +51,7 @@ export const CreatePromotionModal = ({
 
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { isTablet, isMobile } = useScreenSize();
 
   const [isEdit, setisEdit] = useState(false);
 
@@ -197,16 +202,16 @@ export const CreatePromotionModal = ({
   };
 
   return (
-    <Modal closestate={"none"} customZIndex={200}>
-      <motion.div
-        initial={{ y: 1000 }}
-        animate={{ y: 0 }}
-        exit={{ y: 1000 }}
-        className="createPromotion__container relative  rounded-lg w-full h-full bg-white p-3 flex flex-col justify-center items-center"
-      >
+    <Modal
+      closestate={"none"}
+      customheight={isMobile ? "100vh" : "fit-content"}
+      customwidth={isMobile ? "100vw" : isTablet ? "80vw" : "700px"}
+      customZIndex={200}
+    >
+      <div className="createPromotion__container relative rounded-lg w-full h-full bg-white p-3 flex flex-col items-center">
         <form
           onSubmit={handleSubmit}
-          className="promotionform w-full h-full flex flex-col justify-center items-center gap-y-5"
+          className="promotionform w-full h-full flex flex-col justify-start items-center gap-y-5"
         >
           <input
             type="text"
@@ -284,7 +289,7 @@ export const CreatePromotionModal = ({
             onClick={() => handleCancel()}
           />
         </form>
-      </motion.div>
+      </div>
       {openmodal.imageupload && (
         <ImageUpload
           mutitlple={false}

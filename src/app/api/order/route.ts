@@ -3,7 +3,7 @@ import { Orderpricetype, totalpricetype } from "@/src/context/OrderContext";
 import Prisma from "@/src/lib/prisma";
 import { calculateDiscountProductPrice } from "@/src/lib/utilities";
 import { NextRequest } from "next/server";
-import { PDFDocument, PDFPage, rgb, StandardFonts } from "pdf-lib";
+import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 import { shippingtype } from "../../component/Modals/User";
 
 //Edit Created Order Information
@@ -214,14 +214,14 @@ export const generateInvoicePdf = async (Order: GenerateInvoicePdf) => {
     });
 
     page.drawText("Shipping Address", {
-      x: 400,
+      x: 390,
       y: 700,
       size: fontSize,
       font,
       color: textColor,
     });
     page.drawText(`${Order.shipping.firstname} ${Order.shipping.lastname}`, {
-      x: 400,
+      x: 390,
       y: 680,
       size: fontSize,
       font,
@@ -230,7 +230,7 @@ export const generateInvoicePdf = async (Order: GenerateInvoicePdf) => {
     page.drawText(
       `No${Order.shipping.houseId}, Street ${Order.shipping.street}`,
       {
-        x: 400,
+        x: 390,
         y: 665,
         size: fontSize,
         font,
@@ -238,14 +238,14 @@ export const generateInvoicePdf = async (Order: GenerateInvoicePdf) => {
       }
     );
     page.drawText(`${Order.shipping.district}, ${Order.shipping.songkhat}`, {
-      x: 400,
+      x: 390,
       y: 650,
       size: fontSize,
       font,
       color: textColor,
     });
     page.drawText(`${Order.shipping.province}, ${Order.shipping.postalcode}`, {
-      x: 400,
+      x: 390,
       y: 635,
       size: fontSize,
       font,
@@ -255,14 +255,14 @@ export const generateInvoicePdf = async (Order: GenerateInvoicePdf) => {
 
   // Draw order details
   page.drawText(`Order No. ${Order.id}`, {
-    x: 400,
+    x: 390,
     y: 600,
     size: fontSize,
     font,
     color: textColor,
   });
   page.drawText(`Invoice date: ${Order.createdAt}`, {
-    x: 400,
+    x: 390,
     y: 580,
     size: fontSize,
     font,
@@ -335,19 +335,6 @@ export const generateInvoicePdf = async (Order: GenerateInvoicePdf) => {
     color: rgb(1, 1, 1),
   });
   y -= 30;
-
-  // Draw product details (sample data)
-  // Sample product data to demonstrate the table
-  const products = [
-    {
-      id: "IE4931",
-      name: "YZY FOAM RNRfdkafjdalkfd afkdafjlkd alfkldalf dafkldlajfkldjsaklfdlksa fldakjfkdlsamflkdsa flkdklfjkaldsfdsaf dsfkdjsafkldsjafkldsklfjsdklfjdskl",
-      variant: "Mx Granite/Mx Granite/Mx Granite",
-      qty: 1,
-      price: "3,500.00",
-    },
-    // Add more products here...
-  ];
 
   const orderedProduct = Order.product.map((prob) => ({
     id: prob.id,
@@ -462,7 +449,7 @@ export const generateInvoicePdf = async (Order: GenerateInvoicePdf) => {
     color: textColor,
   });
 
-  page.drawText(`Shipping USD ${Order.price.shipping?.toFixed(2)}`, {
+  page.drawText(`Shipping USD ${Order.price.shipping?.toFixed(2) ?? ""}`, {
     x: 30,
     y: y - 20,
     size: fontSize,

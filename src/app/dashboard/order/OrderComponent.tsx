@@ -28,6 +28,7 @@ import { isObjectEmpty } from "@/src/lib/utilities";
 import { shippingtype } from "../../component/Modals/User";
 import PaginationCustom from "../../component/Pagination_Component";
 import { Input } from "@nextui-org/react";
+import { useScreenSize } from "@/src/context/CustomHook";
 
 export const SelectionSSR = ({
   name,
@@ -156,7 +157,7 @@ export const DownloadButton = () => {
       />
 
       {open && (
-        <Modal closestate="none" customZIndex={150}>
+        <Modal closestate="none" customZIndex={210}>
           <div className="w-[250px] h-[250px] bg-[#f3f3f3] flex flex-col items-center justify-between p-5 rounded-lg">
             {totalcount ? (
               <table className="w-full text-lg">
@@ -241,7 +242,7 @@ export const FilterButton = ({
         color={!isFilter ? "black" : undefined}
         radius="10px"
         height="50px"
-        width="50%"
+        width="150px"
       />
 
       {!isFilter && (
@@ -251,7 +252,7 @@ export const FilterButton = ({
           color={"red"}
           radius="10px"
           height="50px"
-          width="50%"
+          width="150px"
           onClick={() => handleClear()}
         />
       )}
@@ -401,6 +402,7 @@ const FilterMenu = ({
   const searchParams = useSearchParams();
   const [filterdata, setfilterdata] = useState<Filterdatatype>({});
   const [isFilter, setisFilter] = useState(false);
+  const { isTablet, isMobile } = useScreenSize();
 
   useEffect(() => {
     if (
@@ -469,9 +471,18 @@ const FilterMenu = ({
   };
 
   return (
-    <Modal closestate={pickdate ? "" : close} customheight="600px">
+    <Modal
+      closestate={pickdate ? "" : close}
+      customheight={isMobile ? "100vh" : "600px"}
+      customwidth={isTablet ? "90vw" : isMobile ? "100vw" : "fit-content"}
+      customZIndex={200}
+    >
       <LocalizationProvider dateAdapter={AdapterDayjs}>
         <div className="w-full h-full bg-white rounded-lg grid gap-y-5 font-bold text-lg p-5">
+          <div className="absolute top-1 right-1 hidden max-small_phone:block">
+            {" "}
+            <CloseVector width="25px" height="25px" />{" "}
+          </div>
           <h2 className="font-bold text-2xl" hidden={type !== "filter"}>
             Filter by
           </h2>
@@ -480,11 +491,13 @@ const FilterMenu = ({
             type="text"
             value={filterdata.q}
             onChange={handleChange}
+            labelPlacement="outside"
             label={
               type === "export"
                 ? "Customer (ID or Name)"
                 : "Search (Customer Email , Name , Order Id)"
             }
+            placeholder="Search"
             name="q"
             size="lg"
             className="w-full"
@@ -524,13 +537,13 @@ const FilterMenu = ({
           {type === "export" && (
             <div className="w-full h-full grid gap-y-5">
               <label className="text-lg font-bold">File name (required)</label>
-              <input
+              <Input
                 type="text"
                 id="filename"
                 name="filename"
                 placeholder="Sheet1"
                 onChange={handleChange}
-                className="w-full h-[50px] rounded-lg border border-black pl-2"
+                className="w-full h-[50px]"
               />
             </div>
           )}
@@ -584,36 +597,38 @@ export const AmountRange = ({
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
 
-    if (parseInt(value) < 0 || !isNaN(value as any)) {
+    // Check if the value is a valid non-negative number
+    if (/^\d*$/.test(value)) {
+      setdata((prev) => ({ ...prev, [name]: value }));
+    } else {
+      // Clear the input if the value is invalid (negative or non-numeric)
       e.target.value = "";
     }
-
-    setdata((prev) => ({ ...prev, [name]: value }));
   };
   return (
     <div className="Pricerange_Container inline-flex gap-x-5 w-full justify-start">
       <div className="w-full start inline-flex gap-x-5 text-lg font-medium items-center">
         <label htmlFor="from"> From </label>
-        <input
+        <Input
           type="number"
           id="price"
           name="startprice"
-          value={data.startprice ?? ""}
+          value={data.startprice?.toString()}
           onChange={handleChange}
           min={0}
-          className="w-full h-[50px] rounded-lg border border-black pl-2"
+          className="w-full h-[50px]"
         />
       </div>
       <div className="w-full start inline-flex gap-x-5 text-lg font-medium items-center">
         <label htmlFor="from"> To </label>
-        <input
+        <Input
           type="number"
           id="price"
           name="endprice"
-          value={data.endprice ?? ""}
+          value={data.endprice?.toString() ?? ""}
           onChange={handleChange}
           min={0}
-          className="w-full h-[50px] rounded-lg border border-black pl-2"
+          className="w-full h-[50px]"
         />
       </div>
     </div>
@@ -676,6 +691,7 @@ export function DetailModal({
   const [type, settype] = useState<"user" | "shipping" | "close" | "none">(
     "none"
   );
+  const { isSmallDesktop, isMobile } = useScreenSize();
 
   const handleClick = (ty: typeof type) => {
     if (ty === "close") {
@@ -692,25 +708,25 @@ export function DetailModal({
         {type === "user" && data?.user ? (
           <tbody className="bg-white">
             <tr className="h-[50px]">
-              <th className="pl-5 rounded-tl-lg">Firstname: </th>
+              <th className="pl-2 rounded-tl-lg">Firstname: </th>
               <td align="right" className="pr-5 rounded-tr-lg break-all">
                 {data?.user?.firstname}
               </td>
             </tr>
             <tr className="h-[50px]">
-              <th className="pl-5">Lastname: </th>
+              <th className="pl-2">Lastname: </th>
               <td align="right" className="pr-5 break-all">
                 {data.user?.lastname ?? ""}
               </td>
             </tr>
             <tr className="h-[50px]">
-              <th className="pl-5">Email: </th>
+              <th className="pl-2">Email: </th>
               <td align="right" className="pr-5 break-all">
                 {data.user?.email}
               </td>
             </tr>
             <tr className="h-[50px]">
-              <th className="pl-5 rounded-bl-lg">Phone Number: </th>
+              <th className="pl-2 rounded-bl-lg">Phone Number: </th>
               <td align="right" className="pr-5 rounded-br-lg break-all"></td>
             </tr>
           </tbody>
@@ -718,31 +734,43 @@ export function DetailModal({
           type === "shipping" && (
             <tbody className="bg-white">
               <tr className="h-[50px]">
-                <th className="pl-5">HouseId: </th>
+                <th className="pl-2">Firstname: </th>
+                <td align="right" className="pr-5 break-all">
+                  {data.shipping?.firstname}
+                </td>
+              </tr>
+              <tr className="h-[50px]">
+                <th className="pl-2">Lastname: </th>
+                <td align="right" className="pr-5 break-all">
+                  {data.shipping?.lastname}
+                </td>
+              </tr>
+              <tr className="h-[50px]">
+                <th className="pl-2">HouseId: </th>
                 <td align="right" className="pr-5 break-all">
                   {data.shipping?.houseId}
                 </td>
               </tr>
               <tr className="h-[50px]">
-                <th className="pl-5">District / Khan: </th>
+                <th className="pl-2">District / Khan: </th>
                 <td align="right" className="pr-5 break-all">
                   {data.shipping?.district}
                 </td>
               </tr>
               <tr className="h-[50px]">
-                <th className="pl-5">Songkat: </th>
+                <th className="pl-2">Songkat: </th>
                 <td align="right" className="pr-5 break-all">
                   {data.shipping?.songkhat}
                 </td>
               </tr>
               <tr className="h-[50px]">
-                <th className="pl-5">City / Province: </th>
+                <th className="pl-2">City / Province: </th>
                 <td align="right" className="pr-5 break-all">
                   {data.shipping?.province}
                 </td>
               </tr>
               <tr className="h-[50px]">
-                <th className="pl-5">PostalCode: </th>
+                <th className="pl-2">PostalCode: </th>
                 <td align="right" className="pr-5 break-all">
                   {data.shipping?.postalcode}
                 </td>
@@ -755,8 +783,13 @@ export function DetailModal({
   };
 
   return (
-    <Modal closestate={close} customheight="60vh">
-      <div className="w-full h-full relative bg-[#f2f2f2] flex flex-col items-center rounded-lg pl-5 pr-5">
+    <Modal
+      closestate={close}
+      customwidth={isSmallDesktop ? "80vw" : isMobile ? "100vw" : "fit-content"}
+      customheight={isMobile ? "100vh" : "60vh"}
+      customZIndex={200}
+    >
+      <div className="w-full h-full relative bg-[#f2f2f2] flex flex-col items-center rounded-lg max-small_phone:p-2 pl-5 pr-5">
         <div
           onClick={() => handleClick("close")}
           className="w-[40px] h-[40px] absolute top-1 right-2"
@@ -793,7 +826,7 @@ export function DetailModal({
               )}
             </div>
 
-            <div className="dates w-full p-2">
+            <div className="dates w-full p-2 max-small_phone:p-0">
               <table
                 width={"100%"}
                 className="p-2 rounded-lg bg-white"
@@ -867,9 +900,15 @@ export const OrderProductDetailsModal = ({
   data: Productordertype[];
 }) => {
   const handleClose = () => setclose(false);
+  const { isTablet, isMobile } = useScreenSize();
 
   return (
-    <Modal closestate={close} customheight="70vh" customwidth="70vw">
+    <Modal
+      closestate={close}
+      customheight={isMobile ? "100vh" : "70vh"}
+      customwidth={isTablet ? "90vw" : isMobile ? "100vw" : "70vw"}
+      customZIndex={200}
+    >
       <div className="w-full h-full relative bg-[#f2f2f2] p-2 rounded-lg flex flex-col items-center gap-y-10">
         <div
           onClick={() => handleClose()}
@@ -879,25 +918,26 @@ export const OrderProductDetailsModal = ({
         </div>
 
         <h3 className="w-full text-center font-bold text-xl">{`Products (${
-          data?.length ?? 0
+          data ? data.length : 0
         })`}</h3>
 
         <div className="productlist w-[90%] max-h-[60vh] overflow-y-auto flex flex-col items-center gap-y-5">
-          {data?.map((prob) => (
-            <Checkoutproductcard
-              key={prob.id}
-              qty={prob.quantity}
-              cover={prob.product?.covers[0].url as string}
-              name={prob.product?.name as string}
-              details={prob.selectedvariant}
-              price={prob.price}
-              total={
-                prob.quantity *
-                (((prob.price.discount?.newprice ??
-                  prob.product?.price) as number) ?? 0)
-              }
-            />
-          ))}
+          {data &&
+            data.map((prob) => (
+              <Checkoutproductcard
+                key={prob.id}
+                qty={prob.quantity}
+                cover={prob.product?.covers[0].url as string}
+                name={prob.product?.name as string}
+                details={prob.selectedvariant}
+                price={prob.price}
+                total={
+                  prob.quantity *
+                  (((prob.price.discount?.newprice ??
+                    prob.product?.price) as number) ?? 0)
+                }
+              />
+            ))}
         </div>
       </div>
     </Modal>

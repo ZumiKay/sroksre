@@ -334,6 +334,7 @@ export function CartMenu(props: cardmenuprops) {
   const searchparams = useSearchParams();
   const [cartItem, setitem] = useState<Array<Productordertype> | []>([]);
   const [reloaddata, setreloaddata] = useState(true);
+  const ref = useClickOutside(() => props.setcart(false));
 
   const [loading, setloading] = useState({
     fetch: true,
@@ -419,13 +420,20 @@ export function CartMenu(props: cardmenuprops) {
   };
   return (
     <aside
+      ref={ref}
       onMouseEnter={() => (document.body.style.overflow = "hidden")}
       onMouseLeave={() => {
         document.body.style.overflow = "auto";
         props.setcart(false);
       }}
-      className="Cart__Sidemenu fixed h-full w-[700px] right-0 bg-white z-40 flex flex-col items-center gap-y-5 transition-all"
+      className="Cart__Sidemenu fixed h-full w-[700px] max-large_tablet:w-[550px] max-large_phone:w-[100vw] right-0 bg-white z-40 flex flex-col items-center gap-y-5 transition-all"
     >
+      <div
+        onClick={() => props.setcart(false)}
+        className="w-fit h-fit absolute top-1 right-1"
+      >
+        <CloseVector width="30px" height="30px" />
+      </div>
       <h1 className="heading text-xl font-bold text-center w-full">
         Shopping Cart <span>( {cartItem?.length} item )</span>
       </h1>
@@ -886,12 +894,7 @@ export const FilterMenu = ({
       customZIndex={200}
     >
       {loading && <ContainerLoading />}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="filtermenu w-[50vw] relative max-smallest_screen:w-[90vw] max-small_phone:pt-10 max-small_phone:w-screen max-small_phone:justify-start max-small_phone:h-screen h-fit bg-white p-5 rounded-md flex flex-col justify-center gap-y-5"
-      >
+      <div className="filtermenu w-[50vw] relative max-smallest_screen:w-[90vw] max-small_phone:pt-10 max-small_phone:w-screen max-small_phone:justify-start max-small_phone:h-screen h-fit bg-white p-5 rounded-md flex flex-col justify-center gap-y-5">
         <div
           onClick={() =>
             setopenmodal((prev) => ({ ...prev, filteroption: false }))
@@ -1103,7 +1106,7 @@ export const FilterMenu = ({
           radius="10px"
           width="100%"
         />
-      </motion.div>
+      </div>
     </Modal>
   );
 };

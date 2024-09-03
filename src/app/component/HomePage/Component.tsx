@@ -315,7 +315,7 @@ export const ProductCard = (props: ProductCardProps) => {
           width={"600"}
           height={"600"}
           loading="lazy"
-          className="w-full h-[500px] object-cover cursor-pointer"
+          className="w-full h-[500px] object-contain cursor-pointer"
         />
       </div>
 

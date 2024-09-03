@@ -21,7 +21,11 @@ import { Variantcontainer } from "./Modals/VariantModal";
 
 import { UpdateStockModal } from "./Modals/Stock";
 import { Chip, Skeleton } from "@nextui-org/react";
-import { ApiRequest, useScreenSize } from "@/src/context/CustomHook";
+import {
+  ApiRequest,
+  useClickOutside,
+  useScreenSize,
+} from "@/src/context/CustomHook";
 import { SelectionCustom } from "./Pagination_Component";
 
 interface cardprops {
@@ -280,13 +284,30 @@ export default function Card(props: cardprops) {
           />
 
           <span className="absolute top-3 right-3">
-            {shouldShowCheckmark
-              ? showCheckmark
-              : state.hover && props.isAdmin
-              ? showEllipsis
-              : ""}
+            {shouldShowCheckmark ? (
+              showCheckmark
+            ) : state.hover && props.isAdmin ? (
+              <SubInventoryMenu
+                ref={ref}
+                data={editactionMenu}
+                index={props.id}
+                type="product"
+                style={{ right: "0", top: 0 }}
+                open="createProduct"
+                stock={props.stock}
+                stocktype={props.stocktype}
+                stockaction={() => {
+                  setopenmodal((prev) => ({
+                    ...prev,
+                    [closename]: true,
+                  }));
+                }}
+              />
+            ) : (
+              ""
+            )}
           </span>
-          {state.editaction && (
+          {/* {state.editaction && (
             <SubInventoryMenu
               ref={ref}
               data={editactionMenu}
@@ -303,7 +324,7 @@ export default function Card(props: cardprops) {
                 }));
               }}
             />
-          )}
+          )} */}
         </div>
         <section className="card_detail w-full h-fit font-semibold bg-white flex flex-col justify-center gap-y-3  pl-2 rounded-b-md text-sm">
           <h4 className="card_info w-full max-w-[400px] h-fit text-lg">
@@ -440,12 +461,12 @@ export function SecondayCard(props: SecondayCardprops) {
     <div className="w-full h-full flex flex-col items-end gap-y-5 p-2">
       <div
         style={{ width: props.width }}
-        className="secondarycard__container flex flex-row items-start bg-[#F4FAFF] justify-between w-full gap-x-2 relative"
+        className="secondarycard__container flex flex-row items-center bg-[#F4FAFF] justify-between w-full gap-x-2 gap-y-3 relative max-small_phone:flex-col "
       >
         <Image
           src={props.img}
           alt="cover"
-          className="cardimage w-[250px] h-auto object-contain rounded-lg"
+          className="cardimage w-[250px] max-large_phone:w-[200px] h-auto object-contain rounded-lg"
           width={600}
           height={600}
           quality={50}
@@ -462,12 +483,13 @@ export function SecondayCard(props: SecondayCardprops) {
               <Selecteddetailcard key={idx} text={selected} />
             ))}
           </div>
-          <div className="qty flex flex-col gap-y-1 w-[200px] h-fit">
+          <div className="qty flex flex-col gap-y-1 w-[200px] max-large_phone:[10%] h-fit">
             <label className="text-lg font-bold">Quantity</label>
             <SelectionCustom
               label="QTY"
               placeholder="Select"
               size="sm"
+              style={{ width: "150px" }}
               value={editqty.toString()}
               isLoading={loading}
               onChange={(value) => handleEditQty(value as string)}
@@ -544,9 +566,11 @@ export const BannerCard = ({
 }: Bannercardprops) => {
   const { promotion, setpromotion, openmodal, isLoading, setisLoading } =
     useGlobalContext();
-  const ref = useRef<HTMLDivElement | null>(null);
+
+  const [hover, sethover] = useState(false);
   const isBanner = promotion.banner_id === id;
-  const [open, setopen] = useState(false);
+
+  const ref = useClickOutside(() => sethover(false));
   const actionMenu = [
     {
       value: "Edit",
@@ -558,6 +582,7 @@ export const BannerCard = ({
     },
   ];
   const handleSelectBanner = () => {
+    sethover(true);
     if (promotion.selectbanner) {
       let ID = 0;
       isBanner ? (ID = 0) : (ID = id as number);
@@ -571,9 +596,6 @@ export const BannerCard = ({
     <div
       ref={ref}
       key={index}
-      onMouseLeave={() => {
-        setopen(false);
-      }}
       onClick={() => handleSelectBanner()}
       className={`Banner__container relative w-full h-full transition-all rounded-t-lg border-t border-l border-r border-gray-300  duration-300 hover:-translate-y-3`}
     >
@@ -621,9 +643,9 @@ export const BannerCard = ({
       </h3>
 
       <span
-        onClick={() =>
-          (!promotion.selectbanner || !openmodal.managebanner) && setopen(true)
-        }
+        // onClick={() =>
+        //   (!promotion.selectbanner || !openmodal.managebanner) && setopen(true)
+        // }
         className="action_container absolute top-0 right-0"
       >
         {type === "banner" && isBanner && promotion.selectbanner && (
@@ -635,19 +657,15 @@ export const BannerCard = ({
             className="w-[30px] h-[30px] object-contain"
           />
         )}
-        {!promotion.selectbanner && !openmodal.managebanner && (
-          <i className="fa-solid fa-ellipsis-vertical text-lg bg-white w-fit h-fit p-2 transition hover:bg-gray-300"></i>
+        {hover && !promotion.selectbanner && !openmodal.managebanner && (
+          <SubInventoryMenu
+            data={actionMenu}
+            type={type}
+            style={{ top: "0", right: "0" }}
+            index={id}
+          />
         )}
       </span>
-      {open && (
-        <SubInventoryMenu
-          ref={ref}
-          data={actionMenu}
-          type={type}
-          style={{ top: "0", right: "0" }}
-          index={id}
-        />
-      )}
     </div>
   );
 };
@@ -674,7 +692,7 @@ export const UserCard = ({
     <div
       key={index}
       onClick={() => handleEdit()}
-      className="usercard_container w-[330px] h-[100px] rounded-lg border-2 border-black flex flex-col justify-center items-center gap-y-5 p-2 transition hover:bg-black hover:text-white"
+      className="usercard_container max-smallest_phone:w-[275px] w-[330px] h-[100px] rounded-lg border-2 border-black flex flex-col justify-center items-center gap-y-5 p-2 transition hover:bg-black hover:text-white"
     >
       <h3 className="text-md font-bold w-full text-center break-words">
         {`${firstname} ${lastname}`} #{uid}
