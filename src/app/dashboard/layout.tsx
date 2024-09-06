@@ -3,6 +3,8 @@ import { getUser } from "@/src/context/OrderContext";
 import TopModal from "./TopModal";
 
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
+import { ContainerLoading } from "../component/Loading";
 
 const DashboardLayout = async ({ children }: { children: React.ReactNode }) => {
   const session = await getUser();
@@ -17,7 +19,7 @@ const DashboardLayout = async ({ children }: { children: React.ReactNode }) => {
 
       {/* <DashboordNavBar session={session ?? undefined} /> */}
 
-      {children}
+      <Suspense fallback={<ContainerLoading />}>{children}</Suspense>
     </section>
   );
 };

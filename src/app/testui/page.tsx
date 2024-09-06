@@ -1,37 +1,41 @@
 "use client";
 
-import { Button } from "@nextui-org/react";
+import { SendNotification, useSocket } from "@/src/context/SocketContext";
+import { Button, Input } from "@nextui-org/react";
+import { useState } from "react";
 
 export default function TestUi() {
-  const downloadPdf = async () => {
-    try {
-      const response = await fetch("/api/testui", {
-        method: "GET",
-      });
+  const [notification, setnotification] = useState("");
+  const socket = useSocket();
+  const handleSendNofication = async () => {
+    if (!socket) return;
+    const testdata = {
+      type: "New Order",
+      content: notification,
+      checked: false,
+    };
+    socket?.emit("sendNotification", testdata);
 
-      if (!response.ok) {
-        throw new Error("Failed to fetch PDF");
-      }
-
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "invoice.pdf";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error("Error downloading PDF:", error);
-    }
+    await SendNotification(testdata, socket);
   };
   return (
-    <div className="h-screen w-screen flex flex-col items-center">
+    <div className="h-screen w-screen flex flex-col items-center gap-y-20">
       <h3 className="text-5xl font-bold w-full h-fit text-center">
-        Tesing Function
+        Tesing Notification
       </h3>
-      <Button onClick={() => downloadPdf()}> Download Pdf </Button>
+      <Input
+        type="text"
+        size="lg"
+        label="Notification"
+        onChange={({ target }) => setnotification(target.value)}
+      />
+      <Button
+        onClick={() => {
+          handleSendNofication();
+        }}
+      >
+        Send Notification
+      </Button>
     </div>
   );
 }

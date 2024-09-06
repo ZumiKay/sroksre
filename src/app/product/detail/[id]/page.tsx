@@ -1,7 +1,8 @@
 import ProductDetail from "./ClientComponent";
-import { IsNumber } from "../../page";
+
 import { notFound } from "next/navigation";
 import { getUser } from "@/src/context/OrderContext";
+import { IsNumber } from "@/src/lib/utilities";
 
 export default async function DetailPage({
   params,

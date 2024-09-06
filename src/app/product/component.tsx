@@ -7,7 +7,7 @@ import {
   useGlobalContext,
   VariantColorValueType,
 } from "@/src/context/GlobalContext";
-import Modal from "../component/Modals";
+import Modal, { SecondaryModal } from "../component/Modals";
 import { useRouter, useSearchParams } from "next/navigation";
 import { filtervaluetype, getFilterValue } from "./action";
 import { ToggleSelect } from "../component/ToggleMenu";
@@ -142,9 +142,9 @@ export const FilterContainer = ({
   latest?: boolean;
   promoid?: string;
 }) => {
-  const { setopenmodal } = useGlobalContext();
+  const { setopenmodal, openmodal } = useGlobalContext();
   const [loading, setloading] = useState(false);
-  const { isMobile } = useScreenSize();
+
   const [filtervalue, setfiltervalue] = useState<filtervaluetype | undefined>(
     undefined
   );
@@ -292,19 +292,15 @@ export const FilterContainer = ({
   };
 
   return (
-    <Modal closestate="filteroption" customZIndex={200}>
-      <div className="w-[500px] max-large_phone:w-[100vw] h-full bg-white rounded-lg p-3 flex flex-col gap-y-5 items-center relative">
-        {isMobile && (
-          <div
-            className="absolute top-1 right-1 w-fit h-fit"
-            onClick={() => {
-              setopenmodal((prev) => ({ ...prev, filteroption: false }));
-            }}
-          >
-            {" "}
-            <CloseVector width="30px" height="30px" />{" "}
-          </div>
-        )}
+    <SecondaryModal
+      size="4xl"
+      open={openmodal.filteroption}
+      closebtn
+      onPageChange={(val) =>
+        setopenmodal((prev) => ({ ...prev, filteroption: val }))
+      }
+    >
+      <div className="w-full  h-full bg-white rounded-lg p-3 flex flex-col gap-y-5 items-center relative">
         <div className="w-full max-h-[400px] h-auto overflow-y-auto overflow-x-hidden flex flex-col gap-y-5 p-3 mt-2">
           <Input
             isClearable
@@ -412,7 +408,7 @@ export const FilterContainer = ({
           )}
         </div>
 
-        <div className="btncontainer absolute w-[80%] flex flex-row gap-x-5 bottom-1">
+        <div className="btncontainer w-full flex flex-row gap-x-5">
           <PrimaryButton
             text={`Show Product ${productcount ?? "No Product"}`}
             type="button"
@@ -438,7 +434,7 @@ export const FilterContainer = ({
           />
         </div>
       </div>
-    </Modal>
+    </SecondaryModal>
   );
 };
 

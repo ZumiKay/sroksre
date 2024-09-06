@@ -3,11 +3,12 @@ import { extractQueryParams } from "../banner/route";
 import Prisma from "@/src/lib/prisma";
 import {
   calculatePagination,
+  IsNumber,
   removeSpaceAndToLowerCase,
 } from "@/src/lib/utilities";
 import { UserState } from "@/src/context/GlobalContext";
 import { revalidateTag } from "next/cache";
-import { IsNumber } from "../../product/page";
+
 import { Prisma as prisma } from "@prisma/client";
 
 interface Userparam {

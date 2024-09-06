@@ -11,6 +11,7 @@ import { NextUIProvider } from "@nextui-org/react";
 import { Suspense } from "react";
 import { LayoutTransition } from "./component/Layout";
 import { ContainerLoading } from "./component/Loading";
+import { SocketProvider } from "../context/SocketContext";
 
 const prompt = Prompt({
   weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
@@ -39,24 +40,30 @@ export default async function RootLayout({
       </head>
       <body
         className={prompt.className}
-        style={{ minHeight: "100vh", height: "100%", width: "100%" }}
+        style={{
+          minHeight: "100vh",
+          height: "100%",
+          width: "100%",
+        }}
       >
         <GlobalContextProvider>
           {" "}
           <NextUIProvider>
             <Suspense fallback={<ContainerLoading />}>
-              <div className="w-full h-full relative">
-                <Navbar session={session as any} />
-                <ToastContainer />{" "}
-                <LayoutTransition
-                  initial={{ opacity: 0, y: -20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                >
-                  {children}
-                </LayoutTransition>
-                <Footer />
-              </div>
+              <SocketProvider>
+                <div className="w-full h-full relative">
+                  <Navbar session={session as any} />
+                  <ToastContainer />{" "}
+                  <LayoutTransition
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                  >
+                    {children}
+                  </LayoutTransition>
+                  <Footer />
+                </div>
+              </SocketProvider>
             </Suspense>
           </NextUIProvider>
         </GlobalContextProvider>

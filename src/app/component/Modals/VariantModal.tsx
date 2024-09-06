@@ -579,7 +579,7 @@ export const Variantcontainer = ({
                       duration: 0.2,
                     }}
                     key={idx}
-                    className="relative varaint_container w-[90%] h-fit border border-black rounded-lg p-2"
+                    className="relative varaint_container w-[90%] max-small_phone:w-[100%] h-fit border border-black rounded-lg p-2"
                   >
                     <h3 className="variant_name font-medium text-lg w-fit h-fit">
                       {obj.option_title === "" ? "No Name" : obj.option_title}
@@ -794,7 +794,10 @@ export const Variantcontainer = ({
                   <Modal closestate="none" customZIndex={150}>
                     <form
                       onSubmit={(e) => handleUpdateVariantOption(e)}
-                      className="addoption w-1/3 h-1/3 bg-white p-3 flex flex-col gap-y-5 items-center justify-start rounded-md"
+                      className="addoption w-[300px] h-1/3
+                       max-smallest_phone:w-[275px]
+                      bg-white p-3 flex flex-col gap-y-5 
+                      items-center justify-start rounded-md"
                     >
                       <input
                         name="option"

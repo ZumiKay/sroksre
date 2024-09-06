@@ -2,6 +2,7 @@ import { toast } from "react-toastify";
 import "../globals.css";
 import { CSSProperties } from "react";
 import Modal from "./Modals";
+
 export default function LoadingIcon({ style }: { style?: CSSProperties }) {
   return (
     <div

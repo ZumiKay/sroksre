@@ -20,7 +20,6 @@ import React, {
   useState,
 } from "react";
 import { ContainerLoading, errorToast, successToast } from "../Loading";
-import { motion } from "framer-motion";
 import { PrimaryPhoto } from "../PhotoComponent";
 import PrimaryButton, { Selection } from "../Button";
 import ToggleMenu, { SearchAndMultiSelect } from "../ToggleMenu";
@@ -29,6 +28,7 @@ import { ImageUpload } from "./Image";
 import { Input } from "@nextui-org/react";
 import { VariantIcon } from "../Asset";
 import { SelectionCustom } from "../Pagination_Component";
+import { SecondaryModal } from "../Modals";
 
 const stockTypeData = [
   {
@@ -232,269 +232,279 @@ export function CreateProducts({
   };
 
   return (
-    <div className="createProduct__container z-[200] flex items-center justify-center fixed top-0 left-0 bg-white min-h-screen h-fit w-screen">
-      {(loading || isLoading.PUT || isLoading.POST) && <ContainerLoading />}
-      <form
-        onSubmit={handleSubmit}
-        className="createform flex flex-col w-full max-h-[90vh] overflow-y-auto items-center justify-center gap-y-5 "
+    <>
+      <SecondaryModal
+        onPageChange={(val) =>
+          setopenmodal((prev) => ({ ...prev, createProduct: val }))
+        }
+        open={openmodal.createProduct}
+        closebtn={true}
+        size="full"
       >
-        <div
-          className="product__form w-[100%] 
+        {(loading || isLoading.PUT || isLoading.POST) && <ContainerLoading />}
+        <form
+          onSubmit={handleSubmit}
+          className="createform flex flex-col w-full max-h-[95vh] overflow-y-auto overflow-x-hidden items-center justify-center gap-y-5 "
+        >
+          <div
+            className="product__form w-[100%] 
         flex flex-row gap-x-16 h-screen overflow-y-auto items-start justify-center 
         max-smallest_screen:flex-col max-smallest_screen:items-center max-smallest_screen:justify-start
         max-smallest_screen:gap-y-10
         "
-        >
-          <div className="image__contianer flex flex-col items-center sticky max-smallest_screen:relative top-0 gap-y-1 w-[400px] max-small_phone:w-[97vw] h-fit">
-            <PrimaryPhoto
-              data={product.covers}
-              showcount={true}
-              style={{ height: "100%" }}
-              hover={true}
-              isMobile={isMobile}
-              isTablet={isTablet}
-            />
-            <PrimaryButton
-              type="button"
-              text={product.covers.length > 0 ? "Edit Photo" : "Upload Photo"}
-              width="100%"
-              onClick={() => {
-                setopenmodal({ ...openmodal, imageupload: true });
-              }}
-            />
-          </div>
+          >
+            <div className="image__contianer flex flex-col items-center sticky max-smallest_screen:relative top-0 gap-y-1 w-[400px] max-small_phone:w-[97vw] h-fit">
+              <PrimaryPhoto
+                data={product.covers}
+                showcount={true}
+                style={{ height: "100%" }}
+                hover={true}
+                isMobile={isMobile}
+                isTablet={isTablet}
+              />
+              <PrimaryButton
+                type="button"
+                text={product.covers.length > 0 ? "Edit Photo" : "Upload Photo"}
+                width="100%"
+                onClick={() => {
+                  setopenmodal({ ...openmodal, imageupload: true });
+                }}
+              />
+            </div>
 
-          <div
-            className="productinfo flex flex-col justify-center items-end w-1/2 
+            <div
+              className="productinfo flex flex-col justify-center items-end w-1/2 
           h-fit gap-y-5
           max-smallest_screen:w-[90%]  
           "
-          >
-            <Input
-              type="text"
-              label="Product Name"
-              labelPlacement="outside"
-              placeholder="Name"
-              name="name"
-              onChange={handleChange}
-              value={product.name}
-              required
-              size="lg"
-              className="w-[100%] h-[40px]  font-bold rounded-md "
-            />
-            <Input
-              type="text"
-              label="Short Description"
-              placeholder="Description"
-              labelPlacement="outside"
-              name="description"
-              onChange={handleChange}
-              value={product.description}
-              required
-              size="lg"
-              className="w-[100%] h-[40px] text-lg pl-1 font-bold rounded-md "
-            />
-
-            <Input
-              type="number"
-              label="Price"
-              labelPlacement="outside"
-              placeholder="0.00"
-              step={".01"}
-              value={product.price === 0 ? "" : product.price.toString()}
-              name="price"
-              onChange={handleChange}
-              min={0}
-              max={10000}
-              startContent={
-                <div className="pointer-events-none flex items-center">
-                  <span className="text-default-400 text-small">$</span>
-                </div>
-              }
-              required
-              size="lg"
-              className="w-[100%] h-[40px] text-lg pl-1 font-bold rounded-md "
-            />
-
-            <div className="category_sec flex flex-col gap-y-5  w-full h-fit font-bold">
-              <SelectionCustom
-                textplacement="outside"
-                label="Category"
-                value={product.category.parent_id ?? undefined}
-                placeholder="Select"
-                data={
-                  cate?.map((i) => ({ label: i.name, value: i.id ?? 0 })) ?? []
-                }
-                onChange={(val) => handleSelect(val.toString(), "parent_id")}
-              />
-
-              {product.category.parent_id !== 0 &&
-              product.category.parent_id ? (
-                <SelectionCustom
-                  label="Sub Category"
-                  textplacement="outside"
-                  data={
-                    subcate.map((sub) => ({
-                      label: sub.name,
-                      value: sub.id ?? 0,
-                    })) ?? []
-                  }
-                  placeholder="Select"
-                  value={product.category.child_id ?? undefined}
-                  onChange={(val) => handleSelect(val.toString(), "child_id")}
-                />
-              ) : (
-                ""
-              )}
-            </div>
-            <Selection
-              label="Stock Type"
-              value={product.stocktype}
-              data={stockTypeData}
-              onChange={(e) => {
-                const { value } = e.target;
-                let updateproducts = { ...product };
-
-                if (
-                  value === ProductStockType.size ||
-                  value === ProductStockType.stock ||
-                  value === ProductStockType.variant
-                ) {
-                  updateproducts.stock = 0;
-                }
-
-                if (
-                  value === ProductStockType.stock ||
-                  value === ProductStockType.variant
-                ) {
-                  const idx = updateproducts.details?.findIndex(
-                    (i) => i.info_type === "SIZE"
-                  );
-                  idx !== undefined && updateproducts.details?.splice(idx, 1);
-                } else {
-                  updateproducts.variants = undefined;
-                  updateproducts.varaintstock = undefined;
-                }
-                updateproducts.stocktype = value;
-                setproduct(updateproducts);
-                setedit((prev) => ({ ...prev, productinfo: true }));
-                setstocktype(value as any);
-              }}
-              required
-            />
-            {stocktype === ProductStockType.stock ? (
+            >
               <Input
-                type="number"
-                label="Stock"
+                type="text"
+                label="Product Name"
                 labelPlacement="outside"
-                placeholder="0"
-                name="stock"
-                min={0}
-                max={1000}
+                placeholder="Name"
+                name="name"
                 onChange={handleChange}
-                value={product.stock === 0 ? "" : product.stock?.toString()}
+                value={product.name}
                 required
                 size="lg"
-                className="w-full h-[40px] text-lg pl-1 font-bold rounded-md "
+                className="w-[100%] h-[40px]  font-bold rounded-md "
               />
-            ) : (
-              <>
-                <PrimaryButton
-                  radius="10px"
-                  hoverTextColor="lightblue"
-                  type="button"
-                  text={"Variants"}
-                  Icon={<VariantIcon />}
-                  width="100%"
-                  onClick={() => {
-                    setopenmodal((prev) => ({
-                      ...prev,
-                      addproductvariant: true,
-                    }));
-                  }}
-                  height="50px"
-                  color="black"
-                />
-              </>
-            )}
+              <Input
+                type="text"
+                label="Short Description"
+                placeholder="Description"
+                labelPlacement="outside"
+                name="description"
+                onChange={handleChange}
+                value={product.description}
+                required
+                size="lg"
+                className="w-[100%] h-[40px] text-lg pl-1 font-bold rounded-md "
+              />
 
-            <div
-              onClick={() => {
-                setedit({ ...edit, productdetail: !edit.productdetail });
-              }}
-              className={`toggleMenu_section w-full h-fit p-1 transition cursor-pointer rounded-md  hover:border border-gray-400`}
-              style={{
-                border: edit.productdetail ? "1px solid black" : "",
-              }}
-            >
-              <ToggleMenu
-                name="Product Details"
-                data={product.details}
-                isAdmin={true}
+              <Input
+                type="number"
+                label="Price"
+                labelPlacement="outside"
+                placeholder="0.00"
+                step={".01"}
+                value={product.price === 0 ? "" : product.price.toString()}
+                name="price"
+                onChange={handleChange}
+                min={0}
+                max={10000}
+                startContent={
+                  <div className="pointer-events-none flex items-center">
+                    <span className="text-default-400 text-small">$</span>
+                  </div>
+                }
+                required
+                size="lg"
+                className="w-[100%] h-[40px] text-lg pl-1 font-bold rounded-md "
               />
-            </div>
-            {!openmodal.productdetail ? (
-              <PrimaryButton
-                color="#0097FA"
-                text="Add more detail"
-                onClick={() => {
-                  setglobalindex((prev) => ({
-                    ...prev,
-                    productdetailindex: -1,
-                  }));
-                  setopenmodal({ ...openmodal, productdetail: true });
-                }}
-                type="button"
-                radius="10px"
-                width="100%"
-                height="35px"
-              />
-            ) : (
-              <div ref={detailref} className="w-full h-full">
-                <DetailsModal />
+
+              <div className="category_sec flex flex-col gap-y-5  w-full h-fit font-bold">
+                <SelectionCustom
+                  textplacement="outside"
+                  label="Category"
+                  value={product.category.parent_id ?? undefined}
+                  placeholder="Select"
+                  data={
+                    cate?.map((i) => ({ label: i.name, value: i.id ?? 0 })) ??
+                    []
+                  }
+                  onChange={(val) => handleSelect(val.toString(), "parent_id")}
+                />
+
+                {product.category.parent_id !== 0 &&
+                product.category.parent_id ? (
+                  <SelectionCustom
+                    label="Sub Category"
+                    textplacement="outside"
+                    data={
+                      subcate.map((sub) => ({
+                        label: sub.name,
+                        value: sub.id ?? 0,
+                      })) ?? []
+                    }
+                    placeholder="Select"
+                    value={product.category.child_id ?? undefined}
+                    onChange={(val) => handleSelect(val.toString(), "child_id")}
+                  />
+                ) : (
+                  ""
+                )}
               </div>
-            )}
-            <div className="w-full h-fit flex flex-col gap-y-5">
-              <label className="font-bold text-lg">
-                {" "}
-                Add related product (Optional){" "}
-              </label>
-              <SearchAndMultiSelect />
+              <Selection
+                label="Stock Type"
+                value={product.stocktype}
+                data={stockTypeData}
+                onChange={(e) => {
+                  const { value } = e.target;
+                  let updateproducts = { ...product };
+
+                  if (
+                    value === ProductStockType.size ||
+                    value === ProductStockType.stock ||
+                    value === ProductStockType.variant
+                  ) {
+                    updateproducts.stock = 0;
+                  }
+
+                  if (
+                    value === ProductStockType.stock ||
+                    value === ProductStockType.variant
+                  ) {
+                    const idx = updateproducts.details?.findIndex(
+                      (i) => i.info_type === "SIZE"
+                    );
+                    idx !== undefined && updateproducts.details?.splice(idx, 1);
+                  } else {
+                    updateproducts.variants = undefined;
+                    updateproducts.varaintstock = undefined;
+                  }
+                  updateproducts.stocktype = value;
+                  setproduct(updateproducts);
+                  setedit((prev) => ({ ...prev, productinfo: true }));
+                  setstocktype(value as any);
+                }}
+                required
+              />
+              {stocktype === ProductStockType.stock ? (
+                <Input
+                  type="number"
+                  label="Stock"
+                  labelPlacement="outside"
+                  placeholder="0"
+                  name="stock"
+                  min={0}
+                  max={1000}
+                  onChange={handleChange}
+                  value={product.stock === 0 ? "" : product.stock?.toString()}
+                  required
+                  size="lg"
+                  className="w-full h-[40px] text-lg pl-1 font-bold rounded-md "
+                />
+              ) : (
+                <>
+                  <PrimaryButton
+                    radius="10px"
+                    hoverTextColor="lightblue"
+                    type="button"
+                    text={"Variants"}
+                    Icon={<VariantIcon />}
+                    width="100%"
+                    onClick={() => {
+                      setopenmodal((prev) => ({
+                        ...prev,
+                        addproductvariant: true,
+                      }));
+                    }}
+                    height="50px"
+                    color="black"
+                  />
+                </>
+              )}
+
+              <div
+                onClick={() => {
+                  setedit({ ...edit, productdetail: !edit.productdetail });
+                }}
+                className={`toggleMenu_section w-full h-fit p-1 transition cursor-pointer rounded-md  hover:border border-gray-400`}
+                style={{
+                  border: edit.productdetail ? "1px solid black" : "",
+                }}
+              >
+                <ToggleMenu
+                  name="Product Details"
+                  data={product.details}
+                  isAdmin={true}
+                />
+              </div>
+              {!openmodal.productdetail ? (
+                <PrimaryButton
+                  color="#0097FA"
+                  text="Add more detail"
+                  onClick={() => {
+                    setglobalindex((prev) => ({
+                      ...prev,
+                      productdetailindex: -1,
+                    }));
+                    setopenmodal({ ...openmodal, productdetail: true });
+                  }}
+                  type="button"
+                  radius="10px"
+                  width="100%"
+                  height="35px"
+                />
+              ) : (
+                <div ref={detailref} className="w-full h-full">
+                  <DetailsModal />
+                </div>
+              )}
+              <div className="w-full h-fit flex flex-col gap-y-5">
+                <label className="font-bold text-lg">
+                  {" "}
+                  Add related product (Optional){" "}
+                </label>
+                <SearchAndMultiSelect />
+              </div>
             </div>
           </div>
-        </div>
-        <div className="w-[90%] h-fit flex flex-row gap-x-5 justify-start">
-          <PrimaryButton
-            color="#44C3A0"
-            text={globalindex.producteditindex === -1 ? "Create" : "Update"}
-            type={"submit"}
-            radius="10px"
-            width="90%"
-            height="40px"
-          />{" "}
-          <PrimaryButton
-            color="#F08080"
-            text="Cancel"
-            type="button"
-            radius="10px"
-            width="90%"
-            height="40px"
-            onClick={() => {
-              handleCancel();
-            }}
+          <div className="w-[90%] h-fit flex flex-row gap-x-5 justify-start">
+            <PrimaryButton
+              color="#44C3A0"
+              text={globalindex.producteditindex === -1 ? "Create" : "Update"}
+              type={"submit"}
+              radius="10px"
+              width="90%"
+              height="40px"
+            />{" "}
+            <PrimaryButton
+              color="#F08080"
+              text="Cancel"
+              type="button"
+              radius="10px"
+              width="90%"
+              height="40px"
+              onClick={() => {
+                handleCancel();
+              }}
+            />
+          </div>
+        </form>
+        {openmodal.imageupload && (
+          <ImageUpload
+            limit={4}
+            mutitlple={true}
+            type="createproduct"
+            setreloaddata={setreloaddata}
           />
-        </div>
-      </form>
-      {openmodal.imageupload && (
-        <ImageUpload
-          limit={4}
-          mutitlple={true}
-          type="createproduct"
-          setreloaddata={setreloaddata}
-        />
-      )}
-      {openmodal.addproductvariant && <Variantcontainer />}
-    </div>
+        )}
+        {openmodal.addproductvariant && <Variantcontainer />}
+      </SecondaryModal>
+    </>
   );
 }
 

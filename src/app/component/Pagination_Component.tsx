@@ -11,7 +11,7 @@ import {
 } from "@nextui-org/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { SelectType } from "@/src/context/GlobalContext";
-import { IsNumber } from "../product/page";
+import { IsNumber } from "@/src/lib/utilities";
 
 interface PaginationCustomProps {
   page?: number;

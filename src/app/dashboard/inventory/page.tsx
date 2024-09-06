@@ -4,20 +4,16 @@ import Card, { BannerCard } from "../../component/Card";
 import { PromotionState, useGlobalContext } from "@/src/context/GlobalContext";
 import { SubInventoryMenu } from "../../component/Navbar";
 import { useEffect, useRef, useState } from "react";
-import {
-  ApiRequest,
-  Delayloading,
-  useScreenSize,
-} from "@/src/context/CustomHook";
+import { ApiRequest, Delayloading } from "@/src/context/CustomHook";
 import { ContainerLoading, errorToast } from "../../component/Loading";
 import { FilterMenu } from "../../component/SideMenu";
 import dayjs from "dayjs";
-import { AnimatePresence } from "framer-motion";
+
 import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { redirect, useRouter, useSearchParams } from "next/navigation";
 import { InventoryParamType } from "./varaint_action";
-import { IsNumber } from "../../product/page";
+
 import { CreateProducts } from "../../component/Modals/Product";
 import { Category } from "../../component/Modals/Category";
 import { BannerModal } from "../../component/Modals/Banner";
@@ -28,6 +24,7 @@ import {
 import PaginationCustom, {
   SelectionCustom,
 } from "../../component/Pagination_Component";
+import { IsNumber } from "@/src/lib/utilities";
 
 const createmenu = [
   {

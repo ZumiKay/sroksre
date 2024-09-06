@@ -6,7 +6,6 @@ import {
 } from "@/src/context/GlobalContext";
 import { getUser } from "@/src/context/OrderContext";
 import Prisma from "@/src/lib/prisma";
-import { formatDate } from "../component/EmailTemplate";
 
 export const SaveNotification = async (
   data: NotificationType
@@ -72,54 +71,4 @@ export const CheckNotification = async () => {
   });
 
   return { success: true, isNotCheck };
-};
-
-export const GetNotification = async (page: number, pageSize: number) => {
-  const user = await getUser();
-
-  if (!user) {
-    return { success: false };
-  }
-
-  const skip = (page - 1) * pageSize;
-  const take = pageSize;
-  const result = await Prisma.notification.findMany({
-    where: {
-      userid: user?.id,
-    },
-    select: {
-      id: true,
-      type: true,
-      content: true,
-      link: true,
-      checked: true,
-      createdAt: true,
-    },
-    skip,
-    take,
-    orderBy: {
-      createdAt: "desc",
-    },
-  });
-  return {
-    success: true,
-    data: result.map((i) => ({ ...i, createdAt: formatDate(i.createdAt) })),
-  };
-};
-
-export const DeleteNotification = async (
-  id?: number
-): Promise<ActionReturnType> => {
-  try {
-    if (!id) {
-      return { success: false, message: "Invalid request" };
-    }
-
-    await Prisma.notification.delete({ where: { id } });
-
-    return { success: true, message: "Delete Successfully" };
-  } catch (error) {
-    console.log("Notify", error);
-    return { success: false, message: "Error occured" };
-  }
 };

@@ -10,7 +10,7 @@ import {
 import { useRouter, useSearchParams } from "next/navigation";
 import React, { ChangeEvent, FormEvent, useEffect, useState } from "react";
 import { errorToast, infoToast, successToast } from "../Loading";
-import Modal from "../Modals";
+import Modal, { SecondaryModal } from "../Modals";
 import { motion } from "framer-motion";
 import { DateTimePicker } from "@mui/x-date-pickers";
 import dayjs from "dayjs";
@@ -202,11 +202,12 @@ export const CreatePromotionModal = ({
   };
 
   return (
-    <Modal
-      closestate={"none"}
-      customheight={isMobile ? "100vh" : "fit-content"}
-      customwidth={isMobile ? "100vw" : isTablet ? "80vw" : "700px"}
-      customZIndex={200}
+    <SecondaryModal
+      onPageChange={(val) =>
+        setopenmodal((prev) => ({ ...prev, createPromotion: val }))
+      }
+      open={openmodal.createPromotion}
+      size="xl"
     >
       <div className="createPromotion__container relative rounded-lg w-full h-full bg-white p-3 flex flex-col items-center">
         <form
@@ -298,7 +299,7 @@ export const CreatePromotionModal = ({
           setreloaddata={setreloaddata}
         />
       )}
-    </Modal>
+    </SecondaryModal>
   );
 };
 
@@ -307,8 +308,14 @@ export const DiscountModals = ({
 }: {
   setreloaddata: React.Dispatch<React.SetStateAction<boolean>>;
 }) => {
-  const { promotion, allData, setpromotion, globalindex, setopenmodal } =
-    useGlobalContext();
+  const {
+    promotion,
+    allData,
+    setpromotion,
+    globalindex,
+    openmodal,
+    setopenmodal,
+  } = useGlobalContext();
   const [discount, setdiscount] = useState<number>(0);
 
   useEffectOnce(() => {
@@ -373,7 +380,14 @@ export const DiscountModals = ({
   };
 
   return (
-    <Modal customwidth="30%" customheight="fit-content" closestate="discount">
+    <SecondaryModal
+      size="xl"
+      open={openmodal.discount}
+      onPageChange={(val) =>
+        setopenmodal((prev) => ({ ...prev, discount: val }))
+      }
+      closebtn
+    >
       <motion.form
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -404,6 +418,6 @@ export const DiscountModals = ({
           radius="10px"
         />
       </motion.form>
-    </Modal>
+    </SecondaryModal>
   );
 };

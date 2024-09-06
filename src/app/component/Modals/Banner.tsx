@@ -3,7 +3,7 @@ import {
   SelectType,
   useGlobalContext,
 } from "@/src/context/GlobalContext";
-import { ChangeEvent, useEffect, useState } from "react";
+import { ChangeEvent, useState } from "react";
 import {
   getChildCategoryForBanner,
   getParentCategoryForBanner,
@@ -12,13 +12,12 @@ import {
 } from "../../severactions/actions";
 import { ApiRequest, useEffectOnce } from "@/src/context/CustomHook";
 import { errorToast, successToast } from "../Loading";
-import Modal from "../Modals";
-import { motion } from "framer-motion";
+import Modal, { SecondaryModal } from "../Modals";
+
 import PrimaryButton, { Selection } from "../Button";
 import { SelectAndSearchProduct } from "../Banner";
 import { ImageUpload } from "./Image";
 import { DeleteTempImage } from "../../dashboard/inventory/varaint_action";
-import { useRouter } from "next/navigation";
 
 export const BannerType = [
   { label: "Normal", value: "normal" },
@@ -212,13 +211,8 @@ export const BannerModal = ({
   };
 
   return (
-    <Modal
-      customwidth="100vw"
-      customheight="100vh"
-      closestate="createBanner"
-      customZIndex={200}
-    >
-      <div className="bannermodal_content bg-white p-3 relative rounded-lg w-full min-h-screen max-h-[80vh] overflow-y-auto overflow-x-hidden h-full flex flex-col gap-y-5 items-center">
+    <SecondaryModal open={openmodal.createBanner} size="full">
+      <div className="bannermodal_content bg-white p-3 relative max-small_phone:rounded-none rounded-lg w-full min-h-screen max-h-[80vh] overflow-y-auto overflow-x-hidden h-full flex flex-col gap-y-5 items-center">
         {banner.image && banner.image.url.length !== 0 && (
           <div
             style={banner.size === "normal" ? { width: "100%" } : {}}
@@ -411,6 +405,6 @@ export const BannerModal = ({
           setreloaddata={setreloaddata}
         />
       )}
-    </Modal>
+    </SecondaryModal>
   );
 };

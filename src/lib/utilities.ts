@@ -6,11 +6,7 @@ import {
 } from "firebase/storage";
 import { storage } from "./firebase";
 import Prisma from "./prisma";
-import {
-  ProductState,
-  Stocktype,
-  infovaluetype,
-} from "../context/GlobalContext";
+import { ProductState, Stocktype } from "../context/GlobalContext";
 
 import {
   getUser,
@@ -142,6 +138,18 @@ export const generateRandomNumber = () => {
 
   return randomNumberString;
 };
+export function IsNumber(str: string) {
+  // Check if the input is a string and not empty
+  if (typeof str !== "string" || str.trim() === "") {
+    return false;
+  }
+
+  // Use parseFloat to convert the string to a number
+  const num = parseFloat(str);
+
+  // Check if the parsed number is not NaN and is finite
+  return !isNaN(num) && isFinite(num);
+}
 
 export const checkpassword = (password: string) => {
   let error: string = "";

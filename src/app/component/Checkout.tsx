@@ -28,12 +28,12 @@ import { errorToast, LoadingText, successToast } from "./Loading";
 import { Checkbox, FormControlLabel } from "@mui/material";
 import { OrderReceiptTemplate } from "./EmailTemplate";
 import Image from "next/image";
-// import { SendNotification } from "@/src/socket";
 import Link from "next/link";
 import { shippingtype } from "./Modals/User";
 import { Selecteddetailcard } from "./Card";
 import { ApiRequest } from "@/src/context/CustomHook";
 import { SelectionCustom } from "./Pagination_Component";
+import { SendNotification, useSocket } from "@/src/context/SocketContext";
 
 //Step assets
 const LineSvg = ({
@@ -236,7 +236,7 @@ export const Checkoutproductcard = ({
     <div
       key={cover}
       className={
-        "w-full h-fit bg-white rounded-lg flex flex-row gap-x-5 items-center max-large_phone:flex-col max-large_phone:gap-y-5"
+        "w-full h-fit bg-white rounded-lg flex flex-row gap-x-5 items-center max-large_phone:flex-col max-large_phone:gap-y-5 border-1 border-gray-300"
       }
     >
       <Image
@@ -866,6 +866,7 @@ export function Paypalbutton({
   order: OrderUserType;
 }) {
   const router = useRouter();
+  const socket = useSocket();
 
   const createOrder = async () => {
     const CreateOrder = Createpaypalorder.bind(null, orderId);
@@ -947,22 +948,23 @@ export function Paypalbutton({
                 htmltemplate,
                 adminhtmltemplate
               );
-
               const makeReq = await updateOrder();
 
               if (!makeReq.success) {
                 errorToast(makeReq.message ?? "");
                 return;
               }
-              // await SendNotification({
-              //   type: "New Order",
-              //   content: `Order #${orderId} has requested`,
-              //   checked: false,
-              //   link: `${process.env.BASE_URL}/dashboard/order?&q=${orderId}`,
-              // });
-
+              socket &&
+                (await SendNotification(
+                  {
+                    type: "New Order",
+                    content: `Order #${orderId} has requested`,
+                    checked: false,
+                    link: `${process.env.BASE_URL}/dashboard/order?&q=${orderId}`,
+                  },
+                  socket
+                ));
               successToast(`Purchase Complete`);
-
               router.replace(`/checkout?orderid=${encripyid}&step=4`);
               router.refresh();
             }

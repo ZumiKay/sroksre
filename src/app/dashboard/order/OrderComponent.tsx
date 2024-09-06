@@ -2,7 +2,7 @@
 import ReactDOMServer from "react-dom/server";
 import { ChangeEvent, useEffect, useState } from "react";
 import PrimaryButton, { Selection } from "../../component/Button";
-import Modal from "../../component/Modals";
+import Modal, { SecondaryModal } from "../../component/Modals";
 import { useGlobalContext, userdata } from "@/src/context/GlobalContext";
 import { DateTimePicker, LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
@@ -200,6 +200,7 @@ export const DownloadButton = () => {
           close="exportoption"
           handleNext={handleGetData}
           loading={loading}
+          open={openmodal.exportoption}
         />
       )}
     </>
@@ -258,7 +259,11 @@ export const FilterButton = ({
       )}
 
       {openmodal.filteroption && (
-        <FilterMenu close="filteroption" type="filter" />
+        <FilterMenu
+          open={openmodal.filteroption}
+          close="filteroption"
+          type="filter"
+        />
       )}
     </>
   );
@@ -358,9 +363,10 @@ export const ButtonSsr = ({
           ) : type.startsWith(AllorderType.orderaction) ? (
             <ActionModal
               key={idx}
-              close={() => handleClose()}
+              close={clickedtype}
               types="none"
               oid={id}
+              setclose={handleClose}
               order={data?.action as unknown as OrderUserType}
             />
           ) : (
@@ -388,6 +394,7 @@ const FilterMenu = ({
   close,
   handleNext,
   loading,
+  open,
 }: {
   type: "filter" | "export";
   close: "exportoption" | "filteroption";
@@ -396,13 +403,14 @@ const FilterMenu = ({
     settotalcount?: React.Dispatch<React.SetStateAction<number>>
   ) => void;
   loading?: boolean;
+  open: boolean;
 }) => {
   const [pickdate, setpickdate] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
   const [filterdata, setfilterdata] = useState<Filterdatatype>({});
   const [isFilter, setisFilter] = useState(false);
-  const { isTablet, isMobile } = useScreenSize();
+  const { setopenmodal } = useGlobalContext();
 
   useEffect(() => {
     if (
@@ -471,22 +479,21 @@ const FilterMenu = ({
   };
 
   return (
-    <Modal
-      closestate={pickdate ? "" : close}
-      customheight={isMobile ? "100vh" : "600px"}
-      customwidth={isTablet ? "90vw" : isMobile ? "100vw" : "fit-content"}
-      customZIndex={200}
+    <SecondaryModal
+      size="4xl"
+      open={open}
+      closebtn
+      onPageChange={(val) =>
+        !pickdate && setopenmodal((prev) => ({ ...prev, [close]: val }))
+      }
+      header={() => (
+        <h2 className="font-bold text-2xl" hidden={type !== "filter"}>
+          Filter by
+        </h2>
+      )}
     >
       <LocalizationProvider dateAdapter={AdapterDayjs}>
         <div className="w-full h-full bg-white rounded-lg grid gap-y-5 font-bold text-lg p-5">
-          <div className="absolute top-1 right-1 hidden max-small_phone:block">
-            {" "}
-            <CloseVector width="25px" height="25px" />{" "}
-          </div>
-          <h2 className="font-bold text-2xl" hidden={type !== "filter"}>
-            Filter by
-          </h2>
-
           <Input
             type="text"
             value={filterdata.q}
@@ -583,7 +590,7 @@ const FilterMenu = ({
           </div>
         </div>
       </LocalizationProvider>
-    </Modal>
+    </SecondaryModal>
   );
 };
 
@@ -606,13 +613,15 @@ export const AmountRange = ({
     }
   };
   return (
-    <div className="Pricerange_Container inline-flex gap-x-5 w-full justify-start">
-      <div className="w-full start inline-flex gap-x-5 text-lg font-medium items-center">
+    <div className="Pricerange_Container inline-flex flex-wrap gap-x-5 w-full justify-start">
+      <div className="w-full start inline-flex  gap-x-5 text-lg font-medium items-center">
         <label htmlFor="from"> From </label>
         <Input
           type="number"
           id="price"
           name="startprice"
+          placeholder="0.00"
+          endContent={"$"}
           value={data.startprice?.toString()}
           onChange={handleChange}
           min={0}
@@ -626,6 +635,8 @@ export const AmountRange = ({
           id="price"
           name="endprice"
           value={data.endprice?.toString() ?? ""}
+          placeholder="0.00"
+          endContent={"$"}
           onChange={handleChange}
           min={0}
           className="w-full h-[50px]"
@@ -691,7 +702,7 @@ export function DetailModal({
   const [type, settype] = useState<"user" | "shipping" | "close" | "none">(
     "none"
   );
-  const { isSmallDesktop, isMobile } = useScreenSize();
+  const { openmodal } = useGlobalContext();
 
   const handleClick = (ty: typeof type) => {
     if (ty === "close") {
@@ -783,19 +794,15 @@ export function DetailModal({
   };
 
   return (
-    <Modal
-      closestate={close}
-      customwidth={isSmallDesktop ? "80vw" : isMobile ? "100vw" : "fit-content"}
-      customheight={isMobile ? "100vh" : "60vh"}
-      customZIndex={200}
+    <SecondaryModal
+      size="3xl"
+      open={openmodal[close] as boolean}
+      onPageChange={() => {
+        setclose();
+      }}
+      closebtn
     >
       <div className="w-full h-full relative bg-[#f2f2f2] flex flex-col items-center rounded-lg max-small_phone:p-2 pl-5 pr-5">
-        <div
-          onClick={() => handleClick("close")}
-          className="w-[40px] h-[40px] absolute top-1 right-2"
-        >
-          <CloseVector width="100%" height="100%" />
-        </div>
         <h3 className="w-full h-fit text-center text-xl font-bold mt-5 mb-5">
           Order Detail
         </h3>
@@ -886,7 +893,7 @@ export function DetailModal({
           </>
         )}
       </div>
-    </Modal>
+    </SecondaryModal>
   );
 }
 
@@ -899,29 +906,23 @@ export const OrderProductDetailsModal = ({
   close: string;
   data: Productordertype[];
 }) => {
-  const handleClose = () => setclose(false);
-  const { isTablet, isMobile } = useScreenSize();
+  const { openmodal } = useGlobalContext();
 
   return (
-    <Modal
-      closestate={close}
-      customheight={isMobile ? "100vh" : "70vh"}
-      customwidth={isTablet ? "90vw" : isMobile ? "100vw" : "70vw"}
-      customZIndex={200}
+    <SecondaryModal
+      size="5xl"
+      open={openmodal[close] as boolean}
+      onPageChange={() => {
+        setclose();
+      }}
+      closebtn
     >
-      <div className="w-full h-full relative bg-[#f2f2f2] p-2 rounded-lg flex flex-col items-center gap-y-10">
-        <div
-          onClick={() => handleClose()}
-          className="w-[40px] h-[40px] absolute top-1 right-2"
-        >
-          <CloseVector width="100%" height="100%" />
-        </div>
-
+      <div className="w-full h-full relative  p-2 rounded-lg flex flex-col items-center gap-y-10">
         <h3 className="w-full text-center font-bold text-xl">{`Products (${
           data ? data.length : 0
         })`}</h3>
 
-        <div className="productlist w-[90%] max-h-[60vh] overflow-y-auto flex flex-col items-center gap-y-5">
+        <div className="productlist w-full max-h-[60vh] overflow-y-auto flex flex-col items-center gap-y-5">
           {data &&
             data.map((prob) => (
               <Checkoutproductcard
@@ -940,7 +941,7 @@ export const OrderProductDetailsModal = ({
             ))}
         </div>
       </div>
-    </Modal>
+    </SecondaryModal>
   );
 };
 
@@ -949,13 +950,16 @@ export const ActionModal = ({
   close,
   oid,
   order,
+  setclose,
 }: {
   types: "none" | "action" | "status";
-  close: () => void;
+  close: string;
   oid: string;
   order: OrderUserType;
+  setclose: any;
 }) => {
   const [actiontype, setactiontype] = useState<string>(types);
+  const { openmodal } = useGlobalContext();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -967,16 +971,19 @@ export const ActionModal = ({
     const url = new URLSearchParams(searchParams);
     url.delete("id");
     url.delete("ty");
-    close();
+    setclose();
     router.push(`?${url}`, { scroll: false });
   };
   return (
-    <Modal
-      closestate={"discount"}
-      customwidth="300px"
-      customheight="fit-content"
+    <SecondaryModal
+      size="lg"
+      open={openmodal[close] as boolean}
+      onPageChange={() => {
+        handleClose();
+      }}
+      closebtn
     >
-      <div className="w-full h-full bg-[#f2f2f2] p-5 rounded-lg flex flex-col gap-y-20 ">
+      <div className="w-full h-full flex flex-col gap-y-5 ">
         {actiontype === "none" && (
           <>
             <h3 className="w-full text-center text-xl font-bold">Action</h3>
@@ -998,15 +1005,6 @@ export const ActionModal = ({
                   color="lightcoral"
                 />
               </div>
-
-              <PrimaryButton
-                type="button"
-                text="Close"
-                width="90%"
-                onClick={() => handleClose()}
-                radius="10px"
-                color="black"
-              />
             </div>{" "}
           </>
         )}
@@ -1014,10 +1012,14 @@ export const ActionModal = ({
           <UpdateStatus setactiontype={setactiontype} oid={oid} order={order} />
         )}
         {actiontype === "delete" && (
-          <OrderAlert settype={setactiontype} oid={oid} close={() => close()} />
+          <OrderAlert
+            settype={setactiontype}
+            oid={oid}
+            close={() => setclose()}
+          />
         )}
       </div>
-    </Modal>
+    </SecondaryModal>
   );
 };
 

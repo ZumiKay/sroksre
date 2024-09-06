@@ -307,24 +307,6 @@ export default function Card(props: cardprops) {
               ""
             )}
           </span>
-          {/* {state.editaction && (
-            <SubInventoryMenu
-              ref={ref}
-              data={editactionMenu}
-              index={props.id}
-              type="product"
-              style={{ right: "0", top: 0 }}
-              open="createProduct"
-              stock={props.stock}
-              stocktype={props.stocktype}
-              stockaction={() => {
-                setopenmodal((prev) => ({
-                  ...prev,
-                  [closename]: true,
-                }));
-              }}
-            />
-          )} */}
         </div>
         <section className="card_detail w-full h-fit font-semibold bg-white flex flex-col justify-center gap-y-3  pl-2 rounded-b-md text-sm">
           <h4 className="card_info w-full max-w-[400px] h-fit text-lg">
@@ -341,7 +323,7 @@ export default function Card(props: cardprops) {
             onClick={() => handleSelectDiscount(isProduct.id ?? 0, "edit")}
             type="button"
             text={isProduct?.discount?.percent === 0 ? "Set Discount" : "Edit"}
-            width="50%"
+            width="150px"
             radius="10px"
           />
         )}

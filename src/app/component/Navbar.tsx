@@ -36,19 +36,9 @@ import {
   useEffectOnce,
   useScreenSize,
 } from "@/src/context/CustomHook";
-import {
-  ContainerLoading,
-  errorToast,
-  infoToast,
-  LoadingText,
-} from "./Loading";
+import { ContainerLoading, errorToast, infoToast } from "./Loading";
 import { Role } from "@prisma/client";
-import {
-  CheckedNotification,
-  CheckNotification,
-  DeleteNotification,
-  GetNotification,
-} from "../severactions/notification_action";
+import { CheckedNotification } from "../severactions/notification_action";
 import { Box, CircularProgress } from "@mui/material";
 
 import { signOut } from "next-auth/react";
@@ -64,7 +54,7 @@ import {
   DropdownMenu,
   DropdownTrigger,
 } from "@nextui-org/react";
-import PrimaryButton from "./Button";
+import { useSocket } from "@/src/context/SocketContext";
 
 const InitialMethod = async (session?: Usersessiontype) => {
   if (session) {
@@ -85,6 +75,7 @@ export default function Navbar({ session }: { session?: Usersessiontype }) {
   const { cart, setcart, carttotal, setcarttotal, setopenmodal, openmodal } =
     useGlobalContext();
   const [categories, setcategories] = useState(false);
+  const [loading, setloading] = useState(false);
 
   const [profile, setprofile] = useState(false);
   const [opennotification, setnotification] = useState(false);
@@ -94,11 +85,12 @@ export default function Navbar({ session }: { session?: Usersessiontype }) {
   >(undefined);
 
   const { isTablet, isMobile } = useScreenSize();
+  const socket = useSocket();
 
   const router = useRouter();
   const navref = useRef<any>(null);
   const notiref = useRef<any>(null);
-  //checkout loggedin session
+
   useEffectOnce(() => {
     getCartTotal();
   });
@@ -108,11 +100,13 @@ export default function Navbar({ session }: { session?: Usersessiontype }) {
   }, [session]);
 
   const getCartTotal = async () => {
+    setloading(true);
     const request = await ApiRequest(
       "/api/order/cart?count=1",
       undefined,
       "GET"
     );
+    setloading(false);
     if (!request.success) {
       return;
     }
@@ -122,10 +116,15 @@ export default function Navbar({ session }: { session?: Usersessiontype }) {
   useEffect(() => {
     if (session?.role === "ADMIN") {
       const handleCheckNotification = async () => {
-        const makereq = await CheckNotification();
-
+        setloading(true);
+        const makereq = await ApiRequest(
+          "/api/users/notification?ty=check",
+          undefined,
+          "GET"
+        );
+        setloading(false);
         if (makereq.success) {
-          setchecknotify(makereq.isNotCheck?.length);
+          setchecknotify(makereq.data.length);
         }
       };
       handleCheckNotification();
@@ -133,11 +132,21 @@ export default function Navbar({ session }: { session?: Usersessiontype }) {
   }, []);
 
   useEffect(() => {
-    // session &&
-    //   socket.on("getnotify", (data) => {
-    //     setnotificationdata(data);
-    //   });
+    if (!socket) return;
 
+    const handleNotification = (data: NotificationType) => {
+      console.log("Notification received:", data);
+      // Handle the notification (e.g., update state, show a toast, etc.)
+    };
+
+    socket.on("receiveNotification", handleNotification);
+
+    return () => {
+      socket.off("receiveNotification", handleNotification);
+    };
+  }, [socket]);
+
+  useEffect(() => {
     const handleEventClick = (e: globalThis.MouseEvent) => {
       if (
         notiref.current &&
@@ -152,12 +161,12 @@ export default function Navbar({ session }: { session?: Usersessiontype }) {
 
     return () => {
       window.removeEventListener("click", handleEventClick);
-      // session ? socket.off("getnotify") : socket.disconnect();
     };
   }, []);
 
   return (
-    <nav className="navbar__container sticky top-0 z-[99] w-full h-[60px] bg-[#F3F3F3] flex flex-row justify-between item-center">
+    <nav className="navbar__container sticky top-0 z-50 w-full h-[60px] bg-[#F3F3F3] flex flex-row justify-between item-center">
+      {loading && <ContainerLoading />}
       {categories && <CategoriesContainer setopen={setcategories} />}
 
       <div className="first_section  w-1/2 h-full flex items-center pl-3">
@@ -531,15 +540,19 @@ export const NotificationMenu = forwardRef(
     const [page, setPage] = useState(1);
     const [loadmore, setloadmore] = useState(true);
     const router = useRouter();
+    const notioffset = 3;
 
     useEffect(() => {
       const getAllNotification = async () => {
         setloading(true);
-        const makereq = GetNotification.bind(null, page, 3);
-        const result = await makereq();
+        const result = await ApiRequest(
+          `/api/users/notification?ty=detail&p=${page}&lt=${notioffset}`,
+          undefined,
+          "GET"
+        );
         if (result.success) {
           if (notification) {
-            setnotifydata([...(result.data as any), ...notification]);
+            setnotifydata([...result.data, ...notification]);
           }
 
           if (result.data?.length === 0) {
@@ -578,8 +591,13 @@ export const NotificationMenu = forwardRef(
     };
 
     const handleDelete = async (id: number) => {
-      const deleteNotify = DeleteNotification.bind(null, id);
-      const makereq = await deleteNotify();
+      const makereq = await ApiRequest(
+        "/api/users/notification",
+        undefined,
+        "DELETE",
+        "JSON",
+        { id }
+      );
       if (makereq.success) {
         setnotifydata((prev) => prev?.filter((i) => i.id === id));
       } else {

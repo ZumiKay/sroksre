@@ -118,27 +118,24 @@ export default function ProductDetail({ params, isAdmin }: productdetailprops) {
 
   const fetchproductdetail = async () => {
     try {
-      const productId = parseInt(params.id, 10);
       setloading(true);
-      const productrequest = await ApiRequest(
-        `/api/products/ty=info_pid=${params.id}`,
-        undefined,
-        "GET"
-      );
-      const policyrequest = await ApiRequest(
-        "/api/policy?type=productdetail",
-        undefined,
-        "GET"
-      );
+
+      const productId = parseInt(params.id, 10);
+
+      const [productrequest, policyrequest] = await Promise.all([
+        ApiRequest(`/api/products/ty=info_pid=${params.id}`, undefined, "GET"),
+        ApiRequest("/api/policy?type=productdetail", undefined, "GET"),
+      ]);
 
       setloading(false);
+
+      // Check for errors early
       if (!productrequest.success) {
         errorToast("Error Connection");
         return;
       }
 
-      const checkwishlist = Checkwishlist.bind(null, productId);
-      const wishlistResult = await checkwishlist();
+      const wishlistResult = await Checkwishlist(productId);
 
       if (!wishlistResult) {
         errorToast("Error connection");
@@ -146,9 +143,7 @@ export default function ProductDetail({ params, isAdmin }: productdetailprops) {
       }
 
       setisInWishlist(wishlistResult.isExist);
-
       const { data } = productrequest;
-
       InitializeProductOrder(data);
 
       setprob(data);
@@ -162,7 +157,8 @@ export default function ProductDetail({ params, isAdmin }: productdetailprops) {
       }));
     } catch (error) {
       console.log("Fetch Product Detail", error);
-      errorToast("Error Occured");
+      errorToast("Error Occurred");
+      setloading(false);
     }
   };
 
@@ -254,8 +250,6 @@ export default function ProductDetail({ params, isAdmin }: productdetailprops) {
       mess.qty = maxqty === 0 ? "Product Unvaliable" : "";
     }
     mess.option = "";
-
-    console.log({ maxqty });
 
     if (maxqty) {
       await inCartCheck(

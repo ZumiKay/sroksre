@@ -5,7 +5,7 @@ import React, { ChangeEvent, SetStateAction, useEffect, useState } from "react";
 import { CardSkeleton, SecondayCard } from "./Card";
 import { signOut } from "next-auth/react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import Modal from "./Modals";
+import Modal, { SecondaryModal } from "./Modals";
 import {
   BannerInitialize,
   FilterValue,
@@ -738,7 +738,7 @@ export const FilterMenu = ({
     React.SetStateAction<InventoryParamType | undefined>
   >;
 }) => {
-  const { setopenmodal, promotion, listproductfilval, globalindex } =
+  const { openmodal, setopenmodal, promotion, listproductfilval, globalindex } =
     useGlobalContext();
 
   const [loading, setloading] = useState(false);
@@ -887,22 +887,16 @@ export const FilterMenu = ({
     setopenmodal((prev) => ({ ...prev, filteroption: false }));
   };
   return (
-    <Modal
-      customwidth="fit-content"
-      customheight="fit-content"
-      closestate={selectdate ? "discount" : "filteroption"}
-      customZIndex={200}
+    <SecondaryModal
+      open={openmodal.filteroption}
+      size="5xl"
+      onPageChange={(val) =>
+        setopenmodal((prev) => ({ ...prev, filteroption: val }))
+      }
+      closebtn
     >
       {loading && <ContainerLoading />}
-      <div className="filtermenu w-[50vw] relative max-smallest_screen:w-[90vw] max-small_phone:pt-10 max-small_phone:w-screen max-small_phone:justify-start max-small_phone:h-screen h-fit bg-white p-5 rounded-md flex flex-col justify-center gap-y-5">
-        <div
-          onClick={() =>
-            setopenmodal((prev) => ({ ...prev, filteroption: false }))
-          }
-          className="absolute w-fit h-fit top-1 right-1 hidden max-small_phone:block"
-        >
-          <CloseVector width="30px" height="30px" />
-        </div>
+      <div className="filtermenu w-full relative  h-fit bg-white p-5 rounded-md flex flex-col justify-center gap-y-5">
         {type !== "usermanagement" && (
           <input
             type="text"
@@ -1107,7 +1101,7 @@ export const FilterMenu = ({
           width="100%"
         />
       </div>
-    </Modal>
+    </SecondaryModal>
   );
 };
 

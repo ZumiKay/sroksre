@@ -2,7 +2,7 @@ import { useGlobalContext, Userinitialize } from "@/src/context/GlobalContext";
 import React, { ChangeEvent, FormEvent, useEffect, useState } from "react";
 import { errorToast, successToast } from "../Loading";
 import { ApiRequest, useScreenSize } from "@/src/context/CustomHook";
-import Modal from "../Modals";
+import Modal, { SecondaryModal } from "../Modals";
 import Image from "next/image";
 import CloseIcon from "../../../../public/Image/Close.svg";
 import {
@@ -34,14 +34,13 @@ export const Createusermodal = ({
 }: {
   setpage: React.Dispatch<React.SetStateAction<number>>;
 }) => {
-  const { allData, globalindex, setglobalindex, setopenmodal } =
+  const { allData, globalindex, setglobalindex, openmodal, setopenmodal } =
     useGlobalContext();
   const [data, setdata] = useState<userdata>(Userinitialize);
   const [showpass, setshowpass] = useState({
     passowrd: false,
   });
   const [loading, setloading] = useState(false);
-  const { isTablet, isMobile } = useScreenSize();
   const router = useRouter();
 
   useEffect(() => {
@@ -97,29 +96,21 @@ export const Createusermodal = ({
     }));
   };
   return (
-    <Modal
-      customwidth={isTablet ? "80vw" : isMobile ? "100vw" : "60vw"}
-      customheight={isMobile ? "100vh" : "fit-content"}
-      closestate="createUser"
-      customZIndex={200}
+    <SecondaryModal
+      size="5xl"
+      open={openmodal.createUser}
+      onPageChange={(val) => {
+        setglobalindex((prev) => ({ ...prev, useredit: -1 }));
+        setopenmodal((prev) => ({ ...prev, createUser: val }));
+      }}
+      closebtn
+      header={() => (
+        <h3 className="text-lg font-semibold">
+          {globalindex.useredit !== -1 ? `#${data.id}` : "Register User"}{" "}
+        </h3>
+      )}
     >
       <div className="relative w-full max-small_phone:h-full h-fit bg-white p-5 flex flex-col items-end gap-y-5 rounded-lg">
-        <div className="w-full h-fit flex flex-row-reverse items-center justify-between">
-          <Image
-            src={CloseIcon}
-            alt="closeicon"
-            hidden={loading}
-            onClick={() => handleCancel()}
-            width={1000}
-            height={1000}
-            className="w-[30px] h-[30px] object-contain"
-          />
-          <h3 className="text-lg font-semibold">
-            {" "}
-            {globalindex.useredit !== -1 ? `#${data.id}` : "Register User"}{" "}
-          </h3>
-        </div>
-
         <form
           onSubmit={handleSubmit}
           className="form_container w-full h-full flex flex-col items-center gap-y-5"
@@ -221,7 +212,7 @@ export const Createusermodal = ({
           )}
         </form>
       </div>
-    </Modal>
+    </SecondaryModal>
   );
 };
 export interface editprofiledata {
@@ -261,13 +252,13 @@ export const EditProfile = ({
   type: "name" | "email" | "password" | "shipping" | "none";
 }) => {
   const [open, setopen] = useState<any>({});
-  const { isTablet, isMobile } = useScreenSize();
+
   const [loading, setloading] = useState({
     post: false,
     get: true,
     edit: false,
   });
-  const { setopenmodal, userinfo, setuserinfo } = useGlobalContext();
+  const { openmodal, setopenmodal, userinfo, setuserinfo } = useGlobalContext();
   const [data, setdata] = useState<editprofiledata>({
     name: {
       firstname: userinfo.firstname as string,
@@ -491,21 +482,15 @@ export const EditProfile = ({
   };
 
   return (
-    <Modal
-      customwidth={isTablet ? "80vw" : isMobile ? "100vw" : "50vw"}
-      closestate="editprofile"
-      customheight={isMobile ? "100vh" : "fit-content"}
-      customZIndex={200}
+    <SecondaryModal
+      size="2xl"
+      open={openmodal.editprofile}
+      onPageChange={(val) =>
+        setopenmodal((prev) => ({ ...prev, editprofile: val }))
+      }
+      closebtn
     >
       <div className="editprofile_container relative flex flex-col items-center gap-y-5 w-full h-full overflow-y-auto bg-white rounded-lg p-3">
-        <div
-          onClick={() =>
-            setopenmodal((prev) => ({ ...prev, editprofile: false }))
-          }
-          className="w-fit h-fit hidden max-small_phone:block relative top-1"
-        >
-          <CloseVector width="25px" height="25px" />
-        </div>
         {type === "name" && (
           <>
             <TextInput
@@ -787,7 +772,7 @@ export const EditProfile = ({
           </>
         )}
       </div>
-    </Modal>
+    </SecondaryModal>
   );
 };
 

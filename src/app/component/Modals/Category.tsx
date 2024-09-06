@@ -13,7 +13,7 @@ import {
   useScreenSize,
 } from "@/src/context/CustomHook";
 import { motion } from "framer-motion";
-import Modal from "../Modals";
+import Modal, { SecondaryModal } from "../Modals";
 import { AddSubCategoryMenu } from "../ToggleMenu";
 import PrimaryButton from "../Button";
 import { SelectionCustom } from "../Pagination_Component";
@@ -152,18 +152,18 @@ export const Category = () => {
   };
 
   return (
-    <Modal
-      closestate="createCategory"
-      customheight={isMobile ? "100vh" : "70vh"}
-      customwidth={isMobile ? "100vw" : isTablet ? "80vw" : "700px"}
-      bgblur={true}
-      customZIndex={150}
+    <SecondaryModal
+      open={openmodal.createCategory}
+      size="4xl"
+      onPageChange={(val) =>
+        setopenmodal((prev) => ({ ...prev, createCategory: val }))
+      }
     >
       <div className="category relative rounded-md p-2 w-full h-full flex flex-col items-center bg-white gap-y-5">
         <CategoryNavBar />
         {show === "Create" ? (
           <>
-            <div className="w-[80%] h-fit">
+            <div className="w-full h-fit">
               <SelectionCustom
                 value={catetype}
                 setvalue={setcatetype as any}
@@ -172,7 +172,7 @@ export const Category = () => {
                 placeholder="Type"
               />
             </div>
-            <div className="w-[80%] h-fit flex flex-col gap-y-5">
+            <div className="w-full h-fit flex flex-col gap-y-5">
               <Input
                 type="text"
                 variant="bordered"
@@ -222,7 +222,7 @@ export const Category = () => {
 
             {catetype === "normal" &&
               (openmodal.addsubcategory ? (
-                <div className="w-[80%] max-h-[500px]">
+                <div className="w-full max-h-[500px]">
                   <AddSubCategoryMenu index={-1} />
                 </div>
               ) : (
@@ -247,7 +247,7 @@ export const Category = () => {
         ) : (
           <EditCategory loading={loading} setloading={setloading} />
         )}
-        <div className="flex flex-row justify-start gap-x-5 h-[40px] w-[90%] absolute bottom-5">
+        <div className="flex flex-row justify-start gap-x-5 h-[40px] w-[90%]">
           {show === "Create" && (
             <PrimaryButton
               width="100%"
@@ -261,7 +261,7 @@ export const Category = () => {
               disable={category.name.length === 0}
             />
           )}
-          <PrimaryButton
+          {/* <PrimaryButton
             width="100%"
             height="100%"
             radius="10px"
@@ -269,10 +269,10 @@ export const Category = () => {
             onClick={() => handleCancel()}
             color="lightcoral"
             type="button"
-          />{" "}
+          />{" "} */}
         </div>
       </div>
-    </Modal>
+    </SecondaryModal>
   );
 };
 
@@ -391,7 +391,7 @@ const EditCategory = ({
 
   return (
     <>
-      <div className="EditCategory w-[90%] h-full overflow-y-auto overflow-x-hidden  flex flex-col gap-y-5 p-1">
+      <div className="EditCategory w-full h-full overflow-y-auto overflow-x-hidden  flex flex-col gap-y-5 p-1">
         {!edit ? (
           <>
             {(!allData.category || allData.category.length === 0) && (
@@ -498,7 +498,7 @@ const EditCategory = ({
                 className="w-full"
               />
             )}
-            <div className="w-[90%] h-fit flex flex-row gap-x-5 justify-center absolute bottom-0">
+            <div className="w-[90%] h-fit flex flex-row gap-x-5 justify-center">
               <PrimaryButton
                 type="button"
                 text="Confirm"

@@ -1,3 +1,4 @@
+"use server";
 import Link from "next/link";
 import { GetBannerLink, getCate, GetListProduct } from "./action";
 import { notFound } from "next/navigation";
@@ -10,8 +11,9 @@ import {
 import Prisma from "@/src/lib/prisma";
 import { Banner } from "../component/HomePage/Component";
 import { format } from "date-fns";
-import { getDiscountedPrice } from "@/src/lib/utilities";
+import { getDiscountedPrice, IsNumber } from "@/src/lib/utilities";
 import NotFound from "../not-found";
+import type { Metadata, ResolvingMetadata } from "next";
 
 interface ProductParam {
   p?: string;
@@ -32,6 +34,50 @@ interface ProductParam {
   sort?: string;
   pcate?: string;
   ccate?: string;
+}
+
+type Props = {
+  params: { id: string };
+  searchParams: { [key: string]: string | string[] | undefined };
+};
+
+export async function generateMetadata(
+  { params, searchParams }: Props,
+  parent: ResolvingMetadata
+): Promise<Metadata> {
+  // read route params
+  const param = searchParams as ProductParam;
+
+  // fetch data
+  let title = "SrokSre";
+
+  if (param.pid || param.cid) {
+    let parent = "";
+    let child = "";
+    if (param.pid) {
+      const pcate = await Prisma.parentcategories.findUnique({
+        where: { id: parseInt(param.pid) },
+        select: { name: true, description: true },
+      });
+      parent = `${pcate?.name ?? ""} ${pcate?.description ?? ""}`;
+    }
+    if (param.cid) {
+      const ccate = await Prisma.childcategories.findUnique({
+        where: { id: parseInt(param.cid) },
+        select: {
+          name: true,
+        },
+      });
+      child = ccate?.name ?? "";
+    }
+    title = `${parent} ${child}`;
+  }
+
+  // optionally access and extend (rather than replace) parent metadata
+
+  return {
+    title: title + ` | SrokSre`,
+  };
 }
 
 const fetchPromotion = async (id: number, page: number, show: number) => {
@@ -145,19 +191,6 @@ const getAllPromotion = async () => {
 
   return formattedPromotions;
 };
-
-export function IsNumber(str: string) {
-  // Check if the input is a string and not empty
-  if (typeof str !== "string" || str.trim() === "") {
-    return false;
-  }
-
-  // Use parseFloat to convert the string to a number
-  const num = parseFloat(str);
-
-  // Check if the parsed number is not NaN and is finite
-  return !isNaN(num) && isFinite(num);
-}
 
 const isArrayWithEmptyStrings = (arr?: string[]): boolean => {
   if (!arr) return false;
