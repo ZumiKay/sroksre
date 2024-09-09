@@ -1,14 +1,12 @@
 "use server";
 
 import Prisma from "@/src/lib/prisma";
-import { getServerSession } from "next-auth";
-import { authOptions } from "../api/auth/[...nextauth]/route";
 import { hashedpassword } from "@/src/lib/userlib";
 import { compareSync } from "bcryptjs";
 import { generateRandomNumber } from "@/src/lib/utilities";
 import { revalidateTag } from "next/cache";
-
 import { getUser } from "@/src/context/OrderContext";
+import { handleEmail } from "../checkout/action";
 
 interface returntype {
   success: boolean;
@@ -195,13 +193,13 @@ export const VerifyEmail = async (
           vfy: otp,
         },
       });
-      // await handleEmail({
-      //   subject: "Verify Email",
-      //   to: email,
-      //   message: `Verify Code: ${otp}`,
-      //   title: "Email Verification",
-      //   warn: "",
-      // });
+      await handleEmail({
+        subject: "Verify Email",
+        to: email,
+        message: `Verify Code: ${otp}`,
+        title: "Email Verification",
+        warn: "",
+      });
       return { success: true, message: "Please Check Email" };
     } else {
       const verifyemail = await Prisma.user.updateMany({

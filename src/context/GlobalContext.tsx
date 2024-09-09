@@ -2,7 +2,7 @@
 import { Dayjs } from "dayjs";
 import React, { useContext, useState } from "react";
 import { Role } from "@prisma/client";
-import { Ordertype } from "./OrderContext";
+import { Ordertype, Productordertype } from "./OrderContext";
 import { BannerType } from "../app/severactions/actions";
 import { Categorytype } from "../app/api/categories/route";
 import { InventoryType } from "../app/dashboard/inventory/varaint_action";
@@ -345,6 +345,7 @@ export interface AllFilterValueState {
 export interface CateogoryState {
   id?: number;
   name: string;
+  description: string;
   childid?: number[];
   subcategories: Array<SubcategoriesState> | [];
   type?: Categorytype;
@@ -428,6 +429,7 @@ export const Allrefinitialize: Allrefstate = {
 };
 export const CateogoryInitailizestate: CateogoryState = {
   name: "",
+  description: "",
   subcategories: [],
 };
 export const Productinitailizestate: ProductState = {
@@ -517,6 +519,13 @@ export const ProductStockType = {
   stock: "stock",
 };
 
+export const Productdetailinitialize: Productordertype = {
+  id: 0,
+  details: [],
+  quantity: 0,
+  price: { price: 0 },
+};
+
 //
 //
 //
@@ -552,6 +561,8 @@ interface ContextType {
   setallfilterval: React.Dispatch<
     React.SetStateAction<Array<AllFilterValueState>>
   >;
+  productorderdetail: Productordertype;
+  setproductorderdetail: React.Dispatch<React.SetStateAction<Productordertype>>;
   user: userdata;
   setuser: React.Dispatch<React.SetStateAction<userdata>>;
   listproductfilter: Listproductfilter;
@@ -597,6 +608,8 @@ export const GlobalContextProvider = ({
   const [order, setorder] = useState<Ordertype | undefined>(undefined);
   const [cart, setcart] = useState(false);
   const [carttotal, setcarttotal] = useState(0);
+  const [productorderdetail, setproductorderdetail] =
+    useState<Productordertype>(Productdetailinitialize);
 
   const [listproductfilter, setlistprodfil] = useState<Listproductfilter>({
     size: [],
@@ -618,6 +631,8 @@ export const GlobalContextProvider = ({
   return (
     <GlobalContext.Provider
       value={{
+        productorderdetail,
+        setproductorderdetail,
         listproductfilter,
         setlistprodfil,
         listproductfilval,

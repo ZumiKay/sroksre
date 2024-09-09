@@ -181,6 +181,7 @@ export async function GET(req: NextRequest) {
       select: {
         id: true,
         name: true,
+        description: true,
         type: true,
         sub: {
           select: {
@@ -223,6 +224,7 @@ export async function GET(req: NextRequest) {
         return {
           id: obj.id,
           name: obj.name,
+          description: obj.description,
           type: obj.type,
           subcategories,
         };

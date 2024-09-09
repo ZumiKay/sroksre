@@ -21,6 +21,7 @@ import {
 import { OrderUserType } from "../../checkout/action";
 import { getCheckoutdata } from "../../checkout/page";
 import { Role } from "@prisma/client";
+import { Metadata } from "next";
 
 export const AllorderType = {
   orderdetail: "orderdetail",

@@ -5,7 +5,7 @@ import {
   SelectType,
   useGlobalContext,
 } from "@/src/context/GlobalContext";
-import React, { useEffect, useState } from "react";
+import React, { ChangeEvent, useEffect, useState } from "react";
 import { errorToast, LoadingText, successToast } from "../Loading";
 import {
   ApiRequest,
@@ -72,12 +72,16 @@ export const Category = () => {
     setalldata,
   } = useGlobalContext();
   const [show, setshow] = useState<"Create" | "Edit">("Create");
-  const { isTablet, isMobile } = useScreenSize();
   const [loading, setloading] = useState(false);
   const [catetype, setcatetype] = useState<Categorytype>("normal");
 
   const handleAdd = async () => {
     const isExist = allData.category?.some((obj) => obj.name === category.name);
+
+    if (category.name.length === 0 || category.description.length === 0) {
+      errorToast("Please Fill all required");
+      return;
+    }
     if (isExist) {
       errorToast("Category Existed");
       return;
@@ -102,15 +106,12 @@ export const Category = () => {
       ...prev,
       category: [...(prev.category ?? []), { ...category, id: saved.data.id }],
     }));
+
     setcategory(CateogoryInitailizestate);
 
     successToast("Category Created");
   };
-  const handleCancel = () => {
-    setalldata((prev) => ({ ...prev, category: [] }));
-    setcategory(CateogoryInitailizestate);
-    setopenmodal((prev) => ({ ...prev, createCategory: false }));
-  };
+
   const handleNavbar = (show: "Create" | "Edit") => {
     setshow(show);
     setopenmodal((prev) => ({ ...prev, addsubcategory: false }));
@@ -126,6 +127,11 @@ export const Category = () => {
     }));
 
     setcategory(categories);
+  };
+
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setcategory((prev) => ({ ...prev, [name]: value }));
   };
 
   //category navbar
@@ -177,9 +183,17 @@ export const Category = () => {
                 type="text"
                 variant="bordered"
                 label="Name"
-                onChange={(e) =>
-                  setcategory((prev) => ({ ...prev, name: e.target.value }))
-                }
+                name="name"
+                onChange={handleChange}
+                required
+              />
+              <Input
+                type="text"
+                variant="bordered"
+                label="Description"
+                name="description"
+                onChange={handleChange}
+                required
               />
               {catetype === "sale" && (
                 <SelectAndSearchProduct
@@ -261,15 +275,6 @@ export const Category = () => {
               disable={category.name.length === 0}
             />
           )}
-          {/* <PrimaryButton
-            width="100%"
-            height="100%"
-            radius="10px"
-            text="Cancel"
-            onClick={() => handleCancel()}
-            color="lightcoral"
-            type="button"
-          />{" "} */}
         </div>
       </div>
     </SecondaryModal>
@@ -340,8 +345,8 @@ const EditCategory = ({
   };
 
   const handleConfirm = async () => {
-    if (category.name.length === 0) {
-      errorToast("Name is requried");
+    if (category.name.length === 0 || category.description.length === 0) {
+      errorToast("Please fill all requried");
       return;
     }
 
@@ -456,6 +461,20 @@ const EditCategory = ({
               value={category.name}
               className="subcate_name w-full h-[50px] border border-gray-300 pl-3 text-lg font-bold"
               placeholder="Parent Cateogory Name"
+              required
+            />
+            <input
+              type="text"
+              onChange={(e) =>
+                setcategory((prev) => ({
+                  ...prev,
+                  description: e.target.value,
+                }))
+              }
+              value={category.description}
+              className="subcate_name w-full h-[50px] border border-gray-300 pl-3 text-lg font-bold"
+              placeholder="Description"
+              required
             />
 
             {category.type === "sale" && (

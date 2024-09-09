@@ -9,7 +9,14 @@ import LoadingIcon from "../component/Loading";
 import Image from "next/image";
 import { getUser } from "@/src/context/OrderContext";
 import Prisma from "@/src/lib/prisma";
-
+import { Metadata } from "next";
+export function generateMetadata(): Metadata {
+  return {
+    title: "Contact | SrokSre",
+    description:
+      "Ask question , send inquiry to us through email from the form",
+  };
+}
 const ContactItems = [
   { icon: Igicon, value: "SrokSreStore" },
   { icon: Fbicon, value: "SrokSre" },
@@ -33,7 +40,7 @@ export default async function ContactPage() {
               src={i.icon}
               alt="social_icon"
               className="w-[45px] h-[45px] object-contain rounded-lg"
-              loading="eager"
+              loading="lazy"
             />
             <p className="text-lg font-bold">{i.value}</p>
           </div>

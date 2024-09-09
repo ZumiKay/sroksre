@@ -29,6 +29,7 @@ import { Categorytype } from "../app/api/categories/route";
 
 export interface Categorydata {
   name: string;
+  description: string;
   type?: Categorytype;
   subcategories: Array<SubcategoriesState>;
 }
@@ -53,6 +54,7 @@ export const createCategory = async (
       const create = await Prisma.parentcategories.create({
         data: {
           name: data.name,
+          description: data.description,
           sub: {
             createMany: {
               data: data.subcategories.map((name) => name),
@@ -109,13 +111,17 @@ export const updateCategory = async (data: updateCategoryData) => {
     }
 
     // Update the parent category name if it has changed
-    if (existingCategory.name !== data.name) {
+    if (
+      existingCategory.name !== data.name ||
+      existingCategory.description !== data.description
+    ) {
       const update = await Prisma.parentcategories.update({
         where: {
           id: data.id,
         },
         data: {
           name: data.name,
+          description: data.description,
         },
       });
 

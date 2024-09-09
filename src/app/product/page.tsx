@@ -13,7 +13,7 @@ import { Banner } from "../component/HomePage/Component";
 import { format } from "date-fns";
 import { getDiscountedPrice, IsNumber } from "@/src/lib/utilities";
 import NotFound from "../not-found";
-import type { Metadata, ResolvingMetadata } from "next";
+import type { Metadata } from "next";
 
 interface ProductParam {
   p?: string;
@@ -36,20 +36,20 @@ interface ProductParam {
   ccate?: string;
 }
 
-type Props = {
+export type Props = {
   params: { id: string };
   searchParams: { [key: string]: string | string[] | undefined };
 };
 
-export async function generateMetadata(
-  { params, searchParams }: Props,
-  parent: ResolvingMetadata
-): Promise<Metadata> {
+export async function generateMetadata({
+  searchParams,
+}: Props): Promise<Metadata> {
   // read route params
   const param = searchParams as ProductParam;
 
   // fetch data
   let title = "SrokSre";
+  let description = "";
 
   if (param.pid || param.cid) {
     let parent = "";
@@ -59,6 +59,7 @@ export async function generateMetadata(
         where: { id: parseInt(param.pid) },
         select: { name: true, description: true },
       });
+      description = pcate?.description ?? "";
       parent = `${pcate?.name ?? ""} ${pcate?.description ?? ""}`;
     }
     if (param.cid) {
@@ -77,6 +78,8 @@ export async function generateMetadata(
 
   return {
     title: title + ` | SrokSre`,
+    description,
+    appleWebApp: true,
   };
 }
 

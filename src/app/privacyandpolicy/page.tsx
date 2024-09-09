@@ -10,6 +10,41 @@ import {
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import LoadingIcon from "../component/Loading";
+import { Props } from "../product/page";
+import { Metadata } from "next";
+import Prisma from "@/src/lib/prisma";
+
+export async function generateMetadata({
+  searchParams,
+}: Props): Promise<Metadata> {
+  const { p } = searchParams;
+  const page = p ? parseInt(p.toString()) : undefined;
+
+  if (!page && page !== 0) {
+    return {
+      title: "Policy And Privacy Information | SrokSre",
+      description:
+        "Shipping Policy , Return Policy , FAQs , Frequently Ask Question",
+    };
+  }
+
+  if (page === 0) {
+    return {
+      title: "Frequent Ask Question | SrokSre",
+      description:
+        "Question Frequent Asked By Custommer Through Our Email Or Contact",
+    };
+  }
+  let title = "";
+
+  const policy = await Prisma.policy.findUnique({ where: { id: page } });
+
+  if (policy) {
+    title = `${policy.title} | SrokSre`;
+  }
+
+  return { title: title, description: "Policy in our online store" };
+}
 
 export default async function PrivacyandPolicy({
   searchParams,
@@ -29,7 +64,6 @@ export default async function PrivacyandPolicy({
     if (!policy) {
       return notFound();
     }
-  } else {
   }
 
   const ShowTitle = () => {

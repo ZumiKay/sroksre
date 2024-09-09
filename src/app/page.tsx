@@ -1,5 +1,6 @@
 "use server";
 
+import { Metadata } from "next";
 import { Orderpricetype } from "../context/OrderContext";
 import { fetchContainers, formatContainer } from "./api/home/route";
 import {
@@ -8,6 +9,14 @@ import {
   ScrollableContainer,
   SlideShow,
 } from "./component/HomePage/Component";
+
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    title: "SrokSre Online Store. Quality Over Quantity",
+    description: "Small Online Store Base in Phnompenh Cambodia",
+    appleWebApp: true,
+  };
+}
 
 const fetchhomeitems = async () => {
   const data = await fetchContainers("detail");

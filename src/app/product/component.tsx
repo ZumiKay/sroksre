@@ -7,20 +7,15 @@ import {
   useGlobalContext,
   VariantColorValueType,
 } from "@/src/context/GlobalContext";
-import Modal, { SecondaryModal } from "../component/Modals";
+import { SecondaryModal } from "../component/Modals";
 import { useRouter, useSearchParams } from "next/navigation";
 import { filtervaluetype, getFilterValue } from "./action";
 import { ToggleSelect } from "../component/ToggleMenu";
 import Image from "next/image";
 import Card from "../component/Card";
 import { Input, Spacer } from "@nextui-org/react";
-import {
-  ApiRequest,
-  useEffectOnce,
-  useScreenSize,
-} from "@/src/context/CustomHook";
+import { ApiRequest, useEffectOnce } from "@/src/context/CustomHook";
 import { NormalSkeleton } from "../component/Banner";
-import { CloseVector } from "../component/Asset";
 
 export const ProductFilterButton = ({
   pid,
