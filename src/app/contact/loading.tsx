@@ -1,5 +1,9 @@
 import { ContainerLoading } from "../component/Loading";
 
 export default function Loading() {
-  return <ContainerLoading />;
+  return (
+    <div className="min-h-screen h-fit">
+      <ContainerLoading />
+    </div>
+  );
 }

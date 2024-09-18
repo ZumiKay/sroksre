@@ -20,7 +20,7 @@ import {
 } from "@/src/context/Checkoutcontext";
 
 import {
-  calculateDiscountPrice,
+  calculateDiscountProductPrice,
   encrypt,
   generateRandomNumber,
   OrderReciptEmail,
@@ -497,10 +497,10 @@ export async function Createpaypalorder(orderId: string): Promise<Returntype> {
 
     let orderItems: Paypalitemtype[] = order.Orderproduct.map((i) => {
       const price = i.product.discount
-        ? calculateDiscountPrice(
-            parseFloat(i.product.price.toString()),
-            parseFloat(i.product.discount.toString())
-          ).toFixed(2)
+        ? calculateDiscountProductPrice({
+            price: i.product.price,
+            discount: i.product.discount,
+          }).discount?.newprice?.toFixed(2) ?? "0.00"
         : parseFloat(i.product.price.toString()).toFixed(2);
       return {
         name: i.product.name,

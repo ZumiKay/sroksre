@@ -42,7 +42,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title,
     description,
-    appleWebApp: true,
   };
 }
 
@@ -87,6 +86,8 @@ export default async function ProductDetailPage({
                 src={img.url}
                 alt={`Cover ${idx + 1}`}
                 className="w-full h-full object-cover"
+                width={777}
+                height={777}
                 loading="lazy"
               />
             </div>
@@ -142,15 +143,17 @@ export default async function ProductDetailPage({
           </div>
         </div>
       </div>
-      <div className="relatedproduct__section w-full h-full mt-10 flex flex-col gap-y-10">
-        <ShowSimilarProduct
-          pid={params.id}
-          parent_id={data?.data.category.parent_id ?? 0}
-          child_id={data?.data.category.child_id}
-          promoid={data?.data.promotion_id}
-          limit={searchparam.lt ? parseInt(searchparam.lt) : undefined}
-        />
-      </div>
+      {data.data.relatedproduct && data.data.relatedproduct.length > 0 && (
+        <div className="relatedproduct__section w-full h-full mt-10 flex flex-col gap-y-10">
+          <ShowSimilarProduct
+            pid={params.id}
+            parent_id={data?.data.category.parent_id ?? 0}
+            child_id={data?.data.category.child_id}
+            promoid={data?.data.promotion_id}
+            limit={searchparam.lt ? parseInt(searchparam.lt) : undefined}
+          />
+        </div>
+      )}
     </div>
   );
 }
@@ -192,7 +195,7 @@ const ShowSimilarProduct = async ({
   limit?: number;
 }) => {
   let relatedproduct = null;
-  let isLimit = false;
+  let isLimit = true;
   const data = await getRelatedProduct(
     parseInt(pid, 10),
     parent_id,
@@ -207,26 +210,28 @@ const ShowSimilarProduct = async ({
   }
 
   return (
-    <>
-      <h3 className="text-lg font-bold w-full h-fit text-left pl-2">
-        You might also like:
-      </h3>
+    data.data && (
+      <>
+        <h3 className="text-lg font-bold w-full h-fit text-left pl-2">
+          You might also like:
+        </h3>
 
-      <div className="w-full h-[500px] max-small_phone:h-[400px] max-large_tablet:h-[450px] flex flex-row overflow-x-auto gap-x-5">
-        {relatedproduct?.map((prod, idx) => (
-          <Card
-            key={idx}
-            name={prod.name}
-            price={prod.price.toFixed(2)}
-            img={prod.covers}
-            index={idx}
-            discount={prod.discount}
-            id={prod.id}
-          />
-        ))}
-      </div>
+        <div className="w-full h-fit flex flex-row overflow-x-auto gap-x-5">
+          {relatedproduct?.map((prod, idx) => (
+            <Card
+              key={idx}
+              name={prod.name}
+              price={prod.price.toFixed(2)}
+              img={prod.covers}
+              index={idx}
+              discount={prod.discount}
+              id={prod.id}
+            />
+          ))}
+        </div>
 
-      {!isLimit && <ButtonForSimilarProd lt={limit} />}
-    </>
+        {!isLimit && <ButtonForSimilarProd lt={limit} />}
+      </>
+    )
   );
 };

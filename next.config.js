@@ -27,6 +27,7 @@ const nextConfig = {
     BASE_URL: "http://localhost:3000",
     CAPTCHA_KEY: "6Lcs1SoqAAAAAB-bcbCWItTYkRTkxqUx-O742Bnj",
     SOCKET_URL: "http://localhost:8000",
+    LOWSTOCK: "3",
   },
   webpack: (config, options) => {
     if (!options.dev) {

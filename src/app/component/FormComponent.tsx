@@ -52,7 +52,7 @@ export const PasswordInput = ({
 
   return (
     <FormControl
-      sx={{ m: 1, width: width ?? "100%", height: "50px" }}
+      sx={{ width: width ?? "100%", height: "50px" }}
       variant={variant ?? "outlined"}
     >
       <InputLabel htmlFor="outlined-adornment-password">{label}</InputLabel>

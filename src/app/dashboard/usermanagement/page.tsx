@@ -72,70 +72,73 @@ export default function UsermanagementPage({
     router.refresh();
   };
   return (
-    <div className="usermanagement_container relative w-full h-fit">
-      {loading && <ContainerLoading />}
-      <div className="w-full h-fit overflow-x-auto">
-        <div className="usermanagement_heade w-[500px] h-fit p-3 flex flex-row gap-x-5">
-          <PrimaryButton
-            type="button"
-            text="Add"
-            onClick={() => handleAdd()}
-            color="#0097FA"
-            Icon={<i className="fa-solid fa-plus font-bold text-lg"></i>}
-            width="150px"
-            radius="10px"
-          />
-          <PrimaryButton
-            color="#4688A0"
-            radius="10px"
-            type="button"
-            text={isFilter ? "Clear Filter" : "Filter"}
-            onClick={() =>
-              setopenmodal((prev) => ({ ...prev, filteroption: true }))
-            }
-            width="150px"
-          />
-          <PrimaryButton
-            radius="10px"
-            type="button"
-            text={`Total: ${itemlength.total}`}
-            width="150px"
+    <>
+      <title>User Management | SrokSre</title>
+      <div className="usermanagement_container relative w-full h-fit">
+        {loading && <ContainerLoading />}
+        <div className="w-full h-fit overflow-x-auto">
+          <div className="usermanagement_heade w-[500px] h-fit p-3 flex flex-row gap-x-5">
+            <PrimaryButton
+              type="button"
+              text="Add"
+              onClick={() => handleAdd()}
+              color="#0097FA"
+              Icon={<i className="fa-solid fa-plus font-bold text-lg"></i>}
+              width="150px"
+              radius="10px"
+            />
+            <PrimaryButton
+              color="#4688A0"
+              radius="10px"
+              type="button"
+              text={isFilter ? "Clear Filter" : "Filter"}
+              onClick={() =>
+                setopenmodal((prev) => ({ ...prev, filteroption: true }))
+              }
+              width="150px"
+            />
+            <PrimaryButton
+              radius="10px"
+              type="button"
+              text={`Total: ${itemlength.total}`}
+              width="150px"
+            />
+          </div>
+        </div>
+        <div className="userlist w-full h-fit mt-10 flex flex-row gap-5 flex-wrap justify-center">
+          {allData.user?.map((i, idx) => (
+            <UserCard
+              index={idx}
+              firstname={i.firstname}
+              lastname={i.lastname ?? ""}
+              email={i.email}
+              uid={i.id?.toString() ?? "0"}
+            />
+          ))}
+        </div>
+
+        <div className="w-full h-fit mt-16">
+          <PaginationCustom
+            count={itemlength.totalpage}
+            page={page}
+            show={showperpage}
+            setshow={setshow}
+            setpage={setpage}
+            onSelectShowPerPage={(value) => {
+              handleSelectShow(value.toString());
+            }}
           />
         </div>
-      </div>
-      <div className="userlist w-full h-fit mt-10 flex flex-row gap-5 flex-wrap justify-center">
-        {allData.user?.map((i, idx) => (
-          <UserCard
-            index={idx}
-            firstname={i.firstname}
-            lastname={i.lastname ?? ""}
-            email={i.email}
-            uid={i.id?.toString() ?? "0"}
+
+        {openmodal.createUser && <Createusermodal setpage={setpage} />}
+        {openmodal.filteroption && (
+          <FilterMenu
+            type="usermanagement"
+            setisFilter={setisFilter}
+            param={searchParams}
           />
-        ))}
+        )}
       </div>
-
-      <div className="w-full h-fit mt-16">
-        <PaginationCustom
-          count={itemlength.totalpage}
-          page={page}
-          show={showperpage}
-          setshow={setshow}
-          setpage={setpage}
-          onSelectShowPerPage={(value) => {
-            handleSelectShow(value.toString());
-          }}
-        />
-      </div>
-
-      {openmodal.createUser && <Createusermodal setpage={setpage} />}
-      {openmodal.filteroption && (
-        <FilterMenu
-          type="usermanagement"
-          setisFilter={setisFilter}
-          param={searchParams}
-        />
-      )}
-    </div>
+    </>
   );
 }

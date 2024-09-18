@@ -29,6 +29,7 @@ import { Input } from "@nextui-org/react";
 import { VariantIcon } from "../Asset";
 import { SelectionCustom } from "../Pagination_Component";
 import { SecondaryModal } from "../Modals";
+import { NormalSkeleton } from "../Banner";
 
 const stockTypeData = [
   {
@@ -57,10 +58,6 @@ export function CreateProducts({
     setisLoading,
   } = useGlobalContext();
 
-  const [edit, setedit] = useState({
-    productdetail: false,
-    productinfo: false,
-  });
   const { isMobile, isTablet } = useScreenSize();
 
   const detailref = useRef<HTMLDivElement>(null);
@@ -190,7 +187,6 @@ export function CreateProducts({
       successToast(`${product.name} Updated`);
     }
 
-    setedit((prev) => ({ ...prev, productinfo: false }));
     setopenmodal((prev) => ({ ...prev, createProduct: false }));
     setreloaddata(true);
   };
@@ -208,7 +204,6 @@ export function CreateProducts({
       ...product,
       [name]: value,
     });
-    setedit((prev) => ({ ...prev, productinfo: true }));
   };
   const handleSelect = (value: string, name: "parent_id" | "child_id") => {
     if (name === "parent_id") {
@@ -222,7 +217,6 @@ export function CreateProducts({
       ...product,
       category: { ...product.category, [name]: parseInt(value) },
     });
-    setedit((prev) => ({ ...prev, productinfo: true }));
   };
 
   const handleCancel = async () => {
@@ -234,9 +228,6 @@ export function CreateProducts({
   return (
     <>
       <SecondaryModal
-        onPageChange={(val) =>
-          setopenmodal((prev) => ({ ...prev, createProduct: val }))
-        }
         open={openmodal.createProduct}
         closebtn={true}
         size="full"
@@ -325,35 +316,57 @@ export function CreateProducts({
               />
 
               <div className="category_sec flex flex-col gap-y-5  w-full h-fit font-bold">
-                <SelectionCustom
-                  textplacement="outside"
-                  label="Category"
-                  value={product.category.parent_id ?? undefined}
-                  placeholder="Select"
-                  data={
-                    cate?.map((i) => ({ label: i.name, value: i.id ?? 0 })) ??
-                    []
-                  }
-                  onChange={(val) => handleSelect(val.toString(), "parent_id")}
-                />
-
-                {product.category.parent_id !== 0 &&
-                product.category.parent_id ? (
-                  <SelectionCustom
-                    label="Sub Category"
-                    textplacement="outside"
-                    data={
-                      subcate.map((sub) => ({
-                        label: sub.name,
-                        value: sub.id ?? 0,
-                      })) ?? []
-                    }
-                    placeholder="Select"
-                    value={product.category.child_id ?? undefined}
-                    onChange={(val) => handleSelect(val.toString(), "child_id")}
-                  />
+                {loading ? (
+                  <NormalSkeleton count={2} width="100%" height="40px" />
                 ) : (
-                  ""
+                  <>
+                    {" "}
+                    <SelectionCustom
+                      textplacement="outside"
+                      label="Category"
+                      placeholder="Select"
+                      value={
+                        product.category.parent_id !== 0 &&
+                        product.category.parent_id
+                          ? `${product.category.parent_id}`
+                          : undefined
+                      }
+                      data={
+                        cate?.map((i) => ({
+                          label: i.name,
+                          value: `${i.id}`,
+                        })) ?? []
+                      }
+                      onChange={(val) =>
+                        handleSelect(val.toString(), "parent_id")
+                      }
+                    />
+                    {product.category.parent_id !== 0 &&
+                    product.category.parent_id ? (
+                      <SelectionCustom
+                        label="Sub Category"
+                        textplacement="outside"
+                        value={
+                          product.category.child_id &&
+                          product.category.child_id !== 0
+                            ? `${product.category.child_id}`
+                            : undefined
+                        }
+                        data={
+                          subcate.map((sub) => ({
+                            label: sub.name,
+                            value: `${sub.id}`,
+                          })) ?? []
+                        }
+                        placeholder="Select"
+                        onChange={(val) =>
+                          handleSelect(val.toString(), "child_id")
+                        }
+                      />
+                    ) : (
+                      ""
+                    )}{" "}
+                  </>
                 )}
               </div>
               <Selection
@@ -386,7 +399,6 @@ export function CreateProducts({
                   }
                   updateproducts.stocktype = value;
                   setproduct(updateproducts);
-                  setedit((prev) => ({ ...prev, productinfo: true }));
                   setstocktype(value as any);
                 }}
                 required
@@ -428,13 +440,7 @@ export function CreateProducts({
               )}
 
               <div
-                onClick={() => {
-                  setedit({ ...edit, productdetail: !edit.productdetail });
-                }}
                 className={`toggleMenu_section w-full h-fit p-1 transition cursor-pointer rounded-md  hover:border border-gray-400`}
-                style={{
-                  border: edit.productdetail ? "1px solid black" : "",
-                }}
               >
                 <ToggleMenu
                   name="Product Details"

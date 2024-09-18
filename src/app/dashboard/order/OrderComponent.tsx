@@ -6,7 +6,6 @@ import Modal, { SecondaryModal } from "../../component/Modals";
 import { useGlobalContext, userdata } from "@/src/context/GlobalContext";
 import { DateTimePicker, LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
-import { CloseVector } from "../../component/Asset";
 import {
   Allstatus,
   Productordertype,
@@ -14,7 +13,7 @@ import {
 } from "@/src/context/OrderContext";
 import { Checkoutproductcard } from "../../component/Checkout";
 import { useRouter, useSearchParams } from "next/navigation";
-import { AllorderStatus, AllorderType } from "./page";
+import { AllorderStatus } from "./page";
 import {
   formatDate,
   OrderReceiptTemplate,
@@ -24,11 +23,10 @@ import { errorToast, successToast } from "../../component/Loading";
 import dayjs, { Dayjs } from "dayjs";
 import { OrderUserType } from "../../checkout/action";
 import * as XLSX from "xlsx";
-import { isObjectEmpty } from "@/src/lib/utilities";
+import { AllorderType, isObjectEmpty } from "@/src/lib/utilities";
 import { shippingtype } from "../../component/Modals/User";
 import PaginationCustom from "../../component/Pagination_Component";
 import { Input } from "@nextui-org/react";
-import { useScreenSize } from "@/src/context/CustomHook";
 
 export const SelectionSSR = ({
   name,
@@ -440,6 +438,8 @@ const FilterMenu = ({
     });
     router.push(`?${params}`);
     setisFilter(true);
+
+    setopenmodal((prev) => ({ ...prev, [close]: false }));
   };
 
   const handleClear = () => {
@@ -667,7 +667,7 @@ export const PaginationSSR = ({
     searchparam.set("show", `${value}`);
     setpage(1);
 
-    router.replace(`?${searchparam}`, { scroll: false });
+    router.push(`?${searchparam}`, { scroll: false });
   };
 
   return (

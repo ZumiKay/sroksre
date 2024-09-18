@@ -7,7 +7,7 @@ import {
   calculateDiscountProductPrice,
   removeSpaceAndToLowerCase,
 } from "@/src/lib/utilities";
-import { VariantColorValueType } from "@/src/context/GlobalContext";
+import { Stocktype, VariantColorValueType } from "@/src/context/GlobalContext";
 
 function queryStringToObject(queryString: string) {
   const pairs = queryString.split("_");
@@ -42,7 +42,32 @@ interface paramsType {
   vs?: number;
   sp?: number;
 }
+interface SubStockType {
+  id?: number;
+  qty: number;
+  variant_val: string[];
+}
 
+const convertStockData = (stock: Stocktype[]) => {
+  const lowstock = parseInt(process.env.LOWSTOCK ?? "3");
+
+  const Stock = stock.map((i) => {
+    const isLowStock = i.Stockvalue.some((sub) => sub.qty <= lowstock);
+
+    return {
+      id: i.id,
+      Stockvalue: i.Stockvalue.flatMap((sub) => {
+        return {
+          id: sub.id,
+          ...sub,
+        };
+      }),
+      isLowStock,
+    };
+  });
+
+  return Stock;
+};
 export async function GET(
   request: NextRequest,
   { params }: { params: { f: string } }
@@ -135,6 +160,7 @@ export async function GET(
           orderBy: { id: "asc" },
         },
         Stock: {
+          orderBy: { id: "asc" },
           select: {
             id: true,
             Stockvalue: {
@@ -206,7 +232,7 @@ export async function GET(
         child_id: product.childcategory_id,
       },
       variants: product.Variant,
-      varaintstock: product.Stock,
+      varaintstock: convertStockData(product.Stock as Stocktype[]),
       relatedproduct: otherProduct.filter((i) => i.id !== product.id),
       // Remove properties that are no longer needed
       parentcategory_id: undefined,
@@ -235,6 +261,7 @@ export async function GET(
       where: {
         product_id: productId,
       },
+      orderBy: { id: "asc" },
       select: {
         id: true,
         Stockvalue: {
@@ -247,14 +274,13 @@ export async function GET(
       },
     });
 
-    const Stock = stock.map((i) => {
-      const isLowStock = i.Stockvalue.some((sub) => sub.qty <= 5);
-
-      return { ...i, isLowStock };
-    });
-
     response = Response.json(
-      { data: { varaintstock: Stock, variants: variant } },
+      {
+        data: {
+          varaintstock: convertStockData(stock as Stocktype[]),
+          variants: variant,
+        },
+      },
       { status: 200 }
     );
   } else if (ty === "search") {

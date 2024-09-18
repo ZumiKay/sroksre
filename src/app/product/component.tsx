@@ -452,14 +452,14 @@ export const PromotionProductListContainer = ({
 }: PromotionProductlistContainerProps) => {
   return (
     <div className="promotioncontainer w-full h-fit flex flex-col gap-y-10 pl-5 pr-5 pb-10">
-      <div className="header w-full h-fit flex flex-row justify-center items-center gap-x-10">
+      <div className="header w-full h-fit flex flex-row justify-center items-center max-small_screen:flex-col gap-5">
         <Image
           src={banner.url}
           alt={banner.name}
           width={700}
           height={700}
           loading="lazy"
-          className="w-full h-[500px] object-contain rounded-lg"
+          className="w-full h-[500px] max-small_screen:h-auto object-contain rounded-lg"
         />
         <div className="description w-full min-h-[280px] h-fit p-3 rounded-lg bg-gray-500 text-white flex flex-col justify-center gap-y-5">
           <h3 className="title text-3xl font-bold">{name}</h3>
@@ -467,7 +467,7 @@ export const PromotionProductListContainer = ({
           <p className="des w-full h-fit text-lg font-light">{description}</p>
         </div>
       </div>
-      <div className="listproduct w-full h-full grid grid-cols-3 gap-10">
+      <div className="listproduct w-full h-full flex flex-row gap-5 flex-wrap justify-start max-smallest_tablet:justify-center">
         {product.map((prod) => (
           <Card
             key={prod.id}

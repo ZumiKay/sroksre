@@ -1,27 +1,20 @@
-import {
-  deleteObject,
-  getDownloadURL,
-  ref,
-  uploadBytes,
-} from "firebase/storage";
+import { deleteObject, ref } from "firebase/storage";
 import { storage } from "./firebase";
-import Prisma from "./prisma";
-import { ProductState, Stocktype } from "../context/GlobalContext";
-
-import {
-  getUser,
-  Orderpricetype,
-  Productordertype,
-} from "../context/OrderContext";
+import { ProductState } from "../context/GlobalContext";
+import { Orderpricetype, Productordertype } from "../context/OrderContext";
 import {
   CipherKey,
   createCipheriv,
   createDecipheriv,
   randomBytes,
 } from "crypto";
-import { calculatePrice } from "../app/checkout/page";
-import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
-import { signOut } from "next-auth/react";
+
+export const AllorderType = {
+  orderdetail: "orderdetail",
+  orderproduct: "orderproduct",
+  orderaction: "orderaction",
+  orderupdatestatus: "orderupdatestatus",
+};
 
 export const AllOrderStatusColor: Record<string, string> = {
   incart: "#495464",
@@ -31,34 +24,6 @@ export const AllOrderStatusColor: Record<string, string> = {
   shipped: "#60513C",
   arrived: "#35C191",
 };
-export const postRequest = async (url: string, data: any) => {
-  const post = await fetch(url, {
-    method: "POST",
-    headers: {
-      Accept: "application.json",
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(data),
-    cache: "default",
-  });
-  const jsonRes = await post.json();
-  if (post.status === 200) {
-    return jsonRes;
-  } else {
-    return { status: post.status, message: jsonRes.message };
-  }
-};
-
-export const LoggedOut = async () => {
-  const user = await getUser();
-
-  if (user) {
-    await Prisma.usersession.delete({ where: { session_id: user.session_id } });
-    await signOut();
-  }
-
-  return true;
-};
 
 export const GetOneWeekAgoDate = () => {
   const today = new Date();
@@ -67,20 +32,6 @@ export const GetOneWeekAgoDate = () => {
   return oneWeekAgo;
 };
 
-export const UploadImageToStorage = async (
-  File: File
-): Promise<{ sucess: boolean; url?: string; name?: string; type?: string }> => {
-  try {
-    const storageref = ref(storage, `productcovers/${File.name}`);
-    await uploadBytes(storageref, File);
-    const downloadURL = await getDownloadURL(storageref);
-
-    return { sucess: true, url: downloadURL, name: File.name, type: File.type };
-  } catch (error) {
-    console.error("Firebase Storage", error);
-    return { sucess: false };
-  }
-};
 export const DeleteImageFromStorage = async (
   filename: string
 ): Promise<{ Sucess: boolean }> => {
@@ -175,79 +126,6 @@ export function getOneWeekFromToday(): Date {
   return oneWeekFromToday;
 }
 
-export const transformData = (data: any) => {
-  const transformedData: any = {};
-
-  for (const key in data) {
-    if (data.hasOwnProperty(key)) {
-      transformedData[key] = data[key].reduce((result: any, item: any) => {
-        const uniqueValues = new Set(item.info_value);
-
-        result.push(...Array.from(uniqueValues, (size) => size));
-
-        return result;
-      }, []);
-    }
-  }
-
-  return transformedData;
-};
-
-export function isIntOrBigInt(value: string) {
-  // Check if the string is a valid integer
-  function isInt(str: string) {
-    const intRegex = /^-?\d+$/;
-    if (!intRegex.test(str)) return false;
-    const num = Number(str);
-    return Number.isSafeInteger(num);
-  }
-
-  // Check if the string is a valid BigInt
-  function isBigInt(str: string) {
-    const bigIntRegex = /^-?\d+$/;
-    if (!bigIntRegex.test(str)) return false;
-    try {
-      BigInt(str);
-      return true;
-    } catch (e) {
-      return false;
-    }
-  }
-
-  if (isInt(value)) {
-    return { type: "Int", value: Number(value) };
-  } else if (isBigInt(value)) {
-    return { type: "BigInt", value: BigInt(value) };
-  } else {
-    return { type: "Invalid", value: null };
-  }
-}
-
-export const findDuplicateStockIndices = (stocks: Stocktype[]): number[] => {
-  const seen: Map<string, number[]> = new Map();
-
-  const duplicates: number[] = [];
-
-  stocks.forEach((stock, index) => {
-    const key = JSON.stringify({
-      variant_id: stock.id,
-      variant_val: stock.Stockvalue,
-    });
-
-    if (seen.has(key)) {
-      // Duplicate found, add index to duplicates array
-      duplicates.push(index, ...(seen.get(key) as number[]));
-    }
-
-    if (!seen.has(key)) {
-      seen.set(key, []);
-    }
-
-    seen.get(key)?.push(index);
-  });
-
-  return duplicates;
-};
 export const calculateCartTotalPrice = (
   cartItems: Array<Productordertype>
 ): number => {
@@ -327,42 +205,6 @@ export const decrypt = (text: string, key: string) => {
   return decrypted.toString("utf-8");
 };
 
-export const calculateDiscountPrice = (
-  price: number,
-  discount: number
-): number => {
-  const discountedAmount = (discount * price) / 100;
-  return price - discountedAmount;
-};
-
-export const getDiscountedPrice = (discount: number, price: number) => {
-  return {
-    newprice: calculatePrice(price, discount),
-    percent: discount,
-  };
-};
-
-export function updateSearchParams(
-  params: Record<string, string>,
-  router: AppRouterInstance
-) {
-  if (typeof window === "undefined") return;
-
-  const searchParams = new URLSearchParams(window.location.search);
-
-  Object.entries(params).forEach(([key, value]) => {
-    if (searchParams.has(key)) {
-      searchParams.set(key, `${searchParams.get(key)},${value}`);
-    } else {
-      searchParams.set(key, value);
-    }
-  });
-
-  const newRelativePathQuery = `?${searchParams}`;
-
-  router.replace(newRelativePathQuery);
-}
-
 export const isObjectEmpty = (data: Record<string, any>) =>
   Object.entries(data).every(([_, val]) => !val);
 
@@ -385,21 +227,6 @@ export const calculateDiscountProductPrice = (data: {
   return { price: data.price };
 };
 
-export function stringToBoolean(str: string) {
-  if (typeof str !== "string") {
-    throw new Error("Input must be a string");
-  }
-
-  switch (str.toLowerCase().trim()) {
-    case "true":
-      return true;
-    case "false":
-      return false;
-    default:
-      return null;
-  }
-}
-
 export const HasPartialOverlap = (
   arr1: string[][],
   arr2: string[][]
@@ -418,116 +245,34 @@ export const HasPartialOverlap = (
 
   return false;
 };
+
+export const HasExactMatch = (arr1: string[][], arr2: string[][]): boolean => {
+  const set1 = new Set(arr1.map((subArr) => subArr.join(",")));
+  const set2 = new Set(arr2.map((subArr) => subArr.join(",")));
+
+  const array1 = Array.from(set1);
+  const array2 = Array.from(set2);
+
+  // Check if the two sets are exactly the same
+  if (set1.size !== set2.size) {
+    return false;
+  }
+
+  for (let val of array1) {
+    if (!array2.includes(val)) {
+      return false;
+    }
+  }
+
+  return true;
+};
+
 //Email Template
 //
 //
 //
 //
 //
-
-export const normalemailtemplate = (
-  warning: string,
-  title: string,
-  data: string
-) =>
-  `<style>
-      body {
-        min-width: 100vw;
-        min-height: 100vh;
-        font-family: Arial, Helvetica, sans-serif;
-        background-color: #f2f2f2;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: start;
-        margin: 0;
-        padding: 0;
-      }
-      .email_content {
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        flex-wrap: nowrap;
-        width: fit-content;
-        height: 100%;
-        position: relative;
-        padding-bottom: 20px;
-        background-color: white;
-        padding: 20px;
-      }
-      .email_content .warning {
-        width: 100%;
-        font-size: 20px;
-        word-break: break-all;
-        font-weight: 800;
-        color: lightcoral;
-        text-align: center;
-      }
-      .email_content img {
-        width: 100px;
-        height: 100px;
-        object-fit: contain;
-      }
-      .email_content .email_body .title {
-        font-weight: 700;
-        font-size: 25px;
-
-        text-align: center;
-        width: 100%;
-        height: fit-content;
-        padding: 3px;
-      }
-      .email_content .email_body .message {
-        font-weight: 500;
-        font-size: 20px;
-        text-align: center;
-        border: 2px solid black
-        line-height: 2;
-        width: max-content;
-        height: auto;
-        max-height: 85vh;
-        padding: 5px;
-        color: black;
-        border-radius: 10px;
-      }
-      .email_content .footer_container {
-        text-align: center;
-        width: 100%;
-        height: fit-content;
-      }
-      .email_content .footer_container .footer_text {
-        font-weight: 500;
-        font-size: 17px;
-        color: lightcoral;
-      }
-      .email_content .footer_container .footer_text2 {
-        font-weight: 500;
-        font-size: 15px;
-        color: black;
-      }
-    </style>
-<body>
-    <div class="email_content">
-      <img
-        src="https://firebasestorage.googleapis.com/v0/b/sroksre-442c0.appspot.com/o/sideImage%2FLogo.svg?alt=media&token=5eb60253-4401-4fc9-a282-e635d132f050"
-        alt="logo"
-        loading="lazy"
-      />
-
-      <div class="email_body">
-        <h3 class="title">${title}</h3>
-        <h3 class="message">${data}</h3>
-      </div>
-      <footer class="footer_container">
-        <h6 class="footer_text">
-         ${warning} 
-        </h6>
-        <h6 class="footer_text2">CopyRight@ 2024 SrokSre</h6>
-      </footer>
-    </div>
-  </body>
-`;
 
 export const OrderReciptEmail = (body: string) => `
 <!doctype html>

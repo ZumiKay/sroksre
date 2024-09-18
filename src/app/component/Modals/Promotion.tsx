@@ -51,9 +51,7 @@ export const CreatePromotionModal = ({
 
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { isTablet, isMobile } = useScreenSize();
-
-  const [isEdit, setisEdit] = useState(false);
+  const [isPickDate, setisPickDate] = useState(false);
 
   const fetchdata = async (id: number) => {
     const request = await ApiRequest(
@@ -68,22 +66,12 @@ export const CreatePromotionModal = ({
     }
   };
   useEffect(() => {
-    setisEdit(false);
     if (globalindex.promotioneditindex !== -1) {
       fetchdata(globalindex.promotioneditindex);
     } else {
       setpromotion((prev) => ({ ...prev, id: -1 }));
     }
   }, []);
-
-  useEffect(() => {
-    const isEdit =
-      promotion.name.length !== 0 &&
-      promotion.description.length !== 0 &&
-      promotion.banner_id &&
-      promotion.Products.length > 0;
-    isEdit ? setisEdit(true) : setisEdit(false);
-  }, [promotion]);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -112,8 +100,6 @@ export const CreatePromotionModal = ({
     }
 
     setpromotion(PromotionInitialize);
-
-    setisEdit(false);
 
     successToast(
       `Promotion ${
@@ -204,6 +190,7 @@ export const CreatePromotionModal = ({
   return (
     <SecondaryModal
       onPageChange={(val) =>
+        !isPickDate &&
         setopenmodal((prev) => ({ ...prev, createPromotion: val }))
       }
       open={openmodal.createPromotion}
@@ -236,11 +223,12 @@ export const CreatePromotionModal = ({
           </label>
           <DateTimePicker
             value={promotion.expireAt ? dayjs(promotion.expireAt) : null}
+            onOpen={() => setisPickDate(true)}
+            onClose={() => setisPickDate(false)}
             onChange={(e) => {
               if (e) {
                 setpromotion((prev) => ({ ...prev, expireAt: e }));
               }
-              setisEdit(false);
             }}
             sx={{ width: "100%", height: "50px" }}
           />
@@ -271,7 +259,6 @@ export const CreatePromotionModal = ({
             color="#44C3A0"
             text={globalindex.promotioneditindex === -1 ? "Create" : "Update"}
             type="submit"
-            disable={!isEdit}
             status={
               isLoading.POST || isLoading.PUT ? "loading" : "authenticated"
             }
@@ -332,7 +319,7 @@ export const DiscountModals = ({
   const handleDiscount = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     let promoproduct = [...promotion.Products];
-    let allproduct = [...(allData.product ?? [])];
+    let allproduct = [...(allData?.product ?? [])];
     const producteditidx = globalindex.promotionproductedit;
 
     const calculateDiscount = (price: number) => ({

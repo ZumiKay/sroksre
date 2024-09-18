@@ -403,21 +403,29 @@ const updateProductVariantStock = async (
   id: number
 ): Promise<boolean | null> => {
   try {
+    // Get stock ids to delete
     const stockIdsToDelete = variantstock
       .filter((i) => i.id)
       .map((i) => i.id) as number[];
 
-    // Delete stocks that are not in the provided list
-    await Prisma.stock.deleteMany({
-      where: {
-        AND: [{ product_id: id }, { id: { notIn: stockIdsToDelete } }],
-      },
-    });
+    if (stockIdsToDelete.length > 0) {
+      await Prisma.stockvalue.deleteMany({
+        where: {
+          stockId: { notIn: stockIdsToDelete },
+        },
+      });
+      await Prisma.stock.deleteMany({
+        where: {
+          AND: [{ product_id: id }, { id: { notIn: stockIdsToDelete } }],
+        },
+      });
+    }
 
-    const updatePromises: any = [];
-    const createPromises: any = [];
-    const deleteStockValuePromises: any = [];
+    const updatePromises: any[] = [];
+    const createPromises: any[] = [];
+    const deleteStockValuePromises: any[] = [];
 
+    // Loop through each stock and perform the required actions
     for (const stock of variantstock) {
       if (stock.id) {
         // Get existing stock values to identify which ones to delete
@@ -427,10 +435,10 @@ const updateProductVariantStock = async (
           },
         });
 
+        // Find which stock values to delete
         const stockValueIdsToDelete = existingStockValues
-          .filter(
-            (existing) =>
-              !stock.Stockvalue.some((current) => current.id === existing.id)
+          .filter((existing) =>
+            stock.Stockvalue.every((current) => current.id !== existing.id)
           )
           .map((sv) => sv.id);
 
@@ -444,32 +452,34 @@ const updateProductVariantStock = async (
           );
         }
 
-        stock.Stockvalue.forEach((i) => {
-          if (i.id) {
+        // Update or create stock values
+        for (const stockValue of stock.Stockvalue) {
+          if (stockValue.id) {
+            // Update existing stock value
             updatePromises.push(
               Prisma.stockvalue.update({
-                where: {
-                  id: i.id,
-                },
+                where: { id: stockValue.id },
                 data: {
-                  qty: i.qty,
-                  variant_val: i.variant_val,
+                  qty: stockValue.qty,
+                  variant_val: stockValue.variant_val,
                 },
               })
             );
           } else {
-            updatePromises.push(
+            // Create new stock value
+            createPromises.push(
               Prisma.stockvalue.create({
                 data: {
-                  stockId: stock.id as number,
-                  qty: i.qty ?? 0,
-                  variant_val: i.variant_val,
+                  stockId: stock.id,
+                  qty: stockValue.qty ?? 0,
+                  variant_val: stockValue.variant_val,
                 },
               })
             );
           }
-        });
+        }
       } else {
+        // Create new stock
         createPromises.push(
           Prisma.stock.create({
             data: {
@@ -488,11 +498,14 @@ const updateProductVariantStock = async (
       }
     }
 
+    // Wait for all operations to complete
     await Promise.all([
       ...updatePromises,
       ...createPromises,
       ...deleteStockValuePromises,
     ]);
+
+    // Delete stocks that are no longer present
 
     return true;
   } catch (error) {
@@ -623,6 +636,7 @@ export const EditProduct = async (
         varaintstock.length !== 0
       ) {
         const updatestock = await updateProductVariantStock(varaintstock, id);
+
         if (updatestock) {
           return { success: true };
         }
@@ -641,10 +655,10 @@ export const EditProduct = async (
     }
 
     const isCategoryChange =
-      existProduct.parentcategory_id !== category.parent_id ||
-      (category.child_id &&
-        existProduct.childcategory_id !== category.child_id);
-    const isStockValid = stock && stock !== 0 && existProduct.stock !== stock;
+      (category?.parent_id &&
+        existProduct?.parentcategory_id !== category?.parent_id) ||
+      (category?.child_id &&
+        existProduct.childcategory_id !== category?.child_id);
     if (isCategoryChange) {
       await Prisma.products.update({
         where: { id },
@@ -654,6 +668,8 @@ export const EditProduct = async (
         },
       });
     }
+
+    const isStockValid = stock && stock !== 0 && existProduct.stock !== stock;
 
     if (isStockValid) {
       await Prisma.products.update({
@@ -810,6 +826,9 @@ export const DeleteProduct = async (id: number) => {
       await Prisma.variant.deleteMany({ where: { product_id: id } });
     }
     if (Products.Stock.length !== 0) {
+      await Prisma.stockvalue.deleteMany({
+        where: { stockId: { in: Products.Stock.map((i) => i.id) } },
+      });
       await Prisma.stock.deleteMany({ where: { product_id: id } });
     }
     await Prisma.info.deleteMany({ where: { product_id: id } });

@@ -15,20 +15,13 @@ import {
 import { notFound, redirect } from "next/navigation";
 import {
   AllOrderStatusColor,
+  AllorderType,
   removeSpaceAndToLowerCase,
 } from "@/src/lib/utilities";
 
 import { OrderUserType } from "../../checkout/action";
 import { getCheckoutdata } from "../../checkout/page";
 import { Role } from "@prisma/client";
-import { Metadata } from "next";
-
-export const AllorderType = {
-  orderdetail: "orderdetail",
-  orderproduct: "orderproduct",
-  orderaction: "orderaction",
-  orderupdatestatus: "orderupdatestatus",
-};
 
 export interface AllorderStatus {
   id: string;
@@ -50,7 +43,7 @@ export default async function OrderManagement({
   }
 
   let {
-    page = "1",
+    p = "1",
     show = "1",
     status,
     q,
@@ -65,14 +58,14 @@ export default async function OrderManagement({
   const req: any = await GetOrder(
     undefined,
     undefined,
-    parseInt(page as string),
+    parseInt(p as string),
     parseInt(show as string),
     getuser.role === "USER" ? getuser.id : undefined
   );
 
   const filterorder = await getFilterOrder({
     status: selectedStatus ?? [""],
-    page: parseInt(page as string),
+    page: parseInt(p as string),
     limit: parseInt(show as string),
     search: q ? removeSpaceAndToLowerCase(q.toString()) : undefined,
     startprice: parseFloat((startprice as string) ?? "0"),
@@ -128,7 +121,7 @@ export default async function OrderManagement({
               <tr className="h-[30px]"></tr>
             </thead>
             <tbody>
-              {!orders || orders.length === 0 ? (
+              {orders && orders.length === 0 ? (
                 <tr>
                   <td className="w-full font-bold text-xl">No order</td>
                 </tr>
@@ -151,7 +144,7 @@ export default async function OrderManagement({
         <div className="w-full h-fit relative mt-10 bottom-0">
           <PaginationSSR
             total={total}
-            pages={parseInt(page as string)}
+            pages={parseInt(p as string)}
             limit={show}
           />
         </div>
@@ -174,24 +167,7 @@ const getOrderData = async (
   param?: { [key: string]: string | string[] | undefined }
 ) => {
   if (param) {
-    const {
-      ty,
-      id,
-      page,
-      show,
-      status,
-      q,
-      startprice,
-      fromdate,
-      todate,
-      endprice,
-
-      ...otherParams
-    } = param;
-
-    if (Object.keys(otherParams).length > 0) {
-      return redirect("/dashboard/order");
-    }
+    const { ty, id } = param;
 
     if (ty && id) {
       const verifyParams = checkparam(ty as string);

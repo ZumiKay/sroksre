@@ -543,8 +543,8 @@ interface ContextType {
   setbanner: React.Dispatch<React.SetStateAction<BannerState>>;
   promotion: PromotionState;
   setpromotion: React.Dispatch<React.SetStateAction<PromotionState>>;
-  allData: AllDataState;
-  setalldata: React.Dispatch<React.SetStateAction<AllDataState>>;
+  allData?: AllDataState;
+  setalldata: React.Dispatch<React.SetStateAction<AllDataState | undefined>>;
   isLoading: LoadingState;
   setisLoading: React.Dispatch<React.SetStateAction<LoadingState>>;
   subcate: Array<SubcategoriesState>;
@@ -596,7 +596,7 @@ export const GlobalContextProvider = ({
   const [product, setproduct] = useState(Productinitailizestate);
   const [banner, setbanner] = useState(BannerInitialize);
   const [promotion, setpromotion] = useState(PromotionInitialize);
-  const [allData, setalldata] = useState(AllDataInitialize);
+  const [allData, setalldata] = useState<AllDataState | undefined>(undefined);
   const [isLoading, setisLoading] = useState(LoadingStateInitialized);
   const [itemlength, setitemlength] = useState(ItemlengthInitialize);
   const [user, setuser] = useState(Userinitialize);

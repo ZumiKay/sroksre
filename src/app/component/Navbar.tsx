@@ -32,7 +32,6 @@ import {
 } from "@/src/context/GlobalContext";
 import {
   ApiRequest,
-  useClickOutside,
   useEffectOnce,
   useScreenSize,
 } from "@/src/context/CustomHook";
@@ -40,6 +39,7 @@ import { ContainerLoading, errorToast, infoToast } from "./Loading";
 import { Role } from "@prisma/client";
 import { CheckedNotification } from "../severactions/notification_action";
 import { Box, CircularProgress } from "@mui/material";
+import CookieConsent from "react-cookie-consent";
 
 import { signOut } from "next-auth/react";
 import { checkloggedsession } from "../dashboard/action";
@@ -165,122 +165,148 @@ export default function Navbar({ session }: { session?: Usersessiontype }) {
   }, []);
 
   return (
-    <nav className="navbar__container sticky top-0 z-50 w-full h-[60px] bg-[#F3F3F3] flex flex-row justify-between item-center">
-      {loading && <ContainerLoading />}
-      {categories && <CategoriesContainer setopen={setcategories} />}
+    <>
+      <nav className="navbar__container sticky top-0 z-50 w-full h-[60px] bg-[#F3F3F3] flex flex-row justify-between item-center">
+        {loading && <ContainerLoading />}
+        {categories && <CategoriesContainer setopen={setcategories} />}
 
-      <div className="first_section  w-1/2 h-full flex items-center pl-3">
-        <Image
-          className="menu_icon w-[30px] h-[30px] object-fill transition rounded-md"
-          onClick={() => setcategories(!categories)}
-          src={Menu}
-          alt="menu"
-          style={categories ? { backgroundColor: "lightgray" } : {}}
-        />
+        <div className="first_section  w-1/2 h-full flex items-center pl-3">
+          <Image
+            className="menu_icon w-[30px] h-[30px] object-fill transition rounded-md"
+            onClick={() => setcategories(!categories)}
+            src={Menu}
+            alt="menu"
+            style={categories ? { backgroundColor: "lightgray" } : {}}
+          />
 
-        <Image
-          src={Search}
-          alt="search"
-          className="search w-[40px] h-[40px] object-contain hidden max-smallest_tablet:block transition hover:-translate-y-2"
-          onClick={() => setopenmodal((prev) => ({ ...prev, searchcon: true }))}
-        />
-      </div>
-      <div className="second_section  w-full h-fit relative top-2 flex justify-center">
-        <Image
-          src={Logo}
-          alt="logo"
-          className="Logo w-[100px] h-[50px] max-small_phone:w-[70px] max-small_phone:[30px] object-contain grayscale"
-          onClick={() => router.push("/")}
-        />
-      </div>
-      <div className="third_section  w-1/2 h-full flex flex-row gap-x-10 max-small_phone:gap-x-3 items-center justify-end pr-5 max-small_phone:pr-2">
-        <Image
-          src={Search}
-          alt="search"
-          className="search w-[50px] h-[50px] object-contain transition hover:-translate-y-2 max-smallest_tablet:hidden"
-          onClick={() => setopenmodal((prev) => ({ ...prev, searchcon: true }))}
-        />
+          <Image
+            src={Search}
+            alt="search"
+            className="search w-[40px] h-[40px] object-contain hidden max-smallest_tablet:block transition hover:-translate-y-2"
+            onClick={() =>
+              setopenmodal((prev) => ({ ...prev, searchcon: true }))
+            }
+          />
+        </div>
+        <div className="second_section  w-full h-fit relative top-2 flex justify-center">
+          <Image
+            src={Logo}
+            alt="logo"
+            className="Logo w-[100px] h-[50px] max-small_phone:w-[70px] max-small_phone:[30px] object-contain grayscale"
+            onClick={() => router.push("/")}
+          />
+        </div>
+        <div className="third_section  w-1/2 h-full flex flex-row gap-x-10 max-small_phone:gap-x-3 items-center justify-end pr-5 max-small_phone:pr-2">
+          <Image
+            src={Search}
+            alt="search"
+            className="search w-[50px] h-[50px] object-contain transition hover:-translate-y-2 max-smallest_tablet:hidden"
+            onClick={() =>
+              setopenmodal((prev) => ({ ...prev, searchcon: true }))
+            }
+          />
 
-        {session?.role !== Role.ADMIN && (
-          <div className="cart_container relative">
-            <Image
-              src={Cart}
-              alt="cart"
-              className="cart min-w-[30px] min-h-[30px] max-w-[30px] max-h-[30px] w-full h-full object-contain transition hover:-translate-y-2 max-small_phone:w-[30px] max-small_phone:h-[30px]"
-              onMouseEnter={() => setcart(true)}
-            />
-            <span className="text-[13px] w-[20px] h-[20px] grid place-content-center absolute -bottom-6 top-0 -right-3 bg-gray-500 text-white rounded-[50%]">
-              {carttotal ?? 0}
-            </span>
-          </div>
-        )}
-
-        {session?.role === Role.ADMIN && (
-          <>
-            <div className="w-[30px] h-[30px] max-smallest_tablet:w-[25px] max-smallest_tablet:h-[25px] max-small_phone:w-[25px] max-small_phone:h-[25px] relative">
+          {session?.role !== Role.ADMIN && (
+            <div className="cart_container relative">
               <Image
-                ref={navref}
-                src={!opennotification ? Bell : ActiveBell}
-                alt="notification"
-                onClick={() => setnotification(!opennotification)}
-                width={30}
-                height={30}
-                className="bell min-w-[30px] min-h-[30px] max-smallest_tablet:min-w-[25px] max-smallest_tablet:min-h-[25px] max-small_phone:min-w-[25px] max-small_phone:min-h-[25px] object-fill transition-all active:bg-gray-200 active:shadow-xl rounded-xl"
+                src={Cart}
+                alt="cart"
+                className="cart min-w-[30px] min-h-[30px] max-w-[30px] max-h-[30px] w-full h-full object-contain transition hover:-translate-y-2 max-small_phone:w-[30px] max-small_phone:h-[30px]"
+                onMouseEnter={() => setcart(true)}
               />
-
-              {checkNotification !== 0 && (
-                <span className="absolute top-0 -right-1 w-[10px] h-[10px] rounded-2xl bg-red-500"></span>
-              )}
+              <span className="text-[13px] w-[20px] h-[20px] grid place-content-center absolute -bottom-6 top-0 -right-3 bg-gray-500 text-white rounded-[50%]">
+                {carttotal ?? 0}
+              </span>
             </div>
-          </>
+          )}
+
+          {session?.role === Role.ADMIN && (
+            <>
+              <div className="w-[30px] h-[30px] max-smallest_tablet:w-[25px] max-smallest_tablet:h-[25px] max-small_phone:w-[25px] max-small_phone:h-[25px] relative">
+                <Image
+                  ref={navref}
+                  src={!opennotification ? Bell : ActiveBell}
+                  alt="notification"
+                  onClick={() => setnotification(!opennotification)}
+                  width={30}
+                  height={30}
+                  className="bell min-w-[30px] min-h-[30px] max-smallest_tablet:min-w-[25px] max-smallest_tablet:min-h-[25px] max-small_phone:min-w-[25px] max-small_phone:min-h-[25px] object-fill transition-all active:bg-gray-200 active:shadow-xl rounded-xl"
+                />
+
+                {checkNotification !== 0 && (
+                  <span className="absolute top-0 -right-1 w-[10px] h-[10px] rounded-2xl bg-red-500"></span>
+                )}
+              </div>
+            </>
+          )}
+
+          <Image
+            src={Profile}
+            alt="profile"
+            className="cart w-[40px] h-[40px] max-small_phone:w-[35px] max-small_phone:h-[35px] object-contain transition hover:-translate-y-2"
+            onMouseEnter={() => session && setprofile(true)}
+            onClick={() =>
+              !session && router.push("/account", { scroll: false })
+            }
+          />
+        </div>
+
+        <AnimatePresence>
+          {profile && <AccountMenu session={session} setProfile={setprofile} />}
+        </AnimatePresence>
+
+        {openmodal?.homecontainer && (
+          <Homecontainermodal
+            setprofile={setprofile}
+            isTablet={isTablet}
+            isPhone={isMobile}
+          />
         )}
 
-        <Image
-          src={Profile}
-          alt="profile"
-          className="cart w-[40px] h-[40px] max-small_phone:w-[35px] max-small_phone:h-[35px] object-contain transition hover:-translate-y-2"
-          onMouseEnter={() => session && setprofile(true)}
-          onClick={() => !session && router.push("/account", { scroll: false })}
-        />
-      </div>
+        <AnimatePresence>
+          {openmodal?.searchcon && <SearchContainer isMobile={isMobile} />}
+        </AnimatePresence>
 
-      <AnimatePresence>
-        {profile && <AccountMenu session={session} setProfile={setprofile} />}
-      </AnimatePresence>
-
-      {openmodal?.homecontainer && (
-        <Homecontainermodal
-          setprofile={setprofile}
-          isTablet={isTablet}
-          isPhone={isMobile}
-        />
-      )}
-
-      <AnimatePresence>
-        {openmodal?.searchcon && <SearchContainer isMobile={isMobile} />}
-      </AnimatePresence>
-
-      {cart && (
-        <CartMenu
-          img={DefaultImage}
-          setcart={setcart}
-          setcarttotal={setcarttotal}
-        />
-      )}
-      {opennotification && (
-        <NotificationMenu
-          close={() => setnotification(false)}
-          notification={notification}
-          ref={notiref}
-        />
-      )}
-    </nav>
+        {cart && (
+          <CartMenu
+            img={DefaultImage}
+            setcart={setcart}
+            setcarttotal={setcarttotal}
+          />
+        )}
+        {opennotification && (
+          <NotificationMenu
+            close={() => setnotification(false)}
+            notification={notification}
+            ref={notiref}
+          />
+        )}
+      </nav>
+      <CookieConsent
+        location="bottom"
+        buttonText="I Understand"
+        cookieName="AllowCookie"
+        style={{ background: "lightgray", color: "black" }}
+        buttonStyle={{
+          color: "white",
+          fontSize: "13px",
+          backgroundColor: "#495464",
+          borderRadius: "10px",
+        }}
+        expires={150}
+      >
+        This website uses cookies to enhance the user experience.{" "}
+        <span style={{ fontSize: "10px", textDecoration: "underline" }}>
+          See Privacy And Policy Page
+        </span>
+      </CookieConsent>
+    </>
   );
 }
 const CategoriesContainer = (props: { setopen: any }) => {
   const [allcate, setallcate] = useState<Array<CateogoryState>>();
   const [loading, setloading] = useState(true);
-  const ref = useClickOutside(() => props.setopen(false));
+
   const router = useRouter();
   const fetchcate = async () => {
     const request = await ApiRequest("/api/categories", undefined, "GET");
@@ -420,7 +446,6 @@ interface Subinventorymenuprops {
   type?: "product" | "banner" | "promotion";
   index?: number;
   style?: CSSProperties;
-  ref?: MutableRefObject<HTMLDivElement | null>;
   stock?: number;
   stocktype?: string;
   stockaction?: () => void;

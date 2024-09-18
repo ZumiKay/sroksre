@@ -279,7 +279,9 @@ const stock = (
       />
 
       <h3 className="text-lg text-red-500 w-full text-left font-bold">
-        {`  ${max === 0 ? "" : showLowStock ? "Low on stock" : ""}`}
+        {`  ${
+          max === 0 ? errormess.qty ?? "" : showLowStock ? "Low on stock" : ""
+        }`}
       </h3>
     </div>
   );
@@ -494,19 +496,21 @@ export const ButtonForSimilarProd = ({ lt }: { lt: number }) => {
   const searchParam = useSearchParams();
 
   return (
-    <PrimaryButton
-      type="button"
-      text="Load more"
-      radius="10px"
-      width="50%"
-      height="40px"
-      style={{ marginTop: "100px" }}
-      onClick={() => {
-        const param = new URLSearchParams(searchParam);
-        param.set("lt", `${lt + 3}`);
-        router.push(`?${param}`, { scroll: false });
-        router.refresh();
-      }}
-    />
+    <div className="w-full h-fit flex justify-center">
+      <PrimaryButton
+        type="button"
+        text="Load more"
+        radius="10px"
+        width="20%"
+        height="40px"
+        style={{ marginTop: "100px" }}
+        onClick={() => {
+          const param = new URLSearchParams(searchParam);
+          param.set("lt", `${lt + 3}`);
+          router.push(`?${param}`, { scroll: false });
+          router.refresh();
+        }}
+      />
+    </div>
   );
 };

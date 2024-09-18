@@ -9,7 +9,10 @@ import {
   totalpricetype,
 } from "@/src/context/OrderContext";
 import Prisma from "@/src/lib/prisma";
-import { getDiscountedPrice } from "@/src/lib/utilities";
+import {
+  calculateDiscountProductPrice,
+  getDiscountedPrice,
+} from "@/src/lib/utilities";
 
 import { revalidatePath } from "next/cache";
 
@@ -160,13 +163,15 @@ export const getRelatedProduct = async (
     });
 
     let product = result.map((i) => {
-      const discount = i.discount && getDiscountedPrice(i.discount, i.price);
+      const discount =
+        i.discount &&
+        calculateDiscountProductPrice({
+          price: i.price,
+          discount: i.discount,
+        });
       return {
         ...i,
-        discount: discount && {
-          ...discount,
-          newprice: discount.newprice.toFixed(2),
-        },
+        discount: discount && discount.discount,
         category: {
           parent_id: i.parentcategory_id,
           child_id: i.childcategory_id,

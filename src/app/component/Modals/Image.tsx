@@ -308,7 +308,7 @@ export const ImageUpload = (props: imageuploadprops) => {
         src={CloseIcon}
         alt="close"
         onClick={() => handleCancel()}
-        className="w-[50px] h-[50px] absolute top-5 right-10 object-contain transition hover:-translate-y-2 active:-translate-y-2"
+        className="w-[30px] h-[30px] absolute top-5 right-2 object-contain transition hover:-translate-y-2 active:-translate-y-2"
       />
       <div
         className="uploadImage__container w-[80%] 

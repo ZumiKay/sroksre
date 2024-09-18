@@ -15,7 +15,7 @@ import { Orderpricetype } from "@/src/context/OrderContext";
 export const BannerSkeleton = () => {
   return (
     <Card
-      className="w-[350px] h-[270px] space-y-5 p-4"
+      className="w-[350px] h-[270px] space-y-5 p-4 max-small_phone:w-[275px]"
       style={{ backgroundColor: "transparent" }}
       radius="lg"
     >

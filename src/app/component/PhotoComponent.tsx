@@ -106,7 +106,7 @@ export const PrimaryPhoto = (props: Primaryphotoprops) => {
             alt={`${obj.name}`}
             className="w-full h-[550px]  
             max-smaller_screen:h-[350px] 
-            max-large_tablet:h-auto
+            
             object-contain"
             width={500}
             height={600}

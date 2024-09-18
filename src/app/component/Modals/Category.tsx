@@ -76,7 +76,9 @@ export const Category = () => {
   const [catetype, setcatetype] = useState<Categorytype>("normal");
 
   const handleAdd = async () => {
-    const isExist = allData.category?.some((obj) => obj.name === category.name);
+    const isExist = allData?.category?.some(
+      (obj) => obj.name === category.name
+    );
 
     if (category.name.length === 0 || category.description.length === 0) {
       errorToast("Please Fill all required");
@@ -103,8 +105,7 @@ export const Category = () => {
       return;
     }
     setalldata((prev) => ({
-      ...prev,
-      category: [...(prev.category ?? []), { ...category, id: saved.data.id }],
+      category: [...(prev?.category ?? []), { ...category, id: saved.data.id }],
     }));
 
     setcategory(CateogoryInitailizestate);
@@ -124,6 +125,7 @@ export const Category = () => {
       name: i.label,
       type: "promo",
       pid: i.value as number,
+      id: (i.value as number) ?? 0,
     }));
 
     setcategory(categories);
@@ -323,7 +325,7 @@ const EditCategory = ({
     setedit(!edit);
     seteditindex(index);
 
-    if (allData.category) {
+    if (allData?.category) {
       setcategory(allData.category[index]);
     }
   };
@@ -345,7 +347,7 @@ const EditCategory = ({
   };
 
   const handleConfirm = async () => {
-    if (category.name.length === 0 || category.description.length === 0) {
+    if (category.name.length === 0 || !category.description) {
       errorToast("Please fill all requried");
       return;
     }
@@ -354,7 +356,7 @@ const EditCategory = ({
       const updateRequest = async () => {
         const res = await ApiRequest(URL, undefined, "PUT", "JSON", category);
         if (res.success) {
-          let allcate = [...(allData.category ?? [])];
+          let allcate = [...(allData?.category ?? [])];
 
           allcate[editindex].name = category.name;
           allcate[editindex].subcategories = category.subcategories;
@@ -373,7 +375,7 @@ const EditCategory = ({
   };
   const handleReset = () => {
     let deletedcate = [...tempcate];
-    let allcate = [...(allData.category ?? [])];
+    let allcate = [...(allData?.category ?? [])];
     const resetcate = deletedcate.filter((obj) =>
       globalindex.categoryeditindex.includes(obj.id as number)
     );
@@ -399,7 +401,7 @@ const EditCategory = ({
       <div className="EditCategory w-full h-full overflow-y-auto overflow-x-hidden  flex flex-col gap-y-5 p-1">
         {!edit ? (
           <>
-            {(!allData.category || allData.category.length === 0) && (
+            {allData?.category && allData.category.length === 0 && (
               <h1 className="text-lg text-red-400 font-bold text-center">
                 No Category
               </h1>
@@ -407,7 +409,7 @@ const EditCategory = ({
             {loading ? (
               <NormalSkeleton width="100%" height="50px" count={3} />
             ) : (
-              allData.category?.map((obj, idx) => (
+              allData?.category?.map((obj, idx) => (
                 <motion.div
                   key={idx}
                   initial={{ x: "-120%" }}

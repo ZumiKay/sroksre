@@ -64,7 +64,6 @@ export default function TemplateContainer({
                 >
                   {color ? (
                     <div
-                      key={idx}
                       className={`w-fit h-[50px] rounded-lg flex flex-row justify-center items-center gap-x-3 cursor-pointer p-2 transition-colors active:bg-gray-300 hover:bg-gray-300`}
                       onClick={() => onItemsClick && onItemsClick(idx)}
                     >
@@ -106,7 +105,6 @@ export default function TemplateContainer({
             >
               {color ? (
                 <div
-                  key={idx}
                   className={`w-fit h-[50px] rounded-lg flex flex-row justify-center items-center gap-x-3 cursor-pointer p-2 transition-colors active:bg-gray-300 hover:bg-gray-300`}
                   onClick={() => onItemsClick && onItemsClick(idx)}
                 >
@@ -290,7 +288,7 @@ export const AddTemplateModal = ({
     close();
   };
   return (
-    <Modal closestate="none">
+    <Modal closestate="none" customwidth="280px" customheight="600px">
       <div className="w-full h-full bg-white flex flex-col gap-y-5 p-2 relative rounded-md">
         <h3 className="text-xl font-bold">Template</h3>
         {step === "" ? (

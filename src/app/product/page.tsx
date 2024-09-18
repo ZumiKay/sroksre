@@ -1,6 +1,6 @@
 "use server";
 import Link from "next/link";
-import { GetBannerLink, getCate, GetListProduct } from "./action";
+import { GetBannerLink, getCate, GetListProduct, getSubCate } from "./action";
 import { notFound } from "next/navigation";
 import Card from "../component/Card";
 import { PaginationSSR } from "../dashboard/order/OrderComponent";
@@ -11,7 +11,7 @@ import {
 import Prisma from "@/src/lib/prisma";
 import { Banner } from "../component/HomePage/Component";
 import { format } from "date-fns";
-import { getDiscountedPrice, IsNumber } from "@/src/lib/utilities";
+import { calculateDiscountProductPrice, IsNumber } from "@/src/lib/utilities";
 import NotFound from "../not-found";
 import type { Metadata } from "next";
 
@@ -79,7 +79,6 @@ export async function generateMetadata({
   return {
     title: title + ` | SrokSre`,
     description,
-    appleWebApp: true,
   };
 }
 
@@ -118,11 +117,14 @@ const fetchPromotion = async (id: number, page: number, show: number) => {
     ...promotion,
     Products: promotion?.Products.map((prod) => {
       if (prod.discount) {
-        const discount = getDiscountedPrice(prod.discount, prod.price);
+        const discount = calculateDiscountProductPrice({
+          discount: prod.discount,
+          price: prod.price,
+        });
 
         return {
           ...prod,
-          discount: { ...discount, newprice: discount.newprice.toFixed(2) },
+          discount: discount.discount,
         };
       }
       return prod;
@@ -178,11 +180,14 @@ const getAllPromotion = async () => {
     ...promotion,
     Products: promotion.Products.map((prod) => {
       if (prod.discount) {
-        const discount = getDiscountedPrice(prod.discount, prod.price);
+        const discount = calculateDiscountProductPrice({
+          price: prod.price,
+          discount: prod.discount,
+        });
 
         return {
           ...prod,
-          discount: { ...discount, newprice: discount.newprice.toFixed(2) },
+          discount: discount.discount,
         };
       }
       return prod;
@@ -274,9 +279,15 @@ export default async function ProductsPage({
     return notFound();
   }
 
-  const cate = await getCate(pid ?? ppid ?? "0", cid);
+  let subcate = undefined;
+  let cate = undefined;
+  if (!pid && cid) {
+    subcate = await getSubCate(cid);
+  } else {
+    cate = await getCate(pid ?? ppid ?? "0", cid);
+  }
 
-  if (!cate) {
+  if ((pid && !cate) || (!pid && cid && !subcate)) {
     return notFound();
   }
 
@@ -295,7 +306,7 @@ export default async function ProductsPage({
         limit,
         pid ?? "0",
         cid,
-        cate.type === "latest",
+        cate?.type === "latest",
         {
           color: isColor,
           size: isSize,
@@ -313,7 +324,6 @@ export default async function ProductsPage({
     undefined;
 
   if (allproduct && !allproduct.success) {
-    throw Error(allproduct.error);
   }
   if (promoid && !promotion) {
     return notFound();
@@ -362,22 +372,39 @@ export default async function ProductsPage({
           <div className="w-[3px] h-[25px] bg-black rotate-[190deg]"></div>
           <Link
             href={`/product?${
-              cate.type === "sale" ? `ppid=${cate.id}` : `pid=${pid}`
-            }&page=1$limit=1`}
+              subcate
+                ? subcate.Parentcategories?.type === "sale"
+                  ? `ppid=${subcate.Parentcategories.id}`
+                  : `pid=${subcate.Parentcategories?.id}`
+                : cate?.type === "sale"
+                ? `ppid=${cate.id}`
+                : `pid=${pid}`
+            }`}
           >
             <div className="transition hover:text-gray-300 cursor-pointer">
-              {`${cate.name ? `${cate.name}` : ""}`}
+              {`${
+                cate?.name
+                  ? `${cate.name}`
+                  : subcate
+                  ? `${subcate.Parentcategories?.name}`
+                  : ""
+              }`}
             </div>
           </Link>
-          <div
-            hidden={!cate.sub || !promotion}
-            className="w-[3px] h-[25px] bg-black rotate-[190deg]"
-          ></div>
+          <div className="w-[3px] h-[25px] bg-black rotate-[190deg]"></div>
 
-          {((cate && cate.sub) || promotion) && (
-            <Link href={`/product?pid=${pid}&cid=${cid}&page=1&limit=1`}>
+          {(subcate || (cate && cate.sub) || promotion) && (
+            <Link
+              href={`/product?pid=${
+                subcate ? subcate.Parentcategories?.id : pid
+              }&cid=${cid}`}
+            >
               <div className="transition hover:text-gray-300 cursor-pointer">
-                {promotion ? promotion.name : cate && cate.sub && cate.sub.name}{" "}
+                {subcate
+                  ? subcate.name
+                  : promotion
+                  ? promotion.name
+                  : cate && cate.sub && cate.sub.name}{" "}
               </div>
             </Link>
           )}

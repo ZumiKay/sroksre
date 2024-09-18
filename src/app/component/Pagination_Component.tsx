@@ -145,7 +145,7 @@ export const SelectionCustom = ({
       }}
     >
       {data.map((animal) => (
-        <SelectItem key={animal.value}>{animal.label}</SelectItem>
+        <SelectItem key={animal.value.toString()}>{animal.label}</SelectItem>
       ))}
     </Select>
   );

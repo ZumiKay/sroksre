@@ -14,7 +14,6 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: "SrokSre Online Store. Quality Over Quantity",
     description: "Small Online Store Base in Phnompenh Cambodia",
-    appleWebApp: true,
   };
 }
 
@@ -28,7 +27,7 @@ export default async function Home() {
   const items = await fetchhomeitems();
 
   return (
-    <main className="Home__Container w-full h-full grid place-content-center gap-y-10 min-h-screen">
+    <main className="Home__Container w-full h-full grid place-content-center gap-y-10 min-h-screen relative">
       <div className="w-[95vw] h-full flex flex-col items-center gap-y-5">
         {items.map((i, idx) => {
           if (i.type === "banner") {

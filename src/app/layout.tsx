@@ -9,7 +9,6 @@ import { GlobalContextProvider } from "../context/GlobalContext";
 import { getUser } from "../context/OrderContext";
 import { NextUIProvider } from "@nextui-org/react";
 import { Suspense } from "react";
-import { LayoutTransition } from "./component/Layout";
 import { ContainerLoading } from "./component/Loading";
 import { SocketProvider } from "../context/SocketContext";
 
@@ -53,14 +52,7 @@ export default async function RootLayout({
               <SocketProvider>
                 <div className="w-full h-full relative">
                   <Navbar session={session as any} />
-                  <ToastContainer />{" "}
-                  <LayoutTransition
-                    initial={{ opacity: 0, y: -20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                  >
-                    {children}
-                  </LayoutTransition>
+                  <ToastContainer /> {children}
                   <Footer />
                 </div>
               </SocketProvider>

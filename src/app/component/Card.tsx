@@ -13,13 +13,12 @@ import {
 } from "@/src/context/GlobalContext";
 import Checkmark from "../../../public/Image/Checkmark.svg";
 import { SubInventoryMenu } from "./Navbar";
-import LoadingIcon, { errorToast } from "./Loading";
+import { errorToast } from "./Loading";
 import { useRouter } from "next/navigation";
 
 import { Orderpricetype, totalpricetype } from "@/src/context/OrderContext";
 import { Variantcontainer } from "./Modals/VariantModal";
 
-import { UpdateStockModal } from "./Modals/Stock";
 import { Chip, Skeleton } from "@nextui-org/react";
 import {
   ApiRequest,
@@ -118,7 +117,7 @@ export default function Card(props: cardprops) {
         if (isProduct) {
           const isExist = promotion.tempproduct?.includes(id);
           !isExist && temp.push(id);
-          let allproduct = [...(allData.product ?? [])];
+          let allproduct = [...(allData?.product ?? [])];
           allproduct = allproduct.map((i) => {
             if (i.id === id) {
               return { ...i, discount: undefined };
@@ -127,7 +126,7 @@ export default function Card(props: cardprops) {
           });
 
           promo.splice(index, 1);
-          setalldata((prev) => ({ ...prev, product: allproduct }));
+          setalldata({ product: allproduct });
         } else {
           promo.push({
             id: id,
@@ -249,19 +248,14 @@ export default function Card(props: cardprops) {
           handeMouseEvent("leave");
           sethover(false);
         }}
-        className={`card__container w-[500px] h-[500px]
+        className={`card__container w-[500px] h-fit flex flex-col
        hover:border-[2px] hover:border-gray-300 ${
          isProduct ? "border border-gray-300" : ""
        } max-smaller_screen:w-[350px] 
-        max-smaller_screen:h-[350px] 
         max-large_tablet:w-[250px] 
-        max-large_tablet:h-[250px]
         max-large_phone:w-[200px]
-        max-large_phone:h-[200px]
         max-small_phone:w-[180px]
-        max-small_phone:h-[300px]
         max-smallest_phone:w-[150px]
-        max-smallest_phone:h-[250px]
         `}
       >
         <div
@@ -288,7 +282,6 @@ export default function Card(props: cardprops) {
               showCheckmark
             ) : state.hover && props.isAdmin ? (
               <SubInventoryMenu
-                ref={ref}
                 data={editactionMenu}
                 index={props.id}
                 type="product"
@@ -308,13 +301,13 @@ export default function Card(props: cardprops) {
             )}
           </span>
         </div>
-        <section className="card_detail w-full h-fit font-semibold bg-white flex flex-col justify-center gap-y-3  pl-2 rounded-b-md text-sm">
+        <div className="card_detail w-full h-fit font-semibold flex flex-col justify-center gap-y-3  pl-2 rounded-b-md text-sm">
           <h4 className="card_info w-full max-w-[400px] h-fit text-lg">
             {props.name.length > 0 ? props.name : "No Product Created"}
           </h4>
 
           {hasDiscount ? showDiscountPrice : showOriginalPrice}
-        </section>
+        </div>
         {props.button && (
           <PrimaryButton type="button" text="Add To Cart" width={"100%"} />
         )}
@@ -338,8 +331,6 @@ export default function Card(props: cardprops) {
               closename={closename}
             />
           )}
-
-          {openmodal[closename] && <UpdateStockModal closename={closename} />}
         </>
       )}
     </>
@@ -386,7 +377,6 @@ export const Selecteddetailcard = ({
 export function SecondayCard(props: SecondayCardprops) {
   const [editqty, seteditqty] = useState(props.selectedqty);
   const [loading, setloading] = useState(false);
-  const router = useRouter();
   const price = parseFloat(props.price.price.toString()).toFixed(2);
 
   const showprice = () => {
@@ -546,8 +536,7 @@ export const BannerCard = ({
   isExpired,
   bannersize,
 }: Bannercardprops) => {
-  const { promotion, setpromotion, openmodal, isLoading, setisLoading } =
-    useGlobalContext();
+  const { promotion, setpromotion, openmodal } = useGlobalContext();
 
   const [hover, sethover] = useState(false);
   const isBanner = promotion.banner_id === id;
@@ -596,28 +585,9 @@ export const BannerCard = ({
           alt={`Banner`}
           className="banner w-full h-full object-cover"
           loading="lazy"
-          onLoad={() =>
-            setisLoading((prev) => ({
-              ...prev,
-              IMAGE: { ...prev.IMAGE, [`Banner${index}`]: true },
-            }))
-          }
-          onLoadStart={() =>
-            setisLoading((prev) => ({
-              ...prev,
-              IMAGE: { ...prev.IMAGE, [`Banner${index}`]: false },
-            }))
-          }
           width={600}
           height={600}
         />
-        {`Banner${index}` in isLoading.IMAGE &&
-          !isLoading.IMAGE[`Banner${index}`] && (
-            <div className="absolute top-[35%] left-[30%] w-[10%] h-[10%]">
-              {" "}
-              <LoadingIcon />{" "}
-            </div>
-          )}
       </div>
 
       <h3 className="Banner text-xl w-full h-fit break-words p-1 bg-[#495464] rounded-b-lg  font-bold text-white">

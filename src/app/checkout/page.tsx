@@ -1,4 +1,4 @@
-import React from "react";
+"use server";
 import {
   BackAndEdit,
   Checkoutproductcard,
@@ -24,7 +24,14 @@ import { SuccessVector } from "../component/Asset";
 import { VariantColorValueType } from "@/src/context/GlobalContext";
 import { getPolicesByPage } from "../api/policy/route";
 import Link from "next/link";
+import { Metadata } from "next";
 
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    title: "Checkout | SrokSre",
+    description: "Checkout page , payment with paypal",
+  };
+}
 export default async function Checkoutpage({
   searchParams,
 }: {

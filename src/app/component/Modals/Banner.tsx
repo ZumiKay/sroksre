@@ -236,9 +236,13 @@ export const BannerModal = ({
             </div>
           </div>
         )}
-        <div className="bannerform flex flex-col gap-y-5 justify-start items-center w-[95vw] h-full">
-          <div className="w-full h-fit flex flex-row gap-x-5">
-            <div className="w-1/2 h-fit flex flex-col gap-y-5">
+        <div className="bannerform flex flex-col gap-y-5 justify-start items-center w-full h-full">
+          <div className="w-full h-fit flex flex-row gap-x-5 max-small_phone:flex-col max-small_phone:gap-y-5">
+            <div
+              className="w-1/2 h-fit flex flex-col gap-y-5
+            max-small_phone:w-full
+            "
+            >
               <label className="font-bold text-lg">Banner Type</label>
               <Selection
                 data={BannerType}
@@ -247,7 +251,11 @@ export const BannerModal = ({
                 onChange={handleChange}
               />
             </div>
-            <div className="w-1/2 h-fit flex flex-col gap-y-5">
+            <div
+              className="w-1/2 h-fit flex flex-col gap-y-5 
+            max-small_phone:w-full
+            "
+            >
               <label className="font-bold text-lg">Banner Size</label>
               <Selection
                 data={BannerSize}
@@ -257,11 +265,9 @@ export const BannerModal = ({
               />
             </div>
           </div>
-          <div className="w-full h-fit flex flex-row items-center gap-x-5">
+          <div className="w-full h-fit flex flex-row items-start gap-x-5">
             <div className="w-full h-fit flex flex-col gap-y-5">
-              <label className="w-full h-fit text-lg font-bold">
-                Banner Name
-              </label>
+              <label className="w-full h-fit text-lg font-bold">Name</label>
               <input
                 name="name"
                 placeholder="Name"

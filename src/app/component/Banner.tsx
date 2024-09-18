@@ -2,7 +2,7 @@
 import Image from "next/image";
 import ReactSelect from "react-select/async";
 import makeAnimated from "react-select/animated";
-import { useEffect, useRef, useState } from "react";
+import { CSSProperties, useEffect, useRef, useState } from "react";
 import { SelectType } from "@/src/context/GlobalContext";
 import { getSelectCategory } from "../action";
 import PrimaryButton, { Selection } from "./Button";
@@ -29,13 +29,15 @@ export const NormalSkeleton = ({
   width,
   height,
   count,
+  style,
 }: {
   width: string;
   height: string;
   count: number;
+  style?: CSSProperties;
 }) => {
   return (
-    <div className="w-full h-fit flex flex-col gap-y-3">
+    <div style={style} className="w-full h-fit flex flex-col gap-3">
       {Array.from({ length: count }).map((_, idx) => (
         <Skeleton key={idx} className="rounded-lg" style={{ height, width }} />
       ))}
@@ -137,7 +139,9 @@ export const SelectAndSearchProduct = ({
   }, [value]);
   useEffect(() => {
     const fetchData = async () => {
+      setloading(true);
       const res = await getdata(limit, inputValue);
+      setloading(false);
       if (res && res.success) {
         setoptions(res.data);
         setIsLimit(res.isLimit ?? false);
@@ -279,7 +283,7 @@ export const SelectAndSearchProduct = ({
             }}
             animate={focus && { opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="option_container z-50 absolute bg-white w-full h-fit max-h-[400px] overflow-y-auto overflow-x-hidden p-2 flex flex-col items-center gap-y-5 border border-gray-300"
+            className="option_container  bg-white w-full h-fit max-h-[400px] overflow-y-auto overflow-x-hidden p-2 flex flex-col items-center gap-y-5 border border-gray-300"
           >
             {loading ? (
               <NormalSkeleton width="100%" height="30px" count={3} />
@@ -297,7 +301,7 @@ export const SelectAndSearchProduct = ({
                           ? { backgroundColor: "#4688A0" }
                           : { backgroundColor: "#d2d2d2" }
                       }
-                      className={`selectednumber cursor-pointer w-[30px] h-[30px] font-medium text-sm text-white rounded-[100%] grid place-content-center`}
+                      className={`selectednumber cursor-pointer w-[30px] h-[30px] p-2 font-medium text-sm text-white rounded-full flex justify-center items-center`}
                     >
                       {!singleselect
                         ? `${

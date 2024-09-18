@@ -76,7 +76,7 @@ export const ContainerLoading = () => {
       closestate="none"
       customheight="300px"
       customwidth="280px"
-      customZIndex={200}
+      customZIndex={299}
     >
       <div className="loading_contianer w-full h-full bg-white rounded-lg p-5 grid place-content-center relative">
         <div className="loadingio-spinner-double-ring-op62hjn5ktc relative left-[16%] top-[10%]">

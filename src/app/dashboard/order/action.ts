@@ -1,7 +1,6 @@
 "use server";
 
 import Prisma from "@/src/lib/prisma";
-import { AllorderType } from "./page";
 import {
   caculateArrayPagination,
   calculatePagination,
@@ -14,6 +13,13 @@ import { SendOrderEmail } from "../../checkout/action";
 import { Filterdatatype } from "./OrderComponent";
 import dayjs from "dayjs";
 import { getCheckoutdata } from "../../checkout/page";
+
+const AllorderType = {
+  orderdetail: "orderdetail",
+  orderproduct: "orderproduct",
+  orderaction: "orderaction",
+  orderupdatestatus: "orderupdatestatus",
+};
 
 export const GetOrder = async (
   id?: string,

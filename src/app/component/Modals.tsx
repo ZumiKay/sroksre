@@ -47,17 +47,6 @@ export default function Modal({
   const ref = useRef<HTMLDivElement | null>(null);
   const { openmodal, setopenmodal, setglobalindex, globalindex, setalldata } =
     useGlobalContext();
-  useEffect(() => {
-    // Add class to body to disable scroll
-    const isOpen = Object.values(openmodal).some((i) => i);
-    if (isOpen) document.body.classList.add("no-scroll");
-    else document.body.classList.remove("no-scroll");
-
-    return () => {
-      // Cleanup to make sure scroll is enabled when component unmounts
-      document.body.classList.remove("no-scroll");
-    };
-  }, []);
 
   return (
     <div
@@ -133,7 +122,9 @@ export function SecondaryModal({
       closeButton
       style={style}
       className="z-[200]"
-      onOpenChange={(open) => onPageChange && onPageChange(open)}
+      onOpenChange={(open) => {
+        onPageChange && onPageChange(open);
+      }}
     >
       <ModalContent>
         {(onClose) => (
