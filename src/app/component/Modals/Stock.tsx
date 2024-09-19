@@ -231,6 +231,7 @@ interface Stockcardprops {
 export function StockCard({ label, color, onClick }: Stockcardprops) {
   return (
     <NextChip
+      key={label}
       onClick={() => onClick && onClick()}
       size="lg"
       startContent={

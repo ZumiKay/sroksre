@@ -1,4 +1,8 @@
-import { ApiRequest, useEffectOnce } from "@/src/context/CustomHook";
+import {
+  ApiRequest,
+  useEffectOnce,
+  useScreenSize,
+} from "@/src/context/CustomHook";
 import {
   PromotionInitialize,
   useGlobalContext,
@@ -6,7 +10,7 @@ import {
 import { useRouter, useSearchParams } from "next/navigation";
 import React, { ChangeEvent, FormEvent, useEffect, useState } from "react";
 import { errorToast, infoToast, successToast } from "../Loading";
-import Modal from "../Modals";
+import Modal, { SecondaryModal } from "../Modals";
 import { motion } from "framer-motion";
 import { DateTimePicker } from "@mui/x-date-pickers";
 import dayjs from "dayjs";
@@ -28,9 +32,11 @@ interface InventoryParamType {
 export const CreatePromotionModal = ({
   searchparams,
   settype,
+  setreloaddata,
 }: {
   searchparams: InventoryParamType;
   settype: (type: string) => void;
+  setreloaddata: React.Dispatch<React.SetStateAction<boolean>>;
 }) => {
   const {
     openmodal,
@@ -41,13 +47,11 @@ export const CreatePromotionModal = ({
     isLoading,
     globalindex,
     setglobalindex,
-    setreloaddata,
   } = useGlobalContext();
 
   const router = useRouter();
   const searchParams = useSearchParams();
-
-  const [isEdit, setisEdit] = useState(false);
+  const [isPickDate, setisPickDate] = useState(false);
 
   const fetchdata = async (id: number) => {
     const request = await ApiRequest(
@@ -62,22 +66,12 @@ export const CreatePromotionModal = ({
     }
   };
   useEffect(() => {
-    setisEdit(false);
     if (globalindex.promotioneditindex !== -1) {
       fetchdata(globalindex.promotioneditindex);
     } else {
       setpromotion((prev) => ({ ...prev, id: -1 }));
     }
   }, []);
-
-  useEffect(() => {
-    const isEdit =
-      promotion.name.length !== 0 &&
-      promotion.description.length !== 0 &&
-      promotion.banner_id &&
-      promotion.Products.length > 0;
-    isEdit ? setisEdit(true) : setisEdit(false);
-  }, [promotion]);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -106,8 +100,6 @@ export const CreatePromotionModal = ({
     }
 
     setpromotion(PromotionInitialize);
-
-    setisEdit(false);
 
     successToast(
       `Promotion ${
@@ -186,24 +178,28 @@ export const CreatePromotionModal = ({
     });
 
     param.set("ty", type);
-
+    param.set("p", "1");
+    param.set("limit", "1");
     settype(type);
+
     router.push(`?${param}`, { scroll: false });
     setreloaddata(true);
     setopenmodal((prev) => ({ ...prev, createPromotion: false }));
   };
 
   return (
-    <Modal closestate={"none"} customZIndex={200}>
-      <motion.div
-        initial={{ y: 1000 }}
-        animate={{ y: 0 }}
-        exit={{ y: 1000 }}
-        className="createPromotion__container relative  rounded-lg w-full h-full bg-white p-3 flex flex-col justify-center items-center"
-      >
+    <SecondaryModal
+      onPageChange={(val) =>
+        !isPickDate &&
+        setopenmodal((prev) => ({ ...prev, createPromotion: val }))
+      }
+      open={openmodal.createPromotion}
+      size="xl"
+    >
+      <div className="createPromotion__container relative rounded-lg w-full h-full bg-white p-3 flex flex-col items-center">
         <form
           onSubmit={handleSubmit}
-          className="promotionform w-full h-full flex flex-col justify-center items-center gap-y-5"
+          className="promotionform w-full h-full flex flex-col justify-start items-center gap-y-5"
         >
           <input
             type="text"
@@ -227,11 +223,12 @@ export const CreatePromotionModal = ({
           </label>
           <DateTimePicker
             value={promotion.expireAt ? dayjs(promotion.expireAt) : null}
+            onOpen={() => setisPickDate(true)}
+            onClose={() => setisPickDate(false)}
             onChange={(e) => {
               if (e) {
                 setpromotion((prev) => ({ ...prev, expireAt: e }));
               }
-              setisEdit(false);
             }}
             sx={{ width: "100%", height: "50px" }}
           />
@@ -262,7 +259,6 @@ export const CreatePromotionModal = ({
             color="#44C3A0"
             text={globalindex.promotioneditindex === -1 ? "Create" : "Update"}
             type="submit"
-            disable={!isEdit}
             status={
               isLoading.POST || isLoading.PUT ? "loading" : "authenticated"
             }
@@ -281,22 +277,31 @@ export const CreatePromotionModal = ({
             onClick={() => handleCancel()}
           />
         </form>
-      </motion.div>
+      </div>
       {openmodal.imageupload && (
-        <ImageUpload mutitlple={false} limit={1} type="createpromotion" />
+        <ImageUpload
+          mutitlple={false}
+          limit={1}
+          type="createpromotion"
+          setreloaddata={setreloaddata}
+        />
       )}
-    </Modal>
+    </SecondaryModal>
   );
 };
 
-export const DiscountModals = () => {
+export const DiscountModals = ({
+  setreloaddata,
+}: {
+  setreloaddata: React.Dispatch<React.SetStateAction<boolean>>;
+}) => {
   const {
     promotion,
     allData,
     setpromotion,
     globalindex,
+    openmodal,
     setopenmodal,
-    setreloaddata,
   } = useGlobalContext();
   const [discount, setdiscount] = useState<number>(0);
 
@@ -314,7 +319,7 @@ export const DiscountModals = () => {
   const handleDiscount = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     let promoproduct = [...promotion.Products];
-    let allproduct = [...(allData.product ?? [])];
+    let allproduct = [...(allData?.product ?? [])];
     const producteditidx = globalindex.promotionproductedit;
 
     const calculateDiscount = (price: number) => ({
@@ -362,7 +367,14 @@ export const DiscountModals = () => {
   };
 
   return (
-    <Modal customwidth="30%" customheight="fit-content" closestate="discount">
+    <SecondaryModal
+      size="xl"
+      open={openmodal.discount}
+      onPageChange={(val) =>
+        setopenmodal((prev) => ({ ...prev, discount: val }))
+      }
+      closebtn
+    >
       <motion.form
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -393,6 +405,6 @@ export const DiscountModals = () => {
           radius="10px"
         />
       </motion.form>
-    </Modal>
+    </SecondaryModal>
   );
 };

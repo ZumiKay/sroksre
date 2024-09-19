@@ -1,13 +1,11 @@
 "use client";
 import ReactDOMServer from "react-dom/server";
-import { ChangeEvent, useEffect, useRef, useState } from "react";
+import { ChangeEvent, useEffect, useState } from "react";
 import PrimaryButton, { Selection } from "../../component/Button";
-import Modal from "../../component/Modals";
+import Modal, { SecondaryModal } from "../../component/Modals";
 import { useGlobalContext, userdata } from "@/src/context/GlobalContext";
 import { DateTimePicker, LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
-import PaginationComponent from "../../component/Pagination";
-import { CloseVector } from "../../component/Asset";
 import {
   Allstatus,
   Productordertype,
@@ -15,19 +13,20 @@ import {
 } from "@/src/context/OrderContext";
 import { Checkoutproductcard } from "../../component/Checkout";
 import { useRouter, useSearchParams } from "next/navigation";
-import { AllorderStatus, AllorderType } from "./page";
+import { AllorderStatus } from "./page";
 import {
   formatDate,
   OrderReceiptTemplate,
 } from "../../component/EmailTemplate";
 import { deleteOrder, ExportOrderData, updateOrderStatus } from "./action";
-import { errorToast, infoToast, successToast } from "../../component/Loading";
+import { errorToast, successToast } from "../../component/Loading";
 import dayjs, { Dayjs } from "dayjs";
 import { OrderUserType } from "../../checkout/action";
 import * as XLSX from "xlsx";
-import { isObjectEmpty } from "@/src/lib/utilities";
+import { AllorderType, isObjectEmpty } from "@/src/lib/utilities";
 import { shippingtype } from "../../component/Modals/User";
 import PaginationCustom from "../../component/Pagination_Component";
+import { Input } from "@nextui-org/react";
 
 export const SelectionSSR = ({
   name,
@@ -99,7 +98,7 @@ export const DownloadButton = () => {
           OrderDate: i.createdAt,
           ProductName: j.product.name,
           ProductPricePerUnit: j.product.price,
-          ProductDisount: j.product.discount ? j.product.discount * 100 : 0,
+          ProductDisount: j.product.discount,
           ShippingType: i.shippingtype,
           ShippingPrice: price.shipping ?? 0,
           TotalPrice: price.total,
@@ -156,7 +155,7 @@ export const DownloadButton = () => {
       />
 
       {open && (
-        <Modal closestate="none" customZIndex={150}>
+        <Modal closestate="none" customZIndex={210}>
           <div className="w-[250px] h-[250px] bg-[#f3f3f3] flex flex-col items-center justify-between p-5 rounded-lg">
             {totalcount ? (
               <table className="w-full text-lg">
@@ -199,6 +198,7 @@ export const DownloadButton = () => {
           close="exportoption"
           handleNext={handleGetData}
           loading={loading}
+          open={openmodal.exportoption}
         />
       )}
     </>
@@ -223,7 +223,7 @@ export const FilterButton = ({
     const pararr = Array.from(params.keys());
 
     pararr.forEach((key) => {
-      if (key !== "page" && key !== "show") {
+      if (key !== "page" && key !== "show" && key !== "status") {
         if (params.has(key)) {
           params.delete(key);
         }
@@ -241,7 +241,7 @@ export const FilterButton = ({
         color={!isFilter ? "black" : undefined}
         radius="10px"
         height="50px"
-        width="50%"
+        width="150px"
       />
 
       {!isFilter && (
@@ -251,13 +251,17 @@ export const FilterButton = ({
           color={"red"}
           radius="10px"
           height="50px"
-          width="50%"
+          width="150px"
           onClick={() => handleClear()}
         />
       )}
 
       {openmodal.filteroption && (
-        <FilterMenu close="filteroption" type="filter" />
+        <FilterMenu
+          open={openmodal.filteroption}
+          close="filteroption"
+          type="filter"
+        />
       )}
     </>
   );
@@ -357,20 +361,14 @@ export const ButtonSsr = ({
           ) : type.startsWith(AllorderType.orderaction) ? (
             <ActionModal
               key={idx}
-              close={() => handleClose()}
+              close={clickedtype}
               types="none"
               oid={id}
+              setclose={handleClose}
               order={data?.action as unknown as OrderUserType}
             />
           ) : (
-            <>
-              <ActionModal
-                close={() => handleClose()}
-                types="status"
-                oid={id}
-                order={data as unknown as OrderUserType}
-              />
-            </>
+            <></>
           )}
         </>
       )}
@@ -394,22 +392,23 @@ const FilterMenu = ({
   close,
   handleNext,
   loading,
+  open,
 }: {
   type: "filter" | "export";
   close: "exportoption" | "filteroption";
   handleNext?: (
     data: Filterdatatype,
-    settotalcount: React.Dispatch<React.SetStateAction<number>>
+    settotalcount?: React.Dispatch<React.SetStateAction<number>>
   ) => void;
   loading?: boolean;
+  open: boolean;
 }) => {
   const [pickdate, setpickdate] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
   const [filterdata, setfilterdata] = useState<Filterdatatype>({});
-  const formref = useRef<HTMLFormElement>(null);
   const [isFilter, setisFilter] = useState(false);
-  const [totalfildata, settotalfildata] = useState(0);
+  const { setopenmodal } = useGlobalContext();
 
   useEffect(() => {
     if (
@@ -438,8 +437,9 @@ const FilterMenu = ({
       }
     });
     router.push(`?${params}`);
-    infoToast("Filtered Successfully");
     setisFilter(true);
+
+    setopenmodal((prev) => ({ ...prev, [close]: false }));
   };
 
   const handleClear = () => {
@@ -475,29 +475,39 @@ const FilterMenu = ({
       errorToast("Filename required");
       return;
     }
-    handleNext && handleNext(filterdata, settotalfildata);
+    handleNext && handleNext(filterdata);
   };
 
   return (
-    <Modal closestate={pickdate ? "" : close} customheight="600px">
+    <SecondaryModal
+      size="4xl"
+      open={open}
+      closebtn
+      onPageChange={(val) =>
+        !pickdate && setopenmodal((prev) => ({ ...prev, [close]: val }))
+      }
+      header={() => (
+        <h2 className="font-bold text-2xl" hidden={type !== "filter"}>
+          Filter by
+        </h2>
+      )}
+    >
       <LocalizationProvider dateAdapter={AdapterDayjs}>
         <div className="w-full h-full bg-white rounded-lg grid gap-y-5 font-bold text-lg p-5">
-          <h2 className="font-bold text-2xl" hidden={type !== "filter"}>
-            Filter by
-          </h2>
-          <label
-            htmlFor="search"
-            className="text-lg w-full text-left font-bold"
-          >
-            {type === "export" ? "Customer (ID or Name)" : "Search"}
-          </label>
-          <input
+          <Input
             type="text"
             value={filterdata.q}
             onChange={handleChange}
-            name="q"
-            className="w-full h-[50px] rounded-lg border border-black pl-2"
+            labelPlacement="outside"
+            label={
+              type === "export"
+                ? "Customer (ID or Name)"
+                : "Search (Customer Email , Name , Order Id)"
+            }
             placeholder="Search"
+            name="q"
+            size="lg"
+            className="w-full"
           />
 
           <label className="text-lg w-full text-left font-bold">
@@ -534,13 +544,13 @@ const FilterMenu = ({
           {type === "export" && (
             <div className="w-full h-full grid gap-y-5">
               <label className="text-lg font-bold">File name (required)</label>
-              <input
+              <Input
                 type="text"
                 id="filename"
                 name="filename"
                 placeholder="Sheet1"
                 onChange={handleChange}
-                className="w-full h-[50px] rounded-lg border border-black pl-2"
+                className="w-full h-[50px]"
               />
             </div>
           )}
@@ -580,7 +590,7 @@ const FilterMenu = ({
           </div>
         </div>
       </LocalizationProvider>
-    </Modal>
+    </SecondaryModal>
   );
 };
 
@@ -594,36 +604,42 @@ export const AmountRange = ({
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
 
-    if (parseInt(value) < 0 || !isNaN(value as any)) {
+    // Check if the value is a valid non-negative number
+    if (/^\d*$/.test(value)) {
+      setdata((prev) => ({ ...prev, [name]: value }));
+    } else {
+      // Clear the input if the value is invalid (negative or non-numeric)
       e.target.value = "";
     }
-
-    setdata((prev) => ({ ...prev, [name]: value }));
   };
   return (
-    <div className="Pricerange_Container inline-flex gap-x-5 w-full justify-start">
-      <div className="w-full start inline-flex gap-x-5 text-lg font-medium items-center">
+    <div className="Pricerange_Container inline-flex flex-wrap gap-x-5 w-full justify-start">
+      <div className="w-full start inline-flex  gap-x-5 text-lg font-medium items-center">
         <label htmlFor="from"> From </label>
-        <input
+        <Input
           type="number"
           id="price"
           name="startprice"
-          value={data.startprice ?? ""}
+          placeholder="0.00"
+          endContent={"$"}
+          value={data.startprice?.toString()}
           onChange={handleChange}
           min={0}
-          className="w-full h-[50px] rounded-lg border border-black pl-2"
+          className="w-full h-[50px]"
         />
       </div>
       <div className="w-full start inline-flex gap-x-5 text-lg font-medium items-center">
         <label htmlFor="from"> To </label>
-        <input
+        <Input
           type="number"
           id="price"
           name="endprice"
-          value={data.endprice ?? ""}
+          value={data.endprice?.toString() ?? ""}
+          placeholder="0.00"
+          endContent={"$"}
           onChange={handleChange}
           min={0}
-          className="w-full h-[50px] rounded-lg border border-black pl-2"
+          className="w-full h-[50px]"
         />
       </div>
     </div>
@@ -651,7 +667,7 @@ export const PaginationSSR = ({
     searchparam.set("show", `${value}`);
     setpage(1);
 
-    router.replace(`?${searchparam}`, { scroll: false });
+    router.push(`?${searchparam}`, { scroll: false });
   };
 
   return (
@@ -686,6 +702,7 @@ export function DetailModal({
   const [type, settype] = useState<"user" | "shipping" | "close" | "none">(
     "none"
   );
+  const { openmodal } = useGlobalContext();
 
   const handleClick = (ty: typeof type) => {
     if (ty === "close") {
@@ -702,25 +719,25 @@ export function DetailModal({
         {type === "user" && data?.user ? (
           <tbody className="bg-white">
             <tr className="h-[50px]">
-              <th className="pl-5 rounded-tl-lg">Firstname: </th>
+              <th className="pl-2 rounded-tl-lg">Firstname: </th>
               <td align="right" className="pr-5 rounded-tr-lg break-all">
                 {data?.user?.firstname}
               </td>
             </tr>
             <tr className="h-[50px]">
-              <th className="pl-5">Lastname: </th>
+              <th className="pl-2">Lastname: </th>
               <td align="right" className="pr-5 break-all">
                 {data.user?.lastname ?? ""}
               </td>
             </tr>
             <tr className="h-[50px]">
-              <th className="pl-5">Email: </th>
+              <th className="pl-2">Email: </th>
               <td align="right" className="pr-5 break-all">
                 {data.user?.email}
               </td>
             </tr>
             <tr className="h-[50px]">
-              <th className="pl-5 rounded-bl-lg">Phone Number: </th>
+              <th className="pl-2 rounded-bl-lg">Phone Number: </th>
               <td align="right" className="pr-5 rounded-br-lg break-all"></td>
             </tr>
           </tbody>
@@ -728,31 +745,43 @@ export function DetailModal({
           type === "shipping" && (
             <tbody className="bg-white">
               <tr className="h-[50px]">
-                <th className="pl-5">HouseId: </th>
+                <th className="pl-2">Firstname: </th>
+                <td align="right" className="pr-5 break-all">
+                  {data.shipping?.firstname}
+                </td>
+              </tr>
+              <tr className="h-[50px]">
+                <th className="pl-2">Lastname: </th>
+                <td align="right" className="pr-5 break-all">
+                  {data.shipping?.lastname}
+                </td>
+              </tr>
+              <tr className="h-[50px]">
+                <th className="pl-2">HouseId: </th>
                 <td align="right" className="pr-5 break-all">
                   {data.shipping?.houseId}
                 </td>
               </tr>
               <tr className="h-[50px]">
-                <th className="pl-5">District / Khan: </th>
+                <th className="pl-2">District / Khan: </th>
                 <td align="right" className="pr-5 break-all">
                   {data.shipping?.district}
                 </td>
               </tr>
               <tr className="h-[50px]">
-                <th className="pl-5">Songkat: </th>
+                <th className="pl-2">Songkat: </th>
                 <td align="right" className="pr-5 break-all">
                   {data.shipping?.songkhat}
                 </td>
               </tr>
               <tr className="h-[50px]">
-                <th className="pl-5">City / Province: </th>
+                <th className="pl-2">City / Province: </th>
                 <td align="right" className="pr-5 break-all">
                   {data.shipping?.province}
                 </td>
               </tr>
               <tr className="h-[50px]">
-                <th className="pl-5">PostalCode: </th>
+                <th className="pl-2">PostalCode: </th>
                 <td align="right" className="pr-5 break-all">
                   {data.shipping?.postalcode}
                 </td>
@@ -765,14 +794,15 @@ export function DetailModal({
   };
 
   return (
-    <Modal closestate={close} customheight="60vh">
-      <div className="w-full h-full relative bg-[#f2f2f2] flex flex-col items-center rounded-lg pl-5 pr-5">
-        <div
-          onClick={() => handleClick("close")}
-          className="w-[40px] h-[40px] absolute top-1 right-2"
-        >
-          <CloseVector width="100%" height="100%" />
-        </div>
+    <SecondaryModal
+      size="3xl"
+      open={openmodal[close] as boolean}
+      onPageChange={() => {
+        setclose();
+      }}
+      closebtn
+    >
+      <div className="w-full h-full relative bg-[#f2f2f2] flex flex-col items-center rounded-lg max-small_phone:p-2 pl-5 pr-5">
         <h3 className="w-full h-fit text-center text-xl font-bold mt-5 mb-5">
           Order Detail
         </h3>
@@ -803,7 +833,7 @@ export function DetailModal({
               )}
             </div>
 
-            <div className="dates w-full p-2">
+            <div className="dates w-full p-2 max-small_phone:p-0">
               <table
                 width={"100%"}
                 className="p-2 rounded-lg bg-white"
@@ -863,7 +893,7 @@ export function DetailModal({
           </>
         )}
       </div>
-    </Modal>
+    </SecondaryModal>
   );
 }
 
@@ -876,47 +906,42 @@ export const OrderProductDetailsModal = ({
   close: string;
   data: Productordertype[];
 }) => {
-  const handleClose = () => setclose(false);
+  const { openmodal } = useGlobalContext();
 
   return (
-    <Modal closestate={close} customheight="70vh" customwidth="70vw">
-      <div className="w-full h-full relative bg-[#f2f2f2] p-2 rounded-lg flex flex-col items-center gap-y-10">
-        <div
-          onClick={() => handleClose()}
-          className="w-[40px] h-[40px] absolute top-1 right-2"
-        >
-          <CloseVector width="100%" height="100%" />
-        </div>
+    <SecondaryModal
+      size="5xl"
+      open={openmodal[close] as boolean}
+      onPageChange={() => {
+        setclose();
+      }}
+      closebtn
+    >
+      <div className="w-full h-full relative  p-2 rounded-lg flex flex-col items-center gap-y-10">
+        <h3 className="w-full text-center font-bold text-xl">{`Products (${
+          data ? data.length : 0
+        })`}</h3>
 
-        <h3 className="w-full text-center font-bold text-xl">{`Products (${data?.length})`}</h3>
-
-        <div className="productlist w-[90%] max-h-[60vh] overflow-y-auto flex flex-col items-center gap-y-5">
-          {data?.map((prob) => (
-            <Checkoutproductcard
-              key={prob.id}
-              qty={prob.quantity}
-              total={(prob.product?.price as number) * prob.quantity}
-              cover={prob.product?.covers[0].url as string}
-              name={prob.product?.name as string}
-              details={prob.details}
-              price={{
-                price: prob.product?.price as number,
-                discount: prob.product?.discount
-                  ? {
-                      percent: parseFloat(
-                        prob.product?.discount?.percent as any
-                      ),
-                      newprice: parseFloat(
-                        prob.product?.discount?.newprice as any
-                      ),
-                    }
-                  : undefined,
-              }}
-            />
-          ))}
+        <div className="productlist w-full max-h-[60vh] overflow-y-auto flex flex-col items-center gap-y-5">
+          {data &&
+            data.map((prob) => (
+              <Checkoutproductcard
+                key={prob.id}
+                qty={prob.quantity}
+                cover={prob.product?.covers[0].url as string}
+                name={prob.product?.name as string}
+                details={prob.selectedvariant}
+                price={prob.price}
+                total={
+                  prob.quantity *
+                  (((prob.price.discount?.newprice ??
+                    prob.product?.price) as number) ?? 0)
+                }
+              />
+            ))}
         </div>
       </div>
-    </Modal>
+    </SecondaryModal>
   );
 };
 
@@ -925,33 +950,40 @@ export const ActionModal = ({
   close,
   oid,
   order,
+  setclose,
 }: {
   types: "none" | "action" | "status";
-  close: () => void;
+  close: string;
   oid: string;
   order: OrderUserType;
+  setclose: any;
 }) => {
   const [actiontype, setactiontype] = useState<string>(types);
+  const { openmodal } = useGlobalContext();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const handleClick = (type: string) => {
     setactiontype(type);
   };
 
   const handleClose = () => {
-    const url = new URL(window.location.href);
-    url.searchParams.delete("id");
-    url.searchParams.delete("ty");
-    close();
-    router.replace(url.pathname + url.search);
+    const url = new URLSearchParams(searchParams);
+    url.delete("id");
+    url.delete("ty");
+    setclose();
+    router.push(`?${url}`, { scroll: false });
   };
   return (
-    <Modal
-      closestate={"discount"}
-      customwidth="300px"
-      customheight="fit-content"
+    <SecondaryModal
+      size="lg"
+      open={openmodal[close] as boolean}
+      onPageChange={() => {
+        handleClose();
+      }}
+      closebtn
     >
-      <div className="w-full h-full bg-[#f2f2f2] p-5 rounded-lg flex flex-col gap-y-20 ">
+      <div className="w-full h-full flex flex-col gap-y-5 ">
         {actiontype === "none" && (
           <>
             <h3 className="w-full text-center text-xl font-bold">Action</h3>
@@ -966,28 +998,13 @@ export const ActionModal = ({
                 />
                 <PrimaryButton
                   type="button"
-                  text="Contact buyer"
-                  radius="10px"
-                  width="90%"
-                />
-                <PrimaryButton
-                  type="button"
                   text="Delete"
                   width="90%"
                   onClick={() => handleClick("delete")}
                   radius="10px"
-                  color="red"
+                  color="lightcoral"
                 />
               </div>
-
-              <PrimaryButton
-                type="button"
-                text="Close"
-                width="90%"
-                onClick={() => handleClose()}
-                radius="10px"
-                color="lightcoral"
-              />
             </div>{" "}
           </>
         )}
@@ -995,10 +1012,14 @@ export const ActionModal = ({
           <UpdateStatus setactiontype={setactiontype} oid={oid} order={order} />
         )}
         {actiontype === "delete" && (
-          <OrderAlert settype={setactiontype} oid={oid} close={() => close()} />
+          <OrderAlert
+            settype={setactiontype}
+            oid={oid}
+            close={() => setclose()}
+          />
         )}
       </div>
-    </Modal>
+    </SecondaryModal>
   );
 };
 
@@ -1011,11 +1032,16 @@ const UpdateStatus = ({
   oid: string;
   order: OrderUserType;
 }) => {
+  const router = useRouter();
   const [status, setstatus] = useState("");
   const [loading, setloading] = useState(false);
   const handleSelect = (e: ChangeEvent<HTMLSelectElement>) => {
-    setstatus(e.target.value);
+    setstatus(e.target.value as typeof order.status);
   };
+
+  useEffect(() => {
+    setstatus(order?.status);
+  }, [order?.status]);
 
   const handleCancel = () => {
     setactiontype("none");
@@ -1042,7 +1068,7 @@ const UpdateStatus = ({
       return;
     }
     successToast(update.message);
-    setstatus("");
+    router.refresh();
   };
   return (
     <div className="w-full h-full flex flex-col gap-y-10">
@@ -1052,14 +1078,15 @@ const UpdateStatus = ({
         <label className="w-full text-lg font-bold text-left">Status</label>
         <Selection
           default="Status"
-          data={Object.entries(Allstatus).map(([_, val]) => val)}
+          value={status}
+          data={Object.entries(Allstatus).map(([_, val]) => val) ?? []}
           onChange={handleSelect}
         />
       </div>
       <div className="btn_container w-full h-fit inline-flex gap-x-5">
         <PrimaryButton
           type="button"
-          disable={status.length === 0 || status === order.status}
+          disable={status?.length === 0 || status === order?.status}
           text="Update"
           status={loading ? "loading" : "authenticated"}
           onClick={() => handleUpdate()}

@@ -5,7 +5,7 @@ import {
   updateProductData,
 } from "@/src/lib/adminlib";
 import Prisma from "@/src/lib/prisma";
-import { revalidateTag } from "next/cache";
+
 import { NextRequest } from "next/server";
 export async function POST(req: NextRequest) {
   const { createdproduct } = await req.json();
@@ -31,7 +31,7 @@ export async function DELETE(req: NextRequest) {
   const data: { id: number } = await req.json();
   try {
     await DeleteProduct(data.id);
-    revalidateTag("product");
+
     return Response.json({ message: "Product Deleted" }, { status: 200 });
   } catch (error) {
     console.error("Delete Product", error);

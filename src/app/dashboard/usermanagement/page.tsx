@@ -4,12 +4,12 @@ import PrimaryButton from "../../component/Button";
 import { UserCard } from "../../component/Card";
 
 import { ApiRequest, Delayloading } from "@/src/context/CustomHook";
-import { LoadingText, errorToast } from "../../component/Loading";
-import { ChangeEvent, useEffect, useState } from "react";
-import PaginationComponent from "../../component/Pagination";
+import { ContainerLoading, errorToast } from "../../component/Loading";
+import { useEffect, useState } from "react";
 import { FilterMenu } from "../../component/SideMenu";
 import { Createusermodal } from "../../component/Modals/User";
 import { useRouter, useSearchParams } from "next/navigation";
+import PaginationCustom from "../../component/Pagination_Component";
 
 interface usermangementFilterType {
   search?: string;
@@ -35,7 +35,7 @@ export default function UsermanagementPage({
     setopenmodal((prev) => ({ ...prev, createUser: true }));
   };
   const [page, setpage] = useState(parseInt(p ?? "1"));
-  const [showperpage, setshow] = useState(parseInt(lt ?? "1"));
+  const [showperpage, setshow] = useState(lt ?? "1");
   const [isFilter, setisFilter] = useState(!!search);
   const [loading, setloading] = useState(false);
   const router = useRouter();
@@ -72,68 +72,73 @@ export default function UsermanagementPage({
     router.refresh();
   };
   return (
-    <div className="usermanagement_container relative w-full h-fit min-h-[80vh]">
-      <header className="usermanagement_heade w-[500px] h-fit p-3 flex flex-row gap-x-5">
-        <PrimaryButton
-          type="button"
-          text="Add"
-          onClick={() => handleAdd()}
-          color="#0097FA"
-          Icon={<i className="fa-solid fa-plus font-bold text-lg"></i>}
-          width="100%"
-          radius="10px"
-        />
-        <PrimaryButton
-          color="#4688A0"
-          radius="10px"
-          type="button"
-          text={isFilter ? "Clear Filter" : "Filter"}
-          onClick={() =>
-            setopenmodal((prev) => ({ ...prev, filteroption: true }))
-          }
-          width="100%"
-        />
-        <PrimaryButton
-          radius="10px"
-          type="button"
-          text={`Total: ${itemlength.total}`}
-          width="100%"
-        />
-      </header>
-      <div className="userlist w-full h-full grid grid-cols-3 gap-x-10 gap-y-10 place-items-center mt-5">
-        {loading && <LoadingText />}
-        {allData.user?.map((i, idx) => (
-          <UserCard
-            index={idx}
-            firstname={i.firstname}
-            lastname={i.lastname ?? ""}
-            email={i.email}
-            uid={i.id?.toString() ?? "0"}
-          />
-        ))}
-      </div>
-      <PaginationComponent
-        count={itemlength.totalpage}
-        page={page}
-        show={showperpage}
-        setshow={setshow}
-        setpage={setpage}
-        onchange={(value, type) => {
-          if (type === "limit") {
-            handleSelectShow(value.toString());
-          }
-        }}
-        type="usermanagement"
-      />
+    <>
+      <title>User Management | SrokSre</title>
+      <div className="usermanagement_container relative w-full h-fit">
+        {loading && <ContainerLoading />}
+        <div className="w-full h-fit overflow-x-auto">
+          <div className="usermanagement_heade w-[500px] h-fit p-3 flex flex-row gap-x-5">
+            <PrimaryButton
+              type="button"
+              text="Add"
+              onClick={() => handleAdd()}
+              color="#0097FA"
+              Icon={<i className="fa-solid fa-plus font-bold text-lg"></i>}
+              width="150px"
+              radius="10px"
+            />
+            <PrimaryButton
+              color="#4688A0"
+              radius="10px"
+              type="button"
+              text={isFilter ? "Clear Filter" : "Filter"}
+              onClick={() =>
+                setopenmodal((prev) => ({ ...prev, filteroption: true }))
+              }
+              width="150px"
+            />
+            <PrimaryButton
+              radius="10px"
+              type="button"
+              text={`Total: ${itemlength.total}`}
+              width="150px"
+            />
+          </div>
+        </div>
+        <div className="userlist w-full h-fit mt-10 flex flex-row gap-5 flex-wrap justify-center">
+          {allData.user?.map((i, idx) => (
+            <UserCard
+              index={idx}
+              firstname={i.firstname}
+              lastname={i.lastname ?? ""}
+              email={i.email}
+              uid={i.id?.toString() ?? "0"}
+            />
+          ))}
+        </div>
 
-      {openmodal.createUser && <Createusermodal />}
-      {openmodal.filteroption && (
-        <FilterMenu
-          type="usermanagement"
-          setisFilter={setisFilter}
-          param={searchParams}
-        />
-      )}
-    </div>
+        <div className="w-full h-fit mt-16">
+          <PaginationCustom
+            count={itemlength.totalpage}
+            page={page}
+            show={showperpage}
+            setshow={setshow}
+            setpage={setpage}
+            onSelectShowPerPage={(value) => {
+              handleSelectShow(value.toString());
+            }}
+          />
+        </div>
+
+        {openmodal.createUser && <Createusermodal setpage={setpage} />}
+        {openmodal.filteroption && (
+          <FilterMenu
+            type="usermanagement"
+            setisFilter={setisFilter}
+            param={searchParams}
+          />
+        )}
+      </div>
+    </>
   );
 }

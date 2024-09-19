@@ -1,10 +1,17 @@
 "use client";
 
-import { ReactNode, useRef } from "react";
+import { CSSProperties, ReactNode, useEffect, useRef } from "react";
 import {
   GlobalIndexState,
   useGlobalContext,
 } from "@/src/context/GlobalContext";
+import {
+  ModalBody,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+  Modal as Modals,
+} from "@nextui-org/react";
 
 export default function Modal({
   children,
@@ -19,7 +26,6 @@ export default function Modal({
   customZIndex?: number;
   customwidth?: string;
   customheight?: string;
-
   bgblur?: boolean;
   action?: () => void;
   closestate:
@@ -39,7 +45,7 @@ export default function Modal({
     | string;
 }) {
   const ref = useRef<HTMLDivElement | null>(null);
-  const { setopenmodal, setglobalindex, globalindex, setalldata } =
+  const { openmodal, setopenmodal, setglobalindex, globalindex, setalldata } =
     useGlobalContext();
 
   return (
@@ -62,7 +68,7 @@ export default function Modal({
           setopenmodal((prev) => ({ ...prev, [closestate]: false }));
         }
       }}
-      style={{ zIndex: customZIndex, overflowY: "auto" }}
+      style={{ zIndex: customZIndex, overflow: "hidden" }}
       className={`modal__container z-50 fixed flex flex-col items-center justify-center left-0 top-0 w-full h-screen ${
         bgblur ? "backdrop-blur-md" : ""
       } `}
@@ -70,10 +76,69 @@ export default function Modal({
       <div
         ref={ref}
         style={{ width: customwidth, height: customheight }}
-        className="w-1/2 h-1/2 flex flex-col justify-center items-center"
+        className="w-1/2 h-1/2 max-small_phone:h-screen flex flex-col justify-center items-center"
       >
         {children}
       </div>
     </div>
+  );
+}
+
+interface SecondaryModalInterface {
+  header?: () => ReactNode;
+  children: ReactNode;
+  footer?: (onClose: () => void) => ReactNode;
+  open: boolean;
+  onPageChange?: (val: boolean) => void;
+  closebtn?: boolean;
+  style?: CSSProperties;
+  size:
+    | "xs"
+    | "sm"
+    | "md"
+    | "lg"
+    | "xl"
+    | "2xl"
+    | "3xl"
+    | "4xl"
+    | "5xl"
+    | "full";
+}
+export function SecondaryModal({
+  header,
+  children,
+  footer,
+  open,
+  size,
+  onPageChange,
+  closebtn,
+  style,
+}: SecondaryModalInterface) {
+  return (
+    <Modals
+      hideCloseButton={closebtn ? !closebtn : true}
+      size={size}
+      isOpen={open}
+      closeButton
+      style={style}
+      className="z-[200]"
+      onOpenChange={(open) => {
+        onPageChange && onPageChange(open);
+      }}
+    >
+      <ModalContent>
+        {(onClose) => (
+          <>
+            {header && (
+              <ModalHeader className="flex flex-col gap-1">
+                {header()}
+              </ModalHeader>
+            )}
+            <ModalBody>{children}</ModalBody>
+            {footer && <ModalFooter>{footer(onClose)}</ModalFooter>}
+          </>
+        )}
+      </ModalContent>
+    </Modals>
   );
 }

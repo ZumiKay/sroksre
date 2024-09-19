@@ -4,7 +4,6 @@ import { extractQueryParams } from "../banner/route";
 import {
   ContainerType,
   Containertype,
-  Daterangetype,
   Homeitemtype,
 } from "../../severactions/containeraction";
 import { Homecontainer } from "@prisma/client";
@@ -185,6 +184,7 @@ export function formatContainer(result: formatContainerType) {
     amountofitem: result.amountofitem || undefined,
     scrollabletype: result.scrollabletype as any,
     name: result.name ?? "",
+    daterange: result.daterange,
     type: result.type as ContainerType,
     items: result?.item?.map((i) =>
       i.banner
@@ -225,6 +225,7 @@ export async function GET(request: NextRequest) {
   try {
     if (id) {
       const result = await fetchContainerById(id);
+
       if (!result) {
         return Response.json(
           { message: "Container Not Found" },
@@ -309,32 +310,26 @@ export async function PUT(req: Request) {
       updates.name = data.name;
     }
 
-    // Update date range for scrollable types
-    if (container.type === "scrollable" && data.daterange) {
-      const daterange = container.daterange as unknown as Daterangetype;
-      updates.daterange = {
-        start:
-          data.daterange.start !== daterange?.start
-            ? data.daterange.start
-            : daterange.start,
-        end:
-          data.daterange.end !== daterange?.end
-            ? data.daterange.end
-            : daterange.end,
-      };
-    }
+    const existdaterange = container.daterange as any;
 
-    // Update amount of items
-
+    // Update the items when the amount of items or date range changes
     if (
-      data.amountofitem &&
       container.amountofitem &&
-      container.amountofitem !== data.amountofitem
+      container.daterange &&
+      data.amountofitem &&
+      data.daterange &&
+      (data.amountofitem !== container.amountofitem ||
+        data.daterange.start !== existdaterange.start ||
+        data.daterange.end !== existdaterange.end)
     ) {
       updates.amountofitem = parseInt(data.amountofitem.toString());
+      updates.daterange = {
+        start: data.daterange.start,
+        end: data.daterange.end,
+      };
 
       const product = await Prisma.products.findMany({
-        where: data.daterange && {
+        where: {
           createdAt: {
             gte: new Date(data.daterange.start),
             lte: new Date(data.daterange.end),
@@ -359,18 +354,13 @@ export async function PUT(req: Request) {
         1,
         data.amountofitem
       );
-      data.items =
-        data.amountofitem > container.amountofitem
-          ? cutProduct.map((i) => ({
-              id: 0,
-              item_id: i.id,
-            }))
-          : data.items.filter((i) =>
-              cutProduct.some((item) => item.id === i.item_id)
-            );
+      data.items = cutProduct.map((i) => {
+        const existingItem = data.items.find((item) => item.item_id === i.id);
+        return existingItem ? existingItem : { id: 0, item_id: i.id };
+      });
     }
 
-    // Check and update the scrollable type if it has changed
+    // Update the scrollable type if it has changed
     if (container.scrollabletype !== data.scrollabletype) {
       updates.scrollabletype = data.scrollabletype;
 
@@ -379,12 +369,14 @@ export async function PUT(req: Request) {
         (data.scrollabletype === "new" || data.scrollabletype === "popular")
       ) {
         const product = await Prisma.products.findMany({
-          where: data.daterange && {
-            createdAt: {
-              gte: new Date(data.daterange.start),
-              lte: new Date(data.daterange.end),
-            },
-          },
+          where: data.daterange
+            ? {
+                createdAt: {
+                  gte: new Date(data.daterange.start),
+                  lte: new Date(data.daterange.end),
+                },
+              }
+            : {},
           select: {
             id: true,
             amount_incart: true,
@@ -404,6 +396,7 @@ export async function PUT(req: Request) {
           1,
           data.amountofitem
         );
+
         data.items = data.items.filter((i) =>
           cutProduct.some((item) => item.id === i.item_id)
         );

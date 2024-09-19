@@ -204,7 +204,7 @@ export const BannerHomeIcon = () => {
         rx="4"
         fill="white"
         stroke="black"
-        stroke-width="2"
+        strokeWidth="2"
       />
       <rect
         x="6"
@@ -214,7 +214,7 @@ export const BannerHomeIcon = () => {
         rx="1"
         fill="black"
         stroke="black"
-        stroke-width="2"
+        strokeWidth="2"
       />
     </svg>
   );

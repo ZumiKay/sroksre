@@ -4,7 +4,6 @@ import { Stepindicatortype } from "@/src/context/Checkoutcontext";
 import { AnimationControls, motion, useAnimation } from "framer-motion";
 import { ChangeEvent, FormEvent, ReactNode, useEffect, useState } from "react";
 import ReactDOMServer from "react-dom/server";
-
 import {
   useGlobalContext,
   VariantColorValueType,
@@ -12,16 +11,14 @@ import {
 import {
   Orderpricetype,
   Ordertype,
-  Productorderdetailtype,
   Productordertype,
 } from "@/src/context/OrderContext";
-import PrimaryButton, { Selection } from "./Button";
+import PrimaryButton from "./Button";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   CaptureOrder,
   Createpaypalorder,
   getAddress,
-  getOrderAddress,
   handleShippingAdddress,
   updateShippingService,
   updateStatus,
@@ -29,15 +26,14 @@ import {
 import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 import { errorToast, LoadingText, successToast } from "./Loading";
 import { Checkbox, FormControlLabel } from "@mui/material";
-import { LogoVector } from "./Asset";
-import { twj } from "tw-to-css";
-import { calculatePrice } from "../checkout/page";
 import { OrderReceiptTemplate } from "./EmailTemplate";
 import Image from "next/image";
-// import { SendNotification } from "@/src/socket";
 import Link from "next/link";
 import { shippingtype } from "./Modals/User";
-import { Chip } from "@nextui-org/react";
+import { Selecteddetailcard } from "./Card";
+import { ApiRequest } from "@/src/context/CustomHook";
+import { SelectionCustom } from "./Pagination_Component";
+import { SendNotification, useSocket } from "@/src/context/SocketContext";
 
 //Step assets
 const LineSvg = ({
@@ -105,7 +101,9 @@ const CircleSvg = ({
       onClick={() => {
         handleClick && handleClick();
       }}
-      className="w-[70px] h-[70px] relative grid place-items-center"
+      className="w-[70px] h-[70px] 
+     
+       relative grid place-items-center"
     >
       <svg height="100%" width="100%" xmlns="http://www.w3.org/2000/svg">
         {active && LinearGradient("#495464", control)}
@@ -191,16 +189,28 @@ export const StepComponent = ({
   return (
     <div
       key={data.idx}
-      className="step_container w-[180px] max-h-[300px] h-fit flex flex-row"
+      className={`step_container w-[180px]  max-h-[300px] h-fit flex flex-row justify-center 
+      max-small_phone:w-[150px] max-smallest_phone:w-[120px] ${
+        data.step === 2
+          ? "max-large_phone:grid max-large_phone:place-content-start"
+          : ""
+      } max-smallest_phone:grid max-smallest_phone:place-content-start`}
       style={data.noline ? { display: "grid", placeContent: "start" } : {}}
     >
-      <div className="indicator h-fit w-[100%] flex flex-col items-center ">
+      <div className="indicator h-[150px] w-[100%] max-small_phone:h-[100px] flex flex-col items-center">
         <CircleSvg control={sequence} step={data.step} active={isActive} />
         <h3 className="title text-lg font-medium w-full h-fit text-center">
           {data.title}
         </h3>
       </div>
-      <div hidden={data.noline} className="w-full h-fit">
+      <div
+        hidden={data.noline}
+        className={`w-full h-fit ${
+          data.step === 2 ? "max-large_phone:hidden" : ""
+        } ${data.step === 1 ? "max-smallest_phone:hidden" : ""} ${
+          data.step === 3 ? "max-smallest_phone:hidden" : ""
+        }`}
+      >
         <LineSvg control={linesequence} active={isActive} />
       </div>
     </div>
@@ -209,60 +219,46 @@ export const StepComponent = ({
 
 export const Checkoutproductcard = ({
   qty,
-  total,
   price,
   cover,
   details,
   name,
+  total,
 }: {
   qty: number;
-  total: number;
   price: Orderpricetype;
   cover: string;
   name: string;
-  details?: Productorderdetailtype[];
+  total: number;
+  details?: (string | VariantColorValueType)[];
 }) => {
   return (
     <div
       key={cover}
-      className={"w-full h-[250px] bg-white rounded-lg flex flex-row gap-x-5"}
+      className={
+        "w-full h-fit bg-white rounded-lg flex flex-row gap-x-5 items-center max-large_phone:flex-col max-large_phone:gap-y-5 border-1 border-gray-300"
+      }
     >
       <Image
         src={cover}
         width={200}
         height={200}
         alt="thumbnail"
-        className="w-[150px] h-auto rounded-lg object-cover"
+        className="w-[150px] h-auto rounded-lg object-contain"
         loading="lazy"
       />
-      <div className="w-[60%] min-h-[200px] flex flex-col items-start gap-y-3 relative">
+      <div className="w-[60%] max-large_phone:w-[90%] min-h-[200px] h-fit flex flex-col items-start gap-y-3 relative">
         <h3 className="text-xl font-bold w-fit h-fit">{name}</h3>
-        {details && (
-          <div className="w-full flex flex-col max-h-[120px] overflow-y-auto gap-y-5">
-            <ShowDetails details={details ?? []} />
+        {details && details.length > 0 && (
+          <div className="w-full flex flex-row gap-3 flex-wrap h-fit">
+            {details.map((item, idx) => (
+              <Selecteddetailcard key={idx} text={item} />
+            ))}
           </div>
         )}
         <ShowPrice total={total} qty={qty} price={price} />
       </div>
     </div>
-  );
-};
-
-const detailcard = (data: string | VariantColorValueType) => {
-  return (
-    <Chip
-      startContent={
-        typeof data !== "string" ? (
-          <div
-            style={{ backgroundColor: data.val }}
-            className="w-[20px] h-[20px] rounded-full"
-          ></div>
-        ) : undefined
-      }
-      size="md"
-    >
-      {typeof data === "string" ? data : data.name}
-    </Chip>
   );
 };
 
@@ -275,12 +271,12 @@ const ShowPrice = ({
   total: number;
   qty: number;
 }) => {
-  const isDiscount = price.discount;
-  const Price = parseFloat(price.price.toString()).toFixed(2);
+  const isDiscount = price.discount && price.discount;
+  const Price = price.price;
 
   return (
-    <div className="w-full h-fit flex flex-row items-center justify-between absolute bottom-5">
-      <div className="price flex flex-row items-center gap-x-3 w-full h-full">
+    <div className="w-full h-fit flex flex-row items-center justify-between">
+      <div className="price flex flex-row items-center max-small_phone:flex-wrap gap-x-3 w-full h-full">
         <h3
           hidden={!isDiscount}
           className="text-lg font-normal text-red-500 line-through"
@@ -299,31 +295,6 @@ const ShowPrice = ({
         ${parseFloat(total.toString()).toFixed(2)}
       </h3>
     </div>
-  );
-};
-
-const ShowDetails = ({
-  details,
-}: {
-  details: Array<Productorderdetailtype>;
-}) => {
-  return (
-    <>
-      <div className="w-full h-fit grid grid-cols-3 gap-x-5 gap-y-5">
-        {details
-          ?.filter((opt) => opt.option_type !== "COLOR")
-          ?.map((opt) => detailcard(opt.option_value))}
-      </div>
-
-      {details?.filter((i) => i.option_type === "COLOR").length !== 0 && (
-        <div className="w-full h-fit flex flex-row gap-x-5 items-center">
-          <h3>Color: </h3>
-          {details
-            ?.filter((opt) => opt.option_type === "COLOR")
-            ?.map((opt) => detailcard(opt.option_value))}
-        </div>
-      )}
-    </>
   );
 };
 
@@ -407,7 +378,16 @@ export const StepIndicator = ({ step }: { step: number }) => {
     );
   }, [step]);
   return (
-    <div className="step_containter w-full h-fit flex flex-row justify-center pt-2">
+    <div
+      className="step_containter w-full h-fit flex flex-row justify-center items-center pt-2 
+      pl-10
+    max-small_tablet:pl-10 
+    max-small_phone:flex-wrap
+    max-large_phone:justify-center 
+    max-large_phone:items-center max-small_phone:justify-center max-small_phone:pl-[15%]
+    max-smallest_phone:grid max-smallest_phone:grid-cols-2
+    "
+    >
       {stepdata?.map((i, idx) => (
         <StepComponent
           key={idx}
@@ -440,7 +420,10 @@ export const BackAndEdit = ({ step }: { step: number }) => {
     }
   };
   return (
-    <div className="btn-1 flex flex-col items-center gap-y-3 w-[150px] h-fit">
+    <div
+      className={`btn-1 flex flex-col items-center gap-3 w-[150px] h-fit 
+        max-small_tablet:w-full max-small_tablet:order-3 max-small_tablet:flex-row`}
+    >
       <PrimaryButton
         text={step === 1 ? "Edit" : "Back"}
         color="lightcoral"
@@ -520,7 +503,8 @@ export const FormWrapper = ({
     const value = current.toString();
     const query = `?${value}`;
 
-    router.push(`${pathname}${query}`);
+    router.push(`${pathname}${query}`, { scroll: false });
+    router.refresh();
   };
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -528,7 +512,6 @@ export const FormWrapper = ({
     setloading(true);
 
     const isShipping = event.currentTarget["shipping"];
-    const isPayment = event.currentTarget["isPayment"];
     const isSaved = event?.currentTarget["save"]?.value;
 
     if (isShipping) {
@@ -590,7 +573,10 @@ export const FormWrapper = ({
   return (
     <form
       onSubmit={handleSubmit}
-      className="checked_body w-full h-fit flex flex-row justify-center gap-x-5"
+      className={`checked_body w-full h-fit flex flex-row justify-center gap-x-5 
+        max-smaller_screen:justify-between max-smaller_screen:pl-1 max-smaller_screen:pr-1
+        max-small_tablet:flex-col max-small_tablet:gap-y-5
+        `}
     >
       {loading && <LoadingText />}
       {children}
@@ -636,6 +622,8 @@ export function SelectionSSR(props: {
 
 interface Addresstype {
   id: number;
+  firstname: string;
+  lastname: string;
   street: string;
   houseId: string;
   province: string;
@@ -646,6 +634,8 @@ interface Addresstype {
 }
 const shippingInitialize: Addresstype = {
   id: 0,
+  firstname: "",
+  lastname: "",
   houseId: "",
   street: "",
   province: "",
@@ -656,37 +646,29 @@ const shippingInitialize: Addresstype = {
 
 export function ShippingForm({ orderid }: { orderid: string }) {
   const [address, setaddress] = useState<Addresstype[] | undefined>(undefined);
+  const [loading, setloading] = useState(false);
   const [selectedaddress, setselectedaddress] =
     useState<Addresstype>(shippingInitialize);
 
   const [select, setselect] = useState(0);
   const [save, setsave] = useState(0);
   const fetchdata = async () => {
-    await fetchselectedData();
-    const fetchshipping = await getAddress();
-    setaddress(fetchshipping as any);
-  };
-
-  const fetchselectedData = async () => {
-    const getselectedAddress = getOrderAddress.bind(null, orderid);
-
-    const request = await getselectedAddress();
-
-    if (request?.shipping_id && request?.shipping) {
-      if (!request.shipping.userId) {
-        setselect(0);
-      }
-      setselect(request.shipping_id);
-      setselectedaddress(request.shipping as any);
+    const fetchshipping = getAddress.bind(null, orderid);
+    const fetch = await fetchshipping();
+    if (fetch.selectedaddress) {
+      setselect(fetch.selectedaddress.shipping?.id ?? 0);
+      setselectedaddress(fetch.selectedaddress.shipping as any);
     } else {
       setselect(0);
     }
+    setaddress(fetch.address as any);
   };
 
   useEffect(() => {
     fetchdata();
   }, []);
-  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+
+  const handleChange = async (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
 
     setselectedaddress((prev) => ({ ...prev, id: -1 }));
@@ -694,11 +676,26 @@ export function ShippingForm({ orderid }: { orderid: string }) {
     setselectedaddress((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSelect = (e: ChangeEvent<HTMLSelectElement>) => {
-    const value = parseInt(e.target.value);
+  const handleSelect = async (value: number) => {
     setselect(value);
 
     setselectedaddress(shippingInitialize);
+
+    if (value === 0) {
+      setloading(true);
+      const updatereq = await ApiRequest(
+        "/api/order",
+        undefined,
+        "PUT",
+        "JSON",
+        { id: orderid, ty: "removeAddress" }
+      );
+      setloading(false);
+      if (!updatereq.success) {
+        errorToast("Can't Update Address");
+        return;
+      }
+    }
 
     if (value === -1) {
       return;
@@ -713,25 +710,37 @@ export function ShippingForm({ orderid }: { orderid: string }) {
       initial={{ y: 20, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 1, ease: "easeInOut" }}
-      className="w-fit h-full flex flex-row gap-x-5"
+      className="w-fit max-smaller_screen:w-full h-full flex flex-row gap-x-5"
     >
       <input type="hidden" name="shipping" value={"shipping"} />
-      <div className="checkout_container bg-[#F1F1F1] w-[50vw] h-fit p-2 rounded-lg shadow-lg flex flex-col items-center">
+      <div
+        className="checkout_container bg-[#F1F1F1] w-[50vw]
+      max-smaller_screen:w-full
+       h-fit p-2 rounded-lg shadow-lg flex flex-col items-center"
+      >
         <h3 className="title text-2xl font-bold pb-5"> Shipping Address </h3>
 
-        <div className="shippingform w-[70%] h-fit p-2 flex flex-col gap-y-5 items-center">
-          <Selection
+        <div className="shippingform w-[70%] max-large_phone:w-full h-fit p-2 flex flex-col gap-y-5 items-center">
+          <SelectionCustom
+            label="Address"
+            placeholder={
+              address && selectedaddress
+                ? `Address ${
+                    address.findIndex((i) => i.id === selectedaddress.id) + 1
+                  }`
+                : "None"
+            }
+            isLoading={loading}
             data={[
+              { label: "None", value: 0 },
               ...(address?.map((i, idx) => ({
                 label: `Address ${idx + 1}`,
                 value: i.id,
               })) ?? []),
               { label: "Custom", value: -1 },
             ]}
-            default="None"
-            defaultValue={0}
-            value={!selectedaddress?.id ? select : selectedaddress.id}
-            onChange={handleSelect}
+            value={select}
+            onChange={(value) => handleSelect(value as number)}
           />
 
           <input
@@ -741,9 +750,27 @@ export function ShippingForm({ orderid }: { orderid: string }) {
           />
           {select !== 0 && (
             <>
+              <div className="w-full h-fit flex flex-row items-center gap-x-5">
+                <input
+                  className="w-full h-[50px] p-1  font-medium text-sm"
+                  placeholder="Firstname"
+                  name="firstname"
+                  value={selectedaddress?.firstname}
+                  onChange={handleChange}
+                  required
+                />
+                <input
+                  className="w-full h-[50px] p-1  font-medium text-sm"
+                  placeholder="Lastname"
+                  name="lastname"
+                  value={selectedaddress?.lastname}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
               <input
                 className="w-full h-[50px] p-1  font-medium text-sm"
-                placeholder="House or Apartment Id"
+                placeholder="Street Name or Id"
                 name="street"
                 value={selectedaddress?.street}
                 onChange={handleChange}
@@ -820,6 +847,7 @@ export function ShippingForm({ orderid }: { orderid: string }) {
 
 interface OrderUserType extends Ordertype {
   user: {
+    id: number;
     firstname: string;
     lastname?: string;
     email: string;
@@ -838,6 +866,7 @@ export function Paypalbutton({
   order: OrderUserType;
 }) {
   const router = useRouter();
+  const socket = useSocket();
 
   const createOrder = async () => {
     const CreateOrder = Createpaypalorder.bind(null, orderId);
@@ -885,21 +914,20 @@ export function Paypalbutton({
             if (errorDetail?.issue === "INSTRUMENT_DECLINED") {
               return actions.restart();
             } else if (errorDetail) {
-              // (2) Other non-recoverable errors -> Show a failure message
               throw new Error(
                 `${errorDetail.description} (${orderData.debug_id})`
               );
             } else if (!orderData.purchase_units) {
               throw new Error(JSON.stringify(orderData));
             } else {
-              // (3) Successful transaction -> Show confirmation or thank you message
-              // Or go to another URL:  actions.redirect('thank_you.html');
-
-              const transaction =
-                orderData?.purchase_units?.[0]?.payments?.captures?.[0] ||
-                orderData?.purchase_units?.[0]?.payments?.authorizations?.[0];
-
-              //update order status and send email
+              const getPolicy = await ApiRequest(
+                `/api/policy?type=email`,
+                undefined,
+                "GET"
+              );
+              if (!getPolicy.success) {
+                throw Error("Error Occured");
+              }
 
               const htmltemplate = ReactDOMServer.renderToString(
                 <OrderReceiptTemplate
@@ -920,23 +948,25 @@ export function Paypalbutton({
                 htmltemplate,
                 adminhtmltemplate
               );
-
               const makeReq = await updateOrder();
 
               if (!makeReq.success) {
                 errorToast(makeReq.message ?? "");
                 return;
               }
-              // await SendNotification({
-              //   type: "New Order",
-              //   content: `Order #${orderId} has requested`,
-              //   checked: false,
-              //   link: `${process.env.BASE_URL}/dashboard/order?&q=${orderId}`,
-              // });
-
+              socket &&
+                (await SendNotification(
+                  {
+                    type: "New Order",
+                    content: `Order #${orderId} has requested`,
+                    checked: false,
+                    link: `${process.env.BASE_URL}/dashboard/order?&q=${orderId}`,
+                  },
+                  socket
+                ));
               successToast(`Purchase Complete`);
-
               router.replace(`/checkout?orderid=${encripyid}&step=4`);
+              router.refresh();
             }
           } catch (error) {
             console.log("Payment error", error);
@@ -946,135 +976,5 @@ export function Paypalbutton({
         style={{ disableMaxWidth: true }}
       />
     </PayPalScriptProvider>
-  );
-}
-
-//Email templa
-
-interface OrderEmailType<t> {
-  orderProduct: t;
-  name: string;
-}
-
-export function OrderEmail<t extends OrderUserType>({
-  orderProduct,
-  name,
-}: OrderEmailType<t>) {
-  return (
-    <div
-      style={twj(
-        "flex flex-col gap-y-5 justify-center items-center w-[100%] h-[100%] bg-white"
-      )}
-    >
-      <div
-        style={twj(
-          "flex flex-col gap-y-5 items-center w-[80%] h-fit bg-white p-5 bg-[#F2F2F2] rounded-lg border-2 border-[#495464] shadow-lg"
-        )}
-      >
-        <LogoVector />
-        <div style={twj("w-[80%] h-fit text-left flex flex-col gap-y-1")}>
-          <h3 style={twj("text-xl font-bold w-full h-fit text-center")}>
-            Thank you for shopping with us
-          </h3>
-          <h3 style={twj("text-lg font-medium w-full h-fit")}>
-            {`Hi ${name}, we received your order and is being process for shipping`}
-          </h3>
-          <h3 style={twj("text-lg font-bold w-full h-fit")}>{`Order #: ${
-            orderProduct?.id ?? "12345"
-          }`}</h3>
-          <h3 style={twj("text-lg font-bold w-full h-fit")}>
-            {`Order on createdAt and fully paid`}
-          </h3>
-        </div>
-        <div
-          style={twj(
-            "flex flex-col items-center gap-y-5 min-w-[400px] w-[100%] h-[100%]"
-          )}
-        >
-          {orderProduct.Orderproduct.map((prob) => {
-            const price: Orderpricetype = {
-              price: prob.product?.price as number,
-              discount: prob.product?.discount
-                ? {
-                    percent: prob.product.discount as any,
-                    newprice: calculatePrice(
-                      prob.product?.price,
-                      prob.product.discount as any
-                    ),
-                  }
-                : undefined,
-            };
-            return (
-              <Checkoutproductcard
-                key={prob.id}
-                qty={prob.quantity}
-                cover={prob.product?.covers[0].url as string}
-                price={price}
-                total={
-                  prob.quantity *
-                  parseFloat(prob.product?.price.toString() as string)
-                }
-                name={prob.product?.name as string}
-                details={prob.details as Array<Productorderdetailtype>}
-              />
-            );
-          })}
-        </div>
-        <div
-          style={twj(
-            "link_btn flex flex-row gap-x-5 w-full justify-center items-center h-fit text-center"
-          )}
-        >
-          <a
-            style={twj(
-              "w-[100%] rounded-lg p-[5px] no-underline bg-[#495464] text-white font-bold cursor-pointer"
-            )}
-            href="http://"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            View Order
-          </a>
-          <a
-            href="http://"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="no-underline"
-            style={twj(
-              "w-[100%] no-underline rounded-lg p-[5px] rounded-lg p-2 bg-[#495464] text-white font-bold cursor-pointer"
-            )}
-          >
-            Continue Shopping
-          </a>
-        </div>
-        <p
-          style={twj(
-            "text-lg no-underline font-bold text-blue w-full text-left text-blue-500 cursor-pointer"
-          )}
-        >
-          Shipping and refund information
-        </p>
-        <table
-          style={twj(
-            "price_container w-full h-fit border-b-0 border-l-0 border-r-0 border-t-2 border-dashed border-[black]"
-          )}
-        >
-          <tbody style={twj("text-left h-[120px]")}>
-            <tr>
-              <th>Subtotal</th>
-              <td style={twj("text-right")}>19.99</td>
-            </tr>
-            <tr>
-              <th>Shipping</th>
-              <td style={twj("text-right")}>10.00</td>
-            </tr>
-            <tr>
-              <th>Total</th>
-              <td style={twj("text-right")}>29.99</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
   );
 }

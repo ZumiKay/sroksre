@@ -1,11 +1,9 @@
 "use server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "../api/auth/[...nextauth]/route";
+
 import Prisma from "@/src/lib/prisma";
 import {
   Allstatus,
   Ordertype,
-  Productorderdetailtype,
   Productordertype,
   getUser,
   totalpricetype,
@@ -21,14 +19,18 @@ import {
   Shippingservice,
 } from "@/src/context/Checkoutcontext";
 
-import { calculateDiscountPrice, encrypt } from "@/src/lib/utilities";
 import {
-  getQtyBasedOnOptions,
-  ProductStockType,
-} from "../component/ServerComponents";
-import { infovaluetype, Stocktype } from "@/src/context/GlobalContext";
+  calculateDiscountProductPrice,
+  encrypt,
+  generateRandomNumber,
+  OrderReciptEmail,
+} from "@/src/lib/utilities";
+import { ProductStockType } from "../component/ServerComponents";
 import nodemailer from "nodemailer";
 import { shippingtype } from "../component/Modals/User";
+import { getCheckoutdata } from "./page";
+import { generateInvoicePdf } from "../api/order/route";
+import { formatDate } from "../component/EmailTemplate";
 
 interface Returntype<k = string> {
   success: boolean;
@@ -37,13 +39,23 @@ interface Returntype<k = string> {
   status?: number;
 }
 
-export async function getAddress() {
-  const user: any = await getServerSession(authOptions);
-  const userid = user?.user?.sub ?? "";
+export async function getAddress(orderid?: string) {
+  const user = await getUser();
 
-  const address = await Prisma.address.findMany({ where: { userId: userid } });
+  const address = await Prisma.address.findMany({
+    where: { userId: user?.id },
+  });
 
-  return address;
+  let selectedaddress;
+
+  if (orderid) {
+    selectedaddress = await Prisma.orders.findUnique({
+      where: { id: orderid },
+      select: { shipping_id: true, shipping: true },
+    });
+  }
+
+  return { address, selectedaddress };
 }
 
 export async function getOrderAddress(orderId: string) {
@@ -78,8 +90,23 @@ export async function Createorder(data: {
     });
 
     if (!checkOrder) {
+      let generateID = "SSC" + generateRandomNumber();
+      let isExist = true;
+      while (isExist) {
+        const isId = await Prisma.orders.findUnique({
+          where: { id: generateID },
+        });
+        if (isId) {
+          isExist = true;
+          generateID = "SSC" + generateRandomNumber();
+        } else {
+          isExist = false;
+        }
+      }
+
       const create = await Prisma.orders.create({
         data: {
+          id: generateID,
           buyer_id: userid as any,
           status: Allstatus.unpaid,
           price: data.price as any,
@@ -145,12 +172,14 @@ export async function getOrderProduct(
 
 export interface OrderUserType extends Ordertype {
   user: {
+    id: number;
     firstname: string;
     lastname?: string;
     email: string;
   };
   Orderproduct: Productordertype[];
   createdAt: Date;
+  shipping?: shippingtype;
 }
 
 export async function updateStatus(
@@ -159,140 +188,111 @@ export async function updateStatus(
   adminhtml: string
 ): Promise<Returntype> {
   try {
-    const order = await Prisma.orders.findUnique({
-      where: { id: orderid },
-      include: {
-        user: {
-          select: {
-            id: true,
-            email: true,
-            firstname: true,
-          },
-        },
-        Orderproduct: {
-          include: {
-            product: {
-              select: {
-                id: true,
-                stocktype: true,
-                Stock: true,
-                stock: true,
-                details: true,
-                price: true,
-                discount: true,
-                covers: true,
-                name: true,
-              },
-            },
-          },
-        },
-      },
-    });
+    const order = await getCheckoutdata(orderid);
 
     if (!order) {
       return { success: false, status: 404 };
     }
 
-    // Batch updates
-    const updates: Array<Record<string, any>> = [];
+    // Prepare updates
+    const productUpdates: Array<Promise<any>> = [];
+    const stockUpdates: Array<Promise<any>> = [];
 
     order.Orderproduct.forEach((cart) => {
-      const stocktype = cart.product.stocktype;
-      const detail = cart.details as Productorderdetailtype[];
+      const { stocktype, Stock } = cart.product;
 
       if (stocktype === ProductStockType.stock) {
-        updates.push(
-          Prisma.products.update({
-            where: { id: cart.product.id },
-            data: {
-              stock: {
-                decrement: cart.quantity,
-              },
+        productUpdates.push(
+          Prisma.products.updateMany({
+            where: {
+              AND: [
+                {
+                  id: cart.product.id,
+                },
+                {
+                  stock: { not: 0 },
+                },
+              ],
             },
-          })
-        );
-      } else if (stocktype === ProductStockType.size) {
-        const info = cart.product.details as unknown as infovaluetype[];
-        const updatedInfo = info.map((i) => {
-          if (i.val === detail[0].option_value) {
-            i.qty -= cart.quantity;
-          }
-          return i;
-        });
-
-        updates.push(
-          Prisma.info.updateMany({
-            where: { product_id: cart.product.id },
-            data: {
-              info_value: updatedInfo as any,
-            },
+            data: { stock: { decrement: cart.quantity } },
           })
         );
       } else {
-        const stock = cart.product.Stock as unknown as Stocktype[];
-        const prevqty = getQtyBasedOnOptions(stock, detail);
-
-        updates.push(
-          Prisma.stock.update({
+        const stockValueIds = Stock.flatMap((sk) =>
+          sk.Stockvalue.map((sv) => sv.id)
+        );
+        stockUpdates.push(
+          Prisma.stockvalue.updateMany({
             where: {
-              id: prevqty.id,
+              AND: [
+                {
+                  id: { in: stockValueIds },
+                },
+                { qty: { not: 0 } },
+              ],
             },
-            data: {
-              qty: {
-                decrement: cart.quantity,
-              },
-            },
+            data: { qty: { decrement: cart.quantity } },
           })
         );
       }
     });
 
     // Execute all updates concurrently
-    await Promise.all(updates);
-    await Prisma.products.updateMany({
-      where: {
-        id: {
-          in: order.Orderproduct.map((i) => i.productId),
+    await Promise.all([
+      ...productUpdates,
+      ...stockUpdates,
+      Prisma.products.updateMany({
+        where: {
+          id: { in: order.Orderproduct.map((i) => i.productId) },
         },
-      },
-      data: {
-        amount_sold: {
-          increment: 1,
-        },
-      },
-    });
+        data: { amount_sold: { increment: 1 } },
+      }),
+      Prisma.orders.update({
+        where: { id: orderid },
+        data: { status: Allstatus.paid },
+      }),
+      Prisma.orderproduct.updateMany({
+        where: { orderId: orderid },
+        data: { status: Allstatus.paid },
+      }),
+    ]);
 
-    // Update order status
-    await Prisma.orders.update({
-      where: { id: orderid },
-      data: {
-        status: Allstatus.paid,
-      },
-    });
-
-    await Prisma.orderproduct.updateMany({
-      where: { orderId: orderid },
-      data: { status: Allstatus.paid },
-    });
-
+    // Prepare email sending concurrently
     const emailSubject = `Order #${order.id} receipt and processing for shipping`;
-
     const htmltemplate = OrderReciptEmail(html);
 
-    // Send order email
-    await SendOrderEmail(htmltemplate, order.user.email, emailSubject);
+    const createInvoice = await generateInvoicePdf({
+      id: order.id,
+      product: order.Orderproduct.map((prob) => ({
+        id: prob.product.id,
+        name: prob.product.name,
+        price: prob.price,
+        selectedVariant: prob.selectedvariant.map((i) =>
+          typeof i === "string" ? i : i?.name ?? ""
+        ),
+        quantity: prob.quantity,
+        totalprice:
+          prob.quantity * (prob.price.discount?.newprice ?? prob.price.price),
+      })),
+      price: order.price as unknown as totalpricetype,
+      shipping: order.shipping as any,
+      createdAt: formatDate(order.createdAt),
+    });
 
-    //Send for admin
-    await SendOrderEmail(
-      adminhtml,
-      process.env.EMAIL as string,
-      `Order #${order.id} request`
-    );
-
-    // Invalidate cache or revalidate path
-
-    revalidatePath("/");
-    revalidatePath("checkout");
+    await Promise.all([
+      SendOrderEmail(
+        htmltemplate,
+        order.user.email,
+        emailSubject,
+        createInvoice
+      ),
+      SendOrderEmail(
+        adminhtml,
+        process.env.EMAIL as string,
+        `Order #${order.id} request`,
+        createInvoice
+      ),
+    ]);
 
     return { success: true, message: "Payment completed" };
   } catch (error) {
@@ -316,11 +316,14 @@ export async function handleShippingAdddress(
       const create = await Prisma.address.create({
         data: {
           userId: isSave === "1" ? user.id : undefined,
+          firstname: shippingdata.firstname,
+          lastname: shippingdata.lastname,
           houseId: shippingdata.houseId.toString(),
           district: shippingdata.district,
           songkhat: shippingdata.songkhat,
           province: shippingdata.province,
           postalcode: shippingdata.postalcode,
+          street: shippingdata.street,
         },
       });
       shipId = create.id;
@@ -352,17 +355,6 @@ export async function handleShippingAdddress(
     console.log("Shipping Address", error);
     return { success: false, message: "Error Occured" };
   }
-}
-
-export async function shippingType(
-  selected: { type: string; price: number },
-  orderId: string
-): Promise<Returntype> {
-  let order: Ordertype = (await Prisma.orders.findUnique({
-    where: { id: orderId },
-  })) as any;
-
-  return { success: true };
 }
 
 export async function updateShippingService(
@@ -505,10 +497,10 @@ export async function Createpaypalorder(orderId: string): Promise<Returntype> {
 
     let orderItems: Paypalitemtype[] = order.Orderproduct.map((i) => {
       const price = i.product.discount
-        ? calculateDiscountPrice(
-            parseFloat(i.product.price.toString()),
-            parseFloat(i.product.discount.toString())
-          ).toFixed(2)
+        ? calculateDiscountProductPrice({
+            price: i.product.price,
+            discount: i.product.discount,
+          }).discount?.newprice?.toFixed(2) ?? "0.00"
         : parseFloat(i.product.price.toString()).toFixed(2);
       return {
         name: i.product.name,
@@ -596,7 +588,8 @@ export async function CaptureOrder(orderId: string): Promise<Returntype> {
 export const SendOrderEmail = async (
   html: string,
   to: string,
-  subject: string
+  subject: string,
+  attachment?: Uint8Array
 ) => {
   try {
     const transporter = nodemailer.createTransport({
@@ -613,7 +606,18 @@ export const SendOrderEmail = async (
       html: html,
     };
 
-    await transporter.sendMail(mailoptions);
+    await transporter.sendMail({
+      ...mailoptions,
+      attachments: attachment
+        ? [
+            {
+              filename: `Invoice.pdf`,
+              content: Buffer.from(attachment),
+              contentType: "apllication/pdf",
+            },
+          ]
+        : [],
+    });
   } catch (error) {
     console.log("Send email", error);
     throw new Error("Email can't sent");
@@ -637,67 +641,18 @@ export const handleEmail = async (data: Emaildata) => {
       pass: process.env.EMAIL_APPKEY,
     },
   });
+
   const mailoptions = {
     from: data.from ? data.from : `SrokSre <${process.env.EMAIL}>`,
     to: `<${data.to}>`,
     subject: data.subject,
-
-    html: data.html ? OrderReciptEmail(data.html) : "",
+    html: OrderReciptEmail(data.html ?? ""),
   };
   try {
     await transporter.sendMail(mailoptions);
     return { success: true };
   } catch (error) {
     console.log("Send Email", error);
-    return { success: true };
+    return { success: false };
   }
 };
-
-//Html Template
-
-export const OrderReciptEmail = (body: string) => `
-<!doctype html>
-<html xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
-
-<head>
-  <title>
-  </title>
-  <!--[if !mso]><!-->
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <!--<![endif]-->
-  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!--[if mso]>
-    <noscript>
-        <xml>
-        <o:OfficeDocumentSettings>
-          <o:AllowPNG/>
-          <o:PixelsPerInch>96</o:PixelsPerInch>
-        </o:OfficeDocumentSettings>
-        </xml>
-    </noscript>
-  <![endif]-->
-  <!--[if lte mso 11]>
-  <style type="text/css">
-  body {
-    font-family: "Prompt", sans-serif;
-  }
-</style>
-  <![endif]-->
-  <!--[if !mso]><!-->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Prompt:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
-  <style type="text/css">
-  @import url('https://fonts.googleapis.com/css2?family=Prompt:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap')
-  </style>
-  <!--<![endif]-->
-</head>
-
-<body style="font-family: "Prompt", sans-serif; width: fit-content;">
-   ${body}
-</body>
-
-</html>
-
-`;

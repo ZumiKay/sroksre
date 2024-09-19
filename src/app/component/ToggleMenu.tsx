@@ -9,7 +9,6 @@ import {
   useGlobalContext,
 } from "@/src/context/GlobalContext";
 import PrimaryButton from "./Button";
-import { toast } from "react-toastify";
 import { AnimatePresence, motion } from "framer-motion";
 import ReactSelect from "react-select/async";
 import makeAnimated from "react-select/animated";
@@ -23,6 +22,11 @@ interface toggleprops {
   type?: string;
   data?: ProductInfo[];
   index?: number;
+  paragraph?: {
+    id?: number;
+    title?: string;
+    content: string;
+  }[];
 }
 
 export default function ToggleMenu(props: toggleprops) {
@@ -51,7 +55,7 @@ export default function ToggleMenu(props: toggleprops) {
       className="toggle__container w-full h-fit flex flex-col gap-y-1"
     >
       <h3 className="togglebtn sticky top-0 mb-5 font-normal text-lg flex flex-row items-center justify-start gap-x-5">
-        <strong className="underline font-bold">{props.name}</strong>
+        <strong className="underline font-bold text-xl">{props.name}</strong>
         <i
           onClick={() => setopen(!open)}
           className={`ml-2 fa-solid ${
@@ -68,9 +72,23 @@ export default function ToggleMenu(props: toggleprops) {
             transition={{ duration: 0.2 }}
             className="detailheader w-full h-fit  break-words flex flex-col items-start gap-y-3"
           >
-            {props.data?.map(
-              (obj, index) =>
-                obj.info_type !== "SIZE" && (
+            {props.paragraph
+              ? props.paragraph.map((i) => (
+                  <div
+                    key={i.id}
+                    className="w-full h-fit flex flex-col gap-y-3"
+                  >
+                    {i.title && (
+                      <h3 className="w-full text-xl font-bold break-words">
+                        {i.title}
+                      </h3>
+                    )}
+                    <p className="w-full h-fit text-lg font-normal">
+                      {i.content}
+                    </p>
+                  </div>
+                ))
+              : props.data?.map((obj, index) => (
                   <div
                     key={index}
                     className="text-base font-normal flex flex-row items-center gap-x-5"
@@ -94,8 +112,7 @@ export default function ToggleMenu(props: toggleprops) {
                       </>
                     )}
                   </div>
-                )
-            )}
+                ))}
           </motion.div>
         )}
       </AnimatePresence>
@@ -160,7 +177,7 @@ export function AddSubCategoryMenu({ index }: { index: number }) {
   return (
     <div className="AddSubCategory_menu w-full h-fit p-1 flex flex-col justify-center gap-y-5 transition rounded-md outline outline-2 outline-gray-300">
       <h2 className="text-lg font-bold">Sub Categories</h2>
-      <div className="subcategory_list grid grid-cols-5 gap-y-3 p-4 place-content-start h-full  max-h-[120px] overflow-y-auto">
+      <div className="subcategory_list flex flex-row flex-wrap gap-5 p-4 place-content-start h-full  max-h-[120px] overflow-y-auto">
         {category.subcategories?.map((cat, index) => (
           <div
             key={index}
@@ -230,7 +247,7 @@ export function AddSubCategoryMenu({ index }: { index: number }) {
   );
 }
 interface Toggleselectprops {
-  type: "color" | "size" | "text";
+  type: "color" | "size" | "text" | "pcate" | "ccate";
   title: string;
   data: Array<string> | VariantColorValueType[];
   clickfunction?: (idx: number, type: string) => void;
@@ -239,7 +256,8 @@ interface Toggleselectprops {
   onClear?: (
     data: string[] | VariantColorValueType[],
     selectedvalue: string[],
-    promo?: boolean
+    promo?: boolean,
+    type?: string
   ) => void;
 }
 export function ToggleSelect({
@@ -252,7 +270,6 @@ export function ToggleSelect({
   promo,
 }: Toggleselectprops) {
   const [open, setopen] = useState(false);
-
   return (
     <motion.div
       initial={{ height: "100%" }}
@@ -291,7 +308,7 @@ export function ToggleSelect({
             selected.includes(typeof i === "string" ? i : i.val)
           ) && (
             <Button
-              onClick={() => onClear && onClear(data, selected, promo)}
+              onClick={() => onClear && onClear(data, selected, promo, type)}
               size="sm"
               variant="bordered"
               color="danger"
@@ -311,7 +328,7 @@ export function ToggleSelect({
             {data.map((i, idx) => (
               <div
                 key={idx}
-                className="selectitem min-w-[50px] rounded-lg cursor-pointer w-fit h-fit break-words bg-white active:bg-gray-100 p-2"
+                className="selectitem min-w-[50px] rounded-lg cursor-pointer w-fit h-fit break-words border border-black bg-white active:bg-gray-100 p-2"
                 onClick={() => {
                   clickfunction && clickfunction(idx, type);
                 }}

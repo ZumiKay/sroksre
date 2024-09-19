@@ -257,3 +257,41 @@ export const Delayloading = async (
   // Wait for either the loading timeout or the async function to complete
   await Promise.race([loadingTimeout, operationPromise]);
 };
+
+export const useScreenSize = () => {
+  const [screenSize, setScreenSize] = useState({
+    isMobile: false,
+    isTablet: false,
+    isDesktop: false,
+    isSmallDesktop: false,
+  });
+
+  useEffect(() => {
+    setScreenSize({
+      isMobile: window && window?.innerWidth <= 432,
+      isTablet: window && window?.innerWidth >= 432 && window?.innerWidth < 768,
+      isDesktop: window && window?.innerWidth >= 768,
+      isSmallDesktop:
+        window && window.innerWidth >= 768 && window.innerWidth < 850,
+    });
+
+    const handleResize = () => {
+      setScreenSize({
+        isMobile: window.innerWidth <= 432,
+        isTablet: window.innerWidth >= 432 && window.innerWidth < 768,
+        isSmallDesktop:
+          window && window.innerWidth >= 768 && window.innerWidth < 850,
+        isDesktop: window.innerWidth >= 768,
+      });
+    };
+
+    window.addEventListener("resize", handleResize);
+
+    // Cleanup event listener on unmount
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, []);
+
+  return screenSize;
+};

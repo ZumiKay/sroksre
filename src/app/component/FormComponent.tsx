@@ -20,9 +20,19 @@ import {
 export const PasswordInput = ({
   name,
   label,
+  type,
+  onChange,
+  require,
+  width,
+  variant,
 }: {
   name: string;
   label: string;
+  type: "userinfo" | "auth";
+  onChange?: (e: ChangeEvent<HTMLInputElement>) => void;
+  require?: boolean;
+  width?: string;
+  variant?: "outlined" | "standard" | "filled";
 }) => {
   const [showPassword, setShowPassword] = useState(false);
   const { setuserinfo } = useGlobalContext();
@@ -37,17 +47,21 @@ export const PasswordInput = ({
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
 
-    setuserinfo((prev) => ({ ...prev, [name]: value }));
+    type === "userinfo" && setuserinfo((prev) => ({ ...prev, [name]: value }));
   };
 
   return (
-    <FormControl sx={{ m: 1, width: "100%" }} variant="outlined">
+    <FormControl
+      sx={{ width: width ?? "100%", height: "50px" }}
+      variant={variant ?? "outlined"}
+    >
       <InputLabel htmlFor="outlined-adornment-password">{label}</InputLabel>
       <OutlinedInput
         id="outlined-adornment-password"
         type={showPassword ? "text" : "password"}
         name={name}
-        onChange={handleChange}
+        sx={{ backgroundColor: "white" }}
+        onChange={type === "auth" ? onChange : handleChange}
         endAdornment={
           <InputAdornment position="end">
             <IconButton
@@ -61,6 +75,7 @@ export const PasswordInput = ({
           </InputAdornment>
         }
         label={label}
+        required={require}
       />
     </FormControl>
   );

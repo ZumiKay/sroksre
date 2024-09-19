@@ -21,19 +21,25 @@ export const getQtyBasedOnOptions = (
   let totalqty = 0;
   let id = 0;
 
-  let orderdetailvalue = orderdetail.map((i) => i.option_value).filter(Boolean);
+  const orderdetailValuesSet = new Set(
+    orderdetail.map((i) => i.option_value).filter(Boolean)
+  );
 
-  variantstock.forEach((i) => {
-    const varaint_val = i.variant_val.filter((val) => val !== "null");
+  for (const stock of variantstock) {
+    for (const variant of stock.Stockvalue) {
+      const filteredVariant = variant.variant_val.filter(
+        (val) => val !== "null"
+      );
 
-    if (
-      varaint_val.length === orderdetailvalue.length &&
-      varaint_val.every((val) => orderdetailvalue.includes(val))
-    ) {
-      totalqty = i.qty;
-      id = i.id as number;
+      if (
+        filteredVariant.length === orderdetailValuesSet.size &&
+        filteredVariant.every((val) => orderdetailValuesSet.has(val))
+      ) {
+        totalqty = variant.qty;
+        id = stock.id ?? 0;
+      }
     }
-  });
+  }
 
   return { totalqty, id };
 };

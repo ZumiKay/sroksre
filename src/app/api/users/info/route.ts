@@ -2,7 +2,7 @@ import Prisma from "@/src/lib/prisma";
 import { NextRequest } from "next/server";
 import { extractQueryParams } from "../../banner/route";
 import { getUser } from "@/src/context/OrderContext";
-import { getDiscountedPrice } from "@/src/lib/utilities";
+import { calculateDiscountProductPrice } from "@/src/lib/utilities";
 
 export async function GET(request: NextRequest) {
   try {
@@ -25,6 +25,8 @@ export async function GET(request: NextRequest) {
         select: {
           id: true,
           houseId: true,
+          firstname: true,
+          lastname: true,
           street: true,
           district: true,
           songkhat: true,
@@ -41,6 +43,7 @@ export async function GET(request: NextRequest) {
           firstname: true,
           lastname: true,
           email: true,
+          role: true,
           createdAt: true,
         },
       });
@@ -74,14 +77,14 @@ export async function GET(request: NextRequest) {
       result = productwishlist.map((wish) => {
         const discount =
           wish.product.discount &&
-          getDiscountedPrice(wish.product.discount, wish.product.price);
+          calculateDiscountProductPrice({
+            price: wish.product.price,
+            discount: wish.product.discount,
+          });
 
         return {
           ...wish.product,
-          discount: discount && {
-            ...discount,
-            newprice: discount.newprice.toFixed(2),
-          },
+          discount: discount && discount.discount,
         };
       });
     }
@@ -89,5 +92,25 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.log("Fetch User", error);
     return Response.json({ message: "Error Occured" }, { status: 500 });
+  }
+}
+
+export async function DELETE() {
+  const user = await getUser();
+
+  if (!user) {
+    return Response.json({}, { status: 401 });
+  }
+  try {
+    await Prisma.wishlist.deleteMany({ where: { uid: user.id } });
+    await Prisma.orderproduct.deleteMany({ where: { user_id: user.id } });
+    await Prisma.orders.deleteMany({ where: { buyer_id: user.id } });
+    await Prisma.usersession.deleteMany({ where: { user_id: user.id } });
+    await Prisma.user.delete({ where: { id: user.id } });
+
+    return Response.json({}, { status: 200 });
+  } catch (error) {
+    console.log("Delete User", error);
+    return Response.json({}, { status: 500 });
   }
 }

@@ -6,7 +6,6 @@ import {
 import {
   BannerState,
   productcoverstype,
-  SpecificAccess,
   useGlobalContext,
 } from "@/src/context/GlobalContext";
 import { ChangeEvent, useRef, useState } from "react";
@@ -33,6 +32,7 @@ interface imageuploadprops {
   mutitlple: boolean;
   type: "createproduct" | "createbanner" | "createpromotion";
   bannertype?: string;
+  setreloaddata?: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 const filetourl = (file: File[]) => {
@@ -49,7 +49,6 @@ export const ImageUpload = (props: imageuploadprops) => {
     openmodal,
     setopenmodal,
     globalindex,
-    setreloaddata,
   } = useGlobalContext();
   const [Imgurl, seturl] = useState<Imgurl[]>([]);
   const [Imgurltemp, seturltemp] = useState<Imgurl[]>([]);
@@ -178,7 +177,7 @@ export const ImageUpload = (props: imageuploadprops) => {
     if (!update.success) {
       return null;
     }
-    setreloaddata(true);
+    props.setreloaddata && props.setreloaddata(true);
     return true;
   };
 
@@ -275,7 +274,7 @@ export const ImageUpload = (props: imageuploadprops) => {
       errorToast("Failed To Save");
     } finally {
       setloading(false);
-      setreloaddata(true);
+      props.setreloaddata && props.setreloaddata(true);
     }
   };
   const handleCancel = () => {
@@ -309,10 +308,18 @@ export const ImageUpload = (props: imageuploadprops) => {
         src={CloseIcon}
         alt="close"
         onClick={() => handleCancel()}
-        className="w-[50px] h-[50px] absolute top-5 right-10 object-contain transition hover:-translate-y-2 active:-translate-y-2"
+        className="w-[30px] h-[30px] absolute top-5 right-2 object-contain transition hover:-translate-y-2 active:-translate-y-2"
       />
-      <div className="uploadImage__container w-[80%] max-h-[600px] flex flex-row justify-start items-center gap-x-5">
-        <div className="previewImage__container w-[50%] border-[1px] border-black grid grid-cols-2 gap-x-5 gap-y-5 p-3  min-h-[400px] max-h-[600px] overflow-y-auto">
+      <div
+        className="uploadImage__container w-[80%] 
+      max-smallest_screen1:w-[97%] max-smallest_screen1:flex-col max-smallest_screen1:gap-y-5
+      max-h-[600px] flex flex-row justify-start items-center gap-x-5"
+      >
+        <div
+          className="previewImage__container w-[50%] border-[1px] border-black grid grid-cols-2 gap-x-5 gap-y-5 p-3  
+        max-smallest_screen1:w-[97%]
+        min-h-[400px] max-h-[600px] overflow-y-auto"
+        >
           {Imgurl.map((file, index) => (
             <div
               key={index}
@@ -341,7 +348,7 @@ export const ImageUpload = (props: imageuploadprops) => {
             </div>
           ))}
         </div>
-        <div className="action__container w-1/2 flex flex-col items-center gap-y-5 h-fit">
+        <div className="action__container w-1/2 max-smallest_screen:w-full flex flex-col items-center gap-y-5 h-fit">
           <InputFileUpload
             ref={fileInputRef}
             onChange={handleFile}

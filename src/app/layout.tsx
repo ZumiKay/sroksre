@@ -3,15 +3,14 @@ import { Prompt } from "next/font/google";
 import "./globals.css";
 import Navbar from "./component/Navbar";
 import Footer from "./component/Footer";
-
 import { ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import "react-toastify/ReactToastify.css";
 import { GlobalContextProvider } from "../context/GlobalContext";
-import { CartIndicator } from "./component/ServerComponents";
 import { getUser } from "../context/OrderContext";
 import { NextUIProvider } from "@nextui-org/react";
 import { Suspense } from "react";
 import { ContainerLoading } from "./component/Loading";
+import { SocketProvider } from "../context/SocketContext";
 
 const prompt = Prompt({
   weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
@@ -40,19 +39,24 @@ export default async function RootLayout({
       </head>
       <body
         className={prompt.className}
-        style={{ minHeight: "100vh", height: "100%", width: "100%" }}
+        style={{
+          minHeight: "100vh",
+          height: "100%",
+          width: "100%",
+        }}
       >
         <GlobalContextProvider>
           {" "}
           <NextUIProvider>
-            <div className="w-full h-full relative">
-              <Navbar session={session ?? undefined}>
-                <CartIndicator />
-              </Navbar>
-              <ToastContainer />
-              <Suspense fallback={<ContainerLoading />}>{children}</Suspense>
-              <Footer />
-            </div>
+            <Suspense fallback={<ContainerLoading />}>
+              <SocketProvider>
+                <div className="w-full h-full relative">
+                  <Navbar session={session as any} />
+                  <ToastContainer /> {children}
+                  <Footer />
+                </div>
+              </SocketProvider>
+            </Suspense>
           </NextUIProvider>
         </GlobalContextProvider>
       </body>

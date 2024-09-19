@@ -1,4 +1,4 @@
-import React from "react";
+"use server";
 import {
   BackAndEdit,
   Checkoutproductcard,
@@ -15,17 +15,23 @@ import { notFound, redirect } from "next/navigation";
 import Prisma from "@/src/lib/prisma";
 import {
   Allstatus,
-  Orderpricetype,
-  Ordertype,
   Productorderdetailtype,
-  Productordertype,
   totalpricetype,
 } from "@/src/context/OrderContext";
 import { calculateDiscountProductPrice, decrypt } from "@/src/lib/utilities";
 import { checkOrder, OrderUserType } from "./action";
 import { SuccessVector } from "../component/Asset";
-import { OrderDetailType } from "../dashboard/order/OrderComponent";
+import { VariantColorValueType } from "@/src/context/GlobalContext";
+import { getPolicesByPage } from "../api/policy/route";
+import Link from "next/link";
+import { Metadata } from "next";
 
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    title: "Checkout | SrokSre",
+    description: "Checkout page , payment with paypal",
+  };
+}
 export default async function Checkoutpage({
   searchParams,
 }: {
@@ -64,10 +70,8 @@ export default async function Checkoutpage({
           <StepIndicator step={step} />
           <FormWrapper step={step} order_id={orderid}>
             <BackAndEdit step={step} />
-
             <ShowBody />
-
-            <div className="submit-btn w-[150px] h-fit">
+            <div className="submit-btn w-[150px] max-small_tablet:w-full h-fit">
               <Proceedbutton step={step} />
             </div>
           </FormWrapper>
@@ -82,28 +86,29 @@ export default async function Checkoutpage({
 
 //Component
 
-export const getCheckoutdata = async (orderid: string) => {
-  let result = await Prisma.orders.findUnique({
-    where: {
-      id: orderid,
-    },
+export const getCheckoutdata = async (orderid?: string, userid?: number) => {
+  const result = await Prisma.orders.findFirst({
+    where: userid ? { user: { id: userid } } : { id: orderid },
     include: {
       user: {
-        select: {
-          id: true,
-          firstname: true,
-          lastname: true,
-          email: true,
-        },
+        select: { id: true, firstname: true, lastname: true, email: true },
       },
+      shipping: true,
       Orderproduct: {
         include: {
           product: {
             select: {
+              id: true,
               covers: true,
               discount: true,
               name: true,
               price: true,
+              stocktype: true,
+              Stock: { select: { Stockvalue: true } },
+              Variant: {
+                orderBy: { id: "asc" },
+                select: { id: true, option_value: true },
+              },
             },
           },
         },
@@ -111,37 +116,47 @@ export const getCheckoutdata = async (orderid: string) => {
     },
   });
 
-  if (!result) {
-    return null;
-  }
+  if (!result) return null;
 
-  const total = result?.price as unknown as totalpricetype;
-  result = {
+  const updatedOrderProducts = result.Orderproduct.map((orderProduct) => {
+    {
+      const detail = orderProduct.details as Productorderdetailtype[];
+      const selectedVariantDetails = orderProduct.product.Variant.map(
+        (variant, idx) => {
+          const detailValue = detail[idx].value;
+          const optionValues = variant.option_value as (
+            | string
+            | VariantColorValueType
+          )[];
+
+          return optionValues.find((val) =>
+            typeof val === "string"
+              ? val === detailValue
+              : val.val === detailValue
+          );
+        }
+      ).filter(Boolean);
+
+      return {
+        ...orderProduct,
+        selectedvariant: selectedVariantDetails,
+        price: calculateDiscountProductPrice({
+          price: orderProduct.product.price,
+          discount: orderProduct.product.discount ?? undefined,
+        }),
+        product: {
+          ...orderProduct.product,
+        },
+      };
+    }
+  });
+
+  return {
     ...result,
-
-    price: total,
-    Orderproduct: result.Orderproduct.map((i) => ({
-      ...i,
-      product: {
-        ...i.product,
-        price: i.product.discount
-          ? calculateDiscountProductPrice({
-              price: i.product.price,
-              discount: i.product.discount,
-            })
-          : i.product.price,
-      },
-    })) as any,
-  } as any;
-
-  const modified = {
-    ...result,
-
-    price: total,
+    Orderproduct: updatedOrderProducts,
   };
-
-  return modified;
 };
+
 export const calculatePrice = (price: number, percent: number) =>
   price - (price * percent) / 100;
 
@@ -153,25 +168,29 @@ const OrderSummary = async ({ orderId }: { orderId: string }) => {
   }
 
   return (
-    <div className="checkout_container bg-[#F1F1F1] w-[50vw] h-fit p-2 rounded-lg shadow-lg animate-fade-in">
+    <div
+      className={`checkout_container bg-[#F1F1F1] w-[50vw] h-fit p-2 
+    max-smaller_screen:w-full
+    rounded-lg shadow-lg 
+    animate-fade-in`}
+    >
       <input type="hidden" name="summary" value={"summary"} />
       <h3 className="title text-2xl font-bold pb-5">Order Summary</h3>
 
       <div className="productlist w-full h-full flex flex-col gap-y-5 p-2">
-        {orderData?.Orderproduct?.map((order) => {
-          const price = order.product.price as unknown as Orderpricetype;
+        {orderData.Orderproduct.map((order) => {
+          const price = order.price;
+          const total =
+            order.quantity * (price.discount?.newprice ?? price.price);
           return (
             <Checkoutproductcard
               key={order.id}
               qty={order.quantity}
               cover={order.product.covers[0].url}
               price={price}
-              total={
-                order.quantity *
-                (price.discount ? price.discount.newprice ?? 0 : price.price)
-              }
+              total={total}
               name={order.product.name}
-              details={order.details as Array<Productorderdetailtype>}
+              details={order.selectedvariant as any}
             />
           );
         })}
@@ -204,7 +223,7 @@ const PaymentDetail = async ({
   }
 
   return (
-    <div className="checkout_container bg-[#F1F1F1] w-[50vw] h-fit p-2 rounded-lg shadow-lg animate-fade-in">
+    <div className="checkout_container bg-[#F1F1F1] w-[50vw] max-smaller_screen:w-full h-fit p-2 rounded-lg shadow-lg animate-fade-in">
       <input type="hidden" value={"payment"} name="payment" />
       <div className="w-full h-fit bg-white flex flex-col gap-y-5 items-center p-2">
         <h1 className="text-3xl font-medium w-full text-start h-fit">
@@ -215,7 +234,7 @@ const PaymentDetail = async ({
           Shipping Services
         </h3>
 
-        <div className="shipping_service w-full h-fit grid grid-cols-3 gap-x-5 place-items-center">
+        <div className="shipping_service w-full h-fit flex flex-row gap-3 flex-wrap justify-center">
           {(order?.shipping_id
             ? Shippingservice
             : Shippingservice.filter((i) => i.value === "Pickup")
@@ -263,7 +282,7 @@ async function Totalprice({ orderID }: { orderID: string }) {
   const total = await getOrderTotal(orderID);
 
   return (
-    <div className="price_container w-[50vw] p-2 h-[200px] flex flex-row justify-between items-center  mt-10 border-t-2 border-dashed border-t-black">
+    <div className="price_container w-[50vw] max-smaller_screen:w-[80%] p-2 h-[200px] flex flex-row justify-between items-center  mt-10 border-t-2 border-dashed border-t-black">
       <ul className="price-tag list-none w-fit h-fit flex flex-col gap-y-5 self-end">
         <li>Subtotal</li>
         <li>Shipping Fee</li>
@@ -280,17 +299,19 @@ async function Totalprice({ orderID }: { orderID: string }) {
   );
 }
 
-const SuccessPage = ({ orderid }: { orderid: string }) => {
+const SuccessPage = async ({ orderid }: { orderid: string }) => {
+  const policy = await getPolicesByPage("checkout");
+
   return (
     <div className="success_page w-full h-full mt-5 flex flex-col items-center gap-y-20">
       <div className="header w-full h-[50px] flex flex-row items-center justify-start">
         <div className="line1 w-[50%] h-[10px] bg-[#495464] text-[#495464]"></div>
-        <div className="content w-[40%]  p-4 bg-[#495464] text-white rounded-lg text-xl font-bold text-center">
+        <div className="content w-[50%] max-large_tablet:w-[80%] max-large_phone:w-full max-small_phone:mt-10 p-4 bg-[#495464] text-white rounded-lg text-xl font-bold text-center">
           Thank for your purchase
         </div>
         <div className="line1 w-1/2 h-[10px] bg-[#495464] text-xs text-[#495464]"></div>
       </div>
-      <div className="order_detail w-[30%] h-fit flex flex-col gap-y-10 items-center">
+      <div className="order_detail w-[80%] h-fit flex flex-col gap-y-10 items-center">
         <SuccessVector />
 
         <div className="w-full h-fit flex flex-col gap-y-5">
@@ -300,19 +321,29 @@ const SuccessPage = ({ orderid }: { orderid: string }) => {
           <p className="text-lg font-medium w-full h-fit">
             Receipt sent to your registered email.
           </p>
-
-          <p className="text-lg font-medium w-full h-fit">
-            Estimate arrival in 30 days.
-          </p>
-          <p className="text-lg font-medium w-full h-fit">
-            Please see <a className="font-bold italic">Shipping & Refund</a> for
-            more detail on order.
-          </p>
+          <h3 className="text-2xl font-bold">Need Help ?</h3>
+          <div className="w-full h-fit flex flex-row items-center gap-5 flex-wrap">
+            <Link
+              className="text-lg font-bold underline"
+              href={`/privacyandpolicy?p=0`}
+            >
+              Questions
+            </Link>
+            {policy.map((pol) => (
+              <Link
+                key={pol.id}
+                className="text-lg font-bold hover:text-gray-300 active:text-gray-300 underline"
+                href={`/privacyandpolicy?p=${pol.id}`}
+              >
+                {pol.title}
+              </Link>
+            ))}
+          </div>
         </div>
       </div>
-      <div className="footer_detail flex flex-col gap-y-5 w-[30%]">
+      <div className="footer_detail flex flex-col gap-y-5 w-[80%]">
         <p className="text-lg font-medium text-blue-500 cursor-pointer transition hover:text-white">
-          Need help? Please contact us via email
+          Any Problem? Please contact us via email
         </p>
         <Navigatebutton
           title="View Order"

@@ -10,6 +10,41 @@ import {
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import LoadingIcon from "../component/Loading";
+import { Props } from "../product/page";
+import { Metadata } from "next";
+import Prisma from "@/src/lib/prisma";
+
+export async function generateMetadata({
+  searchParams,
+}: Props): Promise<Metadata> {
+  const { p } = searchParams;
+  const page = p ? parseInt(p.toString()) : undefined;
+
+  if (!page && page !== 0) {
+    return {
+      title: "Policy And Privacy Information | SrokSre",
+      description:
+        "Shipping Policy , Return Policy , FAQs , Frequently Ask Question",
+    };
+  }
+
+  if (page === 0) {
+    return {
+      title: "Frequent Ask Question | SrokSre",
+      description:
+        "Question Frequent Asked By Custommer Through Our Email Or Contact",
+    };
+  }
+  let title = "";
+
+  const policy = await Prisma.policy.findUnique({ where: { id: page } });
+
+  if (policy) {
+    title = `${policy.title} | SrokSre`;
+  }
+
+  return { title: title, description: "Policy in our online store" };
+}
 
 export default async function PrivacyandPolicy({
   searchParams,
@@ -29,7 +64,6 @@ export default async function PrivacyandPolicy({
     if (!policy) {
       return notFound();
     }
-  } else {
   }
 
   const ShowTitle = () => {
@@ -42,7 +76,11 @@ export default async function PrivacyandPolicy({
           : undefined
         : undefined;
 
-    return <h3 className="font-bold text-5xl">{title}</h3>;
+    return (
+      <h3 className="font-bold text-5xl w-[95%] max-small_phone:w-[90%] break-words">
+        {title}
+      </h3>
+    );
   };
 
   return (
@@ -54,26 +92,40 @@ export default async function PrivacyandPolicy({
           ...allpolicy.map((i) => ({ id: i.id, content: i.title })),
         ]}
       />
-      <div className="w-full content pl-[25%] pr-[10%] pt-5">
+      <div className="w-full content max-smallest_screen:pl-[5%] pl-[25%] pr-[10%] pt-5">
         {!params?.p ? (
           <>
-            <h2 className="text-3xl font-bold w-full">
+            <h2 className="text-5xl font-bold w-full">
               Policies and More Informations
             </h2>
           </>
         ) : (
           <>
-            <div className="w-full h-fit flex flex-row items-center justify-between mb-10">
+            <div className="w-full h-fit flex flex-col items-start gap-y-5 mb-10">
               <ShowTitle />
-              {pageId !== 0 && (
-                <div className="w-fit h-[40px] flex flex-row gap-x-6 items-center">
-                  <PolicyButton
-                    title="Edit"
-                    ty="edit"
-                    color="#4688A0"
-                    policydata={policy as Addpolicytype}
-                  />
-                  <PolicyButton title="Delete" ty="delete" color="lightcoral" />
+              {pageId !== 0 && user && user.role === "ADMIN" && (
+                <div className="w-full overflow-x-auto">
+                  <div className="w-full min-w-[280px] h-[40px] flex flex-row gap-6 items-center justify-start">
+                    <PolicyButton
+                      title="Edit"
+                      ty="edit"
+                      color="#4688A0"
+                      policydata={policy as Addpolicytype}
+                    />
+                    <PolicyButton
+                      title="Show"
+                      ty="showtype"
+                      color="black"
+                      showtype={(policy as Addpolicytype).showtype}
+                      pid={pageId}
+                    />
+                    <PolicyButton
+                      title="Delete"
+                      ty="delete"
+                      color="lightcoral"
+                      pid={pageId}
+                    />
+                  </div>
                 </div>
               )}
             </div>
@@ -109,12 +161,15 @@ const PolicyContent = ({ paragrah, question, isAdmin }: Policycontent) => {
     <div className="w-full h-fit flex flex-col gap-y-5">
       {paragrah ? (
         paragrah.Paragraph.map((i) => (
-          <p
-            key={i.id}
-            className="w-full font-normal text-sm h-fit break-words"
-          >
-            {i.content}
-          </p>
+          <div className="w-full h-fit flex flex-col gap-5">
+            {i.title && <h3 className="text-xl font-bold">{i.title}</h3>}
+            <p
+              key={i.id}
+              className="w-full font-normal text-lg h-fit break-words"
+            >
+              {i.content}
+            </p>
+          </div>
         ))
       ) : (
         <>

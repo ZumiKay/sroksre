@@ -2,15 +2,16 @@
 import { StaticImageData } from "next/image";
 import PrimaryButton, { Selection } from "./Button";
 import React, { ChangeEvent, SetStateAction, useEffect, useState } from "react";
-import { SecondayCard } from "./Card";
+import { CardSkeleton, SecondayCard } from "./Card";
 import { signOut } from "next-auth/react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import Modal from "./Modals";
+import Modal, { SecondaryModal } from "./Modals";
 import {
   BannerInitialize,
   FilterValue,
   Productinitailizestate,
   PromotionInitialize,
+  SelectType,
   Sessiontype,
   useGlobalContext,
 } from "@/src/context/GlobalContext";
@@ -19,19 +20,14 @@ import {
   Delayloading,
   useClickOutside,
   useEffectOnce,
+  useScreenSize,
 } from "@/src/context/CustomHook";
-import {
-  ContainerLoading,
-  LoadingText,
-  errorToast,
-  successToast,
-} from "./Loading";
+import { ContainerLoading, errorToast, successToast } from "./Loading";
 import { motion } from "framer-motion";
 
 import { DateTimePicker } from "@mui/x-date-pickers";
-import dayjs, { Dayjs } from "dayjs";
+import dayjs from "dayjs";
 import { ToggleSelect } from "./ToggleMenu";
-import { Deletecart, Getcarts } from "../product/detail/[id]/action";
 import { Productordertype, totalpricetype } from "@/src/context/OrderContext";
 import { Createorder } from "../checkout/action";
 import { formatDate } from "./EmailTemplate";
@@ -43,6 +39,7 @@ import { BannerSize, BannerType } from "./Modals/Banner";
 import Link from "next/link";
 import {
   Bin_Icon,
+  CloseVector,
   EditIcon,
   InventoryIcon,
   OrderIcon,
@@ -53,8 +50,10 @@ import {
 import { Homeeditmenu } from "./HomePage/EditMenu";
 import { Addicon } from "./Icons/Homepage";
 import { Homeitemtype } from "../severactions/containeraction";
-import { Checkbox } from "@nextui-org/react";
 import { SelectionCustom } from "./Pagination_Component";
+import { SelectAndSearchProduct } from "./Banner";
+import { GetPromotionSelection } from "./Modals/Category";
+import { Checkbox } from "@nextui-org/react";
 
 interface accountmenuprops {
   setProfile: (value: SetStateAction<boolean>) => void;
@@ -66,38 +65,51 @@ const AccountMenuItems = [
     name: "Profile",
     icon: <ProfileIcon />,
     link: "/dashboard",
+    isAdmin: true,
+    isUser: true,
   },
   {
     name: "My Order",
     icon: <OrderIcon />,
     link: "/dashboard/order",
+    isAdmin: true,
+    isUser: true,
   },
   {
     name: "Inventory",
     icon: <InventoryIcon />,
     link: "/dashboard/inventory",
+    isAdmin: true,
+    isUser: false,
   },
   {
     name: "Users",
     icon: <UserIcon />,
     link: "/dashboard/usermanagement",
+    isAdmin: true,
+    isUser: false,
   },
   {
     name: "Edit Home",
     icon: <EditIcon />,
     link: "",
+    isAdmin: true,
+    isUser: false,
   },
 ];
 
 export default function AccountMenu(props: accountmenuprops) {
   const pathname = usePathname();
+
   const { openmodal, setopenmodal } = useGlobalContext();
   const [loading, setloading] = useState(false);
   const [Homeitems, sethomeitems] = useState<Homeitemtype[]>([]);
   const [isEdit, setisEdit] = useState(false);
   const [selected, setselected] = useState<number[] | undefined>([]);
+
   const router = useRouter();
   const ref = useClickOutside(() => props.setProfile(false));
+  const { isMobile } = useScreenSize();
 
   const handleSignOut = async () => {
     setloading(true);
@@ -192,7 +204,7 @@ export default function AccountMenu(props: accountmenuprops) {
       exit={{ x: "100%" }}
       transition={{ duration: 0.5 }}
       onMouseEnter={() => props.setProfile(true)}
-      className="fixed right-0 top-0 w-[20vw] h-full z-40 bg-[#FFFFFF] flex flex-col items-center"
+      className="fixed right-0 top-0 w-[430px] max-small_phone:w-full h-full z-40 bg-[#FFFFFF] flex flex-col items-center"
     >
       {openmodal?.editHome ? (
         <div className="w-[90%] h-full flex flex-col items-center gap-y-10">
@@ -255,35 +267,42 @@ export default function AccountMenu(props: accountmenuprops) {
           <ul className="menu_container flex flex-col items-center w-full gap-y-10 mt-[10vh] mb-[10vh]">
             {AccountMenuItems.filter((i) =>
               pathname !== "/" ? i.name !== AccountMenuItems[4].name : true
-            ).map((item, idx) => (
-              <li
-                key={idx}
-                className="side_link w-[80%] h-[50px] text-center font-bold text-lg rounded-md transition hover:bg-gray-200 active:bg-gray-200 "
-              >
-                {item.link === "" ? (
-                  <div
-                    onClick={() => {
-                      setopenmodal((prev) => ({ ...prev, editHome: true }));
-                      props.setProfile(false);
-                    }}
-                    className="w-full h-full flex flex-row items-center gap-x-5 pl-2 rounded-lg transition hover:bg-gray-200 active:bg-gray-200"
-                  >
-                    {item.icon}
-                    <h3 className="text-lg font-bold cursor-pointer">
-                      {item.name}
-                    </h3>
-                  </div>
-                ) : (
-                  <Link
-                    href={item.link}
-                    className="w-full h-full flex flex-row items-center gap-x-5 pl-2 rounded-lg transition hover:bg-gray-200 active:bg-gray-200"
-                  >
-                    {item.icon}
-                    <h3 className="text-lg font-bold">{item.name}</h3>
-                  </Link>
-                )}
-              </li>
-            ))}
+            )
+              .filter((i) =>
+                props.session?.role === "ADMIN" ? i.isAdmin : i.isUser
+              )
+              .map((item, idx) => (
+                <li
+                  key={idx}
+                  className="side_link w-[80%] h-[50px] text-center font-bold text-lg rounded-md transition hover:bg-gray-200 active:bg-gray-200 "
+                >
+                  {item.link === "" ? (
+                    <div
+                      onClick={() => {
+                        setopenmodal((prev) => ({ ...prev, editHome: true }));
+                      }}
+                      className="w-full h-full flex flex-row items-center gap-x-5 pl-2 rounded-lg transition hover:bg-gray-200 active:bg-gray-200"
+                    >
+                      {item.icon}
+                      <h3 className="text-lg font-bold cursor-pointer">
+                        {item.name}
+                      </h3>
+                    </div>
+                  ) : (
+                    <div
+                      onClick={() => {
+                        router.push(item.link);
+                        router.refresh();
+                        isMobile && props.setProfile(false);
+                      }}
+                      className="w-full h-full flex flex-row items-center gap-x-5 pl-2 rounded-lg transition hover:bg-gray-200 active:bg-gray-200"
+                    >
+                      {item.icon}
+                      <h3 className="text-lg font-bold">{item.name}</h3>
+                    </div>
+                  )}
+                </li>
+              ))}
           </ul>
           <PrimaryButton
             text="Logout"
@@ -296,18 +315,31 @@ export default function AccountMenu(props: accountmenuprops) {
           />
         </>
       )}
+      {isMobile && (
+        <div
+          onClick={() => props.setProfile(false)}
+          className="w-fit h-fit absolute top-1 right-1"
+        >
+          <CloseVector width="35px" height="35px" />
+        </div>
+      )}
     </motion.aside>
   );
 }
 interface cardmenuprops {
   img: string | StaticImageData;
   setcart: (value: SetStateAction<boolean>) => void;
+  setcarttotal: React.Dispatch<React.SetStateAction<number>>;
 }
 
 export function CartMenu(props: cardmenuprops) {
+  const { setreloadcart } = useGlobalContext();
   const router = useRouter();
   const searchparams = useSearchParams();
   const [cartItem, setitem] = useState<Array<Productordertype> | []>([]);
+  const [reloaddata, setreloaddata] = useState(true);
+  const ref = useClickOutside(() => props.setcart(false));
+
   const [loading, setloading] = useState({
     fetch: true,
     checkout: false,
@@ -317,32 +349,46 @@ export function CartMenu(props: cardmenuprops) {
     undefined
   );
 
-  useEffect(() => {
-    const fetchcart = async () => {
-      const carts = await Getcarts();
-      setloading((prev) => ({ ...prev, fetch: false }));
+  const fetchcart = async () => {
+    const asyncfetchcart = async () => {
+      const response = await ApiRequest("/api/order/cart", undefined, "GET");
+      if (!response.success) {
+        errorToast("Error Occured");
+        return;
+      }
 
-      settotal(carts.total);
-
-      setitem(carts.data);
+      setitem(response.data);
+      settotal({ subtotal: response.total ?? 0, total: response.total ?? 0 });
     };
 
-    fetchcart();
-  }, []);
+    await Delayloading(
+      asyncfetchcart,
+      (value) => setloading((prev) => ({ ...prev, fetch: value })),
+      500
+    );
 
-  const removecart = async (id: number, idx: number) => {
-    const deletereq = Deletecart.bind(null, id);
-    const makereq = await deletereq();
-    if (!makereq.success) {
-      errorToast("Can't delete cart");
+    setreloaddata(false);
+  };
+
+  useEffect(() => {
+    if (reloaddata) fetchcart();
+  }, [reloaddata]);
+
+  const removecart = async (id: number) => {
+    const deletereq = await ApiRequest(
+      "/api/order/cart",
+      undefined,
+      "DELETE",
+      "JSON",
+      { id }
+    );
+    if (!deletereq.success) {
+      errorToast("Can't Delete Cart");
       return;
     }
-    let updatecart = [...cartItem];
-
-    updatecart.splice(idx, 1);
-    settotal(makereq.total);
-    setitem(updatecart);
-    router.refresh();
+    props.setcarttotal((prev) => (prev !== 0 ? prev - 1 : prev));
+    setreloadcart(true);
+    setreloaddata(true);
   };
 
   const subprice = totalprice
@@ -378,27 +424,35 @@ export function CartMenu(props: cardmenuprops) {
   };
   return (
     <aside
+      ref={ref}
       onMouseEnter={() => (document.body.style.overflow = "hidden")}
       onMouseLeave={() => {
         document.body.style.overflow = "auto";
         props.setcart(false);
       }}
-      className="Cart__Sidemenu fixed h-full w-[700px] right-0 bg-white z-40 flex flex-col items-center gap-y-5 pb-2"
+      className="Cart__Sidemenu fixed h-full w-[700px] max-large_tablet:w-[550px] max-large_phone:w-[100vw] right-0 bg-white z-40 flex flex-col items-center gap-y-5 transition-all"
     >
+      <div
+        onClick={() => props.setcart(false)}
+        className="w-fit h-fit absolute top-1 right-1"
+      >
+        <CloseVector width="30px" height="30px" />
+      </div>
       <h1 className="heading text-xl font-bold text-center w-full">
         Shopping Cart <span>( {cartItem?.length} item )</span>
       </h1>
-      <div className="card_container flex flex-col w-[95%] gap-y-5 h-full max-h-[75vh] overflow-y-auto">
-        {loading.fetch && <LoadingText style={{ left: "40%" }} />}
+      <div className="card_container flex flex-col w-[95%] gap-y-5 h-full max-h-[70vh] overflow-y-auto">
         {(!cartItem || cartItem.length === 0) && (
           <h3 className="text-xl font-bold text-red-500 w-full h-fit text-center">
             No items
           </h3>
         )}
+        {loading.fetch && Array.from({ length: 3 }).map(() => <CardSkeleton />)}
+
         {cartItem?.map((i, idx) => {
           return (
             <SecondayCard
-              key={i.id}
+              key={idx}
               id={i.id}
               img={
                 i.product?.covers.length !== 0
@@ -408,10 +462,11 @@ export function CartMenu(props: cardmenuprops) {
               name={i.product?.name ?? ""}
               maxqty={i.maxqty}
               selectedqty={i.quantity}
-              selecteddetail={i.details.filter((i) => i)}
+              selecteddetail={i.selectedvariant}
               price={i.price}
-              removecart={() => removecart(i.id, idx)}
+              removecart={() => removecart(i.id)}
               settotal={settotal}
+              setreloadcart={setreloaddata}
             />
           );
         })}
@@ -455,8 +510,6 @@ export const ConfirmModal = () => {
     setopenmodal,
     isLoading,
     setisLoading,
-    allData,
-    setalldata,
     product,
     setproduct,
     banner,
@@ -467,6 +520,7 @@ export const ConfirmModal = () => {
     setglobalindex,
   } = useGlobalContext();
   const router = useRouter();
+  const searchParam = useSearchParams();
   const handleConfirm = async (confirm: boolean) => {
     if (confirm) {
       const URL = "/api/image";
@@ -538,8 +592,8 @@ export const ConfirmModal = () => {
 
   const handleConfirmDelete = async (confirm: boolean) => {
     const { type, index } = openmodal.confirmmodal;
+    const param = new URLSearchParams(searchParam);
 
-    const itemlist = allData[type as keyof typeof allData] || [];
     const URL =
       type === "product"
         ? "/api/products/crud"
@@ -547,7 +601,9 @@ export const ConfirmModal = () => {
         ? "/api/banner"
         : type === "promotion"
         ? "/api/promotion"
-        : "/api/users";
+        : type === "user"
+        ? "/api/users"
+        : "/api/users/info";
 
     if (confirm) {
       if (type === "promotioncancel") {
@@ -556,13 +612,12 @@ export const ConfirmModal = () => {
         setglobalindex((prev) => ({ ...prev, promotioneditindex: -1 }));
         setopenmodal((prev) => ({ ...prev, createPromotion: false }));
       } else {
-        const idx = itemlist.find((i: any) => i.id === index);
         const deleteRequest = await ApiRequest(
           URL,
           setisLoading,
           "DELETE",
           "JSON",
-          { id: index }
+          type !== "userinfo" ? { id: index } : {}
         );
 
         if (!deleteRequest.success) {
@@ -574,6 +629,15 @@ export const ConfirmModal = () => {
           setglobalindex((prev) => ({ ...prev, useredit: -1 }));
           setopenmodal((prev) => ({ ...prev, createUser: false }));
         }
+
+        if (type === "user") {
+          param.set("p", "1");
+          router.push(`?${param}`, { scroll: false });
+        }
+        openmodal.confirmmodal.onAsyncDelete &&
+          (await openmodal.confirmmodal.onAsyncDelete());
+        openmodal.confirmmodal.onDelete && openmodal.confirmmodal.onDelete();
+
         router.refresh();
       }
     }
@@ -596,9 +660,9 @@ export const ConfirmModal = () => {
   return (
     <Modal closestate={"confirmmodal"} customZIndex={200}>
       <div className="confirm_container flex flex-col justify-center items-center gap-y-5 bg-white w-[250px] h-[280px] rounded-md">
-        <h3 className="question text-lg font-bold text-black">
+        <h3 className="question w-full text-center text-lg font-bold text-black">
           {" "}
-          Are You Sure ?
+          {openmodal.confirmmodal.Warn ?? "Are you sure ?"}
         </h3>
         <div className="btn_container w-4/5 h-fit flex flex-col justify-center items-center gap-y-3">
           <PrimaryButton
@@ -658,6 +722,7 @@ export const FilterMenu = ({
   expired,
   reloadData,
   setfilterdata,
+  isSetPromotion,
 }: {
   type?: string;
   totalproduct?: number;
@@ -672,11 +737,13 @@ export const FilterMenu = ({
   param?: InventoryParamType;
   setisFilter?: React.Dispatch<React.SetStateAction<boolean>>;
   reloadData?: () => void;
+  isSetPromotion?: boolean;
   setfilterdata?: React.Dispatch<
     React.SetStateAction<InventoryParamType | undefined>
   >;
 }) => {
-  const { setopenmodal, promotion, listproductfilval } = useGlobalContext();
+  const { openmodal, setopenmodal, promotion, listproductfilval, globalindex } =
+    useGlobalContext();
 
   const [loading, setloading] = useState(false);
 
@@ -697,16 +764,19 @@ export const FilterMenu = ({
     search: param?.search,
     status: param?.status,
     expired: expired,
+    promoids: param?.promoids?.split(",").map((i) => parseInt(i, 10)),
   });
   const [filterdata, setdata] = useState<{
     size?: Array<string>;
     color?: Array<string>;
     text?: Array<string>;
   }>({});
+  const [promoval, setpromoval] = useState<SelectType[] | undefined>(undefined);
 
   const fetchcate = async () => {
     const asycnfetchdata = async () => {
       const categories = await ApiRequest("/api/categories", undefined, "GET");
+
       if (!categories.success) {
         errorToast("Error Connection");
         return;
@@ -716,7 +786,7 @@ export const FilterMenu = ({
       });
     };
 
-    await Delayloading(asycnfetchdata, setloading, 1000);
+    await Delayloading(asycnfetchdata, setloading, 500);
   };
 
   useEffectOnce(() => {
@@ -728,6 +798,23 @@ export const FilterMenu = ({
 
     type === "product" && fetchcate();
   });
+
+  useEffect(() => {
+    const fetchpromo = async () => {
+      if (!param?.promoids) {
+        return;
+      }
+      const data = await ApiRequest(
+        `/api/promotion?ty=byid&ids=${param.promoids}`,
+        undefined,
+        "GET"
+      );
+      if (data.success) {
+        setpromoval(data.data);
+      }
+    };
+    fetchpromo();
+  }, [filtervalue.promoids]);
 
   useEffect(() => {
     const getsub = async () => {
@@ -752,6 +839,12 @@ export const FilterMenu = ({
             [key]: formatDate(val.toDate()),
           }));
       }
+      if (key === "promoids" && value) {
+        const val = value as number[];
+        params.set("promoids", val.join(","));
+        setfilterdata && setfilterdata((prev) => ({ ...prev, [key]: value }));
+      }
+
       if (key !== "p" && value && value !== "none") {
         params.set(key, value);
         setfilterdata && setfilterdata((prev) => ({ ...prev, [key]: value }));
@@ -798,19 +891,16 @@ export const FilterMenu = ({
     setopenmodal((prev) => ({ ...prev, filteroption: false }));
   };
   return (
-    <Modal
-      customwidth="fit-content"
-      customheight="fit-content"
-      closestate={selectdate ? "discount" : "filteroption"}
-      customZIndex={200}
+    <SecondaryModal
+      open={openmodal.filteroption}
+      size="5xl"
+      onPageChange={(val) =>
+        setopenmodal((prev) => ({ ...prev, filteroption: val }))
+      }
+      closebtn
     >
       {loading && <ContainerLoading />}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="filtermenu w-[50vw] h-fit bg-white p-5 rounded-md flex flex-col justify-center gap-y-5"
-      >
+      <div className="filtermenu w-full relative  h-fit bg-white p-5 rounded-md flex flex-col justify-center gap-y-5">
         {type !== "usermanagement" && (
           <input
             type="text"
@@ -938,6 +1028,40 @@ export const FilterMenu = ({
                 onChange={handleSelect}
               />
             )}
+            {type === "product" &&
+              (globalindex.promotioneditindex !== -1 && isSetPromotion ? (
+                <Checkbox
+                  className="w-full h-[40px]"
+                  isSelected={!!filtervalue.promoids}
+                  onValueChange={(value) => {
+                    setfilter((prev) => ({
+                      ...prev,
+                      promoids: value
+                        ? [globalindex.promotioneditindex]
+                        : undefined,
+                    }));
+                  }}
+                >
+                  {" "}
+                  Show Only Discount{" "}
+                </Checkbox>
+              ) : (
+                <SelectAndSearchProduct
+                  getdata={(take, value) => GetPromotionSelection(value, take)}
+                  placeholder="Select Promotion"
+                  value={promoval}
+                  onSelect={(value) => {
+                    const val = value as SelectType[];
+                    setfilter((prev) => ({
+                      ...prev,
+                      promoids: val.map((i) =>
+                        parseInt(i.value.toString(), 10)
+                      ),
+                    }));
+                  }}
+                />
+              ))}
+
             <Selection
               default="Stock"
               onChange={handleSelect}
@@ -980,8 +1104,8 @@ export const FilterMenu = ({
           radius="10px"
           width="100%"
         />
-      </motion.div>
-    </Modal>
+      </div>
+    </SecondaryModal>
   );
 };
 

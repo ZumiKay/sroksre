@@ -9,7 +9,14 @@ import LoadingIcon from "../component/Loading";
 import Image from "next/image";
 import { getUser } from "@/src/context/OrderContext";
 import Prisma from "@/src/lib/prisma";
-
+import { Metadata } from "next";
+export function generateMetadata(): Metadata {
+  return {
+    title: "Contact | SrokSre",
+    description:
+      "Ask question , send inquiry to us through email from the form",
+  };
+}
 const ContactItems = [
   { icon: Igicon, value: "SrokSreStore" },
   { icon: Fbicon, value: "SrokSre" },
@@ -20,10 +27,10 @@ export default async function ContactPage() {
   const user = await getUser();
   const userdata = await Prisma.user.findUnique({ where: { id: user?.id } });
   return (
-    <div className="w-[70%] h-full min-h-screen pl-10 flex flex-col gap-y-20">
+    <div className="w-[70%] max-large_phone:w-[95%] h-full min-h-screen pl-10 max-smallest_phone:pl-2 flex flex-col gap-y-20">
       <h2 className="text-5xl font-bold w-full h-fit">Contact Us</h2>
 
-      <div className="info_table w-[300px] h-[350px] bg-[#CFDBEE] p-2 flex flex-col gap-y-7 rounded-lg">
+      <div className="info_table w-[300px] h-[350px] max-smallest_phone:w-[250px] max-smallest_phone:h-[350px] bg-[#CFDBEE] p-2 flex flex-col gap-y-7 rounded-lg">
         {ContactItems.map((i) => (
           <div
             key={ContactItems.indexOf(i)}
@@ -33,7 +40,7 @@ export default async function ContactPage() {
               src={i.icon}
               alt="social_icon"
               className="w-[45px] h-[45px] object-contain rounded-lg"
-              loading="eager"
+              loading="lazy"
             />
             <p className="text-lg font-bold">{i.value}</p>
           </div>

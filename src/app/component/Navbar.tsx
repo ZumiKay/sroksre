@@ -12,7 +12,6 @@ import {
   CSSProperties,
   forwardRef,
   MutableRefObject,
-  ReactNode,
   useEffect,
   useRef,
   useState,
@@ -31,67 +30,107 @@ import {
   useGlobalContext,
   Usersessiontype,
 } from "@/src/context/GlobalContext";
-import { ApiRequest, useEffectOnce } from "@/src/context/CustomHook";
-import { errorToast, infoToast, LoadingText } from "./Loading";
-import { Role } from "@prisma/client";
 import {
-  CheckedNotification,
-  CheckNotification,
-  DeleteNotification,
-  GetNotification,
-} from "../severactions/notification_action";
+  ApiRequest,
+  useEffectOnce,
+  useScreenSize,
+} from "@/src/context/CustomHook";
+import LoadingIcon, {
+  ContainerLoading,
+  errorToast,
+  infoToast,
+  LoadingLogo,
+} from "./Loading";
+import { Role } from "@prisma/client";
+import { CheckedNotification } from "../severactions/notification_action";
 import { Box, CircularProgress } from "@mui/material";
+import CookieConsent from "react-cookie-consent";
 
 import { signOut } from "next-auth/react";
 import { checkloggedsession } from "../dashboard/action";
 import Homecontainermodal from "./HomePage/Modals";
 import { AnimatePresence } from "framer-motion";
+import SearchContainer from "./Modals/Search";
+import { CloseVector } from "./Asset";
+import {
+  Button,
+  Dropdown,
+  DropdownItem,
+  DropdownMenu,
+  DropdownTrigger,
+} from "@nextui-org/react";
+import { useSocket } from "@/src/context/SocketContext";
+import { NormalSkeleton } from "./Banner";
 
-export default function Navbar({
-  children,
-  session,
-}: {
-  children: ReactNode;
-  session?: Usersessiontype;
-}) {
-  const { cart, setcart } = useGlobalContext();
+const InitialMethod = async (session?: Usersessiontype) => {
+  if (session) {
+    const checksession = async () => {
+      const checked = checkloggedsession.bind(null, session.session_id);
+      const makereq = await checked();
+      if (!makereq.success) {
+        infoToast("Session expired please login again");
+        setTimeout(() => {
+          signOut();
+        }, 2000);
+      }
+    };
+    await checksession();
+  }
+};
+export default function Navbar({ session }: { session?: Usersessiontype }) {
+  const { cart, setcart, carttotal, setcarttotal, setopenmodal, openmodal } =
+    useGlobalContext();
   const [categories, setcategories] = useState(false);
+  const [loading, setloading] = useState(false);
+
   const [profile, setprofile] = useState(false);
   const [opennotification, setnotification] = useState(false);
   const [checkNotification, setchecknotify] = useState<number | undefined>(0);
   const [notification, setnotificationdata] = useState<
     Array<NotificationType> | undefined
   >(undefined);
-  const { openmodal } = useGlobalContext();
+
+  const { isTablet, isMobile } = useScreenSize();
+  const socket = useSocket();
 
   const router = useRouter();
   const navref = useRef<any>(null);
   const notiref = useRef<any>(null);
-  //checkout loggedin session
-  useEffectOnce(() => {
-    if (session) {
-      const checksession = async () => {
-        const checked = checkloggedsession.bind(null, session.session_id);
-        const makereq = await checked();
-        if (!makereq.success) {
-          infoToast("Session expired please login again");
 
-          setTimeout(() => {
-            signOut();
-          }, 3000);
-        }
-      };
-      checksession();
-    }
+  useEffectOnce(() => {
+    getCartTotal();
   });
+
+  useEffect(() => {
+    InitialMethod(session);
+  }, [session]);
+
+  const getCartTotal = async () => {
+    setloading(true);
+    const request = await ApiRequest(
+      "/api/order/cart?count=1",
+      undefined,
+      "GET"
+    );
+    setloading(false);
+    if (!request.success) {
+      return;
+    }
+    setcarttotal(request.data);
+  };
 
   useEffect(() => {
     if (session?.role === "ADMIN") {
       const handleCheckNotification = async () => {
-        const makereq = await CheckNotification();
-
+        setloading(true);
+        const makereq = await ApiRequest(
+          "/api/users/notification?ty=check",
+          undefined,
+          "GET"
+        );
+        setloading(false);
         if (makereq.success) {
-          setchecknotify(makereq.isNotCheck?.length);
+          setchecknotify(makereq.data.length);
         }
       };
       handleCheckNotification();
@@ -99,11 +138,21 @@ export default function Navbar({
   }, []);
 
   useEffect(() => {
-    // session &&
-    //   socket.on("getnotify", (data) => {
-    //     setnotificationdata(data);
-    //   });
+    if (!socket) return;
 
+    const handleNotification = (data: NotificationType) => {
+      infoToast("New Notification");
+      // Handle the notification (e.g., update state, show a toast, etc.)
+    };
+
+    socket.on("receiveNotification", handleNotification);
+
+    return () => {
+      socket.off("receiveNotification", handleNotification);
+    };
+  }, [socket]);
+
+  useEffect(() => {
     const handleEventClick = (e: globalThis.MouseEvent) => {
       if (
         notiref.current &&
@@ -118,96 +167,152 @@ export default function Navbar({
 
     return () => {
       window.removeEventListener("click", handleEventClick);
-      // session ? socket.off("getnotify") : socket.disconnect();
     };
   }, []);
 
   return (
-    <nav className="navbar__container sticky top-0 z-[99] w-full h-[60px] bg-[#F3F3F3] flex flex-row justify-between item-center">
-      {categories && <CategoriesContainer setopen={setcategories} />}
-      <div className="first_section  w-1/2 h-fit pl-3">
-        <Image
-          className="menu_icon w-[50px] h-[50px] object-fill transition rounded-md"
-          onClick={() => setcategories(!categories)}
-          src={Menu}
-          alt="menu"
-          style={categories ? { backgroundColor: "lightgray" } : {}}
-        />
-      </div>
-      <div className="second_section  w-full h-fit relative top-2 flex justify-center">
-        <Image
-          src={Logo}
-          alt="logo"
-          className="Logo w-[100px] h-[50px] object-contain grayscale"
-          onClick={() => router.push("/")}
-        />
-      </div>
-      <div className="third_section  w-1/2 h-full flex flex-row gap-x-10 items-center justify-end pr-10">
-        <Image
-          src={Search}
-          alt="search"
-          className="search w-[50px] h-[50px] max-large_tablet:hidden object-contain transition hover:-translate-y-2"
-        />
+    <>
+      <nav className="navbar__container sticky top-0 z-50 w-full h-[60px] bg-[#F3F3F3] flex flex-row justify-between item-center">
+        {categories && <CategoriesContainer setopen={setcategories} />}
 
-        {session?.role !== Role.ADMIN && (
-          <div className="cart_container relative max-large_tablet:hidden">
-            <Image
-              src={Cart}
-              alt="cart"
-              className="cart w-[30px] h-[30px] object-contain transition hover:-translate-y-2"
-              onMouseEnter={() => setcart(true)}
-            />
-            {children}
-          </div>
-        )}
+        <div className="first_section  w-1/2 h-full flex items-center pl-3">
+          <Image
+            className="menu_icon w-[30px] h-[30px] object-fill transition rounded-md"
+            onClick={() => setcategories(!categories)}
+            src={Menu}
+            alt="menu"
+            style={categories ? { backgroundColor: "lightgray" } : {}}
+          />
 
-        {session?.role === Role.ADMIN && (
-          <>
-            <div className="w-[30px] h-[30px] relative max-large_tablet:hidden">
+          <Image
+            src={Search}
+            alt="search"
+            className="search w-[40px] h-[40px] object-contain hidden max-smallest_tablet:block transition hover:-translate-y-2"
+            onClick={() =>
+              setopenmodal((prev) => ({ ...prev, searchcon: true }))
+            }
+          />
+        </div>
+        <div className="second_section  w-full h-fit relative top-2 flex justify-center">
+          <Image
+            src={Logo}
+            alt="logo"
+            className="Logo w-[100px] h-[50px] max-small_phone:w-[70px] max-small_phone:[30px] object-contain grayscale"
+            onClick={() => router.push("/")}
+          />
+        </div>
+        <div className="third_section  w-1/2 h-full flex flex-row gap-x-10 max-small_phone:gap-x-3 items-center justify-end pr-5 max-small_phone:pr-2">
+          <Image
+            src={Search}
+            alt="search"
+            className="search w-[50px] h-[50px] object-contain transition hover:-translate-y-2 max-smallest_tablet:hidden"
+            onClick={() =>
+              setopenmodal((prev) => ({ ...prev, searchcon: true }))
+            }
+          />
+
+          {session?.role !== Role.ADMIN && (
+            <div className="cart_container relative">
               <Image
-                ref={navref}
-                src={!opennotification ? Bell : ActiveBell}
-                alt="notification"
-                onClick={() => setnotification(!opennotification)}
-                width={30}
-                height={30}
-                className="bell min-w-[30px] min-h-[30px] object-fill transition-all active:bg-gray-200 active:shadow-xl rounded-xl"
+                src={Cart}
+                alt="cart"
+                className="cart min-w-[30px] min-h-[30px] max-w-[30px] max-h-[30px] w-full h-full object-contain transition hover:-translate-y-2 max-small_phone:w-[30px] max-small_phone:h-[30px]"
+                onMouseEnter={() => setcart(true)}
               />
-
-              {checkNotification !== 0 && (
-                <span className="absolute top-0 -right-1 w-[10px] h-[10px] rounded-2xl bg-red-500"></span>
-              )}
-              {opennotification && (
-                <NotificationMenu notification={notification} ref={notiref} />
-              )}
+              <span className="text-[13px] w-[20px] h-[20px] grid place-content-center absolute -bottom-6 top-0 -right-3 bg-gray-500 text-white rounded-[50%]">
+                {carttotal ?? 0}
+              </span>
             </div>
-          </>
+          )}
+
+          {session?.role === Role.ADMIN && (
+            <>
+              <div className="w-[30px] h-[30px] max-smallest_tablet:w-[25px] max-smallest_tablet:h-[25px] max-small_phone:w-[25px] max-small_phone:h-[25px] relative">
+                <Image
+                  ref={navref}
+                  src={!opennotification ? Bell : ActiveBell}
+                  alt="notification"
+                  onClick={() => setnotification(!opennotification)}
+                  width={30}
+                  height={30}
+                  className="bell min-w-[30px] min-h-[30px] max-smallest_tablet:min-w-[25px] max-smallest_tablet:min-h-[25px] max-small_phone:min-w-[25px] max-small_phone:min-h-[25px] object-fill transition-all active:bg-gray-200 active:shadow-xl rounded-xl"
+                />
+
+                {checkNotification !== 0 && (
+                  <span className="absolute top-0 -right-1 w-[10px] h-[10px] rounded-2xl bg-red-500"></span>
+                )}
+              </div>
+            </>
+          )}
+
+          <Image
+            src={Profile}
+            alt="profile"
+            className="cart w-[40px] h-[40px] max-small_phone:w-[35px] max-small_phone:h-[35px] object-contain transition hover:-translate-y-2"
+            onMouseEnter={() => session && setprofile(true)}
+            onClick={() =>
+              !session && router.push("/account", { scroll: false })
+            }
+          />
+        </div>
+
+        <AnimatePresence>
+          {profile && <AccountMenu session={session} setProfile={setprofile} />}
+        </AnimatePresence>
+
+        {openmodal?.homecontainer && (
+          <Homecontainermodal
+            setprofile={setprofile}
+            isTablet={isTablet}
+            isPhone={isMobile}
+          />
         )}
 
-        <Image
-          src={Profile}
-          alt="profile"
-          className="cart w-[40px] h-[40px] max-large_tablet:w-[50px] max-large_tablet:h-[50px]  object-contain transition hover:-translate-y-2"
-          onMouseEnter={() => session && setprofile(true)}
-          onClick={() => !session && router.push("/account")}
-        />
-      </div>
+        <AnimatePresence>
+          {openmodal?.searchcon && <SearchContainer isMobile={isMobile} />}
+        </AnimatePresence>
 
-      <AnimatePresence>
-        {profile && <AccountMenu session={session} setProfile={setprofile} />}
-      </AnimatePresence>
-
-      {openmodal?.homecontainer && (
-        <Homecontainermodal setprofile={setprofile} />
-      )}
-
-      {cart && <CartMenu img={DefaultImage} setcart={setcart} />}
-    </nav>
+        {cart && (
+          <CartMenu
+            img={DefaultImage}
+            setcart={setcart}
+            setcarttotal={setcarttotal}
+          />
+        )}
+        {opennotification && (
+          <NotificationMenu
+            close={() => setnotification(false)}
+            notification={notification}
+            ref={notiref}
+          />
+        )}
+      </nav>
+      <CookieConsent
+        location="bottom"
+        buttonText="I Understand"
+        cookieName="AllowCookie"
+        style={{ background: "lightgray", color: "black" }}
+        buttonStyle={{
+          color: "white",
+          fontSize: "13px",
+          backgroundColor: "#495464",
+          borderRadius: "10px",
+        }}
+        expires={150}
+      >
+        This website uses cookies to enhance the user experience.{" "}
+        <span style={{ fontSize: "10px", textDecoration: "underline" }}>
+          See Privacy And Policy Page
+        </span>
+      </CookieConsent>
+    </>
   );
 }
 const CategoriesContainer = (props: { setopen: any }) => {
   const [allcate, setallcate] = useState<Array<CateogoryState>>();
   const [loading, setloading] = useState(true);
+  const { isMobile } = useScreenSize();
+
   const router = useRouter();
   const fetchcate = async () => {
     const request = await ApiRequest("/api/categories", undefined, "GET");
@@ -222,70 +327,77 @@ const CategoriesContainer = (props: { setopen: any }) => {
   return (
     <div
       onMouseLeave={() => props.setopen(false)}
-      className="categories__container grid md:grid-cols-6 sm:grid-cols-4  place-items-start w-full min-h-[50vh] absolute top-[57px] z-[99] bg-[#F3F3F3] "
+      className="categories__container w-full max-h-screen min-h-[50vh] h-full absolute top-[57px] z-[99] bg-[#F3F3F3] flex flex-row gap-5 items-start justify-start flex-wrap overflow-y-auto overflow-x-hidden max-small_phone:justify-center max-small_phone:h-screen"
     >
       {loading ? (
-        <LoadingText />
-      ) : (
-        <div className="category flex flex-col w-[15vw] min-w-[10vw] pt-10  items-center justify-start p-1 gap-y-5">
-          <h3
-            onClick={() => router.push("/product?all=1")}
-            className="category_header  bg-[#495464] transition cursor-pointer hover:bg-white hover:text-black active:bg-white active:text-black rounded-md p-3 min-w-[150px] h-fit  break-words  text-center text-white font-medium"
-          >
-            All
-          </h3>
-          {allcate
-            ?.filter((i) => i.type === "latest" || i.type === "popular")
-            .map((item, idx) => (
-              <h3
-                key={idx}
-                onClick={() => router.push(`/product?pid=${item.id}`)}
-                className="category_header bg-[#495464] transition cursor-pointer hover:bg-white hover:text-black active:bg-white active:text-black rounded-md p-3 min-w-[150px] h-fit  break-words  text-center text-white font-medium"
-              >
-                {" "}
-                {item.name}
-              </h3>
-            ))}
+        <div className="w-full h-full flex items-center justify-center">
+          <LoadingIcon />
         </div>
-      )}
-
-      {allcate
-        ?.filter((i) => i.type !== "latest")
-        .map((i) => (
-          <div
-            key={i.id}
-            className="category flex flex-col w-[15vw] min-w-[10vw] pt-10  items-center justify-start p-1"
-          >
-            <h3
-              onClick={() =>
-                router.push(
-                  `/product?${
-                    i.type === "normal" ? `pid=${i.id}` : `ppid=${i.id}`
-                  }`
-                )
-              }
-              className="category_header bg-[#495464] transition cursor-pointer hover:bg-white hover:text-black active:bg-white active:text-black rounded-md p-3 min-w-[150px] h-fit  break-words  text-center text-white font-medium"
-            >
-              {" "}
-              {i.name}
-            </h3>
-            <div className="category_subheader h-full grid row-span-3 gap-y-5 pt-7 font-normal text-center">
-              {i.subcategories.map((sub) => (
-                <Link
-                  key={sub.id}
-                  href={`/product?pid=${i.id}${
-                    sub.type === "normal"
-                      ? `&cid=${sub.id}`
-                      : `&promoid=${sub.pid}`
-                  }`}
-                  scroll={true}
+      ) : (
+        <>
+          <div className="ategory flex flex-col w-[200px] max-small_phone:w-[90%] pt-10 items-center justify-start p-1 gap-y-5">
+            {allcate
+              ?.filter((i) => i.type === "latest" || i.type === "popular")
+              .map((item, idx) => (
+                <h3
+                  key={idx}
+                  onClick={() => router.push(`/product?pid=${item.id}`)}
+                  className="category_header bg-[#495464] transition cursor-pointer hover:bg-white hover:text-black active:bg-white active:text-black rounded-md p-3 w-full h-fit  break-words  text-center text-white font-medium"
                 >
-                  <h4 className="subcategory"> {sub.name} </h4>
-                </Link>
+                  {" "}
+                  {item.name}
+                </h3>
               ))}
-            </div>
           </div>
-        ))}
+
+          {allcate
+            ?.filter((i) => i.type !== "latest")
+            .map((i) => (
+              <div
+                key={i.id}
+                className="category flex flex-col w-[200px] max-small_phone:w-[90%] pt-10 items-center justify-start p-1"
+              >
+                <h3
+                  onClick={() => {
+                    router.push(
+                      `/product?${
+                        i.type === "normal" ? `pid=${i.id}` : `ppid=${i.id}`
+                      }`
+                    );
+                    router.refresh();
+                    isMobile && props.setopen(false);
+                  }}
+                  className="category_header w-full bg-[#495464] transition cursor-pointer hover:bg-white hover:text-black active:bg-white active:text-black rounded-md p-3 h-fit  break-words  text-center text-white font-medium"
+                >
+                  {" "}
+                  {i.name}
+                </h3>
+                <div className="category_subheader w-full h-fit flex flex-col gap-y-5 pt-5 font-normal text-center">
+                  {i.subcategories
+                    .filter((i) => (i.isExpired ? !i.isExpired : true))
+                    .map((sub) => (
+                      <div
+                        key={sub.id}
+                        onClick={() => {
+                          router.push(
+                            `/product?pid=${i.id}${
+                              sub.type === "normal"
+                                ? `&cid=${sub.id}`
+                                : `&promoid=${sub.pid}`
+                            }`
+                          );
+                          router.refresh();
+                          isMobile && props.setopen(false);
+                        }}
+                      >
+                        <h4 className="subcategory"> {sub.name} </h4>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            ))}
+        </>
+      )}
     </div>
   );
 };
@@ -345,7 +457,6 @@ interface Subinventorymenuprops {
   type?: "product" | "banner" | "promotion";
   index?: number;
   style?: CSSProperties;
-  ref?: MutableRefObject<HTMLDivElement | null>;
   stock?: number;
   stocktype?: string;
   stockaction?: () => void;
@@ -415,20 +526,34 @@ export const SubInventoryMenu = (props: Subinventorymenuprops) => {
     }
   };
   return (
-    <div
-      style={props.style}
-      className="subinventorymenu flex flex-col w-[149px] rounded-b-xl absolute h-fit p-1 bg-white"
-    >
-      {props.data.map((obj, index) => (
-        <h3
-          key={index}
-          onClick={() => handleClick(obj)}
-          className="font-bold cursor-pointer text-[17px] w-full p-2 transition text-black hover:bg-black hover:text-white"
+    <Dropdown>
+      <DropdownTrigger>
+        <Button
+          color={props.type ? "default" : "success"}
+          variant="solid"
+          endContent={
+            !props.type ? (
+              <i className="fa-solid fa-plus text-sm font-bold text-white"></i>
+            ) : undefined
+          }
+          style={props.type ? { minWidth: "20px" } : {}}
+          className="font-bold text-white min-w-[150px]"
         >
-          {obj.value}
-        </h3>
-      ))}
-    </div>
+          {props.type ? (
+            <i className="fa-solid fa-ellipsis-vertical text-lg text-black  w-fit h-fit p-2 transition hover:bg-gray-300"></i>
+          ) : (
+            "Create"
+          )}
+        </Button>
+      </DropdownTrigger>
+      <DropdownMenu aria-label="Dynamic Actions" items={props.data}>
+        {(item) => (
+          <DropdownItem key={item.opencon} onClick={() => handleClick(item)}>
+            {item.value}
+          </DropdownItem>
+        )}
+      </DropdownMenu>
+    </Dropdown>
   );
 };
 
@@ -436,8 +561,10 @@ export const NotificationMenu = forwardRef(
   (
     {
       notification,
+      close,
     }: {
       notification?: NotificationType[];
+      close: () => void;
     },
     ref
   ) => {
@@ -449,15 +576,19 @@ export const NotificationMenu = forwardRef(
     const [page, setPage] = useState(1);
     const [loadmore, setloadmore] = useState(true);
     const router = useRouter();
+    const notioffset = 3;
 
     useEffect(() => {
       const getAllNotification = async () => {
         setloading(true);
-        const makereq = GetNotification.bind(null, page, 3);
-        const result = await makereq();
+        const result = await ApiRequest(
+          `/api/users/notification?ty=detail&p=${page}&lt=${notioffset}`,
+          undefined,
+          "GET"
+        );
         if (result.success) {
           if (notification) {
-            setnotifydata([...(result.data as any), ...notification]);
+            setnotifydata([...result.data, ...notification]);
           }
 
           if (result.data?.length === 0) {
@@ -496,8 +627,13 @@ export const NotificationMenu = forwardRef(
     };
 
     const handleDelete = async (id: number) => {
-      const deleteNotify = DeleteNotification.bind(null, id);
-      const makereq = await deleteNotify();
+      const makereq = await ApiRequest(
+        "/api/users/notification",
+        undefined,
+        "DELETE",
+        "JSON",
+        { id }
+      );
       if (makereq.success) {
         setnotifydata((prev) => prev?.filter((i) => i.id === id));
       } else {
@@ -511,8 +647,14 @@ export const NotificationMenu = forwardRef(
         onScroll={() => {
           handleScroll();
         }}
-        className="notification absolute w-[350px] h-[400px] z-[150] right-2 top-14 flex flex-col gap-x-5 bg-white rounded-lg overflow-x-hidden overflow-y-auto"
+        className="notification absolute w-[350px] h-[400px] z-[150] right-2 top-14 flex flex-col gap-x-5 bg-white rounded-lg overflow-x-hidden overflow-y-auto max-smallest_tablet:right-0 max-smallest_tablet:top-0 max-smallest_tablet:w-[100vw] max-smallest_tablet:h-[100vh]"
       >
+        <div
+          onClick={() => close()}
+          className="w-fit h-fit hidden max-smallest_tablet:block absolute top-1 right-2 z-50"
+        >
+          <CloseVector width="30px" height="30px" />
+        </div>
         <h3
           className="font-bold bg-white text-lg w-full sticky top-0 z-10 text-left p-2 border-b-2 border-b-gray-300
       "

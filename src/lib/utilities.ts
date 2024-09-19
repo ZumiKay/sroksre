@@ -1,26 +1,20 @@
-import {
-  deleteObject,
-  getDownloadURL,
-  ref,
-  uploadBytes,
-} from "firebase/storage";
+import { deleteObject, ref } from "firebase/storage";
 import { storage } from "./firebase";
-import Prisma from "./prisma";
+import { ProductState } from "../context/GlobalContext";
+import { Orderpricetype, Productordertype } from "../context/OrderContext";
 import {
-  ProductState,
-  Stocktype,
-  infovaluetype,
-} from "../context/GlobalContext";
+  CipherKey,
+  createCipheriv,
+  createDecipheriv,
+  randomBytes,
+} from "crypto";
 
-import {
-  getUser,
-  Orderpricetype,
-  Productordertype,
-} from "../context/OrderContext";
-import { createCipheriv, createDecipheriv, randomBytes } from "crypto";
-import { calculatePrice } from "../app/checkout/page";
-import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
-import { signOut } from "next-auth/react";
+export const AllorderType = {
+  orderdetail: "orderdetail",
+  orderproduct: "orderproduct",
+  orderaction: "orderaction",
+  orderupdatestatus: "orderupdatestatus",
+};
 
 export const AllOrderStatusColor: Record<string, string> = {
   incart: "#495464",
@@ -30,34 +24,6 @@ export const AllOrderStatusColor: Record<string, string> = {
   shipped: "#60513C",
   arrived: "#35C191",
 };
-export const postRequest = async (url: string, data: any) => {
-  const post = await fetch(url, {
-    method: "POST",
-    headers: {
-      Accept: "application.json",
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(data),
-    cache: "default",
-  });
-  const jsonRes = await post.json();
-  if (post.status === 200) {
-    return jsonRes;
-  } else {
-    return { status: post.status, message: jsonRes.message };
-  }
-};
-
-export const LoggedOut = async () => {
-  const user = await getUser();
-
-  if (user) {
-    await Prisma.usersession.delete({ where: { session_id: user.session_id } });
-    await signOut();
-  }
-
-  return true;
-};
 
 export const GetOneWeekAgoDate = () => {
   const today = new Date();
@@ -66,20 +32,6 @@ export const GetOneWeekAgoDate = () => {
   return oneWeekAgo;
 };
 
-export const UploadImageToStorage = async (
-  File: File
-): Promise<{ sucess: boolean; url?: string; name?: string; type?: string }> => {
-  try {
-    const storageref = ref(storage, `productcovers/${File.name}`);
-    await uploadBytes(storageref, File);
-    const downloadURL = await getDownloadURL(storageref);
-
-    return { sucess: true, url: downloadURL, name: File.name, type: File.type };
-  } catch (error) {
-    console.error("Firebase Storage", error);
-    return { sucess: false };
-  }
-};
 export const DeleteImageFromStorage = async (
   filename: string
 ): Promise<{ Sucess: boolean }> => {
@@ -137,6 +89,18 @@ export const generateRandomNumber = () => {
 
   return randomNumberString;
 };
+export function IsNumber(str: string) {
+  // Check if the input is a string and not empty
+  if (typeof str !== "string" || str.trim() === "") {
+    return false;
+  }
+
+  // Use parseFloat to convert the string to a number
+  const num = parseFloat(str);
+
+  // Check if the parsed number is not NaN and is finite
+  return !isNaN(num) && isFinite(num);
+}
 
 export const checkpassword = (password: string) => {
   let error: string = "";
@@ -162,86 +126,12 @@ export function getOneWeekFromToday(): Date {
   return oneWeekFromToday;
 }
 
-export const transformData = (data: any) => {
-  const transformedData: any = {};
-
-  for (const key in data) {
-    if (data.hasOwnProperty(key)) {
-      transformedData[key] = data[key].reduce((result: any, item: any) => {
-        const uniqueValues = new Set(item.info_value);
-
-        result.push(...Array.from(uniqueValues, (size) => size));
-
-        return result;
-      }, []);
-    }
-  }
-
-  return transformedData;
-};
-
-export function isIntOrBigInt(value: string) {
-  // Check if the string is a valid integer
-  function isInt(str: string) {
-    const intRegex = /^-?\d+$/;
-    if (!intRegex.test(str)) return false;
-    const num = Number(str);
-    return Number.isSafeInteger(num);
-  }
-
-  // Check if the string is a valid BigInt
-  function isBigInt(str: string) {
-    const bigIntRegex = /^-?\d+$/;
-    if (!bigIntRegex.test(str)) return false;
-    try {
-      BigInt(str);
-      return true;
-    } catch (e) {
-      return false;
-    }
-  }
-
-  if (isInt(value)) {
-    return { type: "Int", value: Number(value) };
-  } else if (isBigInt(value)) {
-    return { type: "BigInt", value: BigInt(value) };
-  } else {
-    return { type: "Invalid", value: null };
-  }
-}
-
-export const findDuplicateStockIndices = (stocks: Stocktype[]): number[] => {
-  const seen: Map<string, number[]> = new Map();
-
-  const duplicates: number[] = [];
-
-  stocks.forEach((stock, index) => {
-    const key = JSON.stringify({
-      variant_id: stock.variant_id,
-      variant_val: stock.variant_val,
-    });
-
-    if (seen.has(key)) {
-      // Duplicate found, add index to duplicates array
-      duplicates.push(index, ...(seen.get(key) as number[]));
-    }
-
-    if (!seen.has(key)) {
-      seen.set(key, []);
-    }
-
-    seen.get(key)?.push(index);
-  });
-
-  return duplicates;
-};
 export const calculateCartTotalPrice = (
   cartItems: Array<Productordertype>
 ): number => {
   return cartItems.reduce((total, item) => {
     const { quantity, price } = item;
 
-    console.log(price);
     const effectivePrice = price.discount
       ? price.discount.newprice
       : price.price;
@@ -253,37 +143,24 @@ export const getmaxqtybaseStockType = (
   product: ProductState,
   selected_detail: Array<string>
 ) => {
-  const { stocktype, varaintstock, stock, details } = product;
+  const { stocktype, varaintstock, stock } = product;
 
   let qty = 0;
 
   if (stocktype === "stock") {
     qty = stock as number;
   } else if (stocktype === "variant") {
+    const selectedvalueset = new Set(selected_detail.map((i) => i));
     varaintstock?.forEach((variant) => {
-      const isStock = variant.variant_val.some((value) =>
-        selected_detail.includes(value)
-      );
-
-      if (isStock) {
-        qty = variant.qty;
-        return true;
-      }
-      return false;
+      variant.Stockvalue.forEach((stock) => {
+        if (
+          stock.variant_val.length === selectedvalueset.size &&
+          stock.variant_val.every((i) => selectedvalueset.has(i))
+        ) {
+          qty = stock.qty;
+        }
+      });
     });
-  } else {
-    const sizeInfo = details.find((detail) => detail.info_type === "SIZE");
-
-    if (sizeInfo) {
-      const size = sizeInfo.info_value.find(
-        (value) => (value as infovaluetype).val === selected_detail[0]
-      );
-
-      if (size) {
-        const result = size as infovaluetype;
-        qty = result.qty;
-      }
-    }
   }
 
   return qty;
@@ -292,62 +169,41 @@ export const getmaxqtybaseStockType = (
 export const encrypt = (text: string, key: string) => {
   const algorithm = "aes-256-cbc";
 
-  const iv = randomBytes(16);
-  const cipher = createCipheriv(algorithm, Buffer.from(key, "hex"), iv);
-  let encrypted = cipher.update(text);
-  encrypted = Buffer.concat([encrypted, cipher.final()]);
+  // Ensure the key is 32 bytes (256 bits)
+  const keyBuffer = Buffer.from(
+    key.padEnd(32, "0").slice(0, 32),
+    "utf-8"
+  ) as unknown as CipherKey;
+
+  const iv = randomBytes(16); // Initialization vector
+  const cipher = createCipheriv(algorithm, keyBuffer, iv as any);
+
+  let encrypted = cipher.update(text, "utf-8");
+  encrypted = Buffer.concat([encrypted as any, cipher.final()]);
+
   return iv.toString("hex") + ":" + encrypted.toString("hex");
 };
 
 export const decrypt = (text: string, key: string) => {
   const algorithm = "aes-256-cbc";
   const textParts = text.split(":");
+
   const iv = Buffer.from(textParts.shift() as string, "hex");
   const encryptedText = Buffer.from(textParts.join(":"), "hex");
 
-  const keyBuffer = Buffer.from(key, "hex");
+  // Ensure the key is 32 bytes (256 bits)
+  const keyBuffer = Buffer.from(
+    key.padEnd(32, "0").slice(0, 32),
+    "utf-8"
+  ) as unknown as CipherKey;
 
-  const decipher = createDecipheriv(algorithm, keyBuffer, iv);
-  let decrypted = decipher.update(encryptedText);
-  decrypted = Buffer.concat([decrypted, decipher.final()]);
-  return decrypted.toString();
+  const decipher = createDecipheriv(algorithm, keyBuffer, iv as any);
+
+  let decrypted = decipher.update(encryptedText as any);
+  decrypted = Buffer.concat([decrypted as any, decipher.final()]);
+
+  return decrypted.toString("utf-8");
 };
-
-export const calculateDiscountPrice = (
-  price: number,
-  discount: number
-): number => {
-  const discountedAmount = (discount * price) / 100;
-  return price - discountedAmount;
-};
-
-export const getDiscountedPrice = (discount: number, price: number) => {
-  return {
-    newprice: calculatePrice(price, discount),
-    percent: discount,
-  };
-};
-
-export function updateSearchParams(
-  params: Record<string, string>,
-  router: AppRouterInstance
-) {
-  if (typeof window === "undefined") return;
-
-  const searchParams = new URLSearchParams(window.location.search);
-
-  Object.entries(params).forEach(([key, value]) => {
-    if (searchParams.has(key)) {
-      searchParams.set(key, `${searchParams.get(key)},${value}`);
-    } else {
-      searchParams.set(key, value);
-    }
-  });
-
-  const newRelativePathQuery = `?${searchParams}`;
-
-  router.replace(newRelativePathQuery);
-}
 
 export const isObjectEmpty = (data: Record<string, any>) =>
   Object.entries(data).every(([_, val]) => !val);
@@ -360,7 +216,9 @@ export const calculateDiscountProductPrice = (data: {
     return {
       price: data.price,
       discount: {
-        newprice: data.price - (data.price * data.discount) / 100,
+        newprice: parseFloat(
+          (data.price - (data.price * data.discount) / 100).toFixed(2)
+        ),
         percent: data.discount,
       },
     };
@@ -368,21 +226,6 @@ export const calculateDiscountProductPrice = (data: {
 
   return { price: data.price };
 };
-
-export function stringToBoolean(str: string) {
-  if (typeof str !== "string") {
-    throw new Error("Input must be a string");
-  }
-
-  switch (str.toLowerCase().trim()) {
-    case "true":
-      return true;
-    case "false":
-      return false;
-    default:
-      return null;
-  }
-}
 
 export const HasPartialOverlap = (
   arr1: string[][],
@@ -402,6 +245,28 @@ export const HasPartialOverlap = (
 
   return false;
 };
+
+export const HasExactMatch = (arr1: string[][], arr2: string[][]): boolean => {
+  const set1 = new Set(arr1.map((subArr) => subArr.join(",")));
+  const set2 = new Set(arr2.map((subArr) => subArr.join(",")));
+
+  const array1 = Array.from(set1);
+  const array2 = Array.from(set2);
+
+  // Check if the two sets are exactly the same
+  if (set1.size !== set2.size) {
+    return false;
+  }
+
+  for (let val of array1) {
+    if (!array2.includes(val)) {
+      return false;
+    }
+  }
+
+  return true;
+};
+
 //Email Template
 //
 //
@@ -409,108 +274,51 @@ export const HasPartialOverlap = (
 //
 //
 
-export const normalemailtemplate = (
-  warning: string,
-  title: string,
-  data: string
-) =>
-  `<style>
-      body {
-        min-width: 100vw;
-        min-height: 100vh;
-        font-family: Arial, Helvetica, sans-serif;
-        background-color: #f2f2f2;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: start;
-        margin: 0;
-        padding: 0;
-      }
-      .email_content {
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        flex-wrap: nowrap;
-        width: fit-content;
-        height: 100%;
-        position: relative;
-        padding-bottom: 20px;
-        background-color: white;
-        padding: 20px;
-      }
-      .email_content .warning {
-        width: 100%;
-        font-size: 20px;
-        word-break: break-all;
-        font-weight: 800;
-        color: lightcoral;
-        text-align: center;
-      }
-      .email_content img {
-        width: 100px;
-        height: 100px;
-        object-fit: contain;
-      }
-      .email_content .email_body .title {
-        font-weight: 700;
-        font-size: 25px;
+export const OrderReciptEmail = (body: string) => `
+<!doctype html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
 
-        text-align: center;
-        width: 100%;
-        height: fit-content;
-        padding: 3px;
-      }
-      .email_content .email_body .message {
-        font-weight: 500;
-        font-size: 20px;
-        text-align: center;
-        border: 2px solid black
-        line-height: 2;
-        width: max-content;
-        height: auto;
-        max-height: 85vh;
-        padding: 5px;
-        color: black;
-        border-radius: 10px;
-      }
-      .email_content .footer_container {
-        text-align: center;
-        width: 100%;
-        height: fit-content;
-      }
-      .email_content .footer_container .footer_text {
-        font-weight: 500;
-        font-size: 17px;
-        color: lightcoral;
-      }
-      .email_content .footer_container .footer_text2 {
-        font-weight: 500;
-        font-size: 15px;
-        color: black;
-      }
-    </style>
-<body>
-    <div class="email_content">
-      <img
-        src="https://firebasestorage.googleapis.com/v0/b/sroksre-442c0.appspot.com/o/sideImage%2FLogo.svg?alt=media&token=5eb60253-4401-4fc9-a282-e635d132f050"
-        alt="logo"
-        loading="lazy"
-      />
+<head>
+  <title>
+  </title>
+  <!--[if !mso]><!-->
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <!--<![endif]-->
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!--[if mso]>
+    <noscript>
+        <xml>
+        <o:OfficeDocumentSettings>
+          <o:AllowPNG/>
+          <o:PixelsPerInch>96</o:PixelsPerInch>
+        </o:OfficeDocumentSettings>
+        </xml>
+    </noscript>
+  <![endif]-->
+  <!--[if lte mso 11]>
+  <style type="text/css">
+  body {
+    font-family: "Prompt", sans-serif;
+  }
+</style>
+  <![endif]-->
+  <!--[if !mso]><!-->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Prompt:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet">
+  <style type="text/css">
+  @import url('https://fonts.googleapis.com/css2?family=Prompt:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap')
+  </style>
+  <!--<![endif]-->
+</head>
 
-      <div class="email_body">
-        <h3 class="title">${title}</h3>
-        <h3 class="message">${data}</h3>
-      </div>
-      <footer class="footer_container">
-        <h6 class="footer_text">
-         ${warning} 
-        </h6>
-        <h6 class="footer_text2">CopyRight@ 2024 SrokSre</h6>
-      </footer>
-    </div>
-  </body>
+<body style="font-family: "Prompt", sans-serif; width: fit-content;">
+   ${body}
+</body>
+
+</html>
+
 `;
 
 export const listofprovinces = [

@@ -1,10 +1,9 @@
-import { handleEmail } from "@/src/app/checkout/action";
-import { RenderCredentailEmailToString } from "@/src/app/component/SevComponent";
 import Prisma from "@/src/lib/prisma";
 import {
   generateRandomNumber,
   generateRandomPassword,
 } from "@/src/lib/utilities";
+import { z } from "zod";
 
 import { NextRequest } from "next/server";
 
@@ -14,11 +13,32 @@ interface Vfydatatype {
   type: "register" | "forgot";
 }
 
+const verifyEmail = z.object({ email: z.string().email() });
+
 export async function POST(request: NextRequest) {
   try {
     const data: Vfydatatype = await request.json();
 
-    const otp = generateRandomNumber();
+    if (!data.email) {
+      return Response.json({}, { status: 400 });
+    }
+
+    verifyEmail.parse({ email: data.email });
+
+    let isUniqueOtp = false;
+    let otp = generateRandomNumber();
+
+    while (!isUniqueOtp) {
+      const isNotUniqiueOtp = await Prisma.user.findFirst({
+        where: { vfy: otp },
+      });
+
+      if (isNotUniqiueOtp) {
+        otp = generateRandomNumber();
+      } else {
+        isUniqueOtp = true;
+      }
+    }
 
     const isUser =
       data.type === "register"
@@ -43,7 +63,7 @@ export async function POST(request: NextRequest) {
           data.type === "register"
             ? "Please use this code for verify email"
             : "Please use this link for reset password",
-        warn: "Your email will be use for this purpose only except if you subscribe to our newletter",
+        warn: "Your emaikl will be use for this purpose only except if you subscribe to our newletter",
       };
 
       //initial user
@@ -51,12 +71,12 @@ export async function POST(request: NextRequest) {
         ? await Prisma.user.create({
             data: {
               firstname: "",
-              email: data.email as string,
+              email: "",
               password: generateRandomPassword(),
               vfy: otp,
             },
           })
-        : await Prisma.user.update({
+        : await Prisma.user.updateMany({
             where: { email: data.email },
             data: {
               vfy: otp,
@@ -70,7 +90,13 @@ export async function POST(request: NextRequest) {
     } else {
       return Response.json({ message: "Email already exist" }, { status: 500 });
     }
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.issues) {
+      return Response.json(
+        { message: error.issues[0].message },
+        { status: 500 }
+      );
+    }
     console.log("Verify User", error);
     return Response.json({ message: "Error Occured" }, { status: 500 });
   }
@@ -79,15 +105,16 @@ export async function POST(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const data = await request.json();
+
     if (data.type === "email") {
       const allowdelete = await Prisma.user.findFirst({
         where: {
-          email: data.email,
+          vfy: data.cid,
         },
       });
       if (allowdelete?.vfy) {
         await Prisma.user.deleteMany({
-          where: { email: { equals: data.email as string } },
+          where: { vfy: { equals: data.cid as string } },
         });
         return Response.json({ status: 200 });
       } else {

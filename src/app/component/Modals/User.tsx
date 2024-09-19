@@ -1,13 +1,8 @@
-import {
-  SpecificAccess,
-  useGlobalContext,
-  Userinitialize,
-  UserState,
-} from "@/src/context/GlobalContext";
-import { ChangeEvent, FormEvent, useEffect, useState } from "react";
-import { errorToast, LoadingText, successToast } from "../Loading";
-import { ApiRequest } from "@/src/context/CustomHook";
-import Modal from "../Modals";
+import { useGlobalContext, Userinitialize } from "@/src/context/GlobalContext";
+import React, { ChangeEvent, FormEvent, useEffect, useState } from "react";
+import { errorToast, successToast } from "../Loading";
+import { ApiRequest, useScreenSize } from "@/src/context/CustomHook";
+import Modal, { SecondaryModal } from "../Modals";
 import Image from "next/image";
 import CloseIcon from "../../../../public/Image/Close.svg";
 import {
@@ -30,22 +25,23 @@ import { signOut } from "next-auth/react";
 import { PasswordInput, TextInput } from "../FormComponent";
 import { CloseVector } from "../Asset";
 import { listofprovinces } from "@/src/lib/utilities";
+import { useRouter } from "next/navigation";
+import { userdata } from "../../account/actions";
+import { Skeleton } from "@nextui-org/react";
 
-export const Createusermodal = () => {
-  const {
-    allData,
-    setalldata,
-    globalindex,
-    setglobalindex,
-    setopenmodal,
-    setisLoading,
-    isLoading,
-  } = useGlobalContext();
-  const [data, setdata] = useState<UserState>(Userinitialize);
+export const Createusermodal = ({
+  setpage,
+}: {
+  setpage: React.Dispatch<React.SetStateAction<number>>;
+}) => {
+  const { allData, globalindex, setglobalindex, openmodal, setopenmodal } =
+    useGlobalContext();
+  const [data, setdata] = useState<userdata>(Userinitialize);
   const [showpass, setshowpass] = useState({
     passowrd: false,
-    confirmpassword: false,
   });
+  const [loading, setloading] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     if (globalindex.useredit !== -1) {
@@ -56,34 +52,28 @@ export const Createusermodal = () => {
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const editindex = globalindex.useredit;
-    const { password, confirmpassword } = data;
+
     const URL = "/api/auth/register";
     const method = editindex === -1 ? "POST" : "PUT";
 
-    if (editindex === -1 && password !== confirmpassword) {
-      errorToast("Confirm Password Not Match");
-      return;
-    }
     if (editindex !== -1) {
       delete data.password;
       delete data.confirmpassword;
     }
 
     //register User
-    const register = await ApiRequest(URL, setisLoading, method, "JSON", data);
+    setloading(true);
+    const register = await ApiRequest(URL, undefined, method, "JSON", data);
+    setloading(false);
     if (!register.success) {
       errorToast(register.error ?? "Failed to register");
       return;
     }
-    let alluser = [...(allData.user ?? [])];
-    editindex === -1
-      ? alluser.push(data)
-      : (alluser[alluser.findIndex((i) => i.id === data.id)] = data);
-    setalldata({ user: alluser });
 
     successToast(`User ${editindex === -1 ? "Created" : "Updated"}`);
     editindex === -1 && setdata(Userinitialize);
     setglobalindex((prev) => ({ ...prev, useredit: -1 }));
+    router.refresh();
   };
   const handleCancel = () => {
     setopenmodal((prev) => ({ ...prev, createUser: false }));
@@ -101,26 +91,26 @@ export const Createusermodal = () => {
         closecon: "createUser",
         index: id,
         type: "user",
+        onDelete: () => setpage(1),
       },
     }));
   };
   return (
-    <Modal closestate="createUser">
-      <div className="relative w-full h-[600px] bg-white p-5 flex flex-col items-end gap-y-5 rounded-lg">
-        <h3 className="text-lg font-semibold absolute top-5 left-5">
-          {" "}
-          #{data.id}{" "}
+    <SecondaryModal
+      size="5xl"
+      open={openmodal.createUser}
+      onPageChange={(val) => {
+        setglobalindex((prev) => ({ ...prev, useredit: -1 }));
+        setopenmodal((prev) => ({ ...prev, createUser: val }));
+      }}
+      closebtn
+      header={() => (
+        <h3 className="text-lg font-semibold">
+          {globalindex.useredit !== -1 ? `#${data.id}` : "Register User"}{" "}
         </h3>
-
-        <Image
-          src={CloseIcon}
-          alt="closeicon"
-          hidden={SpecificAccess(isLoading)}
-          onClick={() => handleCancel()}
-          width={1000}
-          height={1000}
-          className="w-[30px] h-[30px] object-contain"
-        />
+      )}
+    >
+      <div className="relative w-full max-small_phone:h-full h-fit bg-white p-5 flex flex-col items-end gap-y-5 rounded-lg">
         <form
           onSubmit={handleSubmit}
           className="form_container w-full h-full flex flex-col items-center gap-y-5"
@@ -148,13 +138,7 @@ export const Createusermodal = () => {
             name="email"
             required
           />
-          <TextInput
-            type="text"
-            placeholder="Phone Number"
-            value={data.phonenumber}
-            onChange={handleChange}
-            name="phonenumber"
-          />
+
           {globalindex.useredit === -1 && (
             <>
               <FormControl
@@ -197,57 +181,13 @@ export const Createusermodal = () => {
                   required
                 />
               </FormControl>
-              <FormControl
-                sx={{
-                  m: 1,
-                  width: "100%",
-                  height: "50px",
-                  borderRadius: "10px",
-                }}
-                variant="outlined"
-              >
-                <InputLabel htmlFor="outlined-adornment-password">
-                  Confirm Passoword
-                </InputLabel>
-                <OutlinedInput
-                  id="outlined-adornment-password"
-                  type={showpass.confirmpassword ? "text" : "password"}
-                  name="confirmpassword"
-                  onChange={handleChange}
-                  endAdornment={
-                    <InputAdornment position="end">
-                      <IconButton
-                        aria-label="toggle password visibility"
-                        onClick={() =>
-                          setshowpass((prev) => ({
-                            ...prev,
-                            confirmpassword: !prev.confirmpassword,
-                          }))
-                        }
-                        edge="end"
-                      >
-                        {showpass?.confirmpassword ? (
-                          <VisibilityOff />
-                        ) : (
-                          <Visibility />
-                        )}
-                      </IconButton>
-                    </InputAdornment>
-                  }
-                  label="Confirm Password"
-                  required
-                />
-              </FormControl>{" "}
             </>
           )}
 
           <PrimaryButton
             color="#0097FA"
             text={globalindex.useredit === -1 ? "Create" : "Update"}
-            disable={isLoading.GET}
-            status={
-              isLoading.POST || isLoading.PUT ? "loading" : "authenticated"
-            }
+            status={loading ? "loading" : "authenticated"}
             type="submit"
             width="100%"
             height="50px"
@@ -259,6 +199,10 @@ export const Createusermodal = () => {
                 color="lightcoral"
                 text="Delete"
                 type="button"
+                disable={
+                  allData.user &&
+                  allData.user[globalindex.useredit].role === "ADMIN"
+                }
                 onClick={() => handleDelete(data.id as number)}
                 width="100%"
                 height="50px"
@@ -268,7 +212,7 @@ export const Createusermodal = () => {
           )}
         </form>
       </div>
-    </Modal>
+    </SecondaryModal>
   );
 };
 export interface editprofiledata {
@@ -290,6 +234,8 @@ export interface editprofiledata {
 }
 export interface shippingtype {
   id?: number;
+  firstname: string;
+  lastname: string;
   street?: string;
   province: string;
   houseId: number;
@@ -306,12 +252,13 @@ export const EditProfile = ({
   type: "name" | "email" | "password" | "shipping" | "none";
 }) => {
   const [open, setopen] = useState<any>({});
+
   const [loading, setloading] = useState({
     post: false,
     get: true,
     edit: false,
   });
-  const { setopenmodal, userinfo, setuserinfo } = useGlobalContext();
+  const { openmodal, setopenmodal, userinfo, setuserinfo } = useGlobalContext();
   const [data, setdata] = useState<editprofiledata>({
     name: {
       firstname: userinfo.firstname as string,
@@ -331,17 +278,10 @@ export const EditProfile = ({
 
     if (shipping && index >= 0 && index < shipping.length) {
       let selectedShipping = shipping[index];
-      const isNotEmpty = Object.entries(selectedShipping).every(
-        ([key, val]) => {
-          if (typeof val === "string") {
-            return val.trim() !== "";
-          }
-          if (typeof val === "number") {
-            return val !== 0;
-          }
-          return Boolean(val);
-        }
-      );
+      const isNotEmpty = Object.values(selectedShipping).some((val) => {
+        return val?.toString().trim() !== "";
+      });
+
       if (!isNotEmpty) {
         errorToast("All field is required");
         return;
@@ -395,14 +335,13 @@ export const EditProfile = ({
     let del = update.shipping;
 
     if (del && del[index].id) {
-      const deletedaddress = Deleteaddress.bind(false, del[index].id as number);
+      const deletedaddress = Deleteaddress.bind(null, del[index].id as number);
       const deleted = await deletedaddress();
       if (!deleted.success) {
         errorToast("Error Occured");
         return;
       }
     }
-    successToast("Address Deleted");
 
     del?.splice(index, 1);
     setdata(update);
@@ -543,8 +482,15 @@ export const EditProfile = ({
   };
 
   return (
-    <Modal closestate="editprofile" customheight="fit-content">
-      <div className="editprofile_container relative flex flex-col items-center gap-y-5 w-full h-auto  max-h-[80vh] bg-white rounded-lg p-3">
+    <SecondaryModal
+      size="2xl"
+      open={openmodal.editprofile}
+      onPageChange={(val) =>
+        setopenmodal((prev) => ({ ...prev, editprofile: val }))
+      }
+      closebtn
+    >
+      <div className="editprofile_container relative flex flex-col items-center gap-y-5 w-full h-full overflow-y-auto bg-white rounded-lg p-3">
         {type === "name" && (
           <>
             <TextInput
@@ -593,14 +539,22 @@ export const EditProfile = ({
         )}
         {type === "password" && (
           <>
-            <PasswordInput name="oldpassword" label="Old Password" />{" "}
-            <PasswordInput name="newpassword" label="New Password" />{" "}
+            <PasswordInput
+              type="userinfo"
+              name="oldpassword"
+              label="Old Password"
+            />{" "}
+            <PasswordInput
+              type="userinfo"
+              name="newpassword"
+              label="New Password"
+            />{" "}
           </>
         )}
         {type === "shipping" && (
           <div className="relative w-full min-h-[20vh] max-h-[80vh]">
             {loading.get ? (
-              <LoadingText />
+              <AddressSkeleton />
             ) : (
               <>
                 {!data.shipping ||
@@ -612,7 +566,7 @@ export const EditProfile = ({
                 {data.shipping?.map((i, idx) => (
                   <div
                     key={idx}
-                    className={`address_container p-3 mb-5 transition w-full min-h-[50px] rounded-lg h-fit hover:border hover:border-gray-400 ${
+                    className={`address_container relative p-3 mb-5 transition w-full min-h-[50px] rounded-lg h-fit hover:border hover:border-gray-400 ${
                       open ? (open[`sub${idx + 1}`] ? "bg-gray-700" : "") : ""
                     }`}
                   >
@@ -639,7 +593,7 @@ export const EditProfile = ({
 
                     {open && open[`sub${idx + 1}`] && (
                       <>
-                        <div className="addressform relative w-full h-fit flex flex-col items-center gap-y-5 p-5">
+                        <div className="addressform  rela  w-full h-fit flex flex-col items-center gap-y-5 p-5">
                           <span
                             onClick={() => {
                               const update = Object.entries(open).map(
@@ -654,9 +608,9 @@ export const EditProfile = ({
 
                               setopen(Object.fromEntries(update));
                             }}
-                            className="absolute -top-7 right-0 transition hover:translate-x-1 "
+                            className="absolute top-1 right-1 transition hover:translate-x-1 "
                           >
-                            <CloseVector width="30px" height="30px" />
+                            <CloseVector width="25px" height="25px" />
                           </span>
                           <Selection
                             style={{ width: "100%", height: "50px" }}
@@ -673,6 +627,22 @@ export const EditProfile = ({
                             }}
                             data={listofprovinces}
                           />
+                          <div className="w-full h-fit flex flex-row items-center gap-x-5">
+                            <TextInput
+                              name="firstname"
+                              type="text"
+                              onChange={(e) => Handleaddresschange(e, idx)}
+                              value={i.firstname}
+                              placeholder="Firstname"
+                            />
+                            <TextInput
+                              name="lastname"
+                              type="text"
+                              onChange={(e) => Handleaddresschange(e, idx)}
+                              value={i.lastname}
+                              placeholder="Lastname"
+                            />
+                          </div>
                           <TextInput
                             name="street"
                             type="text"
@@ -757,6 +727,8 @@ export const EditProfile = ({
                 return;
               }
               address?.push({
+                firstname: "",
+                lastname: "",
                 street: "",
                 province: "",
                 district: "",
@@ -788,7 +760,7 @@ export const EditProfile = ({
             <PrimaryButton
               type="button"
               text="Cancel"
-              disable={SpecificAccess(loading)}
+              disable={Object.values(loading).some((i) => i)}
               onClick={() => {
                 setopenmodal((prev) => ({ ...prev, editprofile: false }));
               }}
@@ -800,6 +772,16 @@ export const EditProfile = ({
           </>
         )}
       </div>
-    </Modal>
+    </SecondaryModal>
+  );
+};
+
+const AddressSkeleton = () => {
+  return (
+    <div className=" w-full flex flex-col items-start gap-y-3 h-fit">
+      <Skeleton className="h-[50px] w-full rounded-lg" />
+      <Skeleton className="h-[50px] w-full rounded-lg" />
+      <Skeleton className="h-[50px] w-full rounded-lg" />
+    </div>
   );
 };

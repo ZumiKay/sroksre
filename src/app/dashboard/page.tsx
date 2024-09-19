@@ -16,6 +16,7 @@ import {
 } from "@/src/context/CustomHook";
 import { ContainerLoading } from "../component/Loading";
 import { EditProfile } from "../component/Modals/User";
+import { signOut } from "next-auth/react";
 
 interface userdata extends Userdatastate {
   open: {
@@ -73,19 +74,40 @@ export default function UserDashboard() {
   };
   return (
     <main className="user_dashboard__container flex flex-col items-center gap-y-28  w-full mt-20">
-      <div className="profile__section w-[80%] flex flex-row items-center justify-evenly">
-        <div className="profiledetail__section relative w-full min-h-[350px] flex flex-row items-start justify-evenly bg-gray-100 rounded-lg p-10">
+      <div className="profile__section w-[80%] flex flex-row items-center justify-evenly max-large_phone:w-[95%] max-large_phone:overflow-x-auto max-smallest_phone:w-full">
+        <div className="profiledetail__section relative w-full min-w-[550px] min-h-[350px] flex flex-row items-start justify-evenly max-smallest_phone:justify-between bg-gray-100 rounded-lg p-10">
           {loading ? (
             <ContainerLoading />
           ) : (
             <>
               <div className="profileheader grid gap-y-10">
+                <PrimaryButton
+                  type="button"
+                  postion="relative"
+                  top="10px"
+                  right="2%"
+                  disable={loading}
+                  text={`${userdata.open.edit ? "Done" : "Edit"}`}
+                  radius="10px"
+                  color={userdata.open.edit ? "lightcoral" : "#495464"}
+                  width="70px"
+                  onClick={() =>
+                    setdata((prev) => ({
+                      ...prev,
+                      open: { ...prev.open, edit: !prev.open.edit },
+                    }))
+                  }
+                  height="41px"
+                />
                 <h3 className="header font-bold text-lg">Fullname</h3>
                 <h3 className="header font-bold text-lg">Email Address</h3>
                 <h3 className="header font-bold text-lg">Shipping Address</h3>
                 <h3 className="header font-bold text-lg">Password</h3>
               </div>
               <div className="profiledetail  grid gap-y-10">
+                <h3></h3>
+                <h3></h3>
+
                 <h3 className="detail font-normal text-lg">
                   {" "}
                   {userinfo.firstname} {userinfo.lastname}{" "}
@@ -105,6 +127,8 @@ export default function UserDashboard() {
               </div>
               {userdata.open.edit && (
                 <div className="profileedit_container w-fit grid gap-y-10">
+                  <h3></h3>
+                  <h3></h3>
                   <h3
                     onClick={() => handleEdit("name")}
                     className="edit text-lg text-red-400 font-bold cursor-pointer transition hover:text-black active:text-black"
@@ -134,83 +158,83 @@ export default function UserDashboard() {
               )}
             </>
           )}
-          <PrimaryButton
-            type="button"
-            postion="absolute"
-            top="10px"
-            right="2%"
-            disable={loading}
-            text={`${userdata.open.edit ? "Done" : "Edit"}`}
-            radius="10px"
-            color={userdata.open.edit ? "lightcoral" : "#495464"}
-            width="70px"
-            onClick={() =>
-              setdata((prev) => ({
-                ...prev,
-                open: { ...prev.open, edit: !prev.open.edit },
-              }))
-            }
-            height="41px"
-          />
         </div>
       </div>
       <div className="setting__section w-[80%] h-fit flex flex-col items-center gap-y-7">
-        <PrimaryButton
-          text="Whilist Products"
-          type="button"
-          width="100%"
-          hoverTextColor="white"
-          hoverColor="#2F4865"
-          radius="10px"
-          height="50px"
-          border="2px solid black"
-          color={userdata.open.whilist ? "#2F4865" : "white"}
-          textalign="left"
-          textcolor={userdata.open.whilist ? "white" : "black"}
-          textsize="20px"
-          postion={userdata.open.whilist ? "relative" : "sticky"}
-          top="0"
-          zI="20"
-          onClick={() => {
-            userdata.open.whilist && setwishlist(null);
-            setdata({
-              ...userdata,
-              open: {
-                ...userdata.open,
-                whilist: !userdata.open.whilist,
-              },
-            });
-          }}
-        />
+        {userinfo.role === "USER" && (
+          <>
+            <PrimaryButton
+              text="Whilist Products"
+              type="button"
+              width="100%"
+              hoverTextColor="white"
+              hoverColor="#2F4865"
+              radius="10px"
+              height="50px"
+              border="2px solid black"
+              color={userdata.open.whilist ? "#2F4865" : "white"}
+              textalign="left"
+              textcolor={userdata.open.whilist ? "white" : "black"}
+              textsize="20px"
+              postion={userdata.open.whilist ? "relative" : "sticky"}
+              top="0"
+              zI="20"
+              onClick={() => {
+                userdata.open.whilist && setwishlist(null);
+                setdata({
+                  ...userdata,
+                  open: {
+                    ...userdata.open,
+                    whilist: !userdata.open.whilist,
+                  },
+                });
+              }}
+            />
 
-        <ToggleDownMenu open={userdata.open.whilist}>
-          <div className="products w-full h-full grid grid-cols-2 gap-x-5 place-items-center place-content-start">
-            {wishlist?.map((prod) => (
-              <Card
-                key={prod.id}
-                id={prod.id}
-                name={prod.name}
-                price={prod.price.toFixed(2)}
-                discount={prod.discount}
-                img={prod.covers}
-              />
-            ))}
-          </div>
-        </ToggleDownMenu>
-
-        <PrimaryButton
-          text="Delete My Account"
-          type="button"
-          width="100%"
-          radius="10px"
-          hoverTextColor="white"
-          hoverColor="#2F4865"
-          height="50px"
-          color="#F08080"
-          textalign="left"
-          textcolor="white"
-          textsize="20px"
-        />
+            <ToggleDownMenu open={userdata.open.whilist}>
+              <div className="products w-full h-full grid grid-cols-2 gap-x-5 place-items-center place-content-start">
+                {wishlist?.map((prod) => (
+                  <Card
+                    key={prod.id}
+                    id={prod.id}
+                    name={prod.name}
+                    price={prod.price.toFixed(2)}
+                    discount={prod.discount}
+                    img={prod.covers}
+                  />
+                ))}
+              </div>
+            </ToggleDownMenu>
+            <PrimaryButton
+              text="Delete My Account"
+              type="button"
+              width="100%"
+              radius="10px"
+              hoverTextColor="white"
+              hoverColor="#2F4865"
+              height="50px"
+              color="#F08080"
+              textalign="left"
+              textcolor="white"
+              textsize="20px"
+              onClick={() =>
+                setopenmodal((prev) => ({
+                  ...prev,
+                  confirmmodal: {
+                    Warn: "Your Account Will Be Deleted ",
+                    open: true,
+                    confirm: false,
+                    type: "userinfo",
+                    closecon: "",
+                    onAsyncDelete: async () => {
+                      await signOut();
+                    },
+                  },
+                }))
+              }
+            />
+          </>
+        )}
       </div>
       {openmodal.editprofile && <EditProfile type={userdata.open.edittype} />}
     </main>

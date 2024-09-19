@@ -6,52 +6,52 @@ import Modal from "../component/Modals";
 import { TextField } from "@mui/material";
 import Textarea from "@mui/joy/Textarea";
 import { useGlobalContext } from "@/src/context/GlobalContext";
-import { ChangeEvent, FormEvent, use, useEffect, useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useState } from "react";
 import {
   AddPolicyOrQuestion,
   Addpolicytype,
   Addquestiontype,
   DeleteQP,
-  getPolicy,
-  updateQuestionOrPolicy,
 } from "./action";
 import { errorToast, successToast } from "../component/Loading";
 import { TabArrow } from "../component/Asset";
 import { PrimaryConfirmModal } from "../component/SideMenu";
+import { Button } from "@nextui-org/react";
+import { ApiRequest, useScreenSize } from "@/src/context/CustomHook";
+import { Showtypemodal } from "./secondcomponent";
 
 interface sidebarContentType {
   id: number;
   content: string;
 }
 
-const getData = async (qid: number, pid: number) => {
-  const fetchdata = getPolicy.bind(null, qid, pid);
-
-  const result = await fetchdata();
-  if (result.success) {
-    return result.data;
-  } else {
-    return null;
-  }
-};
 export const PolicyButton = ({
   title,
   color,
   policydata,
   ty,
   pid,
+  showtype,
 }: {
   title: string;
-  ty: "edit" | "delete";
+  ty: "edit" | "delete" | "showtype";
   color: string;
   policydata?: Addpolicytype;
   pid?: number;
+  showtype?: string[];
 }) => {
   const [loading, setloading] = useState(false);
+  const router = useRouter();
   let openstate = "editpolicy";
   const { openmodal, setopenmodal } = useGlobalContext();
   const handleEdit = () => {
-    setopenmodal((prev) => ({ ...prev, [openstate]: true }));
+    if (ty === "edit") setopenmodal((prev) => ({ ...prev, [openstate]: true }));
+
+    if (ty === "delete")
+      setopenmodal((prev) => ({ ...prev, primaryconfirm: true }));
+
+    if (ty === "showtype")
+      setopenmodal((prev) => ({ ...prev, showtype: true }));
   };
 
   //Delete policy
@@ -65,6 +65,7 @@ export const PolicyButton = ({
 
     if (delreq.success) {
       successToast(delreq.message as string);
+      router.push("/privacyandpolicy");
     } else {
       errorToast(delreq.message as string);
     }
@@ -91,6 +92,9 @@ export const PolicyButton = ({
           loading={loading}
         />
       )}
+      {openmodal.showtype && ty === "showtype" && pid && (
+        <Showtypemodal id={pid ?? 0} value={new Set(showtype ?? [""])} />
+      )}
     </>
   );
 };
@@ -103,6 +107,7 @@ export const SidePolicyBar = ({
   data: sidebarContentType[];
 }) => {
   const { openmodal, setopenmodal } = useGlobalContext();
+  const [open, setopen] = useState(false);
   const router = useRouter();
   const searchparams = useSearchParams();
 
@@ -115,7 +120,19 @@ export const SidePolicyBar = ({
   };
   return (
     <>
-      <nav className="sidebar fixed left-0 w-[280px] h-fit p-3 flex flex-col items-start gap-y-5 bg-white rounded-lg">
+      <div
+        onClick={() => setopen(!open)}
+        className="w-fit h-fit text-xl z-50 bg-gray-100 rounded-lg p-2 cursor-pointer smallest_screen:hidden flex items-center justify-center fixed top-20 right-2 transition-colors duration-100 hover:bg-black active:bg-black"
+      >
+        {" "}
+        {open ? "X" : "Menu"}{" "}
+      </div>
+      <motion.aside
+        style={open ? { display: "block" } : {}}
+        className="sidebar fixed bg-white  left-0 w-[250px] h-fit p-3 flex flex-col items-start gap-y-10 rounded-lg
+      max-smallest_screen:hidden max-smallest_screen:top-[130px] max-smallest_screen:left-[60%] max-small_phone:left-[40%] z-50
+      "
+      >
         {data.map((i, idx) => (
           <div
             key={idx}
@@ -138,7 +155,7 @@ export const SidePolicyBar = ({
             radius="10px"
           />
         )}
-      </nav>
+      </motion.aside>
       {openmodal.addpolicy && <AddPolicyModal />}
     </>
   );
@@ -166,8 +183,10 @@ const deleteRequest = async (qid?: number, pid?: number, ppid?: number) => {
 };
 
 export const AddPolicyModal = ({ qa, plc, edit, openstate }: Policydata) => {
+  const router = useRouter();
   const { setopenmodal } = useGlobalContext();
   const [loading, setloading] = useState({ post: false, delete: false });
+  const { isTablet, isMobile } = useScreenSize();
   const [state, setstate] = useState<Addpolicytype>({
     title: "",
     Paragraph: [{ content: "" }],
@@ -196,14 +215,18 @@ export const AddPolicyModal = ({ qa, plc, edit, openstate }: Policydata) => {
   };
 
   const handleParagraphChange = (
-    e: ChangeEvent<HTMLTextAreaElement>,
+    e: ChangeEvent<HTMLTextAreaElement> | string,
     idx: number
   ) => {
     const updateparagraph = [...state.Paragraph];
-    const { value } = e.target;
 
-    updateparagraph[idx].content = value;
+    if (typeof e !== "string") {
+      const { value } = e.target;
 
+      updateparagraph[idx].content = value;
+    } else {
+      updateparagraph[idx].title = e;
+    }
     setstate((prev) => ({ ...prev, Paragraph: updateparagraph }));
   };
   const handleDelete = async (
@@ -258,19 +281,18 @@ export const AddPolicyModal = ({ qa, plc, edit, openstate }: Policydata) => {
     setloading((prev) => ({ ...prev, post: true }));
     e.preventDefault();
 
-    const makereq = edit
-      ? updateQuestionOrPolicy.bind(
-          null,
-          type.toLowerCase() as any,
-          question && question[0],
-          state
-        )
-      : AddPolicyOrQuestion.bind(null, {
-          question: question,
+    const makereq = AddPolicyOrQuestion.bind(null, {
+      question: question,
+      policy: state,
+    });
+
+    const createReq = edit
+      ? await makereq()
+      : await ApiRequest("/api/policy", undefined, "PUT", "JSON", {
+          type: type.toLowerCase(),
+          question: question && question[0],
           policy: state,
         });
-
-    const createReq = await makereq();
     if (createReq.success) {
       successToast(createReq.message as string);
     } else {
@@ -281,12 +303,17 @@ export const AddPolicyModal = ({ qa, plc, edit, openstate }: Policydata) => {
     setstate({ title: "", Paragraph: [{ content: "" }] });
     setquestion([{ question: "", answer: "" }]);
     openstate && setopenmodal((prev) => ({ ...prev, [openstate]: false }));
+    router.refresh();
   };
   return (
-    <Modal closestate={openstate ?? "addpolicy"} customZIndex={150}>
+    <Modal
+      customwidth={isMobile ? "100vw" : isTablet ? "90vw" : ""}
+      closestate={openstate ?? "addpolicy"}
+      customZIndex={150}
+    >
       <form
         onSubmit={handleSubmit}
-        className="w-full h-screen bg-white rounded-lg flex flex-col items-center gap-y-5 p-5"
+        className="w-full h-[80vh] max-small_phone:h-full bg-white rounded-lg flex flex-col items-center gap-y-5 p-5"
       >
         <Selection
           data={["Policy", "Question"]}
@@ -307,35 +334,49 @@ export const AddPolicyModal = ({ qa, plc, edit, openstate }: Policydata) => {
               fullWidth
               required
             />
-            {state.Paragraph.map((par, idx) => (
-              <div className="w-full h-fit">
-                <Textarea
-                  key={idx}
-                  minRows={5}
-                  value={state.Paragraph[idx].content}
-                  onChange={(e) => handleParagraphChange(e, idx)}
-                  variant="outlined"
-                  placeholder="Paragraph"
-                  required
-                />
-                <i
-                  onClick={() => handleDelete(idx, par.id, "paragraph")}
-                  className={`fa-solid fa-trash relative transition duration-300 active:text-white left-[97%]`}
-                ></i>
-              </div>
-            ))}
+            <div className="w-full h-fit max-h-[90%] overflow-y-auto overflow-x-hidden pt-5">
+              {state.Paragraph.map((par, idx) => (
+                <div key={idx} className="w-full h-fit  flex flex-col gap-5">
+                  <TextField
+                    name={`sub${idx + 1}`}
+                    fullWidth
+                    type="text"
+                    label={`Sub Title #${idx + 1}`}
+                    value={par.title}
+                    onChange={({ target }) =>
+                      handleParagraphChange(target.value as string, idx)
+                    }
+                  />
+                  <Textarea
+                    key={idx}
+                    minRows={5}
+                    value={state.Paragraph[idx].content}
+                    onChange={(e) => handleParagraphChange(e, idx)}
+                    variant="outlined"
+                    placeholder="Paragraph"
+                    required
+                  />
+                  <i
+                    onClick={() => handleDelete(idx, par.id, "paragraph")}
+                    className={`fa-solid fa-trash relative transition duration-300 active:text-white left-[90%] bottom-2`}
+                  ></i>
+                </div>
+              ))}
+            </div>
 
-            <PrimaryButton
+            <Button
               onClick={AddMoreParagraph}
               type="button"
-              text="Add paragraph"
-              radius="10px"
-            />
+              variant="bordered"
+              color="primary"
+            >
+              Add New
+            </Button>
           </>
         ) : (
           <div className="question w-full h-fit flex flex-col gap-y-5">
-            {question?.map((i, idx) => (
-              <>
+            {question?.map((_, idx) => (
+              <div key={idx} className="w-full h-fit flex flex-col gap-y-5">
                 <label className="text-lg font-bold">
                   {" "}
                   {`Question ${idx + 1}`}{" "}
@@ -360,9 +401,9 @@ export const AddPolicyModal = ({ qa, plc, edit, openstate }: Policydata) => {
                 />
                 <i
                   onClick={() => handleDelete(idx)}
-                  className={`fa-solid fa-trash relative transition duration-300 active:text-white left-[97%]`}
+                  className={`fa-solid fa-trash relative transition duration-300 active:text-white left-[90%]`}
                 ></i>
-              </>
+              </div>
             ))}
             {!edit && (
               <PrimaryButton

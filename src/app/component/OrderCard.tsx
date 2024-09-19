@@ -106,7 +106,7 @@ const ShowDetails = ({
       <div className="w-full h-fit grid grid-cols-3 gap-x-5 gap-y-5">
         {details
           ?.filter((opt) => opt.option_type !== "COLOR")
-          ?.map((opt) => detailcard(opt.option_value))}
+          ?.map((opt) => detailcard(opt.value))}
       </div>
 
       {details?.filter((i) => i.option_type === "COLOR").length !== 0 && (
@@ -114,7 +114,7 @@ const ShowDetails = ({
           <h3>Color: </h3>
           {details
             ?.filter((opt) => opt.option_type === "COLOR")
-            ?.map((opt) => detailcard("", opt.option_value))}
+            ?.map((opt) => detailcard("", opt.value))}
         </div>
       )}
     </>

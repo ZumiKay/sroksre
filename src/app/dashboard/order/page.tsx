@@ -13,19 +13,15 @@ import {
   totalpricetype,
 } from "@/src/context/OrderContext";
 import { notFound, redirect } from "next/navigation";
-import { AllOrderStatusColor } from "@/src/lib/utilities";
-import { Suspense } from "react";
-import { LoadingText } from "../../component/Loading";
+import {
+  AllOrderStatusColor,
+  AllorderType,
+  removeSpaceAndToLowerCase,
+} from "@/src/lib/utilities";
+
 import { OrderUserType } from "../../checkout/action";
 import { getCheckoutdata } from "../../checkout/page";
 import { Role } from "@prisma/client";
-
-export const AllorderType = {
-  orderdetail: "orderdetail",
-  orderproduct: "orderproduct",
-  orderaction: "orderaction",
-  orderupdatestatus: "orderupdatestatus",
-};
 
 export interface AllorderStatus {
   id: string;
@@ -47,7 +43,7 @@ export default async function OrderManagement({
   }
 
   let {
-    page = "1",
+    p = "1",
     show = "1",
     status,
     q,
@@ -62,16 +58,16 @@ export default async function OrderManagement({
   const req: any = await GetOrder(
     undefined,
     undefined,
-    parseInt(page as string),
+    parseInt(p as string),
     parseInt(show as string),
     getuser.role === "USER" ? getuser.id : undefined
   );
 
   const filterorder = await getFilterOrder({
     status: selectedStatus ?? [""],
-    page: parseInt(page as string),
+    page: parseInt(p as string),
     limit: parseInt(show as string),
-    search: q as string,
+    search: q ? removeSpaceAndToLowerCase(q.toString()) : undefined,
     startprice: parseFloat((startprice as string) ?? "0"),
     endprice: parseFloat((endprice as string) ?? "0"),
     fromdate: fromdate ? fromdate : undefined,
@@ -79,51 +75,56 @@ export default async function OrderManagement({
     userid: getuser.role === "USER" ? getuser.id : undefined,
   });
 
-  const isFilter =
-    selectedStatus || q || fromdate || todate || startprice || endprice;
+  const isFilter = q || fromdate || todate || startprice || endprice;
 
   const total = Math.ceil(
     (isFilter ? filterorder.total ?? 0 : req?.total) / parseInt(show as string)
   );
 
-  const orders = isFilter
-    ? filterorder.data
-    : (req?.order as unknown as AllorderStatus[]);
+  const orders =
+    isFilter || selectedStatus
+      ? filterorder.data
+      : (req?.order as unknown as AllorderStatus[]);
 
   return (
-    <Suspense fallback={<LoadingText />}>
-      <main className="order__container w-full flex flex-col items-start gap-y-5 pl-2 pr-2 relative">
-        <div className="filter_container w-[40%] inline-flex gap-x-5 items-center h-fit mt-5">
-          <div className="w-full h-fit inline-flex items-center">
-            <label className="font-bold">Filter by:</label>
-            <MultipleSelect />
-          </div>
+    <main className="order__container w-full min-h-screen flex flex-col items-start gap-y-5 pl-2 pr-2 relative">
+      <div
+        className="filter_container w-full flex flex-row items-center gap-x-5 
+      max-large_phone:justify-center
+      max-large_phone:flex-col max-large_phone:gap-y-5"
+      >
+        <div className="w-[300px] max-small_phone:w-[95%]">
+          <MultipleSelect />
+        </div>
+
+        <div className="w-full h-full flex flex-row items-center gap-x-3 max-large_phone:justify-center">
           <FilterButton
             isFilter={!isFilter}
             data={{ todate, fromdate, q, startprice, endprice }}
           />
           <DownloadButton />
         </div>
-        <div className="orderlist w-full h-fit">
+      </div>
+      <div className="w-full h-full overflow-x-auto">
+        <div className="orderlist min-w-[950px] w-full h-fit">
           <table width={"100%"} className="ordertable text-lg font-medium">
-            <tbody>
+            <thead>
               <tr className="text-left bg-[#495464] text-white h-[50px] rounded-2xl">
                 <th className="rounded-l-lg pl-2">Order ID#</th>
                 <th align="left">Details</th>
-                <th>Products</th>
-                <th>Amount</th>
+                <th> Products </th>
+                <th> Amount</th>
                 <th>Status</th>
                 <th></th>
                 <th className="rounded-r-lg"> </th>
               </tr>
-              <tr className="h-[30px]">
-                <td></td>
-              </tr>
-
-              {!orders || orders.length === 0 ? (
+              <tr className="h-[30px]"></tr>
+            </thead>
+            <tbody>
+              {!orders || (orders && orders.length === 0) ? (
                 <tr>
-                  <td>
-                    <h3 className="w-full font-bold text-xl">No order</h3>
+                  <td className="w-fit font-bold text-xl pl-3">
+                    No Purchased Order Yet :)
                   </td>
                 </tr>
               ) : (
@@ -140,15 +141,17 @@ export default async function OrderManagement({
             </tbody>
           </table>
         </div>
-        <div className="w-full h-fit relative mt-10">
+      </div>
+      {orders && orders.length !== 0 && (
+        <div className="w-full h-fit relative mt-10 bottom-0">
           <PaginationSSR
             total={total}
-            pages={parseInt(page as string)}
-            limit={parseInt(show as string)}
+            pages={parseInt(p as string)}
+            limit={show}
           />
         </div>
-      </main>
-    </Suspense>
+      )}
+    </main>
   );
 }
 
@@ -166,24 +169,7 @@ const getOrderData = async (
   param?: { [key: string]: string | string[] | undefined }
 ) => {
   if (param) {
-    const {
-      ty,
-      id,
-      page,
-      show,
-      status,
-      q,
-      startprice,
-      fromdate,
-      todate,
-      endprice,
-
-      ...otherParams
-    } = param;
-
-    if (Object.keys(otherParams).length > 0) {
-      return redirect("/dashboard/order");
-    }
+    const { ty, id } = param;
 
     if (ty && id) {
       const verifyParams = checkparam(ty as string);
@@ -275,9 +261,7 @@ export const DataRow = async ({
         </td>
         {isAdmin ? (
           <>
-            {" "}
             <td>
-              {" "}
               <ButtonSsr
                 idx={idx}
                 type={AllorderType.orderaction}
@@ -290,20 +274,6 @@ export const DataRow = async ({
                 isAdmin={isAdmin}
               />
             </td>
-            <td className="rounded-r-lg">
-              {" "}
-              <ButtonSsr
-                idx={idx}
-                type={AllorderType.orderupdatestatus}
-                name="Update"
-                color="#BC871E"
-                height="40px"
-                width="50%"
-                data={{ action: orderData as OrderUserType }}
-                id={data.id}
-                isAdmin={isAdmin}
-              />
-            </td>{" "}
           </>
         ) : (
           <></>

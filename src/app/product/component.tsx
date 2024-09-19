@@ -7,14 +7,15 @@ import {
   useGlobalContext,
   VariantColorValueType,
 } from "@/src/context/GlobalContext";
-import Modal from "../component/Modals";
-import { TextField } from "@mui/material";
+import { SecondaryModal } from "../component/Modals";
 import { useRouter, useSearchParams } from "next/navigation";
 import { filtervaluetype, getFilterValue } from "./action";
 import { ToggleSelect } from "../component/ToggleMenu";
 import Image from "next/image";
 import Card from "../component/Card";
 import { Input, Spacer } from "@nextui-org/react";
+import { ApiRequest, useEffectOnce } from "@/src/context/CustomHook";
+import { NormalSkeleton } from "../component/Banner";
 
 export const ProductFilterButton = ({
   pid,
@@ -26,6 +27,8 @@ export const ProductFilterButton = ({
   productcount,
   isPromotion,
   latest,
+  pcate,
+  ccate,
 }: {
   pid: string;
   cid?: string;
@@ -34,8 +37,10 @@ export const ProductFilterButton = ({
   promo?: string[];
   search?: string;
   productcount?: number;
-  isPromotion?: boolean;
+  isPromotion?: string;
   latest?: boolean;
+  pcate?: string[];
+  ccate?: string[];
 }) => {
   const { openmodal, setopenmodal } = useGlobalContext();
   return (
@@ -46,7 +51,7 @@ export const ProductFilterButton = ({
           type="button"
           text={color || other || promo || search ? "Clear Filter" : "Filter"}
           radius="10px"
-          width="100%"
+          style={{ maxWidth: "100px" }}
           height="100%"
           onClick={() => {
             setopenmodal((prev) => ({ ...prev, filteroption: true }));
@@ -65,6 +70,8 @@ export const ProductFilterButton = ({
             other,
             search,
             promo,
+            pcate,
+            ccate,
           }}
           latest={latest}
         />
@@ -100,7 +107,7 @@ export const SortSelect = () => {
           value: 2,
         },
       ]}
-      style={{ height: "100%" }}
+      style={{ height: "100%", width: "150px", minWidth: "150px" }}
     />
   );
 };
@@ -112,6 +119,7 @@ export const FilterContainer = ({
   productcount,
   isPromotion,
   latest,
+  promoid,
 }: {
   pid: string;
   cid?: string;
@@ -121,12 +129,17 @@ export const FilterContainer = ({
     other?: string[];
     promo?: string[];
     search?: string;
+    pcate?: string[];
+    ccate?: string[];
   };
   productcount?: number;
-  isPromotion?: boolean;
+  isPromotion?: string;
   latest?: boolean;
+  promoid?: string;
 }) => {
-  const { setopenmodal } = useGlobalContext();
+  const { setopenmodal, openmodal } = useGlobalContext();
+  const [loading, setloading] = useState(false);
+
   const [filtervalue, setfiltervalue] = useState<filtervaluetype | undefined>(
     undefined
   );
@@ -134,11 +147,17 @@ export const FilterContainer = ({
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  useEffect(() => {
+  useEffectOnce(() => {
     selected?.search &&
       setfiltervalue((prev) => ({ ...prev, search: selected.search } as any));
 
     const getFiltervalue = async () => {
+      if (!pid && !cid) {
+        return;
+      }
+
+      setloading(true);
+
       const res = getFilterValue.bind(
         null,
         parseInt(pid),
@@ -146,13 +165,36 @@ export const FilterContainer = ({
         latest
       );
       const getreq = await res();
+      setloading(false);
 
       if (getreq) {
-        setfiltervalue(getreq);
+        setfiltervalue({
+          ...getreq,
+        });
       }
     };
+
     getFiltervalue();
-  }, []);
+  });
+
+  useEffect(() => {
+    if (isPromotion) {
+      const fetchcate = async () => {
+        setloading(true);
+        const res = await ApiRequest(
+          `/api/categories/select?ty=promocate&promoid=${isPromotion}`,
+          undefined,
+          "GET"
+        );
+        setloading(false);
+        if (!res.success) {
+          return;
+        }
+        setfiltervalue((prev) => ({ ...prev, category: res.data } as any));
+      };
+      fetchcate();
+    }
+  }, [isPromotion]);
 
   const handleClick = (idx: number, type: string, otheridx?: number) => {
     const param = new URLSearchParams(searchParams);
@@ -180,6 +222,10 @@ export const FilterContainer = ({
       toggleParam("other", val);
     } else if (type === "promo") {
       toggleParam("promo", filtervalue?.promo?.[idx].name);
+    } else if (type === "pcate") {
+      toggleParam("pcate", filtervalue?.category?.parent[idx].value.toString());
+    } else if (type === "ccate" && filtervalue?.category?.child) {
+      toggleParam("ccate", filtervalue?.category?.child[idx].value.toString());
     }
 
     router.push(`?${param}`, { scroll: false });
@@ -202,7 +248,8 @@ export const FilterContainer = ({
   const handleClearSpecific = (
     data: string[] | VariantColorValueType[],
     selectedValue: string[],
-    promo?: boolean
+    promo?: boolean,
+    type?: string
   ) => {
     const param = new URLSearchParams(searchParams);
 
@@ -221,6 +268,9 @@ export const FilterContainer = ({
               param.set("other", updatedOtherValues.join(","));
             }
           }
+          if (type === "pcate" || type === "ccate") {
+            param.delete(type);
+          }
 
           if (param.has("promo") && selectedValue.includes(item) && promo) {
             param.delete("promo");
@@ -237,9 +287,16 @@ export const FilterContainer = ({
   };
 
   return (
-    <Modal closestate="filteroption" customZIndex={200}>
-      <div className="w-full h-full bg-white rounded-lg p-3 flex flex-col gap-y-5 items-center relative">
-        <div className="w-full max-h-[400px] h-auto overflow-y-auto overflow-x-hidden flex flex-col gap-y-5 p-3">
+    <SecondaryModal
+      size="4xl"
+      open={openmodal.filteroption}
+      closebtn
+      onPageChange={(val) =>
+        setopenmodal((prev) => ({ ...prev, filteroption: val }))
+      }
+    >
+      <div className="w-full  h-full bg-white rounded-lg p-3 flex flex-col gap-y-5 items-center relative">
+        <div className="w-full max-h-[400px] h-auto overflow-y-auto overflow-x-hidden flex flex-col gap-y-5 p-3 mt-2">
           <Input
             isClearable
             fullWidth
@@ -259,6 +316,37 @@ export const FilterContainer = ({
             size="lg"
           />
 
+          {loading && <NormalSkeleton width="100%" height="50px" count={3} />}
+
+          {isPromotion && filtervalue?.category && (
+            <>
+              <ToggleSelect
+                title="Main Category"
+                type="pcate"
+                clickfunction={handleClick}
+                selected={filtervalue.category.parent
+                  ?.filter((i) => selected?.pcate?.includes(i.value.toString()))
+                  ?.map((i) => i.label)}
+                data={filtervalue.category.parent?.map((i) => i.label)}
+                onClear={handleClearSpecific}
+              />
+              {filtervalue.category.child && (
+                <ToggleSelect
+                  title="Sub Category"
+                  type="ccate"
+                  selected={filtervalue.category.child
+                    ?.filter((i) =>
+                      selected?.ccate?.includes(i.value.toString())
+                    )
+                    ?.map((i) => i.label)}
+                  clickfunction={handleClick}
+                  data={filtervalue.category.child?.map((i) => i.label)}
+                  onClear={handleClearSpecific}
+                />
+              )}
+            </>
+          )}
+
           {filtervalue && (
             <>
               {filtervalue?.variant?.color.length > 0 && (
@@ -274,7 +362,10 @@ export const FilterContainer = ({
 
               <h3
                 className="text-lg font-bold"
-                hidden={filtervalue.variant?.text.length === 0}
+                hidden={
+                  filtervalue.variant?.text.length === 0 ||
+                  !filtervalue.variant?.text
+                }
               >
                 {selected?.other ? "Clear Filter" : "Other"}
               </h3>
@@ -292,7 +383,8 @@ export const FilterContainer = ({
                 ))}
 
               <Spacer />
-              {!isPromotion &&
+              {!promoid &&
+                !isPromotion &&
                 filtervalue?.promotion &&
                 filtervalue?.promotion.length > 0 && (
                   <ToggleSelect
@@ -311,7 +403,7 @@ export const FilterContainer = ({
           )}
         </div>
 
-        <div className="btncontainer absolute w-[80%] flex flex-row gap-x-5 bottom-1">
+        <div className="btncontainer w-full flex flex-row gap-x-5">
           <PrimaryButton
             text={`Show Product ${productcount ?? "No Product"}`}
             type="button"
@@ -337,7 +429,7 @@ export const FilterContainer = ({
           />
         </div>
       </div>
-    </Modal>
+    </SecondaryModal>
   );
 };
 
@@ -360,14 +452,14 @@ export const PromotionProductListContainer = ({
 }: PromotionProductlistContainerProps) => {
   return (
     <div className="promotioncontainer w-full h-fit flex flex-col gap-y-10 pl-5 pr-5 pb-10">
-      <div className="header w-full h-fit flex flex-row justify-center items-center gap-x-10">
+      <div className="header w-full h-fit flex flex-row justify-center items-center max-small_screen:flex-col gap-5">
         <Image
           src={banner.url}
           alt={banner.name}
           width={700}
           height={700}
           loading="lazy"
-          className="w-full h-[500px] object-contain rounded-lg"
+          className="w-full h-[500px] max-small_screen:h-auto object-contain rounded-lg"
         />
         <div className="description w-full min-h-[280px] h-fit p-3 rounded-lg bg-gray-500 text-white flex flex-col justify-center gap-y-5">
           <h3 className="title text-3xl font-bold">{name}</h3>
@@ -375,7 +467,7 @@ export const PromotionProductListContainer = ({
           <p className="des w-full h-fit text-lg font-light">{description}</p>
         </div>
       </div>
-      <div className="listproduct w-full h-full grid grid-cols-3 gap-10">
+      <div className="listproduct w-full h-full flex flex-row gap-5 flex-wrap justify-start max-smallest_tablet:justify-center">
         {product.map((prod) => (
           <Card
             key={prod.id}

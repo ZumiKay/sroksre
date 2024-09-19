@@ -91,7 +91,7 @@ export default function PrimaryButton(props: buttonpros) {
       {props.status === "loading" ? (
         <h3 className="loading-text font-bold w-full h-fit"> Loading...</h3>
       ) : (
-        <div className="w-full h-full flex flex-row items-center justify-center gap-x-2">
+        <div className="w-full h-full flex flex-row items-center justify-center gap-5 ">
           {" "}
           {props.Icon && props.Icon}
           <p>{props.text}</p>{" "}
@@ -146,7 +146,7 @@ export function Selection(props: selectprops) {
         disabled={props.disable ? props.disable : false}
         className={`select border-1 border-black rounded-md ${
           props.label ? "w-1/2" : "w-full"
-        } h-full p-2`}
+        } h-full p-2 bg-white`}
         onChange={props.onChange}
         required={props.required}
         value={props.value}
@@ -226,7 +226,7 @@ interface Selectcontainerprops {
   data: Array<string | VariantColorValueType>;
   type: "TEXT" | "COLOR";
   onSelect: (value: string) => void;
-  isSelected?: string | VariantColorValueType;
+  isSelected?: string;
 }
 const isSelectedStyle: CSSProperties = {
   outline: "2px solid black",
@@ -324,9 +324,9 @@ export function MultipleSelect() {
   };
 
   return (
-    <div className="w-fit">
+    <div className="w-full">
       <ThemeProvider theme={Mutiselectstatuscolor}>
-        <FormControl sx={{ m: 1, width: 300 }}>
+        <FormControl sx={{ m: 1, width: "100%" }}>
           <InputLabel id="demo-multiple-chip-label" filled>
             Status
           </InputLabel>

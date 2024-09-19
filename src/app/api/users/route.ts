@@ -2,13 +2,14 @@ import { NextRequest } from "next/server";
 import { extractQueryParams } from "../banner/route";
 import Prisma from "@/src/lib/prisma";
 import {
-  caculateArrayPagination,
   calculatePagination,
+  IsNumber,
   removeSpaceAndToLowerCase,
 } from "@/src/lib/utilities";
 import { UserState } from "@/src/context/GlobalContext";
 import { revalidateTag } from "next/cache";
-import { IsNumber } from "../../product/page";
+
+import { Prisma as prisma } from "@prisma/client";
 
 interface Userparam {
   lt?: number;
@@ -22,104 +23,72 @@ export async function GET(request: NextRequest) {
     const url = request.nextUrl.toString();
     const params: Userparam = extractQueryParams(url);
 
-    let total = await Prisma.user.count({
-      where: params.search
-        ? !isNaN(Number(params.p))
-          ? {
-              id: parseInt(params.search.toString()),
-            }
-          : {
-              OR: [
-                {
-                  email: {
-                    contains: removeSpaceAndToLowerCase(params.search),
-                    mode: "insensitive",
-                  },
+    const searchCondition: prisma.UserWhereInput = params.search
+      ? IsNumber(params.search.toString())
+        ? { id: parseInt(params.search.toString()) }
+        : {
+            OR: [
+              {
+                email: {
+                  contains: removeSpaceAndToLowerCase(params.search),
+                  mode: "insensitive",
                 },
-                {
-                  firstname: {
-                    contains: removeSpaceAndToLowerCase(params.search),
-                    mode: "insensitive",
-                  },
+              },
+              {
+                firstname: {
+                  contains: removeSpaceAndToLowerCase(params.search),
+                  mode: "insensitive",
                 },
-                {
-                  lastname: {
-                    contains: removeSpaceAndToLowerCase(params.search),
-                    mode: "insensitive",
-                  },
+              },
+              {
+                lastname: {
+                  contains: removeSpaceAndToLowerCase(params.search),
+                  mode: "insensitive",
                 },
-              ],
-            }
-        : {},
-    });
-    let result;
+              },
+            ],
+          }
+      : { email: { not: "" } };
+
+    const total = await Prisma.user.count({ where: searchCondition });
+
     const { startIndex, endIndex } = calculatePagination(
       total,
       params.lt as number,
       params.p as number
     );
 
-    if (params.ty === "all") {
-      result = await Prisma.user.findMany({
-        take: endIndex - startIndex + 1,
-        skip: startIndex,
-      });
-    } else {
-      result = await Prisma.user.findMany({
-        where: params.search
-          ? !isNaN(Number(params.p))
-            ? {
-                id: parseInt(params.search.toString()),
-              }
-            : {
-                OR: [
-                  {
-                    email: {
-                      contains: removeSpaceAndToLowerCase(params.search),
-                      mode: "insensitive",
-                    },
-                  },
-                  {
-                    firstname: {
-                      contains: removeSpaceAndToLowerCase(params.search),
-                      mode: "insensitive",
-                    },
-                  },
-                  {
-                    lastname: {
-                      contains: removeSpaceAndToLowerCase(params.search),
-                      mode: "insensitive",
-                    },
-                  },
-                ],
-              }
-          : {},
-        take: endIndex - startIndex + 1,
-        skip: startIndex,
-      });
-    }
+    const result = await Prisma.user.findMany({
+      where: searchCondition,
+      take: endIndex - startIndex + 1,
+      skip: startIndex,
+    });
 
-    const caculatePage = params.lt && Math.ceil(total / params.lt);
+    const totalpage = params.lt ? Math.ceil(total / params.lt) : 1;
 
     return Response.json(
       {
-        data: result.map((i) => ({ ...i, password: null })),
+        data: result.map((user) => ({ ...user, password: null })),
         total,
-        totalpage: caculatePage,
+        totalpage,
       },
       { status: 200 }
     );
   } catch (error) {
-    console.log("Get User", error);
-    return Response.json({ message: "Hello This The Goat" }, { status: 200 });
+    console.error("Get User Error:", error);
+    return Response.json({ message: "An error occurred" }, { status: 500 });
   }
 }
+
 export async function DELETE(request: NextRequest) {
   try {
-    const { id } = await request.json();
-    await Prisma.usersession.deleteMany({ where: { user_id: id } });
+    const { id, type } = await request.json();
 
-    await Prisma.user.delete({ where: { id } });
+    await Prisma.wishlist.deleteMany({ where: { uid: id } });
+    await Prisma.orderproduct.deleteMany({ where: { user_id: id } });
+    await Prisma.orders.deleteMany({ where: { buyer_id: id } });
+    await Prisma.usersession.deleteMany({ where: { user_id: id } });
+    await Prisma.user.delete({ where: { id: id } });
 
     return Response.json({ message: "User Deleted" }, { status: 200 });
   } catch (error) {

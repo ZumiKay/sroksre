@@ -5,12 +5,12 @@ import {
   useGlobalContext,
   VariantColorValueType,
 } from "@/src/context/GlobalContext";
-import { ContainerLoading, errorToast } from "../Loading";
+import { errorToast } from "../Loading";
 import { FormEvent, useEffect, useState } from "react";
 import { RGBColor } from "react-color";
 import { ApiRequest, Delayloading } from "@/src/context/CustomHook";
 import tinycolor from "tinycolor2";
-import Modal from "../Modals";
+import Modal, { SecondaryModal } from "../Modals";
 import { motion } from "framer-motion";
 import PrimaryButton, { Selection } from "../Button";
 import Image from "next/image";
@@ -27,7 +27,7 @@ import TemplateContainer, {
 } from "./Variantcomponent/TemplateContainer";
 import { VariantTemplateType } from "./Variantcomponent/Action";
 import { HasPartialOverlap } from "@/src/lib/utilities";
-import { useRouter } from "next/navigation";
+import { NormalSkeleton } from "../Banner";
 
 interface variantdatatype {
   id?: number;
@@ -85,8 +85,7 @@ export const Variantcontainer = ({
   editindex?: number;
   closename?: string;
 }) => {
-  const router = useRouter();
-  const { setopenmodal, product, setproduct } = useGlobalContext();
+  const { openmodal, setopenmodal, product, setproduct } = useGlobalContext();
   const [temp, settemp] = useState<variantdatatype>();
   const [reloadtemp, setreloadtemp] = useState(true);
 
@@ -108,6 +107,7 @@ export const Variantcontainer = ({
   const [stock, setstock] = useState("");
   const [templates, settemplates] = useState<VariantTemplateType[] | []>([]);
   const [editsubstockidx, seteditsubstockidx] = useState(-1);
+  const [reloaddata, setreloaddata] = useState(true);
   const [addNewSubStock, setaddNewSubStock] = useState(false);
   const [edittemplate, setedittemplate] = useState<
     VariantTemplateType | undefined
@@ -150,7 +150,10 @@ export const Variantcontainer = ({
         return;
       }
 
-      setproduct((prev) => ({ ...prev, ...response.data }));
+      const { varaintstock, variants } = response.data;
+
+      setproduct((prev) => ({ ...prev, varaintstock, variants }));
+      setreloaddata(false);
     };
     await Delayloading(asyncfetchdata, setloading, 500);
   };
@@ -159,8 +162,9 @@ export const Variantcontainer = ({
     editindex &&
       type &&
       type === ProductStockType.stock &&
+      reloaddata &&
       fetchstock(editindex);
-  }, []);
+  }, [reloaddata]);
 
   useEffect(() => {
     FetchTemplate();
@@ -220,8 +224,8 @@ export const Variantcontainer = ({
   const handleAddColor = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const { color, name } = colordata;
-    if (color?.hex === "") {
-      errorToast("Please Select Color");
+    if (color?.hex === "" || !name) {
+      errorToast(color.hex === "" ? "Please Select Color" : "Name is Required");
       return;
     }
     const update = { ...temp };
@@ -415,13 +419,20 @@ export const Variantcontainer = ({
     setreloadtemp(true);
   };
 
-  const handleBack = () => {
+  const handleBack = async () => {
     if (newadd == "none") {
       setopenmodal((prev) => ({ ...prev, addproductvariant: false }));
       return;
     } else {
-      if (newadd === "stockinfo" || editindex) {
+      if (newadd === "stockinfo") {
         handleCreateAndUpdateVariantStock();
+        return;
+      }
+
+      if (newadd === "stock" && editindex !== -1) {
+        if (closename)
+          setopenmodal((prev) => ({ ...prev, [closename as string]: false }));
+        else setopenmodal((prev) => ({ ...prev, addproductvariant: false }));
         return;
       }
       if (newadd === "type") {
@@ -478,7 +489,7 @@ export const Variantcontainer = ({
       if (isOverlap) {
         errorToast("Stock Existed");
         setstock("");
-        setselectedvalues(undefined);
+
         return;
       }
     }
@@ -507,6 +518,9 @@ export const Variantcontainer = ({
     //update Stock When In Product Edit Mode
 
     setproduct((prev) => ({ ...prev, varaintstock: stockArray }));
+
+    if (editindex) await handleSaveUpdateSubStock(stockArray);
+
     setselectedvalues(undefined);
     setstock("");
     if (!addnew) setnew("stock");
@@ -518,7 +532,7 @@ export const Variantcontainer = ({
     settemp(update as any);
   };
 
-  const handleSaveUpdateSubStock = async () => {
+  const handleSaveUpdateSubStock = async (varaintstock: Stocktype[]) => {
     setloading(true);
     const res = await ApiRequest(
       "/api/products/crud",
@@ -527,7 +541,7 @@ export const Variantcontainer = ({
       "JSON",
       {
         id: editindex,
-        varaintstock: product.varaintstock,
+        varaintstock,
         type: "editvariantstock",
       }
     );
@@ -543,9 +557,18 @@ export const Variantcontainer = ({
   };
 
   return (
-    <Modal closestate={"none"} customZIndex={150} customheight="70vh">
-      <div className="relative productvariant_creation rounded-t-md w-full min-h-full max-h-[70vh] overflow-x-hidden overflow-y-auto bg-white flex flex-col items-center justify-start pt-5 gap-y-5">
-        {loading && <ContainerLoading />}
+    <SecondaryModal
+      size="4xl"
+      open={
+        closename
+          ? (openmodal[closename] as boolean)
+          : openmodal.addproductvariant
+      }
+      onPageChange={() =>
+        setopenmodal((prev) => ({ ...prev, [closename as string]: false }))
+      }
+    >
+      <div className="relative productvariant_creation rounded-t-md w-full h-full bg-white flex flex-col items-center justify-start pt-5 gap-y-5">
         <h3 className="title text-2xl font-bold text-left w-full h-[50px] pl-2 border-b-1 border-black ">
           {newadd === "variant" || newadd === "type" || newadd === "info"
             ? "Variant"
@@ -562,7 +585,10 @@ export const Variantcontainer = ({
                   No Variant
                 </h3>
               )}
-              {product.variants &&
+              {loading ? (
+                <NormalSkeleton count={3} width="90%" height="fit-content" />
+              ) : (
+                product.variants &&
                 product.variants.map((obj, idx) => (
                   <motion.div
                     initial={{ x: "-120%" }}
@@ -571,27 +597,27 @@ export const Variantcontainer = ({
                       duration: 0.2,
                     }}
                     key={idx}
-                    className="relative varaint_container w-[90%] h-fit border border-black rounded-lg p-2"
+                    className="relative varaint_container w-[90%] max-small_phone:w-[100%] h-fit border border-black rounded-lg p-2"
                   >
                     <h3 className="variant_name font-medium text-lg w-fit h-fit">
                       {obj.option_title === "" ? "No Name" : obj.option_title}
                     </h3>
-                    <motion.div className="varaints flex flex-row w-full gap-x-3">
+                    <motion.div className="varaints flex flex-row flex-wrap gap-3 w-[80%]">
                       {obj.option_type === "TEXT" &&
-                        obj.option_value.map((item) => (
+                        obj.option_value.map((item, idx) => (
                           <div
-                            key={item as string}
+                            key={idx}
                             className="min-w-[40px] h-fit max-w-full break-words font-normal text-lg"
                           >
                             {item.toString()}
                           </div>
                         ))}
                       {obj.option_type === "COLOR" &&
-                        obj.option_value.map((item) => {
+                        obj.option_value.map((item, idx) => {
                           const data = item as VariantColorValueType;
                           return (
                             <div
-                              key={data.val}
+                              key={idx}
                               style={{ backgroundColor: data.val }}
                               className="w-[30px] h-[30px] rounded-3xl"
                             ></div>
@@ -613,7 +639,8 @@ export const Variantcontainer = ({
                       </div>
                     </div>
                   </motion.div>
-                ))}
+                ))
+              )}
             </div>
           </>
         ) : (
@@ -622,6 +649,9 @@ export const Variantcontainer = ({
           //
           (newadd === "stock" || newadd === "stockinfo") && (
             <ManageStockContainer
+              setreloaddata={setreloaddata}
+              isloading={loading}
+              editindex={editindex}
               newadd={newadd}
               setedit={setedit}
               edit={edit}
@@ -678,17 +708,21 @@ export const Variantcontainer = ({
                 </span>
               </div>
               <div className="w-full h-fit p-3 max-h-[200px] overflow-y-auto overflow-x-hidden">
-                <TemplateContainer
-                  data={templates.map((item) => ({
-                    id: item.id,
-                    val: item.variant?.option_title ?? "",
-                    type: item.variant?.option_type ?? "",
-                  }))}
-                  edit={!isEditTemp}
-                  onItemsClick={handleSelectTemplate}
-                  onItemsDelete={handleDeleteTemplate}
-                  group={true}
-                />
+                {loading ? (
+                  <NormalSkeleton width="100%" height="50px" count={3} />
+                ) : (
+                  <TemplateContainer
+                    data={templates.map((item) => ({
+                      id: item.id,
+                      val: item.variant?.option_title ?? "",
+                      type: item.variant?.option_type ?? "",
+                    }))}
+                    edit={!isEditTemp}
+                    onItemsClick={handleSelectTemplate}
+                    onItemsDelete={handleDeleteTemplate}
+                    group={true}
+                  />
+                )}
               </div>
 
               <Button
@@ -744,7 +778,7 @@ export const Variantcontainer = ({
                   }}
                 />
 
-                <div className="listcolor flex flex-row flex-wrap gap-x-3 gap-y-3 w-full">
+                <div className="listcolor flex flex-row flex-wrap gap-3 w-full">
                   {temp?.value?.some((i) => i !== "") ? (
                     temp?.value?.map((color, idx) => {
                       const val = color as VariantColorValueType;
@@ -786,7 +820,10 @@ export const Variantcontainer = ({
                   <Modal closestate="none" customZIndex={150}>
                     <form
                       onSubmit={(e) => handleUpdateVariantOption(e)}
-                      className="addoption w-1/3 h-1/3 bg-white p-3 flex flex-col gap-y-5 items-center justify-start rounded-md"
+                      className="addoption w-[300px] h-1/3
+                       max-smallest_phone:w-[275px]
+                      bg-white p-3 flex flex-col gap-y-5 
+                      items-center justify-start rounded-md"
                     >
                       <input
                         name="option"
@@ -837,7 +874,7 @@ export const Variantcontainer = ({
                   >
                     Add Option
                   </h3>
-                  <div className="opitonlist flex flex-row gap-x-3 w-full items-start justify-start h-fit">
+                  <div className="opitonlist flex flex-row gap-3 flex-wrap w-full items-start justify-start h-fit">
                     {temp?.value.length === 0 && (
                       <h3 className="warn_mess text-lg text-black font-normal">
                         No Option Yet
@@ -845,12 +882,12 @@ export const Variantcontainer = ({
                     )}
                     {temp?.value.map((i, idx) => (
                       <Badge
+                        key={idx}
                         content="-"
                         color="danger"
                         onClick={() => handleDeleteVaraint(idx)}
                       >
                         <h3
-                          key={idx}
                           onClick={() => handleColorSelect(idx, "text")}
                           className="option text-[15px] cursor-pointer p-2 rounded-lg text-black outline outline-2 outline-black font-normal transition duration-200 w-fit h-fit"
                         >
@@ -914,7 +951,9 @@ export const Variantcontainer = ({
             <div className="w-[90%] h-full grid grid-cols-1 gap-5 place-items-center">
               <div
                 onClick={() => setnew("variant")}
-                className="card w-[350px] h-[250px] bg-blue-300 rounded-lg grid place-content-center place-items-center transition duration-200 cursor-pointer hover:bg-transparent hover:outline hover:outline-1 hover:outline-black"
+                className="card w-[350px] h-[250px] 
+                max-smallest_phone:w-[275px]
+              bg-blue-300 rounded-lg grid place-content-center place-items-center transition duration-200 cursor-pointer hover:bg-transparent hover:outline hover:outline-1 hover:outline-black"
               >
                 <Image
                   src={Variantimg}
@@ -949,7 +988,7 @@ export const Variantcontainer = ({
                   }
                   setnew("stock");
                 }}
-                className="card w-[350px] h-[250px] bg-blue-300 rounded-lg grid place-content-center place-items-center transition duration-200 cursor-pointer hover:bg-transparent hover:outline hover:outline-1 hover:outline-black"
+                className="card w-[350px] h-[250px] max-smallest_phone:w-[275px] bg-blue-300 rounded-lg grid place-content-center place-items-center transition duration-200 cursor-pointer hover:bg-transparent hover:outline hover:outline-1 hover:outline-black"
               >
                 <Image
                   src={Variantstockimg}
@@ -983,34 +1022,21 @@ export const Variantcontainer = ({
       </div>
 
       <div className="flex flex-row justify-end gap-x-5 w-full h-fit bg-white rounded-b-lg p-2 border-t-2 border-gray-500">
-        {editindex &&
-          closename &&
-          edit !== -1 &&
-          editsubstockidx === -1 &&
-          !addNewSubStock && (
-            <Button
-              onClick={() => handleSaveUpdateSubStock()}
-              className="w-[30%]"
-              color="success"
-              variant="bordered"
-              isLoading={loading}
-            >
-              Update
-            </Button>
-          )}
-
         {editsubstockidx === -1 && (
-          <PrimaryButton
-            text={newadd !== "none" ? "Back" : "Close"}
-            onClick={() => handleBack()}
-            type="button"
-            width="30%"
-            height="40px"
-            color="lightcoral"
-            radius="10px"
-          />
+          <>
+            <PrimaryButton
+              text={newadd !== "none" ? "Back" : "Close"}
+              onClick={() => handleBack()}
+              status={loading ? "loading" : "authenticated"}
+              type="button"
+              width="30%"
+              height="40px"
+              color="lightcoral"
+              radius="10px"
+            />
+          </>
         )}
       </div>
-    </Modal>
+    </SecondaryModal>
   );
 };

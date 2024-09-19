@@ -11,7 +11,7 @@ import {
 } from "@nextui-org/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { SelectType } from "@/src/context/GlobalContext";
-import { IsNumber } from "../product/page";
+import { IsNumber } from "@/src/lib/utilities";
 
 interface PaginationCustomProps {
   page?: number;
@@ -68,7 +68,7 @@ export default function PaginationCustom({
     const params = new URLSearchParams(searchParam);
     params.set("p", `${p}`);
     setpage && setpage(p);
-    router.replace(`?${params}`, { scroll: false });
+    router.push(`?${params}`);
     onPageChange && onPageChange();
   };
 
@@ -92,7 +92,7 @@ export default function PaginationCustom({
             }))}
             label="Show Per Page"
             placeholder=""
-            value={show ?? "1"}
+            value={show}
             setvalue={setshow}
             onChange={(val) => onSelectShowPerPage && onSelectShowPerPage(val)}
           />
@@ -111,6 +111,8 @@ interface SelectionCustomProps {
   onChange?: (value: number | string) => void;
   style?: CSSProperties;
   textplacement?: "outside" | "outside-left" | "inside";
+  isLoading?: boolean;
+  size?: "sm" | "md" | "lg";
 }
 
 export const SelectionCustom = ({
@@ -122,6 +124,8 @@ export const SelectionCustom = ({
   setvalue,
   onChange,
   textplacement,
+  isLoading,
+  size,
 }: SelectionCustomProps) => {
   return (
     <Select
@@ -129,9 +133,11 @@ export const SelectionCustom = ({
       placeholder={placeholder}
       className="w-full"
       value={value}
+      size={size ?? "md"}
       labelPlacement={textplacement}
-      defaultSelectedKeys={value ? [value] : undefined}
+      selectedKeys={value ? [value] : undefined}
       style={style}
+      isLoading={!!isLoading}
       onChange={(e) => {
         const { value } = e.target;
         setvalue && setvalue(value);
@@ -139,7 +145,7 @@ export const SelectionCustom = ({
       }}
     >
       {data.map((animal) => (
-        <SelectItem key={animal.value}>{animal.label}</SelectItem>
+        <SelectItem key={animal.value.toString()}>{animal.label}</SelectItem>
       ))}
     </Select>
   );

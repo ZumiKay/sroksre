@@ -24,7 +24,7 @@ export const generateLink = (
     case "product":
       return `${baseUrl}/product?pids=${product?.join(",")}&bid=${banner_id}`;
     case "promotion":
-      return `${baseUrl}/product?promo=${promotionid}`;
+      return `${baseUrl}/product?promoid=${promotionid}`;
     default:
       return "";
   }

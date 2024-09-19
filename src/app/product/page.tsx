@@ -1,5 +1,6 @@
+"use server";
 import Link from "next/link";
-import { GetBannerLink, getCate, GetListProduct } from "./action";
+import { GetBannerLink, getCate, GetListProduct, getSubCate } from "./action";
 import { notFound } from "next/navigation";
 import Card from "../component/Card";
 import { PaginationSSR } from "../dashboard/order/OrderComponent";
@@ -10,9 +11,9 @@ import {
 import Prisma from "@/src/lib/prisma";
 import { Banner } from "../component/HomePage/Component";
 import { format } from "date-fns";
-import { getDiscountedPrice } from "@/src/lib/utilities";
-import { cache } from "react";
+import { calculateDiscountProductPrice, IsNumber } from "@/src/lib/utilities";
 import NotFound from "../not-found";
+import type { Metadata } from "next";
 
 interface ProductParam {
   p?: string;
@@ -31,10 +32,57 @@ interface ProductParam {
   bid?: string;
   all?: string;
   sort?: string;
+  pcate?: string;
+  ccate?: string;
 }
-export const revalidate = 3600;
 
-const fetchPromotion = cache(async (id: number, page: number, show: number) => {
+export type Props = {
+  params: { id: string };
+  searchParams: { [key: string]: string | string[] | undefined };
+};
+
+export async function generateMetadata({
+  searchParams,
+}: Props): Promise<Metadata> {
+  // read route params
+  const param = searchParams as ProductParam;
+
+  // fetch data
+  let title = "SrokSre";
+  let description = "";
+
+  if (param.pid || param.cid) {
+    let parent = "";
+    let child = "";
+    if (param.pid) {
+      const pcate = await Prisma.parentcategories.findUnique({
+        where: { id: parseInt(param.pid) },
+        select: { name: true, description: true },
+      });
+      description = pcate?.description ?? "";
+      parent = `${pcate?.name ?? ""} ${pcate?.description ?? ""}`;
+    }
+    if (param.cid) {
+      const ccate = await Prisma.childcategories.findUnique({
+        where: { id: parseInt(param.cid) },
+        select: {
+          name: true,
+        },
+      });
+      child = ccate?.name ?? "";
+    }
+    title = `${parent} ${child}`;
+  }
+
+  // optionally access and extend (rather than replace) parent metadata
+
+  return {
+    title: title + ` | SrokSre`,
+    description,
+  };
+}
+
+const fetchPromotion = async (id: number, page: number, show: number) => {
   const skip = (page - 1) * show;
   const promotion = await Prisma.promotion.findUnique({
     where: {
@@ -56,7 +104,8 @@ const fetchPromotion = cache(async (id: number, page: number, show: number) => {
           name: true,
           price: true,
           discount: true,
-          covers: true,
+          covers: { select: { name: true, url: true } },
+          stock: true,
         },
         skip: skip,
         take: show,
@@ -66,6 +115,20 @@ const fetchPromotion = cache(async (id: number, page: number, show: number) => {
 
   let result = {
     ...promotion,
+    Products: promotion?.Products.map((prod) => {
+      if (prod.discount) {
+        const discount = calculateDiscountProductPrice({
+          discount: prod.discount,
+          price: prod.price,
+        });
+
+        return {
+          ...prod,
+          discount: discount.discount,
+        };
+      }
+      return prod;
+    }),
 
     banner: {
       ...promotion?.banner,
@@ -77,9 +140,9 @@ const fetchPromotion = cache(async (id: number, page: number, show: number) => {
   };
 
   return result;
-});
+};
 
-const getAllPromotion = cache(async () => {
+const getAllPromotion = async () => {
   const promotions = await Prisma.promotion.findMany({
     select: {
       id: true,
@@ -117,11 +180,14 @@ const getAllPromotion = cache(async () => {
     ...promotion,
     Products: promotion.Products.map((prod) => {
       if (prod.discount) {
-        const discount = getDiscountedPrice(prod.discount, prod.price);
+        const discount = calculateDiscountProductPrice({
+          price: prod.price,
+          discount: prod.discount,
+        });
 
         return {
           ...prod,
-          discount: { ...discount, newprice: discount.newprice.toFixed(2) },
+          discount: discount.discount,
         };
       }
       return prod;
@@ -132,20 +198,7 @@ const getAllPromotion = cache(async () => {
   }));
 
   return formattedPromotions;
-});
-
-export function IsNumber(str: string) {
-  // Check if the input is a string and not empty
-  if (typeof str !== "string" || str.trim() === "") {
-    return false;
-  }
-
-  // Use parseFloat to convert the string to a number
-  const num = parseFloat(str);
-
-  // Check if the parsed number is not NaN and is finite
-  return !isNaN(num) && isFinite(num);
-}
+};
 
 const isArrayWithEmptyStrings = (arr?: string[]): boolean => {
   if (!arr) return false;
@@ -173,6 +226,8 @@ export default async function ProductsPage({
     bid,
     all,
     sort,
+    pcate,
+    ccate,
   } = searchParams as unknown as ProductParam;
 
   const isColor = color?.split(",");
@@ -180,6 +235,8 @@ export default async function ProductsPage({
   const isOther = other?.split(",");
   const isPromo = promo?.split(",");
   const isSelectProduct = pids?.split(",");
+  const isParentCate = pcate?.split(",");
+  const isChildCate = ccate?.split(",");
   const page = p ?? "1";
   const limit = show ?? "1";
 
@@ -222,41 +279,51 @@ export default async function ProductsPage({
     return notFound();
   }
 
-  const cate = await getCate(pid ?? ppid ?? "0", cid);
+  let subcate = undefined;
+  let cate = undefined;
+  if (!pid && cid) {
+    subcate = await getSubCate(cid);
+  } else {
+    cate = await getCate(pid ?? ppid ?? "0", cid);
+  }
 
-  if (!cate) {
+  if ((pid && !cate) || (!pid && cid && !subcate)) {
     return notFound();
   }
 
   ///////////
 
-  const promotion =
-    promoid &&
-    (await fetchPromotion(parseInt(promoid), parseInt(page), parseInt(limit)));
+  const promotion = promoid
+    ? await fetchPromotion(parseInt(promoid), parseInt(page), parseInt(limit))
+    : undefined;
 
   const allpromotion = ppid && (await getAllPromotion());
+
   const allproduct =
-    !ppid &&
-    (await GetListProduct(
-      page,
-      limit,
-      pid ?? "0",
-      cid,
-      cate.type === "latest",
-      {
-        color: isColor,
-        size: isSize,
-        other: isOther,
-        promo: isPromo,
-        selectpids: isSelectProduct,
-        search,
-      },
-      all,
-      sort ? parseInt(sort) : undefined
-    ));
+    (!ppid &&
+      (await GetListProduct(
+        page,
+        limit,
+        pid ?? "0",
+        cid,
+        cate?.type === "latest",
+        {
+          color: isColor,
+          size: isSize,
+          other: isOther,
+          promo: isPromo,
+          parent_id: isParentCate,
+          child_id: isChildCate,
+          selectpids: isSelectProduct,
+          search,
+        },
+        all,
+        sort ? parseInt(sort) : undefined,
+        promoid
+      ))) ||
+    undefined;
 
   if (allproduct && !allproduct.success) {
-    throw Error(allproduct.error);
   }
   if (promoid && !promotion) {
     return notFound();
@@ -265,14 +332,14 @@ export default async function ProductsPage({
   const banner = bid && (await GetBannerLink(parseInt(bid, 10)));
 
   return (
-    <div className="products_page relative w-full min-h-[100vh] h-full flex flex-col gap-y-10">
+    <div className="products_page relative w-full min-h-[100vh] h-full flex flex-col justify-center items-center gap-y-20">
       <div className="header_section w-full h-fit flex flex-col items-start gap-y-5">
         {promotion && promotion.banner && (
           <Banner
             data={{
               image: {
-                url: promotion.banner.image.url,
-                name: promotion.banner.image.name,
+                url: promotion.banner.image?.url ?? "",
+                name: promotion.banner.image?.name,
               },
               name: "",
             }}
@@ -290,33 +357,60 @@ export default async function ProductsPage({
               : (cate && (cate.sub ? cate.sub.name : cate.name)) ?? ""
           }`}
         </h2>
-        <div className="path_container flex flex-row items-center gap-x-3 w-full pl-5 text-left text-lg font-light border-b-2 border-b-black p-2">
+        <div
+          className="path_container h-full flex flex-row items-center 
+        max-smallest_phone:flex max-smallest_phone:flex-col 
+        gap-x-3 w-full pl-5 text-left text-lg font-light border-b-2 border-b-black p-2
+        max-smallest_phone:items-start
+        "
+        >
           <Link href={"/"}>
             <div className="transition hover:text-gray-300 cursor-pointer">
-              Home / {all ? "All" : ""}
+              Home {all ? "All" : ""}
             </div>
           </Link>
+          <div className="w-[3px] h-[25px] bg-black rotate-[190deg]"></div>
           <Link
             href={`/product?${
-              cate.type === "sale" ? `ppid=${pid}` : `pid=${pid}`
-            }&page=1$limit=1`}
+              subcate
+                ? subcate.Parentcategories?.type === "sale"
+                  ? `ppid=${subcate.Parentcategories.id}`
+                  : `pid=${subcate.Parentcategories?.id}`
+                : cate?.type === "sale"
+                ? `ppid=${cate.id}`
+                : `pid=${pid}`
+            }`}
           >
             <div className="transition hover:text-gray-300 cursor-pointer">
-              {`${cate.name ? `${cate.name} /` : ""}`}
+              {`${
+                cate?.name
+                  ? `${cate.name}`
+                  : subcate
+                  ? `${subcate.Parentcategories?.name}`
+                  : ""
+              }`}
             </div>
           </Link>
-          {((cate && cate.sub) || promotion) && (
-            <Link href={`/product?pid=${pid}&cid=${cid}&page=1&limit=1`}>
-              {" "}
+          <div className="w-[3px] h-[25px] bg-black rotate-[190deg]"></div>
+
+          {(subcate || (cate && cate.sub) || promotion) && (
+            <Link
+              href={`/product?pid=${
+                subcate ? subcate.Parentcategories?.id : pid
+              }&cid=${cid}`}
+            >
               <div className="transition hover:text-gray-300 cursor-pointer">
-                {promotion ? promotion.name : cate && cate.sub && cate.sub.name}{" "}
-                /
-              </div>{" "}
+                {subcate
+                  ? subcate.name
+                  : promotion
+                  ? promotion.name
+                  : cate && cate.sub && cate.sub.name}{" "}
+              </div>
             </Link>
           )}
         </div>
         {(all || pid) && (
-          <div className="filter_container  min-w-[350px] h-[40px] mt-3 pl-5 flex flex-row gap-x-3 items-center ">
+          <div className="filter_container  w-full pr-2 pl-2 h-[40px] flex flex-row justify-center">
             {/* sort selection */}
             <ProductFilterButton
               pid={pid ?? "0"}
@@ -325,7 +419,9 @@ export default async function ProductsPage({
               other={isOther}
               search={search}
               promo={isPromo}
-              isPromotion={!!promoid}
+              pcate={isParentCate}
+              ccate={isChildCate}
+              isPromotion={promoid}
               productcount={
                 allproduct && allproduct.count
                   ? Math.ceil(allproduct.count * parseInt(limit))
@@ -337,17 +433,29 @@ export default async function ProductsPage({
         )}
       </div>
 
-      {allproduct && allproduct?.data ? (
-        <div className="listproduct grid grid-cols-3 w-full h-full place-content-center mt-5 p-3">
+      {allproduct ? (
+        <div
+          className="listproduct grid 
+        grid-cols-3 
+        gap-x-5
+        gap-y-32 
+        place-content-center 
+        w-fit h-full mb-10
+        max-small_screen:grid-cols-2
+        max-small_phone:p-1
+        max-smallest_phone:gap-x-2
+        max-smallest_phone:p-0
+        "
+        >
           {allproduct.data?.map((i, idx) => (
             <Card
               key={idx}
               name={i.name}
               price={i.price.toString()}
-              img={i.covers}
+              img={i.covers as any}
               index={idx}
-              discount={i.discount}
-              stock={i.stock}
+              discount={i.discount as any}
+              stock={i.stock || undefined}
               id={i.id}
               isAdmin={false}
             />

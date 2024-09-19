@@ -1,9 +1,10 @@
 import {
+  Stocktype,
   useGlobalContext,
   VariantColorValueType,
   Varianttype,
 } from "@/src/context/GlobalContext";
-import React, { ChangeEvent, FormEvent, useEffect, useState } from "react";
+import React, { ChangeEvent, FormEvent, useState } from "react";
 import PrimaryButton from "../Button";
 import {
   ArraysAreEqualSets,
@@ -17,14 +18,19 @@ import { SketchPicker } from "react-color";
 import { Badge, Button, Input } from "@nextui-org/react";
 import { StockCard, StockSelect } from "./Stock";
 import { HasPartialOverlap } from "@/src/lib/utilities";
+import { ApiRequest, useScreenSize } from "@/src/context/CustomHook";
+import Multiselect from "../MutiSelect";
+import { NormalSkeleton } from "../Banner";
 
 interface ManageStockContainerProps {
+  editindex?: number;
   newadd: string;
   stock: string;
   setstock: React.Dispatch<React.SetStateAction<string>>;
   setedit: React.Dispatch<React.SetStateAction<number>>;
   setnew: React.Dispatch<React.SetStateAction<Variantcontainertype>>;
   setaddstock: React.Dispatch<React.SetStateAction<number>>;
+  isloading: boolean;
   edit: number;
   addstock: number;
   selectedstock: { [key: string]: string[] };
@@ -37,6 +43,7 @@ interface ManageStockContainerProps {
   setadded: React.Dispatch<React.SetStateAction<number>>;
   isAddNew: boolean;
   setisAddNew: React.Dispatch<React.SetStateAction<boolean>>;
+  setreloaddata: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 function GenerateCombinations(arrays: (string[] | undefined)[]): string[][] {
@@ -67,30 +74,54 @@ export function MapSelectedValuesToVariant(
   return combinations;
 }
 
-const groupSelectedValue = (data: string[][], variants: Varianttype[]) => {
-  const res: { [key: string]: string[] } = {};
+const groupSelectedValue = (data: Stocktype, variants: Varianttype[]) => {
+  const res: { [key: string]: Set<string> } = {};
 
-  data.forEach((item) => {
-    item.forEach((value, idx) => {
+  data.Stockvalue.forEach((item) => {
+    item.variant_val.forEach((value, idx) => {
       const variant = variants[idx];
-      const isVal = variant.option_value.some((opt) =>
+      if (!variant) return;
+
+      const optionTitle = variant.option_title;
+      const optionValues = variant.option_value;
+
+      const isVal = optionValues.some((opt) =>
         typeof opt === "string" ? opt === value : opt.val === value
       );
 
       if (isVal) {
-        if (!res[variant.option_title]) {
-          res[variant.option_title] = [];
+        if (!res[optionTitle]) {
+          res[optionTitle] = new Set();
         }
-
-        if (!res[variant.option_title].includes(value)) {
-          res[variant.option_title].push(value);
-        }
+        res[optionTitle].add(value);
       }
     });
   });
 
+  const finalRes: { [key: string]: string[] } = {};
+  for (const key in res) {
+    finalRes[key] = Array.from(res[key]);
+  }
+
+  return finalRes;
+};
+
+const CountLowStock = (stock: Stocktype) => {
+  return stock.Stockvalue.reduce((total, i) => {
+    return i.qty <= 3 ? (total += 1) : total;
+  }, 0);
+};
+
+const AsyncUpdateStock = async (editindex: number, stockArray: Stocktype[]) => {
+  const res = await ApiRequest("/api/products/crud", undefined, "PUT", "JSON", {
+    id: editindex,
+    varaintstock: stockArray,
+    type: "editvariantstock",
+  });
+
   return res;
 };
+
 export function ManageStockContainer({
   newadd,
   setedit,
@@ -106,33 +137,19 @@ export function ManageStockContainer({
   setadded,
   isAddNew,
   setisAddNew,
+  editindex,
+  setreloaddata,
+  isloading,
 }: ManageStockContainerProps) {
   const { product, setproduct } = useGlobalContext();
   const [lowstock, setlowstock] = useState(0);
-
-  const countLowStock = () => {
-    let totallowstock = 0;
-
-    product.varaintstock?.forEach((stock) => {
-      stock.Stockvalue.forEach((i) => {
-        if (i.qty <= 5) {
-          totallowstock += 1;
-        }
-      });
-    });
-
-    setlowstock(totallowstock);
-  };
-
-  useEffect(() => {
-    countLowStock();
-  }, [product]);
+  const [loading, setloading] = useState(false);
 
   const handleSelectVariant = (value: Set<string>, label: string) => {
     setselectedstock((prevSelectedStock) => {
       const updatedStock = { ...prevSelectedStock };
 
-      updatedStock[label] = Array.from(value);
+      updatedStock[label] = Array.from(value).filter((i) => i !== "");
 
       return updatedStock;
     });
@@ -140,14 +157,16 @@ export function ManageStockContainer({
 
   const handleEdit = (idx: number) => {
     //extract reponsible stock value for selected value
+
     if (product.varaintstock && product.variants) {
       const createdstock = groupSelectedValue(
-        product.varaintstock[idx].Stockvalue.map((i) => i.variant_val),
+        product.varaintstock[idx],
         product.variants
       );
-      setselectedstock(createdstock as any);
-      setedit(idx);
 
+      setselectedstock(createdstock);
+      setlowstock(CountLowStock(product.varaintstock[idx]));
+      setedit(idx);
       setnew("stockinfo");
     }
   };
@@ -209,7 +228,7 @@ export function ManageStockContainer({
     seteditsubidx(idx);
   };
 
-  const handleUpdateSubStock = (idx: number) => {
+  const handleUpdateSubStock = async (idx: number) => {
     const stockArray = [...(product.varaintstock ?? [])];
     let updatestockvalue = stockArray[edit];
 
@@ -250,7 +269,20 @@ export function ManageStockContainer({
       updatestockvalue.Stockvalue[idx].qty = parseInt(stock, 10);
     }
 
+    if (editindex) {
+      setloading(true);
+      const req = await AsyncUpdateStock(editindex, stockArray);
+      setloading(false);
+      if (!req.success) {
+        errorToast("Error Occured");
+        return;
+      }
+      setreloaddata(true);
+    }
+
     setproduct((prev) => ({ ...prev, varaintstock: stockArray }));
+
+    setlowstock(CountLowStock(stockArray[edit]));
     seteditsubidx(-1);
     setstock("");
     setselectedstock(undefined);
@@ -261,18 +293,21 @@ export function ManageStockContainer({
 
     const { variants, varaintstock } = product;
     const stockValues = varaintstock && varaintstock[edit].Stockvalue;
+    const lowstock = parseInt(process.env.LOWSTOCK ?? "3");
 
     return stockValues?.map((i, idx) => (
       <Badge
+        key={idx}
         content="-"
         color="danger"
         onClick={() => handleDeleteSubStock(idx)}
       >
         <div
+          key={idx + 1}
           onClick={() => {
             handleSubStockClick(i.variant_val, i.qty.toString(), idx);
           }}
-          style={i.qty <= 5 ? { border: "3px solid lightcoral" } : {}}
+          style={i.qty <= lowstock ? { border: "3px solid lightcoral" } : {}}
           className="w-fit h-fit flex flex-col gap-y-3 rounded-lg p-2 border-2 border-gray-300 cursor-pointer transition-colors hover:border-gray-500 active:border-black"
         >
           {i.variant_val.map((item, idx) => {
@@ -308,6 +343,27 @@ export function ManageStockContainer({
     }
   };
 
+  const handleDeleteStock = async (idx: number) => {
+    const updatestock = [...(product.varaintstock ?? [])];
+    updatestock.splice(idx, 1);
+
+    if (editindex) {
+      setloading(true);
+      const req = await AsyncUpdateStock(editindex, updatestock);
+      setloading(false);
+      if (!req.success) {
+        errorToast("Error Occured");
+        return;
+      }
+      setreloaddata(true);
+    }
+
+    setproduct((prev) => ({
+      ...prev,
+      varaintstock: updatestock,
+    }));
+  };
+
   return (
     <>
       <div className="stock_container w-full h-full relative">
@@ -328,28 +384,32 @@ export function ManageStockContainer({
               {edit === -1 ? "Please Choose Variant" : "Edit Stock"}{" "}
             </h3>
 
-            {lowstock !== 0 && (
+            {lowstock !== 0 && edit !== -1 && (
               <div className="text-red-500 text-sm font-medium">
                 Low Stock: {lowstock}
               </div>
             )}
 
             {edit === -1 || isAddNew || editsubidx !== -1 ? (
-              <div className="variantlist relative border-b-0 border-2 border-gray-300 rounded-lg flex flex-col items-center justify-start gap-y-5 w-[90%] h-full max-h-[60vh] p-5 overflow-y-auto">
+              <div className="variantlist relative  rounded-lg flex flex-col items-center justify-start gap-y-5 w-full h-full max-h-[60vh] p-5 overflow-y-auto">
                 {product.variants?.map((item, idx) => {
                   return (
-                    <StockSelect
-                      key={idx}
-                      id={item.id}
-                      data={{
-                        type: item.option_type,
-                        value: item.option_value,
-                      }}
+                    <Multiselect
+                      key={item.id}
+                      id={idx}
+                      type={item.option_type}
+                      value={selectedstock[item.option_title]}
+                      data={item.option_value.map((i) => {
+                        if (typeof i === "string") {
+                          return { label: i, value: i };
+                        } else {
+                          return { label: i.name ?? "", value: i.val };
+                        }
+                      })}
                       label={item.option_title}
-                      onSelect={(e) =>
-                        handleSelectVariant(e, item.option_title)
+                      onSelect={(val) =>
+                        handleSelectVariant(val, item.option_title)
                       }
-                      value={selectedstock[item.option_title] ?? []}
                     />
                   );
                 })}
@@ -361,12 +421,13 @@ export function ManageStockContainer({
                 </div>
               )
             )}
-            <div className="w-[50%] h-[40px] absolute bottom-3 flex flex-row gap-x-3">
+            <div className="w-[50%] min-w-[275px] h-[40px] flex flex-row gap-x-3">
               {edit !== -1 && (
                 <Button
                   className="h-full"
                   fullWidth
                   startContent={<div className="font-light text-3xl"> + </div>}
+                  isLoading={loading}
                   variant="bordered"
                   color={isAddNew ? "success" : "primary"}
                   onClick={() =>
@@ -393,14 +454,22 @@ export function ManageStockContainer({
           </div>
         ) : (
           <div className="selectvariaint_container flex flex-col items-center justify-start gap-y-10 w-full h-full">
-            <div className="liststock_container grid grid-cols-3 gap-5 w-[90%] h-fit p-1 max-h-[46vh] overflow-y-auto">
-              {(product.varaintstock?.length === 0 ||
+            <div className="liststock_container flex flex-row flex-wrap gap-5 w-[90%] h-fit p-1 max-h-[46vh] overflow-y-auto">
+              {((product.varaintstock && product.varaintstock.length === 0) ||
                 !product.varaintstock) && (
                 <h3 className="text-lg text-gray-500 w-full outline outline-1 outline-gray-500 p-2 rounded-lg">
                   No Stock
                 </h3>
               )}
-              {product.varaintstock &&
+              {isloading ? (
+                <NormalSkeleton
+                  style={{ flexDirection: "row" }}
+                  count={3}
+                  width="220px"
+                  height="50px"
+                />
+              ) : (
+                product.varaintstock &&
                 product.varaintstock.map((i, idx) => (
                   <div
                     key={idx}
@@ -409,7 +478,7 @@ export function ManageStockContainer({
                         ? { borderRight: "5px solid lightcoral" }
                         : {}
                     }
-                    className="stockcard w-full h-[50px] flex flex-row items-center justify-evenly p-2 outline outline-2 outline-gray-300 rounded-lg transition duration-200 hover:bg-gray-300"
+                    className="stockcard w-[220px] h-[50px] flex flex-row items-center justify-evenly p-2 outline outline-2 outline-gray-300 rounded-lg transition duration-200 hover:bg-gray-300"
                   >
                     <h3 className="name text-lg font-semibold w-full">
                       Stock {idx + 1}
@@ -424,12 +493,7 @@ export function ManageStockContainer({
                       <h3
                         onClick={() => {
                           //Delete Stock
-                          const updatestock = product.varaintstock;
-                          updatestock && updatestock.splice(idx, 1);
-                          setproduct((prev) => ({
-                            ...prev,
-                            varaintstock: updatestock,
-                          }));
+                          handleDeleteStock(idx);
                         }}
                         className="w-fit h-fit text-lg font-normal text-red-500 transition duration-200 cursor-pointer hover:text-black"
                       >
@@ -437,7 +501,8 @@ export function ManageStockContainer({
                       </h3>
                     </div>
                   </div>
-                ))}
+                ))
+              )}
             </div>
 
             <PrimaryButton
@@ -449,9 +514,8 @@ export function ManageStockContainer({
               textsize="12px"
               onClick={() => {
                 //create stock
-                const variant = product.variants;
 
-                if (!variant) {
+                if (!product.variants) {
                   errorToast("Please Create Variant");
                   return;
                 }
@@ -491,6 +555,7 @@ export const ColorSelectModal = ({
   setopen,
 }: ColorSelectModal) => {
   const [colorpicker, setcolorpicker] = useState(false);
+  const { isTablet, isMobile } = useScreenSize();
   return (
     <>
       <div
@@ -506,7 +571,11 @@ export const ColorSelectModal = ({
         Add Color
       </div>
       {open && (
-        <Modal closestate="none" customwidth="30vw" customheight="30vh">
+        <Modal
+          closestate="none"
+          customwidth={isTablet ? "50vw" : isMobile ? "90vw" : "30vw"}
+          customheight="30vh"
+        >
           <form
             onSubmit={(e) => {
               handleAddColor(e);
@@ -521,6 +590,7 @@ export const ColorSelectModal = ({
               label="Name"
               onChange={(e) => setcolor(e.target.value as string)}
               value={name}
+              required
             />
             <label
               htmlFor="color"
@@ -576,7 +646,7 @@ export const ColorSelectModal = ({
               <div className="absolute w-fit h-fit top-0 z-50">
                 {" "}
                 <SketchPicker
-                  width="29vw"
+                  width={isTablet || isMobile ? "90vw" : "29vw"}
                   color={color.rgb as any}
                   onChange={(value, _) => {
                     setcolor({

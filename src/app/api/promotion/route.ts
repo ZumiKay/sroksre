@@ -1,4 +1,4 @@
-import { PromotionState } from "@/src/context/GlobalContext";
+import { PromotionState, SelectType } from "@/src/context/GlobalContext";
 
 import { NextRequest } from "next/server";
 import { extractQueryParams, generateLink } from "../banner/route";
@@ -10,6 +10,7 @@ import {
 import { revalidateTag } from "next/cache";
 import dayjs from "dayjs";
 import Prisma from "@/src/lib/prisma";
+import { Prisma as prisma } from "@prisma/client";
 
 export async function POST(request: NextRequest) {
   try {
@@ -239,6 +240,7 @@ interface customparamPromotion {
   p?: number;
   q?: string;
   expired?: number;
+  ids?: string;
 }
 
 export async function GET(request: NextRequest) {
@@ -247,7 +249,6 @@ export async function GET(request: NextRequest) {
     const param: customparamPromotion = extractQueryParams(URL);
     let modified = {};
     let expirecount = 0;
-
     const now = dayjs(new Date());
 
     // Count expired promotions
@@ -260,7 +261,7 @@ export async function GET(request: NextRequest) {
     ).length;
 
     // Base query condition
-    const baseCondition = {
+    const baseCondition: prisma.PromotionWhereInput = {
       name: param.q
         ? {
             contains: removeSpaceAndToLowerCase(param.q),
@@ -291,7 +292,7 @@ export async function GET(request: NextRequest) {
 
     if (param.ty === "all" || param.ty === "filter") {
       const promotions = await Prisma.promotion.findMany({
-        where: param.ty === "filter" ? (baseCondition as any) : undefined,
+        where: param.ty === "filter" ? baseCondition : undefined,
         take: param.ty === "all" ? endIndex - startIndex + 1 : undefined,
         skip: param.ty === "all" ? startIndex : undefined,
         select: {
@@ -317,7 +318,7 @@ export async function GET(request: NextRequest) {
       }
     } else if (param.ty === "selection") {
       const promotions = await Prisma.promotion.findMany({
-        where: baseCondition.name as any,
+        where: baseCondition as any,
         select: {
           id: true,
           name: true,
@@ -329,6 +330,29 @@ export async function GET(request: NextRequest) {
         { data: promotions, isLimit: promotions.length <= 5 },
         { status: 200 }
       );
+    } else if (param.ty === "byid") {
+      //For Multiselect and Search Value
+      if (!param.ids) {
+        return Response.json({}, { status: 400 });
+      }
+      const promotion = await Prisma.promotion.findMany({
+        where: {
+          id:
+            param.ids.length > 1
+              ? {
+                  in: param.ids.split(",").map((i) => parseInt(i, 10)),
+                }
+              : { equals: parseInt(param.ids) },
+        },
+        select: { id: true, name: true },
+      });
+
+      const value: Array<SelectType> = promotion.map((i) => ({
+        label: i.name,
+        value: i.id,
+      }));
+
+      return Response.json({ data: value }, { status: 200 });
     } else {
       const promotion = await Prisma.promotion.findUnique({
         where: {

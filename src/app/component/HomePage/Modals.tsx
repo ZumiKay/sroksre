@@ -1,9 +1,15 @@
 "use client";
 
-import { ChangeEvent, ReactNode, useEffect, useState } from "react";
+import {
+  ChangeEvent,
+  CSSProperties,
+  ReactNode,
+  useEffect,
+  useState,
+} from "react";
 import PrimaryButton, { Selection } from "../Button";
 import { TextInput } from "../FormComponent";
-import Modal from "../Modals";
+import { SecondaryModal } from "../Modals";
 import {
   BannersType,
   ContainerType,
@@ -34,6 +40,8 @@ import { parseDate } from "@internationalized/date";
 
 interface HomeContainerModalProps {
   setprofile: any;
+  isTablet: boolean;
+  isPhone: boolean;
 }
 const containertype = [
   {
@@ -69,7 +77,7 @@ const CreateContainerType = ({
     setdata(updatedata);
   };
   return (
-    <div className="slideshow w-full h-fit flex flex-col gap-y-5">
+    <div className="slideshow w-full h-fit flex flex-col gap-y-5 max-small_phone:w-[90vw]">
       <PrimaryButton
         onClick={() => setopenmodal((prev) => ({ ...prev, Addbanner: true }))}
         width="200px"
@@ -90,7 +98,9 @@ const CreateContainerType = ({
                 isAdd={false}
                 idx={idx + 1}
                 onDelete={handleDelete}
+                style={{ width: "200px", height: "200px" }}
                 typesize={item.item.type}
+                preview
               />
             )
         )}
@@ -130,13 +140,10 @@ const ScrollableContainerModal = ({
   const handleClick = (id: number) => {
     const updatedata = { ...data };
     const bannerIndex = data.items.findIndex((item) => item.item?.id === id);
-
     if (bannerIndex === -1) {
       return;
     }
-
     updatedata.items = data.items.filter((item) => item.item?.id !== id);
-
     setdata(updatedata);
   };
 
@@ -148,7 +155,7 @@ const ScrollableContainerModal = ({
 
   return (
     <div className="w-full h-full flex flex-col gap-y-5">
-      <div className="w-full h-fit flex flex-row items-center gap-5">
+      <div className="w-full h-fit flex flex-row items-center max-small_phone:flex-col gap-5">
         <div className="w-full h-fit flex flex-col gap-y-5">
           <h3 className="text-lg font-bold">Type</h3>
           <Selection
@@ -222,17 +229,29 @@ const ScrollableContainerModal = ({
         />
       )}
 
-      <div className="selectedproduct w-full overflow-y-auto h-[45vh] grid grid-cols-2 gap-5 place-items-center">
+      {data.items && data.items.length !== 0 && (
+        <h3 className="text-xl font-bold">Items: </h3>
+      )}
+
+      <div
+        className="selectedproduct w-full overflow-y-auto
+       max-sm:grid-cols-1
+       h-[40vh] grid grid-cols-2 gap-x-5 gap-y-24 place-items-center"
+      >
         {data.items.map(
           (item, idx) =>
             item.item && (
               <Bannercard
                 id={item.item.id ?? 0}
-                image={item.item.image.url ?? ""}
+                image={item.item.image?.url ?? ""}
                 onClick={handleClick}
                 isAdd={false}
                 idx={idx + 1}
                 onDelete={handleDelete}
+                typesize="small"
+                style={{ width: "200px", height: "200px" }}
+                name={item.item.name}
+                preview
               />
             )
         )}
@@ -252,8 +271,13 @@ const ContainerTypeContainer = ({
 }) => {
   return (
     <div
+      key={type}
       onClick={() => onClick()}
-      className="w-[300px] h-[250px] rounded-lg flex flex-col justify-start items-center bg-white text-black transition-all duration-1000 active:pl-2 active:text-white active:bg-gray-500 hover:pl-2 hover:text-white hover:bg-gray-500"
+      className="w-[300px] h-[250px] 
+      max-smallest_phone:w-full
+      rounded-lg flex flex-col justify-start items-center bg-white text-black 
+      transition-all duration-1000 active:pl-2 active:text-white 
+      active:bg-gray-500 hover:pl-2 hover:text-white hover:bg-gray-500"
     >
       <h3 className="text-lg font-bold w-[90%] h-[40%] text-left">{type}</h3>
       <div className="icon h-full">{Icon}</div>
@@ -290,7 +314,9 @@ const ContainerTypeSelection = ({
   onClick: (type: string) => void;
 }) => {
   return (
-    <div className="w-full h-full grid grid-cols-2 place-items-center">
+    <div
+      className={`w-full h-full grid grid-cols-2 max-large_tablet:grid-cols-1 gap-y-10 pb-5 place-items-center`}
+    >
       {containerTypes.map((type, idx) => (
         <ContainerTypeContainer
           onClick={() => onClick(type.value)}
@@ -311,11 +337,16 @@ const HomecontainerdataInitialize: Containertype = {
   scrollabletype: "custom",
 };
 
-const Homecontainermodal = ({ setprofile }: HomeContainerModalProps) => {
+const Homecontainermodal = ({
+  setprofile,
+  isPhone,
+}: HomeContainerModalProps) => {
   const [data, setdata] = useState<Containertype>(HomecontainerdataInitialize);
+
   const [loading, setloading] = useState(false);
   const { openmodal, setopenmodal, globalindex, setglobalindex } =
     useGlobalContext();
+
   const handleType = (type: string) => {
     setdata((prev) => ({
       ...prev,
@@ -381,7 +412,7 @@ const Homecontainermodal = ({ setprofile }: HomeContainerModalProps) => {
       }
     }
 
-    if (data.items.length === 0) {
+    if (data.items.length === 0 && !data.scrollabletype) {
       errorToast(
         `Please Add ${data.type === "scrollable" ? "Product" : "Banner"}`
       );
@@ -409,7 +440,6 @@ const Homecontainermodal = ({ setprofile }: HomeContainerModalProps) => {
 
         request = await ApiRequest("/api/home", undefined, "PUT", "JSON", {
           ...data,
-
           items: data.items.map((i) => ({
             ...i,
             item: undefined,
@@ -437,10 +467,15 @@ const Homecontainermodal = ({ setprofile }: HomeContainerModalProps) => {
   return (
     <>
       {openmodal.createBanner && <BannerModal />}
-      <Modal closestate="homecontainer" customheight="90vh" customZIndex={150}>
-        <div className="w-full h-full relative bg-[#495464] text-white rounded-lg p-3 flex flex-col items-center overflow-y-hidden">
-          {loading && <ContainerLoading />}
-          <h3 className="title w-full text-2xl font-bold ">
+      <SecondaryModal
+        size="5xl"
+        open={openmodal["homecontainer"] as boolean}
+        onPageChange={(val) =>
+          setopenmodal((prev) => ({ ...prev, homecontainer: val }))
+        }
+        style={{ backgroundColor: "#495464" }}
+        header={() => (
+          <h3 className="title w-fit text-2xl font-bold text-white ">
             {openmodal["Addbanner"]
               ? data.type !== "scrollable"
                 ? "Add Banner"
@@ -455,9 +490,16 @@ const Homecontainermodal = ({ setprofile }: HomeContainerModalProps) => {
               ? `Create Banner`
               : `Choose Type`}
           </h3>
-          <div className="w-full h-full  flex flex-col items-center gap-y-5">
+        )}
+      >
+        <div className="w-full  h-full relative bg-[#495464] text-white rounded-lg flex flex-col items-center overflow-y-auto overflow-x-hidden">
+          {loading && <ContainerLoading />}
+
+          <div className="w-full h-[90%] flex flex-col items-center gap-y-5 pt-2">
             {data.type === "" ? (
-              <ContainerTypeSelection onClick={(type) => handleType(type)} />
+              <div className="w-full h-[70vh] overflow-y-auto overflow-x-hidden scrollbar-hide mb-5">
+                <ContainerTypeSelection onClick={(type) => handleType(type)} />
+              </div>
             ) : openmodal["Addbanner"] ? (
               <AddBannerContainer
                 data={data}
@@ -490,7 +532,7 @@ const Homecontainermodal = ({ setprofile }: HomeContainerModalProps) => {
             )}
           </div>
 
-          <div className="btn w-[96%] h-[50px] pr-5 pt-2  flex flex-row gap-x-5 justify-end items-center absolute bottom-1 border-t-4 border-white">
+          <div className="btn w-full h-[50px] max-smallest_phone:gap-x-2 pr-5 pt-2  flex flex-row gap-x-5 justify-end items-center border-t-4 border-white">
             {openmodal["Addbanner"] && (
               <PrimaryButton
                 type="button"
@@ -518,7 +560,7 @@ const Homecontainermodal = ({ setprofile }: HomeContainerModalProps) => {
                   ? "Update"
                   : "Create"
               }
-              width="200px"
+              width={isPhone ? "50%" : "200px"}
               radius="10px"
               height="35px"
               type="button"
@@ -529,14 +571,14 @@ const Homecontainermodal = ({ setprofile }: HomeContainerModalProps) => {
               text="Cancel"
               radius="10px"
               height="35px"
-              width="200px"
+              width={isPhone ? "50%" : "200px"}
               type="button"
               color="lightcoral"
               onClick={() => handleCancel()}
             />
           </div>
         </div>
-      </Modal>
+      </SecondaryModal>
     </>
   );
 };
@@ -553,21 +595,27 @@ const Bannercard = ({
   onClick,
   onDelete,
   typesize,
+  name,
+  preview,
+  style,
 }: {
   id: number;
   idx: number;
-
+  style?: CSSProperties;
   image: string;
   isAdd: boolean;
   isAdded?: boolean;
   onClick?: (id: number) => void;
   onDelete?: (id: number) => void;
   typesize?: "normal" | "small";
+  name?: string;
+  preview?: boolean;
 }) => {
   return (
     <div
       key={id}
-      onClick={() => onClick && onClick(id)}
+      style={style ? style : {}}
+      onClick={() => !preview && onClick && onClick(id)}
       className="relative w-fit h-fit flex flex-col transition-transform hover:-translate-y-2 active:-translate-y-2"
     >
       <Image
@@ -576,17 +624,29 @@ const Bannercard = ({
         width={500}
         height={500}
         style={
-          typesize === "normal"
+          style
+            ? style
+            : typesize === "normal"
             ? { width: "400px", height: "250px" }
-            : { width: "300px", height: "400px" }
+            : {}
         }
-        className="w-full h-[250px] bg-white rounded-t-lg object-cover object-center"
+        className={`h-[250px]  bg-white rounded-t-lg  ${
+          typesize === "small"
+            ? " w-[300px] h-[400px] max-smallest_phone:w-[275px] object-contain max-smallest_phone:h-[350px]"
+            : "object-cover object-center"
+        }`}
       />
 
       {isAdded && (
-        <span className="w-[25px] h-[25px] text-white bg-blue-500 rounded-3xl p-1 grid place-content-center font-bold  absolute top-1 right-1">
+        <span className="w-[25px] h-[25px] text-white bg-blue-500 rounded-3xl p-1 grid place-content-center font-bold  absolute top-1 right-3">
           {idx}
         </span>
+      )}
+
+      {name && (
+        <p className="text-lg font-normal w-fit max-w-full break-words">
+          {name}
+        </p>
       )}
       {!isAdd && (
         <PrimaryButton
@@ -657,7 +717,7 @@ function AddBannerContainer({
                 filter.q ? `&q=${filter.q}` : ""
               }${filter.parentcate ? `&pid=${filter.parentcate}` : ""}${
                 filter.subcate ? `&cid=${filter.subcate}` : ""
-              }`;
+              }${data.id ? `&conId=${data.id}` : ""}`;
         const request = await ApiRequest(url, undefined, "GET");
 
         if (request.success) {
@@ -691,7 +751,7 @@ function AddBannerContainer({
   }, [isFilter]);
 
   const handleLoadMore = () => {
-    setfilter((prev) => ({ ...prev, limit: prev.limit + 5 }));
+    setfilter((prev) => ({ ...prev, limit: prev.limit + 3 }));
   };
 
   const handleClick = (id: number) => {
@@ -754,7 +814,7 @@ function AddBannerContainer({
 
   const handleClear = (type: "select" | "filter") => {
     if (type === "select") {
-      setdata((prev) => ({ ...prev, item: [] }));
+      setdata((prev) => ({ ...prev, items: [] }));
     } else {
       setfilter({
         q: "",
@@ -769,7 +829,7 @@ function AddBannerContainer({
   return (
     <div className="addbannerContainer w-full h-fit flex flex-col items-center justify-center gap-y-5 relative">
       {!isFilter ? (
-        <div className="w-full h-fit flex mt-[10px] flex-row gap-x-5 items-center">
+        <div className="w-full h-fit flex flex-row gap-x-5 items-center">
           <PrimaryButton
             type="button"
             text="Filter"
@@ -788,6 +848,18 @@ function AddBannerContainer({
               height="30px"
               onClick={() => handleClear("filter")}
               width="100px"
+            />
+          )}
+          {data.items.length !== 0 && (
+            <PrimaryButton
+              text="Clear"
+              radius="10px"
+              type="button"
+              status={loading ? "loading" : "authenticated"}
+              height="30px"
+              width="100px"
+              onClick={() => handleClear("select")}
+              color="lightcoral"
             />
           )}
         </div>
@@ -855,14 +927,14 @@ function AddBannerContainer({
             : data.type !== "scrollable"
             ? "h-[68vh]"
             : "h-[65vh]"
-        } overflow-y-auto overflow-x-hidden grid grid-cols-2 gap-x-5 gap-y-20 place-items-center z-0 p-3`}
+        } overflow-y-auto overflow-x-hidden grid grid-cols-2 max-smallest_tablet:grid-cols-1 gap-x-5 gap-y-20 place-items-center z-0 p-3`}
       >
         {/* Banner Card */}
 
         {loading &&
-          Array.from({ length: 4 }).map((i, idx) => (
-            <BannerSkeleton key={idx} />
-          ))}
+          Array.from({ length: banners.length === 0 ? 4 : banners.length }).map(
+            (i, idx) => <BannerSkeleton key={idx} />
+          )}
 
         {banners.map((banner) => (
           <Bannercard
@@ -873,12 +945,13 @@ function AddBannerContainer({
             key={banner.id}
             isAdd={true}
             isAdded={data.items.some((item) => item.item?.id === banner.id)}
-            typesize={banner.type}
+            typesize={banner.type ?? "small"}
+            name={banner.name}
           />
         ))}
       </div>
 
-      <div className="w-full h-[5%] flex flex-row gap-x-5 items-start justify-center">
+      <div className="w-full h-[5%] flex flex-row gap-x-5 mb-2 items-start justify-center">
         {!loading && !islimit && (
           <PrimaryButton
             text="Load More"
@@ -889,18 +962,6 @@ function AddBannerContainer({
             width="100px"
             onClick={handleLoadMore}
             color="#35C191"
-          />
-        )}
-        {data.items.length !== 0 && (
-          <PrimaryButton
-            text="Clear"
-            radius="10px"
-            type="button"
-            status={loading ? "loading" : "authenticated"}
-            height="30px"
-            width="100px"
-            onClick={() => handleClear("select")}
-            color="lightcoral"
           />
         )}
       </div>

@@ -2,7 +2,7 @@
 import { Dayjs } from "dayjs";
 import React, { useContext, useState } from "react";
 import { Role } from "@prisma/client";
-import { Ordertype } from "./OrderContext";
+import { Ordertype, Productordertype } from "./OrderContext";
 import { BannerType } from "../app/severactions/actions";
 import { Categorytype } from "../app/api/categories/route";
 import { InventoryType } from "../app/dashboard/inventory/varaint_action";
@@ -29,6 +29,7 @@ export interface userdata {
   role?: Role;
   agreement?: boolean;
   cid?: string;
+  recapcha: string | null;
 }
 export interface infovaluetype {
   qty: number;
@@ -142,6 +143,7 @@ export interface FilterValue {
   bannersize?: string;
   search?: string;
   expired?: string;
+  promoids?: number[];
 }
 
 interface Listproductfilter {
@@ -193,6 +195,7 @@ export interface UserState {
   confirmpassword?: string;
   newpassword?: string;
   phonenumber?: string;
+  role?: Role;
   firstname: string;
   email: string;
   createdAt?: Date;
@@ -202,6 +205,7 @@ export interface Userdatastate {
   firstname?: string;
   lastname?: string;
   email?: string;
+  role?: Role;
   oldpassword?: string;
   newpassword?: string;
 }
@@ -273,7 +277,16 @@ type confirmmodaltype = {
   confirm: boolean;
   closecon: string;
   index?: number | string;
-  type?: "product" | "banner" | "promotion" | "promotioncancel" | "user";
+  Warn?: string;
+  type?:
+    | "product"
+    | "banner"
+    | "promotion"
+    | "promotioncancel"
+    | "user"
+    | "userinfo";
+  onDelete?: () => void;
+  onAsyncDelete?: () => Promise<void>;
 };
 
 type alerttype = {
@@ -332,6 +345,7 @@ export interface AllFilterValueState {
 export interface CateogoryState {
   id?: number;
   name: string;
+  description: string;
   childid?: number[];
   subcategories: Array<SubcategoriesState> | [];
   type?: Categorytype;
@@ -345,6 +359,7 @@ export interface SubcategoriesState {
   type?: "normal" | "promo";
   pid?: number;
   name: string;
+  isExpired?: boolean;
 }
 
 export interface LoadingState {
@@ -414,6 +429,7 @@ export const Allrefinitialize: Allrefstate = {
 };
 export const CateogoryInitailizestate: CateogoryState = {
   name: "",
+  description: "",
   subcategories: [],
 };
 export const Productinitailizestate: ProductState = {
@@ -488,18 +504,26 @@ const LoadingStateInitialized: LoadingState = {
   IMAGE: {},
 };
 
-export const Userinitialize: UserState = {
+export const Userinitialize: userdata = {
   firstname: "",
   lastname: "",
   email: "",
   password: "",
   confirmpassword: "",
+  recapcha: null,
 };
 
 export const ProductStockType = {
   size: "size",
   variant: "variant",
   stock: "stock",
+};
+
+export const Productdetailinitialize: Productordertype = {
+  id: 0,
+  details: [],
+  quantity: 0,
+  price: { price: 0 },
 };
 
 //
@@ -519,8 +543,8 @@ interface ContextType {
   setbanner: React.Dispatch<React.SetStateAction<BannerState>>;
   promotion: PromotionState;
   setpromotion: React.Dispatch<React.SetStateAction<PromotionState>>;
-  allData: AllDataState;
-  setalldata: React.Dispatch<React.SetStateAction<AllDataState>>;
+  allData?: AllDataState;
+  setalldata: React.Dispatch<React.SetStateAction<AllDataState | undefined>>;
   isLoading: LoadingState;
   setisLoading: React.Dispatch<React.SetStateAction<LoadingState>>;
   subcate: Array<SubcategoriesState>;
@@ -537,8 +561,10 @@ interface ContextType {
   setallfilterval: React.Dispatch<
     React.SetStateAction<Array<AllFilterValueState>>
   >;
-  user: UserState;
-  setuser: React.Dispatch<React.SetStateAction<UserState>>;
+  productorderdetail: Productordertype;
+  setproductorderdetail: React.Dispatch<React.SetStateAction<Productordertype>>;
+  user: userdata;
+  setuser: React.Dispatch<React.SetStateAction<userdata>>;
   listproductfilter: Listproductfilter;
   setlistprodfil: React.Dispatch<React.SetStateAction<Listproductfilter>>;
   listproductfilval: Listproductfilter;
@@ -547,10 +573,14 @@ interface ContextType {
   seterror: React.Dispatch<React.SetStateAction<boolean>>;
   reloaddata: boolean;
   setreloaddata: React.Dispatch<React.SetStateAction<boolean>>;
+  reloadcart: boolean;
+  setreloadcart: React.Dispatch<React.SetStateAction<boolean>>;
   order: Ordertype | undefined;
   setorder: React.Dispatch<React.SetStateAction<Ordertype | undefined>>;
   cart: boolean;
   setcart: React.Dispatch<React.SetStateAction<boolean>>;
+  carttotal: number;
+  setcarttotal: React.Dispatch<React.SetStateAction<number>>;
 }
 const GlobalContext = React.createContext<ContextType | null>(null);
 
@@ -566,7 +596,7 @@ export const GlobalContextProvider = ({
   const [product, setproduct] = useState(Productinitailizestate);
   const [banner, setbanner] = useState(BannerInitialize);
   const [promotion, setpromotion] = useState(PromotionInitialize);
-  const [allData, setalldata] = useState(AllDataInitialize);
+  const [allData, setalldata] = useState<AllDataState | undefined>(undefined);
   const [isLoading, setisLoading] = useState(LoadingStateInitialized);
   const [itemlength, setitemlength] = useState(ItemlengthInitialize);
   const [user, setuser] = useState(Userinitialize);
@@ -574,8 +604,12 @@ export const GlobalContextProvider = ({
   const [userinfo, setuserinfo] = useState({});
   const [error, seterror] = useState<boolean>(false);
   const [reloaddata, setreloaddata] = useState(true);
+  const [reloadcart, setreloadcart] = useState(true);
   const [order, setorder] = useState<Ordertype | undefined>(undefined);
   const [cart, setcart] = useState(false);
+  const [carttotal, setcarttotal] = useState(0);
+  const [productorderdetail, setproductorderdetail] =
+    useState<Productordertype>(Productdetailinitialize);
 
   const [listproductfilter, setlistprodfil] = useState<Listproductfilter>({
     size: [],
@@ -597,6 +631,8 @@ export const GlobalContextProvider = ({
   return (
     <GlobalContext.Provider
       value={{
+        productorderdetail,
+        setproductorderdetail,
         listproductfilter,
         setlistprodfil,
         listproductfilval,
@@ -607,7 +643,8 @@ export const GlobalContextProvider = ({
         order,
         cart,
         setcart,
-
+        reloadcart,
+        setreloadcart,
         setorder,
         seterror,
         promotion,
@@ -640,6 +677,8 @@ export const GlobalContextProvider = ({
         setallfilterval,
         user,
         setuser,
+        carttotal,
+        setcarttotal,
       }}
     >
       {children}
@@ -677,8 +716,4 @@ export const SaveCheck = (
       deletecallback: deletecallback,
     },
   };
-};
-
-export const SpecificAccess = (obj: Object): boolean => {
-  return Object.values(obj).some((value) => value === true);
 };

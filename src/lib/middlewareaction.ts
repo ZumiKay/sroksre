@@ -20,17 +20,20 @@ const alladminroute: Array<Checkrouteprops> = [
   },
   { path: "/image", method: ["DELETE"] },
   { path: "/catories", method: ["POST", "PUT", "DELETE"] },
-  { path: "/auth/users", method: ["GET", "DELETE", "PUT"] },
+  { path: "/users", method: ["GET", "DELETE", "POST", "PUT"] },
 
   { path: "/product/cover", method: ["POST", "PUT", "DELETE"] },
   { path: "/promotion", method: ["POST", "PUT", "DELETE", "GET"] },
+  { path: "/policy", method: ["POST", "PUT", "DELETE"] },
 ];
 const userroute: Array<Checkrouteprops> = [
   {
     path: "/users/vfy",
-    method: ["GET", "DELETE"],
+    method: ["POST", "GET", "DELETE"],
   },
+  { path: "/users/logout", method: ["DELETE"] },
   { path: "/auth/users/info", method: ["GET"] },
+  { path: "/policy", method: ["GET"] },
 ];
 export const VerifyApiRoute = (
   url: string,
@@ -38,11 +41,11 @@ export const VerifyApiRoute = (
   Role: string | null
 ) => {
   const isUserRoute = userroute.find(
-    (i) => url.startsWith(i.path) && i.method.includes(method)
+    (i) => url === i.path && i.method.includes(method)
   );
 
   const isAdminRoute = alladminroute.find(
-    (i) => url.startsWith(i.path) && i.method.includes(method)
+    (i) => url === i.path && i.method.includes(method)
   );
 
   if (isUserRoute) {

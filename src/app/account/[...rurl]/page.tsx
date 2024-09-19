@@ -5,12 +5,17 @@ import { useFormState, useFormStatus } from "react-dom";
 import { verifyUser } from "./action";
 import PrimaryButton from "../../component/Button";
 import { ApiRequest } from "@/src/context/CustomHook";
-import { useEffect, useState } from "react";
+import { ChangeEvent, useEffect, useState } from "react";
 import LoadingIcon from "../../component/Loading";
+import { PasswordInput } from "../../component/FormComponent";
+import { userdata } from "../actions";
+import { PasswordVerification } from "../page";
 
 export default function ResetPage({ params }: { params: { rurl: string } }) {
   const [verify, setverify] = useState(true);
   const [loading, setloading] = useState(true);
+
+  const [data, setdata] = useState<userdata>();
 
   const [state, formAction] = useFormState(verifyUser, {
     message: "",
@@ -19,6 +24,12 @@ export default function ResetPage({ params }: { params: { rurl: string } }) {
   const router = useRouter();
   const URL = decodeURIComponent(params.rurl);
   const match = URL.match(/cid=(\d+)/);
+
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const { value, name } = e.target;
+
+    setdata((prev) => ({ ...prev, [name]: value }));
+  };
 
   useEffect(() => {
     const handleVerify = async () => {
@@ -83,15 +94,12 @@ export default function ResetPage({ params }: { params: { rurl: string } }) {
                 Reset Password
               </h1>
               <h3
-                aria-live="polite"
+                hidden={!state.message}
                 className={`text-lg font-semibold w-[50%] h-fit text-center ${
                   state.success ? `text-green-400` : "text-red-400"
                 }`}
               >
-                {" "}
-                {state.message.length === 0
-                  ? "Password need to have : 8 character, at least one special character, captital letter and number "
-                  : state.message}
+                Invalid Password
               </h3>
 
               <form
@@ -100,20 +108,19 @@ export default function ResetPage({ params }: { params: { rurl: string } }) {
                 className="resetform flex flex-col gap-y-5 items-center w-1/2 h-fit"
               >
                 <input value={match ? match[1] : ""} name="cid" hidden />
-                <input
-                  className="password w-full h-[70px] rounded-lg p-3 text-lg font-bold border-2 border-gray-300"
-                  placeholder="New Password"
+                <PasswordInput
+                  label="Password"
                   name="password"
-                  type="password"
-                  required
+                  type="auth"
+                  onChange={handleChange}
                 />
-                <input
-                  className="confirmpassword w-full h-[70px] rounded-lg p-3 text-lg font-bold border-2 border-gray-300"
-                  placeholder="Confirm Password"
-                  name="cfpassword"
-                  type="password"
-                  required
-                />{" "}
+                <PasswordInput
+                  label="Confirm Password"
+                  name="confirmpassword"
+                  type="auth"
+                  onChange={handleChange}
+                />
+                <PasswordVerification password={data?.password ?? ""} />
                 <Btn />
               </form>
             </>

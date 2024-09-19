@@ -5,18 +5,22 @@ import {
   SelectType,
   useGlobalContext,
 } from "@/src/context/GlobalContext";
-import React, { useEffect, useState } from "react";
+import React, { ChangeEvent, useEffect, useState } from "react";
 import { errorToast, LoadingText, successToast } from "../Loading";
-import { ApiRequest, Delayloading } from "@/src/context/CustomHook";
+import {
+  ApiRequest,
+  Delayloading,
+  useScreenSize,
+} from "@/src/context/CustomHook";
 import { motion } from "framer-motion";
-import Modal from "../Modals";
+import Modal, { SecondaryModal } from "../Modals";
 import { AddSubCategoryMenu } from "../ToggleMenu";
 import PrimaryButton from "../Button";
 import { SelectionCustom } from "../Pagination_Component";
 import { Categorytype } from "../../api/categories/route";
 import { DateRangePicker, Input } from "@nextui-org/react";
 import { parseDate } from "@internationalized/date";
-import { SelectAndSearchProduct } from "../Banner";
+import { NormalSkeleton, SelectAndSearchProduct } from "../Banner";
 
 const selecttype: Array<SelectType> = [
   {
@@ -37,8 +41,13 @@ const selecttype: Array<SelectType> = [
   },
 ];
 
-const getPromotionSelection = async (search: string, limit: number = 5) => {
-  const url = `/api/promotion?ty=selection&lt${limit}`;
+export const GetPromotionSelection = async (
+  search: string,
+  limit: number = 1
+) => {
+  const url = `/api/promotion?ty=selection&lt=${limit}${
+    search !== "" ? `&q=${search}` : ""
+  }`;
   const request = await ApiRequest(url, undefined, "GET");
 
   if (!request.success) {
@@ -63,12 +72,18 @@ export const Category = () => {
     setalldata,
   } = useGlobalContext();
   const [show, setshow] = useState<"Create" | "Edit">("Create");
-
   const [loading, setloading] = useState(false);
   const [catetype, setcatetype] = useState<Categorytype>("normal");
 
   const handleAdd = async () => {
-    const isExist = allData.category?.some((obj) => obj.name === category.name);
+    const isExist = allData?.category?.some(
+      (obj) => obj.name === category.name
+    );
+
+    if (category.name.length === 0 || category.description.length === 0) {
+      errorToast("Please Fill all required");
+      return;
+    }
     if (isExist) {
       errorToast("Category Existed");
       return;
@@ -90,18 +105,14 @@ export const Category = () => {
       return;
     }
     setalldata((prev) => ({
-      ...prev,
-      category: [...(prev.category ?? []), { ...category, id: saved.data.id }],
+      category: [...(prev?.category ?? []), { ...category, id: saved.data.id }],
     }));
+
     setcategory(CateogoryInitailizestate);
 
     successToast("Category Created");
   };
-  const handleCancel = () => {
-    setalldata((prev) => ({ ...prev, category: [] }));
-    setcategory(CateogoryInitailizestate);
-    setopenmodal((prev) => ({ ...prev, createCategory: false }));
-  };
+
   const handleNavbar = (show: "Create" | "Edit") => {
     setshow(show);
     setopenmodal((prev) => ({ ...prev, addsubcategory: false }));
@@ -114,9 +125,15 @@ export const Category = () => {
       name: i.label,
       type: "promo",
       pid: i.value as number,
+      id: (i.value as number) ?? 0,
     }));
 
     setcategory(categories);
+  };
+
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setcategory((prev) => ({ ...prev, [name]: value }));
   };
 
   //category navbar
@@ -143,17 +160,18 @@ export const Category = () => {
   };
 
   return (
-    <Modal closestate="createCategory" customheight="600px" customZIndex={150}>
-      <motion.div
-        initial={{ y: 1000 }}
-        animate={{ y: 0 }}
-        exit={{ y: -1000 }}
-        className="category relative rounded-md p-2 w-full min-h-[600px] max-h-[700px] flex flex-col items-center bg-white gap-y-5"
-      >
+    <SecondaryModal
+      open={openmodal.createCategory}
+      size="4xl"
+      onPageChange={(val) =>
+        setopenmodal((prev) => ({ ...prev, createCategory: val }))
+      }
+    >
+      <div className="category relative rounded-md p-2 w-full h-full flex flex-col items-center bg-white gap-y-5">
         <CategoryNavBar />
         {show === "Create" ? (
           <>
-            <div className="w-[80%] h-fit">
+            <div className="w-full h-fit">
               <SelectionCustom
                 value={catetype}
                 setvalue={setcatetype as any}
@@ -162,18 +180,26 @@ export const Category = () => {
                 placeholder="Type"
               />
             </div>
-            <div className="w-[80%] h-fit flex flex-col gap-y-5">
+            <div className="w-full h-fit flex flex-col gap-y-5">
               <Input
                 type="text"
                 variant="bordered"
                 label="Name"
-                onChange={(e) =>
-                  setcategory((prev) => ({ ...prev, name: e.target.value }))
-                }
+                name="name"
+                onChange={handleChange}
+                required
+              />
+              <Input
+                type="text"
+                variant="bordered"
+                label="Description"
+                name="description"
+                onChange={handleChange}
+                required
               />
               {catetype === "sale" && (
                 <SelectAndSearchProduct
-                  getdata={(take, value) => getPromotionSelection(value, take)}
+                  getdata={(take, value) => GetPromotionSelection(value, take)}
                   placeholder="Select Promotion"
                   value={category.subcategories.map((sub) => ({
                     label: sub.name,
@@ -212,7 +238,7 @@ export const Category = () => {
 
             {catetype === "normal" &&
               (openmodal.addsubcategory ? (
-                <div className="w-[80%] max-h-[500px]">
+                <div className="w-full max-h-[500px]">
                   <AddSubCategoryMenu index={-1} />
                 </div>
               ) : (
@@ -233,34 +259,27 @@ export const Category = () => {
                   disable={category.name.length === 0}
                 />
               ))}
-            <div className="flex flex-row justify-start gap-x-5 h-[40px] w-[90%] absolute bottom-5">
-              <PrimaryButton
-                width="100%"
-                height="100%"
-                radius="10px"
-                onClick={() => category.name.length > 0 && handleAdd()}
-                text="Create"
-                status={loading ? "loading" : "authenticated"}
-                color="#35C191"
-                type="button"
-                disable={category.name.length === 0}
-              />
-              <PrimaryButton
-                width="100%"
-                height="100%"
-                radius="10px"
-                text="Cancel"
-                onClick={() => handleCancel()}
-                color="lightcoral"
-                type="button"
-              />{" "}
-            </div>
           </>
         ) : (
           <EditCategory loading={loading} setloading={setloading} />
         )}
-      </motion.div>
-    </Modal>
+        <div className="flex flex-row justify-start gap-x-5 h-[40px] w-[90%]">
+          {show === "Create" && (
+            <PrimaryButton
+              width="100%"
+              height="100%"
+              radius="10px"
+              onClick={() => category.name.length > 0 && handleAdd()}
+              text="Create"
+              status={loading ? "loading" : "authenticated"}
+              color="#35C191"
+              type="button"
+              disable={category.name.length === 0}
+            />
+          )}
+        </div>
+      </div>
+    </SecondaryModal>
   );
 };
 
@@ -295,7 +314,7 @@ const EditCategory = ({
           setalldata((prev) => ({ ...prev, category: res.data }));
         }
       };
-      await Delayloading(request, setloading, 1000);
+      await Delayloading(request, setloading, 500);
     };
     fetchAllCate();
   }, []);
@@ -306,7 +325,7 @@ const EditCategory = ({
     setedit(!edit);
     seteditindex(index);
 
-    if (allData.category) {
+    if (allData?.category) {
       setcategory(allData.category[index]);
     }
   };
@@ -328,8 +347,8 @@ const EditCategory = ({
   };
 
   const handleConfirm = async () => {
-    if (category.name.length === 0) {
-      errorToast("Name is requried");
+    if (category.name.length === 0 || !category.description) {
+      errorToast("Please fill all requried");
       return;
     }
 
@@ -337,7 +356,7 @@ const EditCategory = ({
       const updateRequest = async () => {
         const res = await ApiRequest(URL, undefined, "PUT", "JSON", category);
         if (res.success) {
-          let allcate = [...(allData.category ?? [])];
+          let allcate = [...(allData?.category ?? [])];
 
           allcate[editindex].name = category.name;
           allcate[editindex].subcategories = category.subcategories;
@@ -356,7 +375,7 @@ const EditCategory = ({
   };
   const handleReset = () => {
     let deletedcate = [...tempcate];
-    let allcate = [...(allData.category ?? [])];
+    let allcate = [...(allData?.category ?? [])];
     const resetcate = deletedcate.filter((obj) =>
       globalindex.categoryeditindex.includes(obj.id as number)
     );
@@ -379,60 +398,60 @@ const EditCategory = ({
 
   return (
     <>
-      <div className="EditCategory w-[90%] h-full overflow-y-auto overflow-x-hidden  flex flex-col gap-y-5 p-1">
+      <div className="EditCategory w-full h-full overflow-y-auto overflow-x-hidden  flex flex-col gap-y-5 p-1">
         {!edit ? (
           <>
-            {loading ? (
-              <LoadingText style={{ left: "45%" }} />
-            ) : (
-              allData.category?.length === 0 && (
-                <h1 className="text-lg text-red-400 font-bold text-center">
-                  No Category
-                </h1>
-              )
+            {allData?.category && allData.category.length === 0 && (
+              <h1 className="text-lg text-red-400 font-bold text-center">
+                No Category
+              </h1>
             )}
-            {allData.category?.map((obj, idx) => (
-              <motion.div
-                key={idx}
-                initial={{ x: "-120%" }}
-                animate={{ x: 0 }}
-                transition={{
-                  duration: 0.2,
-                }}
-                className="parentcategory w-full bg-white outline outline-2 outline-black outline-offset-1 h-fit min-h-[50px] rounded-lg flex flex-row items-center gap-x-5"
-              >
-                <p
-                  onClick={() => handleClick(idx)}
-                  className="parentcateogry text-xl transition duration-300 hover:text-white font-bold w-full h-full break-all flex items-center justify-center cursor-pointer text-center rounded-lg "
-                >
-                  {obj.name}
-                </p>
-                <p
-                  onClick={() => {
-                    let categorydeleteindex = [
-                      ...globalindex.categoryeditindex,
-                    ];
-                    let allcate = [...(allData.category ?? [])];
-                    let copytemp = [...tempcate];
-                    copytemp.push(allcate[idx]);
-                    allcate.splice(idx, 1);
-
-                    setalldata((prev) => ({ ...prev, category: allcate }));
-                    settempcate(copytemp);
-
-                    categorydeleteindex.push(obj.id as number);
-                    setglobalindex((prev) => ({
-                      ...prev,
-                      categoryeditindex: categorydeleteindex,
-                    }));
+            {loading ? (
+              <NormalSkeleton width="100%" height="50px" count={3} />
+            ) : (
+              allData?.category?.map((obj, idx) => (
+                <motion.div
+                  key={idx}
+                  initial={{ x: "-120%" }}
+                  animate={{ x: 0 }}
+                  transition={{
+                    duration: 0.2,
                   }}
-                  className="actions text-red-500 font-bold text-lg cursor-pointer w-1/2 h-full transition duration-300 rounded-lg  flex items-center justify-center hover:text-white active:text-white"
+                  className="parentcategory w-full bg-white outline outline-2 outline-black outline-offset-1 h-fit min-h-[50px] rounded-lg flex flex-row items-center gap-x-5"
                 >
-                  {" "}
-                  Delete
-                </p>
-              </motion.div>
-            ))}{" "}
+                  <p
+                    onClick={() => handleClick(idx)}
+                    className="parentcateogry text-xl transition duration-300 hover:text-white font-bold w-full h-full break-all flex items-center justify-center cursor-pointer text-center rounded-lg "
+                  >
+                    {obj.name}
+                  </p>
+                  <p
+                    onClick={() => {
+                      let categorydeleteindex = [
+                        ...globalindex.categoryeditindex,
+                      ];
+                      let allcate = [...(allData.category ?? [])];
+                      let copytemp = [...tempcate];
+                      copytemp.push(allcate[idx]);
+                      allcate.splice(idx, 1);
+
+                      setalldata((prev) => ({ ...prev, category: allcate }));
+                      settempcate(copytemp);
+
+                      categorydeleteindex.push(obj.id as number);
+                      setglobalindex((prev) => ({
+                        ...prev,
+                        categoryeditindex: categorydeleteindex,
+                      }));
+                    }}
+                    className="actions text-red-500 font-bold text-lg cursor-pointer w-1/2 h-full transition duration-300 rounded-lg  flex items-center justify-center hover:text-white active:text-white"
+                  >
+                    {" "}
+                    Delete
+                  </p>
+                </motion.div>
+              ))
+            )}{" "}
           </>
         ) : (
           <div className="editcontainer flex flex-col gap-y-3 w-full h-full bg-white p-2 relative items-center">
@@ -444,15 +463,29 @@ const EditCategory = ({
               value={category.name}
               className="subcate_name w-full h-[50px] border border-gray-300 pl-3 text-lg font-bold"
               placeholder="Parent Cateogory Name"
+              required
+            />
+            <input
+              type="text"
+              onChange={(e) =>
+                setcategory((prev) => ({
+                  ...prev,
+                  description: e.target.value,
+                }))
+              }
+              value={category.description}
+              className="subcate_name w-full h-[50px] border border-gray-300 pl-3 text-lg font-bold"
+              placeholder="Description"
+              required
             />
 
             {category.type === "sale" && (
               <SelectAndSearchProduct
-                getdata={(take, value) => getPromotionSelection(value, take)}
+                getdata={(take, value) => GetPromotionSelection(value, take)}
                 placeholder="Select Promotion"
                 value={category.subcategories.map((sub) => ({
                   label: sub.name,
-                  value: sub.id ?? 0,
+                  value: sub.pid ?? 0,
                 }))}
                 onSelect={(value) =>
                   handleSelectPromotion(value as Array<SelectType>)
@@ -486,7 +519,7 @@ const EditCategory = ({
                 className="w-full"
               />
             )}
-            <div className="w-[90%] h-fit flex flex-row gap-x-5 justify-center absolute bottom-0">
+            <div className="w-[90%] h-fit flex flex-row gap-x-5 justify-center">
               <PrimaryButton
                 type="button"
                 text="Confirm"

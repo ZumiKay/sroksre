@@ -2,10 +2,10 @@ import {
   ApiRequest,
   Delayloading,
   useEffectOnce,
+  useScreenSize,
 } from "@/src/context/CustomHook";
 import {
   CateogoryState,
-  infovaluetype,
   Productinitailizestate,
   ProductState,
   ProductStockType,
@@ -20,17 +20,16 @@ import React, {
   useState,
 } from "react";
 import { ContainerLoading, errorToast, successToast } from "../Loading";
-import { motion } from "framer-motion";
 import { PrimaryPhoto } from "../PhotoComponent";
 import PrimaryButton, { Selection } from "../Button";
-
-import Modal from "../Modals";
 import ToggleMenu, { SearchAndMultiSelect } from "../ToggleMenu";
 import { Variantcontainer } from "./VariantModal";
 import { ImageUpload } from "./Image";
 import { Input } from "@nextui-org/react";
 import { VariantIcon } from "../Asset";
-import { useRouter } from "next/navigation";
+import { SelectionCustom } from "../Pagination_Component";
+import { SecondaryModal } from "../Modals";
+import { NormalSkeleton } from "../Banner";
 
 const stockTypeData = [
   {
@@ -43,7 +42,11 @@ const stockTypeData = [
   },
 ];
 
-export function CreateProducts() {
+export function CreateProducts({
+  setreloaddata,
+}: {
+  setreloaddata: React.Dispatch<React.SetStateAction<boolean>>;
+}) {
   const {
     openmodal,
     setopenmodal,
@@ -53,13 +56,9 @@ export function CreateProducts() {
     setglobalindex,
     isLoading,
     setisLoading,
-    setreloaddata,
   } = useGlobalContext();
 
-  const [edit, setedit] = useState({
-    productdetail: false,
-    productinfo: false,
-  });
+  const { isMobile, isTablet } = useScreenSize();
 
   const detailref = useRef<HTMLDivElement>(null);
   const [loading, setloading] = useState(true);
@@ -188,7 +187,6 @@ export function CreateProducts() {
       successToast(`${product.name} Updated`);
     }
 
-    setedit((prev) => ({ ...prev, productinfo: false }));
     setopenmodal((prev) => ({ ...prev, createProduct: false }));
     setreloaddata(true);
   };
@@ -206,11 +204,8 @@ export function CreateProducts() {
       ...product,
       [name]: value,
     });
-    setedit((prev) => ({ ...prev, productinfo: true }));
   };
-  const handleSelect = (e: ChangeEvent<HTMLSelectElement>) => {
-    const { name, value } = e.target;
-
+  const handleSelect = (value: string, name: "parent_id" | "child_id") => {
     if (name === "parent_id") {
       const subcates = cate?.find(
         (i) => i.id?.toString() === value
@@ -222,7 +217,6 @@ export function CreateProducts() {
       ...product,
       category: { ...product.category, [name]: parseInt(value) },
     });
-    setedit((prev) => ({ ...prev, productinfo: true }));
   };
 
   const handleCancel = async () => {
@@ -232,525 +226,293 @@ export function CreateProducts() {
   };
 
   return (
-    <motion.dialog
-      initial={{ y: 1000 }}
-      animate={{ y: 0 }}
-      exit={{ y: 1000 }}
-      open={openmodal.createProduct}
-      className="createProduct__container z-[200] flex items-center justify-center fixed top-0 left-0 bg-white min-h-screen h-fit w-screen"
-    >
-      {(loading || isLoading.PUT || isLoading.POST) && <ContainerLoading />}
-      <form
-        onSubmit={handleSubmit}
-        className="createform flex flex-col w-full max-h-[90vh] overflow-y-auto items-center justify-center gap-y-5"
+    <>
+      <SecondaryModal
+        open={openmodal.createProduct}
+        closebtn={true}
+        size="full"
       >
-        <div className="product__form w-[100%] flex flex-row gap-x-16 h-screen overflow-y-auto items-start justify-center">
-          <div className="image__contianer flex flex-col sticky top-0 gap-y-1 w-[400px] h-fit">
-            <PrimaryPhoto
-              data={product.covers}
-              showcount={true}
-              style={{ height: "100%" }}
-              hover={true}
-            />
-            <PrimaryButton
-              type="button"
-              text={product.covers.length > 0 ? "Edit Photo" : "Upload Photo"}
-              width="100%"
-              onClick={() => {
-                setopenmodal({ ...openmodal, imageupload: true });
-              }}
-            />
-          </div>
-
-          <div className="productinfo flex flex-col justify-center items-end w-1/2 h-fit gap-y-5">
-            <Input
-              type="text"
-              label="Product Name"
-              labelPlacement="outside"
-              placeholder="Name"
-              name="name"
-              onChange={handleChange}
-              value={product.name}
-              required
-              size="lg"
-              className="w-[100%] h-[40px]  font-bold rounded-md "
-            />
-            <Input
-              type="text"
-              label="Short Description"
-              placeholder="Description"
-              labelPlacement="outside"
-              name="description"
-              onChange={handleChange}
-              value={product.description}
-              required
-              size="lg"
-              className="w-[100%] h-[40px] text-lg pl-1 font-bold rounded-md "
-            />
-
-            <Input
-              type="number"
-              label="Price"
-              labelPlacement="outside"
-              placeholder="0.00"
-              step={".01"}
-              value={product.price === 0 ? "" : product.price.toString()}
-              name="price"
-              onChange={handleChange}
-              min={0}
-              max={10000}
-              startContent={
-                <div className="pointer-events-none flex items-center">
-                  <span className="text-default-400 text-small">$</span>
-                </div>
-              }
-              required
-              size="lg"
-              className="w-[100%] h-[40px] text-lg pl-1 font-bold rounded-md "
-            />
-
-            <div className="category_sec flex flex-col gap-y-5  w-full h-fit">
-              <Selection
-                label="Category"
-                default="Select"
-                defaultValue={0}
-                name="parent_id"
-                onChange={handleSelect}
-                category={cate}
-                value={product.category.parent_id}
-                type="category"
-                required={true}
+        {(loading || isLoading.PUT || isLoading.POST) && <ContainerLoading />}
+        <form
+          onSubmit={handleSubmit}
+          className="createform flex flex-col w-full max-h-[95vh] overflow-y-auto overflow-x-hidden items-center justify-center gap-y-5 "
+        >
+          <div
+            className="product__form w-[100%] 
+        flex flex-row gap-x-16 h-screen overflow-y-auto items-start justify-center 
+        max-smallest_screen:flex-col max-smallest_screen:items-center max-smallest_screen:justify-start
+        max-smallest_screen:gap-y-10
+        "
+          >
+            <div className="image__contianer flex flex-col items-center sticky max-smallest_screen:relative top-0 gap-y-1 w-[400px] max-small_phone:w-[97vw] h-fit">
+              <PrimaryPhoto
+                data={product.covers}
+                showcount={true}
+                style={{ height: "100%" }}
+                hover={true}
+                isMobile={isMobile}
+                isTablet={isTablet}
               />
-              {product.category.parent_id !== 0 && (
-                <Selection
-                  label="Sub Category"
-                  required={true}
-                  name="child_id"
-                  default="Type"
-                  type="subcategory"
-                  subcategory={subcate}
-                  onChange={handleSelect}
-                  value={product.category.child_id}
-                />
-              )}
+              <PrimaryButton
+                type="button"
+                text={product.covers.length > 0 ? "Edit Photo" : "Upload Photo"}
+                width="100%"
+                onClick={() => {
+                  setopenmodal({ ...openmodal, imageupload: true });
+                }}
+              />
             </div>
-            <Selection
-              label="Stock Type"
-              value={product.stocktype}
-              data={stockTypeData}
-              onChange={(e) => {
-                const { value } = e.target;
-                let updateproducts = { ...product };
-
-                if (
-                  value === ProductStockType.size ||
-                  value === ProductStockType.stock ||
-                  value === ProductStockType.variant
-                ) {
-                  updateproducts.stock = 0;
-                }
-
-                if (
-                  value === ProductStockType.stock ||
-                  value === ProductStockType.variant
-                ) {
-                  const idx = updateproducts.details?.findIndex(
-                    (i) => i.info_type === "SIZE"
-                  );
-                  idx !== undefined && updateproducts.details?.splice(idx, 1);
-                } else {
-                  updateproducts.variants = undefined;
-                  updateproducts.varaintstock = undefined;
-                }
-                updateproducts.stocktype = value;
-                setproduct(updateproducts);
-                setedit((prev) => ({ ...prev, productinfo: true }));
-                setstocktype(value as any);
-              }}
-              required
-            />
-            {stocktype === ProductStockType.stock ? (
-              <Input
-                type="number"
-                label="Stock"
-                labelPlacement="outside"
-                placeholder="0"
-                name="stock"
-                min={0}
-                max={1000}
-                onChange={handleChange}
-                value={product.stock === 0 ? "" : product.stock?.toString()}
-                required
-                size="lg"
-                className="w-full h-[40px] text-lg pl-1 font-bold rounded-md "
-              />
-            ) : (
-              <>
-                <PrimaryButton
-                  radius="10px"
-                  hoverTextColor="lightblue"
-                  type="button"
-                  text={"Variants"}
-                  Icon={<VariantIcon />}
-                  width="100%"
-                  onClick={() => {
-                    setopenmodal((prev) => ({
-                      ...prev,
-                      addproductvariant: true,
-                    }));
-                  }}
-                  height="50px"
-                  color="black"
-                />
-              </>
-            )}
 
             <div
-              onClick={() => {
-                setedit({ ...edit, productdetail: !edit.productdetail });
-              }}
-              className={`toggleMenu_section w-full h-fit p-1 transition cursor-pointer rounded-md  hover:border border-gray-400`}
-              style={{
-                border: edit.productdetail ? "1px solid black" : "",
-              }}
+              className="productinfo flex flex-col justify-center items-end w-1/2 
+          h-fit gap-y-5
+          max-smallest_screen:w-[90%]  
+          "
             >
-              <ToggleMenu
-                name="Product Details"
-                data={product.details}
-                isAdmin={true}
-              />
-            </div>
-            {!openmodal.productdetail ? (
-              <PrimaryButton
-                color="#0097FA"
-                text="Add more detail"
-                onClick={() => {
-                  setglobalindex((prev) => ({
-                    ...prev,
-                    productdetailindex: -1,
-                  }));
-                  setopenmodal({ ...openmodal, productdetail: true });
-                }}
-                type="button"
-                radius="10px"
-                width="100%"
-                height="35px"
-              />
-            ) : (
-              <div ref={detailref} className="w-full h-full">
-                <DetailsModal />
-              </div>
-            )}
-            <div className="w-full h-fit flex flex-col gap-y-5">
-              <label className="font-bold text-lg">
-                {" "}
-                Add related product (Optional){" "}
-              </label>
-              <SearchAndMultiSelect />
-            </div>
-          </div>
-        </div>
-        <div className="w-[90%] h-fit flex flex-row gap-x-5 justify-start">
-          <PrimaryButton
-            color="#44C3A0"
-            text={globalindex.producteditindex === -1 ? "Create" : "Update"}
-            type={"submit"}
-            radius="10px"
-            width="90%"
-            height="40px"
-          />{" "}
-          <PrimaryButton
-            color="#F08080"
-            text="Cancel"
-            type="button"
-            radius="10px"
-            width="90%"
-            height="40px"
-            onClick={() => {
-              handleCancel();
-            }}
-          />
-        </div>
-      </form>
-      {openmodal.imageupload && (
-        <ImageUpload limit={4} mutitlple={true} type="createproduct" />
-      )}
-      {openmodal.addproductvariant && <Variantcontainer />}
-    </motion.dialog>
-  );
-}
-
-interface SizecontainerProps {
-  index: number;
-  closename?: string;
-  type?: "edit";
-  action?: () => void;
-}
-
-export const Sizecontainer = (props: SizecontainerProps) => {
-  const [customvalue, setvalue] = useState("");
-  const [addnew, setaddnew] = useState(false);
-  const [qty, setqty] = useState(0);
-  const [Edit, setedit] = useState({
-    isEdit: false,
-    index: -1,
-  });
-  const { product, setproduct, setreloaddata } = useGlobalContext();
-  const [loading, setloading] = useState(true);
-
-  const fetchsize = async () => {
-    setloading(true);
-    const URL = `/api/products/ty=size_pid=${props.index}`;
-    const response = await ApiRequest(URL, undefined, "GET");
-    setloading(false);
-    if (!response.success) {
-      errorToast("Error Connection");
-      return;
-    }
-
-    setproduct((prev) => ({ ...prev, details: response.data }));
-  };
-
-  useEffect(() => {
-    props.type && fetchsize();
-  }, []);
-  const handleAdd = async () => {
-    const detail = [...product.details];
-    const idx = props.type
-      ? detail.findIndex((i) => i.info_type === "SIZE")
-      : props.index;
-    const prevarr = detail[idx].info_value;
-
-    if (customvalue === "" || !qty) {
-      errorToast("Please fill all Required");
-      return;
-    }
-
-    //add and edit size
-
-    if (Edit.index !== -1) {
-      prevarr[Edit.index] = {
-        qty: qty,
-        val: customvalue,
-      };
-    } else {
-      prevarr.push({
-        qty: qty,
-        val: customvalue,
-      } as any);
-    }
-    detail[idx].info_value = prevarr as any;
-
-    if (props.index) {
-      const updatereq = await handleUpdate();
-      if (!updatereq) {
-        errorToast("Failed Update Stock");
-        return;
-      }
-    }
-
-    setproduct({ ...product, details: detail });
-
-    setedit({
-      isEdit: false,
-      index: -1,
-    });
-
-    setqty(0);
-    setvalue("");
-    setaddnew(false);
-  };
-  const handleDelete = (index: number) => {
-    const detail = [...product.details];
-    const idx = props.type
-      ? detail.findIndex((i) => i.info_type === "SIZE")
-      : props.index;
-    const updatearr = [...product.details[idx].info_value];
-
-    updatearr.splice(index, 1);
-    detail[idx].info_value = updatearr as any;
-    setproduct({ ...product, details: detail });
-  };
-  const handleUpdate = async () => {
-    setloading(true);
-    const URL = "/api/products/crud";
-    const request = await ApiRequest(URL, undefined, "PUT", "JSON", {
-      type: "editsize",
-      details: product.details,
-      id: props.index,
-    });
-    setloading(false);
-
-    if (!request.success) {
-      return null;
-    }
-    return true;
-  };
-
-  const SizeElements = (bg: boolean) => {
-    return (
-      <div
-        style={
-          bg
-            ? {
-                backgroundColor: "white",
-                padding: "20px",
-                outline: "0",
-                borderRadius: "10px",
-                width: "100%",
-                maxHeight: "500px",
-              }
-            : {}
-        }
-        className="size__contianer w-full max-h-[500px] h-fit flex flex-col gap-y-5 outline-2 outline p-3 outline-gray-300 rounded-lg"
-      >
-        <div
-          className="size_list grid grid-cols-4 w-fit gap-x-5 gap-y-5 h-full"
-          style={{
-            outline: "2px solid lightgray",
-            width: "100%",
-            padding: "10px",
-          }}
-        >
-          {product.details &&
-            product.details
-              .find((i) => i.info_type === "SIZE")
-              ?.info_value.map((i, idx) => {
-                const val = i as infovaluetype;
-                return (
-                  <div
-                    key={idx}
-                    className="size flex flex-row z-[100] justify-center bg-[#495464] rounded-lg w-[100px]  p-3 h-fit text-center font-bold"
-                    style={
-                      Edit.index === idx
-                        ? { backgroundColor: "black", color: "white" }
-                        : val.qty <= 1
-                        ? { backgroundColor: "lightcoral", color: "white" }
-                        : {}
-                    }
-                  >
-                    <span
-                      onClick={() => handleDelete(idx)}
-                      className="relative -top-5 left-[100%] transition hover:-translate-y-1"
-                    >
-                      <i className="fa-solid fa-minus font-bold text-white  text-[10px] bg-[#F08080] rounded-2xl p-1"></i>
-                    </span>
-
-                    <h3
-                      onClick={() => {
-                        setedit((prev) => ({
-                          isEdit: !prev.isEdit,
-                          index: prev.index === idx ? -1 : idx,
-                        }));
-
-                        setaddnew(!(Edit.index === idx));
-
-                        setqty(Edit.index === idx ? 0 : val.qty);
-
-                        setvalue(Edit.index === idx ? "" : val.val);
-                      }}
-                      className={`relative w-full h-full break-words right-2 text-white`}
-                    >
-                      {val.val}
-                    </h3>
-                  </div>
-                );
-              })}
-        </div>
-        <div className="w-full h-fit flex flex-row gap-x-5">
-          <div
-            onClick={() => {
-              setaddnew(!addnew);
-              setedit({ isEdit: false, index: -1 });
-              setvalue("");
-              setqty(0);
-            }}
-            className={`text-sm font-bold ${
-              addnew ? "text-red-500" : "text-blue-500"
-            } w-fit h-fit border-b-2 border-b-black transition-all duration-300 hover:text-white active:text-white hover:pb-5 cursor-pointer`}
-          >
-            {`${addnew ? "Close" : "Add New"}`}
-          </div>
-          <p className="text-red-400 font-bold text-sm">Low Stock: 0</p>
-        </div>
-        {addnew && (
-          <>
-            <div className="w-full h-fit">
-              <label htmlFor="qty" className="text-lg font-semibold">
-                Size <strong className="text-red-500">*</strong>
-              </label>
-              <input
+              <Input
                 type="text"
-                placeholder="Size (Required)"
-                name="size"
-                value={customvalue}
-                onChange={(e) => setvalue(e.target.value)}
-                className="w-[100%] h-[35px] text-sm pl-1 font-bold bg-[#D9D9D9] rounded-md "
+                label="Product Name"
+                labelPlacement="outside"
+                placeholder="Name"
+                name="name"
+                onChange={handleChange}
+                value={product.name}
+                required
+                size="lg"
+                className="w-[100%] h-[40px]  font-bold rounded-md "
               />
-            </div>
-            <div className="w-full h-fit">
-              <label htmlFor="qty" className="text-lg font-semibold">
-                Stock <strong className="text-red-500">*</strong>
-              </label>
-              <input
+              <Input
+                type="text"
+                label="Short Description"
+                placeholder="Description"
+                labelPlacement="outside"
+                name="description"
+                onChange={handleChange}
+                value={product.description}
+                required
+                size="lg"
+                className="w-[100%] h-[40px] text-lg pl-1 font-bold rounded-md "
+              />
+
+              <Input
                 type="number"
-                placeholder="Stock"
-                name="qty"
-                value={qty}
-                onChange={(e) => setqty(parseInt(e.target.value))}
-                className="w-[100%] h-[35px] text-sm pl-1 font-bold bg-[#D9D9D9] rounded-md "
+                label="Price"
+                labelPlacement="outside"
+                placeholder="0.00"
+                step={".01"}
+                value={product.price === 0 ? "" : product.price.toString()}
+                name="price"
+                onChange={handleChange}
+                min={0}
+                max={10000}
+                startContent={
+                  <div className="pointer-events-none flex items-center">
+                    <span className="text-default-400 text-small">$</span>
+                  </div>
+                }
+                required
+                size="lg"
+                className="w-[100%] h-[40px] text-lg pl-1 font-bold rounded-md "
               />
-            </div>
-            <div className="w-full h-fit flex flex-row gap-x-5">
-              <PrimaryButton
-                color="#44C3A0"
-                text={Edit.index === -1 ? "Add" : "Update"}
-                type="button"
-                radius="10px"
-                onClick={() => handleAdd()}
-                width="100%"
-                textsize="12px"
-                disable={customvalue === "" || !qty}
-                height="30px"
+
+              <div className="category_sec flex flex-col gap-y-5  w-full h-fit font-bold">
+                {loading ? (
+                  <NormalSkeleton count={2} width="100%" height="40px" />
+                ) : (
+                  <>
+                    {" "}
+                    <SelectionCustom
+                      textplacement="outside"
+                      label="Category"
+                      placeholder="Select"
+                      value={
+                        product.category.parent_id !== 0 &&
+                        product.category.parent_id
+                          ? `${product.category.parent_id}`
+                          : undefined
+                      }
+                      data={
+                        cate?.map((i) => ({
+                          label: i.name,
+                          value: `${i.id}`,
+                        })) ?? []
+                      }
+                      onChange={(val) =>
+                        handleSelect(val.toString(), "parent_id")
+                      }
+                    />
+                    {product.category.parent_id !== 0 &&
+                    product.category.parent_id ? (
+                      <SelectionCustom
+                        label="Sub Category"
+                        textplacement="outside"
+                        value={
+                          product.category.child_id &&
+                          product.category.child_id !== 0
+                            ? `${product.category.child_id}`
+                            : undefined
+                        }
+                        data={
+                          subcate.map((sub) => ({
+                            label: sub.name,
+                            value: `${sub.id}`,
+                          })) ?? []
+                        }
+                        placeholder="Select"
+                        onChange={(val) =>
+                          handleSelect(val.toString(), "child_id")
+                        }
+                      />
+                    ) : (
+                      ""
+                    )}{" "}
+                  </>
+                )}
+              </div>
+              <Selection
+                label="Stock Type"
+                value={product.stocktype}
+                data={stockTypeData}
+                onChange={(e) => {
+                  const { value } = e.target;
+                  let updateproducts = { ...product };
+
+                  if (
+                    value === ProductStockType.size ||
+                    value === ProductStockType.stock ||
+                    value === ProductStockType.variant
+                  ) {
+                    updateproducts.stock = 0;
+                  }
+
+                  if (
+                    value === ProductStockType.stock ||
+                    value === ProductStockType.variant
+                  ) {
+                    const idx = updateproducts.details?.findIndex(
+                      (i) => i.info_type === "SIZE"
+                    );
+                    idx !== undefined && updateproducts.details?.splice(idx, 1);
+                  } else {
+                    updateproducts.variants = undefined;
+                    updateproducts.varaintstock = undefined;
+                  }
+                  updateproducts.stocktype = value;
+                  setproduct(updateproducts);
+                  setstocktype(value as any);
+                }}
+                required
               />
-              {!props.type && (
+              {stocktype === ProductStockType.stock ? (
+                <Input
+                  type="number"
+                  label="Stock"
+                  labelPlacement="outside"
+                  placeholder="0"
+                  name="stock"
+                  min={0}
+                  max={1000}
+                  onChange={handleChange}
+                  value={product.stock === 0 ? "" : product.stock?.toString()}
+                  required
+                  size="lg"
+                  className="w-full h-[40px] text-lg pl-1 font-bold rounded-md "
+                />
+              ) : (
+                <>
+                  <PrimaryButton
+                    radius="10px"
+                    hoverTextColor="lightblue"
+                    type="button"
+                    text={"Variants"}
+                    Icon={<VariantIcon />}
+                    width="100%"
+                    onClick={() => {
+                      setopenmodal((prev) => ({
+                        ...prev,
+                        addproductvariant: true,
+                      }));
+                    }}
+                    height="50px"
+                    color="black"
+                  />
+                </>
+              )}
+
+              <div
+                className={`toggleMenu_section w-full h-fit p-1 transition cursor-pointer rounded-md  hover:border border-gray-400`}
+              >
+                <ToggleMenu
+                  name="Product Details"
+                  data={product.details}
+                  isAdmin={true}
+                />
+              </div>
+              {!openmodal.productdetail ? (
                 <PrimaryButton
-                  color="#F08080"
-                  text={"Delete"}
+                  color="#0097FA"
+                  text="Add more detail"
                   onClick={() => {
-                    let updatearr = [...product.details];
-                    updatearr.splice(props.index, 1);
-                    setproduct({ ...product, details: updatearr });
+                    setglobalindex((prev) => ({
+                      ...prev,
+                      productdetailindex: -1,
+                    }));
+                    setopenmodal({ ...openmodal, productdetail: true });
                   }}
                   type="button"
                   radius="10px"
                   width="100%"
-                  textsize="12px"
-                  height="30px"
+                  height="35px"
                 />
+              ) : (
+                <div ref={detailref} className="w-full h-full">
+                  <DetailsModal />
+                </div>
               )}
-            </div>{" "}
-          </>
+              <div className="w-full h-fit flex flex-col gap-y-5">
+                <label className="font-bold text-lg">
+                  {" "}
+                  Add related product (Optional){" "}
+                </label>
+                <SearchAndMultiSelect />
+              </div>
+            </div>
+          </div>
+          <div className="w-[90%] h-fit flex flex-row gap-x-5 justify-start">
+            <PrimaryButton
+              color="#44C3A0"
+              text={globalindex.producteditindex === -1 ? "Create" : "Update"}
+              type={"submit"}
+              radius="10px"
+              width="90%"
+              height="40px"
+            />{" "}
+            <PrimaryButton
+              color="#F08080"
+              text="Cancel"
+              type="button"
+              radius="10px"
+              width="90%"
+              height="40px"
+              onClick={() => {
+                handleCancel();
+              }}
+            />
+          </div>
+        </form>
+        {openmodal.imageupload && (
+          <ImageUpload
+            limit={4}
+            mutitlple={true}
+            type="createproduct"
+            setreloaddata={setreloaddata}
+          />
         )}
-      </div>
-    );
-  };
-
-  return props.type && props.closename ? (
-    <Modal
-      closestate={props.closename}
-      customheight="fit-content"
-      action={() => {
-        setreloaddata(true);
-      }}
-    >
-      {loading && <ContainerLoading />}
-      {SizeElements(true)}
-    </Modal>
-  ) : (
-    SizeElements(false)
+        {openmodal.addproductvariant && <Variantcontainer />}
+      </SecondaryModal>
+    </>
   );
-};
+}
 
 const NormalDetail = () => {
   const { product, globalindex, setproduct, setglobalindex, setopenmodal } =

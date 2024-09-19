@@ -170,28 +170,30 @@ export const Homeeditmenu = ({
         <h3 className="text-lg w-full h-fit text-left font-bold">
           Homepage Customize
         </h3>
-        {loading &&
-          Array.from({ length: 3 }).map((i, idx) => (
-            <HomeitemsSkeleton key={idx} />
-          ))}
 
-        {!loading && items.length === 0 && (
+        {!items && (
           <h3 className="text-lg font-normal border-2 border-red-300 p-1 w-full rounded-medium">
             No Items
           </h3>
         )}
-        <SortableContext items={items} strategy={verticalListSortingStrategy}>
-          {items.map((item, idx) => (
-            <SortableItem
-              key={item.id}
-              id={item.id}
-              type={item.type}
-              name={item.name}
-              isEdit={isEdit}
-              onEdit={() => onEdit(idx)}
-            />
-          ))}
-        </SortableContext>
+        {loading ? (
+          Array.from({ length: items.length === 0 ? 3 : items.length }).map(
+            (i, idx) => <HomeitemsSkeleton key={idx} />
+          )
+        ) : (
+          <SortableContext items={items} strategy={verticalListSortingStrategy}>
+            {items.map((item, idx) => (
+              <SortableItem
+                key={item.id}
+                id={item.id}
+                type={item.type}
+                name={item.name}
+                isEdit={isEdit}
+                onEdit={() => onEdit(idx)}
+              />
+            ))}
+          </SortableContext>
+        )}
       </div>
     </DndContext>
   );

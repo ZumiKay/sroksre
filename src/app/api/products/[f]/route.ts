@@ -3,7 +3,10 @@ import Prisma from "../../../../lib/prisma";
 
 import { NextRequest } from "next/server";
 
-import { calculateDiscountProductPrice } from "@/src/lib/utilities";
+import {
+  calculateDiscountProductPrice,
+  removeSpaceAndToLowerCase,
+} from "@/src/lib/utilities";
 import { Stocktype, VariantColorValueType } from "@/src/context/GlobalContext";
 
 function queryStringToObject(queryString: string) {
@@ -29,7 +32,8 @@ interface paramsType {
   cc?: number;
   sk?: string;
   p?: number;
-  pid?: number;
+  pid?: string; //Promotion id
+  pids?: string; //Promotion Ids
   po?: number;
   dc?: string;
   ds?: string;
@@ -38,13 +42,40 @@ interface paramsType {
   vs?: number;
   sp?: number;
 }
+interface SubStockType {
+  id?: number;
+  qty: number;
+  variant_val: string[];
+}
 
+const convertStockData = (stock: Stocktype[]) => {
+  const lowstock = parseInt(process.env.LOWSTOCK ?? "3");
+
+  const Stock = stock.map((i) => {
+    const isLowStock = i.Stockvalue.some((sub) => sub.qty <= lowstock);
+
+    return {
+      id: i.id,
+      Stockvalue: i.Stockvalue.flatMap((sub) => {
+        return {
+          id: sub.id,
+          ...sub,
+        };
+      }),
+      isLowStock,
+    };
+  });
+
+  return Stock;
+};
 export async function GET(
   request: NextRequest,
   { params }: { params: { f: string } }
 ) {
-  const { ty, limit, q, pc, sk, cc, p, pid, po, dc, ds, dt, vr, vs, sp } =
+  const { ty, limit, q, pc, sk, cc, p, pid, po, dc, ds, dt, vr, vs, sp, pids } =
     queryStringToObject(params.f) as paramsType;
+
+  const productId = pid ? parseInt(pid, 10) : undefined;
 
   let response;
   if (ty === "all" || ty === "filter" || ty === "detail") {
@@ -56,12 +87,13 @@ export async function GET(
       pc,
       sk,
       cc,
-      pid,
+      productId,
       po,
       dc,
       ds,
       dt,
-      sp
+      sp,
+      pids?.toString()
     );
 
     const total = await Prisma.products.count();
@@ -116,7 +148,7 @@ export async function GET(
     response = Response.json({ data: allvalarr }, { status: 200 });
   } else if (ty === "info") {
     const product = await Prisma.products.findUnique({
-      where: { id: pid },
+      where: { id: productId },
       select: {
         id: true,
         name: true,
@@ -128,6 +160,7 @@ export async function GET(
           orderBy: { id: "asc" },
         },
         Stock: {
+          orderBy: { id: "asc" },
           select: {
             id: true,
             Stockvalue: {
@@ -199,7 +232,7 @@ export async function GET(
         child_id: product.childcategory_id,
       },
       variants: product.Variant,
-      varaintstock: product.Stock,
+      varaintstock: convertStockData(product.Stock as Stocktype[]),
       relatedproduct: otherProduct.filter((i) => i.id !== product.id),
       // Remove properties that are no longer needed
       parentcategory_id: undefined,
@@ -212,7 +245,7 @@ export async function GET(
   } else if (ty === "stock") {
     const variant = await Prisma.variant.findMany({
       where: {
-        product_id: pid,
+        product_id: productId,
       },
       orderBy: {
         id: "asc",
@@ -226,8 +259,9 @@ export async function GET(
     });
     const stock = await Prisma.stock.findMany({
       where: {
-        product_id: pid,
+        product_id: productId,
       },
+      orderBy: { id: "asc" },
       select: {
         id: true,
         Stockvalue: {
@@ -240,16 +274,47 @@ export async function GET(
       },
     });
 
-    const Stock = stock.map((i) => {
-      const isLowStock = i.Stockvalue.some((sub) => sub.qty <= 5);
-
-      return { ...i, isLowStock };
-    });
-
     response = Response.json(
-      { data: { varaintstock: Stock, variants: variant } },
+      {
+        data: {
+          varaintstock: convertStockData(stock as Stocktype[]),
+          variants: variant,
+        },
+      },
       { status: 200 }
     );
+  } else if (ty === "search") {
+    if (!q) {
+      return Response.json({ data: [] }, { status: 200 });
+    }
+
+    const searchproduct = await Prisma.products.findMany({
+      where: {
+        name: {
+          contains: removeSpaceAndToLowerCase(q),
+          mode: "insensitive",
+        },
+      },
+      select: {
+        id: true,
+        name: true,
+        covers: { select: { name: true, url: true } },
+        parentcategory_id: true,
+        childcategory_id: true,
+        price: true,
+        discount: true,
+      },
+    });
+    let result = searchproduct.map((i) => ({
+      ...i,
+      price: calculateDiscountProductPrice({
+        price: i.price,
+        discount: i.discount ?? undefined,
+      }),
+      covers: i.covers[0],
+    }));
+
+    response = Response.json({ data: result }, { status: 200 });
   } else {
     response = new Response(null, { status: 404 });
   }
