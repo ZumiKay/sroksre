@@ -40,6 +40,7 @@ export default async function Home() {
                     name: i.items[0].item.image?.name ?? "",
                   },
                   name: i.name,
+                  link: i.items[0].item.link,
                 }}
               />
             );

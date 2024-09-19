@@ -121,9 +121,11 @@ export default async function OrderManagement({
               <tr className="h-[30px]"></tr>
             </thead>
             <tbody>
-              {orders && orders.length === 0 ? (
+              {!orders || (orders && orders.length === 0) ? (
                 <tr>
-                  <td className="w-full font-bold text-xl">No order</td>
+                  <td className="w-fit font-bold text-xl pl-3">
+                    No Purchased Order Yet :)
+                  </td>
                 </tr>
               ) : (
                 orders?.map((i, idx) => (

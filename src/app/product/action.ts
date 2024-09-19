@@ -138,8 +138,14 @@ export const GetListProduct = async (
         where: {
           id: data.parentcate_id,
         },
+
         select: {
           autocategories: {
+            orderBy: {
+              product: {
+                price: sort === 1 ? "asc" : "desc",
+              },
+            },
             select: {
               product: {
                 select: {

@@ -35,7 +35,12 @@ import {
   useEffectOnce,
   useScreenSize,
 } from "@/src/context/CustomHook";
-import { ContainerLoading, errorToast, infoToast } from "./Loading";
+import LoadingIcon, {
+  ContainerLoading,
+  errorToast,
+  infoToast,
+  LoadingLogo,
+} from "./Loading";
 import { Role } from "@prisma/client";
 import { CheckedNotification } from "../severactions/notification_action";
 import { Box, CircularProgress } from "@mui/material";
@@ -55,6 +60,7 @@ import {
   DropdownTrigger,
 } from "@nextui-org/react";
 import { useSocket } from "@/src/context/SocketContext";
+import { NormalSkeleton } from "./Banner";
 
 const InitialMethod = async (session?: Usersessiontype) => {
   if (session) {
@@ -135,7 +141,7 @@ export default function Navbar({ session }: { session?: Usersessiontype }) {
     if (!socket) return;
 
     const handleNotification = (data: NotificationType) => {
-      console.log("Notification received:", data);
+      infoToast("New Notification");
       // Handle the notification (e.g., update state, show a toast, etc.)
     };
 
@@ -167,7 +173,6 @@ export default function Navbar({ session }: { session?: Usersessiontype }) {
   return (
     <>
       <nav className="navbar__container sticky top-0 z-50 w-full h-[60px] bg-[#F3F3F3] flex flex-row justify-between item-center">
-        {loading && <ContainerLoading />}
         {categories && <CategoriesContainer setopen={setcategories} />}
 
         <div className="first_section  w-1/2 h-full flex items-center pl-3">
@@ -306,6 +311,7 @@ export default function Navbar({ session }: { session?: Usersessiontype }) {
 const CategoriesContainer = (props: { setopen: any }) => {
   const [allcate, setallcate] = useState<Array<CateogoryState>>();
   const [loading, setloading] = useState(true);
+  const { isMobile } = useScreenSize();
 
   const router = useRouter();
   const fetchcate = async () => {
@@ -324,69 +330,74 @@ const CategoriesContainer = (props: { setopen: any }) => {
       className="categories__container w-full max-h-screen min-h-[50vh] h-full absolute top-[57px] z-[99] bg-[#F3F3F3] flex flex-row gap-5 items-start justify-start flex-wrap overflow-y-auto overflow-x-hidden max-small_phone:justify-center max-small_phone:h-screen"
     >
       {loading ? (
-        <ContainerLoading />
-      ) : (
-        <div className="ategory flex flex-col w-[200px] max-small_phone:w-[90%] pt-10 items-center justify-start p-1 gap-y-5">
-          {/* <h3
-            onClick={() => router.push("/product?all=1")}
-            className="category_header  bg-[#495464] transition cursor-pointer hover:bg-white hover:text-black active:bg-white active:text-black rounded-md p-3 w-full h-fit  break-words  text-center text-white font-medium"
-          >
-            All
-          </h3> */}
-          {allcate
-            ?.filter((i) => i.type === "latest" || i.type === "popular")
-            .map((item, idx) => (
-              <h3
-                key={idx}
-                onClick={() => router.push(`/product?pid=${item.id}`)}
-                className="category_header bg-[#495464] transition cursor-pointer hover:bg-white hover:text-black active:bg-white active:text-black rounded-md p-3 w-full h-fit  break-words  text-center text-white font-medium"
-              >
-                {" "}
-                {item.name}
-              </h3>
-            ))}
+        <div className="w-full h-full flex items-center justify-center">
+          <LoadingIcon />
         </div>
-      )}
-
-      {allcate
-        ?.filter((i) => i.type !== "latest")
-        .map((i) => (
-          <div
-            key={i.id}
-            className="category flex flex-col w-[200px] max-small_phone:w-[90%] pt-10 items-center justify-start p-1"
-          >
-            <h3
-              onClick={() =>
-                router.push(
-                  `/product?${
-                    i.type === "normal" ? `pid=${i.id}` : `ppid=${i.id}`
-                  }`
-                )
-              }
-              className="category_header w-full bg-[#495464] transition cursor-pointer hover:bg-white hover:text-black active:bg-white active:text-black rounded-md p-3 h-fit  break-words  text-center text-white font-medium"
-            >
-              {" "}
-              {i.name}
-            </h3>
-            <div className="category_subheader w-full h-fit flex flex-col gap-y-5 pt-5 font-normal text-center">
-              {i.subcategories
-                .filter((i) => (i.isExpired ? !i.isExpired : true))
-                .map((sub) => (
-                  <Link
-                    key={sub.id}
-                    href={`/product?pid=${i.id}${
-                      sub.type === "normal"
-                        ? `&cid=${sub.id}`
-                        : `&promoid=${sub.pid}`
-                    }`}
-                    scroll={true}
-                  >
-                    <h4 className="subcategory"> {sub.name} </h4>
-                  </Link>
-                ))}
-            </div>
+      ) : (
+        <>
+          <div className="ategory flex flex-col w-[200px] max-small_phone:w-[90%] pt-10 items-center justify-start p-1 gap-y-5">
+            {allcate
+              ?.filter((i) => i.type === "latest" || i.type === "popular")
+              .map((item, idx) => (
+                <h3
+                  key={idx}
+                  onClick={() => router.push(`/product?pid=${item.id}`)}
+                  className="category_header bg-[#495464] transition cursor-pointer hover:bg-white hover:text-black active:bg-white active:text-black rounded-md p-3 w-full h-fit  break-words  text-center text-white font-medium"
+                >
+                  {" "}
+                  {item.name}
+                </h3>
+              ))}
           </div>
-        ))}
+
+          {allcate
+            ?.filter((i) => i.type !== "latest")
+            .map((i) => (
+              <div
+                key={i.id}
+                className="category flex flex-col w-[200px] max-small_phone:w-[90%] pt-10 items-center justify-start p-1"
+              >
+                <h3
+                  onClick={() => {
+                    router.push(
+                      `/product?${
+                        i.type === "normal" ? `pid=${i.id}` : `ppid=${i.id}`
+                      }`
+                    );
+                    router.refresh();
+                    isMobile && props.setopen(false);
+                  }}
+                  className="category_header w-full bg-[#495464] transition cursor-pointer hover:bg-white hover:text-black active:bg-white active:text-black rounded-md p-3 h-fit  break-words  text-center text-white font-medium"
+                >
+                  {" "}
+                  {i.name}
+                </h3>
+                <div className="category_subheader w-full h-fit flex flex-col gap-y-5 pt-5 font-normal text-center">
+                  {i.subcategories
+                    .filter((i) => (i.isExpired ? !i.isExpired : true))
+                    .map((sub) => (
+                      <div
+                        key={sub.id}
+                        onClick={() => {
+                          router.push(
+                            `/product?pid=${i.id}${
+                              sub.type === "normal"
+                                ? `&cid=${sub.id}`
+                                : `&promoid=${sub.pid}`
+                            }`
+                          );
+                          router.refresh();
+                          isMobile && props.setopen(false);
+                        }}
+                      >
+                        <h4 className="subcategory"> {sub.name} </h4>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            ))}
+        </>
+      )}
     </div>
   );
 };

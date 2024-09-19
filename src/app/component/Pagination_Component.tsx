@@ -68,7 +68,7 @@ export default function PaginationCustom({
     const params = new URLSearchParams(searchParam);
     params.set("p", `${p}`);
     setpage && setpage(p);
-    router.replace(`?${params}`, { scroll: false });
+    router.push(`?${params}`);
     onPageChange && onPageChange();
   };
 

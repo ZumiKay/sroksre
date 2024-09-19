@@ -100,6 +100,7 @@ const AccountMenuItems = [
 
 export default function AccountMenu(props: accountmenuprops) {
   const pathname = usePathname();
+
   const { openmodal, setopenmodal } = useGlobalContext();
   const [loading, setloading] = useState(false);
   const [Homeitems, sethomeitems] = useState<Homeitemtype[]>([]);
@@ -288,13 +289,17 @@ export default function AccountMenu(props: accountmenuprops) {
                       </h3>
                     </div>
                   ) : (
-                    <Link
-                      href={item.link}
+                    <div
+                      onClick={() => {
+                        router.push(item.link);
+                        router.refresh();
+                        isMobile && props.setProfile(false);
+                      }}
                       className="w-full h-full flex flex-row items-center gap-x-5 pl-2 rounded-lg transition hover:bg-gray-200 active:bg-gray-200"
                     >
                       {item.icon}
                       <h3 className="text-lg font-bold">{item.name}</h3>
-                    </Link>
+                    </div>
                   )}
                 </li>
               ))}
@@ -315,8 +320,7 @@ export default function AccountMenu(props: accountmenuprops) {
           onClick={() => props.setProfile(false)}
           className="w-fit h-fit absolute top-1 right-1"
         >
-          {" "}
-          <CloseVector width="35px" height="35px" />{" "}
+          <CloseVector width="35px" height="35px" />
         </div>
       )}
     </motion.aside>

@@ -6,11 +6,12 @@ import {
   useScroll,
   useTransform,
 } from "framer-motion";
-import PrimaryButton from "../Button";
+
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Orderpricetype } from "@/src/context/OrderContext";
+import PrimaryButton from "../Button";
 
 export const BannerSkeleton = () => {
   return (
@@ -254,6 +255,7 @@ interface BannerProps {
       name: string;
     };
     name: string;
+    link?: string;
   };
   style?: CSSProperties;
 }
@@ -290,6 +292,15 @@ export const Banner: React.FC<BannerProps> = (props) => {
       >
         {props.data.name}
       </motion.h3>
+      {props.data.link && (
+        <PrimaryButton
+          text="Learn More"
+          width="270px"
+          height="50px"
+          type="button"
+          onClick={() => (window.location.href = props.data.link as string)}
+        />
+      )}
     </div>
   );
 };

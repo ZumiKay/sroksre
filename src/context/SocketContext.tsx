@@ -20,22 +20,22 @@ export const useSocket = () => {
 export const SocketProvider = ({ children }: { children: ReactNode }) => {
   const [sockset, setsocket] = useState<Socket | null>(null);
 
-  // useEffect(() => {
-  //   const socketIo = io(process.env.SOCKET_URL as string);
-  //   socketIo.on("connect", () => {
-  //     console.log("Connected to socket server");
-  //   });
-  //   socketIo.on("connect_error", (err) => {
-  //     console.error("Connection error:", err);
-  //   });
-  //   socketIo.on("disconnect", () => {
-  //     console.log("Disconnected from socket server");
-  //   });
-  //   setsocket(socketIo);
-  //   return () => {
-  //     socketIo.disconnect();
-  //   };
-  // }, []);
+  useEffect(() => {
+    const socketIo = io(process.env.SOCKET_URL as string);
+    socketIo.on("connect", () => {
+      console.log("Connected to socket server");
+    });
+    socketIo.on("connect_error", (err) => {
+      console.error("Connection error:", err);
+    });
+    socketIo.on("disconnect", () => {
+      console.log("Disconnected from socket server");
+    });
+    setsocket(socketIo);
+    return () => {
+      socketIo.disconnect();
+    };
+  }, []);
 
   return (
     <SocketContext.Provider value={sockset}>{children}</SocketContext.Provider>

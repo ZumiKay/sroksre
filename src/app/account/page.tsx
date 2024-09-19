@@ -223,6 +223,14 @@ export default function AuthenticatePage() {
     setverify({ cid: false, email: false });
   };
 
+  const servicesSignIn = async (type: "google" | "discord") => {
+    const res = await signIn(type);
+    if (res?.ok) {
+      router.replace("/dashboard");
+      router.refresh();
+    }
+  };
+
   return (
     <>
       <title>Login / Signup | SrokSre</title>
@@ -441,7 +449,7 @@ export default function AuthenticatePage() {
                         Icon={
                           <i className="fa-brands fa-discord text-lg text-blue-900"></i>
                         }
-                        onClick={() => signIn("discord")}
+                        onClick={() => servicesSignIn("discord")}
                       />
                       <PrimaryButton
                         type="button"
@@ -453,7 +461,7 @@ export default function AuthenticatePage() {
                         color="white"
                         textcolor="black"
                         radius="10px"
-                        onClick={() => signIn("google")}
+                        onClick={() => servicesSignIn("google")}
                         Icon={
                           <i className="fa-brands fa-google text-lg text-red-600"></i>
                         }

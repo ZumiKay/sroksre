@@ -11,7 +11,7 @@ import {
 import Prisma from "@/src/lib/prisma";
 import {
   calculateDiscountProductPrice,
-  getDiscountedPrice,
+ 
 } from "@/src/lib/utilities";
 
 import { revalidatePath } from "next/cache";

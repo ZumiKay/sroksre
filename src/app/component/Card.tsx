@@ -256,6 +256,7 @@ export default function Card(props: cardprops) {
         max-large_phone:w-[200px]
         max-small_phone:w-[180px]
         max-smallest_phone:w-[150px]
+        animate-fade-in
         `}
       >
         <div

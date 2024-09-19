@@ -5,16 +5,11 @@ import Modal from "./Modals";
 
 export default function LoadingIcon({ style }: { style?: CSSProperties }) {
   return (
-    <div
-      style={style}
-      className="w-screen h-screen absolute flex items-center justify-center"
-    >
-      <div className="loadingio-spinner-double-ring-op62hjn5ktc w-fit h-fit">
-        <div className="ldio-jhvhak8eufc">
-          <div></div>
-          <div></div>
-          <div></div>
-        </div>
+    <div className="loadingio-spinner-double-ring-op62hjn5ktc w-fit h-fit pl-10">
+      <div className="ldio-jhvhak8eufc">
+        <div></div>
+        <div></div>
+        <div></div>
       </div>
     </div>
   );

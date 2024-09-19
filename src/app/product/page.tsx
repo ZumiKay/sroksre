@@ -445,7 +445,6 @@ export default async function ProductsPage({
         max-small_phone:p-1
         max-smallest_phone:gap-x-2
         max-smallest_phone:p-0
-        
         "
         >
           {allproduct.data?.map((i, idx) => (
