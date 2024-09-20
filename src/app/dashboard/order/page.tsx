@@ -21,7 +21,6 @@ import {
 
 import { OrderUserType } from "../../checkout/action";
 import { getCheckoutdata } from "../../checkout/page";
-import { Role } from "@prisma/client";
 
 export interface AllorderStatus {
   id: string;
@@ -134,7 +133,7 @@ export default async function OrderManagement({
                     idx={idx + 1}
                     data={i as AllorderStatus}
                     param={searchParams}
-                    isAdmin={getuser.role === Role.ADMIN}
+                    isAdmin={getuser.role === "ADMIN"}
                   />
                 ))
               )}

@@ -1,6 +1,5 @@
 "use server";
 
-import { Role } from "@prisma/client";
 import { handleEmail } from "../checkout/action";
 
 export interface userdata {
@@ -11,7 +10,7 @@ export interface userdata {
   firstname?: string;
   lastname?: string;
   sessionid?: string;
-  role?: Role;
+  role?: "ADMIN" | "USER" | "EDITOR";
   agreement?: boolean;
   cid?: string;
 }

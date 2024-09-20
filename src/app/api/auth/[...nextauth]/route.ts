@@ -9,7 +9,6 @@ import {
 } from "@/src/lib/userlib";
 import { NextAuthOptions } from "next-auth";
 import { generateRandomPassword } from "@/src/lib/utilities";
-import { Role } from "@prisma/client";
 
 interface JwtType {
   name: string;
@@ -18,7 +17,7 @@ interface JwtType {
   picture?: string;
   image?: string;
   id: number;
-  role: Role;
+  role: "ADMIN" | "USER" | "EDITOR";
   iat: number;
   exp: number;
   jti: string;

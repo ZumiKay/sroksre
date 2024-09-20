@@ -1,6 +1,6 @@
 import { getUser } from "@/src/context/OrderContext";
 import { PolicyButton, QuestionCard, SidePolicyBar } from "./component";
-import { Role } from "@prisma/client";
+
 import {
   Addpolicytype,
   Addquestiontype,
@@ -86,7 +86,7 @@ export default async function PrivacyandPolicy({
   return (
     <div className="w-full min-h-screen">
       <SidePolicyBar
-        isAdmin={user?.role === Role.ADMIN}
+        isAdmin={user?.role === "ADMIN"}
         data={[
           { id: 0, content: "FAQs" },
           ...allpolicy.map((i) => ({ id: i.id, content: i.title })),
@@ -134,12 +134,12 @@ export default async function PrivacyandPolicy({
               {pageId !== 0 ? (
                 <PolicyContent
                   paragrah={policy as Addpolicytype}
-                  isAdmin={user?.role === Role.ADMIN}
+                  isAdmin={user?.role === "ADMIN"}
                 />
               ) : (
                 <PolicyContent
                   question={policy as Addquestiontype[]}
-                  isAdmin={user?.role === Role.ADMIN}
+                  isAdmin={user?.role === "ADMIN"}
                 />
               )}
             </Suspense>

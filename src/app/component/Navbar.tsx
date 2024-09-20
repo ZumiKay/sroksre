@@ -35,13 +35,8 @@ import {
   useEffectOnce,
   useScreenSize,
 } from "@/src/context/CustomHook";
-import LoadingIcon, {
-  ContainerLoading,
-  errorToast,
-  infoToast,
-  LoadingLogo,
-} from "./Loading";
-import { Role } from "@prisma/client";
+import LoadingIcon, { errorToast, infoToast } from "./Loading";
+
 import { CheckedNotification } from "../severactions/notification_action";
 import { Box, CircularProgress } from "@mui/material";
 import CookieConsent from "react-cookie-consent";
@@ -211,7 +206,7 @@ export default function Navbar({ session }: { session?: Usersessiontype }) {
             }
           />
 
-          {session?.role !== Role.ADMIN && (
+          {session?.role !== "USER" && (
             <div className="cart_container relative">
               <Image
                 src={Cart}
@@ -225,7 +220,7 @@ export default function Navbar({ session }: { session?: Usersessiontype }) {
             </div>
           )}
 
-          {session?.role === Role.ADMIN && (
+          {session?.role === "ADMIN" && (
             <>
               <div className="w-[30px] h-[30px] max-smallest_tablet:w-[25px] max-smallest_tablet:h-[25px] max-small_phone:w-[25px] max-small_phone:h-[25px] relative">
                 <Image

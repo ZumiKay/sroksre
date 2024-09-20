@@ -1,12 +1,13 @@
 "use client";
 import { Dayjs } from "dayjs";
 import React, { useContext, useState } from "react";
-import { Role } from "@prisma/client";
+
 import { Ordertype, Productordertype } from "./OrderContext";
 import { BannerType } from "../app/severactions/actions";
 import { Categorytype } from "../app/api/categories/route";
 import { InventoryType } from "../app/dashboard/inventory/varaint_action";
 
+type Role = "ADMIN" | "USER" | "EDITOR";
 export interface ActionReturnType<t = string> {
   success: boolean;
   message?: string;
