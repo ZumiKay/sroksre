@@ -84,7 +84,7 @@ export const getPolicesByPage = async (page: showtype) =>
   });
 
 export async function GET(req: NextRequest) {
-  const url = req.nextUrl.toString();
+  const url = req.url.toString();
   const param = extractQueryParams(url);
 
   if (!param.type) {

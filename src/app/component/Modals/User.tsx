@@ -45,7 +45,7 @@ export const Createusermodal = ({
 
   useEffect(() => {
     if (globalindex.useredit !== -1) {
-      if (allData.user) setdata(allData.user[globalindex.useredit]);
+      if (allData?.user) setdata(allData.user[globalindex.useredit]);
     }
   }, []);
 
@@ -200,7 +200,7 @@ export const Createusermodal = ({
                 text="Delete"
                 type="button"
                 disable={
-                  allData.user &&
+                  allData?.user &&
                   allData.user[globalindex.useredit].role === "ADMIN"
                 }
                 onClick={() => handleDelete(data.id as number)}

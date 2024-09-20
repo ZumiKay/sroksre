@@ -11,9 +11,7 @@ interface notificationParamType {
 }
 export async function GET(req: NextRequest) {
   try {
-    const param: notificationParamType = extractQueryParams(
-      req.nextUrl.toString()
-    );
+    const param: notificationParamType = extractQueryParams(req.url.toString());
     const user = await getUser();
 
     if (!user || !param.ty) {

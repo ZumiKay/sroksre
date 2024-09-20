@@ -4,7 +4,7 @@ import { extractQueryParams } from "../banner/route";
 
 export async function GET(request: NextRequest) {
   try {
-    const URL = request.nextUrl.toString();
+    const URL = request.url.toString();
     const params: { pc?: number; cc?: number; lt?: number; p?: number } =
       extractQueryParams(URL);
 

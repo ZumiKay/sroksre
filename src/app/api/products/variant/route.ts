@@ -9,7 +9,7 @@ interface paramtype {
 }
 export default async function GET(req: NextRequest) {
   try {
-    const request = req.nextUrl.toString();
+    const request = req.url.toString();
     const { ty, pid }: paramtype = extractQueryParams(request);
     let result;
 

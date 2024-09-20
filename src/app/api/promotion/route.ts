@@ -245,7 +245,7 @@ interface customparamPromotion {
 
 export async function GET(request: NextRequest) {
   try {
-    const URL = request.nextUrl.toString();
+    const URL = request.url.toString();
     const param: customparamPromotion = extractQueryParams(URL);
     let modified = {};
     let expirecount = 0;

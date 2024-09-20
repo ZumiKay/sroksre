@@ -6,7 +6,7 @@ import { calculateDiscountProductPrice } from "@/src/lib/utilities";
 
 export async function GET(request: NextRequest) {
   try {
-    const URL = request.nextUrl.toString();
+    const URL = request.url.toString();
 
     const { ty }: { ty?: string } = extractQueryParams(URL);
     const user = await getUser();

@@ -215,7 +215,7 @@ export function formatContainer(result: formatContainerType) {
 }
 
 export async function GET(request: NextRequest) {
-  const url = request.nextUrl.toString();
+  const url = request.url.toString();
   const { ty, id } = extractQueryParams(url) as Paramtype;
 
   if (ty && ty !== "detail" && ty !== "short") {

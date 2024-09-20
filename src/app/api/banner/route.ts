@@ -207,7 +207,7 @@ const getBannerData = async (id: Array<number>, model: any) => {
   return data ? data.map((i: any) => ({ value: i.id, label: i.name })) : null;
 };
 export async function GET(request: NextRequest) {
-  const params = request.nextUrl.toString();
+  const params = request.url.toString();
   const param: {
     limit?: number;
     ty?: string;

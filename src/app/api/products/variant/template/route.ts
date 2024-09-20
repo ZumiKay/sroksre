@@ -79,7 +79,7 @@ interface VariantTemplateParam {
 
 export async function GET(req: NextRequest) {
   try {
-    const searchParam = req.nextUrl.toString();
+    const searchParam = req.url.toString();
     const { ty, id } = extractQueryParams(
       searchParam
     ) as unknown as VariantTemplateParam;

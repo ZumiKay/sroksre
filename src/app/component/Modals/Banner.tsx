@@ -124,7 +124,7 @@ export const BannerModal = ({
 
   const handleCreate = async () => {
     setloading(true);
-    const allbanner = [...(allData.banner ?? [])];
+    const allbanner = [...(allData?.banner ?? [])];
     const URL = "/api/banner";
 
     if (banner.name === "") {

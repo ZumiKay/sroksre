@@ -106,7 +106,7 @@ export default function UsermanagementPage({
           </div>
         </div>
         <div className="userlist w-full h-fit mt-10 flex flex-row gap-5 flex-wrap justify-center">
-          {allData.user?.map((i, idx) => (
+          {allData?.user?.map((i, idx) => (
             <UserCard
               index={idx}
               firstname={i.firstname}

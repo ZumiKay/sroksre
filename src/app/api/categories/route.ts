@@ -172,7 +172,7 @@ export async function PUT(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
-  const url = req.nextUrl.toString();
+  const url = req.url.toString();
   const { ty } = extractQueryParams(url);
 
   try {

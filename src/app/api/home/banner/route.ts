@@ -10,7 +10,7 @@ interface paramsType {
   take?: string;
 }
 export async function GET(req: NextRequest) {
-  const url = req.nextUrl.toString();
+  const url = req.url.toString();
   const param = extractQueryParams(url);
   const { q, ty, take } = param as paramsType;
   const takeInt = parseInt(take ?? "5");

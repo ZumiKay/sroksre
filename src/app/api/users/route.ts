@@ -20,7 +20,7 @@ interface Userparam {
 
 export async function GET(request: NextRequest) {
   try {
-    const url = request.nextUrl.toString();
+    const url = request.url.toString();
     const params: Userparam = extractQueryParams(url);
 
     const searchCondition: prisma.UserWhereInput = params.search

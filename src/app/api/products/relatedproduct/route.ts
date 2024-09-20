@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
       limit = 3,
       child_id,
       promoid,
-    }: GetRelatedProductParamType = extractQueryParams(req.nextUrl.toString());
+    }: GetRelatedProductParamType = extractQueryParams(req.url.toString());
 
     if (!targetId || !parent_id) {
       return Response.json({}, { status: 400 });

@@ -141,7 +141,7 @@ export function AddSubCategoryMenu({ index }: { index: number }) {
   const [editIdx, setedit] = useState(-1);
 
   useEffect(() => {
-    index !== -1 && allData.category && setcategory(allData.category[index]);
+    index !== -1 && allData?.category && setcategory(allData.category[index]);
   }, []);
 
   const handleAdd = () => {
