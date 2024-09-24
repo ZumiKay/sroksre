@@ -10,12 +10,11 @@ interface paramsType {
   take?: string;
 }
 export async function GET(req: NextRequest) {
-  const url = req.url.toString();
-  const param = extractQueryParams(url);
-  const { q, ty, take } = param as paramsType;
-  const takeInt = parseInt(take ?? "5");
-
   try {
+    const url = req.url.toString();
+    const param = extractQueryParams(url);
+    const { q, ty, take } = param as paramsType;
+    const takeInt = parseInt(take ?? "5");
     const banner = await Prisma.banner.findMany({
       where: {
         name: q && {

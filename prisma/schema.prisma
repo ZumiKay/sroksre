@@ -16,6 +16,11 @@ enum Role {
   EDITOR
 }
 
+enum ImgStatus {
+  TEMP
+  USED
+}
+
 enum Imagetemptype {
   COVER
   BANNER
@@ -148,7 +153,6 @@ model Productcover {
   url       String
   name      String
   type      String
-  isSaved   Boolean? @default(true)
   Products  Products @relation(fields: [productId], references: [id])
   productId Int
 }

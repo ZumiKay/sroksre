@@ -2,7 +2,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useSearchParams, useRouter } from "next/navigation";
 import PrimaryButton, { Selection } from "../component/Button";
-import Modal from "../component/Modals";
+import Modal, { SecondaryModal } from "../component/Modals";
 import { TextField } from "@mui/material";
 import Textarea from "@mui/joy/Textarea";
 import { useGlobalContext } from "@/src/context/GlobalContext";
@@ -184,7 +184,7 @@ const deleteRequest = async (qid?: number, pid?: number, ppid?: number) => {
 
 export const AddPolicyModal = ({ qa, plc, edit, openstate }: Policydata) => {
   const router = useRouter();
-  const { setopenmodal } = useGlobalContext();
+  const { setopenmodal, openmodal } = useGlobalContext();
   const [loading, setloading] = useState({ post: false, delete: false });
   const { isTablet, isMobile } = useScreenSize();
   const [state, setstate] = useState<Addpolicytype>({
@@ -306,14 +306,21 @@ export const AddPolicyModal = ({ qa, plc, edit, openstate }: Policydata) => {
     router.refresh();
   };
   return (
-    <Modal
-      customwidth={isMobile ? "100vw" : isTablet ? "90vw" : ""}
-      closestate={openstate ?? "addpolicy"}
-      customZIndex={150}
+    <SecondaryModal
+      open={(openstate ? openmodal[openstate] : openmodal.addpolicy) as boolean}
+      onPageChange={(val) =>
+        setopenmodal((prev) => ({
+          ...prev,
+          ...(openstate ? { [openstate]: val } : { addpolicy: val }),
+        }))
+      }
+      closebtn
+      size="5xl"
+      placement={isMobile ? "top" : "center"}
     >
       <form
         onSubmit={handleSubmit}
-        className="w-full h-[80vh] max-small_phone:h-full bg-white rounded-lg flex flex-col items-center gap-y-5 p-5"
+        className="w-full h-fit max-small_phone:h-fit bg-white rounded-lg flex flex-col items-center gap-y-5 p-5"
       >
         <Selection
           data={["Policy", "Question"]}
@@ -440,7 +447,7 @@ export const AddPolicyModal = ({ qa, plc, edit, openstate }: Policydata) => {
           />
         </div>
       </form>
-    </Modal>
+    </SecondaryModal>
   );
 };
 

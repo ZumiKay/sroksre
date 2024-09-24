@@ -30,7 +30,7 @@ export default function SearchContainer({ isMobile }: { isMobile: boolean }) {
       e.preventDefault();
       setloading(true);
       const response = await ApiRequest(
-        `/api/products/ty=search_q=${search}`,
+        `/api/products?ty=search&q=${search}`,
         undefined,
         "GET"
       );

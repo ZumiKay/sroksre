@@ -27,6 +27,7 @@ import { AllorderType, isObjectEmpty } from "@/src/lib/utilities";
 import { shippingtype } from "../../component/Modals/User";
 import PaginationCustom from "../../component/Pagination_Component";
 import { Input } from "@nextui-org/react";
+import { useScreenSize } from "@/src/context/CustomHook";
 
 export const SelectionSSR = ({
   name,
@@ -145,7 +146,7 @@ export const DownloadButton = () => {
         onClick={() =>
           setopenmodal((prev) => ({ ...prev, exportoption: true }))
         }
-        height="50px"
+        height="40px"
         type="button"
         text="Export"
         style={{ padding: "10px" }}
@@ -240,7 +241,7 @@ export const FilterButton = ({
         text={isFilter ? "Filter" : "Filtered"}
         color={!isFilter ? "black" : undefined}
         radius="10px"
-        height="50px"
+        height="40px"
         width="150px"
       />
 
@@ -250,7 +251,7 @@ export const FilterButton = ({
           text={"Clear Filter"}
           color={"red"}
           radius="10px"
-          height="50px"
+          height="40px"
           width="150px"
           onClick={() => handleClear()}
         />
@@ -338,6 +339,7 @@ export const ButtonSsr = ({
         color={color}
         height={height}
         width={width}
+        style={{ minWidth: "100px" }}
         onClick={() => handleClick()}
       />
       {openmodal[clickedtype] && (
@@ -409,6 +411,7 @@ const FilterMenu = ({
   const [filterdata, setfilterdata] = useState<Filterdatatype>({});
   const [isFilter, setisFilter] = useState(false);
   const { setopenmodal } = useGlobalContext();
+  const { isMobile } = useScreenSize();
 
   useEffect(() => {
     if (
@@ -491,6 +494,7 @@ const FilterMenu = ({
           Filter by
         </h2>
       )}
+      placement={isMobile ? "top" : "center"}
     >
       <LocalizationProvider dateAdapter={AdapterDayjs}>
         <div className="w-full h-full bg-white rounded-lg grid gap-y-5 font-bold text-lg p-5">
@@ -613,35 +617,34 @@ export const AmountRange = ({
     }
   };
   return (
-    <div className="Pricerange_Container inline-flex flex-wrap gap-x-5 w-full justify-start">
-      <div className="w-full start inline-flex  gap-x-5 text-lg font-medium items-center">
-        <label htmlFor="from"> From </label>
-        <Input
-          type="number"
-          id="price"
-          name="startprice"
-          placeholder="0.00"
-          endContent={"$"}
-          value={data.startprice?.toString()}
-          onChange={handleChange}
-          min={0}
-          className="w-full h-[50px]"
-        />
-      </div>
-      <div className="w-full start inline-flex gap-x-5 text-lg font-medium items-center">
-        <label htmlFor="from"> To </label>
-        <Input
-          type="number"
-          id="price"
-          name="endprice"
-          value={data.endprice?.toString() ?? ""}
-          placeholder="0.00"
-          endContent={"$"}
-          onChange={handleChange}
-          min={0}
-          className="w-full h-[50px]"
-        />
-      </div>
+    <div className="Pricerange_Container inline-flex gap-x-5 w-full justify-start">
+      <Input
+        type="number"
+        id="price"
+        name="startprice"
+        placeholder="0.00"
+        label="From"
+        labelPlacement="outside"
+        endContent={"$"}
+        value={data.startprice?.toString()}
+        onChange={handleChange}
+        min={0}
+        className="w-full h-[50px]"
+      />
+
+      <Input
+        type="number"
+        id="price"
+        name="endprice"
+        value={data.endprice?.toString() ?? ""}
+        placeholder="0.00"
+        endContent={"$"}
+        label="To"
+        labelPlacement="outside"
+        onChange={handleChange}
+        min={0}
+        className="w-full h-[50px]"
+      />
     </div>
   );
 };

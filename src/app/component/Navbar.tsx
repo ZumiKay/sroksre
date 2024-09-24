@@ -206,7 +206,7 @@ export default function Navbar({ session }: { session?: Usersessiontype }) {
             }
           />
 
-          {session?.role !== "USER" && (
+          {session?.role !== "ADMIN" && (
             <div className="cart_container relative">
               <Image
                 src={Cart}

@@ -21,7 +21,7 @@ import {
   ManageStockContainer,
   MapSelectedValuesToVariant,
 } from "./VariantModalComponent";
-import { Badge, Button } from "@nextui-org/react";
+import { Badge, Button, Input } from "@nextui-org/react";
 import TemplateContainer, {
   AddTemplateModal,
 } from "./Variantcomponent/TemplateContainer";
@@ -142,7 +142,7 @@ export const Variantcontainer = ({
   //Fetch variant stock
   const fetchstock = async (index: number) => {
     const asyncfetchdata = async () => {
-      const URL = `/api/products/ty=${type}_pid=${index}`;
+      const URL = `/api/products?ty=${type}&pid=${index}`;
       const response = await ApiRequest(URL, undefined, "GET");
 
       if (!response.success) {
@@ -221,8 +221,7 @@ export const Variantcontainer = ({
     setnew("variant");
   };
 
-  const handleAddColor = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const handleAddColor = () => {
     const { color, name } = colordata;
     if (color?.hex === "" || !name) {
       errorToast(color.hex === "" ? "Please Select Color" : "Name is Required");
@@ -750,12 +749,14 @@ export const Variantcontainer = ({
         )}
         {newadd === "info" && (
           <div className="addcontainer w-[95%] h-full flex flex-col gap-y-5 rounded-lg p-2">
-            <input
+            <Input
               name="name"
-              placeholder="Variant Name"
+              type="text"
+              label="Variant Name"
               value={name}
               onChange={(e) => setname(e.target.value)}
-              className="text-sm font-medium pl-1 h-[40px] w-full border-2 border-gray-300 rounded-md"
+              size="lg"
+              className="w-full"
             />
             {temp && temp.type === "COLOR" ? (
               <div className="color_container w-full h-fit flex flex-col gap-y-5">
@@ -952,13 +953,13 @@ export const Variantcontainer = ({
               <div
                 onClick={() => setnew("variant")}
                 className="card w-[350px] h-[250px] 
-                max-smallest_phone:w-[275px]
+                max-small_phone:w-[200px] max-small_phone:h-[150px]
               bg-blue-300 rounded-lg grid place-content-center place-items-center transition duration-200 cursor-pointer hover:bg-transparent hover:outline hover:outline-1 hover:outline-black"
               >
                 <Image
                   src={Variantimg}
                   alt="Icon"
-                  className="w-[70px] h-[70px[ object-contain pb-10"
+                  className="w-[100px] h-[100px] object-contain pb-10"
                 />
                 <div className=" w-full h-fit text-black flex flex-row items-center gap-x-5">
                   <h3 className="text-2xl font-bold">
@@ -988,7 +989,7 @@ export const Variantcontainer = ({
                   }
                   setnew("stock");
                 }}
-                className="card w-[350px] h-[250px] max-smallest_phone:w-[275px] bg-blue-300 rounded-lg grid place-content-center place-items-center transition duration-200 cursor-pointer hover:bg-transparent hover:outline hover:outline-1 hover:outline-black"
+                className="card w-[350px] h-[250px] max-small_phone:w-[200px] max-small_phone:h-[150px] bg-blue-300 rounded-lg grid place-content-center place-items-center transition duration-200 cursor-pointer hover:bg-transparent hover:outline hover:outline-1 hover:outline-black"
               >
                 <Image
                   src={Variantstockimg}

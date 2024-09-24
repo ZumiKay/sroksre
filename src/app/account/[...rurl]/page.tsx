@@ -34,7 +34,7 @@ export default function ResetPage({ params }: { params: { rurl: string } }) {
   useEffect(() => {
     const handleVerify = async () => {
       if (match) {
-        const url = `/api/users/vfy/${match[1]}`;
+        const url = `/api/users/vfy?cid=${match[1]}`;
         const verify = await ApiRequest(url, undefined, "GET", "JSON");
         if (!verify.success) {
           setloading(false);

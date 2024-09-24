@@ -92,6 +92,13 @@ interface SecondaryModalInterface {
   onPageChange?: (val: boolean) => void;
   closebtn?: boolean;
   style?: CSSProperties;
+  placement?:
+    | "center"
+    | "auto"
+    | "top"
+    | "top-center"
+    | "bottom"
+    | "bottom-center";
   size:
     | "xs"
     | "sm"
@@ -113,15 +120,18 @@ export function SecondaryModal({
   onPageChange,
   closebtn,
   style,
+  placement,
 }: SecondaryModalInterface) {
   return (
     <Modals
       hideCloseButton={closebtn ? !closebtn : true}
       size={size}
       isOpen={open}
+      placement={placement}
       closeButton
       style={style}
       className="z-[200]"
+      scrollBehavior="normal"
       onOpenChange={(open) => {
         onPageChange && onPageChange(open);
       }}
@@ -134,7 +144,7 @@ export function SecondaryModal({
                 {header()}
               </ModalHeader>
             )}
-            <ModalBody>{children}</ModalBody>
+            <ModalBody className="overflow-y-auto">{children}</ModalBody>
             {footer && <ModalFooter>{footer(onClose)}</ModalFooter>}
           </>
         )}

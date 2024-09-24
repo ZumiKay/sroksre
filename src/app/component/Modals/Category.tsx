@@ -6,14 +6,14 @@ import {
   useGlobalContext,
 } from "@/src/context/GlobalContext";
 import React, { ChangeEvent, useEffect, useState } from "react";
-import { errorToast, LoadingText, successToast } from "../Loading";
+import { errorToast, successToast } from "../Loading";
 import {
   ApiRequest,
   Delayloading,
   useScreenSize,
 } from "@/src/context/CustomHook";
 import { motion } from "framer-motion";
-import Modal, { SecondaryModal } from "../Modals";
+import { SecondaryModal } from "../Modals";
 import { AddSubCategoryMenu } from "../ToggleMenu";
 import PrimaryButton from "../Button";
 import { SelectionCustom } from "../Pagination_Component";
@@ -74,6 +74,7 @@ export const Category = () => {
   const [show, setshow] = useState<"Create" | "Edit">("Create");
   const [loading, setloading] = useState(false);
   const [catetype, setcatetype] = useState<Categorytype>("normal");
+  const { isMobile, isTablet } = useScreenSize();
 
   const handleAdd = async () => {
     const isExist = allData?.category?.some(
@@ -166,6 +167,7 @@ export const Category = () => {
       onPageChange={(val) =>
         setopenmodal((prev) => ({ ...prev, createCategory: val }))
       }
+      placement={isMobile ? "top-center" : isTablet ? "center" : undefined}
     >
       <div className="category relative rounded-md p-2 w-full h-full flex flex-col items-center bg-white gap-y-5">
         <CategoryNavBar />

@@ -235,28 +235,29 @@ export const SelectAndSearchProduct = ({
         className="inputcontainer w-full min-h-[50px] relative h-fit flex flex-row items-center border border-black rounded-lg"
       >
         <div className="w-full max-w-[95%] h-fit flex flex-row flex-wrap items-center gap-5 p-1">
-          {selectedvalue?.map((i, idx) => (
-            <div
-              key={idx}
-              className="w-fit h-fit flex flex-row items-center gap-x-5 bg-gray-300 rounded-lg"
-            >
-              <p
+          {selectedvalue &&
+            selectedvalue.map((i, idx) => (
+              <div
                 key={idx}
-                className="w-fit max-w-[200px] break-words  h-full p-2  font-bold "
+                className="w-fit h-fit flex flex-row items-center gap-x-5 bg-gray-300 rounded-lg"
               >
-                {i.label}
-              </p>
-              <p
-                onClick={() => handleDeleteSelected(idx)}
-                className="w-fit h-fit pr-1 relative"
-              >
-                <DeleteIcon />
-              </p>
-            </div>
-          ))}
+                <p
+                  key={idx}
+                  className="w-fit max-w-[200px] break-words  h-full p-2  font-bold "
+                >
+                  {i.label}
+                </p>
+                <p
+                  onClick={() => handleDeleteSelected(idx)}
+                  className="w-fit h-fit pr-1 relative"
+                >
+                  <DeleteIcon />
+                </p>
+              </div>
+            ))}
           <span
             ref={inputRef}
-            className="min-w-[200px] w-full h-full flex flex-col justify-center cursor-pointer focus:outline-none"
+            className="min-w-[200px] w-full h-full text-lg flex flex-col justify-center cursor-pointer focus:outline-none"
             role="textbox"
             onInput={handleInputChange}
             onClick={() => setfocus(true)}

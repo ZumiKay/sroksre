@@ -7,7 +7,6 @@ import {
   SubcategoriesState,
   VariantColorValueType,
   Varianttype,
-  infovaluetype,
   userdata,
 } from "../context/GlobalContext";
 import {
@@ -700,7 +699,6 @@ export const EditProduct = async (
               name: i.name,
               type: i.type,
               url: i.url,
-              isSaved: true,
             },
           })
         )

@@ -13,10 +13,20 @@ import {
   Variantcontainertype,
 } from "./VariantModal";
 import { errorToast } from "../Loading";
-import Modal from "../Modals";
-import { SketchPicker } from "react-color";
+import { SecondaryModal } from "../Modals";
+import {
+  SketchPicker,
+  PhotoshopPicker,
+  ChromePicker,
+  BlockPicker,
+  SwatchesPicker,
+  SliderPicker,
+  HuePicker,
+  AlphaPicker,
+  CirclePicker,
+} from "react-color";
 import { Badge, Button, Input } from "@nextui-org/react";
-import { StockCard, StockSelect } from "./Stock";
+import { StockCard } from "./Stock";
 import { HasPartialOverlap } from "@/src/lib/utilities";
 import { ApiRequest, useScreenSize } from "@/src/context/CustomHook";
 import Multiselect from "../MutiSelect";
@@ -533,7 +543,7 @@ export function ManageStockContainer({
 }
 
 interface ColorSelectModal {
-  handleAddColor: (e: FormEvent<HTMLFormElement>) => void;
+  handleAddColor: () => void;
   edit: number;
   open: boolean;
   setopen: (val: boolean) => void;
@@ -555,7 +565,7 @@ export const ColorSelectModal = ({
   setopen,
 }: ColorSelectModal) => {
   const [colorpicker, setcolorpicker] = useState(false);
-  const { isTablet, isMobile } = useScreenSize();
+  const { isMobile } = useScreenSize();
   return (
     <>
       <div
@@ -571,27 +581,44 @@ export const ColorSelectModal = ({
         Add Color
       </div>
       {open && (
-        <Modal
-          closestate="none"
-          customwidth={isTablet ? "50vw" : isMobile ? "90vw" : "30vw"}
-          customheight="30vh"
+        <SecondaryModal
+          open={open}
+          size={isMobile ? "full" : "3xl"}
+          placement={isMobile ? "top" : "center"}
+          onPageChange={() => {
+            setedit(-1);
+            setopen(false);
+          }}
+          closebtn
+          footer={() => {
+            return (
+              <PrimaryButton
+                text={edit === -1 ? "Confirm" : "Update"}
+                type="button"
+                onClick={() => {
+                  handleAddColor();
+                  setopen(false);
+                }}
+                disable={color.hex === ""}
+                width="100%"
+                textsize="13px"
+                radius="10px"
+                height="35px"
+              />
+            );
+          }}
         >
-          <form
-            onSubmit={(e) => {
-              handleAddColor(e);
-              setopen(false);
-            }}
-            className="relative w-full h-full bg-white flex flex-col items-center justify-center gap-y-3 p-3"
-          >
+          <form className="w-full h-fit bg-white flex flex-col items-center justify-center gap-y-3 p-3">
             <Input
               type="text"
               fullWidth
-              size="sm"
+              size="lg"
               label="Name"
               onChange={(e) => setcolor(e.target.value as string)}
               value={name}
               required
             />
+
             <label
               htmlFor="color"
               className="font-semibold text-sm w-full text-left"
@@ -607,69 +634,78 @@ export const ColorSelectModal = ({
                 setcolorpicker(true);
               }}
               className={`w-[100%] h-[50px] border-[5px] border-gray-300 rounded-lg`}
-              style={
-                edit === -1
-                  ? {
-                      background: `rgba(${color?.rgb.r},${color?.rgb.g},${color?.rgb.b},${color?.rgb.a})`,
-                    }
-                  : {
-                      backgroundColor: color.hex,
-                    }
-              }
+              style={{ backgroundColor: color.hex }}
             ></div>
 
-            <div className="action-btn flex flex-row w-full gap-x-3">
-              <PrimaryButton
-                text={edit === -1 ? "Confirm" : "Update"}
-                type="submit"
-                disable={color.hex === ""}
-                width="100%"
-                textsize="13px"
-                radius="10px"
-                height="35px"
-              />
-              <PrimaryButton
-                text="Close"
-                color="black"
-                type="button"
-                onClick={() => {
-                  setedit(-1);
-                  setopen(false);
-                }}
-                width="100%"
-                textsize="12px"
-                radius="10px"
-                height="35px"
-              />
-            </div>
             {colorpicker && (
-              <div className="absolute w-fit h-fit top-0 z-50">
-                {" "}
-                <SketchPicker
-                  width={isTablet || isMobile ? "90vw" : "29vw"}
-                  color={color.rgb as any}
-                  onChange={(value, _) => {
-                    setcolor({
-                      hex: value.hex,
-                      rgb: value.rgb as any,
-                    });
-                  }}
-                />{" "}
-                <PrimaryButton
-                  text="Close"
-                  color="lightcoral"
-                  type="button"
-                  onClick={() => {
-                    setcolorpicker(false);
-                  }}
-                  width="100%"
-                  textsize="10px"
-                  height="30px"
-                />
-              </div>
+              <SecondaryModal
+                onPageChange={(val) => setcolorpicker(val)}
+                footer={() => {
+                  return (
+                    <PrimaryButton
+                      text="Close"
+                      color="lightcoral"
+                      type="button"
+                      radius="10px"
+                      onClick={() => {
+                        setcolorpicker(false);
+                      }}
+                      width="100%"
+                      textsize="10px"
+                      height="30px"
+                    />
+                  );
+                }}
+                open={colorpicker}
+                size={"2xl"}
+                placement={isMobile ? "top" : "center"}
+              >
+                <div className="w-full h-full flex flex-col items-center gap-y-5 justify-center">
+                  <div className="w-full h-fit flex flex-col gap-3 items-center">
+                    <div className="w-full">
+                      <SliderPicker
+                        color={color.hex}
+                        onChange={(value, _) => {
+                          setcolor({
+                            hex: value.hex,
+                            rgb: value.rgb as any,
+                          });
+                        }}
+                      />
+                    </div>
+                    <CirclePicker
+                      color={color.hex}
+                      onChange={(value, _) => {
+                        setcolor({
+                          hex: value.hex,
+                          rgb: value.rgb as any,
+                        });
+                      }}
+                    />
+                  </div>
+
+                  <Input
+                    className="w-full h-[40px] max-small_phone:text-2xl text-lg"
+                    type="text"
+                    label="Hex Code"
+                    value={color.hex}
+                    size="lg"
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      // Regular expression to validate hex color code (#RRGGBB or #RGB)
+                      const isValidHex = /^#([0-9A-F]{3}){1,2}$/i.test(value);
+
+                      setcolor({
+                        rgb: { r: 0, g: 0, b: 0 },
+                        hex: value, // Default to gray if invalid
+                      });
+                    }}
+                  />
+                </div>
+              </SecondaryModal>
             )}
           </form>
-        </Modal>
+        </SecondaryModal>
       )}
     </>
   );

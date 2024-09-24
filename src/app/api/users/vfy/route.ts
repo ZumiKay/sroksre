@@ -6,6 +6,7 @@ import {
 import { z } from "zod";
 
 import { NextRequest } from "next/server";
+import { extractQueryParams } from "../../banner/route";
 
 interface Vfydatatype {
   email?: string;
@@ -150,5 +151,26 @@ export async function DELETE(request: NextRequest) {
   } catch (error) {
     console.log("Delete Error", error);
     return Response.json({ message: "Error Occured" }, { status: 500 });
+  }
+}
+
+export async function GET(req: NextRequest) {
+  try {
+    const url = req.nextUrl.toString();
+    const params = extractQueryParams(url);
+    if (params.cid) {
+      const user = await Prisma.user.findFirst({
+        where: { vfy: params.cid as string },
+        select: { id: true },
+      });
+      if (user) {
+        return Response.json({ data: { id: user.id } }, { status: 200 });
+      }
+      return Response.json({ message: "Incorrect Code" }, { status: 404 });
+    }
+    return Response.json({}, { status: 404 });
+  } catch (error) {
+    console.log("Verify User", error);
+    return Response.json({ message: "Failed To Verify" }, { status: 500 });
   }
 }

@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
       pid,
       cid,
       conId,
-    } = extractQueryParams(req.url.toString()) as paramsType;
+    } = extractQueryParams(req.nextUrl.toString()) as paramsType;
     const lt = parseInt(limit, 10);
 
     const product = await Prisma.products.findMany({
@@ -56,8 +56,6 @@ export async function GET(req: NextRequest) {
         },
       },
     });
-
-    console.log(product.length);
 
     let filteredproduct = product;
 

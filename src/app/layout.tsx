@@ -43,6 +43,7 @@ export default async function RootLayout({
           minHeight: "100vh",
           height: "100%",
           width: "100%",
+          overflowX: "hidden",
         }}
       >
         <GlobalContextProvider>

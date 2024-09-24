@@ -111,6 +111,13 @@ export default function AccountMenu(props: accountmenuprops) {
   const ref = useClickOutside(() => props.setProfile(false));
   const { isMobile } = useScreenSize();
 
+  useEffect(() => {
+    document.body.style.overflowY = "hidden";
+    return () => {
+      document.body.style.overflowY = "auto";
+    };
+  }, []);
+
   const handleSignOut = async () => {
     setloading(true);
 
@@ -281,12 +288,10 @@ export default function AccountMenu(props: accountmenuprops) {
                       onClick={() => {
                         setopenmodal((prev) => ({ ...prev, editHome: true }));
                       }}
-                      className="w-full h-full flex flex-row items-center gap-x-5 pl-2 rounded-lg transition hover:bg-gray-200 active:bg-gray-200"
+                      className="w-full h-full flex flex-row items-center cursor-pointer gap-x-5 pl-2 rounded-lg transition hover:bg-gray-200 active:bg-gray-200"
                     >
                       {item.icon}
-                      <h3 className="text-lg font-bold cursor-pointer">
-                        {item.name}
-                      </h3>
+                      <h3 className="text-lg font-bold">{item.name}</h3>
                     </div>
                   ) : (
                     <div
@@ -295,7 +300,7 @@ export default function AccountMenu(props: accountmenuprops) {
                         router.refresh();
                         isMobile && props.setProfile(false);
                       }}
-                      className="w-full h-full flex flex-row items-center gap-x-5 pl-2 rounded-lg transition hover:bg-gray-200 active:bg-gray-200"
+                      className="w-full h-full flex flex-row items-center gap-x-5 pl-2 rounded-lg transition hover:bg-gray-200 active:bg-gray-200 cursor-pointer"
                     >
                       {item.icon}
                       <h3 className="text-lg font-bold">{item.name}</h3>

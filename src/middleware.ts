@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { VerifyApiRoute, methodtype } from "./lib/middlewareaction";
 
 import { getToken } from "next-auth/jwt";
+import { Role } from "@prisma/client";
 
 export default async function middleware(req: NextRequest) {
   const requestURL = (path: string) => req.nextUrl.pathname.endsWith(path);
@@ -51,12 +52,9 @@ export default async function middleware(req: NextRequest) {
   if (url.startsWith("/api")) {
     const method: methodtype = req.method as methodtype;
 
-    const verifyroute = VerifyApiRoute(
-      url.replace("/api", ""),
-      method,
-      token && (token.role as string)
-    );
+    const role = token?.role as Role;
 
+    const verifyroute = VerifyApiRoute(url.replace("/api", ""), method, role);
     if (verifyroute.success) {
       return NextResponse.next();
     } else {
