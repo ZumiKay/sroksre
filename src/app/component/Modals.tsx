@@ -1,6 +1,7 @@
 "use client";
 
 import { CSSProperties, ReactNode, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import {
   GlobalIndexState,
   useGlobalContext,
@@ -45,8 +46,15 @@ export default function Modal({
     | string;
 }) {
   const ref = useRef<HTMLDivElement | null>(null);
-  const { openmodal, setopenmodal, setglobalindex, globalindex, setalldata } =
+  const { setopenmodal, setglobalindex, globalindex, setalldata } =
     useGlobalContext();
+
+  useEffect(() => {
+    document.body.style.overflowY = "hidden";
+    return () => {
+      document.body.style.overflowY = "auto";
+    };
+  }, []);
 
   return (
     <div
@@ -92,6 +100,7 @@ interface SecondaryModalInterface {
   onPageChange?: (val: boolean) => void;
   closebtn?: boolean;
   style?: CSSProperties;
+  scroll?: "normal" | "inside" | "outside";
   placement?:
     | "center"
     | "auto"
@@ -120,6 +129,7 @@ export function SecondaryModal({
   onPageChange,
   closebtn,
   style,
+  scroll,
   placement,
 }: SecondaryModalInterface) {
   return (
@@ -131,7 +141,7 @@ export function SecondaryModal({
       closeButton
       style={style}
       className="z-[200]"
-      scrollBehavior="normal"
+      scrollBehavior={scroll}
       onOpenChange={(open) => {
         onPageChange && onPageChange(open);
       }}

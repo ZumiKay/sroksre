@@ -2,9 +2,9 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useSearchParams, useRouter } from "next/navigation";
 import PrimaryButton, { Selection } from "../component/Button";
-import Modal, { SecondaryModal } from "../component/Modals";
+import { SecondaryModal } from "../component/Modals";
 import { TextField } from "@mui/material";
-import Textarea from "@mui/joy/Textarea";
+
 import { useGlobalContext } from "@/src/context/GlobalContext";
 import { ChangeEvent, FormEvent, useEffect, useState } from "react";
 import {
@@ -16,9 +16,15 @@ import {
 import { errorToast, successToast } from "../component/Loading";
 import { TabArrow } from "../component/Asset";
 import { PrimaryConfirmModal } from "../component/SideMenu";
-import { Button } from "@nextui-org/react";
-import { ApiRequest, useScreenSize } from "@/src/context/CustomHook";
-import { Showtypemodal } from "./secondcomponent";
+import { Button, Chip } from "@nextui-org/react";
+import {
+  ApiRequest,
+  useClickOutside,
+  useScreenSize,
+} from "@/src/context/CustomHook";
+import { Showtypemodal } from "./Secondcomponent";
+import Textarea from "@mui/joy/Textarea";
+import { tree } from "next/dist/build/templates/app-page";
 
 interface sidebarContentType {
   id: number;
@@ -110,6 +116,7 @@ export const SidePolicyBar = ({
   const [open, setopen] = useState(false);
   const router = useRouter();
   const searchparams = useSearchParams();
+  const ref = useClickOutside(() => setopen(false));
 
   const handleClick = (link: number) => {
     const params = new URLSearchParams(searchparams);
@@ -121,13 +128,15 @@ export const SidePolicyBar = ({
   return (
     <>
       <div
+        ref={ref}
         onClick={() => setopen(!open)}
-        className="w-fit h-fit text-xl z-50 bg-gray-100 rounded-lg p-2 cursor-pointer smallest_screen:hidden flex items-center justify-center fixed top-20 right-2 transition-colors duration-100 hover:bg-black active:bg-black"
+        className="w-fit h-fit text-lg z-50 bg-gray-100 rounded-lg p-2 cursor-pointer smallest_screen:hidden flex items-center justify-center fixed top-20 right-2 transition-colors duration-100"
       >
         {" "}
-        {open ? "X" : "Menu"}{" "}
+        {open ? "Close" : "Menu"}{" "}
       </div>
       <motion.aside
+        ref={ref}
         style={open ? { display: "block" } : {}}
         className="sidebar fixed bg-white  left-0 w-[250px] h-fit p-3 flex flex-col items-start gap-y-10 rounded-lg
       max-smallest_screen:hidden max-smallest_screen:top-[130px] max-smallest_screen:left-[60%] max-small_phone:left-[40%] z-50
@@ -184,9 +193,9 @@ const deleteRequest = async (qid?: number, pid?: number, ppid?: number) => {
 
 export const AddPolicyModal = ({ qa, plc, edit, openstate }: Policydata) => {
   const router = useRouter();
-  const { setopenmodal, openmodal } = useGlobalContext();
+  const { openmodal, setopenmodal } = useGlobalContext();
   const [loading, setloading] = useState({ post: false, delete: false });
-  const { isTablet, isMobile } = useScreenSize();
+  const [isEdit, setisEdit] = useState<{ [key: string]: boolean }>({});
   const [state, setstate] = useState<Addpolicytype>({
     title: "",
     Paragraph: [{ content: "" }],
@@ -210,6 +219,8 @@ export const AddPolicyModal = ({ qa, plc, edit, openstate }: Policydata) => {
     const updateparagraph = [...state.Paragraph];
 
     updateparagraph.push({ content: "" });
+
+    setisEdit({ [`input${updateparagraph.length - 1}`]: true });
 
     setstate((prev) => ({ ...prev, Paragraph: updateparagraph }));
   };
@@ -307,20 +318,43 @@ export const AddPolicyModal = ({ qa, plc, edit, openstate }: Policydata) => {
   };
   return (
     <SecondaryModal
-      open={(openstate ? openmodal[openstate] : openmodal.addpolicy) as boolean}
-      onPageChange={(val) =>
-        setopenmodal((prev) => ({
-          ...prev,
-          ...(openstate ? { [openstate]: val } : { addpolicy: val }),
-        }))
+      open={
+        (openstate ? openmodal[openstate] : openmodal["addpolicy"]) as boolean
       }
-      closebtn
-      size="5xl"
-      placement={isMobile ? "top" : "center"}
+      size="4xl"
+      placement="top"
+      footer={() => {
+        return (
+          <div className="w-full h-[40px] flex flex-row gap-x-5">
+            <PrimaryButton
+              width="100%"
+              type="submit"
+              text={edit ? "Update" : "Create"}
+              disable={!state && !question}
+              status={loading.post ? "loading" : "authenticated"}
+              radius="10px"
+            />
+            <PrimaryButton
+              width="100%"
+              type="button"
+              onClick={() => {
+                setopenmodal((prev) => ({
+                  ...prev,
+                  [openstate ?? "addpolicy"]: false,
+                }));
+              }}
+              disable={Object.entries(loading).some(([key, val]) => val)}
+              text="Cancel"
+              radius="10px"
+              color="lightcoral"
+            />
+          </div>
+        );
+      }}
     >
       <form
         onSubmit={handleSubmit}
-        className="w-full h-fit max-small_phone:h-fit bg-white rounded-lg flex flex-col items-center gap-y-5 p-5"
+        className="w-full h-fit max-small_phone:max-h-[50vh] overflow-x-hidden max-small_phone:h-full bg-white rounded-lg flex flex-col items-center gap-y-5 p-5"
       >
         <Selection
           data={["Policy", "Question"]}
@@ -329,6 +363,7 @@ export const AddPolicyModal = ({ qa, plc, edit, openstate }: Policydata) => {
           label="Type"
           disable={edit}
         />
+
         {type === "Policy" ? (
           <>
             <TextField
@@ -341,9 +376,31 @@ export const AddPolicyModal = ({ qa, plc, edit, openstate }: Policydata) => {
               fullWidth
               required
             />
-            <div className="w-full h-fit max-h-[90%] overflow-y-auto overflow-x-hidden pt-5">
+            <div className="w-full h-fit  pt-5">
               {state.Paragraph.map((par, idx) => (
-                <div key={idx} className="w-full h-fit  flex flex-col gap-5">
+                <div
+                  key={idx}
+                  className="w-full h-fit  flex flex-col gap-5 relative mt-2"
+                >
+                  <div className="w-full h-fit flex flex-row items-center gap-3">
+                    <Chip
+                      className={`text-white bg-sky-800`}
+                      onClick={() =>
+                        setisEdit((prev) => ({
+                          ...prev,
+                          [`input${idx}`]: isEdit[`input${idx}`]
+                            ? !isEdit[`input${idx}`]
+                            : true,
+                        }))
+                      }
+                    >
+                      {isEdit[`input${idx}`] ? "Done" : "Edit"}
+                    </Chip>
+                    <i
+                      onClick={() => handleDelete(idx, par.id, "paragraph")}
+                      className={`fa-solid fa-trash relative transition duration-300 active:text-white`}
+                    ></i>
+                  </div>
                   <TextField
                     name={`sub${idx + 1}`}
                     fullWidth
@@ -353,6 +410,7 @@ export const AddPolicyModal = ({ qa, plc, edit, openstate }: Policydata) => {
                     onChange={({ target }) =>
                       handleParagraphChange(target.value as string, idx)
                     }
+                    disabled={!isEdit[`input${idx}`]}
                   />
                   <Textarea
                     key={idx}
@@ -361,24 +419,20 @@ export const AddPolicyModal = ({ qa, plc, edit, openstate }: Policydata) => {
                     onChange={(e) => handleParagraphChange(e, idx)}
                     variant="outlined"
                     placeholder="Paragraph"
+                    disabled={!isEdit[`input${idx}`]}
                     required
                   />
-                  <i
-                    onClick={() => handleDelete(idx, par.id, "paragraph")}
-                    className={`fa-solid fa-trash relative transition duration-300 active:text-white left-[90%] bottom-2`}
-                  ></i>
                 </div>
               ))}
+              <Button
+                onClick={AddMoreParagraph}
+                type="button"
+                variant="bordered"
+                color="primary"
+              >
+                Add New
+              </Button>
             </div>
-
-            <Button
-              onClick={AddMoreParagraph}
-              type="button"
-              variant="bordered"
-              color="primary"
-            >
-              Add New
-            </Button>
           </>
         ) : (
           <div className="question w-full h-fit flex flex-col gap-y-5">
@@ -417,35 +471,12 @@ export const AddPolicyModal = ({ qa, plc, edit, openstate }: Policydata) => {
                 text="New Question"
                 onClick={handleAddQuestion}
                 radius="10px"
+                height="40px"
                 type="button"
               />
             )}
           </div>
         )}
-        <div className="w-full h-[40px] flex flex-row gap-x-5">
-          <PrimaryButton
-            width="100%"
-            type="submit"
-            text={edit ? "Update" : "Create"}
-            disable={!state && !question}
-            status={loading.post ? "loading" : "authenticated"}
-            radius="10px"
-          />
-          <PrimaryButton
-            width="100%"
-            type="button"
-            onClick={() => {
-              setopenmodal((prev) => ({
-                ...prev,
-                [openstate ?? "addpolicy"]: false,
-              }));
-            }}
-            disable={Object.entries(loading).some(([key, val]) => val)}
-            text="Cancel"
-            radius="10px"
-            color="lightcoral"
-          />
-        </div>
       </form>
     </SecondaryModal>
   );

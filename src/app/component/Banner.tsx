@@ -109,7 +109,7 @@ interface selectprops {
     data?: Array<SelectType>;
   } | null>;
 
-  onSelect?: (value: Array<SelectType> | SelectType) => void;
+  onSelect?: (value?: Array<SelectType> | SelectType) => void;
   value?: Array<SelectType>;
   singleselect?: boolean;
   placeholder?: string;
@@ -128,15 +128,12 @@ export const SelectAndSearchProduct = ({
   const [isLimit, setIsLimit] = useState(false);
   const [options, setoptions] = useState<Array<SelectType> | undefined>();
   const [inputValue, setInputValue] = useState<string>("");
-  const [selectedvalue, setselectedvalue] = useState<
-    SelectType[] | undefined
-  >();
+  const [selectedvalue, setselectedvalue] = useState<SelectType[] | undefined>(
+    value
+  );
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const conref = useRef<HTMLDivElement>();
 
-  useEffect(() => {
-    value && setselectedvalue(value);
-  }, [value]);
   useEffect(() => {
     const fetchData = async () => {
       setloading(true);
@@ -189,7 +186,10 @@ export const SelectAndSearchProduct = ({
       }
     }
 
-    onSelect && (singleselect ? onSelect(selected[0]) : onSelect(selected));
+    onSelect &&
+      (singleselect
+        ? onSelect(selected[0])
+        : onSelect(selected.length === 0 ? undefined : selected));
     setselectedvalue(selected);
   };
 
@@ -219,7 +219,11 @@ export const SelectAndSearchProduct = ({
     let selected = [...(selectedvalue ?? [])];
     selected.splice(idx, 1);
     setselectedvalue(selected);
-    onSelect && onSelect(selected);
+    onSelect &&
+      onSelect &&
+      (singleselect
+        ? onSelect(selected.length === 0 ? undefined : selected[0])
+        : onSelect(selected.length === 0 ? undefined : selected));
   };
 
   return (
@@ -284,7 +288,10 @@ export const SelectAndSearchProduct = ({
             }}
             animate={focus && { opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="option_container  bg-white w-full h-fit max-h-[400px] overflow-y-auto overflow-x-hidden p-2 flex flex-col items-center gap-y-5 border border-gray-300"
+            className={`option_container absolute  bg-white w-full h-fit max-h-[400px] 
+            overflow-y-auto overflow-x-hidden p-2 flex flex-col items-center gap-y-5 border border-gray-300
+            z-50
+            `}
           >
             {loading ? (
               <NormalSkeleton width="100%" height="30px" count={3} />

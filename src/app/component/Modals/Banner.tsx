@@ -201,13 +201,20 @@ export const BannerModal = ({
   };
 
   const handleSelectProduct = (
-    value: Array<SelectType> | SelectType,
-    type: string
+    type: string,
+    value?: Array<SelectType> | SelectType
   ) => {
-    setbanner((prev) => ({
-      ...prev,
-      [type]: value,
-    }));
+    if (type === "parentcate")
+      setbanner((prev) => ({
+        ...prev,
+        parentcate: value as any,
+        childcate: undefined,
+      }));
+    else
+      setbanner((prev) => ({
+        ...prev,
+        [type]: value,
+      }));
   };
 
   return (
@@ -312,7 +319,7 @@ export const BannerModal = ({
                 <SelectAndSearchProduct
                   getdata={(take, value) => getSelectItems(take, value, "prod")}
                   onSelect={(value) =>
-                    handleSelectProduct(value, "selectedproduct")
+                    handleSelectProduct("selectedproduct", value)
                   }
                   value={banner.selectedproduct}
                 />
@@ -344,7 +351,7 @@ export const BannerModal = ({
               </label>
               <SelectAndSearchProduct
                 getdata={(take, value) => getCategory("parent", value, 0)}
-                onSelect={(value) => handleSelectProduct(value, "parentcate")}
+                onSelect={(value) => handleSelectProduct("parentcate", value)}
                 value={banner.parentcate ? [banner.parentcate] : undefined}
                 placeholder="Select Parent Category"
                 singleselect
@@ -359,7 +366,7 @@ export const BannerModal = ({
                 </label>
                 <SelectAndSearchProduct
                   getdata={(take, value) => getCategory("parent", value, 0)}
-                  onSelect={(value) => handleSelectProduct(value, "parentcate")}
+                  onSelect={(value) => handleSelectProduct("parentcate", value)}
                   value={banner.parentcate ? [banner.parentcate] : undefined}
                   placeholder="Select Parent Category"
                   singleselect
@@ -379,7 +386,7 @@ export const BannerModal = ({
                       )
                     }
                     onSelect={(value) =>
-                      handleSelectProduct(value, "childcate")
+                      handleSelectProduct("childcate", value)
                     }
                     value={banner.childcate ? [banner.childcate] : undefined}
                     placeholder="Select Sub Category"
@@ -389,19 +396,19 @@ export const BannerModal = ({
               )}
             </div>
           )}
+          <PrimaryButton
+            text={banner.image?.url.length > 0 ? "EditImage" : "UploadImage"}
+            width="100%"
+            type="button"
+            color="lightblue"
+            textcolor="black"
+            hoverColor="black"
+            hoverTextColor="white"
+            onClick={() => setopenmodal({ ...openmodal, imageupload: true })}
+            Icon={<i className="fa-regular fa-image text-lg text-white"></i>}
+            radius="10px"
+          />
         </div>
-        <PrimaryButton
-          text={banner.image?.url.length > 0 ? "EditImage" : "UploadImage"}
-          width="100%"
-          type="button"
-          color="lightblue"
-          textcolor="black"
-          hoverColor="black"
-          hoverTextColor="white"
-          onClick={() => setopenmodal({ ...openmodal, imageupload: true })}
-          Icon={<i className="fa-regular fa-image text-lg text-white"></i>}
-          radius="10px"
-        />
       </div>
 
       {openmodal.imageupload && (

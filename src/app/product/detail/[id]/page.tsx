@@ -72,26 +72,26 @@ export default async function ProductDetailPage({
     <div className="productdetail__container h-full pt-5">
       <div
         className="product_section flex flex-row w-full h-fit 
-      max-smallest_tablet:flex-col max-smallest_tablet:items-center"
+      max-smallest_tablet:flex-col max-smallest_tablet:items-center
+      
+      "
       >
-        <div className="h-fit grid grid-cols-2 gap-y-2 place-items-start w-full max-large_tablet:flex max-large_tablet:flex-row max-large_tablet:justify-between max-large_tablet:items-center max-large_tablet:overflow-x-auto">
-          {data?.data.covers.map((img, idx) => (
-            <div
-              className="w-[450px] h-full 
-              max-h-[550px] max-large_tablet:w-full 
-              max-large_tablet:h-[450px]"
-              key={img.id}
-            >
+        <div className="w-full h-fit overflow-x-auto">
+          <div className="w-full grid grid-cols-2 gap-3 max-small_screen:flex max-small_screen:flex-row">
+            {data?.data.covers.map((img, idx) => (
               <Image
+                key={idx}
                 src={img.url}
                 alt={`Cover ${idx + 1}`}
-                className="w-full h-full object-cover"
+                className="w-[400px] h-[500px] object-cover
+                max-medium_screen:w-[350px] max-medium_screen:h-[450px]
+                "
                 width={777}
                 height={777}
                 loading="lazy"
               />
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
         <div
           className="product_detail  w-3/4 max-smallest_tablet:w-[95vw] 

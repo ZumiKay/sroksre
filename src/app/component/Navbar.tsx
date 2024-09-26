@@ -308,6 +308,13 @@ const CategoriesContainer = (props: { setopen: any }) => {
   const [loading, setloading] = useState(true);
   const { isMobile } = useScreenSize();
 
+  useEffect(() => {
+    document.body.style.overflowY = "hidden";
+    return () => {
+      document.body.style.overflowY = "auto";
+    };
+  }, []);
+
   const router = useRouter();
   const fetchcate = async () => {
     const request = await ApiRequest("/api/categories", undefined, "GET");
@@ -322,7 +329,9 @@ const CategoriesContainer = (props: { setopen: any }) => {
   return (
     <div
       onMouseLeave={() => props.setopen(false)}
-      className="categories__container w-full max-h-screen min-h-[50vh] h-full absolute top-[57px] z-[99] bg-[#F3F3F3] flex flex-row gap-5 items-start justify-start flex-wrap overflow-y-auto overflow-x-hidden max-small_phone:justify-center max-small_phone:h-screen"
+      className="categories__container w-full max-h-screen min-h-[50vh] h-full 
+      absolute top-[57px] z-[99] bg-[#F3F3F3] flex flex-row gap-5 items-start justify-start flex-wrap  overflow-x-hidden 
+      max-small_phone:justify-center max-small_phone:h-screen max-small_phone:pb-10"
     >
       {loading ? (
         <div className="w-full h-full flex items-center justify-center">
@@ -330,7 +339,7 @@ const CategoriesContainer = (props: { setopen: any }) => {
         </div>
       ) : (
         <>
-          <div className="ategory flex flex-col w-[200px] max-small_phone:w-[90%] pt-10 items-center justify-start p-1 gap-y-5">
+          <div className="category flex flex-col w-[200px] max-small_phone:w-[90%] pt-10 items-center justify-start p-1 gap-y-5">
             {allcate
               ?.filter((i) => i.type === "latest" || i.type === "popular")
               .map((item, idx) => (
