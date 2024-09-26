@@ -17,14 +17,9 @@ import { errorToast, successToast } from "../component/Loading";
 import { TabArrow } from "../component/Asset";
 import { PrimaryConfirmModal } from "../component/SideMenu";
 import { Button, Chip } from "@nextui-org/react";
-import {
-  ApiRequest,
-  useClickOutside,
-  useScreenSize,
-} from "@/src/context/CustomHook";
-import { Showtypemodal } from "./Secondcomponent";
+import { ApiRequest, useClickOutside } from "@/src/context/CustomHook";
+import { Showtypemodal } from "./secondcomponent";
 import Textarea from "@mui/joy/Textarea";
-import { tree } from "next/dist/build/templates/app-page";
 
 interface sidebarContentType {
   id: number;
