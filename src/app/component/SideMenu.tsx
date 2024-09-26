@@ -902,10 +902,11 @@ export const FilterMenu = ({
       onPageChange={(val) =>
         setopenmodal((prev) => ({ ...prev, filteroption: val }))
       }
+      placement="top"
       closebtn
     >
       {loading && <ContainerLoading />}
-      <div className="filtermenu w-full relative  h-fit bg-white p-5 rounded-md flex flex-col justify-center gap-y-5">
+      <div className="filtermenu w-full relative  h-fit bg-white p-5 max-small_phone:max-h-[50vh] rounded-md flex flex-col justify-center gap-y-5">
         {type !== "usermanagement" && (
           <input
             type="text"

@@ -72,12 +72,10 @@ export default async function ProductDetailPage({
     <div className="productdetail__container h-full pt-5">
       <div
         className="product_section flex flex-row w-full h-fit 
-      max-smallest_tablet:flex-col max-smallest_tablet:items-center
-      
-      "
+      max-smallest_tablet:flex-col max-smallest_tablet:items-center"
       >
         <div className="w-full h-fit overflow-x-auto">
-          <div className="w-full grid grid-cols-2 gap-3 max-small_screen:flex max-small_screen:flex-row">
+          <div className="w-full grid grid-cols-2 gap-3 max-small_screen:flex max-small_screen:flex-row max-small_screen:justify-start max-small_screen:items-center">
             {data?.data.covers.map((img, idx) => (
               <Image
                 key={idx}

@@ -833,6 +833,7 @@ export const DeleteProduct = async (id: number) => {
 
     await Prisma.orderproduct.deleteMany({ where: { productId: id } });
 
+    //Remove From Related Product
     if (Products.relatedproductId && Products.relatedproduct) {
       let currentid = Products.relatedproduct.productId as number[];
       currentid = currentid.filter((i) => i !== id);
@@ -848,6 +849,8 @@ export const DeleteProduct = async (id: number) => {
         });
       }
     }
+    //Remove From Homecontainer Item
+    await Prisma.containeritems.deleteMany({ where: { product_id: id } });
 
     await Prisma.products.delete({ where: { id: id } });
 

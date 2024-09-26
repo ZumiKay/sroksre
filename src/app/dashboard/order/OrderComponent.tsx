@@ -495,9 +495,46 @@ const FilterMenu = ({
         </h2>
       )}
       placement={isMobile ? "top" : "center"}
+      footer={() => {
+        return (
+          <div className="Filter_btn inline-flex items-center gap-x-5 w-full h-[50px]">
+            {type === "filter" ? (
+              <PrimaryButton
+                width="100%"
+                type="button"
+                text="Filter"
+                radius="10px"
+                disable={isFilter}
+                onClick={() => handleFilter()}
+              />
+            ) : (
+              <PrimaryButton
+                width="100%"
+                type="button"
+                text={`Export`}
+                status={loading ? "loading" : "authenticated"}
+                radius="10px"
+                disable={isObjectEmpty(filterdata)}
+                onClick={() => {
+                  next();
+                }}
+              />
+            )}
+            <PrimaryButton
+              type="button"
+              width="100%"
+              text="Clear"
+              disable={isObjectEmpty(filterdata)}
+              onClick={() => handleClear()}
+              color="lightcoral"
+              radius="10px"
+            />
+          </div>
+        );
+      }}
     >
       <LocalizationProvider dateAdapter={AdapterDayjs}>
-        <div className="w-full h-full bg-white rounded-lg grid gap-y-5 font-bold text-lg p-5">
+        <div className="w-full h-full max-h-[50vh] bg-white rounded-lg grid gap-y-5 font-bold text-lg p-5">
           <Input
             type="text"
             value={filterdata.q}
@@ -558,40 +595,6 @@ const FilterMenu = ({
               />
             </div>
           )}
-
-          <div className="Filter_btn inline-flex items-center gap-x-5 w-full h-[50px]">
-            {type === "filter" ? (
-              <PrimaryButton
-                width="100%"
-                type="button"
-                text="Filter"
-                radius="10px"
-                disable={isFilter}
-                onClick={() => handleFilter()}
-              />
-            ) : (
-              <PrimaryButton
-                width="100%"
-                type="button"
-                text={`Export`}
-                status={loading ? "loading" : "authenticated"}
-                radius="10px"
-                disable={isObjectEmpty(filterdata)}
-                onClick={() => {
-                  next();
-                }}
-              />
-            )}
-            <PrimaryButton
-              type="button"
-              width="100%"
-              text="Clear"
-              disable={isObjectEmpty(filterdata)}
-              onClick={() => handleClear()}
-              color="lightcoral"
-              radius="10px"
-            />
-          </div>
         </div>
       </LocalizationProvider>
     </SecondaryModal>
@@ -804,6 +807,7 @@ export function DetailModal({
         setclose();
       }}
       closebtn
+      style={{ backgroundColor: "#f2f2f2" }}
     >
       <div className="w-full h-full relative bg-[#f2f2f2] flex flex-col items-center rounded-lg max-small_phone:p-2 pl-5 pr-5">
         <h3 className="w-full h-fit text-center text-xl font-bold mt-5 mb-5">

@@ -613,6 +613,13 @@ export const NotificationMenu = forwardRef(
       getAllNotification();
     }, [page]);
 
+    useEffect(() => {
+      document.body.style.overflowY = "hidden";
+      return () => {
+        document.body.style.overflowY = "auto";
+      };
+    }, []);
+
     const handleScroll = () => {
       const containerRef = ref as any;
 
