@@ -252,13 +252,20 @@ export async function GET(request: NextRequest) {
           type: result.type as any,
           image: result.image as any,
           parentcate: result.parentcate_id
-            ? await getBannerData(
-                [result.parentcate_id],
-                Prisma.parentcategories
-              )
+            ? (
+                await getBannerData(
+                  [result.parentcate_id],
+                  Prisma.parentcategories
+                )
+              )[0]
             : undefined,
           childcate: result.childcate_id
-            ? await getBannerData([result.childcate_id], Prisma.childcategories)
+            ? (
+                await getBannerData(
+                  [result.childcate_id],
+                  Prisma.childcategories
+                )
+              )[0]
             : undefined,
           selectedproduct: result.selectedproduct_id
             ? await getBannerData(

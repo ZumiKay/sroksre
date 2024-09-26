@@ -100,10 +100,9 @@ export async function PUT(req: NextRequest) {
   }
 }
 export async function GET(req: NextRequest) {
-  const url = req.url.toString();
-  const { count } = extractQueryParams(url);
-
   try {
+    const url = req.nextUrl.toString();
+    const { count } = extractQueryParams(url);
     const user = await getUser();
     if (!user) {
       return Response.json({}, { status: 200 });

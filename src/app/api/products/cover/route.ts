@@ -1,12 +1,8 @@
-import { DeleteImageFromStorage } from "@/src/lib/utilities";
-import { NextRequest } from "next/server";
-import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
-import { storage } from "@/src/lib/firebase";
-
-import { randomUUID } from "crypto";
+import { NextRequest, NextResponse } from "next/server";
 import Prisma from "@/src/lib/prisma";
-import { Imgurl } from "@/src/app/component/Modals/Image";
+import { handleUpload, HandleUploadBody } from "@vercel/blob/client";
 import { getUser } from "@/src/context/OrderContext";
+import { del } from "@vercel/blob";
 
 interface DataCoverType {
   url: string;
@@ -16,63 +12,78 @@ interface DataCoverType {
   isSaved?: boolean;
 }
 
-const Savetotemp = async (name: string, uid: number) => {
-  const saved = await Prisma.tempimage.create({
-    data: { name, user_id: uid },
-  });
-  if (!saved) {
-    throw Error("Failed saved to temp");
-  }
-};
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   try {
-    const user = await getUser();
-
-    if (!user) {
-      throw new Error("Unauthenticated");
-    }
-    //remove unused image
-    const images = await Prisma.tempimage.findMany({
-      where: { user_id: user.id },
-    });
-    if (images.length !== 0) {
-      await Promise.all(images.map((i) => DeleteImageFromStorage(i.name)));
-    }
+    const body = (await request.json()) as HandleUploadBody;
 
     //Upload to storage
-    const data = await request.formData();
+    const UploadImage = await handleUpload({
+      body,
+      request,
+      onBeforeGenerateToken: async (
+        pathname
+        /* clientPayload */
+      ) => {
+        // Generate a client token for the browser to upload the file
+        // ⚠️ Authenticate and authorize users before generating the token.
+        // Otherwise, you're allowing anonymous uploads.
 
-    const allfile = Array.from(data.values());
-    const ImgData: Imgurl[] = [];
+        const user = await getUser();
 
-    for (const file of allfile) {
-      if (typeof file === "object" && "arrayBuffer" in file) {
-        const randomName = `${randomUUID()}_${Date.now()}`;
-        await Savetotemp(randomName, user.id);
+        if (!user) {
+          throw new Error("Unauthorized");
+        }
 
-        const storageref = ref(storage, `productcovers/${randomName}`);
-        await uploadBytes(storageref, file);
-        const url = await getDownloadURL(storageref);
+        //Save To Temp DB
 
-        ImgData.push({
-          url: url,
-          name: randomName,
-          type: file.type,
-          isSave: true,
+        await Prisma.tempimage.create({
+          data: {
+            name: pathname,
+            user_id: user.id,
+          },
         });
-      }
-    }
 
-    return Response.json({ data: ImgData }, { status: 200 });
+        return {
+          allowedContentTypes: [
+            "image/jpeg",
+            "image/png",
+            "image/gif",
+            "image/webp",
+          ],
+          tokenPayload: JSON.stringify({
+            pathname,
+          }),
+        };
+      },
+      onUploadCompleted: async ({ blob, tokenPayload }) => {
+        // Get notified of client upload completion
+        // ⚠️ This will not work on `localhost` websites,
+        // Use ngrok or similar to get the full upload flow
+
+        console.log("blob upload completed", blob, tokenPayload);
+
+        try {
+          console.log("Save Url To Database");
+        } catch (error) {
+          throw new Error("Could not update user");
+        }
+      },
+    });
+
+    return NextResponse.json(UploadImage);
   } catch (error) {
     console.log("Save Image", error);
-    return Response.json({ message: "Failed To Save" }, { status: 500 });
+    return NextResponse.json(
+      { message: "Failed To Save" },
+      { status: 400 } // The webhook will retry 5 times waiting for a 200
+    );
   }
 }
 interface DeleteCoverData {
   covers: Array<DataCoverType>;
   type: "createproduct" | "createbanner" | "createpromotion";
 }
+
 export async function DELETE(request: NextRequest) {
   const data: DeleteCoverData = await request.json();
   try {
@@ -95,13 +106,11 @@ export async function DELETE(request: NextRequest) {
               Prisma.productcover.delete({ where: { id: i?.id } })
             )
           );
-          await Promise.all(
-            isExist.map((cover) => DeleteImageFromStorage(cover.name))
-          );
+          await Promise.all(isExist.map((cover) => del(cover.url)));
         }
       }
     } else if (data.type === "createbanner") {
-      await Promise.all(data.covers.map((i) => DeleteImageFromStorage(i.name)));
+      await Promise.all(data.covers.map((i) => del(i.url)));
     }
     return Response.json({ message: "Image Deleted" }, { status: 200 });
   } catch (error) {

@@ -22,6 +22,7 @@ import {
   ApiRequest,
   Delayloading,
   useEffectOnce,
+  useScreenSize,
 } from "@/src/context/CustomHook";
 import Image from "next/image";
 import {
@@ -77,7 +78,7 @@ const CreateContainerType = ({
     setdata(updatedata);
   };
   return (
-    <div className="slideshow w-full h-fit flex flex-col gap-y-5 max-small_phone:w-[90vw]">
+    <div className="slideshow w-full h-fit flex flex-col gap-y-5">
       <PrimaryButton
         onClick={() => setopenmodal((prev) => ({ ...prev, Addbanner: true }))}
         width="200px"
@@ -88,7 +89,7 @@ const CreateContainerType = ({
         color="#4688A0"
         radius="10px"
       />
-      <div className="selected-slides w-full h-[58vh] overflow-y-auto grid grid-cols-2 gap-5 place-items-center">
+      <div className="selected-slides w-full h-fit max-h-[58vh] overflow-y-auto grid grid-cols-2 max-large_phone:grid-cols-1 gap-5 place-items-center">
         {data.items.map(
           (item, idx) =>
             item.item && (
@@ -236,7 +237,7 @@ const ScrollableContainerModal = ({
       <div
         className="selectedproduct w-full overflow-y-auto
        max-sm:grid-cols-1
-       h-[40vh] grid grid-cols-2 gap-x-5 gap-y-24 place-items-center"
+       h-fit max-h-[40vh] grid grid-cols-2 gap-x-5 gap-y-24 place-items-center"
       >
         {data.items.map(
           (item, idx) =>
@@ -342,6 +343,7 @@ const Homecontainermodal = ({
   isPhone,
 }: HomeContainerModalProps) => {
   const [data, setdata] = useState<Containertype>(HomecontainerdataInitialize);
+  const { isMobile } = useScreenSize();
 
   const [loading, setloading] = useState(false);
   const { openmodal, setopenmodal, globalindex, setglobalindex } =
@@ -473,6 +475,7 @@ const Homecontainermodal = ({
         onPageChange={(val) =>
           setopenmodal((prev) => ({ ...prev, homecontainer: val }))
         }
+        placement={isMobile ? "top" : "center"}
         style={{ backgroundColor: "#495464" }}
         header={() => (
           <h3 className="title w-fit text-2xl font-bold text-white ">
@@ -492,12 +495,11 @@ const Homecontainermodal = ({
           </h3>
         )}
       >
-        <div className="w-full  h-full relative bg-[#495464] text-white rounded-lg flex flex-col items-center overflow-y-auto overflow-x-hidden">
+        <div className="w-full h-fit relative bg-[#495464] text-white rounded-lg flex flex-col items-center overflow-y-auto overflow-x-hidden">
           {loading && <ContainerLoading />}
-
-          <div className="w-full h-[90%] flex flex-col items-center gap-y-5 pt-2">
+          <div className="w-full h-fit max-h-[70vh] overflow-x-hidden overflow-y-auto flex flex-col items-center gap-y-5 pt-2">
             {data.type === "" ? (
-              <div className="w-full h-[70vh] overflow-y-auto overflow-x-hidden scrollbar-hide mb-5">
+              <div className="w-full h-fit max-h-[70vh] overflow-y-auto overflow-x-hidden scrollbar-hide mb-5">
                 <ContainerTypeSelection onClick={(type) => handleType(type)} />
               </div>
             ) : openmodal["Addbanner"] ? (
@@ -508,7 +510,7 @@ const Homecontainermodal = ({
               />
             ) : (
               <>
-                <div className="w-full h-fit flex flex-col gap-y-5 mt-5">
+                <div className="w-full h-fit flex flex-col gap-y-5">
                   <h3 className="text-lg font-bold">Name</h3>
                   <TextInput
                     onChange={(e) =>
@@ -919,14 +921,14 @@ function AddBannerContainer({
       )}
 
       <div
-        className={`addbannerscroll__container w-full ${
+        className={`addbannerscroll__container w-full h-fit ${
           isFilter
             ? data.type !== "scrollable"
-              ? "h-[60vh]"
-              : "h-[48vh]"
+              ? "max-h-[60vh]"
+              : "max-h-[48vh]"
             : data.type !== "scrollable"
-            ? "h-[68vh]"
-            : "h-[65vh]"
+            ? "max-h-[68vh]"
+            : "max-h-[65vh]"
         } overflow-y-auto overflow-x-hidden grid grid-cols-2 max-smallest_tablet:grid-cols-1 gap-x-5 gap-y-20 place-items-center z-0 p-3`}
       >
         {/* Banner Card */}

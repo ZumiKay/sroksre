@@ -1,5 +1,5 @@
 import { getUser } from "@/src/context/OrderContext";
-import { PolicyButton, QuestionCard, SidePolicyBar } from "./component";
+import { PolicyButton, QuestionCard, SidePolicyBar } from "./Component";
 
 import {
   Addpolicytype,

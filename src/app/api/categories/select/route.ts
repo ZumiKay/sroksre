@@ -8,7 +8,7 @@ interface Paramtype {
   promoid?: string;
 }
 export async function GET(request: NextRequest) {
-  const url = request.nextUrl.toString();
+  const url = request.url.toString();
   const { ty, pid, promoid } = extractQueryParams(url) as Paramtype;
 
   if (!ty)

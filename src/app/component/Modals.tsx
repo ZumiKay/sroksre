@@ -1,6 +1,7 @@
 "use client";
 
 import { CSSProperties, ReactNode, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import {
   GlobalIndexState,
   useGlobalContext,
@@ -45,8 +46,15 @@ export default function Modal({
     | string;
 }) {
   const ref = useRef<HTMLDivElement | null>(null);
-  const { openmodal, setopenmodal, setglobalindex, globalindex, setalldata } =
+  const { setopenmodal, setglobalindex, globalindex, setalldata } =
     useGlobalContext();
+
+  useEffect(() => {
+    document.body.style.overflowY = "hidden";
+    return () => {
+      document.body.style.overflowY = "auto";
+    };
+  }, []);
 
   return (
     <div
@@ -92,6 +100,14 @@ interface SecondaryModalInterface {
   onPageChange?: (val: boolean) => void;
   closebtn?: boolean;
   style?: CSSProperties;
+  scroll?: "normal" | "inside" | "outside";
+  placement?:
+    | "center"
+    | "auto"
+    | "top"
+    | "top-center"
+    | "bottom"
+    | "bottom-center";
   size:
     | "xs"
     | "sm"
@@ -113,15 +129,19 @@ export function SecondaryModal({
   onPageChange,
   closebtn,
   style,
+  scroll,
+  placement,
 }: SecondaryModalInterface) {
   return (
     <Modals
       hideCloseButton={closebtn ? !closebtn : true}
       size={size}
       isOpen={open}
+      placement={placement}
       closeButton
       style={style}
       className="z-[200]"
+      scrollBehavior={scroll}
       onOpenChange={(open) => {
         onPageChange && onPageChange(open);
       }}
@@ -134,7 +154,7 @@ export function SecondaryModal({
                 {header()}
               </ModalHeader>
             )}
-            <ModalBody>{children}</ModalBody>
+            <ModalBody className="overflow-y-auto">{children}</ModalBody>
             {footer && <ModalFooter>{footer(onClose)}</ModalFooter>}
           </>
         )}

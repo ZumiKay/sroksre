@@ -1,6 +1,7 @@
 import {
   ApiRequest,
   Delayloading,
+  useDetectKeyboardOpen,
   useEffectOnce,
   useScreenSize,
 } from "@/src/context/CustomHook";
@@ -59,12 +60,15 @@ export function CreateProducts({
   } = useGlobalContext();
 
   const { isMobile, isTablet } = useScreenSize();
+  const isKeyBoardOpen = useDetectKeyboardOpen();
 
   const detailref = useRef<HTMLDivElement>(null);
   const [loading, setloading] = useState(true);
   const [stocktype, setstocktype] = useState<"stock" | "variant" | "size">(
     "stock"
   );
+
+  const [isInput, setisInput] = useState(false);
 
   const [subcate, setsubcate] = useState<Array<SubcategoriesState>>([]);
   const [cate, setcate] = useState<Array<CateogoryState> | undefined>(
@@ -97,7 +101,7 @@ export function CreateProducts({
   const fetchproductdata = async (id: number) => {
     setloading(true);
     const request = await ApiRequest(
-      `/api/products/ty=info_pid=${id}`,
+      `/api/products?ty=info&pid=${id}`,
       undefined,
       "GET",
       undefined,
@@ -229,17 +233,20 @@ export function CreateProducts({
     <>
       <SecondaryModal
         open={openmodal.createProduct}
-        closebtn={true}
-        size="full"
+        size={"full"}
+        placement="top"
       >
         {(loading || isLoading.PUT || isLoading.POST) && <ContainerLoading />}
         <form
           onSubmit={handleSubmit}
-          className="createform flex flex-col w-full max-h-[95vh] overflow-y-auto overflow-x-hidden items-center justify-center gap-y-5 "
+          className={`createform flex flex-col w-full h-fit ${
+            isMobile ? " max-h-[100%]" : "max-h-[95vh]"
+          }            
+          overflow-y-auto overflow-x-hidden items-center justify-center gap-y-5 relative`}
         >
           <div
             className="product__form w-[100%] 
-        flex flex-row gap-x-16 h-screen overflow-y-auto items-start justify-center 
+        flex flex-row gap-x-16 h-screen overflow-y-auto overflow-x-hidden items-start justify-center 
         max-smallest_screen:flex-col max-smallest_screen:items-center max-smallest_screen:justify-start
         max-smallest_screen:gap-y-10
         "
@@ -279,7 +286,7 @@ export function CreateProducts({
                 value={product.name}
                 required
                 size="lg"
-                className="w-[100%] h-[40px]  font-bold rounded-md "
+                className="w-[100%] h-[40px]  font-bold rounded-md"
               />
               <Input
                 type="text"
@@ -314,6 +321,13 @@ export function CreateProducts({
                 size="lg"
                 className="w-[100%] h-[40px] text-lg pl-1 font-bold rounded-md "
               />
+              <div className="w-full h-fit flex flex-col gap-y-5">
+                <label className="font-bold text-lg">
+                  {" "}
+                  Add related product (Optional){" "}
+                </label>
+                <SearchAndMultiSelect />
+              </div>
 
               <div className="category_sec flex flex-col gap-y-5  w-full h-fit font-bold">
                 {loading ? (
@@ -416,7 +430,11 @@ export function CreateProducts({
                   value={product.stock === 0 ? "" : product.stock?.toString()}
                   required
                   size="lg"
-                  className="w-full h-[40px] text-lg pl-1 font-bold rounded-md "
+                  onFocus={() => setisInput(true)}
+                  onBlur={() => setisInput(false)}
+                  className={`w-full h-[40px] text-lg pl-1 font-bold rounded-md ${
+                    isInput ? (isKeyBoardOpen ? "pb-[150px]" : "pb-0") : "pb-0"
+                  }`}
                 />
               ) : (
                 <>
@@ -469,13 +487,6 @@ export function CreateProducts({
                   <DetailsModal />
                 </div>
               )}
-              <div className="w-full h-fit flex flex-col gap-y-5">
-                <label className="font-bold text-lg">
-                  {" "}
-                  Add related product (Optional){" "}
-                </label>
-                <SearchAndMultiSelect />
-              </div>
             </div>
           </div>
           <div className="w-[90%] h-fit flex flex-row gap-x-5 justify-start">

@@ -172,10 +172,9 @@ export async function PUT(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
-  const url = req.url.toString();
-  const { ty } = extractQueryParams(url);
-
   try {
+    const url = req.url.toString();
+    const { ty } = extractQueryParams(url);
     const allcat = await Prisma.parentcategories.findMany({
       where: ty === "create" ? { type: categorytype.normal } : {},
       select: {

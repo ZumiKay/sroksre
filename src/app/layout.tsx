@@ -50,9 +50,10 @@ export default async function RootLayout({
           <NextUIProvider>
             <Suspense fallback={<ContainerLoading />}>
               <SocketProvider>
-                <div className="w-full h-full relative">
+                <div id="main" className="w-full h-full relative">
+                  <ToastContainer />
                   <Navbar session={session as any} />
-                  <ToastContainer /> {children}
+                  {children}
                   <Footer />
                 </div>
               </SocketProvider>

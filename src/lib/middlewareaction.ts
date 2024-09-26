@@ -1,65 +1,82 @@
 "use server";
 
-export type methodtype = "POST" | "PUT" | "GET" | "DELETE";
-export enum Roles {
-  admin = "ADMIN",
-  user = "USER",
-}
-interface Checkrouteprops {
-  path: string;
-  method: Array<methodtype>;
-}
-const alladminroute: Array<Checkrouteprops> = [
-  {
-    path: "/products/crud",
-    method: ["POST", "PUT", "DELETE"],
-  },
-  {
-    path: "/banner",
-    method: ["POST", "PUT", "DELETE"],
-  },
-  { path: "/image", method: ["DELETE"] },
-  { path: "/catories", method: ["POST", "PUT", "DELETE"] },
-  { path: "/users", method: ["GET", "DELETE", "POST", "PUT"] },
+import { Role } from "@prisma/client";
 
-  { path: "/product/cover", method: ["POST", "PUT", "DELETE"] },
-  { path: "/promotion", method: ["POST", "PUT", "DELETE", "GET"] },
-  { path: "/policy", method: ["POST", "PUT", "DELETE"] },
-];
-const userroute: Array<Checkrouteprops> = [
-  {
-    path: "/users/vfy",
-    method: ["POST", "GET", "DELETE"],
-  },
-  { path: "/users/logout", method: ["DELETE"] },
-  { path: "/auth/users/info", method: ["GET"] },
-  { path: "/policy", method: ["GET"] },
-];
+export type methodtype = "POST" | "PUT" | "GET" | "DELETE";
+
+const allAdminRoute: Map<string, methodtype[]> = new Map([
+  ["/products/crud", ["POST", "PUT", "DELETE"]],
+  ["/banner", ["POST", "PUT", "DELETE"]],
+  ["/image", ["DELETE"]],
+  ["/categories", ["POST", "PUT", "DELETE"]],
+  ["/users", ["GET", "DELETE", "POST", "PUT"]],
+  ["/users/info", ["GET", "DELETE"]],
+  ["/products", ["POST", "PUT", "DELETE"]],
+  ["/products/cover", ["POST", "PUT", "DELETE", "GET"]],
+  ["/products/variant/template", ["POST", "PUT", "GET", "DELETE"]],
+  ["/promotion", ["POST", "PUT", "DELETE", "GET"]],
+  ["/policy", ["POST", "PUT", "DELETE", "GET"]],
+  ["/users/notification", ["POST", "GET", "DELETE"]],
+  ["/order", ["POST", "PUT", "GET", "DELETE"]],
+  ["/home/product", ["GET"]],
+  ["/home/banner", ["GET"]],
+  ["/home", ["POST", "PUT", "DELETE", "GET"]],
+  ["/users/logout", ["DELETE"]],
+]);
+
+const allPublicRoute: Map<string, methodtype[]> = new Map([
+  ["/products", ["GET"]],
+  ["/products/relatedproduct", ["GET"]],
+  ["/categories", ["GET"]],
+  ["/categories/select", ["GET"]],
+  ["/auth/register", ["POST"]],
+  ["/order/cart/check", ["POST"]],
+  ["/users/vfy", ["POST", "DELETE"]],
+  ["/user/vfy/", ["GET"]],
+]);
+
+const userRoute: Map<string, methodtype[]> = new Map([
+  ["/users/vfy", ["POST", "GET", "DELETE"]],
+  ["/users/logout", ["DELETE"]],
+  ["/auth/users/info", ["GET", "DELETE"]],
+  ["/policy", ["GET"]],
+  ["/order", ["POST", "PUT", "GET", "DELETE"]],
+  ["/order/cart", ["POST", "GET", "DELETE"]],
+  ["/users/info", ["GET", "DELETE"]],
+  ["/users/logout", ["DELETE"]],
+]);
+
 export const VerifyApiRoute = (
   url: string,
-  method: "POST" | "PUT" | "GET" | "DELETE",
-  Role: string | null
-) => {
-  const isUserRoute = userroute.find(
-    (i) => url === i.path && i.method.includes(method)
-  );
+  method: methodtype,
+  role: Role | null
+): { success: boolean } => {
+  const normalizedUrl = url.toLowerCase();
 
-  const isAdminRoute = alladminroute.find(
-    (i) => url === i.path && i.method.includes(method)
-  );
-
-  if (isUserRoute) {
-    if (Role === Roles.user) {
-      return { success: true };
-    }
-  }
-
-  if (isAdminRoute) {
-    if (Role === Roles.admin) {
-      return { success: true };
-    }
+  if (!Role) {
     return { success: false };
   }
 
-  return { success: true };
+  const isUserRoute = userRoute.get(normalizedUrl)?.includes(method);
+
+  // Check if it's a valid user route
+  if (isUserRoute && role === Role.USER) {
+    return { success: true };
+  }
+
+  // Check if it's a valid admin route
+  const isAdminRoute = allAdminRoute.get(normalizedUrl)?.includes(method);
+  if (isAdminRoute && role === Role.ADMIN) {
+    return { success: true };
+  }
+
+  if (isAdminRoute && role !== Role.ADMIN) {
+    return { success: false };
+  }
+
+  if (!isAdminRoute && !isUserRoute) {
+    return { success: true };
+  }
+
+  return { success: false };
 };

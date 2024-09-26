@@ -75,8 +75,9 @@ export const Showtypemodal = ({
         <Button
           fullWidth
           isLoading={loading}
-          size="sm"
+          size="lg"
           color="success"
+          style={{ color: "white", fontWeight: "bold" }}
           variant="solid"
           onClick={() => handleUpdatePolicy()}
         >
@@ -85,10 +86,19 @@ export const Showtypemodal = ({
         <Button
           fullWidth
           isLoading={loading}
-          size="sm"
-          color="danger"
+          size="lg"
           variant="solid"
-          style={!isMobile ? { display: "none" } : {}}
+          style={
+            !isMobile
+              ? {
+                  display: "none",
+                }
+              : {
+                  backgroundColor: "lightcoral",
+                  color: "white",
+                  fontWeight: "bold",
+                }
+          }
           onClick={() => setopenmodal((prev) => ({ ...prev, showtype: false }))}
         >
           Close

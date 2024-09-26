@@ -123,7 +123,6 @@ export const BannerModal = ({
   });
 
   const handleCreate = async () => {
-    setloading(true);
     const allbanner = [...(allData?.banner ?? [])];
     const URL = "/api/banner";
 
@@ -147,6 +146,7 @@ export const BannerModal = ({
       errorToast(errormess);
       return;
     }
+    setloading(true);
     if (banner.image.name !== "") {
       if (globalindex.bannereditindex === -1) {
         const create = await ApiRequest(URL, undefined, "POST", "JSON", banner);
@@ -201,18 +201,52 @@ export const BannerModal = ({
   };
 
   const handleSelectProduct = (
-    value: Array<SelectType> | SelectType,
-    type: string
+    type: string,
+    value?: Array<SelectType> | SelectType
   ) => {
-    setbanner((prev) => ({
-      ...prev,
-      [type]: value,
-    }));
+    if (type === "parentcate")
+      setbanner((prev) => ({
+        ...prev,
+        parentcate: value as any,
+        childcate: undefined,
+      }));
+    else
+      setbanner((prev) => ({
+        ...prev,
+        [type]: value,
+      }));
   };
 
   return (
-    <SecondaryModal open={openmodal.createBanner} size="full">
-      <div className="bannermodal_content bg-white p-3 relative max-small_phone:rounded-none rounded-lg w-full min-h-screen max-h-[80vh] overflow-y-auto overflow-x-hidden h-full flex flex-col gap-y-5 items-center">
+    <SecondaryModal
+      open={openmodal.createBanner}
+      size="full"
+      placement="center"
+      footer={() => {
+        return (
+          <div className="actions_con w-full h-fit flex flex-row gap-x-10">
+            <PrimaryButton
+              onClick={() => handleCreate()}
+              text={globalindex.bannereditindex !== -1 ? "Edit" : "Create"}
+              width="100%"
+              type="button"
+              status={loading ? "loading" : "authenticated"}
+              radius="10px"
+            />
+            <PrimaryButton
+              text="Cancel"
+              onClick={() => handleCancel()}
+              disable={loading}
+              color="lightcoral"
+              type="button"
+              width="100%"
+              radius="10px"
+            />
+          </div>
+        );
+      }}
+    >
+      <div className="bannermodal_content bg-white p-3 relative max-small_phone:rounded-none rounded-lg w-full h-full overflow-x-hidden  flex flex-col gap-y-5 items-center">
         {banner.image && banner.image.url.length !== 0 && (
           <div
             style={banner.size === "normal" ? { width: "100%" } : {}}
@@ -265,7 +299,7 @@ export const BannerModal = ({
               />
             </div>
           </div>
-          <div className="w-full h-fit flex flex-row items-start gap-x-5">
+          <div className="w-full h-fit flex flex-row items-start gap-5 flex-wrap">
             <div className="w-full h-fit flex flex-col gap-y-5">
               <label className="w-full h-fit text-lg font-bold">Name</label>
               <input
@@ -273,10 +307,24 @@ export const BannerModal = ({
                 placeholder="Name"
                 type="text"
                 value={banner.name}
-                className="w-full h-[40px] text-sm pl-1 font-medium rounded-lg border border-gray-500"
+                className="w-full h-[50px] text-lg pl-1 font-medium rounded-lg border border-gray-500"
                 onChange={handleChange}
               />
             </div>
+            {banner.linktype === "product" && (
+              <div className="w-full h-fit flex flex-col gap-y-5">
+                <label className="w-full h-fit text-lg font-bold">
+                  Select Products
+                </label>
+                <SelectAndSearchProduct
+                  getdata={(take, value) => getSelectItems(take, value, "prod")}
+                  onSelect={(value) =>
+                    handleSelectProduct("selectedproduct", value)
+                  }
+                  value={banner.selectedproduct}
+                />
+              </div>
+            )}
             {banner.type !== "normal" && (
               <div className="w-full h-fit flex flex-col gap-y-5">
                 <label className="font-bold text-lg">Link Type</label>
@@ -303,7 +351,7 @@ export const BannerModal = ({
               </label>
               <SelectAndSearchProduct
                 getdata={(take, value) => getCategory("parent", value, 0)}
-                onSelect={(value) => handleSelectProduct(value, "parentcate")}
+                onSelect={(value) => handleSelectProduct("parentcate", value)}
                 value={banner.parentcate ? [banner.parentcate] : undefined}
                 placeholder="Select Parent Category"
                 singleselect
@@ -311,17 +359,15 @@ export const BannerModal = ({
             </div>
           )}
           {banner.linktype === "sub" && (
-            <div className="w-full h-fit flex flex-row items-start gap-x-5">
+            <div className="w-full h-fit flex flex-row items-start flex-wrap gap-5">
               <div className="w-full h-fit flex flex-col gap-y-5">
                 <label className="w-full h-fit text-lg font-bold">
                   Parent Category
                 </label>
                 <SelectAndSearchProduct
                   getdata={(take, value) => getCategory("parent", value, 0)}
-                  onSelect={(value) => handleSelectProduct(value, "parentcate")}
-                  value={
-                    banner.parentcate ? (banner.parentcate as any) : undefined
-                  }
+                  onSelect={(value) => handleSelectProduct("parentcate", value)}
+                  value={banner.parentcate ? [banner.parentcate] : undefined}
                   placeholder="Select Parent Category"
                   singleselect
                 />
@@ -340,31 +386,14 @@ export const BannerModal = ({
                       )
                     }
                     onSelect={(value) =>
-                      handleSelectProduct(value, "childcate")
+                      handleSelectProduct("childcate", value)
                     }
-                    value={
-                      banner.childcate ? (banner.childcate as any) : undefined
-                    }
+                    value={banner.childcate ? [banner.childcate] : undefined}
                     placeholder="Select Sub Category"
                     singleselect
                   />
                 </div>
               )}
-            </div>
-          )}
-
-          {banner.linktype === "product" && (
-            <div className="w-full h-full flex flex-col gap-y-5">
-              <label className="w-full h-fit text-lg font-bold">
-                Select Products
-              </label>
-              <SelectAndSearchProduct
-                getdata={(take, value) => getSelectItems(take, value, "prod")}
-                onSelect={(value) =>
-                  handleSelectProduct(value, "selectedproduct")
-                }
-                value={banner.selectedproduct}
-              />
             </div>
           )}
           <PrimaryButton
@@ -377,26 +406,6 @@ export const BannerModal = ({
             hoverTextColor="white"
             onClick={() => setopenmodal({ ...openmodal, imageupload: true })}
             Icon={<i className="fa-regular fa-image text-lg text-white"></i>}
-            radius="10px"
-          />
-        </div>
-
-        <div className="actions_con w-full flex flex-row gap-x-10 relative bottom-0 ">
-          <PrimaryButton
-            onClick={() => handleCreate()}
-            text={globalindex.bannereditindex !== -1 ? "Edit" : "Create"}
-            width="100%"
-            type="button"
-            status={loading ? "loading" : "authenticated"}
-            radius="10px"
-          />
-          <PrimaryButton
-            text="Cancel"
-            onClick={() => handleCancel()}
-            disable={loading}
-            color="lightcoral"
-            type="button"
-            width="100%"
             radius="10px"
           />
         </div>

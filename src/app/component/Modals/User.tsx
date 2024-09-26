@@ -109,8 +109,9 @@ export const Createusermodal = ({
           {globalindex.useredit !== -1 ? `#${data.id}` : "Register User"}{" "}
         </h3>
       )}
+      placement="top"
     >
-      <div className="relative w-full max-small_phone:h-full h-fit bg-white p-5 flex flex-col items-end gap-y-5 rounded-lg">
+      <div className="relative w-full max-small_phone:max-h-[50vh] h-fit bg-white p-5 flex flex-col items-end gap-y-5 rounded-lg">
         <form
           onSubmit={handleSubmit}
           className="form_container w-full h-full flex flex-col items-center gap-y-5"
@@ -488,9 +489,10 @@ export const EditProfile = ({
       onPageChange={(val) =>
         setopenmodal((prev) => ({ ...prev, editprofile: val }))
       }
+      placement="top"
       closebtn
     >
-      <div className="editprofile_container relative flex flex-col items-center gap-y-5 w-full h-full overflow-y-auto bg-white rounded-lg p-3">
+      <div className="editprofile_container relative flex flex-col items-center gap-y-5 w-full h-full max-small_phone:max-h-[50vh] overflow-y-auto bg-white rounded-lg p-3">
         {type === "name" && (
           <>
             <TextInput

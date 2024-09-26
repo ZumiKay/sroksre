@@ -328,7 +328,7 @@ export function MultipleSelect() {
       <ThemeProvider theme={Mutiselectstatuscolor}>
         <FormControl sx={{ m: 1, width: "100%" }}>
           <InputLabel id="demo-multiple-chip-label" filled>
-            Status
+            Filter By: Status
           </InputLabel>
           <Select
             labelId="demo-multiple-chip-label"

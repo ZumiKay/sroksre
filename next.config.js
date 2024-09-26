@@ -8,6 +8,10 @@ const nextConfig = {
         hostname: "firebasestorage.googleapis.com",
       },
       {
+        protocol: "https",
+        hostname: "jrkeurxhiddg4zho.public.blob.vercel-storage.com",
+      },
+      {
         protocol: "http",
         hostname: "localhost",
         port: "3000",

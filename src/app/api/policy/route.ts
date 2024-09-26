@@ -84,14 +84,13 @@ export const getPolicesByPage = async (page: showtype) =>
   });
 
 export async function GET(req: NextRequest) {
-  const url = req.url.toString();
-  const param = extractQueryParams(url);
-
-  if (!param.type) {
-    return NextResponse.json({}, { status: 200 });
-  }
-
   try {
+    const url = req.url.toString();
+    const param = extractQueryParams(url);
+
+    if (!param.type) {
+      return NextResponse.json({}, { status: 200 });
+    }
     const result = await getPolicesByPage(param.type as showtype);
     return NextResponse.json({ data: result }, { status: 200 });
   } catch (error) {

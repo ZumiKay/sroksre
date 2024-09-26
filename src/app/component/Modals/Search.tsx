@@ -30,7 +30,7 @@ export default function SearchContainer({ isMobile }: { isMobile: boolean }) {
       e.preventDefault();
       setloading(true);
       const response = await ApiRequest(
-        `/api/products/ty=search_q=${search}`,
+        `/api/products?ty=search&q=${search}`,
         undefined,
         "GET"
       );
@@ -57,7 +57,7 @@ export default function SearchContainer({ isMobile }: { isMobile: boolean }) {
           duration: 0.25,
           ease: "easeInOut",
         }}
-        className="search_container w-full h-full bg-white p-3 rounded-lg flex flex-col items-center justify-center max-small_phone:justify-start gap-y-5"
+        className="search_container w-full h-full bg-white p-3 max-small_phone:rounded-none rounded-lg flex flex-col items-center justify-center max-small_phone:justify-start gap-y-5"
       >
         <div className="w-full h-fit flex flex-row items-center justify-evenly">
           <Input

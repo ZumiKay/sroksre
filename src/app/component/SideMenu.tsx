@@ -111,6 +111,13 @@ export default function AccountMenu(props: accountmenuprops) {
   const ref = useClickOutside(() => props.setProfile(false));
   const { isMobile } = useScreenSize();
 
+  useEffect(() => {
+    document.body.style.overflowY = "hidden";
+    return () => {
+      document.body.style.overflowY = "auto";
+    };
+  }, []);
+
   const handleSignOut = async () => {
     setloading(true);
 
@@ -204,7 +211,7 @@ export default function AccountMenu(props: accountmenuprops) {
       exit={{ x: "100%" }}
       transition={{ duration: 0.5 }}
       onMouseEnter={() => props.setProfile(true)}
-      className="fixed right-0 top-0 w-[430px] max-small_phone:w-full h-full z-40 bg-[#FFFFFF] flex flex-col items-center"
+      className="fixed right-0 top-0 w-[430px] max-small_phone:w-full h-full z-[99] bg-[#FFFFFF] flex flex-col items-center"
     >
       {openmodal?.editHome ? (
         <div className="w-[90%] h-full flex flex-col items-center gap-y-10">
@@ -281,12 +288,10 @@ export default function AccountMenu(props: accountmenuprops) {
                       onClick={() => {
                         setopenmodal((prev) => ({ ...prev, editHome: true }));
                       }}
-                      className="w-full h-full flex flex-row items-center gap-x-5 pl-2 rounded-lg transition hover:bg-gray-200 active:bg-gray-200"
+                      className="w-full h-full flex flex-row items-center cursor-pointer gap-x-5 pl-2 rounded-lg transition hover:bg-gray-200 active:bg-gray-200"
                     >
                       {item.icon}
-                      <h3 className="text-lg font-bold cursor-pointer">
-                        {item.name}
-                      </h3>
+                      <h3 className="text-lg font-bold">{item.name}</h3>
                     </div>
                   ) : (
                     <div
@@ -295,7 +300,7 @@ export default function AccountMenu(props: accountmenuprops) {
                         router.refresh();
                         isMobile && props.setProfile(false);
                       }}
-                      className="w-full h-full flex flex-row items-center gap-x-5 pl-2 rounded-lg transition hover:bg-gray-200 active:bg-gray-200"
+                      className="w-full h-full flex flex-row items-center gap-x-5 pl-2 rounded-lg transition hover:bg-gray-200 active:bg-gray-200 cursor-pointer"
                     >
                       {item.icon}
                       <h3 className="text-lg font-bold">{item.name}</h3>
@@ -897,10 +902,11 @@ export const FilterMenu = ({
       onPageChange={(val) =>
         setopenmodal((prev) => ({ ...prev, filteroption: val }))
       }
+      placement="top"
       closebtn
     >
       {loading && <ContainerLoading />}
-      <div className="filtermenu w-full relative  h-fit bg-white p-5 rounded-md flex flex-col justify-center gap-y-5">
+      <div className="filtermenu w-full relative  h-fit bg-white p-5 max-small_phone:max-h-[50vh] rounded-md flex flex-col justify-center gap-y-5">
         {type !== "usermanagement" && (
           <input
             type="text"

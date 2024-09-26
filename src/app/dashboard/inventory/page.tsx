@@ -161,16 +161,16 @@ export default function Inventory({
           parentcate ||
           promotion.selectproduct ||
           promoids
-            ? `/api/products/ty=filter_p=${page}_limit=${show}${
-                status ? `_sk=${status}` : ""
-              }${name ? `_q=${name}` : ""}${
-                parentcate ? `_pc=${parentcate}` : ""
-              }${childcate ? `_cc=${childcate}` : ""}${
-                pid ? `_pid=${pid}` : ""
-              }${promotion.selectproduct ? "_sp=1" : ""}${
-                promoids ? `_pids=${promoids}` : ""
+            ? `/api/products?ty=filter&p=${page}&limit=${show}${
+                status ? `&sk=${status}` : ""
+              }${name ? `&q=${name}` : ""}${
+                parentcate ? `&pc=${parentcate}` : ""
+              }${childcate ? `&cc=${childcate}` : ""}${
+                pid ? `&pid=${pid}` : ""
+              }${promotion.selectproduct ? "&sp=1" : ""}${
+                promoids ? `&pids=${promoids}` : ""
               }`
-            : `/api/products/ty=all_limit=${show}_p=${page}`;
+            : `/api/products?ty=all&limit=${show}&p=${page}`;
         transformFunction = (item: any) => ({
           ...item,
           category: {
@@ -534,10 +534,12 @@ export default function Inventory({
         max-small_screen:grid-cols-2 gap-x-5 gap-y-32
         max-small_phone:gap-x-0 max-smallest_tablet:grid-cols-1 
         ${type === "product" ? "max-smallest_tablet:grid-cols-2 " : ""}
-        place-items-center`}
+        place-items-center place-content-center`}
           >
             {loaded ? (
-              <BannerSkeleton />
+              <div className="w-full h-fit pl-1">
+                <BannerSkeleton />
+              </div>
             ) : (
               <>
                 {type === "product" &&
