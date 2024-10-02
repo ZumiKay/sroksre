@@ -186,6 +186,7 @@ export const Category = () => {
               <Input
                 type="text"
                 variant="bordered"
+                size="lg"
                 label="Name"
                 name="name"
                 onChange={handleChange}
@@ -194,6 +195,7 @@ export const Category = () => {
               <Input
                 type="text"
                 variant="bordered"
+                size="lg"
                 label="Description"
                 name="description"
                 onChange={handleChange}
@@ -457,17 +459,19 @@ const EditCategory = ({
           </>
         ) : (
           <div className="editcontainer flex flex-col gap-y-3 w-full h-full bg-white p-2 relative items-center">
-            <input
+            <Input
               type="text"
               onChange={(e) =>
                 setcategory((prev) => ({ ...prev, name: e.target.value }))
               }
+              size="lg"
               value={category.name}
-              className="subcate_name w-full h-[50px] border border-gray-300 pl-3 text-lg font-bold"
+              className="subcate_name w-full"
               placeholder="Parent Cateogory Name"
               required
             />
-            <input
+            <Input
+              size="lg"
               type="text"
               onChange={(e) =>
                 setcategory((prev) => ({
@@ -476,7 +480,7 @@ const EditCategory = ({
                 }))
               }
               value={category.description}
-              className="subcate_name w-full h-[50px] border border-gray-300 pl-3 text-lg font-bold"
+              className="subcate_name w-full"
               placeholder="Description"
               required
             />

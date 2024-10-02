@@ -36,7 +36,6 @@ import {
   InventoryParamType,
 } from "../dashboard/inventory/varaint_action";
 import { BannerSize, BannerType } from "./Modals/Banner";
-import Link from "next/link";
 import {
   Bin_Icon,
   CloseVector,
@@ -354,16 +353,21 @@ export function CartMenu(props: cardmenuprops) {
     undefined
   );
 
+  useEffect(() => {
+    document.body.style.overflowY = "hidden";
+    return () => {
+      document.body.style.overflowY = "auto";
+    };
+  }, []);
+
   const fetchcart = async () => {
     const asyncfetchcart = async () => {
       const response = await ApiRequest("/api/order/cart", undefined, "GET");
-      if (!response.success) {
-        errorToast("Error Occured");
-        return;
-      }
 
-      setitem(response.data);
-      settotal({ subtotal: response.total ?? 0, total: response.total ?? 0 });
+      if (response.success) {
+        setitem(response.data);
+        settotal({ subtotal: response.total ?? 0, total: response.total ?? 0 });
+      }
     };
 
     await Delayloading(
@@ -904,6 +908,40 @@ export const FilterMenu = ({
       }
       placement="top"
       closebtn
+      footer={() => (
+        <>
+          {type !== "listproduct" ? (
+            <PrimaryButton
+              type="button"
+              onClick={() => handleFilter()}
+              text="Filter"
+              disable={Object.entries(filtervalue).every(
+                ([i, j]) => !j || j === "none"
+              )}
+              radius="10px"
+              width="100%"
+            />
+          ) : (
+            <PrimaryButton
+              type="button"
+              text={`Show Product ${totalproduct === 0 ? "" : totalproduct}`}
+              onClick={() =>
+                setopenmodal((prev) => ({ ...prev, filteroption: false }))
+              }
+              radius="10px"
+              width="100%"
+            />
+          )}
+          <PrimaryButton
+            type="button"
+            onClick={() => handleClear()}
+            text="Clear"
+            color="lightcoral"
+            radius="10px"
+            width="100%"
+          />
+        </>
+      )}
     >
       {loading && <ContainerLoading />}
       <div className="filtermenu w-full relative  h-fit bg-white p-5 max-small_phone:max-h-[50vh] rounded-md flex flex-col justify-center gap-y-5">
@@ -1080,36 +1118,6 @@ export const FilterMenu = ({
             )}
           </>
         )}{" "}
-        {type !== "listproduct" ? (
-          <PrimaryButton
-            type="button"
-            onClick={() => handleFilter()}
-            text="Filter"
-            disable={Object.entries(filtervalue).every(
-              ([i, j]) => !j || j === "none"
-            )}
-            radius="10px"
-            width="100%"
-          />
-        ) : (
-          <PrimaryButton
-            type="button"
-            text={`Show Product ${totalproduct === 0 ? "" : totalproduct}`}
-            onClick={() =>
-              setopenmodal((prev) => ({ ...prev, filteroption: false }))
-            }
-            radius="10px"
-            width="100%"
-          />
-        )}
-        <PrimaryButton
-          type="button"
-          onClick={() => handleClear()}
-          text="Clear"
-          color="lightcoral"
-          radius="10px"
-          width="100%"
-        />
       </div>
     </SecondaryModal>
   );

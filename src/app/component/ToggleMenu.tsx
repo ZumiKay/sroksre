@@ -15,7 +15,8 @@ import makeAnimated from "react-select/animated";
 
 import { GetProductName } from "../dashboard/inventory/varaint_action";
 import { errorToast } from "./Loading";
-import { Button } from "@nextui-org/react";
+import { Button, Input } from "@nextui-org/react";
+import React from "react";
 interface toggleprops {
   name: string;
   isAdmin: boolean;
@@ -210,9 +211,10 @@ export function AddSubCategoryMenu({ index }: { index: number }) {
       </div>
 
       <div className="subcategoryform w-full h-full flex flex-col gap-y-3">
-        <input
+        <Input
+          size="lg"
           type="text"
-          className="subcate_name w-full h-[50px] border border-gray-300 pl-3 text-sm font-bold rounded-lg"
+          className="subcate_name w-full"
           placeholder="Name"
           value={name}
           onChange={(e) => {

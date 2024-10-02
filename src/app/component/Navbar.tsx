@@ -56,6 +56,7 @@ import {
 } from "@nextui-org/react";
 import { useSocket } from "@/src/context/SocketContext";
 import { NormalSkeleton } from "./Banner";
+import React from "react";
 
 const InitialMethod = async (session?: Usersessiontype) => {
   if (session) {
@@ -330,8 +331,8 @@ const CategoriesContainer = (props: { setopen: any }) => {
     <div
       onMouseLeave={() => props.setopen(false)}
       className="categories__container w-full max-h-screen min-h-[50vh] h-full 
-      absolute top-[57px] z-[99] bg-[#F3F3F3] flex flex-row gap-5 items-start justify-start flex-wrap  overflow-x-hidden 
-      max-small_phone:justify-center max-small_phone:h-screen max-small_phone:pb-10"
+      absolute top-[57px] z-[99] bg-[#F3F3F3] flex flex-row gap-5 justify-start max-large_phone:justify-center items-start flex-wrap  overflow-x-hidden 
+      max-small_phone:h-screen max-small_phone:pb-10"
     >
       {loading ? (
         <div className="w-full h-full flex items-center justify-center">
@@ -653,7 +654,7 @@ export const NotificationMenu = forwardRef(
     };
 
     return (
-      <div
+      <aside
         ref={ref as any}
         onScroll={() => {
           handleScroll();
@@ -713,7 +714,7 @@ export const NotificationMenu = forwardRef(
             </Box>
           )}
         </div>
-      </div>
+      </aside>
     );
   }
 );

@@ -13,6 +13,7 @@ import {
   ModalHeader,
   Modal as Modals,
 } from "@nextui-org/react";
+import React from "react";
 
 export default function Modal({
   children,

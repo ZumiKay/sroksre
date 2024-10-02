@@ -10,7 +10,11 @@ import {
   getProductForBanner,
   getPromotionForBanner,
 } from "../../severactions/actions";
-import { ApiRequest, useEffectOnce } from "@/src/context/CustomHook";
+import {
+  ApiRequest,
+  useEffectOnce,
+  useScreenSize,
+} from "@/src/context/CustomHook";
 import { errorToast, successToast } from "../Loading";
 import Modal, { SecondaryModal } from "../Modals";
 
@@ -46,6 +50,7 @@ export const BannerModal = ({
   } = useGlobalContext();
 
   const [loading, setloading] = useState(false);
+  const { isMobile } = useScreenSize();
 
   const Linktype = [
     {
@@ -247,29 +252,31 @@ export const BannerModal = ({
       }}
     >
       <div className="bannermodal_content bg-white p-3 relative max-small_phone:rounded-none rounded-lg w-full h-full overflow-x-hidden  flex flex-col gap-y-5 items-center">
-        {banner.image && banner.image.url.length !== 0 && (
+        <div
+          style={banner.size === "normal" ? { width: "100%" } : {}}
+          className="image_container flex flex-col w-fit items-center justify-center h-fit"
+        >
           <div
             style={banner.size === "normal" ? { width: "100%" } : {}}
-            className="image_container flex flex-col w-fit items-center justify-center h-fit border border-black"
+            className="flex flex-col w-full max-w-[80%] max-large_phone:max-w-full max-h-[80vh] min-h-[250px]"
           >
-            <div
-              style={banner.size === "normal" ? { width: "100%" } : {}}
-              className="flex flex-col w-fit max-h-[80vh] min-h-[250px]"
-            >
-              <img
-                src={banner.image?.url}
-                alt={"Banner"}
-                style={
-                  banner.size === "small"
-                    ? { width: "400px", height: "450px" }
-                    : { width: "95vw", height: "auto" }
-                }
-                className="w-auto min-h-[250px] max-h-[80vh] mt-9  aspect-auto object-contain"
-                loading="lazy"
-              />
-            </div>
+            <img
+              src={banner.image.url}
+              alt={"Banner"}
+              style={
+                banner.size === "small"
+                  ? {
+                      width: isMobile ? "200px" : "400px",
+                      height: isMobile ? "150px" : "500px",
+                    }
+                  : { width: "100%", height: isMobile ? "200px" : "auto" }
+              }
+              className="w-full min-h-[250px] mt-2 object-cover"
+              loading="lazy"
+            />
           </div>
-        )}
+        </div>
+
         <div className="bannerform flex flex-col gap-y-5 justify-start items-center w-full h-full">
           <div className="w-full h-fit flex flex-row gap-x-5 max-small_phone:flex-col max-small_phone:gap-y-5">
             <div

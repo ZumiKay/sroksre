@@ -26,7 +26,7 @@ import PrimaryButton, { Selection } from "../Button";
 import ToggleMenu, { SearchAndMultiSelect } from "../ToggleMenu";
 import { Variantcontainer } from "./VariantModal";
 import { ImageUpload } from "./Image";
-import { Input } from "@nextui-org/react";
+import { Input, Textarea } from "@nextui-org/react";
 import { VariantIcon } from "../Asset";
 import { SelectionCustom } from "../Pagination_Component";
 import { SecondaryModal } from "../Modals";
@@ -71,6 +71,7 @@ export function CreateProducts({
   const [isInput, setisInput] = useState(false);
 
   const [subcate, setsubcate] = useState<Array<SubcategoriesState>>([]);
+
   const [cate, setcate] = useState<Array<CateogoryState> | undefined>(
     undefined
   );
@@ -149,9 +150,7 @@ export function CreateProducts({
 
   //Method
 
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-
+  const handleSubmit = async () => {
     const createdproduct = { ...product };
     const URL = "/api/products/crud";
 
@@ -233,14 +232,39 @@ export function CreateProducts({
     <>
       <SecondaryModal
         open={openmodal.createProduct}
-        size={"full"}
+        size={isMobile ? "5xl" : "full"}
         placement="top"
+        footer={() => {
+          return (
+            <div className="w-full h-fit flex flex-row gap-x-5 justify-start">
+              <PrimaryButton
+                color="#44C3A0"
+                text={globalindex.producteditindex === -1 ? "Create" : "Update"}
+                type={"button"}
+                onClick={() => handleSubmit()}
+                radius="10px"
+                width="90%"
+                height="40px"
+              />{" "}
+              <PrimaryButton
+                color="#F08080"
+                text="Cancel"
+                type="button"
+                radius="10px"
+                width="90%"
+                height="40px"
+                onClick={() => {
+                  handleCancel();
+                }}
+              />
+            </div>
+          );
+        }}
       >
         {(loading || isLoading.PUT || isLoading.POST) && <ContainerLoading />}
         <form
-          onSubmit={handleSubmit}
           className={`createform flex flex-col w-full h-fit ${
-            isMobile ? " max-h-[100%]" : "max-h-[95vh]"
+            isMobile ? "max-h-[55vh]" : "max-h-[95vh]"
           }            
           overflow-y-auto overflow-x-hidden items-center justify-center gap-y-5 relative`}
         >
@@ -489,27 +513,6 @@ export function CreateProducts({
               )}
             </div>
           </div>
-          <div className="w-[90%] h-fit flex flex-row gap-x-5 justify-start">
-            <PrimaryButton
-              color="#44C3A0"
-              text={globalindex.producteditindex === -1 ? "Create" : "Update"}
-              type={"submit"}
-              radius="10px"
-              width="90%"
-              height="40px"
-            />{" "}
-            <PrimaryButton
-              color="#F08080"
-              text="Cancel"
-              type="button"
-              radius="10px"
-              width="90%"
-              height="40px"
-              onClick={() => {
-                handleCancel();
-              }}
-            />
-          </div>
         </form>
         {openmodal.imageupload && (
           <ImageUpload
@@ -580,22 +583,25 @@ const NormalDetail = () => {
   };
 
   return (
-    <div className="normalDetail w-full h-full flex flex-col justify-center gap-y-5">
-      <input
+    <div className="normalDetail w-[80%] h-full flex flex-col justify-center gap-y-5">
+      <Input
         type="text"
         name="info_title"
+        label="Title"
         value={normaldetail.info_title}
-        placeholder="Name"
         onChange={handleChange}
-        className="detailname w-full rounded-md h-[50px] text-center text-lg"
+        className="detailname w-full rounded-md text-center text-lg"
+        size="lg"
       />
+
       <textarea
         value={normaldetail.info_value}
-        className="w-full min-h-[50px] max-h-[100px] text-center overflow-y-auto"
+        className="w-full min-h-[50px] max-h-[300px] text-lg text-left overflow-y-auto bg-gray-100 rounded-lg p-2"
         placeholder="Description"
         onChange={handleChange}
         name="info_value"
       />
+
       <PrimaryButton
         onClick={() => handleAdd()}
         type="button"
@@ -617,10 +623,10 @@ export const DetailsModal = () => {
   const { setopenmodal } = useGlobalContext();
 
   return (
-    <div className="details_modal bg-[#CFDBEE] w-full h-full flex flex-col gap-y-5 p-14">
+    <div className="details_modal bg-[#CFDBEE] w-full h-full flex flex-col gap-y-5 items-center pt-2">
       <NormalDetail />
       <PrimaryButton
-        width="100%"
+        width="80%"
         height="50px"
         radius="10px"
         text="Back"

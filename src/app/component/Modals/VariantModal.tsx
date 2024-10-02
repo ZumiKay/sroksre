@@ -28,6 +28,7 @@ import TemplateContainer, {
 import { VariantTemplateType } from "./Variantcomponent/Action";
 import { HasPartialOverlap } from "@/src/lib/utilities";
 import { NormalSkeleton } from "../Banner";
+import React from "react";
 
 interface variantdatatype {
   id?: number;
@@ -601,7 +602,7 @@ export const Variantcontainer = ({
                     <h3 className="variant_name font-medium text-lg w-fit h-fit">
                       {obj.option_title === "" ? "No Name" : obj.option_title}
                     </h3>
-                    <motion.div className="varaints flex flex-row flex-wrap gap-3 w-[80%]">
+                    <motion.div className="varaints flex flex-row flex-wrap gap-3 w-full items-center">
                       {obj.option_type === "TEXT" &&
                         obj.option_value.map((item, idx) => (
                           <div
@@ -622,21 +623,21 @@ export const Variantcontainer = ({
                             ></div>
                           );
                         })}
+                      <div className="action flex flex-row items-start w-full h-fit gap-x-5">
+                        <div
+                          onClick={() => handleVariantEdit(idx)}
+                          className="edit text-sm cursor-pointer text-blue-500 hover:text-white active:text-white transition duration-500"
+                        >
+                          Edit
+                        </div>
+                        <div
+                          onClick={() => handleVariantDelete(idx)}
+                          className="edit text-sm cursor-pointer text-red-500 hover:text-white active:text-white transition duration-500"
+                        >
+                          Delete
+                        </div>
+                      </div>
                     </motion.div>
-                    <div className="action flex flex-row items-start w-[20%] h-fit gap-x-5 absolute right-0 top-[40%]">
-                      <div
-                        onClick={() => handleVariantEdit(idx)}
-                        className="edit text-sm cursor-pointer text-blue-500 hover:text-white active:text-white transition duration-500"
-                      >
-                        Edit
-                      </div>
-                      <div
-                        onClick={() => handleVariantDelete(idx)}
-                        className="edit text-sm cursor-pointer text-red-500 hover:text-white active:text-white transition duration-500"
-                      >
-                        Delete
-                      </div>
-                    </div>
                   </motion.div>
                 ))
               )}

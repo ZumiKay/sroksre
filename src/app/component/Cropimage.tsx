@@ -18,9 +18,10 @@ import { useDebounceEffect } from "../../context/CustomHook";
 
 import "react-image-crop/dist/ReactCrop.css";
 import PrimaryButton, { Selection } from "./Button";
-import Modal from "./Modals";
+import Modal, { SecondaryModal } from "./Modals";
 import { errorToast } from "./Loading";
 import { Imgurl } from "./Modals/Image";
+import { useGlobalContext } from "@/src/context/GlobalContext";
 
 function centerAspectCrop(
   mediaWidth: number,
@@ -52,7 +53,9 @@ export default function CropImage({
   setfile,
   index,
   type,
+  open,
 }: {
+  open: boolean;
   img: string;
   setclose: any;
   ratio: number;
@@ -60,6 +63,7 @@ export default function CropImage({
   imgurl: Imgurl[];
   setimgurl: Dispatch<SetStateAction<Imgurl[]>>;
   setfile: Dispatch<SetStateAction<File[]>>;
+
   Files: File[];
   type: "createproduct" | "createbanner" | "createpromotion";
 }) {
@@ -74,19 +78,19 @@ export default function CropImage({
 
   const apsectratio = [
     {
-      label: `16:10 ${type === "createbanner" ? "(Recommend)" : ""}`,
+      label: `16:10`,
       value: 16 / 10,
     },
     {
-      label: `16:9 ${type === "createbanner" ? "(Recommend)" : ""}`,
+      label: `16:9`,
       value: 16 / 9,
     },
     {
-      label: `4:5 ${type === "createproduct" ? "(Recommend)" : ""}`,
+      label: `4:5`,
       value: 4 / 5,
     },
     {
-      label: `3:4 ${type === "createproduct" ? "(Recommend)" : ""}`,
+      label: `3:4`,
       value: 3 / 4,
     },
     {
@@ -205,12 +209,37 @@ export default function CropImage({
     }
   };
   return (
-    <Modal closestate="none" customheight="100vh" customwidth="100vw">
+    <SecondaryModal
+      open={open}
+      size="full"
+      onPageChange={(val) => setclose(val)}
+      footer={() => (
+        <div className="flex flex-row gap-x-5 w-full h-fit">
+          <PrimaryButton
+            text="Done"
+            type="button"
+            width="90%"
+            radius="10px"
+            style={{ marginBottom: "10px" }}
+            onClick={() => handleSaveCrop()}
+          />
+          <PrimaryButton
+            color="lightcoral"
+            text="Close"
+            type="button"
+            width="90%"
+            radius="10px"
+            style={{ marginBottom: "10px" }}
+            onClick={() => setclose(false)}
+          />
+        </div>
+      )}
+    >
       <div className="cropimageContainer w-full h-full bg-white overflow-y-auto overflow-x-hidden flex flex-col items-center gap-y-5">
-        <div className="Crop-Controls w-[90%] flex flex-row gap-x-5 justify-center items-center">
+        <div className="Crop-Controls w-[90%] flex flex-row gap-x-5 flex-wrap justify-center items-center">
           <div className="w-full h-fit flex flex-col gap-y-3">
             <label htmlFor="scale-input" className="text-lg font-medium">
-              Zoom{" "}
+              Zoom
             </label>
             <input
               id="scale-input"
@@ -295,26 +324,7 @@ export default function CropImage({
             </div>
           </>
         )}
-        <div className="flex flex-row gap-x-5 w-[90%] h-fit">
-          <PrimaryButton
-            text="Done"
-            type="button"
-            width="90%"
-            radius="10px"
-            style={{ marginBottom: "10px" }}
-            onClick={() => handleSaveCrop()}
-          />
-          <PrimaryButton
-            color="lightcoral"
-            text="Close"
-            type="button"
-            width="90%"
-            radius="10px"
-            style={{ marginBottom: "10px" }}
-            onClick={() => setclose(false)}
-          />
-        </div>
       </div>
-    </Modal>
+    </SecondaryModal>
   );
 }

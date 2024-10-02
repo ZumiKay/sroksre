@@ -583,17 +583,17 @@ const FilterMenu = ({
           <AmountRange setdata={setfilterdata} data={filterdata} />
 
           {type === "export" && (
-            <div className="w-full h-full grid gap-y-5">
-              <label className="text-lg font-bold">File name (required)</label>
-              <Input
-                type="text"
-                id="filename"
-                name="filename"
-                placeholder="Sheet1"
-                onChange={handleChange}
-                className="w-full h-[50px]"
-              />
-            </div>
+            <Input
+              type="text"
+              id="filename"
+              size="lg"
+              name="filename"
+              label="File Name"
+              labelPlacement="outside"
+              placeholder="Sheet1"
+              onChange={handleChange}
+              className="w-full"
+            />
           )}
         </div>
       </LocalizationProvider>
@@ -629,10 +629,11 @@ export const AmountRange = ({
         label="From"
         labelPlacement="outside"
         endContent={"$"}
+        size="lg"
         value={data.startprice?.toString()}
         onChange={handleChange}
         min={0}
-        className="w-full h-[50px]"
+        className="w-full"
       />
 
       <Input
@@ -645,8 +646,9 @@ export const AmountRange = ({
         label="To"
         labelPlacement="outside"
         onChange={handleChange}
+        size="lg"
         min={0}
-        className="w-full h-[50px]"
+        className="w-full"
       />
     </div>
   );

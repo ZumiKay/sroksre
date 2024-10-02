@@ -385,6 +385,7 @@ export const ImageUpload = (props: imageuploadprops) => {
           <CropImage
             index={selectedImg}
             img={Imgurl[selectedImg].url}
+            open={crop}
             setclose={setcrop}
             imgurl={Imgurl}
             ratio={16 / 10}
