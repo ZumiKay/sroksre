@@ -8,14 +8,7 @@ import Profile from "../../../public/Image/profile.svg";
 import DefaultImage from "../../../public/Image/default.png";
 import ActiveBell from "../../../public/Image/blackbell.svg";
 import Bell from "../../../public/Image/whitebell.svg";
-import {
-  CSSProperties,
-  forwardRef,
-  MutableRefObject,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { CSSProperties, forwardRef, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import AccountMenu, { CartMenu } from "./SideMenu";
 import "../globals.css";
@@ -55,7 +48,6 @@ import {
   DropdownTrigger,
 } from "@nextui-org/react";
 import { useSocket } from "@/src/context/SocketContext";
-import { NormalSkeleton } from "./Banner";
 import React from "react";
 
 const InitialMethod = async (session?: Usersessiontype) => {
@@ -310,9 +302,9 @@ const CategoriesContainer = (props: { setopen: any }) => {
   const { isMobile } = useScreenSize();
 
   useEffect(() => {
-    document.body.style.overflowY = "hidden";
+    document.body.style.overflow = "hidden";
     return () => {
-      document.body.style.overflowY = "auto";
+      document.body.style.overflow = "auto";
     };
   }, []);
 
@@ -331,8 +323,9 @@ const CategoriesContainer = (props: { setopen: any }) => {
     <div
       onMouseLeave={() => props.setopen(false)}
       className="categories__container w-full max-h-screen min-h-[50vh] h-full 
-      absolute top-[57px] z-[99] bg-[#F3F3F3] flex flex-row gap-5 justify-start max-large_phone:justify-center items-start flex-wrap  overflow-x-hidden 
-      max-small_phone:h-screen max-small_phone:pb-10"
+      absolute top-[57px] z-[99] bg-[#F3F3F3] flex flex-row gap-5 justify-start 
+      max-large_phone:justify-center items-start flex-wrap  overflow-x-hidden 
+      max-small_phone:h-screen max-small_phone:pb-20"
     >
       {loading ? (
         <div className="w-full h-full flex items-center justify-center">
@@ -340,21 +333,6 @@ const CategoriesContainer = (props: { setopen: any }) => {
         </div>
       ) : (
         <>
-          <div className="category flex flex-col w-[200px] max-small_phone:w-[90%] pt-10 items-center justify-start p-1 gap-y-5">
-            {allcate
-              ?.filter((i) => i.type === "latest" || i.type === "popular")
-              .map((item, idx) => (
-                <h3
-                  key={idx}
-                  onClick={() => router.push(`/product?pid=${item.id}`)}
-                  className="category_header bg-[#495464] transition cursor-pointer hover:bg-white hover:text-black active:bg-white active:text-black rounded-md p-3 w-full h-fit  break-words  text-center text-white font-medium"
-                >
-                  {" "}
-                  {item.name}
-                </h3>
-              ))}
-          </div>
-
           {allcate
             ?.filter((i) => i.type !== "latest")
             .map((i) => (
@@ -401,6 +379,20 @@ const CategoriesContainer = (props: { setopen: any }) => {
                 </div>
               </div>
             ))}
+          <div className="category flex flex-col w-[200px] max-small_phone:w-[90%] h-fit pt-10 items-center justify-start p-1 gap-y-5">
+            {allcate
+              ?.filter((i) => i.type === "latest" || i.type === "popular")
+              .map((item, idx) => (
+                <h3
+                  key={idx}
+                  onClick={() => router.push(`/product?pid=${item.id}`)}
+                  className="category_header bg-[#495464] transition cursor-pointer hover:bg-white hover:text-black active:bg-white active:text-black rounded-md p-3 w-full h-fit  break-words  text-center text-white font-medium"
+                >
+                  {" "}
+                  {item.name}
+                </h3>
+              ))}
+          </div>
         </>
       )}
     </div>

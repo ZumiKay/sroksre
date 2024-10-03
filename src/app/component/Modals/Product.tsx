@@ -68,7 +68,7 @@ export function CreateProducts({
     "stock"
   );
 
-  const [isInput, setisInput] = useState(false);
+  const [isInput, setisInput] = useState(true);
 
   const [subcate, setsubcate] = useState<Array<SubcategoriesState>>([]);
 
@@ -263,14 +263,18 @@ export function CreateProducts({
       >
         {(loading || isLoading.PUT || isLoading.POST) && <ContainerLoading />}
         <form
-          className={`createform flex flex-col w-full h-fit ${
-            isMobile ? "max-h-[55vh]" : "max-h-[95vh]"
+          className={`createform  w-full h-fit ${
+            isMobile
+              ? isKeyBoardOpen && isInput
+                ? "min-h-[200vh]"
+                : "max-h-[55vh]"
+              : "max-h-[95vh]"
           }            
-          overflow-y-auto overflow-x-hidden items-center justify-center gap-y-5 relative`}
+          overflow-y-auto overflow-x-hidden relative`}
         >
           <div
             className="product__form w-[100%] 
-        flex flex-row gap-x-16 h-screen overflow-y-auto overflow-x-hidden items-start justify-center 
+        flex flex-row gap-x-16 h-fit overflow-y-auto overflow-x-hidden items-start justify-center 
         max-smallest_screen:flex-col max-smallest_screen:items-center max-smallest_screen:justify-start
         max-smallest_screen:gap-y-10
         "
@@ -279,7 +283,7 @@ export function CreateProducts({
               <PrimaryPhoto
                 data={product.covers}
                 showcount={true}
-                style={{ height: "100%" }}
+                style={{ height: "fit-content" }}
                 hover={true}
                 isMobile={isMobile}
                 isTablet={isTablet}
@@ -456,9 +460,7 @@ export function CreateProducts({
                   size="lg"
                   onFocus={() => setisInput(true)}
                   onBlur={() => setisInput(false)}
-                  className={`w-full h-[40px] text-lg pl-1 font-bold rounded-md ${
-                    isInput ? (isKeyBoardOpen ? "pb-[150px]" : "pb-0") : "pb-0"
-                  }`}
+                  className={`w-full h-[40px] text-lg pl-1 font-bold rounded-md`}
                 />
               ) : (
                 <>
@@ -508,7 +510,7 @@ export function CreateProducts({
                 />
               ) : (
                 <div ref={detailref} className="w-full h-full">
-                  <DetailsModal />
+                  <DetailsModal isInput={(val) => setisInput(val)} />
                 </div>
               )}
             </div>
@@ -594,9 +596,9 @@ const NormalDetail = () => {
         size="lg"
       />
 
-      <textarea
+      <Textarea
         value={normaldetail.info_value}
-        className="w-full min-h-[50px] max-h-[300px] text-lg text-left overflow-y-auto bg-gray-100 rounded-lg p-2"
+        className="w-full min-h-[100px] h-fit text-lg text-left overflow-y-auto bg-gray-100 rounded-lg p-2"
         placeholder="Description"
         onChange={handleChange}
         name="info_value"
@@ -619,11 +621,19 @@ const NormalDetail = () => {
   );
 };
 
-export const DetailsModal = () => {
+export const DetailsModal = ({
+  isInput,
+}: {
+  isInput: (val: boolean) => void;
+}) => {
   const { setopenmodal } = useGlobalContext();
 
+  useEffect(() => {
+    isInput(false);
+  }, []);
+
   return (
-    <div className="details_modal bg-[#CFDBEE] w-full h-full flex flex-col gap-y-5 items-center pt-2">
+    <div className="details_modal bg-[#CFDBEE] w-full h-full flex flex-col gap-y-5 items-center pr-1 pl-1 pt-5 pb-5">
       <NormalDetail />
       <PrimaryButton
         width="80%"

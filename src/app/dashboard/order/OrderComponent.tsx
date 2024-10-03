@@ -28,6 +28,7 @@ import { shippingtype } from "../../component/Modals/User";
 import PaginationCustom from "../../component/Pagination_Component";
 import { Input } from "@nextui-org/react";
 import { useScreenSize } from "@/src/context/CustomHook";
+import React from "react";
 
 export const SelectionSSR = ({
   name,
@@ -550,7 +551,25 @@ const FilterMenu = ({
             size="lg"
             className="w-full"
           />
+          {type === "export" && (
+            <Input
+              type="text"
+              id="filename"
+              size="lg"
+              name="filename"
+              label="File Name"
+              labelPlacement="outside"
+              placeholder="Sheet1"
+              onChange={handleChange}
+              className="w-full"
+            />
+          )}
 
+          <label className="text-lg font-bold w-full text-left">
+            {" "}
+            Price Range{" "}
+          </label>
+          <AmountRange setdata={setfilterdata} data={filterdata} />
           <label className="text-lg w-full text-left font-bold">
             Date Range
           </label>
@@ -575,26 +594,6 @@ const FilterMenu = ({
               onChange={(e) => handleChange(e, "todate")}
             />
           </div>
-
-          <label className="text-lg font-bold w-full text-left">
-            {" "}
-            Price Range{" "}
-          </label>
-          <AmountRange setdata={setfilterdata} data={filterdata} />
-
-          {type === "export" && (
-            <Input
-              type="text"
-              id="filename"
-              size="lg"
-              name="filename"
-              label="File Name"
-              labelPlacement="outside"
-              placeholder="Sheet1"
-              onChange={handleChange}
-              className="w-full"
-            />
-          )}
         </div>
       </LocalizationProvider>
     </SecondaryModal>

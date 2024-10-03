@@ -251,7 +251,7 @@ export const BannerModal = ({
         );
       }}
     >
-      <div className="bannermodal_content bg-white p-3 relative max-small_phone:rounded-none rounded-lg w-full h-full overflow-x-hidden  flex flex-col gap-y-5 items-center">
+      <div className="bannermodal_content bg-white p-3 relative max-small_phone:rounded-none rounded-lg w-full h-full max-small_phone:min-h-screen overflow-x-hidden  flex flex-col gap-y-5 items-center">
         <div
           style={banner.size === "normal" ? { width: "100%" } : {}}
           className="image_container flex flex-col w-fit items-center justify-center h-fit"

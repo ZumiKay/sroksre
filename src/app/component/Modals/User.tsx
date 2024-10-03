@@ -1,10 +1,13 @@
 import { useGlobalContext, Userinitialize } from "@/src/context/GlobalContext";
 import React, { ChangeEvent, FormEvent, useEffect, useState } from "react";
 import { errorToast, successToast } from "../Loading";
-import { ApiRequest, useScreenSize } from "@/src/context/CustomHook";
-import Modal, { SecondaryModal } from "../Modals";
-import Image from "next/image";
-import CloseIcon from "../../../../public/Image/Close.svg";
+import {
+  ApiRequest,
+  useDetectKeyboardOpen,
+  useScreenSize,
+} from "@/src/context/CustomHook";
+import { SecondaryModal } from "../Modals";
+
 import {
   FormControl,
   IconButton,
@@ -247,13 +250,17 @@ export interface shippingtype {
   save?: string;
   [key: string]: string | number | boolean | undefined;
 }
+
 export const EditProfile = ({
   type,
 }: {
   type: "name" | "email" | "password" | "shipping" | "none";
 }) => {
-  const [open, setopen] = useState<any>({});
+  const [open, setopen] = useState<Record<string, boolean>>({});
+  const [trackaddressidx, setaddressidx] = useState(0);
+  const { isMobile } = useScreenSize();
 
+  const isKeyboardOpen = useDetectKeyboardOpen();
   const [loading, setloading] = useState({
     post: false,
     get: true,
@@ -346,6 +353,7 @@ export const EditProfile = ({
 
     del?.splice(index, 1);
     setdata(update);
+    setaddressidx(0);
   };
   const fetchdata = async (ty: typeof type) => {
     let userdata = { ...data };
@@ -482,9 +490,14 @@ export const EditProfile = ({
     }
   };
 
+  const handleResetOpenAddress = (idx: number) => {
+    setaddressidx(idx + 1);
+    setopen({ [`sub${idx + 1}`]: true });
+  };
+
   return (
     <SecondaryModal
-      size="2xl"
+      size={isMobile ? "full" : "2xl"}
       open={openmodal.editprofile}
       onPageChange={(val) =>
         setopenmodal((prev) => ({ ...prev, editprofile: val }))
@@ -492,7 +505,18 @@ export const EditProfile = ({
       placement="top"
       closebtn
     >
-      <div className="editprofile_container relative flex flex-col items-center gap-y-5 w-full h-full max-small_phone:max-h-[50vh] overflow-y-auto bg-white rounded-lg p-3">
+      <div
+        style={
+          isKeyboardOpen
+            ? {
+                minHeight: trackaddressidx
+                  ? `${trackaddressidx * 120}vh`
+                  : "200vh",
+              }
+            : { minHeight: "100%" }
+        }
+        className="editprofile_container relative flex flex-col items-center gap-y-5 w-full h-full bg-white rounded-lg p-3"
+      >
         {type === "name" && (
           <>
             <TextInput
@@ -554,7 +578,7 @@ export const EditProfile = ({
           </>
         )}
         {type === "shipping" && (
-          <div className="relative w-full min-h-[20vh] max-h-[80vh]">
+          <div className="relative w-full h-fit">
             {loading.get ? (
               <AddressSkeleton />
             ) : (
@@ -577,17 +601,7 @@ export const EditProfile = ({
                         open ? (open[`sub${idx + 1}`] ? "text-white" : "") : ""
                       }`}
                       onClick={() => {
-                        const update = Object.entries(open).map(
-                          ([key, _]: any) => {
-                            if (key === `sub${idx + 1}`) {
-                              return [key, true];
-                            } else {
-                              return [key, false];
-                            }
-                          }
-                        );
-
-                        setopen(Object.fromEntries(update));
+                        handleResetOpenAddress(idx);
                       }}
                     >
                       Address {idx + 1}
@@ -608,9 +622,13 @@ export const EditProfile = ({
                                 }
                               );
 
+                              if (!i.isSaved) {
+                                handleRemove(idx);
+                              }
+
                               setopen(Object.fromEntries(update));
                             }}
-                            className="absolute top-1 right-1 transition hover:translate-x-1 "
+                            className="absolute top-1 right-1 transition hover:translate-x-1"
                           >
                             <CloseVector width="25px" height="25px" />
                           </span>
@@ -629,7 +647,7 @@ export const EditProfile = ({
                             }}
                             data={listofprovinces}
                           />
-                          <div className="w-full h-fit flex flex-row items-center gap-x-5">
+                          <div className="w-full h-fit flex flex-row items-center gap-5 max-small_phone:flex-col">
                             <TextInput
                               name="firstname"
                               type="text"
@@ -715,39 +733,39 @@ export const EditProfile = ({
                     )}
                   </div>
                 ))}{" "}
+                {type === "shipping" && (
+                  <i
+                    onClick={() => {
+                      const address = [...(data.shipping ?? [])];
+                      if (address && address?.length >= 5) {
+                        errorToast("Can Add Only 5 Address");
+                        return;
+                      }
+                      address?.push({
+                        firstname: "",
+                        lastname: "",
+                        street: "",
+                        province: "",
+                        district: "",
+                        songkhat: "",
+                        houseId: 0,
+                        postalcode: "",
+                        isSaved: false,
+                      });
+                      setopen({
+                        [`sub${address?.length}`]: true,
+                      });
+                      setaddressidx(address.length + 1);
+                      setdata((prev) => ({ ...prev, shipping: address }));
+                    }}
+                    className={`fa-solid fa-circle-plus font-bold w-full text-center text-4xl text-[#495464] transition active:translate-y-2 `}
+                  ></i>
+                )}
               </>
             )}
           </div>
         )}
-        {type === "shipping" && (
-          <i
-            onClick={() => {
-              let update = { ...data };
-              let address = update.shipping;
-              if (address && address?.length >= 5) {
-                errorToast("Can Add Only 5 Address");
-                return;
-              }
-              address?.push({
-                firstname: "",
-                lastname: "",
-                street: "",
-                province: "",
-                district: "",
-                songkhat: "",
-                houseId: 0,
-                postalcode: "",
-                isSaved: false,
-              });
-              setopen((prev: any) => ({
-                ...prev,
-                [`sub${address?.length}`]: true,
-              }));
-              setdata(update);
-            }}
-            className={`fa-solid fa-circle-plus font-bold text-4xl text-[#495464] transition active:translate-y-2 `}
-          ></i>
-        )}
+
         {type !== "shipping" && type !== "email" && (
           <>
             <PrimaryButton

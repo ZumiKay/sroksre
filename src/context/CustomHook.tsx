@@ -319,7 +319,7 @@ export const useDetectKeyboardOpen = (
         window?.visualViewport?.removeEventListener("resize", listener);
       }
     };
-  }, []);
+  }, [isKeyboardOpen, minKeyboardHeight]);
 
   return isKeyboardOpen;
 };

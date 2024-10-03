@@ -219,7 +219,9 @@ const ScrollableContainerModal = ({
 
       {data.scrollabletype !== "new" && data.scrollabletype !== "popular" && (
         <PrimaryButton
-          onClick={() => setopenmodal((prev) => ({ ...prev, Addbanner: true }))}
+          onClick={() =>
+            setopenmodal((prev) => ({ ...prev, Addproduct: true }))
+          }
           width="200px"
           height="40px"
           type="button"
@@ -377,9 +379,10 @@ const Homecontainermodal = ({
 
   const handleCancel = () => {
     let updatedata = { ...data };
-    if (openmodal?.Addbanner) {
+    if (openmodal?.Addbanner || openmodal?.Addproduct) {
+      const key = openmodal?.Addbanner ? "Addbanner" : "Addproduct";
       updatedata.items = [];
-      setopenmodal({ ...openmodal, Addbanner: false });
+      setopenmodal({ ...openmodal, [key]: false });
       return;
     }
 
@@ -482,7 +485,9 @@ const Homecontainermodal = ({
             {openmodal["Addbanner"]
               ? data.type !== "scrollable"
                 ? "Add Banner"
-                : "Add Product"
+                : ""
+              : openmodal["Addproduct"]
+              ? "Add Product"
               : data.type === "slide"
               ? `Create Slide`
               : data.type === "category"
@@ -502,7 +507,7 @@ const Homecontainermodal = ({
               <div className="w-full h-fit max-h-[70vh] overflow-y-auto overflow-x-hidden scrollbar-hide mb-5">
                 <ContainerTypeSelection onClick={(type) => handleType(type)} />
               </div>
-            ) : openmodal["Addbanner"] ? (
+            ) : openmodal["Addbanner"] || openmodal["Addproduct"] ? (
               <AddBannerContainer
                 data={data}
                 setdata={setdata}
@@ -555,7 +560,7 @@ const Homecontainermodal = ({
 
             <PrimaryButton
               text={
-                openmodal["Addbanner"]
+                openmodal["Addbanner"] || openmodal["Addproduct"]
                   ? "Confirm"
                   : globalindex.homeeditindex &&
                     globalindex.homeeditindex !== -1

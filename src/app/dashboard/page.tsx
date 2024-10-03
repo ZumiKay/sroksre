@@ -17,6 +17,7 @@ import {
 import { ContainerLoading } from "../component/Loading";
 import { EditProfile } from "../component/Modals/User";
 import { signOut } from "next-auth/react";
+import React from "react";
 
 interface userdata extends Userdatastate {
   open: {
@@ -26,6 +27,8 @@ interface userdata extends Userdatastate {
     edittype: "email" | "password" | "shipping" | "name" | "none";
   };
 }
+
+const EditType = ["name", "email", "shipping", "password"];
 export default function UserDashboard() {
   const { openmodal, setopenmodal, userinfo, setuserinfo } = useGlobalContext();
   const [userdata, setdata] = useState<userdata>({
@@ -74,13 +77,20 @@ export default function UserDashboard() {
   };
   return (
     <main className="user_dashboard__container flex flex-col items-center gap-y-28  w-full mt-20">
-      <div className="profile__section w-[80%] flex flex-row items-center justify-evenly max-large_phone:w-[95%] max-large_phone:overflow-x-auto max-smallest_phone:w-full">
-        <div className="profiledetail__section relative w-full min-w-[550px] min-h-[350px] flex flex-row items-start justify-evenly max-smallest_phone:justify-between bg-gray-100 rounded-lg p-10">
+      <div
+        className="profile__section w-[80%] flex flex-row items-center justify-evenly 
+      max-large_phone:w-full max-large_phone:overflow-x-auto 
+      "
+      >
+        <div
+          className="profiledetail__section relative w-full min-w-[280px] min-h-[350px] flex flex-row items-start justify-evenly 
+         bg-gray-100 rounded-lg"
+        >
           {loading ? (
             <ContainerLoading />
           ) : (
             <>
-              <div className="profileheader grid gap-y-10">
+              <div className="profileheader grid gap-y-10 font-bold text-lg max-small_phone:text-sm">
                 <PrimaryButton
                   type="button"
                   postion="relative"
@@ -99,61 +109,49 @@ export default function UserDashboard() {
                   }
                   height="41px"
                 />
-                <h3 className="header font-bold text-lg">Fullname</h3>
-                <h3 className="header font-bold text-lg">Email Address</h3>
-                <h3 className="header font-bold text-lg">Shipping Address</h3>
-                <h3 className="header font-bold text-lg">Password</h3>
+                <p>Fullname</p>
+                <p>Email Address</p>
+                <p>Shipping Address</p>
+                <p>Password</p>
               </div>
-              <div className="profiledetail  grid gap-y-10">
+              <div
+                className="profiledetail  grid gap-y-10 font-normal text-lg 
+              max-small_phone:text-sm"
+              >
                 <h3></h3>
                 <h3></h3>
 
-                <h3 className="detail font-normal text-lg">
+                <h3 className="detail">
                   {" "}
                   {userinfo.firstname} {userinfo.lastname}{" "}
                 </h3>
-                <h3 className="detail font-normal text-lg">
-                  {" "}
-                  {userinfo.email}{" "}
-                </h3>
-                <h3
+                <h3 className="detail"> {userinfo.email} </h3>
+                <button
+                  type="button"
                   onClick={() => handleEdit("shipping")}
-                  className="detail font-bold bg-[#495464] text-white rounded-lg text-center transition hover:bg-black active:bg-black p-2 cursor-pointer"
+                  className="detail font-bold bg-[#495464] text-white rounded-lg flex items-center justify-center transition 
+                  hover:bg-black active:bg-black p-2 cursor-pointer
+                  max-large_phone:h-[30px] max-large_phone:text-sm
+                  "
                 >
-                  {" "}
-                  View{" "}
-                </h3>
-                <h3 className="detail font-normal text-lg"> ******** </h3>
+                  View
+                </button>
+                <p className="detail font-normal text-lg"> ******** </p>
               </div>
               {userdata.open.edit && (
                 <div className="profileedit_container w-fit grid gap-y-10">
-                  <h3></h3>
-                  <h3></h3>
-                  <h3
-                    onClick={() => handleEdit("name")}
-                    className="edit text-lg text-red-400 font-bold cursor-pointer transition hover:text-black active:text-black"
-                  >
-                    Edit
-                  </h3>
-                  <h3
-                    onClick={() => handleEdit("email")}
-                    className="edit text-lg text-red-400 font-bold cursor-pointer transition hover:text-black active:text-black"
-                  >
-                    Edit
-                  </h3>
-
-                  <h3
-                    onClick={() => handleEdit("shipping")}
-                    className="edit text-lg text-red-400 font-bold cursor-pointer transition hover:text-black active:text-black"
-                  >
-                    Edit
-                  </h3>
-                  <h3
-                    onClick={() => handleEdit("password")}
-                    className="edit text-lg text-red-400 font-bold cursor-pointer transition hover:text-black active:text-black"
-                  >
-                    Edit
-                  </h3>
+                  <p></p>
+                  <p></p>
+                  {EditType.map((type, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => handleEdit(type as any)}
+                      className="edit text-lg text-red-400 max-large_phone:text-sm font-bold cursor-pointer transition hover:text-black active:text-black"
+                    >
+                      Edit
+                    </button>
+                  ))}
                 </div>
               )}
             </>

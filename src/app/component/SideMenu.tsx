@@ -1072,6 +1072,17 @@ export const FilterMenu = ({
                 onChange={handleSelect}
               />
             )}
+
+            <Selection
+              default="Stock"
+              onChange={handleSelect}
+              name="status"
+              value={filtervalue.status}
+              data={statusFilter}
+            />
+            {promotion.selectproduct && (
+              <Selection default="Discount" name="discount" />
+            )}
             {type === "product" &&
               (globalindex.promotioneditindex !== -1 && isSetPromotion ? (
                 <Checkbox
@@ -1105,17 +1116,6 @@ export const FilterMenu = ({
                   }}
                 />
               ))}
-
-            <Selection
-              default="Stock"
-              onChange={handleSelect}
-              name="status"
-              value={filtervalue.status}
-              data={statusFilter}
-            />
-            {promotion.selectproduct && (
-              <Selection default="Discount" name="discount" />
-            )}
           </>
         )}{" "}
       </div>

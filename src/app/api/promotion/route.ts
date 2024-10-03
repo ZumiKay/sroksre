@@ -7,7 +7,6 @@ import {
   calculatePagination,
   removeSpaceAndToLowerCase,
 } from "@/src/lib/utilities";
-import { revalidateTag } from "next/cache";
 import dayjs from "dayjs";
 import Prisma from "@/src/lib/prisma";
 import { Prisma as prisma } from "@prisma/client";
@@ -66,7 +65,6 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    revalidateTag("promotion");
     return Response.json({ data: { id: create.id } }, { status: 200 });
   } catch (error) {
     console.log("Create Promotion", error);
@@ -224,7 +222,6 @@ export async function DELETE(request: NextRequest) {
 
     await Prisma.promotion.delete({ where: { id } });
 
-    revalidateTag("promotion");
     return Response.json({ message: "Delete Success" }, { status: 200 });
   } catch (error) {
     console.log("Delete Promotion", error);
