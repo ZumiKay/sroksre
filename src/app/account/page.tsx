@@ -83,55 +83,55 @@ export default function AuthenticatePage() {
       return;
     }
 
-    if (
-      data.password &&
-      data.password === data.confirmpassword &&
-      data.agreement
-    ) {
-      if (!validatePassword(data.password)) {
-        errorToast("Invalid Password");
-        return;
-      }
-
-      setloading("loading");
-
-      //verify bot
-      const verify = VerifyRecapcha.bind(null, data.recapcha);
-      const req = await verify();
-
-      if (!req.success) {
-        setloading("authenticated");
-        errorToast("Invalid Recapcha");
-        return;
-      }
-
-      const request = await ApiRequest(
-        "/api/auth/register",
-        undefined,
-        "POST",
-        "JSON",
-        data
-      );
-      setloading("authenticated");
-
-      if (!request.success) {
-        const error = request.message;
-        if (error === "false") {
-          errorToast("Invalid Password");
-        } else {
-          request.message && errorToast(request.message);
-        }
-      } else if (request.message === "Registered") {
-        successToast("Account Registered");
-        setdata(Userinitialize);
-        setverify({ email: false, cid: false });
-        settype("login");
-      }
-    } else if (!data.agreement) {
-      errorToast("Please Check Our Policy");
-    } else {
-      errorToast("Invalid Confirm Passwords");
+    if (data.password !== data.confirmpassword) {
+      errorToast("Invalid Confirm Password");
+      return;
     }
+
+    if (!data.agreement) {
+      errorToast("Please Check Our Policy");
+      return;
+    }
+
+    if (!validatePassword(data.password)) {
+      errorToast("Invalid Password");
+      return;
+    }
+
+    setloading("loading");
+
+    //verify bot
+    const verify = VerifyRecapcha.bind(null, data.recapcha);
+    const req = await verify();
+
+    if (!req.success) {
+      setloading("authenticated");
+      errorToast("Invalid Recapcha");
+      return;
+    }
+
+    const request = await ApiRequest(
+      "/api/auth/register",
+      undefined,
+      "POST",
+      "JSON",
+      data
+    );
+    setloading("authenticated");
+
+    if (!request.success) {
+      const error = request.message;
+      if (error === "false") {
+        errorToast("Invalid Password");
+      } else {
+        request.message && errorToast(request.message);
+      }
+      return;
+    }
+    successToast("Account Registered");
+    setdata(Userinitialize);
+    setverify({ email: false, cid: false });
+    settype("login");
   };
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -140,7 +140,7 @@ export default function AuthenticatePage() {
   };
   const handleConfirm = async (types: "email" | "cid") => {
     const isEmailType = types === "email";
-    const URL = `/api/users/vfy${types === "cid" ? `/${data.cid}` : ""}`;
+    const URL = `/api/users/vfy${types === "cid" ? `?cid=${data.cid}` : ""}`;
 
     if (isEmailType && !data.email) {
       errorToast("Email Required");

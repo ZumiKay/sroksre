@@ -160,7 +160,7 @@ export async function GET(req: NextRequest) {
     const params = extractQueryParams(url);
     if (params.cid) {
       const user = await Prisma.user.findFirst({
-        where: { vfy: params.cid as string },
+        where: { vfy: `${params.cid}` },
         select: { id: true },
       });
       if (user) {
