@@ -178,7 +178,7 @@ interface formatContainerType extends Homecontainer {
       size: string;
       parentcate_id: number;
       childcate_id: number;
-      selectedproduct_id: number;
+      selectedproduct_id: number[];
     };
   }[];
 }

@@ -717,7 +717,7 @@ function AddBannerContainer({
           data.type === "category" ||
           data.type === "slide" ||
           data.type === "banner"
-            ? `/api/home/banner?limit=${filter.limit}${
+            ? `/api/home/banner?take=${filter.limit}${
                 filter.q ? `&q=${filter.q}` : ""
               }&ty=${data.type}`
             : `/api/home/product?limit=${filter.limit}${
@@ -967,7 +967,7 @@ function AddBannerContainer({
             status={loading ? "loading" : "authenticated"}
             height="30px"
             width="100px"
-            onClick={handleLoadMore}
+            onClick={() => handleLoadMore()}
             color="#35C191"
           />
         )}

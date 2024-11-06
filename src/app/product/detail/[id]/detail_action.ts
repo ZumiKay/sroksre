@@ -104,10 +104,7 @@ export async function GetProductDetailById(pid: string) {
         child_id: product.childcategory_id,
       },
       variants: product.Variant,
-      varaintstock: product.Stock.map((i) => ({
-        ...i,
-        Stockvalue: i.Stockvalue[0].variant_val,
-      })),
+      varaintstock: product.Stock,
       relatedproduct: otherProduct.filter((i) => i.id !== product.id),
       // Remove properties that are no longer needed
       parentcategory_id: undefined,

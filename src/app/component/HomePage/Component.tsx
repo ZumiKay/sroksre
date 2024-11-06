@@ -228,6 +228,10 @@ interface CategoryContainerProps {
 
 export const CategoryContainer = ({ name, data }: CategoryContainerProps) => {
   const router = useRouter();
+
+  useEffect(() => {
+    console.log(data);
+  }, []);
   return (
     <div key={name} className="w-full h-fit">
       <h3 className="title w-full h-fit text-3xl text-left text-black font-bold">

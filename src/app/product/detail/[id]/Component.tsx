@@ -87,8 +87,6 @@ export const OptionSection = ({
     ) => {
       let type = data.stocktype;
 
-      console.log(data.varaintstock);
-
       if (type !== ProductStockType.stock) {
         const arr = InitializeDetail(
           type === "size" ? 1 : data.variants ? data.variants?.length : 0

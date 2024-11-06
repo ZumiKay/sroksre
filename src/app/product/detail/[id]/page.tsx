@@ -6,7 +6,6 @@ import Link from "next/link";
 import ToggleMenu from "@/src/app/component/ToggleMenu";
 import { getRelatedProduct } from "./action";
 import Card from "@/src/app/component/Card";
-
 import { getUser } from "@/src/context/OrderContext";
 import Prisma from "@/src/lib/prisma";
 import { Props } from "../../page";
