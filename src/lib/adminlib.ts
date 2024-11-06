@@ -307,6 +307,7 @@ export const CreateProduct = async (
       );
 
       //create product variant
+
       if (data.variants && data.variants?.length > 0) {
         await Promise.all(
           data.variants.map((i) =>
@@ -321,6 +322,7 @@ export const CreateProduct = async (
           )
         );
       }
+
       //created product stock
       if (data.varaintstock && data.varaintstock.length > 0) {
         await Promise.all(
@@ -330,10 +332,10 @@ export const CreateProduct = async (
                 product_id: created.id,
                 Stockvalue: {
                   createMany: {
-                    data: {
-                      variant_val: i.Stockvalue,
-                      qty: i.qty,
-                    },
+                    data: i.Stockvalue.map((i) => ({
+                      qty: i.qty ?? 0,
+                      variant_val: i.variant_val,
+                    })),
                   },
                 },
               },

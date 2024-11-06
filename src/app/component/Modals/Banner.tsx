@@ -279,7 +279,7 @@ export const BannerModal = ({
         </div>
 
         <div className="bannerform flex flex-col gap-y-5 justify-start items-center w-full h-full">
-          <div className="w-full h-fit flex flex-row gap-x-5 max-small_phone:flex-col max-small_phone:gap-y-5">
+          <div className="w-full h-fit flex flex-col gap-y-5">
             <Input
               size="lg"
               name="name"

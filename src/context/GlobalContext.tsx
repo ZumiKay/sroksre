@@ -81,14 +81,16 @@ export interface Varianttype {
   option_value: Array<string | VariantColorValueType>;
   [key: string]: any;
 }
+
+export interface SubStockType {
+  id?: number;
+  qty: number;
+  variant_val: string[];
+}
 export interface Stocktype {
   id?: number;
   qty: number;
-  Stockvalue: {
-    id?: number;
-    qty: number;
-    variant_val: string[];
-  }[];
+  Stockvalue: SubStockType[];
   isLowStock?: boolean;
 }
 

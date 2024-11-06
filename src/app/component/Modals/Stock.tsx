@@ -21,6 +21,7 @@ import {
 
 import { Chip as NextChip } from "@nextui-org/chip";
 import { useRouter } from "next/navigation";
+import { Label } from "react-aria-components";
 
 export const UpdateStockModal = ({
   action,

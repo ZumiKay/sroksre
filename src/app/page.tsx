@@ -31,6 +31,7 @@ export default async function Home() {
       <div className="w-[95vw] h-full flex flex-col items-center gap-y-5">
         {items.map((i, idx) => {
           if (i.type === "banner") {
+            const banner = i.items[0].item;
             return (
               <Banner
                 key={idx}
@@ -40,7 +41,19 @@ export default async function Home() {
                     name: i.items[0].item.image?.name ?? "",
                   },
                   name: i.name,
-                  link: i.items[0].item.link,
+                  link: i.items[0].item.link
+                    ? `/product${
+                        banner.parent_id || banner.child_id
+                          ? banner.parent_id
+                            ? `?pid=${banner.parent_id}${
+                                banner.child_id ? `&cid=${banner.child_id}` : ""
+                              }`
+                            : ""
+                          : banner.product_id
+                          ? `/detail/${banner.product_id}`
+                          : ""
+                      }`
+                    : undefined,
                 }}
               />
             );
@@ -51,7 +64,21 @@ export default async function Home() {
                 data={i.items.map((data) => ({
                   img: data.item.image?.url ?? "",
                   name: data.item.name,
-                  link: data.item.link,
+                  link: data.item.link
+                    ? `/product${
+                        data.item.parent_id || data.item.child_id
+                          ? data.item.parent_id
+                            ? `?pid=${data.item.parent_id}${
+                                data.item.child_id
+                                  ? `&cid=${data.item.child_id}`
+                                  : ""
+                              }`
+                            : ""
+                          : data.item.product_id
+                          ? `/detail/${data.item.product_id}`
+                          : ""
+                      }`
+                    : undefined,
                 }))}
               />
             );
@@ -66,7 +93,15 @@ export default async function Home() {
                     name: i.item.image?.name ?? "",
                   },
                   name: i.item.name ?? "",
-                  link: i.item.link,
+                  link: i.item.link
+                    ? `/product${
+                        i.item.parent_id
+                          ? `?pid=${i.item.parent_id}${
+                              i.item.child_id ? `&cid=${i.item.child_id}` : ""
+                            }`
+                          : ""
+                      }`
+                    : "",
                 }))}
               />
             );

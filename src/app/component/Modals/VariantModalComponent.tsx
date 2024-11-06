@@ -1,10 +1,10 @@
 import {
   Stocktype,
+  SubStockType,
   useGlobalContext,
-  VariantColorValueType,
   Varianttype,
 } from "@/src/context/GlobalContext";
-import React, { ChangeEvent, FormEvent, useState } from "react";
+import React, { ChangeEvent, useState } from "react";
 import PrimaryButton from "../Button";
 import {
   ArraysAreEqualSets,
@@ -14,23 +14,13 @@ import {
 } from "./VariantModal";
 import { errorToast } from "../Loading";
 import { SecondaryModal } from "../Modals";
-import {
-  SketchPicker,
-  PhotoshopPicker,
-  ChromePicker,
-  BlockPicker,
-  SwatchesPicker,
-  SliderPicker,
-  HuePicker,
-  AlphaPicker,
-  CirclePicker,
-} from "react-color";
-import { Badge, Button, Input } from "@nextui-org/react";
-import { StockCard } from "./Stock";
+import { SliderPicker, CirclePicker } from "react-color";
+import { Button, Input } from "@nextui-org/react";
 import { HasPartialOverlap } from "@/src/lib/utilities";
 import { ApiRequest, useScreenSize } from "@/src/context/CustomHook";
 import Multiselect from "../MutiSelect";
 import { NormalSkeleton } from "../Banner";
+import RenderStockCards from "./Variantcomponent/StockCard";
 
 interface ManageStockContainerProps {
   editindex?: number;
@@ -84,30 +74,37 @@ export function MapSelectedValuesToVariant(
   return combinations;
 }
 
-const groupSelectedValue = (data: Stocktype, variants: Varianttype[]) => {
+const groupSelectedValue = (
+  data: { Stockvalue: { variant_val: string[] }[] },
+  variants: {
+    option_title: string;
+    option_value: (string | { val: string; name: string })[];
+  }[]
+) => {
   const res: { [key: string]: Set<string> } = {};
 
-  data.Stockvalue.forEach((item) => {
-    item.variant_val.forEach((value, idx) => {
-      const variant = variants[idx];
-      if (!variant) return;
-
-      const optionTitle = variant.option_title;
-      const optionValues = variant.option_value;
-
-      const isVal = optionValues.some((opt) =>
-        typeof opt === "string" ? opt === value : opt.val === value
+  data.Stockvalue.forEach((stock) => {
+    stock.variant_val.forEach((value) => {
+      // Find the variant that includes the value, ignoring order
+      const matchedVariant = variants.find((variant) =>
+        variant.option_value.some((opt) =>
+          typeof opt === "string" ? opt === value : opt.val === value
+        )
       );
 
-      if (isVal) {
+      if (matchedVariant) {
+        const optionTitle = matchedVariant.option_title;
+
         if (!res[optionTitle]) {
           res[optionTitle] = new Set();
         }
+
         res[optionTitle].add(value);
       }
     });
   });
 
+  // Convert Sets to arrays for the final result
   const finalRes: { [key: string]: string[] } = {};
   for (const key in res) {
     finalRes[key] = Array.from(res[key]);
@@ -170,8 +167,8 @@ export function ManageStockContainer({
 
     if (product.varaintstock && product.variants) {
       const createdstock = groupSelectedValue(
-        product.varaintstock[idx],
-        product.variants
+        product.varaintstock[idx] as unknown as Stocktype,
+        product.variants as any
       );
 
       setselectedstock(createdstock);
@@ -232,7 +229,6 @@ export function ManageStockContainer({
         }
       }
     });
-
     setselectedstock(res);
     setstock(qty);
     seteditsubidx(idx);
@@ -298,51 +294,6 @@ export function ManageStockContainer({
     setselectedstock(undefined);
   };
 
-  const RenderStockCards = () => {
-    if (!product || !product.variants) return null;
-
-    const { variants, varaintstock } = product;
-    const stockValues = varaintstock && varaintstock[edit].Stockvalue;
-    const lowstock = parseInt(process.env.LOWSTOCK ?? "3");
-
-    return stockValues?.map((i, idx) => (
-      <Badge
-        key={idx}
-        content="-"
-        color="danger"
-        onClick={() => handleDeleteSubStock(idx)}
-      >
-        <div
-          key={idx + 1}
-          onClick={() => {
-            handleSubStockClick(i.variant_val, i.qty.toString(), idx);
-          }}
-          style={i.qty <= lowstock ? { border: "3px solid lightcoral" } : {}}
-          className="w-fit h-fit flex flex-col gap-y-3 rounded-lg p-2 border-2 border-gray-300 cursor-pointer transition-colors hover:border-gray-500 active:border-black"
-        >
-          {i.variant_val.map((item, idx) => {
-            const variant = variants[idx];
-            const isColor = variant?.option_type === "COLOR";
-            const colorValues =
-              variant?.option_value as VariantColorValueType[];
-
-            const selectedValue = isColor
-              ? colorValues?.find((color) => color.val === item)
-              : undefined;
-
-            return (
-              <StockCard
-                key={`${i.variant_val}-${idx}`}
-                label={isColor ? selectedValue?.name ?? "" : item}
-                color={selectedValue ? selectedValue.val : undefined}
-              />
-            );
-          })}
-        </div>
-      </Badge>
-    ));
-  };
-
   const handleBackEditSubStock = () => {
     if (editsubidx !== -1) {
       setselectedstock(undefined);
@@ -356,7 +307,6 @@ export function ManageStockContainer({
   const handleDeleteStock = async (idx: number) => {
     const updatestock = [...(product.varaintstock ?? [])];
     updatestock.splice(idx, 1);
-
     if (editindex) {
       setloading(true);
       const req = await AsyncUpdateStock(editindex, updatestock);
@@ -427,7 +377,11 @@ export function ManageStockContainer({
             ) : (
               product.varaintstock && (
                 <div className="editstock_container w-full h-fit flex flex-row flex-wrap items-start justify-center gap-5 pt-5">
-                  <RenderStockCards />
+                  <RenderStockCards
+                    handleDeleteSubStock={handleDeleteSubStock}
+                    handleSubStockClick={handleSubStockClick}
+                    edit={edit}
+                  />
                 </div>
               )
             )}

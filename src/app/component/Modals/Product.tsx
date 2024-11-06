@@ -166,6 +166,7 @@ export function CreateProducts({
         errorToast(created.error as string);
         return;
       }
+      console.log(product.varaintstock);
 
       setproduct(Productinitailizestate);
       successToast(`${product.name} Created`);

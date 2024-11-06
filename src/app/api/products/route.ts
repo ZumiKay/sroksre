@@ -42,12 +42,7 @@ const convertStockData = (stock: Stocktype[]) => {
 
     return {
       id: i.id,
-      Stockvalue: i.Stockvalue.flatMap((sub) => {
-        return {
-          id: sub.id,
-          ...sub,
-        };
-      }),
+      Stockvalue: i.Stockvalue,
       isLowStock,
     };
   });
@@ -254,7 +249,7 @@ export async function GET(request: NextRequest) {
           product_id: productId,
         },
         orderBy: {
-          id: "asc",
+          id: "desc",
         },
         select: {
           id: true,
@@ -283,7 +278,7 @@ export async function GET(request: NextRequest) {
       response = Response.json(
         {
           data: {
-            varaintstock: convertStockData(stock as Stocktype[]),
+            varaintstock: convertStockData(stock as unknown as Stocktype[]),
             variants: variant,
           },
         },

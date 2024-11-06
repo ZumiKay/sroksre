@@ -170,13 +170,6 @@ export default function Card(props: cardprops) {
     />
   );
 
-  const showEllipsis = (
-    <i
-      onClick={() => setstate({ ...state, editaction: true })}
-      className="fa-solid fa-ellipsis-vertical text-xl transition rounded-lg p-2 hover:bg-gray-300"
-    ></i>
-  );
-
   //Price Condition
 
   const hasDiscount = props.discount;

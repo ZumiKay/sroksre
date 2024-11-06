@@ -283,9 +283,8 @@ export const AddPolicyModal = ({ qa, plc, edit, openstate }: Policydata) => {
     setquestion(updatequestion);
   };
 
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async () => {
     setloading((prev) => ({ ...prev, post: true }));
-    e.preventDefault();
 
     const makereq = AddPolicyOrQuestion.bind(null, {
       question: question,
@@ -323,7 +322,8 @@ export const AddPolicyModal = ({ qa, plc, edit, openstate }: Policydata) => {
           <div className="w-full h-[40px] flex flex-row gap-x-5">
             <PrimaryButton
               width="100%"
-              type="submit"
+              type="button"
+              onClick={() => handleSubmit()}
               text={edit ? "Update" : "Create"}
               disable={!state && !question}
               status={loading.post ? "loading" : "authenticated"}
@@ -347,10 +347,7 @@ export const AddPolicyModal = ({ qa, plc, edit, openstate }: Policydata) => {
         );
       }}
     >
-      <form
-        onSubmit={handleSubmit}
-        className="w-full h-fit max-small_phone:max-h-[50vh] overflow-x-hidden max-small_phone:h-full bg-white rounded-lg flex flex-col items-center gap-y-5 p-5"
-      >
+      <form className="w-full h-fit max-small_phone:max-h-[50vh] overflow-x-hidden max-small_phone:h-full bg-white rounded-lg flex flex-col items-center gap-y-5 p-5">
         <Selection
           data={["Policy", "Question"]}
           value={type}

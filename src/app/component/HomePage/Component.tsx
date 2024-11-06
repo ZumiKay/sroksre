@@ -227,21 +227,31 @@ interface CategoryContainerProps {
 }
 
 export const CategoryContainer = ({ name, data }: CategoryContainerProps) => {
+  const router = useRouter();
   return (
     <div key={name} className="w-full h-fit">
       <h3 className="title w-full h-fit text-3xl text-left text-black font-bold">
         {name}
       </h3>
+
       <div className="categories mt-5 w-full h-fit flex flex-row flex-wrap justify-center gap-20">
         {data.map((cate, idx) => (
-          <CategoryCard
-            key={idx}
-            data={{
-              image: cate.image,
-              name: cate.name,
-              link: cate.link,
+          <div
+            onClick={() => {
+              if (cate.link) {
+                router.push(cate.link);
+              }
             }}
-          />
+            className="w-fit h-fit"
+          >
+            <CategoryCard
+              key={idx}
+              data={{
+                image: cate.image,
+                name: cate.name,
+              }}
+            />
+          </div>
         ))}
       </div>
     </div>

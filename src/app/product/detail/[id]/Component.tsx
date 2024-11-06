@@ -78,31 +78,37 @@ export const OptionSection = ({
   const [qty, setqty] = useState(0);
   const [incart, setincart] = useState(isInCart);
 
-  const InitializeProductOrder = (
-    data: Pick<
-      ProductState,
-      "id" | "stocktype" | "stock" | "variants" | "varaintstock"
-    >
-  ) => {
-    let type = data.stocktype;
-
-    if (type !== ProductStockType.stock) {
-      const arr = InitializeDetail(
-        type === "size" ? 1 : data.variants ? data.variants?.length : 0
-      ) as any[];
-
-      setproductorderdetail(
-        (prev) =>
-          ({ ...prev, id: data.id as number, details: arr } as Productordertype)
-      );
-    } else {
-      setproductorderdetail(
-        (prev) => ({ ...prev, id: data.id as number } as Productordertype)
-      );
-    }
-  };
-
   useEffectOnce(() => {
+    const InitializeProductOrder = (
+      data: Pick<
+        ProductState,
+        "id" | "stocktype" | "stock" | "variants" | "varaintstock"
+      >
+    ) => {
+      let type = data.stocktype;
+
+      console.log(data.varaintstock);
+
+      if (type !== ProductStockType.stock) {
+        const arr = InitializeDetail(
+          type === "size" ? 1 : data.variants ? data.variants?.length : 0
+        ) as any[];
+
+        setproductorderdetail(
+          (prev) =>
+            ({
+              ...prev,
+              id: data.id as number,
+              details: arr,
+            } as Productordertype)
+        );
+      } else {
+        setproductorderdetail(
+          (prev) => ({ ...prev, id: data.id as number } as Productordertype)
+        );
+      }
+    };
+
     InitializeProductOrder(data);
     seterrormess({
       ...(data.stocktype === ProductStockType.stock

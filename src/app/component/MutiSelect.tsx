@@ -63,7 +63,6 @@ export default function Multiselect({
         labelPlacement="inside"
         isMultiline={true}
         selectionMode="multiple"
-        placeholder="Select an animal"
         selectedKeys={values}
         size="lg"
         className="w-full h-fit min-h-[50px]"

@@ -129,6 +129,9 @@ export async function fetchContainers(ty: string) {
                 type: true,
                 image: true,
                 link: true,
+                parentcate_id: true,
+                childcate_id: true,
+                selectedproduct_id: true,
               },
             },
           },
@@ -173,6 +176,9 @@ interface formatContainerType extends Homecontainer {
       image: covertype;
       link?: string;
       size: string;
+      parentcate_id: number;
+      childcate_id: number;
+      selectedproduct_id: number;
     };
   }[];
 }
@@ -196,6 +202,9 @@ export function formatContainer(result: formatContainerType) {
               image: i.banner.image,
               link: i.banner.link,
               type: i.banner.size,
+              parent_id: i.banner.parentcate_id,
+              child_id: i.banner.childcate_id,
+              product_id: i.banner.selectedproduct_id,
             },
           }
         : {
