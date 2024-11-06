@@ -127,8 +127,7 @@ export const SidePolicyBar = ({
         onClick={() => setopen(!open)}
         className="w-fit h-fit text-lg z-50 bg-gray-100 rounded-lg p-2 cursor-pointer smallest_screen:hidden flex items-center justify-center fixed top-20 right-2 transition-colors duration-100"
       >
-        {" "}
-        {open ? "Close" : "Menu"}{" "}
+        {open ? "Close" : "Menu"}
       </div>
       <motion.aside
         ref={ref}
@@ -291,7 +290,7 @@ export const AddPolicyModal = ({ qa, plc, edit, openstate }: Policydata) => {
       policy: state,
     });
 
-    const createReq = edit
+    const createReq = !edit
       ? await makereq()
       : await ApiRequest("/api/policy", undefined, "PUT", "JSON", {
           type: type.toLowerCase(),
