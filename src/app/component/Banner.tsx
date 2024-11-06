@@ -9,7 +9,6 @@ import PrimaryButton, { Selection } from "./Button";
 import { getSubCategories } from "../dashboard/inventory/varaint_action";
 import SelectArrow from "../../../public/Image/Arrow_down.svg";
 import { AnimatePresence, motion } from "framer-motion";
-
 import { DeleteIcon } from "./Asset";
 import { Skeleton } from "@nextui-org/react";
 

@@ -22,6 +22,7 @@ import PrimaryButton, { Selection } from "../Button";
 import { SelectAndSearchProduct } from "../Banner";
 import { ImageUpload } from "./Image";
 import { DeleteTempImage } from "../../dashboard/inventory/varaint_action";
+import { Input } from "@nextui-org/react";
 
 export const BannerType = [
   { label: "Normal", value: "normal" },
@@ -279,6 +280,17 @@ export const BannerModal = ({
 
         <div className="bannerform flex flex-col gap-y-5 justify-start items-center w-full h-full">
           <div className="w-full h-fit flex flex-row gap-x-5 max-small_phone:flex-col max-small_phone:gap-y-5">
+            <Input
+              size="lg"
+              name="name"
+              label="Name"
+              labelPlacement="outside"
+              placeholder="Name"
+              type="text"
+              value={banner.name}
+              className="w-full font-bold"
+              onChange={handleChange}
+            />
             <div
               className="w-1/2 h-fit flex flex-col gap-y-5
             max-small_phone:w-full
@@ -307,17 +319,6 @@ export const BannerModal = ({
             </div>
           </div>
           <div className="w-full h-fit flex flex-row items-start gap-5 flex-wrap">
-            <div className="w-full h-fit flex flex-col gap-y-5">
-              <label className="w-full h-fit text-lg font-bold">Name</label>
-              <input
-                name="name"
-                placeholder="Name"
-                type="text"
-                value={banner.name}
-                className="w-full h-[50px] text-lg pl-1 font-medium rounded-lg border border-gray-500"
-                onChange={handleChange}
-              />
-            </div>
             {banner.linktype === "product" && (
               <div className="w-full h-fit flex flex-col gap-y-5">
                 <label className="w-full h-fit text-lg font-bold">

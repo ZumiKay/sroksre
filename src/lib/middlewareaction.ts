@@ -36,7 +36,6 @@ const allPublicRoute: Map<string, methodtype[]> = new Map([
 ]);
 
 const userRoute: Map<string, methodtype[]> = new Map([
-  ["/users/vfy", ["POST", "GET", "DELETE"]],
   ["/users/logout", ["DELETE"]],
   ["/auth/users/info", ["GET", "DELETE"]],
   ["/policy", ["GET"]],

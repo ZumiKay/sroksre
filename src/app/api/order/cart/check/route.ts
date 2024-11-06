@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
     const user = await getUser();
 
     if (!user) {
-      return { success: true };
+      return Response.json({}, { status: 200 });
     }
 
     const orderProducts = await Prisma.orderproduct.findMany({

@@ -60,7 +60,6 @@ export function CreateProducts({
   } = useGlobalContext();
 
   const { isMobile, isTablet } = useScreenSize();
-  const isKeyBoardOpen = useDetectKeyboardOpen();
 
   const detailref = useRef<HTMLDivElement>(null);
   const [loading, setloading] = useState(true);
@@ -263,13 +262,7 @@ export function CreateProducts({
       >
         {(loading || isLoading.PUT || isLoading.POST) && <ContainerLoading />}
         <form
-          className={`createform  w-full h-fit ${
-            isMobile
-              ? isKeyBoardOpen && isInput
-                ? "min-h-[200vh]"
-                : "max-h-[55vh]"
-              : "max-h-[95vh]"
-          }            
+          className={`createform  w-full max-small_phone:max-h-[50vh]
           overflow-y-auto overflow-x-hidden relative`}
         >
           <div
@@ -598,8 +591,9 @@ const NormalDetail = () => {
 
       <Textarea
         value={normaldetail.info_value}
-        className="w-full min-h-[100px] h-fit text-lg text-left overflow-y-auto bg-gray-100 rounded-lg p-2"
-        placeholder="Description"
+        size="lg"
+        className="w-full min-h-[100px] h-fit text-lg text-left overflow-y-auto rounded-lg p-2"
+        label="Description"
         onChange={handleChange}
         name="info_value"
       />
