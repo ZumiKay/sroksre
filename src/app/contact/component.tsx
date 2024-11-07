@@ -4,7 +4,6 @@ import PrimaryButton from "../component/Button";
 import { ChangeEvent, FormEvent, useEffect, useState } from "react";
 import { contacttype, SendInquiry } from "./action";
 import { successToast } from "../component/Loading";
-// import { SendNotification } from "@/src/socket";
 
 export const ContactForm = ({
   email,
@@ -29,12 +28,6 @@ export const ContactForm = ({
     if (contactdata) {
       const send = SendInquiry.bind(null, contactdata);
       const makereq = await send();
-      // await SendNotification({
-      //   type: "New Equiry",
-      //   content: `From ${contactdata.email}`,
-      //   checked: false,
-      //   createdAt: "",
-      // });
       successToast(makereq.message);
     }
     setloading(false);

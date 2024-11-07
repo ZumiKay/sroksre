@@ -25,7 +25,8 @@ const ContactItems = [
 ];
 export default async function ContactPage() {
   const user = await getUser();
-  const userdata = await Prisma.user.findUnique({ where: { id: user?.id } });
+  const userdata =
+    user && (await Prisma.user.findUnique({ where: { id: user?.id } }));
   return (
     <div className="w-[70%] max-large_phone:w-[95%] h-full min-h-screen pl-10 max-smallest_phone:pl-2 flex flex-col gap-y-20">
       <h2 className="text-5xl font-bold w-full h-fit">Contact Us</h2>
@@ -49,7 +50,11 @@ export default async function ContactPage() {
       <Suspense fallback={<LoadingIcon />}>
         <ContactForm
           email={userdata?.email}
-          fullname={`${userdata?.firstname} ${userdata?.lastname ?? ""}`}
+          fullname={
+            userdata
+              ? `${userdata?.firstname ?? ""} ${userdata?.lastname ?? ""}`
+              : undefined
+          }
         />
       </Suspense>
     </div>

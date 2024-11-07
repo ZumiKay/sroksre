@@ -289,6 +289,7 @@ export const FilterContainer = ({
   return (
     <SecondaryModal
       size="4xl"
+      placement="top"
       open={openmodal.filteroption}
       closebtn
       onPageChange={(val) =>

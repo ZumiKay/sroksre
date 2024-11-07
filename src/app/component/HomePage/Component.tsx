@@ -194,12 +194,18 @@ interface Categorycardprops {
 const CategoryCard = (props: Categorycardprops) => {
   const router = useRouter();
   return (
-    <div key={props.data.name} className="cate_card w-[500px] h-[700px]">
+    <div
+      key={props.data.name}
+      className="cate_card w-[500px] h-[700px]  max-smallest_tablet:w-full"
+    >
       <motion.img
         initial={{ left: "-20px" }}
         whileInView={{ left: 0 }}
         transition={{ duration: 1, ease: "easeIn" }}
-        className="w-full h-[600px] object-cover relative transition-transform hover:scale-110"
+        className="w-full h-[600px] object-cover 
+        relative transition-transform hover:scale-110
+       
+        "
         src={props.data.image.url}
         alt={props.data.image.name}
         width={"auto"}
@@ -229,9 +235,6 @@ interface CategoryContainerProps {
 export const CategoryContainer = ({ name, data }: CategoryContainerProps) => {
   const router = useRouter();
 
-  useEffect(() => {
-    console.log(data);
-  }, []);
   return (
     <div key={name} className="w-full h-fit">
       <h3 className="title w-full h-fit text-3xl text-left text-black font-bold">
