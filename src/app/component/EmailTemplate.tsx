@@ -469,7 +469,6 @@ export function CredentialEmail({
       <table
         className="info_table"
         style={{
-          backgroundColor: "white",
           backgroundImage: `url("https://firebasestorage.googleapis.com/v0/b/sroksre-442c0.appspot.com/o/sideImage%2Fblank-white-landscape-7sn5o1woonmklx1h.jpg?alt=media&token=d1c1c1a3-3de4-41cc-84da-bb50c1c6d190")`,
           backgroundRepeat: "repeat",
           display: "flex",

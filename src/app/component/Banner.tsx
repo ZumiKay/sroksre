@@ -288,7 +288,7 @@ export const SelectAndSearchProduct = ({
             animate={focus && { opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             className={`option_container absolute  bg-white w-full h-fit max-h-[400px] 
-            overflow-y-auto overflow-x-hidden p-2 flex flex-col items-center gap-y-5 border border-gray-300
+            overflow-y-auto overflow-x-hidden p-2 flex flex-col gap-y-5 items-center border border-gray-300
             z-50
             `}
           >
@@ -299,7 +299,7 @@ export const SelectAndSearchProduct = ({
                 <>
                   <div
                     key={idx}
-                    className="option w-full h-full flex flex-row items-center gap-x-5"
+                    className="option w-full h-fit flex flex-row items-center gap-x-5"
                     onClick={() => handleSelectOption(i)}
                   >
                     <div

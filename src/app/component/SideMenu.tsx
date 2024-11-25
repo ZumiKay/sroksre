@@ -185,6 +185,7 @@ export default function AccountMenu(props: accountmenuprops) {
       const updatedItems = Homeitems.filter((i) => !homeitem_id.includes(i.id));
       sethomeitems(updatedItems);
       setselected(undefined);
+      setisEdit(false);
       successToast("Deleted Successfully");
     };
 

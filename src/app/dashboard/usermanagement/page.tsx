@@ -106,6 +106,11 @@ export default function UsermanagementPage({
           </div>
         </div>
         <div className="userlist w-full h-fit mt-10 flex flex-row gap-5 flex-wrap justify-center">
+          {!allData ||
+            !allData.user ||
+            (allData.user.length === 0 && (
+              <p className="text-lg font-normal text-gray-400">No User Found</p>
+            ))}
           {allData?.user?.map((i, idx) => (
             <UserCard
               index={idx}

@@ -289,9 +289,12 @@ export default function Navbar({ session }: { session?: Usersessiontype }) {
         expires={150}
       >
         This website uses cookies to enhance the user experience.{" "}
-        <span style={{ fontSize: "10px", textDecoration: "underline" }}>
+        <Link
+          href={"/privacyandpolicy"}
+          style={{ fontSize: "10px", textDecoration: "underline" }}
+        >
           See Privacy And Policy Page
-        </span>
+        </Link>
       </CookieConsent>
     </>
   );

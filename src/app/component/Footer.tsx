@@ -28,13 +28,7 @@ export default async function Footer() {
             <Link href={"/contact"}>Contact us</Link>
           </li>
         </ul>
-        <ul className="social__container list-none h-fit flex flex-col gap-y-5 w-fit">
-          <li className="header font-bold text-xl">Follow Us</li>
-          <li>Facebook</li>
-          <li>Instagram</li>
-          <li>Telegram</li>
-          <li>+85523880880</li>
-        </ul>
+
         <ul className="social__container list-none h-fit flex flex-col gap-y-5 w-fit">
           <li className="header font-bold text-xl">Support</li>
           {policies.map((policy) => (

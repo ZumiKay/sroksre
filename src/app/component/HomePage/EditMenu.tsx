@@ -167,14 +167,14 @@ export const Homeeditmenu = ({
       onDragEnd={handleDragEnd}
     >
       <div className="w-[90%] h-fit max-h-[600px] flex flex-col justify-start gap-y-5">
-        <h3 className="text-lg w-full h-fit text-left font-bold">
+        <p className="text-lg w-full h-fit text-left font-bold">
           Homepage Customize
-        </h3>
+        </p>
 
         {!items && (
-          <h3 className="text-lg font-normal border-2 border-red-300 p-1 w-full rounded-medium">
+          <p className="text-lg font-normal border-2 border-red-300 p-1 w-full rounded-medium">
             No Items
-          </h3>
+          </p>
         )}
         {loading ? (
           Array.from({ length: items.length === 0 ? 3 : items.length }).map(

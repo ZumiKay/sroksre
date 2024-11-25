@@ -1,5 +1,5 @@
 "use client";
-import { ChangeEvent, useState } from "react";
+import { ChangeEvent, FormEvent, useState } from "react";
 import PrimaryButton from "../component/Button";
 import { Checkbox, FormControlLabel } from "@mui/material";
 import { signIn } from "next-auth/react";
@@ -18,6 +18,7 @@ import { SendVfyEmail } from "./actions";
 import { PasswordInput } from "../component/FormComponent";
 import RecapchaContainer from "../component/RecaphaComponent";
 import { VerifyRecapcha } from "../severactions/RecapchaAction";
+import { Button } from "@nextui-org/react";
 
 const validatePassword = (password: string) => {
   return (
@@ -44,7 +45,8 @@ export default function AuthenticatePage() {
   });
 
   const router = useRouter();
-  const handleLogin = async () => {
+  const handleLogin = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
     if (!data.email || !data.password) {
       errorToast("Fill in the required information ");
       return;
@@ -235,7 +237,10 @@ export default function AuthenticatePage() {
     <>
       <title>Login / Signup | SrokSre</title>
 
-      <div className="authentication__container  w-full min-h-[90vh] mt-4 flex items-center justify-center">
+      <form
+        onSubmit={handleLogin}
+        className="authentication__container  w-full min-h-[90vh] mt-4 flex items-center justify-center"
+      >
         <div
           className={`bg-[#495464] shadow-large flex text-lg flex-col justify-center items-center gap-y-10 
           max-large_phone:w-[90%] max-small_phone:w-[97%]
@@ -415,17 +420,14 @@ export default function AuthenticatePage() {
                     Forget Password?
                   </div>
                   <div className="form_actions flex flex-col gap-y-5 w-[80%] ">
-                    <PrimaryButton
-                      type="button"
-                      onClick={() => handleLogin()}
-                      text="Login"
-                      color="#438D86"
-                      width="100%"
-                      height="50px"
-                      radius="10px"
-                      status={loading}
-                    />
-
+                    <Button
+                      className="bg-[#438D86] w-full text-white font-bold"
+                      size="md"
+                      type="submit"
+                      isLoading={loading === "loading"}
+                    >
+                      Login
+                    </Button>
                     <div
                       onClick={() => {
                         setdata(Userinitialize);
@@ -497,7 +499,7 @@ export default function AuthenticatePage() {
             </>
           )}
         </div>
-      </div>
+      </form>
     </>
   );
 }

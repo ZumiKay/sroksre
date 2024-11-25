@@ -9,7 +9,7 @@ import {
 import { UserState } from "@/src/context/GlobalContext";
 import { revalidateTag } from "next/cache";
 
-import { Prisma as prisma } from "@prisma/client";
+import { Prisma as prisma, Role } from "@prisma/client";
 
 interface Userparam {
   lt?: number;
@@ -48,9 +48,11 @@ export async function GET(request: NextRequest) {
               },
             ],
           }
-      : { email: { not: "" } };
+      : {};
 
-    const total = await Prisma.user.count({ where: searchCondition });
+    const total = await Prisma.user.count({
+      where: { AND: [searchCondition, { role: { not: "ADMIN" } }] },
+    });
 
     const { startIndex, endIndex } = calculatePagination(
       total,
@@ -59,7 +61,7 @@ export async function GET(request: NextRequest) {
     );
 
     const result = await Prisma.user.findMany({
-      where: searchCondition,
+      where: { AND: [searchCondition, { role: { not: "ADMIN" } }] },
       take: endIndex - startIndex + 1,
       skip: startIndex,
     });
