@@ -1,5 +1,5 @@
 "use client";
-import { Card, Skeleton } from "@nextui-org/react";
+import { Button, Card, Skeleton } from "@nextui-org/react";
 import {
   AnimatePresence,
   motion,
@@ -41,22 +41,19 @@ interface bannerprops {
 
 export const SlideShow = (props: bannerprops) => {
   const [currentSlide, setCurrentSlide] = useState(0);
-  const [isPaused, setIsPaused] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    if (!isPaused) {
-      intervalRef.current = setInterval(() => {
-        setCurrentSlide((prev) => (prev + 1) % props.data.length);
-      }, 5000); // 5 seconds per slide
-    }
+    intervalRef.current = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % props.data.length);
+    }, 10000); // 5 seconds per slide
 
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
       }
     };
-  }, [isPaused, props.data.length]);
+  }, [props.data.length]);
 
   const handleIndicatorClick = (index: number) => {
     setCurrentSlide(index);
@@ -66,7 +63,7 @@ export const SlideShow = (props: bannerprops) => {
     }
     intervalRef.current = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % props.data.length);
-    }, 5000);
+    }, 10000);
   };
 
   const handleNavigate = (side: "next" | "prev") => {
@@ -75,7 +72,7 @@ export const SlideShow = (props: bannerprops) => {
     }
     intervalRef.current = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % props.data.length);
-    }, 5000);
+    }, 10000);
 
     if (side === "next") {
       setCurrentSlide((prev) => (prev + 1) % props.data.length);
@@ -93,14 +90,7 @@ export const SlideShow = (props: bannerprops) => {
           {props.data.map(
             (data, idx) =>
               idx === currentSlide && (
-                <div
-                  onMouseEnter={() => setIsPaused(true)}
-                  onMouseLeave={() => setIsPaused(false)}
-                  onTouchStart={() => setIsPaused(true)}
-                  onTouchEnd={() => setIsPaused(false)}
-                  key={idx}
-                  className="w-full h-auto relative"
-                >
+                <div key={idx} className="w-full h-auto relative">
                   <motion.img
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
@@ -131,6 +121,14 @@ export const SlideShow = (props: bannerprops) => {
       </div>
 
       <div className="control_item h-fit min-h-[50px] w-full flex flex-row justify-between items-center bg-[#495464] flex-wrap">
+        {props.data[currentSlide].link && (
+          <Button
+            className="bg-black text-white font-bold max-w-md rounded-none"
+            size="lg"
+          >
+            Learn More
+          </Button>
+        )}
         <div className="indicator justify-end w-full flex flex-row gap-x-1 pr-2">
           {props.data.map((data, idx) => (
             <div
@@ -153,7 +151,7 @@ export const SlideShow = (props: bannerprops) => {
                 <motion.span
                   initial={{ width: 0 }}
                   animate={{ width: "40px" }}
-                  transition={{ duration: 5, ease: "linear" }}
+                  transition={{ duration: 10, ease: "linear" }}
                   className="h-[5px] bg-white rounded-sm"
                 ></motion.span>
               )}
@@ -406,16 +404,16 @@ export const ScrollableContainer = (props: ScrollableContainerProps) => {
             onClick={() => handleScroll("left")}
             className="w-fit h-fit cursor-pointer left-1 transition-all hover:scale-110 active:scale-110"
           >
-            <div className="arrow text-[40px] grid place-content-center bg-white text-black w-[40px] h-[40px] rounded-full">
-              {"<"}
+            <div className="arrow text-[20px] flex items-center justify-center bg-white text-black w-[40px] h-[40px] rounded-full">
+              <i className="fa-solid fa-arrow-left"></i>
             </div>
           </div>
           <div
             onClick={() => handleScroll("right")}
             className="w-fit h-fit cursor-pointer right-1 transition-all hover:scale-110 active:scale-110"
           >
-            <div className="arrow text-[40px] grid place-content-center bg-white text-black w-[40px] h-[40px] rounded-full">
-              {">"}
+            <div className="arrow text-[20px] flex items-center justify-center bg-white text-black w-[40px] h-[40px] rounded-full">
+              <i className="fa-solid fa-arrow-right"></i>
             </div>
           </div>
         </div>

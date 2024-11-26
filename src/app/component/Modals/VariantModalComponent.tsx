@@ -200,10 +200,13 @@ export function ManageStockContainer({
 
     const updatedStock = product.varaintstock.map((stock) => ({
       ...stock,
-      stockvalue: stock.Stockvalue.splice(idx, 1),
+      Stockvalue: stock.Stockvalue.filter((_, index) => index !== idx),
     }));
 
-    setproduct((prev) => ({ ...prev, varaintstock: updatedStock }));
+    setproduct((prev) => ({
+      ...prev,
+      varaintstock: updatedStock,
+    }));
   };
 
   const handleSubStockClick = (data: string[], qty: string, idx: number) => {

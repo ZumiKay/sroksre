@@ -190,7 +190,7 @@ export default function Inventory({
                 name ? `&q=${name}` : ""
               }`
             : promotion.selectbanner
-            ? `/api/banner?ty=filter&limit=${show}&p=${page}&bty=normal`
+            ? `/api/banner?ty=filter&limit=${show}&p=${page}&bty=normal&promoselect=1`
             : `/api/banner?ty=all&limit=${show}&p=${page}`;
 
         transformFunction = (item: any) => ({

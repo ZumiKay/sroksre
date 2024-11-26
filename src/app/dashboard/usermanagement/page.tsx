@@ -2,7 +2,6 @@
 import { useGlobalContext } from "@/src/context/GlobalContext";
 import PrimaryButton from "../../component/Button";
 import { UserCard } from "../../component/Card";
-
 import { ApiRequest, Delayloading } from "@/src/context/CustomHook";
 import { ContainerLoading, errorToast } from "../../component/Loading";
 import { useEffect, useState } from "react";
@@ -13,7 +12,6 @@ import PaginationCustom from "../../component/Pagination_Component";
 
 interface usermangementFilterType {
   search?: string;
-
   lt?: string;
   p?: string;
 }

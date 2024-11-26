@@ -1,8 +1,4 @@
-import {
-  ApiRequest,
-  useEffectOnce,
-  useScreenSize,
-} from "@/src/context/CustomHook";
+import { ApiRequest, useEffectOnce } from "@/src/context/CustomHook";
 import {
   PromotionInitialize,
   useGlobalContext,

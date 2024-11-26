@@ -206,6 +206,31 @@ export const Variantcontainer = ({
           option_type: temp?.type as "COLOR" | "TEXT",
           option_value: temp?.value as string[],
         };
+
+        if (product.varaintstock) {
+          const updatestock = product.varaintstock?.map((stockItem) => ({
+            ...stockItem,
+            Stockvalue: stockItem.Stockvalue.map((stockValue) => ({
+              ...stockValue,
+              variant_val: stockValue.variant_val.map((val) =>
+                update?.some((vars) =>
+                  vars.option_type === "COLOR"
+                    ? (vars.option_value as VariantColorValueType[]).some(
+                        (color) => color.val === val
+                      )
+                    : vars.option_value.includes(val)
+                )
+                  ? val
+                  : ""
+              ),
+            })).filter((stockValue) =>
+              stockValue.variant_val.some((val) => val !== "")
+            ),
+          }));
+
+          console.log({ updatestock });
+          setproduct((prev) => ({ ...prev, varaintstock: updatestock }));
+        }
       } else {
         update.push({
           option_title: name,
@@ -299,7 +324,6 @@ export const Variantcontainer = ({
         });
 
         setadded(idx);
-
         setnew("info");
 
         if (product.varaintstock) {
@@ -444,6 +468,16 @@ export const Variantcontainer = ({
   };
 
   const handleCreateAndUpdateVariantStock = async (addnew?: boolean) => {
+    const stockArray = product.varaintstock ? [...product.varaintstock] : [];
+    const isStockEmpty = product.varaintstock?.findIndex(
+      (i) => i.Stockvalue.length === 0
+    );
+    if (isStockEmpty !== -1) {
+      setproduct((prev) => ({
+        ...prev,
+        varaintstock: stockArray.filter((_, idx) => idx !== isStockEmpty),
+      }));
+    }
     if (
       !selectedvalues ||
       !stock ||
@@ -461,8 +495,6 @@ export const Variantcontainer = ({
       setadded(-1);
       return;
     }
-
-    const stockArray = product.varaintstock ? [...product.varaintstock] : [];
 
     const stockValues = MapSelectedValuesToVariant(
       selectedvalues,
@@ -517,7 +549,10 @@ export const Variantcontainer = ({
 
     //update Stock When In Product Edit Mode
 
-    setproduct((prev) => ({ ...prev, varaintstock: stockArray }));
+    setproduct((prev) => ({
+      ...prev,
+      varaintstock: stockArray.filter((stock) => stock.Stockvalue.length > 0),
+    }));
 
     if (editindex) await handleSaveUpdateSubStock(stockArray);
 

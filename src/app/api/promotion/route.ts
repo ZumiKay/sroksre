@@ -50,21 +50,6 @@ export async function POST(request: NextRequest) {
       )
     );
 
-    if (promodata.banner_id) {
-      const link = generateLink(
-        "promotion",
-        undefined,
-        undefined,
-        undefined,
-        promodata.banner_id,
-        create.id
-      );
-      await Prisma.banner.update({
-        where: { id: promodata.banner_id },
-        data: { link },
-      });
-    }
-
     return Response.json({ data: { id: create.id } }, { status: 200 });
   } catch (error) {
     console.log("Create Promotion", error);

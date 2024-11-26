@@ -210,8 +210,9 @@ model Banner {
   selectedproduct_id Json?
   link               String?
   createdAt          DateTime         @default(now())
-  Promotion          Promotion[]
+  Promotion          Promotion?       @relation(fields: [id], references: [banner_id])
   Containeritems     Containeritems[]
+  promotionId        Int?             @unique
 }
 
 model Homecontainer {
@@ -228,23 +229,22 @@ model Homecontainer {
 }
 
 model Containeritems {
-  id              Int       @id @default(autoincrement())
+  id              Int            @id @default(autoincrement())
   homecontainerId Int?
   banner_id       Int?
   product_id      Int?
-  banner          Banner?   @relation(fields: [banner_id], references: [id])
-  product         Products? @relation(fields: [product_id], references: [id])
-  createdAt       DateTime  @default(now())
-
-  Homecontainer Homecontainer? @relation(fields: [homecontainerId], references: [id])
+  banner          Banner?        @relation(fields: [banner_id], references: [id], onDelete: Cascade)
+  product         Products?      @relation(fields: [product_id], references: [id], onDelete: Cascade)
+  createdAt       DateTime       @default(now())
+  Homecontainer   Homecontainer? @relation(fields: [homecontainerId], references: [id], onDelete: Cascade)
 }
 
 model Promotion {
   id          Int        @id @default(autoincrement())
   name        String
   description String?
-  banner_id   Int?
-  banner      Banner?    @relation(fields: [banner_id], references: [id])
+  banner_id   Int?       @unique
+  banner      Banner?
   expireAt    DateTime
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt

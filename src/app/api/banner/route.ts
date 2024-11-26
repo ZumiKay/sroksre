@@ -215,6 +215,7 @@ export async function GET(request: NextRequest) {
     q?: string;
     bty?: string;
     bs?: string;
+    promoselect?: number;
   } = extractQueryParams(params);
 
   try {

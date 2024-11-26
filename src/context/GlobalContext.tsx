@@ -239,7 +239,6 @@ export interface PromotionState {
   tempproduct?: number[];
   tempproductstate?: Array<PromotionProductState>;
   type?: string;
-
   isExpired?: boolean;
 }
 
