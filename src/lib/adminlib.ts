@@ -133,6 +133,8 @@ export const updateCategory = async (data: updateCategoryData) => {
       .filter((child) => child.id)
       .map((child) => child.id);
 
+    console.log(data.subcategories);
+
     // Delete child categories that are not in the new list
     await Prisma.childcategories.deleteMany({
       where: {
@@ -889,59 +891,14 @@ export const GetAllProduct = async (
 ): Promise<GetProductReturnType> => {
   try {
     let totalproduct: number = 0;
-
-    let filteroptions = {};
     let allproduct: any = [];
     let lowstock = 0;
 
     if (!promotionid || promotionid === -1) {
-      if (ty === "all") {
-        let totallowstock = 0;
-        let allproduct = await Prisma.products.findMany({
-          select: {
-            details: true,
-            stock: true,
-            Stock: {
-              select: {
-                id: true,
-                Stockvalue: {
-                  select: {
-                    id: true,
-                    qty: true,
-                  },
-                },
-              },
-            },
-            stocktype: true,
-          },
-        });
-        totalproduct = allproduct.length;
-        allproduct.forEach((product) => {
-          const isStock = product.stocktype === "stock";
-          const isVariant = product.stocktype === "variant";
-
-          if (isStock) {
-            totallowstock += product.stock && product.stock <= 1 ? 1 : 0;
-          } else if (isVariant) {
-            //Low stock display
-            product.Stock.forEach((stock) => {
-              const hasLowStock = stock.Stockvalue.some((i) => i.qty <= 5);
-              if (hasLowStock) {
-                totallowstock += 1;
-              }
-            });
-          }
-        });
-
-        lowstock = totallowstock;
-
-        filteroptions = {};
-      }
-
       if (ty === "filter" || ty === "all") {
+        console.log("dsfdsfds");
         let products = await Prisma.products.findMany({
           where: {
-            ...filteroptions,
             ...(!promotionids && selectpromo === 1
               ? { promotion_id: null }
               : {}),
@@ -1198,80 +1155,6 @@ export const GetProductByCategory = async ({
 //
 //
 //
-interface PromotionData {
-  id?: number;
-  name: string;
-  description?: string;
-  products: {
-    id: number;
-    discount: number;
-  }[];
-  banner_id?: number;
-  expireAt: Date;
-}
-export const CreatePromotion = async (
-  data: PromotionData
-): Promise<ReturnType> => {
-  try {
-    const isExist = await Prisma.promotion.findFirst({
-      where: {
-        name: data.name,
-      },
-    });
-    if (isExist) {
-      return { success: false, error: "Promotion Already Existed" };
-    } else {
-      const create = await Prisma.promotion.create({
-        data: {
-          name: data.name,
-          description: data.description,
-          banner_id: data.banner_id,
-          expireAt: data.expireAt,
-        },
-      });
-      if (create) {
-        return { success: true };
-      } else {
-        return { success: false };
-      }
-    }
-  } catch (error) {
-    console.log("Create Promotion", error);
-    return { success: false, error: "Create Promotion Saved" };
-  }
-};
-export const EditPromotion = async (
-  data: PromotionData
-): Promise<ReturnType> => {
-  try {
-    const update = await Prisma.promotion.update({
-      where: {
-        id: data.id,
-      },
-      data: {
-        name: data.name,
-        description: data.description,
-        banner_id: data.banner_id,
-        expireAt: data.expireAt,
-      },
-    });
-    if (update) {
-      return { success: true };
-    }
-    return { success: false };
-  } catch (error) {
-    return { success: false, error: "Edit Promotion Failed" };
-  }
-};
-export const DeletePromotion = async (id: number): Promise<ReturnType> => {
-  try {
-    await Prisma.promotion.delete({ where: { id: id } });
-    return { success: true };
-  } catch (error) {
-    console.error("Delete Promotion", error);
-    return { success: false, error: "Delete Promotion Failed" };
-  }
-};
 
 export interface admindata {
   firstname: string;

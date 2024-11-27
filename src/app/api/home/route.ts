@@ -132,6 +132,7 @@ export async function fetchContainers(ty: string) {
                 parentcate_id: true,
                 childcate_id: true,
                 selectedproduct_id: true,
+                promotionId: true,
               },
             },
           },
@@ -179,6 +180,7 @@ interface formatContainerType extends Homecontainer {
       parentcate_id: number;
       childcate_id: number;
       selectedproduct_id: number[];
+      promotionId?: number;
     };
   }[];
 }
@@ -205,6 +207,7 @@ export function formatContainer(result: formatContainerType) {
               parent_id: i.banner.parentcate_id,
               child_id: i.banner.childcate_id,
               product_id: i.banner.selectedproduct_id,
+              promotionId: i.banner.promotionId,
             },
           }
         : {

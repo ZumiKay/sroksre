@@ -63,14 +63,8 @@ export const GetPromotionSelection = async (
   };
 };
 export const Category = () => {
-  const {
-    openmodal,
-    setopenmodal,
-    category,
-    setcategory,
-    allData,
-    setalldata,
-  } = useGlobalContext();
+  const { openmodal, setopenmodal, category, setcategory, allData } =
+    useGlobalContext();
   const [show, setshow] = useState<"Create" | "Edit">("Create");
   const [loading, setloading] = useState(false);
   const [catetype, setcatetype] = useState<Categorytype>("normal");
@@ -105,9 +99,6 @@ export const Category = () => {
       errorToast("Failed To Create");
       return;
     }
-    setalldata((prev) => ({
-      category: [...(prev?.category ?? []), { ...category, id: saved.data.id }],
-    }));
 
     setcategory(CateogoryInitailizestate);
 
@@ -189,6 +180,7 @@ export const Category = () => {
                 size="lg"
                 label="Name"
                 name="name"
+                value={category.name}
                 onChange={handleChange}
                 required
               />
@@ -198,6 +190,7 @@ export const Category = () => {
                 size="lg"
                 label="Description"
                 name="description"
+                value={category.description}
                 onChange={handleChange}
                 required
               />
@@ -391,11 +384,16 @@ const EditCategory = ({
 
   const handleSelectPromotion = (value: Array<SelectType>) => {
     const categories = { ...category };
-    categories.subcategories = value.map((i) => ({
-      name: i.label,
-      type: "promo",
-      pid: i.value as number,
-    }));
+
+    if (!categories.subcategories) return;
+
+    categories.subcategories = !value
+      ? []
+      : value.map((i) => ({
+          name: i.label,
+          type: "promo",
+          pid: i.value as number,
+        }));
 
     setcategory(categories);
   };

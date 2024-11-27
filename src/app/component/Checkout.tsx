@@ -867,6 +867,7 @@ export function Paypalbutton({
 }) {
   const router = useRouter();
   const socket = useSocket();
+  const { setcarttotal } = useGlobalContext();
 
   const createOrder = async () => {
     const CreateOrder = Createpaypalorder.bind(null, orderId);
@@ -892,7 +893,7 @@ export function Paypalbutton({
   return (
     <PayPalScriptProvider
       options={{
-        clientId: process.env.PAYPAL_ID as string,
+        clientId: process.env.NEXT_PUBLIC_PAYPAL_ID as string,
         components: "buttons",
         currency: "USD",
       }}
@@ -960,12 +961,13 @@ export function Paypalbutton({
                     type: "New Order",
                     content: `Order #${orderId} has requested`,
                     checked: false,
-                    link: `${process.env.BASE_URL}/dashboard/order?&q=${orderId}`,
+                    link: `${process.env.NEXT_PUBLIC_BASE_URL}/dashboard/order?&q=${orderId}`,
                   },
                   socket
                 ));
               successToast(`Purchase Complete`);
               router.replace(`/checkout?orderid=${encripyid}&step=4`);
+              setcarttotal(0);
               router.refresh();
             }
           } catch (error) {

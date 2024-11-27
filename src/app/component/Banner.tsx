@@ -122,6 +122,7 @@ export const SelectAndSearchProduct = ({
   placeholder,
 }: selectprops) => {
   const [focus, setfocus] = useState(false);
+  const [isDelete, setisDelete] = useState(false);
   const [limit, setlimt] = useState<number>(3);
   const [loading, setloading] = useState(false);
   const [isLimit, setIsLimit] = useState(false);
@@ -223,6 +224,7 @@ export const SelectAndSearchProduct = ({
       (singleselect
         ? onSelect(selected.length === 0 ? undefined : selected[0])
         : onSelect(selected.length === 0 ? undefined : selected));
+    setisDelete(false);
   };
 
   return (
@@ -235,7 +237,7 @@ export const SelectAndSearchProduct = ({
         onClick={() => {
           setfocus(true);
         }}
-        className="inputcontainer w-full min-h-[50px] relative h-fit flex flex-row items-center border border-black rounded-lg"
+        className="inputcontainer w-full min-h-[50px] relative h-fit flex flex-row items-center border border-gray-300 rounded-lg"
       >
         <div className="w-full max-w-[95%] h-fit flex flex-row flex-wrap items-center gap-5 p-1">
           {selectedvalue &&
@@ -252,6 +254,10 @@ export const SelectAndSearchProduct = ({
                 </p>
                 <p
                   onClick={() => handleDeleteSelected(idx)}
+                  onMouseEnter={() => setisDelete(true)}
+                  onMouseLeave={() => setisDelete(false)}
+                  onTouchStart={() => setisDelete(true)}
+                  onTouchEnd={() => setisDelete(false)}
                   className="w-fit h-fit pr-1 relative"
                 >
                   <DeleteIcon />
@@ -279,7 +285,7 @@ export const SelectAndSearchProduct = ({
         </div>
       </div>
       <AnimatePresence>
-        {focus && (
+        {!isDelete && focus && (
           <motion.ul
             initial={{
               opacity: 0,

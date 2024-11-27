@@ -140,7 +140,7 @@ export default async function ProductDetailPage({
           </div>
         </div>
       </div>
-      {data.data.relatedproduct && data.data.relatedproduct.length > 0 && (
+      {data.data.relatedproduct && (
         <div className="relatedproduct__section w-full h-full mt-10 flex flex-col gap-y-10">
           <ShowSimilarProduct
             pid={params.id}
@@ -207,7 +207,8 @@ const ShowSimilarProduct = async ({
   }
 
   return (
-    data.data && (
+    data.data &&
+    data.data.length > 0 && (
       <>
         <h3 className="text-lg font-bold w-full h-fit text-left pl-2">
           You might also like:

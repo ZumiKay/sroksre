@@ -28,14 +28,9 @@ interface paramsType {
   vs?: number;
   sp?: number;
 }
-interface SubStockType {
-  id?: number;
-  qty: number;
-  variant_val: string[];
-}
 
 const convertStockData = (stock: Stocktype[]) => {
-  const lowstock = parseInt(process.env.LOWSTOCK ?? "3");
+  const lowstock = parseInt(process.env.NEXT_PUBLIC_LOWSTOCK ?? "3");
 
   const Stock = stock.map((i) => {
     const isLowStock = i.Stockvalue.some((sub) => sub.qty <= lowstock);

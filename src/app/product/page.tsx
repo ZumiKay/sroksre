@@ -14,6 +14,7 @@ import { format } from "date-fns";
 import { calculateDiscountProductPrice, IsNumber } from "@/src/lib/utilities";
 import NotFound from "../not-found";
 import type { Metadata } from "next";
+import { categorytype } from "../api/categories/route";
 
 interface ProductParam {
   p?: string;
@@ -280,7 +281,7 @@ export default async function ProductsPage({
   }
 
   let subcate = undefined;
-  let cate = undefined;
+  let cate: any = undefined;
   if (!pid && cid) {
     subcate = await getSubCate(cid);
   } else {
@@ -289,6 +290,13 @@ export default async function ProductsPage({
 
   if ((pid && !cate) || (!pid && cid && !subcate)) {
     return notFound();
+  }
+
+  if (promoid && !pid) {
+    cate = await Prisma.parentcategories.findFirst({
+      where: { type: categorytype.sale },
+      select: { id: true, name: true },
+    });
   }
 
   ///////////
@@ -334,7 +342,7 @@ export default async function ProductsPage({
   return (
     <div className="products_page relative w-full min-h-[100vh] h-full flex flex-col justify-center items-center gap-y-20">
       <div className="header_section w-full h-fit flex flex-col items-start gap-y-5">
-        {promotion && promotion.banner && (
+        {promotion && promotion.banner && promotion.banner.image && (
           <Banner
             data={{
               image: {
@@ -354,7 +362,7 @@ export default async function ProductsPage({
               ? banner.name
               : all
               ? "All Products"
-              : (cate && (cate.sub ? cate.sub.name : cate.name)) ?? ""
+              : (cate && (cate?.sub ? cate.sub.name : cate.name)) ?? ""
           }`}
         </h2>
         <div

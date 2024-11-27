@@ -18,10 +18,14 @@ export function generateMetadata(): Metadata {
   };
 }
 const ContactItems = [
-  { icon: Igicon, value: "SrokSreStore" },
-  { icon: Fbicon, value: "SrokSre" },
-  { icon: Emailicon, value: "ssreecomerce@gmail.com", type: "Email" },
-  { icon: Phoneicon, value: "023880880" },
+  { icon: Igicon, value: process.env.NEXT_PUBLIC_ADMIN_IG },
+  { icon: Fbicon, value: process.env.NEXT_PUBLIC_ADMIN_FB },
+  {
+    icon: Emailicon,
+    value: process.env.NEXT_PUBLIC_ADMIN_EMAIL,
+    type: "Email",
+  },
+  { icon: Phoneicon, value: process.env.NEXT_PUBLIC_ADMIN_PHONENUMBER },
 ];
 export default async function ContactPage() {
   const user = await getUser();

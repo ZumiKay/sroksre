@@ -409,7 +409,7 @@ export async function updateShippingService(
 //Paypal Handler
 
 const generateAccessToken = async () => {
-  const paypal_id = process.env.PAYPAL_ID as string;
+  const paypal_id = process.env.NEXT_PUBLIC_PAYPAL_ID as string;
   const paypal_secret = process.env.PAYPAL_KEY as string;
 
   try {
@@ -527,20 +527,21 @@ export async function Createpaypalorder(orderId: string): Promise<Returntype> {
 
     let orderShipping: PaypalshippingType = {
       type: shippingtype?.value !== "Pickup" ? "SHIPPING" : "NO_SHIPPING",
-
-      address: {
-        address_line_1: `StreetNumber StreetName`,
-        address_line_2: `${order.shipping?.houseId} ${order.shipping?.songkhat} ${order.shipping?.district}`,
-        admin_area_2: order.shipping?.province,
-        postal_code: order.shipping?.postalcode ?? "",
-        country_code: CountryCode.cambodia,
-      },
+      ...(order.shipping && {
+        address: {
+          address_line_1: `${order.shipping?.street}`,
+          address_line_2: `${order.shipping?.houseId} ${order.shipping?.songkhat} ${order.shipping?.district}`,
+          admin_area_2: order.shipping?.province,
+          postal_code: order.shipping?.postalcode ?? "",
+          country_code: CountryCode.cambodia,
+        },
+      }),
     };
 
     const purchase_units: PurcahseUnitType = {
       amount: orderAmount,
       items: orderItems,
-      shipping: shippingtype?.value === "Pickup" ? undefined : orderShipping,
+      shipping: orderShipping,
     };
     const payload = {
       intent: "CAPTURE",

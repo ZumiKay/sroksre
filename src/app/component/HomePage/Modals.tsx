@@ -33,7 +33,7 @@ import {
   ScrollableConIcon,
   SlideShowIcon,
 } from "../Asset";
-import { DateRangePicker } from "@nextui-org/react";
+import { Button, DateRangePicker } from "@nextui-org/react";
 import { BannerSkeleton } from "./Component";
 import { ContainerLoading, errorToast, successToast } from "../Loading";
 import { BannerModal } from "../Modals/Banner";
@@ -876,12 +876,11 @@ function AddBannerContainer({
             onClick={() => setisFilter(false)}
             className="absolute w-fit h-fit top-1 right-1"
           >
-            {" "}
             <CloseVector width="20px" height="20px" />{" "}
           </div>
 
           <div className="w-full h-fit flex flex-col gap-y-5">
-            <h3 className="text-lg font-bold">Search</h3>
+            <div className="text-lg font-bold">Search</div>
             <TextInput
               style={{ height: "30px", color: "black" }}
               type="text"
@@ -895,7 +894,7 @@ function AddBannerContainer({
           {data.type === "scrollable" && (
             <div className="w-full h-fit flex flex-row items-center gap-x-5">
               <div className="w-full h-fit flex flex-col gap-y-5">
-                <h3 className="text-lg font-bold">Parent Category</h3>
+                <p className="text-lg font-bold">Parent Category</p>
                 <Selection
                   name="parentcate"
                   defaultValue={""}
@@ -908,7 +907,7 @@ function AddBannerContainer({
               </div>
               {cate.sub && (
                 <div className="w-full h-fit flex flex-col gap-y-5">
-                  <h3 className="text-lg font-bold">Sub Category</h3>
+                  <p className="text-lg font-bold">Sub Category</p>
                   <Selection
                     style={{ height: "40px", color: "black" }}
                     name="subcate"
@@ -960,15 +959,13 @@ function AddBannerContainer({
 
       <div className="w-full h-[5%] flex flex-row gap-x-5 mb-2 items-start justify-center">
         {!loading && !islimit && (
-          <PrimaryButton
-            text="Load More"
-            radius="10px"
+          <Button
+            title="Load More"
             type="button"
-            status={loading ? "loading" : "authenticated"}
-            height="30px"
-            width="100px"
+            isLoading={loading}
             onClick={() => handleLoadMore()}
-            color="#35C191"
+            color="primary"
+            variant="bordered"
           />
         )}
       </div>

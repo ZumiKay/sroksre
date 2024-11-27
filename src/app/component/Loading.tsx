@@ -35,7 +35,12 @@ export const BlurLoading = () => {
   );
 };
 export const successToast = (message: string) => {
+  const toastId = "uniquesuccesstoastid";
+
+  if (toast.isActive(toastId)) return;
+
   toast.success(message, {
+    toastId,
     autoClose: 1000,
     closeOnClick: true,
     pauseOnHover: true,
@@ -45,7 +50,11 @@ export const successToast = (message: string) => {
   });
 };
 export const errorToast = (message: string) => {
+  const toastId = "uniqueerrortoastid";
+
+  if (toast.isActive(toastId)) return;
   toast.error(message, {
+    toastId,
     autoClose: 2000,
     closeOnClick: true,
     pauseOnHover: true,
@@ -55,14 +64,25 @@ export const errorToast = (message: string) => {
   });
 };
 
-export const infoToast = (message: string) => {
-  toast.info(message, {
-    autoClose: 3000,
-    closeOnClick: true,
-    pauseOnHover: true,
-    position: "top-center",
-    theme: "dark",
-  });
+export const infoToast = (message: string, onClose?: () => void) => {
+  const toastId = "unique-info-toast"; // Unique ID for the toast
+  // Check if the toast is already active
+  if (!toast.isActive(toastId)) {
+    toast.info(message, {
+      toastId, // Assign a unique ID to prevent duplication
+      autoClose: 3000,
+      closeOnClick: true,
+      pauseOnHover: true,
+      position: "top-center",
+      theme: "dark",
+    });
+
+    toast.onChange((action) => {
+      if (action.status === "removed") {
+        onClose && onClose();
+      }
+    });
+  }
 };
 
 export const ContainerLoading = () => {

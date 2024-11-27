@@ -1,7 +1,6 @@
 import {
   ApiRequest,
   Delayloading,
-  useDetectKeyboardOpen,
   useEffectOnce,
   useScreenSize,
 } from "@/src/context/CustomHook";
@@ -13,13 +12,7 @@ import {
   SubcategoriesState,
   useGlobalContext,
 } from "@/src/context/GlobalContext";
-import React, {
-  ChangeEvent,
-  FormEvent,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import React, { ChangeEvent, useEffect, useRef, useState } from "react";
 import { ContainerLoading, errorToast, successToast } from "../Loading";
 import { PrimaryPhoto } from "../PhotoComponent";
 import PrimaryButton, { Selection } from "../Button";
@@ -166,7 +159,6 @@ export function CreateProducts({
         errorToast(created.error as string);
         return;
       }
-      console.log(product.varaintstock);
 
       setproduct(Productinitailizestate);
       successToast(`${product.name} Created`);
@@ -343,10 +335,9 @@ export function CreateProducts({
                 size="lg"
                 className="w-[100%] h-[40px] text-lg pl-1 font-bold rounded-md "
               />
-              <div className="w-full h-fit flex flex-col gap-y-5">
+              <div className="w-full h-fit flex flex-col gap-y-5 z-50">
                 <label className="font-bold text-lg">
-                  {" "}
-                  Add related product (Optional){" "}
+                  Add related product (Optional)
                 </label>
                 <SearchAndMultiSelect />
               </div>
@@ -356,7 +347,6 @@ export function CreateProducts({
                   <NormalSkeleton count={2} width="100%" height="40px" />
                 ) : (
                   <>
-                    {" "}
                     <SelectionCustom
                       textplacement="outside"
                       label="Category"

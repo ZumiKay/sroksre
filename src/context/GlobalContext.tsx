@@ -240,6 +240,7 @@ export interface PromotionState {
   tempproductstate?: Array<PromotionProductState>;
   type?: string;
   isExpired?: boolean;
+  autocate?: boolean;
 }
 
 export type filterinventorytype =

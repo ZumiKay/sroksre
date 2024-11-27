@@ -1,7 +1,7 @@
 "use client";
 import { ChangeEvent, FormEvent, useState } from "react";
 import PrimaryButton from "../component/Button";
-import { Checkbox, FormControlLabel } from "@mui/material";
+
 import { signIn } from "next-auth/react";
 
 import { errorToast, successToast } from "../component/Loading";
@@ -18,7 +18,7 @@ import { SendVfyEmail } from "./actions";
 import { PasswordInput } from "../component/FormComponent";
 import RecapchaContainer from "../component/RecaphaComponent";
 import { VerifyRecapcha } from "../severactions/RecapchaAction";
-import { Button } from "@nextui-org/react";
+import { Button, Checkbox } from "@nextui-org/react";
 
 const validatePassword = (password: string) => {
   return (
@@ -325,28 +325,25 @@ export default function AuthenticatePage() {
                     }
                   />
                   <div className="w-[80%] h-fit">
-                    <FormControlLabel
-                      control={
-                        <Checkbox
-                          checked={data.agreement}
-                          onChange={handleChange}
-                          className="checkbox w-fit"
-                          name="agreement"
-                          color="primary"
-                        />
-                      }
-                      label={
-                        <h3
-                          className="text-white text-lg font-bold"
-                          style={{
-                            color: data.agreement ? "white" : "lightcoral",
-                          }}
-                        >
-                          {" "}
-                          Agree to policy and agreement{" "}
-                        </h3>
-                      }
-                    />
+                    <Checkbox
+                      checked={data.agreement}
+                      onChange={(val) => {
+                        setdata((prev) => ({
+                          ...prev,
+                          agreement: val.target.checked,
+                        }));
+                      }}
+                    >
+                      <strong className="text-white"> Agree to </strong>
+                      <a
+                        href="/privacyandpolicy"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-400 underline"
+                      >
+                        terms and conditions
+                      </a>
+                    </Checkbox>
                   </div>
                 </>
               )}

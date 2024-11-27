@@ -111,11 +111,11 @@ export function OrderReceiptTemplate({ order, isAdmin }: OerderEmailProps) {
 
           <tr>
             <td colSpan={2} height={"100px"} valign="middle">
-              <h3 style={{ fontSize: "20px", fontWeight: "700" }}>
+              <p style={{ fontSize: "20px", fontWeight: "700" }}>
                 {isAdmin
                   ? `Order for ${order.user.firstname}#${order.user.id}`
                   : `Thank you for shopping with us`}
-              </h3>
+              </p>
             </td>
           </tr>
 
@@ -126,12 +126,12 @@ export function OrderReceiptTemplate({ order, isAdmin }: OerderEmailProps) {
               style={{ textAlign: "left", paddingLeft: "5%", fontSize: "15px" }}
             >
               {!isAdmin && (
-                <h3 style={{ height: "50px" }}>
+                <p style={{ height: "50px" }}>
                   <strong>{`Hi, ${order.user?.firstname ?? ""}`} </strong>
                   {"we received your order."}
-                </h3>
+                </p>
               )}
-              <h3
+              <p
                 style={{
                   fontSize: "25px",
                   fontWeight: 800,
@@ -139,23 +139,23 @@ export function OrderReceiptTemplate({ order, isAdmin }: OerderEmailProps) {
                 }}
               >
                 Order Summary
-              </h3>
-              <h3 style={{ fontWeight: "700" }}>Order #: {order.id}</h3>
-              <h3 style={{ fontWeight: "700" }}>
+              </p>
+              <p style={{ fontWeight: "700" }}>Order #: {order.id}</p>
+              <p style={{ fontWeight: "700" }}>
                 Order on {formatDate(order.createdAt)}
-              </h3>
-              <h3
+              </p>
+              <p
                 style={{
                   fontWeight: "700",
                   color: AllOrderStatusColor[order.status.toLowerCase()],
                 }}
               >
                 {`Order status: ${order.status.toUpperCase()}`}
-              </h3>
+              </p>
 
               {order.shipping && (
                 <>
-                  <h3
+                  <p
                     style={{
                       fontSize: "25px",
                       fontWeight: 800,
@@ -163,8 +163,8 @@ export function OrderReceiptTemplate({ order, isAdmin }: OerderEmailProps) {
                     }}
                   >
                     Shipping Address
-                  </h3>
-                  <h3
+                  </p>
+                  <p
                     style={{
                       fontSize: "15px",
                       fontWeight: 500,
@@ -172,8 +172,8 @@ export function OrderReceiptTemplate({ order, isAdmin }: OerderEmailProps) {
                   >
                     {" "}
                     {`${order.shipping.firstname} ${order.shipping.lastname}`}
-                  </h3>
-                  <h3
+                  </p>
+                  <p
                     style={{
                       fontSize: "15px",
                       fontWeight: 500,
@@ -181,16 +181,16 @@ export function OrderReceiptTemplate({ order, isAdmin }: OerderEmailProps) {
                   >
                     {" "}
                     {`No${order.shipping.houseId}, Street ${order.shipping.street}`}{" "}
-                  </h3>
-                  <h3
+                  </p>
+                  <p
                     style={{
                       fontSize: "15px",
                       fontWeight: 500,
                     }}
                   >
                     {`${order.shipping.district}, ${order.shipping.songkhat}`}{" "}
-                  </h3>
-                  <h3
+                  </p>
+                  <p
                     style={{
                       fontSize: "15px",
                       fontWeight: 500,
@@ -198,7 +198,7 @@ export function OrderReceiptTemplate({ order, isAdmin }: OerderEmailProps) {
                   >
                     {" "}
                     {`${order.shipping.province}, ${order.shipping.postalcode}`}{" "}
-                  </h3>
+                  </p>
                 </>
               )}
             </td>
@@ -221,7 +221,7 @@ export function OrderReceiptTemplate({ order, isAdmin }: OerderEmailProps) {
                   fontSize: "17px",
                   border: "0px",
                 }}
-                href={`${process.env.BASE_URL}/dashboard/order?q=${order.id}`}
+                href={`${process.env.NEXT_PUBLIC_BASE_URL}/dashboard/order?q=${order.id}`}
               >
                 View Order
               </a>
@@ -232,7 +232,7 @@ export function OrderReceiptTemplate({ order, isAdmin }: OerderEmailProps) {
 
           <tr style={{ width: "100%", height: "auto" }}>
             <td colSpan={2} align="left">
-              <h3 style={{ fontWeight: 800, fontSize: "30px" }}>Need Help ?</h3>
+              <p style={{ fontWeight: 800, fontSize: "30px" }}>Need Help ?</p>
               <a
                 style={{
                   fontSize: "25px",
@@ -254,9 +254,9 @@ export function OrderReceiptTemplate({ order, isAdmin }: OerderEmailProps) {
                   fontWeight: "600",
                   padding: "10px",
                 }}
-                href={process.env.BASE_URL + "/privacyandpolicy"}
+                href={process.env.NEXT_PUBLIC_BASE_URL + "/privacyandpolicy"}
               >
-                Policy and Condition
+                Policy and Terms
               </a>
             </td>
           </tr>
@@ -268,7 +268,9 @@ export function OrderReceiptTemplate({ order, isAdmin }: OerderEmailProps) {
                   fontWeight: "600",
                   padding: "10px",
                 }}
-                href={process.env.BASE_URL + "/privacyandpolicy?p=0"}
+                href={
+                  process.env.NEXT_PUBLIC_BASE_URL + "/privacyandpolicy?p=0"
+                }
               >
                 FAQs
               </a>
@@ -464,93 +466,111 @@ export function CredentialEmail({
   infovalue: string;
   warn: string;
 }) {
+  const styles = {
+    container: {
+      width: "100%",
+      fontFamily: "Arial, sans-serif",
+      backgroundColor: "#f4f4f4",
+      padding: "20px",
+      textAlign: "center" as const,
+      height: "100vh",
+    },
+    table: {
+      maxWidth: "600px",
+      margin: "auto",
+      backgroundColor: "#ffffff",
+      borderRadius: "10px",
+      overflow: "hidden",
+      boxShadow: "0px 4px 10px rgba(0, 0, 0, 0.1)",
+      width: "100%",
+      height: "100%",
+    },
+    tableCell: {
+      padding: "20px",
+      textAlign: "center" as const,
+    },
+    headerText: {
+      fontSize: "20px",
+      fontWeight: "bold",
+      color: "#333333",
+      margin: 0,
+    },
+    promoContainer: {
+      padding: "20px",
+      backgroundColor: "#495464",
+      textAlign: "center" as const,
+      borderRadius: "5px",
+    },
+    promoText: {
+      fontSize: "24px",
+      fontWeight: "bold",
+      color: "#ffffff",
+      margin: 0,
+      wordWrap: "break-word" as const,
+    },
+    promoLink: {
+      fontSize: "20px",
+      fontWeight: "bold",
+      color: "#ffffff",
+      textDecoration: "none",
+      wordWrap: "break-word" as const,
+    },
+    warningText: {
+      fontSize: "16px",
+      color: "#333333",
+      margin: 0,
+      textAlign: "right" as const,
+    },
+    footerText: {
+      fontSize: "14px",
+      color: "#666666",
+      textAlign: "right" as const,
+    },
+  };
+
   return (
-    <div className="tableWrapper" style={{ width: "100%" }}>
-      <table
-        className="info_table"
-        style={{
-          backgroundImage: `url("https://firebasestorage.googleapis.com/v0/b/sroksre-442c0.appspot.com/o/sideImage%2Fblank-white-landscape-7sn5o1woonmklx1h.jpg?alt=media&token=d1c1c1a3-3de4-41cc-84da-bb50c1c6d190")`,
-          backgroundRepeat: "repeat",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          width: "30%",
-          minWidth: "450px",
-          height: "100%",
-          border: 0,
-        }}
-        align="center"
-      >
+    <div style={styles.container}>
+      <table style={styles.table} cellPadding="0" cellSpacing="0" border={0}>
         <tbody>
           <tr>
-            <td colSpan={2} align="center">
+            <td style={styles.tableCell}>
               <img
                 src="https://firebasestorage.googleapis.com/v0/b/sroksre-442c0.appspot.com/o/sideImage%2FLogo3.png?alt=media&token=e9bda37b-3cc7-400b-9680-01d3b2bf2064"
-                width={"100px"}
-                height={"auto"}
-                title="Logo"
+                width="100"
+                height="auto"
                 alt="Logo"
-                loading="eager"
-                style={{ display: "block", objectFit: "contain" }}
+                style={{
+                  display: "block",
+                  margin: "auto",
+                  objectFit: "contain",
+                }}
               />
             </td>
           </tr>
-          <tr style={{ height: "50px" }}>
-            <td></td>
-          </tr>
           <tr>
-            <td>
-              <h3 style={{ fontWeight: "600", fontSize: "20px" }}>{message}</h3>
+            <td style={styles.tableCell}>
+              <p style={styles.headerText}>{message}</p>
             </td>
           </tr>
-          <tr style={{ height: "50px" }}>
-            <td></td>
-          </tr>
-          <tr
-            style={{
-              backgroundColor: "#495464",
-              height: "200px",
-              width: "100%",
-            }}
-          >
-            <td style={{ borderRadius: "20px" }} align="center">
+          <tr>
+            <td style={styles.promoContainer}>
               {infotype === "code" ? (
-                <h3
-                  style={{
-                    fontWeight: 700,
-                    fontSize: "20px",
-                    color: "white",
-                    wordBreak: "break-all",
-                  }}
-                >
-                  {infovalue}
-                </h3>
+                <p style={styles.promoText}>{infovalue}</p>
               ) : (
-                <a
-                  style={{
-                    fontWeight: 700,
-                    fontSize: "20px",
-                    color: "white",
-                    wordBreak: "break-all",
-                  }}
-                  href={infovalue}
-                >
+                <a href={infovalue} style={styles.promoLink}>
                   {infovalue}
                 </a>
               )}
             </td>
           </tr>
-          <tr style={{ height: "50px" }}>
-            <td></td>
-          </tr>
           <tr>
-            <td align="right">
-              <h3>{warn}</h3>
+            <td style={styles.warningText}>
+              <p>{warn}</p>
             </td>
           </tr>
           <tr>
-            <td align="right">
-              <span>All right reserve@ SrokSre</span>
+            <td style={styles.footerText}>
+              <span>All rights reserved © SrokSre</span>
             </td>
           </tr>
         </tbody>

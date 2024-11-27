@@ -1,9 +1,4 @@
-import {
-  Stocktype,
-  SubStockType,
-  useGlobalContext,
-  Varianttype,
-} from "@/src/context/GlobalContext";
+import { Stocktype, useGlobalContext } from "@/src/context/GlobalContext";
 import React, { ChangeEvent, useState } from "react";
 import PrimaryButton from "../Button";
 import {
@@ -14,7 +9,12 @@ import {
 } from "./VariantModal";
 import { errorToast } from "../Loading";
 import { SecondaryModal } from "../Modals";
-import { SliderPicker, CirclePicker } from "react-color";
+import {
+  SliderPicker,
+  CirclePicker,
+  Checkboard,
+  ChromePicker,
+} from "react-color";
 import { Button, Input } from "@nextui-org/react";
 import { HasPartialOverlap } from "@/src/lib/utilities";
 import { ApiRequest, useScreenSize } from "@/src/context/CustomHook";
@@ -580,11 +580,8 @@ export const ColorSelectModal = ({
               htmlFor="color"
               className="font-semibold text-sm w-full text-left"
             >
-              {" "}
-              Color{" "}
-              <strong className="text-red-400 text-lg font-normal">
-                *
-              </strong>{" "}
+              Color
+              <strong className="text-red-400 text-lg font-normal">*</strong>
             </label>
             <div
               onClick={() => {
@@ -619,25 +616,21 @@ export const ColorSelectModal = ({
               >
                 <div className="w-full h-full flex flex-col items-center gap-y-5 justify-center">
                   <div className="w-full h-fit flex flex-col gap-3 items-center">
-                    <div className="w-full">
-                      <SliderPicker
-                        color={color.hex}
-                        onChange={(value, _) => {
-                          setcolor({
-                            hex: value.hex,
-                            rgb: value.rgb as any,
-                          });
-                        }}
-                      />
-                    </div>
                     <CirclePicker
                       color={color.hex}
-                      onChange={(value, _) => {
+                      onChange={(value) => {
                         setcolor({
                           hex: value.hex,
                           rgb: value.rgb as any,
                         });
                       }}
+                    />
+                    <ChromePicker
+                      color={color.hex}
+                      onChange={(val) =>
+                        setcolor({ hex: val.hex, rgb: val.rgb })
+                      }
+                      disableAlpha
                     />
                   </div>
 

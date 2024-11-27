@@ -347,7 +347,7 @@ const SuccessPage = async ({ orderid }: { orderid: string }) => {
         </p>
         <Navigatebutton
           title="View Order"
-          to={`${process.env.BASE_URL}/dashboard/order?&q=${orderid}`}
+          to={`${process.env.NEXT_PUBLIC_BASE_URL}/dashboard/order?&q=${orderid}`}
         />
       </div>
     </div>

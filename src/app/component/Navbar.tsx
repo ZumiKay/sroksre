@@ -56,15 +56,13 @@ const InitialMethod = async (session?: Usersessiontype) => {
       const checked = checkloggedsession.bind(null, session.session_id);
       const makereq = await checked();
       if (!makereq.success) {
-        infoToast("Session expired please login again");
-        setTimeout(() => {
-          signOut();
-        }, 2000);
+        infoToast("Session expired please login again", () => signOut());
       }
     };
     await checksession();
   }
 };
+
 export default function Navbar({ session }: { session?: Usersessiontype }) {
   const { cart, setcart, carttotal, setcarttotal, setopenmodal, openmodal } =
     useGlobalContext();
@@ -126,19 +124,21 @@ export default function Navbar({ session }: { session?: Usersessiontype }) {
   }, []);
 
   useEffect(() => {
-    if (!socket) return;
+    if (session?.role === "ADMIN") {
+      if (!socket) return;
 
-    const handleNotification = (data: NotificationType) => {
-      infoToast("New Notification");
-      // Handle the notification (e.g., update state, show a toast, etc.)
-    };
+      const handleNotification = (data: NotificationType) => {
+        infoToast("New Notification");
+        setchecknotify(1);
+        // Handle the notification (e.g., update state, show a toast, etc.)
+      };
 
-    socket.on("receiveNotification", handleNotification);
-
-    return () => {
-      socket.off("receiveNotification", handleNotification);
-    };
-  }, [socket]);
+      socket.on("receiveNotification", handleNotification);
+      return () => {
+        socket.off("receiveNotification", handleNotification);
+      };
+    }
+  }, [socket, session]);
 
   useEffect(() => {
     const handleEventClick = (e: globalThis.MouseEvent) => {

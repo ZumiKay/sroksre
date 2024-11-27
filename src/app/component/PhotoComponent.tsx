@@ -22,7 +22,6 @@ type indextype = {
 };
 
 export const PrimaryPhoto = (props: Primaryphotoprops) => {
-  const [hover, sethover] = useState(false);
   const [index, setindex] = useState<indextype>({
     start: 0,
     end: 0,
@@ -34,7 +33,6 @@ export const PrimaryPhoto = (props: Primaryphotoprops) => {
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
 
   useEffect(() => {
-    sethover(!props.hover);
     setindex({ ...index, end: props.data?.length - 1 });
   }, [props.data]);
 
@@ -84,8 +82,8 @@ export const PrimaryPhoto = (props: Primaryphotoprops) => {
   return (
     <div
       style={props.style}
-      className="primaryphoto__container flex flex-col gap-y-0 w-[400px]  
-      max-smaller_screen:w-[350px] 
+      className="primaryphoto__container flex flex-col gap-y-0 w-full
+      max-smaller_screen:w-[400px] 
       max-large_tablet:w-[200px] 
       max-small_phone:w-[180px]
       max-smallest_phone:w-[150px]
@@ -96,24 +94,27 @@ export const PrimaryPhoto = (props: Primaryphotoprops) => {
       onTouchEnd={handleTouchEnd}
     >
       <div
-        className="imagecontainer flex flex-row justify-start items-center w-full h-full transition"
-        style={{ transform: `translate(${-index.current * 100}% , 0)` }}
+        style={{ transform: `translateX(-${index.current * 100}%)` }}
+        className="imagecontainer flex w-full h-full transition-transform duration-500 ease-in-out"
       >
-        {props.data?.map((obj, idx) => (
-          <Image
-            key={idx}
-            src={obj.url}
-            alt={`${obj.name}`}
-            className="w-full h-[550px]  
-            max-smaller_screen:h-[350px] 
-            
-            object-contain"
-            width={500}
-            height={600}
-            quality={80}
-            priority={true}
-          />
-        ))}
+        {props.data?.map((obj, idx) => {
+          return (
+            <div
+              key={idx}
+              className="flex-shrink-0 h-full w-full flex items-center justify-center"
+            >
+              <Image
+                src={obj.url}
+                alt={`${obj.name}`}
+                className="w-[280px] h-[350px] object-cover"
+                width={400}
+                height={550}
+                quality={80}
+                priority={true}
+              />
+            </div>
+          );
+        })}
       </div>
       {!props.isMobile &&
         !props.isTablet &&

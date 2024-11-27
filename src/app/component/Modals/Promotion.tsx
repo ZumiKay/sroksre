@@ -6,12 +6,13 @@ import {
 import { useRouter, useSearchParams } from "next/navigation";
 import React, { ChangeEvent, FormEvent, useEffect, useState } from "react";
 import { errorToast, infoToast, successToast } from "../Loading";
-import Modal, { SecondaryModal } from "../Modals";
+import { SecondaryModal } from "../Modals";
 import { motion } from "framer-motion";
 import { DateTimePicker } from "@mui/x-date-pickers";
 import dayjs from "dayjs";
 import PrimaryButton from "../Button";
 import { ImageUpload } from "./Image";
+import { Switch } from "@nextui-org/react";
 
 interface InventoryParamType {
   ty?: string;
@@ -114,8 +115,6 @@ export const CreatePromotionModal = ({
 
     setglobalindex((prev) => ({ ...prev, promotioneditindex: -1 }));
     setopenmodal((prev) => ({ ...prev, createPromotion: false }));
-
-    router.push(`?${param}`);
     setreloaddata(true);
   };
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -123,9 +122,10 @@ export const CreatePromotionModal = ({
   };
   const handleCancel = async () => {
     const param = new URLSearchParams(searchParams);
+
     const deletepromoproduct = await ApiRequest(
       "/api/promotion",
-      undefined,
+      setisLoading,
       "PUT",
       "JSON",
       { type: "cancelproduct" }
@@ -228,6 +228,16 @@ export const CreatePromotionModal = ({
             }}
             sx={{ width: "100%", height: "50px" }}
           />
+          <div className="w-full flex justify-start">
+            <Switch
+              isSelected={promotion.autocate}
+              onValueChange={(val) => {
+                setpromotion((prev) => ({ ...prev, autocate: val }));
+              }}
+            >
+              Auto List at Sale Category
+            </Switch>
+          </div>
           <PrimaryButton
             text={promotion.banner_id ? "Edit Banner" : "Select Banner"}
             onClick={() => {
@@ -251,27 +261,29 @@ export const CreatePromotionModal = ({
             width="100%"
             height="50px"
           />
-          <PrimaryButton
-            color="#44C3A0"
-            text={globalindex.promotioneditindex === -1 ? "Create" : "Update"}
-            type="submit"
-            status={
-              isLoading.POST || isLoading.PUT ? "loading" : "authenticated"
-            }
-            radius="10px"
-            width="100%"
-            height="50px"
-          />{" "}
-          <PrimaryButton
-            color="#F08080"
-            text="Cancel"
-            type="button"
-            disable={isLoading.POST || isLoading.PUT}
-            radius="10px"
-            width="100%"
-            height="50px"
-            onClick={() => handleCancel()}
-          />
+          <div className="w-full h-fit flex flex-row gap-x-5">
+            <PrimaryButton
+              color="#44C3A0"
+              text={globalindex.promotioneditindex === -1 ? "Create" : "Update"}
+              type="submit"
+              status={
+                isLoading.POST || isLoading.PUT ? "loading" : "authenticated"
+              }
+              radius="10px"
+              width="100%"
+              height="50px"
+            />{" "}
+            <PrimaryButton
+              color="#F08080"
+              text="Cancel"
+              type="button"
+              disable={isLoading.POST || isLoading.PUT}
+              radius="10px"
+              width="100%"
+              height="50px"
+              onClick={() => handleCancel()}
+            />
+          </div>
         </form>
       </div>
       {openmodal.imageupload && (

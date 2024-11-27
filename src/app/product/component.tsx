@@ -454,17 +454,19 @@ export const PromotionProductListContainer = ({
   return (
     <div className="promotioncontainer w-full h-fit flex flex-col gap-y-10 pl-5 pr-5 pb-10">
       <div className="header w-full h-fit flex flex-row justify-center items-center max-small_screen:flex-col gap-5">
-        <Image
-          src={banner.url}
-          alt={banner.name}
-          width={700}
-          height={700}
-          loading="lazy"
-          className="w-full h-[500px] max-small_screen:h-auto object-contain rounded-lg"
-        />
+        {banner && (
+          <Image
+            src={banner.url ?? ""}
+            alt={banner.name}
+            width={700}
+            height={700}
+            loading="lazy"
+            className="w-full h-[500px] max-small_screen:h-auto object-contain rounded-lg"
+          />
+        )}
         <div className="description w-full min-h-[280px] h-fit p-3 rounded-lg bg-gray-500 text-white flex flex-col justify-center gap-y-5">
-          <h3 className="title text-3xl font-bold">{name}</h3>
-          <h3 className="title text-xl font-bold">{expiredDate}</h3>
+          <p className="title text-3xl font-bold">{name}</p>
+          <p className="title text-xl font-bold">{expiredDate}</p>
           <p className="des w-full h-fit text-lg font-light">{description}</p>
         </div>
       </div>
@@ -472,6 +474,7 @@ export const PromotionProductListContainer = ({
         {product.map((prod) => (
           <Card
             key={prod.id}
+            id={prod.id}
             name={prod.name}
             price={prod.price.toFixed(2)}
             img={prod.covers}

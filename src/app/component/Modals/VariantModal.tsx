@@ -228,7 +228,6 @@ export const Variantcontainer = ({
             ),
           }));
 
-          console.log({ updatestock });
           setproduct((prev) => ({ ...prev, varaintstock: updatestock }));
         }
       } else {

@@ -149,21 +149,21 @@ export const generateInvoicePdf = async (Order: GenerateInvoicePdf) => {
     font,
     color: textColor,
   });
-  page.drawText(`Phonenumber   :023880880`, {
+  page.drawText(`Phonenumber   :${process.env.NEXT_PUBLIC_ADMIN_PHONENUMBER}`, {
     x: 400,
     y: 805,
     size: fontSize,
     font,
     color: textColor,
   });
-  page.drawText(`Email   :ssrecommerce@gmail.com`, {
+  page.drawText(`Email   :${process.env.NEXT_PUBLIC_ADMIN_EMAIL}`, {
     x: 400,
     y: 790,
     size: fontSize,
     font,
     color: textColor,
   });
-  page.drawText(`URL   :${process.env.NEXTAUTH_URL}`, {
+  page.drawText(`URL   :${process.env.NEXT_PUBLIC_BASE_URL}`, {
     x: 400,
     y: 775,
     size: fontSize,

@@ -14,7 +14,7 @@ export default function RecapchaContainer({
   return (
     <div className="recapcha_container w-[80%] h-fit">
       <ReCAPTCHA
-        sitekey={process.env.CAPTCHA_KEY ?? ""}
+        sitekey={process.env.NEXT_PUBLIC_CAPTCHA_KEY ?? ""}
         onChange={handleRecapcha}
       />
     </div>

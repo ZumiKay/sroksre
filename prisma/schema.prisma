@@ -210,7 +210,7 @@ model Banner {
   selectedproduct_id Json?
   link               String?
   createdAt          DateTime         @default(now())
-  Promotion          Promotion?       @relation(fields: [id], references: [banner_id])
+  Promotion          Promotion?       @relation(fields: [promotionId], references: [id])
   Containeritems     Containeritems[]
   promotionId        Int?             @unique
 }
@@ -243,7 +243,6 @@ model Promotion {
   id          Int        @id @default(autoincrement())
   name        String
   description String?
-  banner_id   Int?       @unique
   banner      Banner?
   expireAt    DateTime
   createdAt   DateTime   @default(now())

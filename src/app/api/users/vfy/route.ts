@@ -55,16 +55,16 @@ export async function POST(request: NextRequest) {
     //send email
     if (!isUser) {
       const emailTemplate = {
-        type: data.type === "register" ? "code" : "link",
+        infotype: data.type === "register" ? "code" : "link",
         infovalue:
           data.type === "register"
-            ? `Verify Code: ${otp}`
+            ? `${otp}`
             : `${process.env.NEXTAUTH_URL}/account/reset&cid=${otp}`,
         message:
           data.type === "register"
             ? "Please use this code for verify email"
             : "Please use this link for reset password",
-        warn: "Your emaikl will be use for this purpose only except if you subscribe to our newletter",
+        warn: "Your email will be use for this purpose only",
       };
 
       //initial user

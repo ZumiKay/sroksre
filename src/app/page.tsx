@@ -23,6 +23,7 @@ const fetchhomeitems = async () => {
 
   return res;
 };
+
 export default async function Home() {
   const items = await fetchhomeitems();
 
@@ -41,22 +42,21 @@ export default async function Home() {
                     name: i.items[0].item.image?.name ?? "",
                   },
                   name: i.name,
-                  link:
-                    banner.parent_id || banner.child_id || banner.product_id
-                      ? `/product${
-                          banner.parent_id || banner.child_id
-                            ? banner.parent_id
-                              ? `?pid=${banner.parent_id}${
-                                  banner.child_id
-                                    ? `&cid=${banner.child_id}`
-                                    : ""
-                                }`
-                              : ""
-                            : banner.product_id
-                            ? `/detail/${banner.product_id}`
+                  link: banner.promotionId
+                    ? `/product?promoid=${banner.promotionId}`
+                    : banner.parent_id || banner.child_id || banner.product_id
+                    ? `/product${
+                        banner.parent_id || banner.child_id
+                          ? banner.parent_id
+                            ? `?pid=${banner.parent_id}${
+                                banner.child_id ? `&cid=${banner.child_id}` : ""
+                              }`
                             : ""
-                        }`
-                      : undefined,
+                          : banner.product_id
+                          ? `/detail/${banner.product_id}`
+                          : ""
+                      }`
+                    : undefined,
                 }}
               />
             );

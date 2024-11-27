@@ -7,29 +7,6 @@ import {
 } from "@/src/lib/utilities";
 import { NextRequest } from "next/server";
 
-export const generateLink = (
-  linktype: string,
-  parent_id?: number,
-  child_id?: number,
-  product?: number[],
-  banner_id?: number,
-  promotionid?: number
-) => {
-  const baseUrl = process.env.BASE_URL;
-  switch (linktype) {
-    case "parent":
-      return `${baseUrl}/product?pid=${parent_id}&bid=${banner_id}`;
-    case "sub":
-      return `${baseUrl}/product?pid=${parent_id}&&cid=${child_id}&bid=${banner_id}`;
-    case "product":
-      return `${baseUrl}/product?pids=${product?.join(",")}&bid=${banner_id}`;
-    case "promotion":
-      return `${baseUrl}/product?promoid=${promotionid}`;
-    default:
-      return "";
-  }
-};
-
 export async function POST(request: NextRequest) {
   try {
     const data: BannerState = await request.json();
@@ -44,24 +21,9 @@ export async function POST(request: NextRequest) {
         parentcate_id: data.parentcate?.value as number,
         childcate_id: data.childcate?.value as number,
         linktype: data.linktype,
-        link: "",
       },
     });
 
-    if (data.linktype) {
-      await Prisma.banner.update({
-        where: { id: create.id },
-        data: {
-          link: generateLink(
-            data.linktype,
-            data.parentcate?.value as number,
-            data.childcate?.value as number,
-            data.selectedproduct?.map((i) => i.value) as number[],
-            create.id
-          ),
-        },
-      });
-    }
     //remove temp image
     await Prisma.tempimage.deleteMany({ where: { name: data.image.name } });
 
@@ -134,20 +96,6 @@ export async function PUT(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     const { id } = await request.json();
-
-    //delete relation
-    const isPromotion = await Prisma.promotion.count({
-      where: { banner_id: id },
-    });
-    isPromotion !== 0 &&
-      (await Prisma.promotion.updateMany({
-        where: {
-          banner_id: id,
-        },
-        data: {
-          banner_id: null,
-        },
-      }));
 
     const isBanner = await Prisma.banner.findUnique({
       where: { id },

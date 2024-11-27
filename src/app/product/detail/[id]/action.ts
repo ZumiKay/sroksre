@@ -9,10 +9,7 @@ import {
   totalpricetype,
 } from "@/src/context/OrderContext";
 import Prisma from "@/src/lib/prisma";
-import {
-  calculateDiscountProductPrice,
- 
-} from "@/src/lib/utilities";
+import { calculateDiscountProductPrice } from "@/src/lib/utilities";
 
 import { revalidatePath } from "next/cache";
 
@@ -210,6 +207,8 @@ export const getRelatedProduct = async (
     }
 
     relatedProducts = relatedProducts.slice(0, limit);
+
+    console.log(relatedProducts);
 
     return {
       success: true,

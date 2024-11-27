@@ -22,6 +22,7 @@ import { Addtocart, AddWishlist } from "./action";
 import { errorToast, successToast } from "@/src/app/component/Loading";
 import { ApiRequest, useEffectOnce } from "@/src/context/CustomHook";
 import { useRouter, useSearchParams } from "next/navigation";
+import { Skeleton } from "@nextui-org/react";
 
 export const ShowPrice = ({
   price,
@@ -180,7 +181,10 @@ export const OptionSection = ({
     }
 
     successToast("Added to cart");
-    setproductorderdetail(Productdetailinitialize);
+    setproductorderdetail((prev) => ({
+      ...Productdetailinitialize,
+      id: prev.id,
+    }));
     setincart(true);
     setcarttotal((prev) => prev + 1);
   };
@@ -202,6 +206,7 @@ export const OptionSection = ({
           setmess={seterrormess}
           setloading={setloading}
           setincart={setincart}
+          isloading={loading}
         />
       </div>
 
@@ -237,7 +242,8 @@ const stock = (
   errormess: errormessType,
   setmess: React.Dispatch<React.SetStateAction<errormessType>>,
   incart?: boolean,
-  isStock?: boolean
+  isStock?: boolean,
+  isloading?: boolean
 ) => {
   const showLowStock = max ? max <= 5 : false;
   const { setproductorderdetail, productorderdetail } = useGlobalContext();
@@ -269,19 +275,22 @@ const stock = (
       <label htmlFor="qty" className="text-lg font-bold">
         Quantity
       </label>
-      <Selection
-        default="QTY"
-        data={Array.from({ length: max }).map((_, idx) => ({
-          label: idx + 1,
-          value: idx + 1,
-        }))}
-        style={{ height: "50px", width: "200px", maxWidth: "250px" }}
-        onChange={(e) => handleChange(e, isStock)}
-        disable={max === 0 || incart}
-        value={productorderdetail?.quantity}
-        name="quantity"
-      />
-
+      {isloading ? (
+        <Skeleton className="w-[90%] h-[40px] rounded-lg" />
+      ) : (
+        <Selection
+          default="QTY"
+          data={Array.from({ length: max }).map((_, idx) => ({
+            label: idx + 1,
+            value: idx + 1,
+          }))}
+          style={{ height: "50px", width: "200px", maxWidth: "250px" }}
+          onChange={(e) => handleChange(e, isStock)}
+          disable={max === 0 || incart}
+          value={productorderdetail?.quantity}
+          name="quantity"
+        />
+      )}
       <h3 className="text-lg text-red-500 w-full text-left font-bold">
         {`  ${
           max === 0 ? errormess.qty ?? "" : showLowStock ? "Low on stock" : ""
@@ -447,6 +456,7 @@ const ShowOptionandStock = ({
   setqty,
   setloading,
   setincart,
+  isloading,
 }: {
   prob: Pick<ProductState, "stocktype" | "stock" | "variants" | "varaintstock">;
   qty: number;
@@ -455,6 +465,7 @@ const ShowOptionandStock = ({
   setqty: React.Dispatch<React.SetStateAction<number>>;
   setloading: React.Dispatch<React.SetStateAction<boolean>>;
   setincart: React.Dispatch<React.SetStateAction<boolean>>;
+  isloading?: boolean;
 }) => {
   const type = prob.stocktype;
   const Productunvaliable = (
@@ -485,7 +496,7 @@ const ShowOptionandStock = ({
         )
       )}
       {prob.varaintstock && prob.varaintstock.length !== 0
-        ? stock(qty, errormess, setmess, undefined)
+        ? stock(qty, errormess, setmess, undefined, undefined, isloading)
         : qty === 0
         ? Productunvaliable
         : ""}

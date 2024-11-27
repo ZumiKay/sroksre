@@ -9,9 +9,9 @@ import {
 } from "@/src/lib/adminlib";
 import Prisma from "@/src/lib/prisma";
 import { extractQueryParams } from "../banner/route";
-import dayjs, { Dayjs } from "dayjs";
+import dayjs from "dayjs";
 
-const categorytype = {
+export const categorytype = {
   normal: "normal",
   sale: "sale",
   popular: "popular",
@@ -45,6 +45,7 @@ const CreateAutoCategory = async (data: Categorydata) => {
       data: {
         name: data.name,
         type: data.type,
+        description: data.description,
         sub:
           data.subcategories &&
           data.subcategories.every((i) => i.type === "promo")

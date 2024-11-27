@@ -30,7 +30,10 @@ const RenderStockCards = ({
     [varaintstock, edit]
   );
 
-  const lowstock = useMemo(() => parseInt(process.env.LOWSTOCK ?? "3"), []);
+  const lowstock = useMemo(
+    () => parseInt(process.env.NEXT_PUBLIC_LOWSTOCK ?? "3"),
+    []
+  );
 
   const variantLookup = useMemo(() => {
     return variants.reduce((acc, variant) => {
