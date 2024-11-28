@@ -11,7 +11,6 @@ import { NextUIProvider } from "@nextui-org/react";
 import { Suspense } from "react";
 import { ContainerLoading } from "./component/Loading";
 import { SocketProvider } from "../context/SocketContext";
-
 const prompt = Prompt({
   weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
   subsets: ["latin"],
@@ -20,6 +19,8 @@ const prompt = Prompt({
 export const metadata: Metadata = {
   title: "Srok Sre",
   description: "Online Store",
+  icons:
+    "https://firebasestorage.googleapis.com/v0/b/sroksre-442c0.appspot.com/o/sideImage%2FLogo.svg?alt=media&token=5eb60253-4401-4fc9-a282-e635d132f050",
 };
 
 export default async function RootLayout({
