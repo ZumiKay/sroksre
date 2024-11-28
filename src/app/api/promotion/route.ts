@@ -39,13 +39,6 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      //update banner
-      promodata.banner_id &&
-        (await Prisma.banner.update({
-          where: { id: promodata.banner_id },
-          data: { promotionId: create.id },
-        }));
-
       // Update related products
       await Promise.all(
         promodata.Products.filter((i) => i.id !== 0).map((i) =>
@@ -59,27 +52,37 @@ export async function POST(request: NextRequest) {
       );
 
       // Check for Sale Category
-      const salecategory = await tx.parentcategories.findFirst({
-        where: {
-          type: categorytype.sale,
-        },
-      });
 
-      if (!salecategory?.id) {
-        throw new Error("Sale Category not found");
+      if (promodata.autocate) {
+        const salecategory = await tx.parentcategories.findFirst({
+          where: {
+            type: categorytype.sale,
+          },
+        });
+
+        if (!salecategory?.id) {
+          throw new Error("Sale Category not found");
+        }
+        // Add promotion to the sale category
+        await tx.childcategories.create({
+          data: {
+            parentcategoriesId: salecategory.id,
+            pid: create.id,
+            name: promodata.name,
+            type: categorytype.sale,
+          },
+        });
       }
 
-      // Add promotion to the sale category
-      await tx.childcategories.create({
-        data: {
-          parentcategoriesId: salecategory.id,
-          pid: create.id,
-          name: promodata.name,
-          type: categorytype.sale,
-        },
-      });
       return create.id;
     });
+
+    //update banner
+    promodata.banner_id &&
+      (await Prisma.banner.update({
+        where: { id: promodata.banner_id },
+        data: { promotionId: result },
+      }));
 
     return Response.json({ data: { id: result } }, { status: 200 });
   } catch (error) {

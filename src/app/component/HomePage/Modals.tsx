@@ -233,13 +233,13 @@ const ScrollableContainerModal = ({
       )}
 
       {data.items && data.items.length !== 0 && (
-        <h3 className="text-xl font-bold">Items: </h3>
+        <p className="text-xl font-bold">Items: </p>
       )}
 
       <div
         className="selectedproduct w-full overflow-y-auto
        max-sm:grid-cols-1
-       h-fit max-h-[40vh] grid grid-cols-2 gap-x-5 gap-y-24 place-items-center"
+       min-h-[70vh] h-full max-h-[100vh] flex flex-row justify-start items-start gap-x-5 gap-y-24"
       >
         {data.items.map(
           (item, idx) =>
@@ -475,13 +475,16 @@ const Homecontainermodal = ({
       <SecondaryModal
         size="5xl"
         open={openmodal["homecontainer"] as boolean}
-        onPageChange={(val) =>
-          setopenmodal((prev) => ({ ...prev, homecontainer: val }))
-        }
+        onPageChange={(val) => {
+          if (globalindex.homeeditindex) {
+            setglobalindex((prev) => ({ ...prev, homeeditindex: undefined }));
+          }
+          setopenmodal((prev) => ({ ...prev, homecontainer: val }));
+        }}
         placement={isMobile ? "top" : "center"}
         style={{ backgroundColor: "#495464" }}
         header={() => (
-          <h3 className="title w-fit text-2xl font-bold text-white ">
+          <p className="title w-fit text-2xl font-bold text-white ">
             {openmodal["Addbanner"]
               ? data.type !== "scrollable"
                 ? "Add Banner"
@@ -497,7 +500,7 @@ const Homecontainermodal = ({
               : data.type === "banner"
               ? `Create Banner`
               : `Choose Type`}
-          </h3>
+          </p>
         )}
       >
         <div className="w-full h-fit relative bg-[#495464] text-white rounded-lg flex flex-col items-center overflow-y-auto overflow-x-hidden">
@@ -516,7 +519,7 @@ const Homecontainermodal = ({
             ) : (
               <>
                 <div className="w-full h-fit flex flex-col gap-y-5">
-                  <h3 className="text-lg font-bold">Name</h3>
+                  <p className="text-lg font-bold">Name</p>
                   <TextInput
                     onChange={(e) =>
                       setdata((prev) => ({ ...prev, name: e.target.value }))
@@ -558,22 +561,24 @@ const Homecontainermodal = ({
               />
             )}
 
-            <PrimaryButton
-              text={
-                openmodal["Addbanner"] || openmodal["Addproduct"]
-                  ? "Confirm"
-                  : globalindex.homeeditindex &&
-                    globalindex.homeeditindex !== -1
-                  ? "Update"
-                  : "Create"
-              }
-              width={isPhone ? "50%" : "200px"}
-              radius="10px"
-              height="35px"
-              type="button"
-              onClick={() => handleCreateAndUpdateContainer()}
-              color="#438D86"
-            />
+            {(openmodal["Addproduct"] ? data.type !== "scrollable" : true) && (
+              <PrimaryButton
+                text={
+                  openmodal["Addbanner"] || openmodal["Addproduct"]
+                    ? "Confirm"
+                    : globalindex.homeeditindex &&
+                      globalindex.homeeditindex !== -1
+                    ? "Update"
+                    : "Create"
+                }
+                width={isPhone ? "50%" : "200px"}
+                radius="10px"
+                height="35px"
+                type="button"
+                onClick={() => handleCreateAndUpdateContainer()}
+                color="#438D86"
+              />
+            )}
             <PrimaryButton
               text="Cancel"
               radius="10px"
@@ -651,7 +656,7 @@ const Bannercard = ({
       )}
 
       {name && (
-        <p className="text-lg font-normal w-fit max-w-full break-words">
+        <p className="text-lg font-normal w-fit max-w-[150px] h-fit break-words">
           {name}
         </p>
       )}
@@ -937,36 +942,35 @@ function AddBannerContainer({
       >
         {/* Banner Card */}
 
-        {loading &&
-          Array.from({ length: banners.length === 0 ? 4 : banners.length }).map(
-            (i, idx) => <BannerSkeleton key={idx} />
-          )}
-
-        {banners.map((banner) => (
-          <Bannercard
-            onClick={handleClick}
-            idx={data.items.findIndex((i) => i.item?.id === banner.id) + 1}
-            id={banner.id ?? 0}
-            image={banner.image.url}
-            key={banner.id}
-            isAdd={true}
-            isAdded={data.items.some((item) => item.item?.id === banner.id)}
-            typesize={banner.type ?? "small"}
-            name={banner.name}
-          />
-        ))}
-      </div>
-
-      <div className="w-full h-[5%] flex flex-row gap-x-5 mb-2 items-start justify-center">
+        {loading
+          ? Array.from({
+              length: banners.length === 0 ? 4 : banners.length,
+            }).map((i, idx) => <BannerSkeleton key={idx} />)
+          : banners.map((banner) => (
+              <Bannercard
+                onClick={handleClick}
+                idx={data.items.findIndex((i) => i.item?.id === banner.id) + 1}
+                id={banner.id ?? 0}
+                image={banner.image.url}
+                key={banner.id}
+                isAdd={true}
+                isAdded={data.items.some((item) => item.item?.id === banner.id)}
+                typesize={banner.type ?? "small"}
+                name={banner.name}
+              />
+            ))}
         {!loading && !islimit && (
           <Button
-            title="Load More"
             type="button"
             isLoading={loading}
             onClick={() => handleLoadMore()}
             color="primary"
-            variant="bordered"
-          />
+            variant="solid"
+            className="text-white font-bold"
+          >
+            {" "}
+            Load More{" "}
+          </Button>
         )}
       </div>
     </div>

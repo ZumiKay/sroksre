@@ -72,9 +72,6 @@ export default function Navbar({ session }: { session?: Usersessiontype }) {
   const [profile, setprofile] = useState(false);
   const [opennotification, setnotification] = useState(false);
   const [checkNotification, setchecknotify] = useState<number | undefined>(0);
-  const [notification, setnotificationdata] = useState<
-    Array<NotificationType> | undefined
-  >(undefined);
 
   const { isTablet, isMobile } = useScreenSize();
   const socket = useSocket();
@@ -270,7 +267,6 @@ export default function Navbar({ session }: { session?: Usersessiontype }) {
         {opennotification && (
           <NotificationMenu
             close={() => setnotification(false)}
-            notification={notification}
             ref={notiref}
           />
         )}

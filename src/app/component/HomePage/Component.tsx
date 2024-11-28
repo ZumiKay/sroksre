@@ -42,6 +42,7 @@ interface bannerprops {
 export const SlideShow = (props: bannerprops) => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const router = useRouter();
 
   useEffect(() => {
     intervalRef.current = setInterval(() => {
@@ -125,6 +126,9 @@ export const SlideShow = (props: bannerprops) => {
           <Button
             className="bg-black text-white font-bold max-w-md rounded-none"
             size="lg"
+            onClick={() =>
+              router.replace(props.data[currentSlide].link as string)
+            }
           >
             Learn More
           </Button>

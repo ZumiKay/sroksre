@@ -36,13 +36,19 @@ export async function GET(req: NextRequest) {
         name: true,
         image: true,
         size: true,
+        Containeritems: { orderBy: { id: "asc" }, select: { id: true } },
       },
+    });
+    const sortedBanners = banner.sort((a, b) => {
+      const aHasContainerItem = a.Containeritems?.length > 0 ? 1 : 0;
+      const bHasContainerItem = b.Containeritems?.length > 0 ? 1 : 0;
+      return bHasContainerItem - aHasContainerItem;
     });
 
     return Response.json(
       {
         success: true,
-        data: banner
+        data: sortedBanners
           .map((i) => ({ ...i, type: i.size, size: undefined }))
           .filter((i) => i),
         isLimit: banner.length < takeInt,

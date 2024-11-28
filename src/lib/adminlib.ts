@@ -896,7 +896,6 @@ export const GetAllProduct = async (
 
     if (!promotionid || promotionid === -1) {
       if (ty === "filter" || ty === "all") {
-        console.log("dsfdsfds");
         let products = await Prisma.products.findMany({
           where: {
             ...(!promotionids && selectpromo === 1

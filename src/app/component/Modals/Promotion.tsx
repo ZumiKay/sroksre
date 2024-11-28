@@ -5,14 +5,15 @@ import {
 } from "@/src/context/GlobalContext";
 import { useRouter, useSearchParams } from "next/navigation";
 import React, { ChangeEvent, FormEvent, useEffect, useState } from "react";
-import { errorToast, infoToast, successToast } from "../Loading";
+import { BlurLoading, errorToast, infoToast, successToast } from "../Loading";
 import { SecondaryModal } from "../Modals";
 import { motion } from "framer-motion";
 import { DateTimePicker } from "@mui/x-date-pickers";
 import dayjs from "dayjs";
 import PrimaryButton from "../Button";
 import { ImageUpload } from "./Image";
-import { Switch } from "@nextui-org/react";
+import { Progress, Switch } from "@nextui-org/react";
+import { Backdrop } from "@mui/material";
 
 interface InventoryParamType {
   ty?: string;
@@ -46,16 +47,19 @@ export const CreatePromotionModal = ({
     setglobalindex,
   } = useGlobalContext();
 
+  const [loading, setloading] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPickDate, setisPickDate] = useState(false);
 
   const fetchdata = async (id: number) => {
+    setloading(true);
     const request = await ApiRequest(
       `/api/promotion?ty=edit&p=${id}`,
-      setisLoading,
+      undefined,
       "GET"
     );
+    setloading(false);
     if (request.success) {
       setpromotion(request.data);
     } else {
@@ -113,6 +117,7 @@ export const CreatePromotionModal = ({
       }
     });
 
+    router.push(`?${param}`);
     setglobalindex((prev) => ({ ...prev, promotioneditindex: -1 }));
     setopenmodal((prev) => ({ ...prev, createPromotion: false }));
     setreloaddata(true);
@@ -192,6 +197,7 @@ export const CreatePromotionModal = ({
       open={openmodal.createPromotion}
       size="xl"
     >
+      {loading && <BlurLoading />}
       <div className="createPromotion__container relative rounded-lg w-full h-full bg-white p-3 flex flex-col items-center">
         <form
           onSubmit={handleSubmit}
@@ -239,7 +245,11 @@ export const CreatePromotionModal = ({
             </Switch>
           </div>
           <PrimaryButton
-            text={promotion.banner_id ? "Edit Banner" : "Select Banner"}
+            text={
+              promotion.banner?.id || promotion.banner_id
+                ? "Edit Banner"
+                : "Select Banner"
+            }
             onClick={() => {
               handleSelectProductAndBanner("banner");
             }}

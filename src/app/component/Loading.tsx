@@ -2,6 +2,7 @@ import { toast } from "react-toastify";
 import "../globals.css";
 import { CSSProperties } from "react";
 import Modal from "./Modals";
+import { CircularProgress, Progress } from "@nextui-org/react";
 
 export default function LoadingIcon({ style }: { style?: CSSProperties }) {
   return (
@@ -29,8 +30,8 @@ export const LoadingText = ({ style }: { style?: CSSProperties }) => {
 };
 export const BlurLoading = () => {
   return (
-    <div className="blueloading w-screen h-screen p-2 absolute top-0 left-0 z-[100] backdrop-blur">
-      <h1 className="loadingtext text-2xl font-black"> Loading ... </h1>
+    <div className="blueloading w-full h-full p-2 absolute top-0 left-0 z-[100] backdrop-blur flex justify-center">
+      <CircularProgress size="lg" />
     </div>
   );
 };

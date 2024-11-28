@@ -113,7 +113,13 @@ export const Category = () => {
 
   const handleSelectPromotion = (value: Array<SelectType>) => {
     const categories = { ...category };
-    categories.subcategories = value.map((i) => ({
+
+    if (!value) {
+      setcategory((prev) => ({ ...prev, subcategories: [] }));
+      return;
+    }
+
+    categories.subcategories = value?.map((i) => ({
       name: i.label,
       type: "promo",
       pid: i.value as number,

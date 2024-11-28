@@ -78,6 +78,7 @@ export default function Inventory({
     setpromotion,
     itemlength,
     setitemlength,
+    globalindex,
   } = useGlobalContext();
   const {
     ty: type,
@@ -338,7 +339,11 @@ export default function Inventory({
         if (!updateproduct) {
           errorToast("Failed to update");
         }
-      } else if (promotion.selectbanner && promotion.banner_id) {
+      } else if (
+        promotion.selectbanner &&
+        promotion.banner_id &&
+        globalindex.promotioneditindex !== -1
+      ) {
         const updatebanner = await handleUpdateProductBannerPromotion(
           promotion,
           "banner"
@@ -348,12 +353,11 @@ export default function Inventory({
           return;
         }
       }
-
-      setopenmodal((prev) => ({
-        ...prev,
-        createPromotion: true,
-      }));
     }
+    setopenmodal((prev) => ({
+      ...prev,
+      createPromotion: true,
+    }));
   };
 
   const handleFilter = (value: string) => {

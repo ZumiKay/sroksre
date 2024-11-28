@@ -21,7 +21,6 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
   const [sockset, setsocket] = useState<Socket | null>(null);
 
   useEffect(() => {
-    console.log(process.env.NEXT_PUBLIC_SOCKET_URL);
     const socketIo = io(process.env.NEXT_PUBLIC_SOCKET_URL as string);
     socketIo.on("connect", () => {
       console.log("Connected to socket server");

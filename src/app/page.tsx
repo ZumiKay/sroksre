@@ -67,24 +67,25 @@ export default async function Home() {
                 data={i.items.map((data) => ({
                   img: data.item.image?.url ?? "",
                   name: data.item.name,
-                  link:
-                    data.item.parent_id ||
-                    data.item.child_id ||
-                    data.item.product_id
-                      ? `/product${
-                          data.item.parent_id || data.item.child_id
-                            ? data.item.parent_id
-                              ? `?pid=${data.item.parent_id}${
-                                  data.item.child_id
-                                    ? `&cid=${data.item.child_id}`
-                                    : ""
-                                }`
-                              : ""
-                            : data.item.product_id
-                            ? `/detail/${data.item.product_id}`
+                  link: data.item.promotionId
+                    ? `/product?promoid=${data.item.promotionId}`
+                    : data.item.parent_id ||
+                      data.item.child_id ||
+                      data.item.product_id
+                    ? `/product${
+                        data.item.parent_id || data.item.child_id
+                          ? data.item.parent_id
+                            ? `?pid=${data.item.parent_id}${
+                                data.item.child_id
+                                  ? `&cid=${data.item.child_id}`
+                                  : ""
+                              }`
                             : ""
-                        }`
-                      : undefined,
+                          : data.item.product_id
+                          ? `/detail/${data.item.product_id}`
+                          : ""
+                      }`
+                    : undefined,
                 }))}
               />
             );

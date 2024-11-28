@@ -296,9 +296,9 @@ export default function Card(props: cardprops) {
           </span>
         </div>
         <div className="card_detail w-full h-fit font-semibold flex flex-col justify-center gap-y-3  pl-2 rounded-b-md text-sm">
-          <h4 className="card_info w-full max-w-[400px] h-fit text-lg">
+          <p className="card_info w-full max-w-[400px] h-fit text-lg">
             {props.name.length > 0 ? props.name : "No Product Created"}
-          </h4>
+          </p>
 
           {hasDiscount ? showDiscountPrice : showOriginalPrice}
         </div>
