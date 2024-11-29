@@ -298,6 +298,8 @@ export const Banner: React.FC<BannerProps> = (props) => {
         alt={props.data.image.name}
         style={{ translateY }}
         loading="lazy"
+        width={600}
+        height={600}
         className="object-cover w-full h-auto max-h-[90vh] min-h-[600px]"
       />
       <motion.h3

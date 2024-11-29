@@ -449,7 +449,7 @@ export default async function ProductsPage({
         gap-y-32 
         place-content-center 
         w-fit h-full mb-10
-        max-small_screen:grid-cols-2
+        max-small_screen:grid-cols-1
         max-small_phone:p-1
         max-smallest_phone:gap-x-2
         max-smallest_phone:p-0

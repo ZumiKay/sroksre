@@ -84,9 +84,7 @@ export const PrimaryPhoto = (props: Primaryphotoprops) => {
       style={props.style}
       className="primaryphoto__container flex flex-col gap-y-0 w-full
       max-smaller_screen:w-[400px] 
-      max-large_tablet:w-[200px] 
-      max-small_phone:w-[180px]
-      max-smallest_phone:w-[150px]
+      max-large_tablet:w-[280px] 
       h-full 
       overflow-hidden"
       onTouchStart={handleTouchStart}
@@ -106,7 +104,7 @@ export const PrimaryPhoto = (props: Primaryphotoprops) => {
               <Image
                 src={obj.url}
                 alt={`${obj.name}`}
-                className="w-[280px] h-[350px] object-cover"
+                className="w-[280px] h-[350px] object-contain"
                 width={400}
                 height={550}
                 quality={80}

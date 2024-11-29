@@ -180,17 +180,17 @@ export default function Card(props: cardprops) {
   );
   const showDiscountPrice = (
     <div className="price_con flex flex-row flex-wrap items-center gap-x-5 w-full h-fit">
-      <h4 className="text-sm font-light line-through decoration-red-300 decoration-2">
+      <p className="text-sm font-light line-through decoration-red-300 decoration-2">
         ${parseFloat(props.price).toFixed(2)}
-      </h4>
+      </p>
 
-      <h4 className="text-lg font-semibold text-red-500">
+      <p className="text-lg font-semibold text-red-500">
         -{hasDiscount?.percent ?? 0}%
-      </h4>
+      </p>
 
-      <h4 className="text-sm font-medium">{`${
+      <p className="text-sm font-medium">{`${
         hasDiscount?.newprice ? `$${hasDiscount?.newprice}` : ""
-      }`}</h4>
+      }`}</p>
     </div>
   );
 
@@ -244,11 +244,9 @@ export default function Card(props: cardprops) {
         className={`card__container w-[500px] h-fit flex flex-col
        hover:border-[2px] hover:border-gray-300 ${
          isProduct ? "border border-gray-300" : ""
-       } max-smaller_screen:w-[350px] 
-        max-large_tablet:w-[250px] 
-        max-large_phone:w-[200px]
-        max-small_phone:w-[180px]
-        max-smallest_phone:w-[150px]
+       } 
+        max-smaller_screen:w-[350px] 
+        max-large_tablet:w-[280px]
         animate-fade-in
         `}
       >

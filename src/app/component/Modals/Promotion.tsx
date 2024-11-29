@@ -196,6 +196,7 @@ export const CreatePromotionModal = ({
       }
       open={openmodal.createPromotion}
       size="xl"
+      placement="top"
     >
       {loading && <BlurLoading />}
       <div className="createPromotion__container relative rounded-lg w-full h-full bg-white p-3 flex flex-col items-center">
