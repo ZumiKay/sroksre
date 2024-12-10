@@ -47,6 +47,7 @@ interface cardprops {
   height?: string;
   isMobile?: boolean;
   isTablet?: boolean;
+  reloaddata?: () => void;
 }
 const editactionMenu = [
   {
@@ -281,6 +282,7 @@ export default function Card(props: cardprops) {
                 open="createProduct"
                 stock={props.stock}
                 stocktype={props.stocktype}
+                reloaddata={props.reloaddata}
                 stockaction={() => {
                   setopenmodal((prev) => ({
                     ...prev,
@@ -519,6 +521,7 @@ interface Bannercardprops {
   promodata?: PromotionState;
   bannersize?: "normal" | "small";
   isExpired?: boolean;
+  reloaddata?: () => void;
 }
 export const BannerCard = ({
   data,
@@ -526,7 +529,7 @@ export const BannerCard = ({
   id,
   type,
   isExpired,
-  bannersize,
+  reloaddata,
 }: Bannercardprops) => {
   const { promotion, setpromotion, openmodal } = useGlobalContext();
 
@@ -563,13 +566,13 @@ export const BannerCard = ({
       className={`Banner__container relative w-full h-full transition-all rounded-t-lg border-t border-l border-r border-gray-300  duration-300 hover:-translate-y-3`}
     >
       {isExpired && (
-        <h3
+        <p
           className={
             "status w-full h-fit p-2 bg-red-300 font-bold text-lg text-white"
           }
         >
           Expired
-        </h3>
+        </p>
       )}
       <div className="relative w-full h-full">
         <Image
@@ -582,9 +585,9 @@ export const BannerCard = ({
         />
       </div>
 
-      <h3 className="Banner text-xl w-full h-fit break-words p-1 bg-[#495464] rounded-b-lg  font-bold text-white">
+      <p className="Banner text-xl w-full h-fit break-words p-1 bg-[#495464] rounded-b-lg  font-bold text-white">
         {data.name.length === 0 ? "No name" : data.name}
-      </h3>
+      </p>
 
       <span
         // onClick={() =>
@@ -607,6 +610,7 @@ export const BannerCard = ({
             type={type}
             style={{ top: "0", right: "0" }}
             index={id}
+            reloaddata={reloaddata}
           />
         )}
       </span>

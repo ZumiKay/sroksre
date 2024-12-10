@@ -456,6 +456,7 @@ interface Subinventorymenuprops {
   stock?: number;
   stocktype?: string;
   stockaction?: () => void;
+  reloaddata?: () => void;
 }
 enum actiontype {
   EDIT = "Edit",
@@ -490,7 +491,6 @@ export const SubInventoryMenu = (props: Subinventorymenuprops) => {
             ? "bannereditindex"
             : "promotioneditindex"]: index,
         }));
-
         setopenmodal({ ...openmodal, [obj.opencon as string]: true });
       } else if (obj.value === actiontype.STOCK && props.stockaction) {
         props.stocktype?.includes("stock") &&
@@ -504,6 +504,9 @@ export const SubInventoryMenu = (props: Subinventorymenuprops) => {
             index: index,
             type: props.type,
             open: true,
+            onDelete: () => {
+              props.reloaddata && props.reloaddata();
+            },
           },
         }));
       }

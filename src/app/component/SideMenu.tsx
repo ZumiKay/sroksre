@@ -647,8 +647,6 @@ export const ConfirmModal = () => {
         openmodal.confirmmodal.onAsyncDelete &&
           (await openmodal.confirmmodal.onAsyncDelete());
         openmodal.confirmmodal.onDelete && openmodal.confirmmodal.onDelete();
-
-        router.refresh();
       }
     }
 

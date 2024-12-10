@@ -1,7 +1,6 @@
 "use client";
 
 import { CSSProperties, ReactNode, useEffect, useRef } from "react";
-import { createPortal } from "react-dom";
 import {
   GlobalIndexState,
   useGlobalContext,

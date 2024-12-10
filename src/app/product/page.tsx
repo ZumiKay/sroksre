@@ -88,6 +88,7 @@ const fetchPromotion = async (id: number, page: number, show: number) => {
   const promotion = await Prisma.promotion.findUnique({
     where: {
       id,
+      expireAt: { lt: new Date() },
     },
     select: {
       id: true,
@@ -145,6 +146,7 @@ const fetchPromotion = async (id: number, page: number, show: number) => {
 
 const getAllPromotion = async () => {
   const promotions = await Prisma.promotion.findMany({
+    where: { expireAt: { lte: new Date() } },
     select: {
       id: true,
       name: true,

@@ -8,12 +8,10 @@ import { ApiRequest, Delayloading } from "@/src/context/CustomHook";
 import { errorToast } from "../../component/Loading";
 import { FilterMenu } from "../../component/SideMenu";
 import dayjs from "dayjs";
-
 import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { redirect, useRouter, useSearchParams } from "next/navigation";
 import { InventoryParamType } from "./varaint_action";
-
 import { CreateProducts } from "../../component/Modals/Product";
 import { Category } from "../../component/Modals/Category";
 import { BannerModal } from "../../component/Modals/Banner";
@@ -562,6 +560,7 @@ export default function Inventory({
                       stocktype={obj.stocktype}
                       isAdmin={true}
                       lowstock={obj.lowstock}
+                      reloaddata={() => setreloaddata(true)}
                     />
                   ))}
                 {type === "banner" &&
@@ -593,6 +592,7 @@ export default function Inventory({
                         index={idx}
                         id={obj.id ?? 0}
                         type="banner"
+                        reloaddata={() => setreloaddata(true)}
                       />
                     </div>
                   ))}
@@ -617,6 +617,7 @@ export default function Inventory({
                         id={obj.id ?? 0}
                         type="promotion"
                         isExpired={obj.isExpired}
+                        reloaddata={() => setreloaddata(true)}
                       />
                     </div>
                   ))}
