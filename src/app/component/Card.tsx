@@ -3,29 +3,27 @@ import Image, { StaticImageData } from "next/image";
 import PrimaryButton from "./Button";
 import "../globals.css";
 import { useRef, useState } from "react";
-
 import { PrimaryPhoto } from "./PhotoComponent";
-import {
-  PromotionState,
-  VariantColorValueType,
-  productcoverstype,
-  useGlobalContext,
-} from "@/src/context/GlobalContext";
 import Checkmark from "../../../public/Image/Checkmark.svg";
 import { SubInventoryMenu } from "./Navbar";
 import { errorToast } from "./Loading";
 import { useRouter } from "next/navigation";
-
 import { Orderpricetype, totalpricetype } from "@/src/context/OrderContext";
 import { Variantcontainer } from "./Modals/VariantModal";
-
-import { Chip, Skeleton } from "@nextui-org/react";
 import {
   ApiRequest,
   useClickOutside,
   useScreenSize,
 } from "@/src/context/CustomHook";
 import { SelectionCustom } from "./Pagination_Component";
+import { SelectionType } from "../dashboard/inventory/inventory.type";
+import {
+  productcoverstype,
+  PromotionState,
+  VariantColorValueType,
+} from "@/src/context/GlobalType.type";
+import { useGlobalContext } from "@/src/context/GlobalContext";
+import { Chip, Skeleton } from "@heroui/react";
 
 interface cardprops {
   name: string;
@@ -49,15 +47,15 @@ interface cardprops {
   isTablet?: boolean;
   reloaddata?: () => void;
 }
-const editactionMenu = [
+const editactionMenu: Array<SelectionType> = [
   {
-    value: "Edit",
-    opencon: "createProduct",
+    label: "Edit",
+    value: "createProduct",
   },
-  { value: "Stock", opencon: "updatestock" },
+  { label: "Stock", value: "updatestock" },
   {
-    value: "Delete",
-    opencon: "",
+    label: "Delete",
+    value: "",
   },
 ];
 
@@ -537,14 +535,14 @@ export const BannerCard = ({
   const isBanner = promotion.banner_id === id;
 
   const ref = useClickOutside(() => sethover(false));
-  const actionMenu = [
+  const actionMenu: Array<SelectionType> = [
     {
-      value: "Edit",
-      opencon: type === "promotion" ? "createPromotion" : "createBanner",
+      label: "Edit",
+      value: type === "promotion" ? "createPromotion" : "createBanner",
     },
     {
-      value: "Delete",
-      opencon: "",
+      label: "Delete",
+      value: "",
     },
   ];
   const handleSelectBanner = () => {

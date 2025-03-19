@@ -1,14 +1,8 @@
 "use client";
-
 import { useEffect, useState } from "react";
 import PrimaryButton from "../component/Button";
 import { ToggleDownMenu } from "../component/ToggleMenu";
 import Card from "../component/Card";
-import {
-  ProductState,
-  Userdatastate,
-  useGlobalContext,
-} from "@/src/context/GlobalContext";
 import {
   ApiRequest,
   Delayloading,
@@ -18,6 +12,8 @@ import { ContainerLoading } from "../component/Loading";
 import { EditProfile } from "../component/Modals/User";
 import { signOut } from "next-auth/react";
 import React from "react";
+import { useGlobalContext } from "@/src/context/GlobalContext";
+import { ProductState, Userdatastate } from "@/src/context/GlobalType.type";
 
 interface userdata extends Userdatastate {
   open: {
@@ -38,7 +34,7 @@ export default function UserDashboard() {
       edittype: "none",
     },
   });
-  const [wishlist, setwishlist] = useState<ProductState[] | null>(null);
+  const [wishlist, setwishlist] = useState<Array<ProductState> | null>(null);
   const [loading, setloading] = useState(false);
   const fetchuser = async (type: "userinfo" | "wishlist") => {
     const asyncfetch = async () => {

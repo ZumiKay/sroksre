@@ -2,17 +2,15 @@
 
 import { CSSProperties, ReactNode, useEffect, useRef } from "react";
 import {
-  GlobalIndexState,
-  useGlobalContext,
-} from "@/src/context/GlobalContext";
-import {
   ModalBody,
   ModalContent,
   ModalFooter,
   ModalHeader,
   Modal as Modals,
-} from "@nextui-org/react";
+} from "@heroui/react";
 import React from "react";
+import { useGlobalContext } from "@/src/context/GlobalContext";
+import { GlobalIndexState } from "@/src/context/GlobalType.type";
 
 export default function Modal({
   children,

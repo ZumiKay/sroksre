@@ -7,10 +7,10 @@ import { ToastContainer } from "react-toastify";
 import "react-toastify/ReactToastify.css";
 import { GlobalContextProvider } from "../context/GlobalContext";
 import { getUser } from "../context/OrderContext";
-import { NextUIProvider } from "@nextui-org/react";
 import { Suspense } from "react";
 import { ContainerLoading } from "./component/Loading";
 import { SocketProvider } from "../context/SocketContext";
+import { HeroUIProvider } from "@heroui/system";
 const prompt = Prompt({
   weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
   subsets: ["latin"],
@@ -48,7 +48,7 @@ export default async function RootLayout({
       >
         <GlobalContextProvider>
           {" "}
-          <NextUIProvider>
+          <HeroUIProvider>
             <Suspense fallback={<ContainerLoading />}>
               <SocketProvider>
                 <div id="main" className="w-full h-full relative">
@@ -59,7 +59,7 @@ export default async function RootLayout({
                 </div>
               </SocketProvider>
             </Suspense>
-          </NextUIProvider>
+          </HeroUIProvider>
         </GlobalContextProvider>
       </body>
     </html>

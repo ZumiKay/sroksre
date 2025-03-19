@@ -3,14 +3,14 @@ import Image from "next/image";
 import ReactSelect from "react-select/async";
 import makeAnimated from "react-select/animated";
 import { CSSProperties, useEffect, useRef, useState } from "react";
-import { SelectType } from "@/src/context/GlobalContext";
 import { getSelectCategory } from "../action";
 import PrimaryButton, { Selection } from "./Button";
 import { getSubCategories } from "../dashboard/inventory/varaint_action";
 import SelectArrow from "../../../public/Image/Arrow_down.svg";
 import { AnimatePresence, motion } from "framer-motion";
 import { DeleteIcon } from "./Asset";
-import { Skeleton } from "@nextui-org/react";
+import { Skeleton } from "@heroui/react";
+import { SelectType } from "@/src/context/GlobalType.type";
 
 //
 const animatedComponents = makeAnimated();

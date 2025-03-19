@@ -14,16 +14,6 @@ import AccountMenu, { CartMenu } from "./SideMenu";
 import "../globals.css";
 import Link from "next/link";
 import {
-  BannerInitialize,
-  CateogoryState,
-  NotificationType,
-  Productinitailizestate,
-  PromotionInitialize,
-  Sessiontype,
-  useGlobalContext,
-  Usersessiontype,
-} from "@/src/context/GlobalContext";
-import {
   ApiRequest,
   useEffectOnce,
   useScreenSize,
@@ -46,9 +36,25 @@ import {
   DropdownItem,
   DropdownMenu,
   DropdownTrigger,
-} from "@nextui-org/react";
+} from "@heroui/react";
 import { useSocket } from "@/src/context/SocketContext";
 import React from "react";
+import {
+  InventoryAction,
+  SelectionType,
+} from "../dashboard/inventory/inventory.type";
+import {
+  BannerInitialize,
+  Productinitailizestate,
+  PromotionInitialize,
+  useGlobalContext,
+} from "@/src/context/GlobalContext";
+import {
+  CateogoryState,
+  NotificationType,
+  Sessiontype,
+  Usersessiontype,
+} from "@/src/context/GlobalType.type";
 
 const InitialMethod = async (session?: Usersessiontype) => {
   if (session) {
@@ -445,10 +451,7 @@ export function DashboordNavBar({ session }: { session?: Sessiontype }) {
   );
 }
 interface Subinventorymenuprops {
-  data: {
-    value: string;
-    opencon: string;
-  }[];
+  data: Array<SelectionType>;
   open?: string;
   type?: "product" | "banner" | "promotion";
   index?: number;
@@ -457,11 +460,6 @@ interface Subinventorymenuprops {
   stocktype?: string;
   stockaction?: () => void;
   reloaddata?: () => void;
-}
-enum actiontype {
-  EDIT = "Edit",
-  STOCK = "Stock",
-  DELETE = "DELETE",
 }
 
 export const SubInventoryMenu = (props: Subinventorymenuprops) => {
@@ -474,7 +472,7 @@ export const SubInventoryMenu = (props: Subinventorymenuprops) => {
     setpromotion,
   } = useGlobalContext();
 
-  const handleClick = (obj: { value: string; opencon: string }) => {
+  const handleClick = (obj: SelectionType) => {
     const index = props.index as number;
 
     if (
@@ -482,7 +480,7 @@ export const SubInventoryMenu = (props: Subinventorymenuprops) => {
       props.type === "banner" ||
       props.type === "promotion"
     ) {
-      if (obj.value === actiontype.EDIT) {
+      if (obj.value === InventoryAction.EDIT) {
         setglobalindex((previndex) => ({
           ...previndex,
           [props.type === "product"
@@ -491,8 +489,8 @@ export const SubInventoryMenu = (props: Subinventorymenuprops) => {
             ? "bannereditindex"
             : "promotioneditindex"]: index,
         }));
-        setopenmodal({ ...openmodal, [obj.opencon as string]: true });
-      } else if (obj.value === actiontype.STOCK && props.stockaction) {
+        setopenmodal({ ...openmodal, [obj.value as string]: true });
+      } else if (obj.value === InventoryAction.STOCK && props.stockaction) {
         props.stocktype?.includes("stock") &&
           setproduct((prev) => ({ ...prev, stock: props.stock }));
         props.stockaction();
@@ -511,17 +509,17 @@ export const SubInventoryMenu = (props: Subinventorymenuprops) => {
         }));
       }
     } else {
-      if (obj.opencon === "createProduct") {
+      if (obj.value === "createProduct") {
         setproduct(Productinitailizestate);
         setglobalindex((prev) => ({ ...prev, producteditindex: -1 }));
-      } else if (obj.opencon === "createBanner") {
+      } else if (obj.value === "createBanner") {
         setglobalindex((prev) => ({ ...prev, bannereditindex: -1 }));
         setbanner(BannerInitialize);
-      } else if (obj.opencon === "createPromotion") {
+      } else if (obj.value === "createPromotion") {
         setpromotion(PromotionInitialize);
         setglobalindex((prev) => ({ ...prev, promotioneditindex: -1 }));
       }
-      setopenmodal({ ...openmodal, [obj.opencon as string]: true });
+      setopenmodal({ ...openmodal, [obj.value as string]: true });
     }
   };
   return (
@@ -547,7 +545,7 @@ export const SubInventoryMenu = (props: Subinventorymenuprops) => {
       </DropdownTrigger>
       <DropdownMenu aria-label="Dynamic Actions" items={props.data}>
         {(item) => (
-          <DropdownItem key={item.opencon} onClick={() => handleClick(item)}>
+          <DropdownItem key={item.value} onClick={() => handleClick(item)}>
             {item.value}
           </DropdownItem>
         )}

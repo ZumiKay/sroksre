@@ -1,6 +1,6 @@
 "use client";
 
-import { Badge, Button, Input } from "@nextui-org/react";
+import { Badge, Button, Input } from "@heroui/react";
 import Modal from "../../Modals";
 import { SelectionCustom } from "../../Pagination_Component";
 import { ChangeEvent, useState } from "react";
@@ -12,7 +12,7 @@ import { ApiRequest } from "@/src/context/CustomHook";
 import {
   VariantColorValueType,
   Varianttype,
-} from "@/src/context/GlobalContext";
+} from "@/src/context/GlobalType.type";
 
 interface TemplateContainerProps {
   data?: {

@@ -5,19 +5,18 @@ import "../globals.css";
 import * as React from "react";
 import { styled } from "@mui/material/styles";
 import Button from "@mui/material/Button";
-import {
-  CateogoryState,
-  VariantColorValueType,
-} from "@/src/context/GlobalContext";
 import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
 import FormControl from "@mui/material/FormControl";
 import Select, { SelectChangeEvent } from "@mui/material/Select";
-
 import { Box, Chip, OutlinedInput, ThemeProvider } from "@mui/material";
 import { Allstatus } from "@/src/context/OrderContext";
 import { Mutiselectstatuscolor } from "../dashboard/order/Theme";
 import { useRouter, useSearchParams } from "next/navigation";
+import {
+  CateogoryState,
+  VariantColorValueType,
+} from "@/src/context/GlobalType.type";
 
 interface buttonpros {
   type: "submit" | "reset" | "button" | undefined;

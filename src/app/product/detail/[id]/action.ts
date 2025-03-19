@@ -1,6 +1,6 @@
 "use server";
 
-import { ProductState } from "@/src/context/GlobalContext";
+import { ProductState } from "@/src/context/GlobalType.type";
 import {
   Allstatus,
   getUser,
@@ -174,7 +174,7 @@ export const getRelatedProduct = async (
           child_id: i.childcategory_id,
         },
       };
-    }) as unknown as ProductState[];
+    }) as unknown as Array<ProductState>;
 
     //Finding The most similar product
     let relatedProducts = product
@@ -184,16 +184,16 @@ export const getRelatedProduct = async (
           parent_id &&
           child_id &&
           promoid &&
-          i.category.parent_id === parent_id &&
-          i.category?.child_id === child_id &&
+          i.category.parentcategory_id === parent_id &&
+          i.category?.childcategory_id === child_id &&
           i.promotion_id === promoid
         ) {
           score = 4;
         } else if (promoid && promoid === i.promotion_id) {
           score = 3;
-        } else if (child_id && i.category?.child_id === child_id) {
+        } else if (child_id && i.category?.childcategory_id === child_id) {
           score = 2;
-        } else if (i.category.parent_id === parent_id) {
+        } else if (i.category.parentcategory_id === parent_id) {
           score = 1;
         }
         return { ...i, score };

@@ -4,7 +4,7 @@ import {
   ProductState,
   SelectType,
   VariantColorValueType,
-} from "@/src/context/GlobalContext";
+} from "@/src/context/GlobalType.type";
 import Prisma from "@/src/lib/prisma";
 import {
   caculateArrayPagination,

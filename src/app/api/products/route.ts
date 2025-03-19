@@ -6,9 +6,13 @@ import {
   calculateDiscountProductPrice,
   removeSpaceAndToLowerCase,
 } from "@/src/lib/utilities";
-import { Stocktype, VariantColorValueType } from "@/src/context/GlobalContext";
+
 import { extractQueryParams } from "../banner/route";
 import Prisma from "@/src/lib/prisma";
+import {
+  Stocktype,
+  VariantColorValueType,
+} from "@/src/context/GlobalType.type";
 
 interface paramsType {
   ty: string;
@@ -224,8 +228,8 @@ export async function GET(request: NextRequest) {
             : undefined
           : undefined,
         category: {
-          parent_id: product.parentcategory_id,
-          child_id: product.childcategory_id,
+          parent: { id: product.parentcategory_id },
+          child: { id: product.childcategory_id },
         },
         variants: product.Variant,
         varaintstock: convertStockData(product.Stock as Stocktype[]),

@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 import { GetProductDetailById } from "./detail_action";
 import { ButtonForSimilarProd, OptionSection, ShowPrice } from "./Component";
-import { Relatedproducttype } from "@/src/context/GlobalContext";
 import Link from "next/link";
 import ToggleMenu from "@/src/app/component/ToggleMenu";
 import { getRelatedProduct } from "./action";
@@ -11,6 +10,7 @@ import Prisma from "@/src/lib/prisma";
 import { Props } from "../../page";
 import { Metadata } from "next";
 import Image from "next/image";
+import { Relatedproducttype } from "@/src/context/GlobalType.type";
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const id = parseInt(params.id);
@@ -127,7 +127,7 @@ export default async function ProductDetailPage({
             <ToggleMenu
               name="Product Detail"
               isAdmin={false}
-              data={data?.data.details.filter((i) => i.info_type !== "SIZE")}
+              data={data?.data.details}
             />
 
             {data?.policy.map((pol) => (
@@ -144,8 +144,8 @@ export default async function ProductDetailPage({
         <div className="relatedproduct__section w-full h-full mt-10 flex flex-col gap-y-10">
           <ShowSimilarProduct
             pid={params.id}
-            parent_id={data?.data.category.parent_id ?? 0}
-            child_id={data?.data.category.child_id}
+            parent_id={data?.data.category.parent.id ?? 0}
+            child_id={data?.data.category.child.id}
             promoid={data?.data.promotion_id}
             limit={searchparam.lt ? parseInt(searchparam.lt) : undefined}
           />

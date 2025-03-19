@@ -1,4 +1,4 @@
-import { Stocktype, useGlobalContext } from "@/src/context/GlobalContext";
+import { useGlobalContext } from "@/src/context/GlobalContext";
 import React, { ChangeEvent, useState } from "react";
 import PrimaryButton from "../Button";
 import {
@@ -15,12 +15,13 @@ import {
   Checkboard,
   ChromePicker,
 } from "react-color";
-import { Button, Input } from "@nextui-org/react";
+import { Button, Input } from "@heroui/react";
 import { HasPartialOverlap } from "@/src/lib/utilities";
 import { ApiRequest, useScreenSize } from "@/src/context/CustomHook";
 import Multiselect from "../MutiSelect";
 import { NormalSkeleton } from "../Banner";
 import RenderStockCards from "./Variantcomponent/StockCard";
+import { Stocktype } from "@/src/context/GlobalType.type";
 
 interface ManageStockContainerProps {
   editindex?: number;

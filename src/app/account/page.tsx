@@ -6,11 +6,7 @@ import { signIn } from "next-auth/react";
 
 import { errorToast, successToast } from "../component/Loading";
 import { useRouter } from "next/navigation";
-import {
-  useGlobalContext,
-  userdata,
-  Userinitialize,
-} from "@/src/context/GlobalContext";
+import { useGlobalContext, Userinitialize } from "@/src/context/GlobalContext";
 import { ApiRequest } from "@/src/context/CustomHook";
 import ReactDOMServer from "react-dom/server";
 import { CredentialEmail } from "../component/EmailTemplate";
@@ -18,8 +14,8 @@ import { SendVfyEmail } from "./actions";
 import { PasswordInput } from "../component/FormComponent";
 import RecapchaContainer from "../component/RecaphaComponent";
 import { VerifyRecapcha } from "../severactions/RecapchaAction";
-import { Button, Checkbox } from "@nextui-org/react";
-
+import { userdata } from "@/src/context/GlobalType.type";
+import { Button, Checkbox } from "@heroui/react";
 const validatePassword = (password: string) => {
   return (
     password.length >= 8 &&

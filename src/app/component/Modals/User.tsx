@@ -30,7 +30,7 @@ import { CloseVector } from "../Asset";
 import { listofprovinces } from "@/src/lib/utilities";
 import { useRouter } from "next/navigation";
 import { userdata } from "../../account/actions";
-import { Skeleton } from "@nextui-org/react";
+import { Skeleton } from "@heroui/react";
 
 export const Createusermodal = ({
   setpage,

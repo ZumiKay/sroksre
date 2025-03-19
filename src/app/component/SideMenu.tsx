@@ -8,11 +8,8 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Modal, { SecondaryModal } from "./Modals";
 import {
   BannerInitialize,
-  FilterValue,
   Productinitailizestate,
   PromotionInitialize,
-  SelectType,
-  Sessiontype,
   useGlobalContext,
 } from "@/src/context/GlobalContext";
 import {
@@ -52,7 +49,12 @@ import { Homeitemtype } from "../severactions/containeraction";
 import { SelectionCustom } from "./Pagination_Component";
 import { SelectAndSearchProduct } from "./Banner";
 import { GetPromotionSelection } from "./Modals/Category";
-import { Checkbox } from "@nextui-org/react";
+import { Checkbox } from "@heroui/react";
+import {
+  FilterValue,
+  SelectType,
+  Sessiontype,
+} from "@/src/context/GlobalType.type";
 
 interface accountmenuprops {
   setProfile: (value: SetStateAction<boolean>) => void;
@@ -839,7 +841,7 @@ export const FilterMenu = ({
 
     filtervalues.map(([key, value]) => {
       if (key === "expiredate" && value) {
-        const val = dayjs(value);
+        const val = dayjs(value as string);
         params.set(key, formatDate(val.toDate()));
         setfilterdata &&
           setfilterdata((prev) => ({
@@ -850,11 +852,12 @@ export const FilterMenu = ({
       if (key === "promoids" && value) {
         const val = value as number[];
         params.set("promoids", val.join(","));
-        setfilterdata && setfilterdata((prev) => ({ ...prev, [key]: value }));
+        setfilterdata &&
+          setfilterdata((prev) => ({ ...prev, [key]: value as string }));
       }
 
       if (key !== "p" && value && value !== "none") {
-        params.set(key, value);
+        params.set(key, value as string);
         setfilterdata && setfilterdata((prev) => ({ ...prev, [key]: value }));
       }
     });

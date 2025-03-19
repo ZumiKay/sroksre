@@ -1,10 +1,5 @@
 "use client";
-import {
-  ProductStockType,
-  Stocktype,
-  useGlobalContext,
-  VariantColorValueType,
-} from "@/src/context/GlobalContext";
+import { useGlobalContext } from "@/src/context/GlobalContext";
 import { errorToast } from "../Loading";
 import { FormEvent, useEffect, useState } from "react";
 import { RGBColor } from "react-color";
@@ -21,7 +16,7 @@ import {
   ManageStockContainer,
   MapSelectedValuesToVariant,
 } from "./VariantModalComponent";
-import { Badge, Button, Input } from "@nextui-org/react";
+import { Badge, Button, Input } from "@heroui/react";
 import TemplateContainer, {
   AddTemplateModal,
 } from "./Variantcomponent/TemplateContainer";
@@ -29,6 +24,11 @@ import { VariantTemplateType } from "./Variantcomponent/Action";
 import { HasPartialOverlap } from "@/src/lib/utilities";
 import { NormalSkeleton } from "../Banner";
 import React from "react";
+import {
+  Stocktype,
+  VariantColorValueType,
+} from "@/src/context/GlobalType.type";
+import { ProductStockType } from "../ServerComponents";
 
 interface variantdatatype {
   id?: number;

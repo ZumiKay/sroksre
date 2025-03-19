@@ -1,4 +1,4 @@
-import { BannerState } from "@/src/context/GlobalContext";
+import { BannerState } from "@/src/context/GlobalType.type";
 import Prisma from "@/src/lib/prisma";
 import {
   DeleteImageFromStorage,

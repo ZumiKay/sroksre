@@ -21,10 +21,10 @@ import {
 import { calculateDiscountProductPrice, decrypt } from "@/src/lib/utilities";
 import { checkOrder, OrderUserType } from "./action";
 import { SuccessVector } from "../component/Asset";
-import { VariantColorValueType } from "@/src/context/GlobalContext";
 import { getPolicesByPage } from "../api/policy/route";
 import Link from "next/link";
 import { Metadata } from "next";
+import { VariantColorValueType } from "@/src/context/GlobalType.type";
 
 export async function generateMetadata(): Promise<Metadata> {
   return {

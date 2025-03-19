@@ -1,12 +1,12 @@
+import { useGlobalContext } from "@/src/context/GlobalContext";
+import { StockCard } from "../Stock";
+import { Badge } from "@heroui/react";
+import { useMemo } from "react";
 import {
   SubStockType,
-  useGlobalContext,
   VariantColorValueType,
   Varianttype,
-} from "@/src/context/GlobalContext";
-import { StockCard } from "../Stock";
-import { Badge } from "@nextui-org/react";
-import { useMemo } from "react";
+} from "@/src/context/GlobalType.type";
 
 interface RenderStockCardsProps {
   handleDeleteSubStock: (idx: number) => void;

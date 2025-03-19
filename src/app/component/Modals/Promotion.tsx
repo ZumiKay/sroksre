@@ -12,7 +12,7 @@ import { DateTimePicker } from "@mui/x-date-pickers";
 import dayjs from "dayjs";
 import PrimaryButton from "../Button";
 import { ImageUpload } from "./Image";
-import { Progress, Switch } from "@nextui-org/react";
+import { Progress, Switch } from "@heroui/react";
 import { Backdrop } from "@mui/material";
 
 interface InventoryParamType {

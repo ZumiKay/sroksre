@@ -1,7 +1,6 @@
 import {
   Productinitailizestate,
   useGlobalContext,
-  VariantColorValueType,
 } from "@/src/context/GlobalContext";
 import { errorToast, successToast } from "../Loading";
 import Modal from "../Modals";
@@ -19,17 +18,12 @@ import {
   useTheme,
 } from "@mui/material";
 
-import { Chip as NextChip } from "@nextui-org/chip";
+import { Chip as NextChip } from "@heroui/chip";
 import { useRouter } from "next/navigation";
-import { Label } from "react-aria-components";
+import { VariantColorValueType } from "@/src/context/GlobalType.type";
+import { InventoryInfoType } from "../../dashboard/inventory/inventory.type";
 
-export const UpdateStockModal = ({
-  action,
-  closename,
-}: {
-  action?: () => void;
-  closename: string;
-}) => {
+export const UpdateStockModal = ({ closename }: { closename: string }) => {
   const { product, setproduct, setopenmodal, isLoading, setisLoading } =
     useGlobalContext();
   const router = useRouter();
@@ -102,7 +96,7 @@ export const UpdateStockModal = ({
 interface StockSelectProps {
   id?: number;
   data: {
-    type: "TEXT" | "COLOR";
+    type: InventoryInfoType;
     value: (string | VariantColorValueType)[];
   };
   label: string;

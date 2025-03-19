@@ -1,5 +1,3 @@
-import { PromotionState, SelectType } from "@/src/context/GlobalContext";
-
 import { NextRequest } from "next/server";
 import { extractQueryParams } from "../banner/route";
 import {
@@ -11,6 +9,7 @@ import dayjs from "dayjs";
 import Prisma from "@/src/lib/prisma";
 import { Prisma as prisma } from "@prisma/client";
 import { categorytype } from "../categories/route";
+import { PromotionState, SelectType } from "@/src/context/GlobalType.type";
 
 export async function POST(request: NextRequest) {
   try {

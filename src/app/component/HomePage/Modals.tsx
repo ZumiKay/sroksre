@@ -33,7 +33,7 @@ import {
   ScrollableConIcon,
   SlideShowIcon,
 } from "../Asset";
-import { Button, DateRangePicker } from "@nextui-org/react";
+import { Button, DateRangePicker } from "@heroui/react";
 import { BannerSkeleton } from "./Component";
 import { ContainerLoading, errorToast, successToast } from "../Loading";
 import { BannerModal } from "../Modals/Banner";
@@ -204,13 +204,14 @@ const ScrollableContainerModal = ({
                 : undefined
             }
             onChange={(date) => {
-              setdata((prev) => ({
-                ...prev,
-                daterange: {
-                  start: date.start.toString(),
-                  end: date.end.toString(),
-                },
-              }));
+              if (date)
+                setdata((prev) => ({
+                  ...prev,
+                  daterange: {
+                    start: date.start.toString(),
+                    end: date.end.toString(),
+                  },
+                }));
             }}
             className="max-w-xs"
           />

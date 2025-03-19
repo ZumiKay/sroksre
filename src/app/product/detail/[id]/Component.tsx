@@ -4,15 +4,6 @@ import PrimaryButton, {
   SelectContainer,
   Selection,
 } from "@/src/app/component/Button";
-
-import {
-  Productdetailinitialize,
-  ProductState,
-  ProductStockType,
-  Stocktype,
-  useGlobalContext,
-  VariantColorValueType,
-} from "@/src/context/GlobalContext";
 import {
   Productorderdetailtype,
   Productordertype,
@@ -22,7 +13,17 @@ import { Addtocart, AddWishlist } from "./action";
 import { errorToast, successToast } from "@/src/app/component/Loading";
 import { ApiRequest, useEffectOnce } from "@/src/context/CustomHook";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Skeleton } from "@nextui-org/react";
+import { Skeleton } from "@heroui/react";
+import {
+  ProductState,
+  Stocktype,
+  VariantColorValueType,
+} from "@/src/context/GlobalType.type";
+import {
+  Productdetailinitialize,
+  useGlobalContext,
+} from "@/src/context/GlobalContext";
+import { ProductStockType } from "@/src/app/component/ServerComponents";
 
 export const ShowPrice = ({
   price,

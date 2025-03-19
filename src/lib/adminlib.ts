@@ -1,22 +1,23 @@
 import { Role, hashedpassword } from "./userlib";
-
-import {
-  ProductInfo,
-  ProductState,
-  Stocktype,
-  SubcategoriesState,
-  VariantColorValueType,
-  Varianttype,
-  userdata,
-} from "../context/GlobalContext";
 import {
   DeleteImageFromStorage,
   caculateArrayPagination,
+  calculateDiscountProductPrice,
   removeSpaceAndToLowerCase,
 } from "./utilities";
 
 import Prisma from "./prisma";
 import { Categorytype } from "../app/api/categories/route";
+import {
+  ProductInfo,
+  ProductState,
+  Stocktype,
+  SubcategoriesState,
+  userdata,
+  VariantColorValueType,
+  Varianttype,
+} from "../context/GlobalType.type";
+import { Products } from "@prisma/client";
 
 //
 //
@@ -257,8 +258,8 @@ export const CreateProduct = async (
           price: parseFloat(data.price.toString()),
           stock: parseInt(`${data.stock}`),
           stocktype: data.stocktype,
-          parentcategory_id: data.category.parent_id,
-          childcategory_id: data.category?.child_id,
+          parentcategory_id: data.category.parent.id,
+          childcategory_id: data.category?.child.id,
           covers: {
             createMany: {
               data: data.covers.map((i) => ({
@@ -658,16 +659,16 @@ export const EditProduct = async (
     }
 
     const isCategoryChange =
-      (category?.parent_id &&
-        existProduct?.parentcategory_id !== category?.parent_id) ||
-      (category?.child_id &&
-        existProduct.childcategory_id !== category?.child_id);
+      (category?.parent.id &&
+        existProduct?.parentcategory_id !== category?.parent.id) ||
+      (category?.child.id &&
+        existProduct.childcategory_id !== category?.child.id);
     if (isCategoryChange) {
       await Prisma.products.update({
         where: { id },
         data: {
-          parentcategory_id: category.parent_id,
-          childcategory_id: category.child_id,
+          parentcategory_id: category.parent.id,
+          childcategory_id: category.child.id,
         },
       });
     }
@@ -891,7 +892,7 @@ export const GetAllProduct = async (
 ): Promise<GetProductReturnType> => {
   try {
     let totalproduct: number = 0;
-    let allproduct: any = [];
+    let allproduct = [];
     let lowstock = 0;
 
     if (!promotionid || promotionid === -1) {
@@ -940,10 +941,20 @@ export const GetAllProduct = async (
             },
             stocktype: true,
             details: true,
-            parentcategory_id: true,
-            childcategory_id: true,
             promotion_id: true,
             promotion: true,
+            parentcateogries: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+            childcategories: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
           },
 
           orderBy: {
@@ -959,9 +970,10 @@ export const GetAllProduct = async (
                 removeSpaceAndToLowerCase(query)
               );
 
-            const isPid = parent_cate && prod.parentcategory_id === parent_cate;
+            const isPid =
+              parent_cate && prod.parentcateogries?.id === parent_cate;
             const isChildId =
-              child_cate && prod.childcategory_id === child_cate;
+              child_cate && prod.childcategories?.id === child_cate;
 
             const isLowStock =
               sk && sk === "Low" && prod.Stock
@@ -1000,10 +1012,6 @@ export const GetAllProduct = async (
           detailcolor && detailcolor.includes(",")
             ? detailcolor?.split(",")
             : [detailcolor];
-        const sizes =
-          detailsize && detailsize.includes(",")
-            ? detailsize?.split(",")
-            : [detailsize];
         const texts =
           detailtext && detailtext.includes(",")
             ? detailtext.split(",")
@@ -1024,9 +1032,8 @@ export const GetAllProduct = async (
         const filteredproduct = product.filter((i) => {
           const color = i.Variant.find((j) => j.option_type === "COLOR");
           const text = i.Variant.find((j) => j.option_type === "TEXT");
-          const size = i.details.find((j) => j.info_type === "SIZE") as any;
 
-          if (color || size) {
+          if (color) {
             const opt_val = color?.option_value as
               | string[]
               | VariantColorValueType[];
@@ -1036,9 +1043,6 @@ export const GetAllProduct = async (
                 return l.val.replace("#", "");
               });
 
-            const productSize = size?.info_value.map((l: string) => {
-              return removeSpaceAndToLowerCase(l);
-            });
             const text_value = text?.option_value as string[];
             const otherFilter = text_value?.map((l) => {
               return removeSpaceAndToLowerCase(l);
@@ -1048,13 +1052,10 @@ export const GetAllProduct = async (
               colors &&
               colors?.some((item) => productColors?.includes(item as string));
 
-            const hasSelectedSize =
-              sizes &&
-              sizes?.some((item) => productSize?.includes(item as string));
             const hasSeletecFilter =
               otherFilter &&
               texts?.some((item) => otherFilter.includes(item as string));
-            return hasSelectedColor || hasSelectedSize || hasSeletecFilter;
+            return hasSelectedColor || hasSeletecFilter;
           }
           return false;
         });
@@ -1090,21 +1091,21 @@ export const GetAllProduct = async (
       allproduct = caculateArrayPagination(product, page, limit);
     }
 
-    const result = allproduct.map((i: any) => {
+    const result: Array<ProductState> = allproduct.map((i) => {
       return {
         ...i,
-
+        category: {
+          parent: i.parentcategories,
+          child: i.childcategories,
+        },
         ...(i.discount && {
-          discount: {
-            percent: i.discount,
-            newprice: (
-              parseFloat(i.price.toString()) -
-              (parseFloat(i.price.toString()) * i.discount) / 100
-            ).toFixed(2),
-          },
+          discount: calculateDiscountProductPrice({
+            price: i.price,
+            discount: i.discount,
+          }),
         }),
       };
-    });
+    }) as any;
 
     return {
       success: true,

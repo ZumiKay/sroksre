@@ -2,7 +2,7 @@ import { toast } from "react-toastify";
 import "../globals.css";
 import { CSSProperties } from "react";
 import Modal from "./Modals";
-import { CircularProgress, Progress } from "@nextui-org/react";
+import { CircularProgress } from "@heroui/react";
 
 export default function LoadingIcon({ style }: { style?: CSSProperties }) {
   return (

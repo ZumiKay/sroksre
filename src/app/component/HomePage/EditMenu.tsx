@@ -19,7 +19,7 @@ import {
   restrictToVerticalAxis,
   restrictToWindowEdges,
 } from "@dnd-kit/modifiers";
-import { Checkbox, Skeleton } from "@nextui-org/react";
+import { Checkbox, Skeleton } from "@heroui/react";
 import {
   ContainerType,
   Homeitemtype,

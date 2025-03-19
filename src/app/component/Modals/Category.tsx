@@ -1,8 +1,6 @@
 "use client";
 import {
   CateogoryInitailizestate,
-  CateogoryState,
-  SelectType,
   useGlobalContext,
 } from "@/src/context/GlobalContext";
 import React, { ChangeEvent, useEffect, useState } from "react";
@@ -18,9 +16,10 @@ import { AddSubCategoryMenu } from "../ToggleMenu";
 import PrimaryButton from "../Button";
 import { SelectionCustom } from "../Pagination_Component";
 import { Categorytype } from "../../api/categories/route";
-import { DateRangePicker, Input } from "@nextui-org/react";
+import { DateRangePicker, Input } from "@heroui/react";
 import { parseDate } from "@internationalized/date";
 import { NormalSkeleton, SelectAndSearchProduct } from "../Banner";
+import { CateogoryState, SelectType } from "@/src/context/GlobalType.type";
 
 const selecttype: Array<SelectType> = [
   {
@@ -225,6 +224,7 @@ export const Category = () => {
                       : undefined
                   }
                   onChange={(val) =>
+                    val &&
                     setcategory((prev) => ({
                       ...prev,
                       daterange: {
@@ -517,6 +517,7 @@ const EditCategory = ({
                     : undefined
                 }
                 onChange={(val) =>
+                  val &&
                   setcategory((prev) => ({
                     ...prev,
                     daterange: {

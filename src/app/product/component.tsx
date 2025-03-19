@@ -2,20 +2,20 @@
 
 import { ChangeEvent, useEffect, useState } from "react";
 import PrimaryButton, { Selection } from "../component/Button";
-import {
-  ProductState,
-  useGlobalContext,
-  VariantColorValueType,
-} from "@/src/context/GlobalContext";
 import { SecondaryModal } from "../component/Modals";
 import { useRouter, useSearchParams } from "next/navigation";
 import { filtervaluetype, getFilterValue } from "./action";
 import { ToggleSelect } from "../component/ToggleMenu";
 import Image from "next/image";
 import Card from "../component/Card";
-import { Input, Spacer } from "@nextui-org/react";
+import { Input, Spacer } from "@heroui/react";
 import { ApiRequest, useEffectOnce } from "@/src/context/CustomHook";
 import { NormalSkeleton } from "../component/Banner";
+import { useGlobalContext } from "@/src/context/GlobalContext";
+import {
+  ProductState,
+  VariantColorValueType,
+} from "@/src/context/GlobalType.type";
 
 export const ProductFilterButton = ({
   pid,

@@ -1,7 +1,6 @@
 "use client";
 import PrimaryButton from "../../component/Button";
 import Card, { BannerCard } from "../../component/Card";
-import { PromotionState, useGlobalContext } from "@/src/context/GlobalContext";
 import { SubInventoryMenu } from "../../component/Navbar";
 import { useEffect, useState } from "react";
 import { ApiRequest, Delayloading } from "@/src/context/CustomHook";
@@ -25,26 +24,29 @@ import PaginationCustom, {
 import { IsNumber } from "@/src/lib/utilities";
 import { BannerSkeleton } from "../../component/HomePage/Component";
 import React from "react";
+import { SelectionType } from "./inventory.type";
+import { useGlobalContext } from "@/src/context/GlobalContext";
+import { PromotionState } from "@/src/context/GlobalType.type";
 
-const createmenu = [
+const createmenu: Array<SelectionType> = [
   {
-    value: "Product",
-    opencon: "createProduct",
+    label: "Product",
+    value: "createProduct",
   },
   {
-    value: "Category",
-    opencon: "createCategory",
+    label: "Category",
+    value: "createCategory",
   },
   {
-    value: "Banner",
-    opencon: "createBanner",
+    label: "Banner",
+    value: "createBanner",
   },
   {
-    value: "Promotion",
-    opencon: "createPromotion",
+    label: "Promotion",
+    value: "createPromotion",
   },
 ];
-const Filteroptions = [
+const Filteroptions: Array<SelectionType> = [
   {
     value: "product",
     label: "Product",
@@ -140,7 +142,6 @@ export default function Inventory({
   const fetchdata = async (pid?: number) => {
     try {
       let apiUrl: string = "";
-      let transformFunction: (item: any) => any = () => {};
       const {
         status,
         name,
@@ -171,15 +172,6 @@ export default function Inventory({
                 promoids ? `&pids=${promoids}` : ""
               }`
             : `/api/products?ty=all&limit=${show}&p=${page}`;
-        transformFunction = (item: any) => ({
-          ...item,
-          category: {
-            parent_id: item.parentcategory_id,
-            child_id: item.childcategory_id,
-          },
-          parentcategory_id: undefined,
-          childcategory_id: undefined,
-        });
       } else if (ty === "banner") {
         apiUrl =
           name || bannersize || bannertype
@@ -191,12 +183,6 @@ export default function Inventory({
             : promotion.selectbanner
             ? `/api/banner?ty=filter&limit=${show}&p=${page}&bty=normal&promoselect=1`
             : `/api/banner?ty=all&limit=${show}&p=${page}`;
-
-        transformFunction = (item: any) => ({
-          ...item,
-          createdAt: undefined,
-          updatedAt: undefined,
-        });
       } else if (ty === "promotion") {
         apiUrl =
           name || expiredate || expired
@@ -206,16 +192,6 @@ export default function Inventory({
                 expired ? `&expired=${expired}` : ""
               }`
             : `/api/promotion?ty=all&lt=${show}&p=${page ?? "1"}`;
-        transformFunction = (item: any) => ({
-          ...item,
-          products: item.Products,
-          expiredAt: dayjs(item.expireAt),
-          tempproduct: [],
-
-          createdAt: undefined,
-          updatedAt: undefined,
-          Products: undefined,
-        });
       }
 
       const makerequest = async () => {
@@ -229,7 +205,7 @@ export default function Inventory({
         );
 
         if (allfetchdata.success) {
-          let modifieddata = allfetchdata.data?.map(transformFunction);
+          let modifieddata = allfetchdata.data;
 
           if (ty === "product") {
             setlowstock(allfetchdata.lowstock as number);

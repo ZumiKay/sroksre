@@ -4,14 +4,7 @@ import {
   useEffectOnce,
   useScreenSize,
 } from "@/src/context/CustomHook";
-import {
-  CateogoryState,
-  Productinitailizestate,
-  ProductState,
-  ProductStockType,
-  SubcategoriesState,
-  useGlobalContext,
-} from "@/src/context/GlobalContext";
+
 import React, { ChangeEvent, useEffect, useRef, useState } from "react";
 import { ContainerLoading, errorToast, successToast } from "../Loading";
 import { PrimaryPhoto } from "../PhotoComponent";
@@ -19,20 +12,35 @@ import PrimaryButton, { Selection } from "../Button";
 import ToggleMenu, { SearchAndMultiSelect } from "../ToggleMenu";
 import { Variantcontainer } from "./VariantModal";
 import { ImageUpload } from "./Image";
-import { Input, Textarea } from "@nextui-org/react";
+import { Input, Textarea } from "@heroui/react";
 import { VariantIcon } from "../Asset";
 import { SelectionCustom } from "../Pagination_Component";
 import { SecondaryModal } from "../Modals";
 import { NormalSkeleton } from "../Banner";
+import {
+  InventoryInfoType,
+  ProductStockType,
+  SelectionType,
+  StockType,
+} from "../../dashboard/inventory/inventory.type";
+import {
+  Productinitailizestate,
+  useGlobalContext,
+} from "@/src/context/GlobalContext";
+import {
+  CateogoryState,
+  ProductState,
+  SubcategoriesState,
+} from "@/src/context/GlobalType.type";
 
-const stockTypeData = [
+const stockTypeData: Array<SelectionType> = [
   {
     label: "Normal",
-    value: "stock",
+    value: StockType.Stock,
   },
   {
     label: "Variants ( Product have multiple versions)",
-    value: "variant",
+    value: StockType.Variant,
   },
 ];
 
@@ -60,8 +68,6 @@ export function CreateProducts({
     "stock"
   );
 
-  const [isInput, setisInput] = useState(true);
-
   const [subcate, setsubcate] = useState<Array<SubcategoriesState>>([]);
 
   const [cate, setcate] = useState<Array<CateogoryState> | undefined>(
@@ -77,12 +83,12 @@ export function CreateProducts({
       );
       if (categories.success) {
         setcate(categories.data);
-        const { parent_id } = products
+        const { parent } = products
           ? { ...products.category }
           : { ...product.category };
 
         const subcates: CateogoryState = categories.data.find(
-          (i: CateogoryState) => i.id === parent_id
+          (i: CateogoryState) => i.id === parent.id
         );
 
         setsubcate(subcates?.subcategories ?? []);
@@ -109,7 +115,9 @@ export function CreateProducts({
     const data: ProductState = request.data;
 
     const isExist = data.details.findIndex(
-      (i) => i.info_type === "COLOR" || i.info_type === "TEXT"
+      (i) =>
+        i.info_type === InventoryInfoType.Color ||
+        i.info_type === InventoryInfoType.Text
     );
     if (isExist !== -1) {
       setstocktype("variant");
@@ -352,9 +360,8 @@ export function CreateProducts({
                       label="Category"
                       placeholder="Select"
                       value={
-                        product.category.parent_id !== 0 &&
-                        product.category.parent_id
-                          ? `${product.category.parent_id}`
+                        product.category.parent && product.category.parent.id
+                          ? `${product.category.parent.id}`
                           : undefined
                       }
                       data={
@@ -367,15 +374,13 @@ export function CreateProducts({
                         handleSelect(val.toString(), "parent_id")
                       }
                     />
-                    {product.category.parent_id !== 0 &&
-                    product.category.parent_id ? (
+                    {product.category.parent ? (
                       <SelectionCustom
                         label="Sub Category"
                         textplacement="outside"
                         value={
-                          product.category.child_id &&
-                          product.category.child_id !== 0
-                            ? `${product.category.child_id}`
+                          product.category.child
+                            ? `${product.category.child.id}`
                             : undefined
                         }
                         data={
@@ -404,22 +409,14 @@ export function CreateProducts({
                   let updateproducts = { ...product };
 
                   if (
-                    value === ProductStockType.size ||
-                    value === ProductStockType.stock ||
-                    value === ProductStockType.variant
+                    value === ProductStockType.Size ||
+                    value === ProductStockType.Stock ||
+                    value === ProductStockType.Variant
                   ) {
                     updateproducts.stock = 0;
                   }
 
-                  if (
-                    value === ProductStockType.stock ||
-                    value === ProductStockType.variant
-                  ) {
-                    const idx = updateproducts.details?.findIndex(
-                      (i) => i.info_type === "SIZE"
-                    );
-                    idx !== undefined && updateproducts.details?.splice(idx, 1);
-                  } else {
+                  if (updateproducts.stocktype === ProductStockType.Variant) {
                     updateproducts.variants = undefined;
                     updateproducts.varaintstock = undefined;
                   }
@@ -429,7 +426,7 @@ export function CreateProducts({
                 }}
                 required
               />
-              {stocktype === ProductStockType.stock ? (
+              {stocktype === ProductStockType.Stock ? (
                 <Input
                   type="number"
                   label="Stock"
@@ -442,8 +439,6 @@ export function CreateProducts({
                   value={product.stock === 0 ? "" : product.stock?.toString()}
                   required
                   size="lg"
-                  onFocus={() => setisInput(true)}
-                  onBlur={() => setisInput(false)}
                   className={`w-full h-[40px] text-lg pl-1 font-bold rounded-md`}
                 />
               ) : (
@@ -494,7 +489,7 @@ export function CreateProducts({
                 />
               ) : (
                 <div ref={detailref} className="w-full h-full">
-                  <DetailsModal isInput={(val) => setisInput(val)} />
+                  <DetailsModal />
                 </div>
               )}
             </div>
@@ -547,13 +542,13 @@ const NormalDetail = () => {
     if (index === -1) {
       updatedetail.push({
         info_title: normaldetail.info_title,
-        info_type: "NORMAL",
+        info_type: InventoryInfoType.Text,
         info_value: [normaldetail.info_value],
       });
     } else {
       updatedetail[index].info_title = normaldetail.info_title;
       updatedetail[index].info_value[0] = normaldetail.info_value;
-      updatedetail[index].info_type = "NORMAL";
+      updatedetail[index].info_type = InventoryInfoType.Text;
     }
     setproduct({ ...product, details: updatedetail });
     setglobalindex((prev) => ({ ...prev, productdetailindex: -1 }));
@@ -606,16 +601,8 @@ const NormalDetail = () => {
   );
 };
 
-export const DetailsModal = ({
-  isInput,
-}: {
-  isInput: (val: boolean) => void;
-}) => {
+export const DetailsModal = () => {
   const { setopenmodal } = useGlobalContext();
-
-  useEffect(() => {
-    isInput(false);
-  }, []);
 
   return (
     <div className="details_modal bg-[#CFDBEE] w-full h-full flex flex-col gap-y-5 items-center pr-1 pl-1 pt-5 pb-5">
