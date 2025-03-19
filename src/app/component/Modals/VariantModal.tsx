@@ -1,8 +1,7 @@
 "use client";
 import { useGlobalContext } from "@/src/context/GlobalContext";
 import { errorToast } from "../Loading";
-import { FormEvent, useEffect, useState } from "react";
-import { RGBColor } from "react-color";
+import { FormEvent, useCallback, useEffect, useState } from "react";
 import { ApiRequest, Delayloading } from "@/src/context/CustomHook";
 import tinycolor from "tinycolor2";
 import Modal, { SecondaryModal } from "../Modals";
@@ -21,12 +20,14 @@ import TemplateContainer, {
   AddTemplateModal,
 } from "./Variantcomponent/TemplateContainer";
 import { VariantTemplateType } from "./Variantcomponent/Action";
-import { HasPartialOverlap } from "@/src/lib/utilities";
+import { ArraysAreEqualSets, HasPartialOverlap } from "@/src/lib/utilities";
 import { NormalSkeleton } from "../Banner";
 import React from "react";
 import {
+  Colorinitalize,
   Stocktype,
   VariantColorValueType,
+  Variantcontainertype,
 } from "@/src/context/GlobalType.type";
 import { ProductStockType } from "../ServerComponents";
 
@@ -36,47 +37,6 @@ interface variantdatatype {
   name: string;
   value: Array<string | VariantColorValueType>;
 }
-
-export interface Colortype {
-  hex: string;
-  rgb: RGBColor;
-}
-export const Colorinitalize: Colortype = {
-  hex: "#f5f5f5",
-  rgb: {
-    r: 245,
-    g: 245,
-    b: 245,
-    a: 1,
-  },
-};
-
-export const ArraysAreEqualSets = (
-  array1: string[],
-  array2: string[]
-): boolean => {
-  if (array1.length !== array2.length) return false;
-
-  const set1 = new Set(array1);
-  const set2 = new Set(array2);
-
-  if (set1.size !== set2.size) return false;
-
-  const set1Array = Array.from(set1);
-  for (let i = 0; i < set1Array.length; i++) {
-    if (!set2.has(set1Array[i])) return false;
-  }
-
-  return true;
-};
-export type Variantcontainertype =
-  | "variant"
-  | "stock"
-  | "type"
-  | "info"
-  | "stockinfo"
-  | "none";
-
 export const Variantcontainer = ({
   type,
   editindex,
@@ -89,7 +49,6 @@ export const Variantcontainer = ({
   const { openmodal, setopenmodal, product, setproduct } = useGlobalContext();
   const [temp, settemp] = useState<variantdatatype>();
   const [reloadtemp, setreloadtemp] = useState(true);
-
   const [colordata, setcolordata] = useState({
     color: Colorinitalize,
     name: "",
@@ -123,7 +82,7 @@ export const Variantcontainer = ({
   const [loading, setloading] = useState(false);
 
   //Fetch Variant Template
-  const FetchTemplate = async () => {
+  const FetchTemplate = useCallback(async () => {
     async function asyncfetch() {
       const res = await ApiRequest(
         "/api/products/variant/template?ty=short",
@@ -138,26 +97,29 @@ export const Variantcontainer = ({
     if (reloadtemp) {
       await Delayloading(asyncfetch, setloading, 1000);
     }
-  };
+  }, [reloadtemp]);
 
   //Fetch variant stock
-  const fetchstock = async (index: number) => {
-    const asyncfetchdata = async () => {
-      const URL = `/api/products?ty=${type}&pid=${index}`;
-      const response = await ApiRequest(URL, undefined, "GET");
+  const fetchstock = useCallback(
+    async (index: number) => {
+      const asyncfetchdata = async () => {
+        const URL = `/api/products?ty=${type}&pid=${index}`;
+        const response = await ApiRequest(URL, undefined, "GET");
 
-      if (!response.success) {
-        errorToast("Error Connection");
-        return;
-      }
+        if (!response.success) {
+          errorToast("Error Connection");
+          return;
+        }
 
-      const { varaintstock, variants } = response.data;
+        const { varaintstock, variants } = response.data;
 
-      setproduct((prev) => ({ ...prev, varaintstock, variants }));
-      setreloaddata(false);
-    };
-    await Delayloading(asyncfetchdata, setloading, 500);
-  };
+        setproduct((prev) => ({ ...prev, varaintstock, variants }));
+        setreloaddata(false);
+      };
+      await Delayloading(asyncfetchdata, setloading, 500);
+    },
+    [setreloaddata, setloading, type]
+  );
 
   useEffect(() => {
     editindex &&
@@ -171,7 +133,7 @@ export const Variantcontainer = ({
     FetchTemplate();
   }, [reloadtemp]);
 
-  const handleCreate = () => {
+  const handleCreate = useCallback(() => {
     let update = product.variants ? [...product.variants] : undefined;
 
     const isExist =
@@ -244,9 +206,9 @@ export const Variantcontainer = ({
     setadded(-1);
     setname("");
     setnew("variant");
-  };
+  }, [setproduct, product, setadded, setname, setnew]);
 
-  const handleAddColor = () => {
+  const handleAddColor = useCallback(() => {
     const { color, name } = colordata;
     if (color?.hex === "" || !name) {
       errorToast(color.hex === "" ? "Please Select Color" : "Name is Required");
@@ -267,50 +229,56 @@ export const Variantcontainer = ({
     settemp(update as variantdatatype);
     setcolordata((prev) => ({ ...prev, color: Colorinitalize, name: "" }));
     setedit(-1);
-  };
+  }, [colordata, temp, edit, settemp, setcolordata, setedit]);
 
-  const handleColorSelect = (idx: number, type: "color" | "text") => {
-    if (type === "color") {
-      const data = temp?.value[idx] as VariantColorValueType;
-      const rgb = tinycolor(data.val).toRgb();
-      setedit(idx);
-      setcolordata({
-        name: data.name ?? "",
-        color: { hex: data.val as string, rgb: rgb },
-      });
-      setopen((prev) => ({ ...prev, addcolor: true }));
-    } else {
-      const data = temp?.value[idx] as string;
-      setedit(idx);
-      setoption(data as string);
-      setopen((prev) => ({ ...prev, addoption: true }));
-    }
-  };
+  const handleColorSelect = useCallback(
+    (idx: number, type: "color" | "text") => {
+      if (type === "color") {
+        const data = temp?.value[idx] as VariantColorValueType;
+        const rgb = tinycolor(data.val).toRgb();
+        setedit(idx);
+        setcolordata({
+          name: data.name ?? "",
+          color: { hex: data.val as string, rgb: rgb },
+        });
+        setopen((prev) => ({ ...prev, addcolor: true }));
+      } else {
+        const data = temp?.value[idx] as string;
+        setedit(idx);
+        setoption(data as string);
+        setopen((prev) => ({ ...prev, addoption: true }));
+      }
+    },
+    [temp, setedit, setcolordata, setopen, setedit, setoption]
+  );
 
-  const handleUpdateVariantOption = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const update = { ...temp };
-    const variant = [...(product.variants ?? [])];
+  const handleUpdateVariantOption = useCallback(
+    (e: FormEvent<HTMLFormElement>) => {
+      e.preventDefault();
+      const update = { ...temp };
+      const variant = [...(product.variants ?? [])];
 
-    const isExist =
-      variant &&
-      variant
-        .filter((fil) => fil.option_type === "TEXT")
-        .some((i) => i.option_value.includes(option));
+      const isExist =
+        variant &&
+        variant
+          .filter((fil) => fil.option_type === "TEXT")
+          .some((i) => i.option_value.includes(option));
 
-    if (isExist) {
-      errorToast("Option Exist");
-      return;
-    }
-    if (edit === -1) {
-      update.value?.push(option);
-    } else if (update.value) {
-      update.value[edit] = option;
-      setedit(-1);
-    }
+      if (isExist) {
+        errorToast("Option Exist");
+        return;
+      }
+      if (edit === -1) {
+        update.value?.push(option);
+      } else if (update.value) {
+        update.value[edit] = option;
+        setedit(-1);
+      }
 
-    setopen((prev) => ({ ...prev, addoption: false }));
-  };
+      setopen((prev) => ({ ...prev, addoption: false }));
+    },
+    [temp, product, setedit, setopen]
+  );
   const handleVariantEdit = (idx: number) => {
     if (product.variants) {
       const variantToEdit = product.variants[idx];
@@ -596,7 +564,7 @@ export const Variantcontainer = ({
       open={
         closename
           ? (openmodal[closename] as boolean)
-          : openmodal.addproductvariant
+          : openmodal.addproductvariant ?? false
       }
       onPageChange={() =>
         setopenmodal((prev) => ({ ...prev, [closename as string]: false }))

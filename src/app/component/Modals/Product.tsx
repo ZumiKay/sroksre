@@ -108,7 +108,7 @@ export function CreateProducts({
       "product"
     );
     if (!request.success) {
-      errorToast("Connection Problem");
+      errorToast("Problem Occured");
       return;
     }
 
@@ -218,7 +218,7 @@ export function CreateProducts({
 
     setproduct({
       ...product,
-      category: { ...product.category, [name]: parseInt(value) },
+      category: { ...(product.category ?? {}), [name]: parseInt(value) },
     });
   };
 
@@ -231,7 +231,7 @@ export function CreateProducts({
   return (
     <>
       <SecondaryModal
-        open={openmodal.createProduct}
+        open={openmodal.createProduct ?? false}
         size={isMobile ? "5xl" : "full"}
         placement="top"
         footer={() => {

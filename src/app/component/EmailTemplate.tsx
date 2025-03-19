@@ -4,7 +4,7 @@ import {
   totalpricetype,
 } from "@/src/context/OrderContext";
 import { OrderUserType } from "../checkout/action";
-import { VariantColorValueType } from "@/src/context/GlobalContext";
+import { VariantColorValueType } from "@/src/context/GlobalType.type";
 
 interface OerderEmailProps {
   order: OrderUserType;

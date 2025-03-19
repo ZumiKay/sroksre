@@ -602,7 +602,7 @@ export const BannerCard = ({
             className="w-[30px] h-[30px] object-contain"
           />
         )}
-        {hover && !promotion.selectbanner && !openmodal.managebanner && (
+        {hover && !promotion.selectbanner && !openmodal?.managebanner && (
           <SubInventoryMenu
             data={actionMenu}
             type={type}

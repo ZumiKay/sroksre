@@ -17,7 +17,6 @@ import {
   Theme,
   useTheme,
 } from "@mui/material";
-
 import { Chip as NextChip } from "@heroui/chip";
 import { useRouter } from "next/navigation";
 import { VariantColorValueType } from "@/src/context/GlobalType.type";
@@ -40,9 +39,7 @@ export const UpdateStockModal = ({ closename }: { closename: string }) => {
       errorToast("Failed To Update Stock");
       return;
     }
-
     setproduct(Productinitailizestate);
-
     successToast("Stock Updated");
     setopenmodal((prev) => ({ ...prev, [closename]: false }));
     router.refresh();

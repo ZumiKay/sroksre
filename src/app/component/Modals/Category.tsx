@@ -158,7 +158,7 @@ export const Category = () => {
 
   return (
     <SecondaryModal
-      open={openmodal.createCategory}
+      open={openmodal.createCategory ?? false}
       size="4xl"
       onPageChange={(val) =>
         setopenmodal((prev) => ({ ...prev, createCategory: val }))

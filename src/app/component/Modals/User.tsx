@@ -101,7 +101,7 @@ export const Createusermodal = ({
   return (
     <SecondaryModal
       size="5xl"
-      open={openmodal.createUser}
+      open={openmodal.createUser ?? false}
       onPageChange={(val) => {
         setglobalindex((prev) => ({ ...prev, useredit: -1 }));
         setopenmodal((prev) => ({ ...prev, createUser: val }));
@@ -498,7 +498,7 @@ export const EditProfile = ({
   return (
     <SecondaryModal
       size={isMobile ? "full" : "2xl"}
-      open={openmodal.editprofile}
+      open={openmodal.editprofile ?? false}
       onPageChange={(val) =>
         setopenmodal((prev) => ({ ...prev, editprofile: val }))
       }

@@ -290,7 +290,7 @@ export const FilterContainer = ({
     <SecondaryModal
       size="4xl"
       placement="top"
-      open={openmodal.filteroption}
+      open={openmodal.filteroption ?? false}
       closebtn
       onPageChange={(val) =>
         setopenmodal((prev) => ({ ...prev, filteroption: val }))

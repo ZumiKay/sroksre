@@ -12,9 +12,8 @@ import { DateTimePicker } from "@mui/x-date-pickers";
 import dayjs from "dayjs";
 import PrimaryButton from "../Button";
 import { ImageUpload } from "./Image";
-import { Progress, Switch } from "@heroui/react";
-import { Backdrop } from "@mui/material";
-
+import { Switch } from "@heroui/react";
+import { InventoryPage } from "@/src/context/GlobalType.type";
 interface InventoryParamType {
   ty?: string;
   p?: string;
@@ -33,7 +32,7 @@ export const CreatePromotionModal = ({
   setreloaddata,
 }: {
   searchparams: InventoryParamType;
-  settype: (type: string) => void;
+  settype: (type: InventoryPage) => void;
   setreloaddata: React.Dispatch<React.SetStateAction<boolean>>;
 }) => {
   const {
@@ -194,7 +193,7 @@ export const CreatePromotionModal = ({
         !isPickDate &&
         setopenmodal((prev) => ({ ...prev, createPromotion: val }))
       }
-      open={openmodal.createPromotion}
+      open={openmodal.createPromotion ?? false}
       size="xl"
       placement="top"
     >
@@ -388,7 +387,7 @@ export const DiscountModals = ({
   return (
     <SecondaryModal
       size="xl"
-      open={openmodal.discount}
+      open={openmodal.discount ?? false}
       onPageChange={(val) =>
         setopenmodal((prev) => ({ ...prev, discount: val }))
       }

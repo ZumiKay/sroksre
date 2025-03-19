@@ -4,10 +4,7 @@ import { Stepindicatortype } from "@/src/context/Checkoutcontext";
 import { AnimationControls, motion, useAnimation } from "framer-motion";
 import { ChangeEvent, FormEvent, ReactNode, useEffect, useState } from "react";
 import ReactDOMServer from "react-dom/server";
-import {
-  useGlobalContext,
-  VariantColorValueType,
-} from "@/src/context/GlobalContext";
+import { useGlobalContext } from "@/src/context/GlobalContext";
 import {
   Orderpricetype,
   Ordertype,
@@ -34,6 +31,7 @@ import { Selecteddetailcard } from "./Card";
 import { ApiRequest } from "@/src/context/CustomHook";
 import { SelectionCustom } from "./Pagination_Component";
 import { SendNotification, useSocket } from "@/src/context/SocketContext";
+import { VariantColorValueType } from "@/src/context/GlobalType.type";
 
 //Step assets
 const LineSvg = ({

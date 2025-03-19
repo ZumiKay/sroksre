@@ -24,45 +24,6 @@ import {
   Userdatastate,
 } from "./GlobalType.type";
 
-//Initail State
-//
-
-const OpenmodalinitialState: OpenModalState = {
-  createProduct: false,
-  createCategory: false,
-  createBanner: false,
-  createPromotion: false,
-  createUser: false,
-  productdetail: false,
-  addsubcategory: false,
-  subcreatemenu_ivt: false,
-  subeditmenu_ivt: false,
-  subeditmenu_banner: false,
-  addproductvariant: false,
-  updatestock: false,
-  imageupload: false,
-  filteroption: false,
-  discount: false,
-  loaded: false,
-  managebanner: false,
-  editprofile: false,
-  editvariantstock: false,
-  editsize: false,
-  orderdetail: false,
-  orderlaert: false,
-  orderactionmodal: false,
-  orderproductdetailmodal: false,
-  exportoption: false,
-  alert: {
-    open: false,
-    text: "",
-  },
-  confirmmodal: {
-    open: false,
-    confirm: true,
-    closecon: "",
-  },
-};
 export const Allrefinitialize: Allrefstate = {
   filterref: null,
 };
@@ -76,13 +37,12 @@ export const Productinitailizestate: ProductState = {
   price: 0.0,
   description: "",
   stocktype: "stock",
+  category: {
+    parent: { id: 0, name: "" },
+  },
   stock: 0,
   variantcount: 0,
   covers: [],
-  category: {
-    parentcategory_id: 0,
-    childcategory_id: 0,
-  },
   details: [],
   relatedproductid: [],
 };
@@ -222,7 +182,7 @@ export const GlobalContextProvider = ({
 }: {
   children: React.ReactNode;
 }) => {
-  const [openmodal, setopenmodal] = useState(OpenmodalinitialState);
+  const [openmodal, setopenmodal] = useState<OpenModalState>({});
   const [category, setcategory] = useState(CateogoryInitailizestate);
   const [subcate, setsubcate] = useState<SubcategoriesState[]>([]);
   const [globalindex, setglobalindex] = useState(GlobalIndexInitializeState);

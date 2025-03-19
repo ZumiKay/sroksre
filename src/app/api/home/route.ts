@@ -11,8 +11,8 @@ import {
   caculateArrayPagination,
   calculateDiscountProductPrice,
 } from "@/src/lib/utilities";
-import { ProductState } from "@/src/context/GlobalContext";
 import { calculatePopularityScore } from "../categories/route";
+import { ProductState } from "@/src/context/GlobalType.type";
 
 interface Paramtype {
   ty?: "short" | "detail";

@@ -537,7 +537,7 @@ export const ConfirmModal = () => {
     if (confirm) {
       const URL = "/api/image";
       if (
-        openmodal.confirmmodal.closecon === "createProduct" &&
+        openmodal.confirmmodal?.closecon === "createProduct" &&
         globalindex.producteditindex === -1 &&
         product.covers.length > 0
       ) {
@@ -555,7 +555,7 @@ export const ConfirmModal = () => {
         }
         setproduct(Productinitailizestate);
       } else if (
-        openmodal.confirmmodal.closecon === "createBanner" &&
+        openmodal.confirmmodal?.closecon === "createBanner" &&
         globalindex.bannereditindex === -1 &&
         banner.image.name.length > 0
       ) {
@@ -582,7 +582,7 @@ export const ConfirmModal = () => {
 
       setopenmodal({
         ...openmodal,
-        [openmodal.confirmmodal.closecon]: false,
+        [openmodal?.confirmmodal?.closecon as string]: false,
         confirmmodal: {
           open: false,
           confirm: true,
@@ -603,7 +603,7 @@ export const ConfirmModal = () => {
   };
 
   const handleConfirmDelete = async (confirm: boolean) => {
-    const { type, index } = openmodal.confirmmodal;
+    const { type, index } = openmodal.confirmmodal ?? {};
     const param = new URLSearchParams(searchParam);
 
     const URL =
@@ -646,9 +646,9 @@ export const ConfirmModal = () => {
           param.set("p", "1");
           router.push(`?${param}`, { scroll: false });
         }
-        openmodal.confirmmodal.onAsyncDelete &&
+        openmodal.confirmmodal?.onAsyncDelete &&
           (await openmodal.confirmmodal.onAsyncDelete());
-        openmodal.confirmmodal.onDelete && openmodal.confirmmodal.onDelete();
+        openmodal.confirmmodal?.onDelete && openmodal.confirmmodal.onDelete();
       }
     }
 
@@ -672,7 +672,7 @@ export const ConfirmModal = () => {
       <div className="confirm_container flex flex-col justify-center items-center gap-y-5 bg-white w-[250px] h-[280px] rounded-md">
         <h3 className="question w-full text-center text-lg font-bold text-black">
           {" "}
-          {openmodal.confirmmodal.Warn ?? "Are you sure ?"}
+          {openmodal.confirmmodal?.Warn ?? "Are you sure ?"}
         </h3>
         <div className="btn_container w-4/5 h-fit flex flex-col justify-center items-center gap-y-3">
           <PrimaryButton
@@ -681,7 +681,7 @@ export const ConfirmModal = () => {
             radius="10px"
             status={isLoading.DELETE ? "loading" : "authenticated"}
             onClick={() =>
-              openmodal.confirmmodal.type
+              openmodal.confirmmodal?.type
                 ? handleConfirmDelete(true)
                 : handleConfirm(true)
             }
@@ -691,7 +691,7 @@ export const ConfirmModal = () => {
             type="button"
             text="No"
             onClick={() =>
-              openmodal.confirmmodal.type
+              openmodal.confirmmodal?.type
                 ? handleConfirmDelete(false)
                 : handleConfirm(false)
             }
@@ -903,7 +903,7 @@ export const FilterMenu = ({
   };
   return (
     <SecondaryModal
-      open={openmodal.filteroption}
+      open={openmodal.filteroption ?? false}
       size="5xl"
       onPageChange={(val) =>
         setopenmodal((prev) => ({ ...prev, filteroption: val }))
@@ -1128,17 +1128,20 @@ export const FilterMenu = ({
 export const Alertmodal = () => {
   const { openmodal, setopenmodal } = useGlobalContext();
   const handleClose = async () => {
-    openmodal.alert.action && (await openmodal.alert.action());
-    setopenmodal((prev) => ({
-      ...prev,
-      alert: { ...prev.alert, open: false },
-    }));
+    openmodal.alert?.action && (await openmodal.alert.action());
+    setopenmodal(
+      (prev) =>
+        ({
+          ...(prev ?? {}),
+          alert: { ...(prev.alert ?? {}), open: false },
+        } as any)
+    );
   };
   return (
     <Modal closestate="discount">
       <div className="alertmodal_container flex flex-col items-center  gap-y-10 w-fit h-fit min-w-[300px] p-5 bg-white rounded-lg">
         <h1 className="text-xl font-bold text-center w-full break-all">
-          {openmodal.alert.text}
+          {openmodal.alert?.text ?? "Alert"}
         </h1>
 
         <div className="flex flex-row w-full h-[50px] justify-between">

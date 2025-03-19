@@ -17,7 +17,6 @@ import {
   VariantColorValueType,
   Varianttype,
 } from "../context/GlobalType.type";
-import { Products } from "@prisma/client";
 
 //
 //

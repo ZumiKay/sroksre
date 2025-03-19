@@ -8,8 +8,8 @@ import {
   useState,
 } from "react";
 import { io, Socket } from "socket.io-client";
-import { NotificationType } from "./GlobalContext";
 import { SaveNotification } from "../app/severactions/notification_action";
+import { NotificationType } from "./GlobalType.type";
 
 const SocketContext = createContext<Socket | null>(null);
 

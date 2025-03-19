@@ -2,13 +2,23 @@ import { Dayjs } from "dayjs";
 import { Categorytype } from "../app/api/categories/route";
 import { BannerType } from "../app/severactions/actions";
 import { InventoryInfoType } from "../app/dashboard/inventory/inventory.type";
+import { RGBColor } from "react-color";
 
 type Role = "ADMIN" | "USER" | "EDITOR";
+export type InventoryPage = "product" | "banner" | "promotion";
+export type ActionState = "edit" | "delete" | "stock";
+export type Variantcontainertype =
+  | "variant"
+  | "stock"
+  | "type"
+  | "info"
+  | "stockinfo"
+  | "none";
+
 export interface ActionReturnType<t = string> {
   success: boolean;
   message?: string;
   data?: t;
-
   [x: string]: any;
 }
 export interface SelectType {
@@ -114,7 +124,7 @@ export interface ProductState {
   covers: productcoverstype[] | [];
   category: {
     parent: ProductCategoriesType;
-    child: ProductCategoriesType;
+    child?: ProductCategoriesType;
   };
   details: ProductInfo[] | [];
   stock?: number;
@@ -281,8 +291,8 @@ export interface Usersessiontype {
 
 export type confirmmodaltype = {
   open: boolean;
-  confirm: boolean;
-  closecon: string;
+  confirm?: boolean;
+  closecon?: string;
   index?: number | string;
   Warn?: string;
   type?:
@@ -302,35 +312,34 @@ type alerttype = {
   action?: () => Promise<void> | void;
 };
 export interface OpenModalState {
-  createProduct: boolean;
-  createCategory: boolean;
-  productdetail: boolean;
-  createBanner: boolean;
-  createPromotion: boolean;
-  createUser: boolean;
-  updatestock: boolean;
-  addsubcategory: boolean;
-  subcreatemenu_ivt: boolean;
-  subeditmenu_ivt: boolean;
-  subeditmenu_banner: boolean;
-  imageupload: boolean;
-  filteroption: boolean;
-  addproductvariant: boolean;
-  confirmmodal: confirmmodaltype;
-  discount: boolean;
-  loaded: boolean;
-  managebanner: boolean;
-  editprofile: boolean;
-  editvariantstock: boolean;
-  editsize: boolean;
-  alert: alerttype;
-  orderdetail: boolean;
-  orderlaert: boolean;
-  orderactionmodal: boolean;
-  orderproductdetailmodal: boolean;
-  exportoption: boolean;
-
-  [key: string]: boolean | confirmmodaltype | alerttype;
+  createProduct?: boolean;
+  createCategory?: boolean;
+  productdetail?: boolean;
+  createBanner?: boolean;
+  createPromotion?: boolean;
+  createUser?: boolean;
+  updatestock?: boolean;
+  addsubcategory?: boolean;
+  subcreatemenu_ivt?: boolean;
+  subeditmenu_ivt?: boolean;
+  subeditmenu_banner?: boolean;
+  imageupload?: boolean;
+  filteroption?: boolean;
+  addproductvariant?: boolean;
+  confirmmodal?: confirmmodaltype;
+  discount?: boolean;
+  loaded?: boolean;
+  managebanner?: boolean;
+  editprofile?: boolean;
+  editvariantstock?: boolean;
+  editsize?: boolean;
+  alert?: alerttype;
+  orderdetail?: boolean;
+  orderlaert?: boolean;
+  orderactionmodal?: boolean;
+  orderproductdetailmodal?: boolean;
+  exportoption?: boolean;
+  [key: string]: boolean | confirmmodaltype | alerttype | undefined;
 }
 
 export interface GlobalIndexState {
@@ -391,3 +400,17 @@ export interface ProductOrderType {
   details: Array<ProductInfo>;
   price: string;
 }
+
+export interface Colortype {
+  hex: string;
+  rgb: RGBColor;
+}
+export const Colorinitalize: Colortype = {
+  hex: "#f5f5f5",
+  rgb: {
+    r: 245,
+    g: 245,
+    b: 245,
+    a: 1,
+  },
+};

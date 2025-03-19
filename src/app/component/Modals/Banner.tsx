@@ -1,6 +1,5 @@
 import {
   BannerInitialize,
-  SelectType,
   useGlobalContext,
 } from "@/src/context/GlobalContext";
 import { ChangeEvent, useState } from "react";
@@ -23,6 +22,7 @@ import { SelectAndSearchProduct } from "../Banner";
 import { ImageUpload } from "./Image";
 import { DeleteTempImage } from "../../dashboard/inventory/varaint_action";
 import { Input } from "@heroui/react";
+import { SelectType } from "@/src/context/GlobalType.type";
 
 export const BannerType = [
   { label: "Normal", value: "normal" },
@@ -225,7 +225,7 @@ export const BannerModal = ({
 
   return (
     <SecondaryModal
-      open={openmodal.createBanner}
+      open={openmodal.createBanner ?? false}
       size="full"
       placement="center"
       footer={() => {

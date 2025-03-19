@@ -24,11 +24,15 @@ import PaginationCustom, {
 import { IsNumber } from "@/src/lib/utilities";
 import { BannerSkeleton } from "../../component/HomePage/Component";
 import React from "react";
-import { SelectionType } from "./inventory.type";
 import { useGlobalContext } from "@/src/context/GlobalContext";
-import { PromotionState } from "@/src/context/GlobalType.type";
+import {
+  InventoryPage,
+  PromotionState,
+  SelectType,
+} from "@/src/context/GlobalType.type";
+import TableComponent from "../../component/Table/Table_Component";
 
-const createmenu: Array<SelectionType> = [
+const createmenu: Array<SelectType> = [
   {
     label: "Product",
     value: "createProduct",
@@ -46,7 +50,7 @@ const createmenu: Array<SelectionType> = [
     value: "createPromotion",
   },
 ];
-const Filteroptions: Array<SelectionType> = [
+const Filteroptions: Array<SelectType> = [
   {
     value: "product",
     label: "Product",
@@ -94,15 +98,15 @@ export default function Inventory({
     expired,
     promoids,
   } = searchParams as InventoryParamType;
+  const [loaded, setloaded] = useState(false);
   const router = useRouter();
   const searchParam = useSearchParams();
-  const [loaded, setloaded] = useState(false);
   const [show, setshow] = useState(limit ?? "1");
-  const [page, setpage] = useState(p ? parseInt(p) : 1);
+  const [page, setpage] = useState("1");
   const [itemscount, setitemcount] = useState(0);
   const [lowstock, setlowstock] = useState(0);
   const [reloaddata, setreloaddata] = useState(true);
-  const [ty, settype] = useState(type);
+  const [ty, settype] = useState<InventoryPage | undefined>(type);
   const [promoexpire, setpromoexpire] = useState(0);
   const [filtervalue, setfiltervalue] = useState<InventoryParamType>({
     parentcate,
@@ -268,7 +272,15 @@ export default function Inventory({
 
     param.set("p", "1");
     param.set("limit", value.toString());
-    setpage(1);
+    setpage("1");
+    router.push(`?${param}`);
+    setreloaddata(true);
+  };
+
+  const handlePage = (value: string) => {
+    const param = new URLSearchParams(searchParam);
+    param.set("p", value);
+    setpage(value);
     router.push(`?${param}`);
     setreloaddata(true);
   };
@@ -334,7 +346,7 @@ export default function Inventory({
     }));
   };
 
-  const handleFilter = (value: string) => {
+  const handleFilter = (value: InventoryPage) => {
     const params = new URLSearchParams(searchParam);
 
     //Reset Search Params
@@ -348,7 +360,7 @@ export default function Inventory({
     params.set("p", "1");
     params.set("limit", "1");
 
-    setpage(1);
+    setpage("1");
     setshow("1");
     settype(value);
     router.push(`?${params}`, { scroll: false });
@@ -405,7 +417,9 @@ export default function Inventory({
                       placeholder="Item"
                       value={type}
                       onChange={(val) =>
-                        handleFilter(val.toString().toLowerCase())
+                        handleFilter(
+                          val.toString().toLowerCase() as InventoryPage
+                        )
                       }
                       style={{ width: "275px" }}
                     />
@@ -508,7 +522,19 @@ export default function Inventory({
               />
             </div>
           </div>
-          <div
+
+          {type && (
+            <TableComponent
+              ty={type}
+              data={allData && allData[type as string]}
+              onPagination={(ty, val) =>
+                ty === "limit" ? handleShowPerPage(val) : handlePage(val)
+              }
+              pagination={{ pageCount: itemscount, show, page: page }}
+            />
+          )}
+
+          {/* <div
             className={`productlist w-[95%] max-smallest_phone:w-full h-fit mt-10 grid grid-cols-3 
         max-small_screen:grid-cols-2 gap-x-5 gap-y-32
         max-small_phone:gap-x-0 max-smallest_tablet:grid-cols-1 
@@ -636,10 +662,10 @@ export default function Inventory({
                   )}
               </>
             )}
-          </div>
+          </div> */}
         </div>
 
-        <div className="w-full h-fit">
+        {/* <div className="w-full h-fit">
           <PaginationCustom
             page={page}
             setpage={setpage}
@@ -649,7 +675,7 @@ export default function Inventory({
             onPageChange={() => setreloaddata(true)}
             setshow={setshow}
           />
-        </div>
+        </div> */}
       </LocalizationProvider>
     </>
   );

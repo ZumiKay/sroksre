@@ -4,10 +4,7 @@ import {
   useEffectOnce,
   useScreenSize,
 } from "@/src/context/CustomHook";
-import {
-  productcoverstype,
-  useGlobalContext,
-} from "@/src/context/GlobalContext";
+import { useGlobalContext } from "@/src/context/GlobalContext";
 import { ChangeEvent, useRef, useState } from "react";
 import {
   ContainerLoading,
@@ -16,12 +13,13 @@ import {
   successToast,
 } from "../Loading";
 import Image from "next/image";
-import CloseIcon from "../../../../public/Image/Close.svg";
 import PrimaryButton, { InputFileUpload } from "../Button";
 import CropImage from "../Cropimage";
 import { upload } from "@vercel/blob/client";
 import { type PutBlobResult } from "@vercel/blob";
 import { SecondaryModal } from "../Modals";
+import { productcoverstype } from "@/src/context/GlobalType.type";
+import { v4 as uuidv4 } from "uuid";
 
 export type Imgurl = {
   url: string;
@@ -51,7 +49,10 @@ const uploadToVercel = async (
   data?: PutBlobResult;
 }> => {
   try {
-    const Blob = await upload(file.name, file, {
+    const uniqueFileName = `${new Date().toISOString()}-${uuidv4()}-${
+      file.name
+    }`;
+    const Blob = await upload(uniqueFileName, file, {
       access: "public",
       handleUploadUrl: "/api/products/cover",
     });
@@ -271,7 +272,10 @@ export const ImageUpload = (props: imageuploadprops) => {
       setisEdit(false);
       setopenmodal({
         ...openmodal,
-        confirmmodal: { ...openmodal.confirmmodal, confirm: true },
+        confirmmodal: {
+          ...(openmodal.confirmmodal ?? {}),
+          confirm: true,
+        } as never,
       });
       successToast("Image Saved");
     } catch (error) {
@@ -307,7 +311,7 @@ export const ImageUpload = (props: imageuploadprops) => {
     <SecondaryModal
       onPageChange={() => handleCancel()}
       closebtn
-      open={openmodal.imageupload}
+      open={openmodal.imageupload ?? false}
       size="full"
     >
       <div

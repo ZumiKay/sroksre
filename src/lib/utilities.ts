@@ -1,6 +1,5 @@
 import { deleteObject, ref } from "firebase/storage";
 import { storage } from "./firebase";
-import { ProductState } from "../context/GlobalContext";
 import { Orderpricetype, Productordertype } from "../context/OrderContext";
 import {
   CipherKey,
@@ -8,6 +7,7 @@ import {
   createDecipheriv,
   randomBytes,
 } from "crypto";
+import { ProductState } from "../context/GlobalType.type";
 
 export const AllorderType = {
   orderdetail: "orderdetail",
@@ -262,6 +262,25 @@ export const HasExactMatch = (arr1: string[][], arr2: string[][]): boolean => {
     if (!array2.includes(val)) {
       return false;
     }
+  }
+
+  return true;
+};
+
+export const ArraysAreEqualSets = (
+  array1: string[],
+  array2: string[]
+): boolean => {
+  if (array1.length !== array2.length) return false;
+
+  const set1 = new Set(array1);
+  const set2 = new Set(array2);
+
+  if (set1.size !== set2.size) return false;
+
+  const set1Array = Array.from(set1);
+  for (let i = 0; i < set1Array.length; i++) {
+    if (!set2.has(set1Array[i])) return false;
   }
 
   return true;

@@ -7,9 +7,8 @@ export default function TopModal() {
 
   return (
     <>
-      {openmodal.confirmmodal.open && <ConfirmModal />}
-
-      {openmodal.alert.open && <Alertmodal />}
+      {openmodal?.confirmmodal?.open && <ConfirmModal />}
+      {openmodal?.alert?.open && <Alertmodal />}
     </>
   );
 }

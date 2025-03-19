@@ -17,19 +17,25 @@ import {
 } from "../../dashboard/inventory/inventory.type";
 import { Key, useCallback, useEffect, useMemo, useState } from "react";
 import {
+  ActionState,
   BannerState,
+  GlobalIndexState,
+  InventoryPage,
+  OpenModalState,
   ProductState,
   PromotionState,
 } from "@/src/context/GlobalType.type";
 import { ActionContainer } from "./Component";
+import { useGlobalContext } from "@/src/context/GlobalContext";
 
 interface TableComponentProps {
-  ty: InventoryType;
-  data: Array<ProductState | BannerState | PromotionState>;
+  ty: InventoryPage;
+  data?: Array<ProductState | BannerState | PromotionState>;
   onAction?: (key: string) => void;
   isLoading?: boolean;
   onSelection?: (key: Array<number>) => void;
-  onPagination: (ty: "page" | "limit") => void;
+  onPagination: (ty: "page" | "limit", val: string) => void;
+  pagination: { pageCount: number; show: string; page: string };
 }
 
 type ColumnType = {
@@ -106,6 +112,10 @@ const PromotionColumns: Array<ColumnType> = [
     uid: "action",
   },
 ];
+interface Stock {
+  type: string;
+  value: number;
+}
 
 export default function TableComponent({
   ty,
@@ -114,6 +124,7 @@ export default function TableComponent({
   isLoading,
   onSelection,
 }: TableComponentProps) {
+  const { setopenmodal, setglobalindex, setproduct } = useGlobalContext();
   const [selectedData, setselectedData] = useState<Selection>(new Set([]));
   const renderColumn = useCallback(() => {
     return ty === InventoryType.Product
@@ -138,10 +149,41 @@ export default function TableComponent({
   }, []);
 
   const handleAction = useCallback(
-    (key: Key) => {
-      onAction?.(key.toString());
+    (key: ActionState, id: number, type: InventoryPage, stock?: Stock) => {
+      if (!id) return;
+
+      const modalState: Partial<OpenModalState> = {};
+      const indexState: Partial<GlobalIndexState> = {};
+
+      // Configuration for each type
+      const config: Record<
+        InventoryPage,
+        { createKey: keyof OpenModalState; indexKey: keyof GlobalIndexState }
+      > = {
+        product: { createKey: "createProduct", indexKey: "producteditindex" },
+        banner: { createKey: "createBanner", indexKey: "bannereditindex" },
+        promotion: {
+          createKey: "createPromotion",
+          indexKey: "promotioneditindex",
+        },
+      };
+
+      const { createKey, indexKey } = config[type as InventoryPage];
+
+      if (key === "edit") {
+        modalState[createKey] = true;
+        indexState[indexKey] = id as any;
+      } else if (key === "delete") {
+        modalState.confirmmodal = { index: id, type, open: true };
+      } else if (type === "product" && stock) {
+        modalState[`${stock.type}${id}`] = true;
+        setproduct((prev) => ({ ...prev, id, stock: stock.value }));
+      }
+
+      setopenmodal((prev) => ({ ...prev, ...modalState } as never));
+      setglobalindex((prev) => ({ ...prev, ...indexState }));
     },
-    [onAction]
+    [setopenmodal, setglobalindex, setproduct]
   );
 
   const renderCell = useCallback(
@@ -187,8 +229,12 @@ export default function TableComponent({
           return (
             <div className="category_container w-full h-fit inline-flex gap-x-3">
               <p>{category.parent.name}</p>
-              <span>{` / `}</span>
-              <p>{category.child.name}</p>
+              {category.child && (
+                <>
+                  <span>{` / `}</span>
+                  <p>{category?.child?.name}</p>
+                </>
+              )}
             </div>
           );
 
@@ -220,7 +266,13 @@ export default function TableComponent({
           );
 
         case "action":
-          return <ActionContainer onAction={handleAction} />;
+          return (
+            <ActionContainer
+              onAction={(val) =>
+                handleAction(val as ActionState, celldata.id, ty)
+              }
+            />
+          );
 
         default:
           return celldata[key.toString()];

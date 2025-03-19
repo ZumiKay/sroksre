@@ -16,7 +16,7 @@ import {
   Containertype,
   CreateContainer,
 } from "../../severactions/containeraction";
-import { SelectType, useGlobalContext } from "@/src/context/GlobalContext";
+import { useGlobalContext } from "@/src/context/GlobalContext";
 import React from "react";
 import {
   ApiRequest,
@@ -38,6 +38,7 @@ import { BannerSkeleton } from "./Component";
 import { ContainerLoading, errorToast, successToast } from "../Loading";
 import { BannerModal } from "../Modals/Banner";
 import { parseDate } from "@internationalized/date";
+import { SelectType } from "@/src/context/GlobalType.type";
 
 interface HomeContainerModalProps {
   setprofile: any;

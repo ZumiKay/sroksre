@@ -1,6 +1,10 @@
 "use server";
 
-import { FilterValue, Varianttype } from "@/src/context/GlobalContext";
+import {
+  FilterValue,
+  InventoryPage,
+  Varianttype,
+} from "@/src/context/GlobalType.type";
 import { getUser } from "@/src/context/OrderContext";
 import Prisma from "@/src/lib/prisma";
 import {
@@ -287,7 +291,7 @@ export const getTotalOfItems = async (
 };
 
 export interface InventoryParamType {
-  ty?: string;
+  ty?: InventoryPage;
   p?: string;
   limit?: string;
   status?: string;
