@@ -181,11 +181,10 @@ export const FilterContainer = ({
     if (isPromotion) {
       const fetchcate = async () => {
         setloading(true);
-        const res = await ApiRequest(
-          `/api/categories/select?ty=promocate&promoid=${isPromotion}`,
-          undefined,
-          "GET"
-        );
+        const res = await ApiRequest({
+          url: `/api/categories/select?ty=promocate&promoid=${isPromotion}`,
+          method: "GET",
+        });
         setloading(false);
         if (!res.success) {
           return;

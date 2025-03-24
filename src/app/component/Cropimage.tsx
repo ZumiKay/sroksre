@@ -20,8 +20,7 @@ import "react-image-crop/dist/ReactCrop.css";
 import PrimaryButton, { Selection } from "./Button";
 import Modal, { SecondaryModal } from "./Modals";
 import { errorToast } from "./Loading";
-import { Imgurl } from "./Modals/Image";
-import { useGlobalContext } from "@/src/context/GlobalContext";
+import {ImageDatatype, productcoverstype} from "@/src/context/GlobalType.type";
 
 function centerAspectCrop(
   mediaWidth: number,
@@ -60,10 +59,9 @@ export default function CropImage({
   setclose: any;
   ratio: number;
   index: number;
-  imgurl: Imgurl[];
-  setimgurl: Dispatch<SetStateAction<Imgurl[]>>;
+  imgurl: ImageDatatype[];
+  setimgurl: Dispatch<SetStateAction<ImageDatatype[]>>;
   setfile: Dispatch<SetStateAction<File[]>>;
-
   Files: File[];
   type: "createproduct" | "createbanner" | "createpromotion";
 }) {

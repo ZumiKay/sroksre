@@ -76,11 +76,10 @@ export function CreateProducts({
 
   const fetchcate = async (products?: ProductState) => {
     const asyncfunc = async () => {
-      const categories = await ApiRequest(
-        "/api/categories?ty=create",
-        undefined,
-        "GET"
-      );
+      const categories = await ApiRequest({
+        url: "/api/categories?ty=create",
+        method: "GET",
+      });
       if (categories.success) {
         setcate(categories.data);
         const { parent } = products
@@ -99,14 +98,11 @@ export function CreateProducts({
 
   const fetchproductdata = async (id: number) => {
     setloading(true);
-    const request = await ApiRequest(
-      `/api/products?ty=info&pid=${id}`,
-      undefined,
-      "GET",
-      undefined,
-      undefined,
-      "product"
-    );
+    const request = await ApiRequest({
+      url: `/api/products?ty=info&pid=${id}`,
+      method: "GET",
+      revalidate: "product",
+    });
     if (!request.success) {
       errorToast("Problem Occured");
       return;
@@ -160,8 +156,13 @@ export function CreateProducts({
     }
 
     if (globalindex.producteditindex === -1) {
-      const created = await ApiRequest(URL, setisLoading, "POST", "JSON", {
-        createdproduct,
+      const created = await ApiRequest({
+        url: URL,
+        setloading: setisLoading,
+        method: "POST",
+        data: {
+          createdproduct,
+        },
       });
       if (!created.success) {
         errorToast(created.error as string);
@@ -173,14 +174,19 @@ export function CreateProducts({
     } else {
       //updateProduct
 
-      const updated = await ApiRequest(URL, setisLoading, "PUT", "JSON", {
-        ...createdproduct,
-        relatedproductid: createdproduct.relatedproductid
-          ? [
-              createdproduct.id,
-              ...(createdproduct.relatedproductid as number[]),
-            ]
-          : undefined,
+      const updated = await ApiRequest({
+        url: URL,
+        setloading: setisLoading,
+        method: "PUT",
+        data: {
+          ...createdproduct,
+          relatedproductid: createdproduct.relatedproductid
+            ? [
+                createdproduct.id,
+                ...(createdproduct.relatedproductid as number[]),
+              ]
+            : undefined,
+        },
       });
       if (!updated.success) {
         errorToast(updated.error as string);

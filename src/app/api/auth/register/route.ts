@@ -1,7 +1,7 @@
-import { UserState } from "@/src/context/GlobalContext";
 import Prisma from "@/src/lib/prisma";
 import { registerUser } from "@/src/lib/userlib";
 import { NextRequest } from "next/server";
+import {UserState} from "@/src/context/GlobalType.type";
 
 export async function POST(req: NextRequest) {
   const userdata: any = await req.json();

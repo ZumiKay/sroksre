@@ -399,13 +399,11 @@ export function SecondayCard(props: SecondayCardprops) {
     //update cartitem
     const val = parseInt(`${value}`);
     setloading(true);
-    const updatereq = await ApiRequest(
-      "/api/order/cart",
-      undefined,
-      "PUT",
-      "JSON",
-      { id: props.id, qty: val }
-    );
+    const updatereq = await ApiRequest({
+      url: "/api/order/cart",
+      method: "PUT",
+      data: { id: props.id, qty: val },
+    });
     setloading(false);
 
     if (!updatereq.success) {

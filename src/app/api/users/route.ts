@@ -6,10 +6,10 @@ import {
   IsNumber,
   removeSpaceAndToLowerCase,
 } from "@/src/lib/utilities";
-import { UserState } from "@/src/context/GlobalContext";
 import { revalidateTag } from "next/cache";
 
 import { Prisma as prisma, Role } from "@prisma/client";
+import {UserState} from "@/src/context/GlobalType.type";
 
 interface Userparam {
   lt?: number;

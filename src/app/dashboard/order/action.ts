@@ -12,7 +12,7 @@ import { totalpricetype } from "@/src/context/OrderContext";
 import { SendOrderEmail } from "../../checkout/action";
 import { Filterdatatype } from "./OrderComponent";
 import dayjs from "dayjs";
-import { getCheckoutdata } from "../../checkout/page";
+import getCheckoutdata from "@/src/app/checkout/getCheckOutData";
 
 const AllorderType = {
   orderdetail: "orderdetail",

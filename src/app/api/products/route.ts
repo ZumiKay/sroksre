@@ -1,5 +1,3 @@
-import { GetAllProduct } from "@/src/lib/adminlib";
-
 import { NextRequest } from "next/server";
 
 import {
@@ -13,6 +11,7 @@ import {
   Stocktype,
   VariantColorValueType,
 } from "@/src/context/GlobalType.type";
+import { GetAllProduct } from "@/src/lib/adminlib#1";
 
 interface paramsType {
   ty: string;

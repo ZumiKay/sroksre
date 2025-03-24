@@ -292,10 +292,14 @@ export const AddPolicyModal = ({ qa, plc, edit, openstate }: Policydata) => {
 
     const createReq = !edit
       ? await makereq()
-      : await ApiRequest("/api/policy", undefined, "PUT", "JSON", {
-          type: type.toLowerCase(),
-          question: question && question[0],
-          policy: state,
+      : await ApiRequest({
+          url: "/api/policy",
+          method: "PUT",
+          data: {
+            type: type.toLowerCase(),
+            question: question && question[0],
+            policy: state,
+          },
         });
     if (createReq.success) {
       successToast(createReq.message as string);

@@ -144,8 +144,8 @@ export default async function ProductDetailPage({
         <div className="relatedproduct__section w-full h-full mt-10 flex flex-col gap-y-10">
           <ShowSimilarProduct
             pid={params.id}
-            parent_id={data?.data.category.parent.id ?? 0}
-            child_id={data?.data.category.child.id}
+            parent_id={data?.data.category?.parent?.id ?? 0}
+            child_id={data?.data.category?.child?.id ?? 0}
             promoid={data?.data.promotion_id}
             limit={searchparam.lt ? parseInt(searchparam.lt) : undefined}
           />

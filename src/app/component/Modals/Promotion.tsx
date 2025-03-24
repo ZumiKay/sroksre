@@ -53,11 +53,10 @@ export const CreatePromotionModal = ({
 
   const fetchdata = async (id: number) => {
     setloading(true);
-    const request = await ApiRequest(
-      `/api/promotion?ty=edit&p=${id}`,
-      undefined,
-      "GET"
-    );
+    const request = await ApiRequest({
+      url: `/api/promotion?ty=edit&p=${id}`,
+      method: "GET",
+    });
     setloading(false);
     if (request.success) {
       setpromotion(request.data);
@@ -87,13 +86,12 @@ export const CreatePromotionModal = ({
 
     const method = globalindex.promotioneditindex !== -1 ? "PUT" : "POST";
 
-    const createpromo = await ApiRequest(
-      "/api/promotion",
-      setisLoading,
+    const createpromo = await ApiRequest({
+      url: "/api/promotion",
+      setloading: setisLoading,
       method,
-      "JSON",
-      { ...promo, type: "edit" }
-    );
+      data: { ...promo, type: "edit" },
+    });
     if (!createpromo.success) {
       errorToast(createpromo.error ?? "Error Occured");
       return;
@@ -127,13 +125,12 @@ export const CreatePromotionModal = ({
   const handleCancel = async () => {
     const param = new URLSearchParams(searchParams);
 
-    const deletepromoproduct = await ApiRequest(
-      "/api/promotion",
-      setisLoading,
-      "PUT",
-      "JSON",
-      { type: "cancelproduct" }
-    );
+    const deletepromoproduct = await ApiRequest({
+      url: "/api/promotion",
+      setloading: setisLoading,
+      method: "PUT",
+      data: { type: "cancelproduct" },
+    });
 
     if (!deletepromoproduct.success) {
       errorToast("Error Occured");

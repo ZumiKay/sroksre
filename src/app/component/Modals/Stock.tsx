@@ -28,13 +28,12 @@ export const UpdateStockModal = ({ closename }: { closename: string }) => {
   const router = useRouter();
 
   const handleUpdate = async () => {
-    const update = await ApiRequest(
-      "/api/products/crud",
-      setisLoading,
-      "PUT",
-      "JSON",
-      { stock: product.stock, id: product.id, type: "editstock" }
-    );
+    const update = await ApiRequest({
+      url: "/api/products/crud",
+      setloading: setisLoading,
+      method: "PUT",
+      data: { stock: product.stock, id: product.id, type: "editstock" },
+    });
     if (!update.success) {
       errorToast("Failed To Update Stock");
       return;

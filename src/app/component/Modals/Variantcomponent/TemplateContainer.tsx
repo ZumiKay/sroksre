@@ -1,9 +1,9 @@
 "use client";
 
 import { Badge, Button, Input } from "@heroui/react";
-import Modal from "../../Modals";
+import Modal, { SecondaryModal } from "../../Modals";
 import { SelectionCustom } from "../../Pagination_Component";
-import { ChangeEvent, useState } from "react";
+import { ChangeEvent, useCallback, useMemo, useState } from "react";
 import { RGBColor, SketchPicker } from "react-color";
 import PrimaryButton from "../../Button";
 import { errorToast, successToast } from "../../Loading";
@@ -35,13 +35,15 @@ export default function TemplateContainer({
   color,
   group,
 }: TemplateContainerProps) {
-  const groupedData = data?.reduce((acc, item) => {
-    if (!acc[item.type]) {
-      acc[item.type] = [];
-    }
-    acc[item.type].push(item);
-    return acc;
-  }, {} as { [key: string]: typeof data });
+  const groupedData = useMemo(() => {
+    if (!data || data.length === 0) return {};
+
+    return data.reduce((acc, item) => {
+      acc[item.type] = acc[item.type] || [];
+      acc[item.type].push(item);
+      return acc;
+    }, {} as Record<string, any[]>);
+  }, [data]);
   return (
     <div className="w-full h-fit flex flex-row justify-start gap-5 flex-wrap">
       {!data ? (
@@ -157,6 +159,7 @@ const colorinitalize: colortype = {
   },
 };
 interface AddTemplateModalProps {
+  openstate: boolean;
   close: () => void;
   refresh?: () => void;
   data?: VariantTemplateType;
@@ -172,6 +175,7 @@ export const AddTemplateModal = ({
   close,
   refresh,
   data,
+  openstate,
 }: AddTemplateModalProps) => {
   const [option, setoption] = useState("");
   const [loading, setloading] = useState(false);
@@ -198,7 +202,7 @@ export const AddTemplateModal = ({
     settemplatetype(val as any);
   };
 
-  const handleAddOption = () => {
+  const handleAddOption = useCallback(() => {
     const updatevariant = [...variant.option_value];
     const value =
       templatetype === "TEXT" ? option : { val: color.hex, name: colorname };
@@ -220,7 +224,7 @@ export const AddTemplateModal = ({
     setoption("");
     setcolorname("");
     setvariant((prev) => ({ ...prev, option_value: updatevariant }));
-  };
+  }, [variant, color, colorname, templatetype, edit]);
 
   const handleDeleteOption = (idx: number) => {
     const deletedvariant = [...variant.option_value];
@@ -228,7 +232,7 @@ export const AddTemplateModal = ({
     setvariant((prev) => ({ ...prev, option_value: deletedvariant }));
   };
 
-  const handleAddTemplate = async () => {
+  const handleAddTemplate = useCallback(async () => {
     if (step === "") {
       if (templatetype === "" || variant.option_title === "") {
         errorToast("Please fill all require info");
@@ -240,13 +244,11 @@ export const AddTemplateModal = ({
 
       if (data) {
         const updatedvariant = { ...variant, option_type: templatetype };
-        const updatereq = await ApiRequest(
-          "/api/products/variant/template",
-          undefined,
-          "PUT",
-          "JSON",
-          { id: data.id, variant: updatedvariant }
-        );
+        const updatereq = await ApiRequest({
+          url: "/api/products/variant/template",
+          method: "PUT",
+          data: { id: data.id, variant: updatedvariant },
+        });
         setloading(false);
 
         if (!updatereq.success) {
@@ -277,7 +279,7 @@ export const AddTemplateModal = ({
       setedit(-1);
       refresh && refresh();
     }
-  };
+  }, [step, templatetype, variant, data, refresh]);
 
   const handleClose = () => {
     if (step !== "") {
@@ -288,7 +290,13 @@ export const AddTemplateModal = ({
     close();
   };
   return (
-    <Modal closestate="none" customwidth="280px" customheight="600px">
+    <SecondaryModal
+      placement="top"
+      closebtn
+      open={openstate}
+      onPageChange={() => close()}
+      size="md"
+    >
       <div className="w-full h-full bg-white flex flex-col gap-y-5 p-2 relative rounded-md">
         <h3 className="text-xl font-bold">Template</h3>
         {step === "" ? (
@@ -350,7 +358,7 @@ export const AddTemplateModal = ({
             {!open && (
               <Button
                 disabled={templatetype === ""}
-                onClick={() => setopen(true)}
+                onPress={() => setopen(true)}
                 color="primary"
                 variant="bordered"
                 fullWidth
@@ -428,7 +436,7 @@ export const AddTemplateModal = ({
 
             <div className="btn-1 w-full h-[30px] flex flex-row items-center gap-x-5">
               <Button
-                onClick={() => handleAddOption()}
+                onPress={() => handleAddOption()}
                 fullWidth
                 color="primary"
                 variant="solid"
@@ -437,7 +445,7 @@ export const AddTemplateModal = ({
               </Button>
               <Button
                 fullWidth
-                onClick={() => setopen(false)}
+                onPress={() => setopen(false)}
                 color="danger"
                 variant="solid"
               >
@@ -457,7 +465,7 @@ export const AddTemplateModal = ({
             }}
             isLoading={loading}
             variant="solid"
-            onClick={() => handleAddTemplate()}
+            onPress={() => handleAddTemplate()}
           >
             {step === "create" ? (data ? "Update" : "Create") : "Next"}
           </Button>
@@ -470,12 +478,12 @@ export const AddTemplateModal = ({
             }}
             variant="solid"
             isDisabled={loading}
-            onClick={() => handleClose()}
+            onPress={() => handleClose()}
           >
             Close
           </Button>
         </div>
       </div>
-    </Modal>
+    </SecondaryModal>
   );
 };

@@ -37,11 +37,11 @@ export const Showtypemodal = ({
     const value = Array.from(values)
       .filter((i) => i !== "")
       .join(",");
-    const request = await ApiRequest("/api/policy", undefined, "PUT", "JSON", {
+    const request = await ApiRequest({url: "/api/policy", method: "PUT", data: {
       id,
       showtype: value,
       ty: "showtype",
-    });
+    }});
     if (!request.success) {
       errorToast("Error Occured");
       return;

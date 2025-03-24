@@ -9,7 +9,7 @@ import dayjs from "dayjs";
 import Prisma from "@/src/lib/prisma";
 import { Prisma as prisma } from "@prisma/client";
 import { categorytype } from "../categories/route";
-import { PromotionState, SelectType } from "@/src/context/GlobalType.type";
+import {PromotionState, SearchAndSelectReturnType, SelectType} from "@/src/context/GlobalType.type";
 
 export async function POST(request: NextRequest) {
   try {
@@ -309,7 +309,8 @@ interface customparamPromotion {
   exp?: string;
   ty?: string;
   p?: number;
-  q?: string;
+  search?: string;
+  limit?: number
   expired?: number;
   ids?: string;
 }
@@ -333,9 +334,9 @@ export async function GET(request: NextRequest) {
 
     // Base query condition
     const baseCondition: prisma.PromotionWhereInput = {
-      name: param.q
+      name: param.search
         ? {
-            contains: removeSpaceAndToLowerCase(param.q),
+            contains: removeSpaceAndToLowerCase(param.search),
             mode: "insensitive",
           }
         : {},
@@ -352,7 +353,7 @@ export async function GET(request: NextRequest) {
 
     const total = await Prisma.promotion.count({
       where:
-        param.q || param.exp || param.expired ? (baseCondition as any) : {},
+       param.ty === "selection" ? {} : param.search || param.exp || param.expired ? (baseCondition as any) : {},
     });
 
     const { startIndex, endIndex } = calculatePagination(
@@ -387,7 +388,7 @@ export async function GET(request: NextRequest) {
           param.lt ?? 1
         );
       }
-    } else if (param.ty === "selection") {
+    } else if (param.ty === "selection" && param.limit) {
       const promotions = await Prisma.promotion.findMany({
         where: baseCondition as any,
         select: {
@@ -396,6 +397,11 @@ export async function GET(request: NextRequest) {
         },
         take: param.lt,
       });
+
+      const selectionresult: SearchAndSelectReturnType = {
+        items: promotions.map((item) => ({label: item.name, value: item.id})),
+        hasMore: total > param.limit
+      }
 
       return Response.json(
         { data: promotions, isLimit: promotions.length <= 5 },

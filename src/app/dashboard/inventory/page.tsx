@@ -1,6 +1,5 @@
 "use client";
 import PrimaryButton from "../../component/Button";
-import Card, { BannerCard } from "../../component/Card";
 import { SubInventoryMenu } from "../../component/Navbar";
 import { useEffect, useState } from "react";
 import { ApiRequest, Delayloading } from "@/src/context/CustomHook";
@@ -18,11 +17,8 @@ import {
   CreatePromotionModal,
   DiscountModals,
 } from "../../component/Modals/Promotion";
-import PaginationCustom, {
-  SelectionCustom,
-} from "../../component/Pagination_Component";
+import { SelectionCustom } from "../../component/Pagination_Component";
 import { IsNumber } from "@/src/lib/utilities";
-import { BannerSkeleton } from "../../component/HomePage/Component";
 import React from "react";
 import { useGlobalContext } from "@/src/context/GlobalContext";
 import {
@@ -31,6 +27,8 @@ import {
   SelectType,
 } from "@/src/context/GlobalType.type";
 import TableComponent from "../../component/Table/Table_Component";
+import ImagePreview from "../../component/Modals/ImagePreview";
+import { Variantcontainer } from "../../component/Modals/VariantModal";
 
 const createmenu: Array<SelectType> = [
   {
@@ -102,7 +100,7 @@ export default function Inventory({
   const router = useRouter();
   const searchParam = useSearchParams();
   const [show, setshow] = useState(limit ?? "1");
-  const [page, setpage] = useState("1");
+  const [page, setpage] = useState(p ?? "1");
   const [itemscount, setitemcount] = useState(0);
   const [lowstock, setlowstock] = useState(0);
   const [reloaddata, setreloaddata] = useState(true);
@@ -199,14 +197,10 @@ export default function Inventory({
       }
 
       const makerequest = async () => {
-        const allfetchdata = await ApiRequest(
-          apiUrl,
-          undefined,
-          "GET",
-          undefined,
-          undefined,
-          ty
-        );
+        const allfetchdata = await ApiRequest({
+          url: apiUrl,
+          method: "GET",
+        });
 
         if (allfetchdata.success) {
           let modifieddata = allfetchdata.data;
@@ -269,10 +263,10 @@ export default function Inventory({
 
   const handleShowPerPage = (value: number | string) => {
     const param = new URLSearchParams(searchParam);
-
     param.set("p", "1");
     param.set("limit", value.toString());
     setpage("1");
+    setshow(value as string);
     router.push(`?${param}`);
     setreloaddata(true);
   };
@@ -299,13 +293,12 @@ export default function Inventory({
           }
         : { id: promotion.id, banner_id: promotion.banner_id, type: type };
 
-    const updatereq = await ApiRequest(
-      "/api/promotion",
-      setisLoading,
-      "PUT",
-      "JSON",
-      data
-    );
+    const updatereq = await ApiRequest({
+      url: "/api/promotion",
+      setloading: setisLoading,
+      method: "PUT",
+      data,
+    });
 
     if (updatereq.success) {
       return true;
@@ -367,13 +360,28 @@ export default function Inventory({
     setreloaddata(true);
   };
 
+  const handleSelection = (key: number[]) => {
+    console.log({ key });
+  };
+
   return (
     <>
       <title>Inventory Management | SrokSre</title>
       <LocalizationProvider dateAdapter={AdapterDayjs}>
-        {openmodal.createProduct && (
-          <CreateProducts setreloaddata={setreloaddata} />
-        )}
+        {type &&
+          globalindex.producteditindex !== -1 &&
+          openmodal[`cover${globalindex.producteditindex}`] && (
+            <ImagePreview
+              open={
+                openmodal[`cover${globalindex.producteditindex}`] as boolean
+              }
+              data={{
+                id: globalindex.producteditindex,
+                ty: type as InventoryPage,
+              }}
+            />
+          )}
+
         {openmodal.createCategory && <Category />}
         {openmodal.createBanner && (
           <BannerModal setreloaddata={setreloaddata} />
@@ -402,6 +410,13 @@ export default function Inventory({
           />
         )}
         {openmodal.discount && <DiscountModals setreloaddata={setreloaddata} />}
+        {openmodal.editvariantstock && (
+          <Variantcontainer
+            type="stock"
+            editindex={globalindex.producteditindex}
+            closename="editvariantstock"
+          />
+        )}
 
         <div className="inventory__container w-full h-full min-h-screen relative flex flex-col items-center pb-[200px]">
           <div className="inventory_header bg-white sticky z-30 top-[55px] w-full h-full p-2 border-b border-black">
@@ -530,152 +545,18 @@ export default function Inventory({
               onPagination={(ty, val) =>
                 ty === "limit" ? handleShowPerPage(val) : handlePage(val)
               }
-              pagination={{ pageCount: itemscount, show, page: page }}
+              isLoading={loaded}
+              pagination={{
+                itemscount,
+                show,
+                page: Number(page),
+                setpage: (val) => handlePage(val.toString()),
+                onShowPage: (val) => handleShowPerPage(val),
+              }}
+              onSelection={(key) => handleSelection(key)}
             />
           )}
-
-          {/* <div
-            className={`productlist w-[95%] max-smallest_phone:w-full h-fit mt-10 grid grid-cols-3 
-        max-small_screen:grid-cols-2 gap-x-5 gap-y-32
-        max-small_phone:gap-x-0 max-smallest_tablet:grid-cols-1 
-        ${type === "product" ? "max-smallest_tablet:grid-cols-2 " : ""}
-        place-items-center place-content-center`}
-          >
-            {loaded ? (
-              <div className="w-full h-fit pl-1">
-                <BannerSkeleton />
-              </div>
-            ) : (
-              <>
-                {type === "product" &&
-                  allData?.product?.map((obj, index) => (
-                    <Card
-                      key={index}
-                      index={index}
-                      img={obj.covers}
-                      name={obj.name}
-                      hover={true}
-                      price={parseFloat(obj.price.toString()).toFixed(2)}
-                      id={obj.id ?? 0}
-                      discount={obj.discount}
-                      stock={obj.stock}
-                      stocktype={obj.stocktype}
-                      isAdmin={true}
-                      lowstock={obj.lowstock}
-                      reloaddata={() => setreloaddata(true)}
-                    />
-                  ))}
-                {type === "banner" &&
-                  allData?.banner?.map((obj, idx) => (
-                    <div
-                      key={idx}
-                      className={`banner-card
-                      ${
-                        obj.size !== "small"
-                          ? `w-[500px] h-[350px] max-smaller_screen:w-[400px] 
-                          max-smaller_screen:h-[250px]
-                          max-smallest_screen1:w-[300px] 
-                          max-smallest_screen1:h-[150px]
-                          max-smallest_tablet:w-[250px]
-                          max-smallest_tablet:h-[150px]
-                          `
-                          : "w-[400px] h-[500px] max-smallest_screen1:w-[150px] max-smallest_screen1:h-[250px]"
-                      }
-                      
-                      `}
-                    >
-                      <BannerCard
-                        key={obj.name}
-                        data={{
-                          name: obj.name,
-                          url: obj.image.url,
-                        }}
-                        bannersize={obj.size as any}
-                        index={idx}
-                        id={obj.id ?? 0}
-                        type="banner"
-                        reloaddata={() => setreloaddata(true)}
-                      />
-                    </div>
-                  ))}
-                {type === "promotion" &&
-                  allData?.promotion?.map((obj, idx) => (
-                    <div
-                      key={idx}
-                      className="banner-card w-[500px] h-[300px]
-                          max-smaller_screen:w-[400px] 
-                          max-smaller_screen:h-[250px]
-                          max-smallest_screen1:w-[300px] 
-                          max-smallest_screen1:h-[150px]
-                          max-smallest_phone:w-[250px]"
-                    >
-                      <BannerCard
-                        key={obj.name}
-                        data={{
-                          name: obj.name,
-                          url: obj.banner?.image.url ?? "",
-                        }}
-                        index={idx}
-                        id={obj.id ?? 0}
-                        type="promotion"
-                        isExpired={obj.isExpired}
-                        reloaddata={() => setreloaddata(true)}
-                      />
-                    </div>
-                  ))}
-                {allData &&
-                  allData[type as string] &&
-                  allData[type as string].length === 0 && (
-                    <h3
-                      hidden={!!allData}
-                      className="w-fit ml-10 h-fit font-normal text-xl text-red-400 p-3 border-2 border-red-300 rounded-lg"
-                    >
-                      {type === "banner" ? (
-                        <>
-                          {allData?.banner?.length === 0 && (
-                            <>
-                              No Banner (Create Banner by Click on Action and
-                              Banner)
-                            </>
-                          )}
-                        </>
-                      ) : type === "promotion" ? (
-                        <>
-                          {allData?.promotion?.length === 0 && (
-                            <>
-                              No Promotion (Create Promotion by Click on Action
-                              and Promotion)
-                            </>
-                          )}
-                        </>
-                      ) : (
-                        <>
-                          {allData?.product?.length === 0 && (
-                            <>
-                              No Product (Create Product by Click on Action and
-                              Product)
-                            </>
-                          )}
-                        </>
-                      )}
-                    </h3>
-                  )}
-              </>
-            )}
-          </div> */}
         </div>
-
-        {/* <div className="w-full h-fit">
-          <PaginationCustom
-            page={page}
-            setpage={setpage}
-            count={itemscount}
-            show={show}
-            onSelectShowPerPage={handleShowPerPage}
-            onPageChange={() => setreloaddata(true)}
-            setshow={setshow}
-          />
-        </div> */}
       </LocalizationProvider>
     </>
   );

@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState , useEffect } from "react";
 import { DndContext, DragEndEvent, closestCenter } from "@dnd-kit/core";
 import {
   useSortable,
@@ -131,14 +131,13 @@ export const Homeeditmenu = ({
 }) => {
   const [loading, setloading] = useState(false);
 
-  useEffectOnce(() => {
+  useEffect(() => {
     const fetchdata = async () => {
       async function getItems() {
-        const response = await ApiRequest(
-          "/api/home?ty=short",
-          undefined,
-          "GET"
-        );
+        const response = await ApiRequest({
+          url: "/api/home?ty=short",
+          method: "GET",
+        });
         if (response.success) {
           setItems(response.data);
         }
@@ -146,7 +145,7 @@ export const Homeeditmenu = ({
       await Delayloading(getItems, setloading, 500);
     };
     fetchdata();
-  });
+  }, []);
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;

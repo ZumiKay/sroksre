@@ -1,15 +1,11 @@
-"use server";
 
-import {
-  ActionReturnType,
-  NotificationType,
-} from "@/src/context/GlobalContext";
 import { getUser } from "@/src/context/OrderContext";
 import Prisma from "@/src/lib/prisma";
+import {NotificationType} from "@/src/context/GlobalType.type";
 
 export const SaveNotification = async (
   data: NotificationType
-): Promise<ActionReturnType> => {
+)=> {
   const user = await Prisma.user.findFirst({ where: { role: "ADMIN" } });
 
   if (!user) {
@@ -34,7 +30,7 @@ export const SaveNotification = async (
 
 export const CheckedNotification = async (
   id: number
-): Promise<ActionReturnType> => {
+) => {
   try {
     await Prisma.notification.update({
       where: { id },

@@ -10,15 +10,7 @@ import {
 import Prisma from "@/src/lib/prisma";
 import { extractQueryParams } from "../banner/route";
 import dayjs from "dayjs";
-
-export const categorytype = {
-  normal: "normal",
-  sale: "sale",
-  popular: "popular",
-  latest: "latest",
-};
-
-export type Categorytype = keyof typeof categorytype;
+import { categorytype } from "@/src/context/GlobalType.type";
 
 export const calculatePopularityScore = (data: {
   amount_incart: number;

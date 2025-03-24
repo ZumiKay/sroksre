@@ -47,7 +47,7 @@ export default function UsermanagementPage({
       const URL = `/api/users?${search ? `ty=filter` : `ty=all`}${
         search ? `&search=${search}` : ""
       }${`&p=${page ?? 1}`}${`&lt=${showperpage}`}`;
-      const user = await ApiRequest(URL, undefined, "GET");
+      const user = await ApiRequest({ url: URL, method: "GET" });
       if (!user.success) {
         errorToast("Error Occured");
         return;

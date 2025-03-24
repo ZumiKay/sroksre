@@ -86,7 +86,7 @@ export const PrimaryPhoto = (props: Primaryphotoprops) => {
       max-smaller_screen:w-[400px] 
       max-large_tablet:w-[280px] 
       h-full 
-      overflow-hidden"
+      overflow-hidden items-center"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
@@ -104,7 +104,7 @@ export const PrimaryPhoto = (props: Primaryphotoprops) => {
               <Image
                 src={obj.url}
                 alt={`${obj.name}`}
-                className="w-[280px] h-[350px] object-contain"
+                className="w-[280px] h-[350px] object-cover"
                 width={400}
                 height={550}
                 quality={80}
@@ -134,7 +134,7 @@ export const PrimaryPhoto = (props: Primaryphotoprops) => {
             ></i>{" "}
           </>
         )}
-      {props.showcount && (
+      {props.showcount && props.data.length > 0 && (
         <p className="w-full text-center text-white bg-[#495464] p-1 text-sm font-bold">
           {" "}
           {props.data?.length > 0 ? index.current + 1 : index.current} /{" "}

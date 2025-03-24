@@ -3,6 +3,8 @@ import Prisma from "@/src/lib/prisma";
 import { handleUpload, HandleUploadBody } from "@vercel/blob/client";
 import { getUser } from "@/src/context/OrderContext";
 import { del } from "@vercel/blob";
+import { extractQueryParams } from "../../banner/route";
+import { IsNumber } from "@/src/lib/utilities";
 
 interface DataCoverType {
   url: string;
@@ -10,6 +12,29 @@ interface DataCoverType {
   type: string;
   id?: number;
   isSaved?: boolean;
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    const { pid } = extractQueryParams(request.nextUrl.toString());
+
+    if (!pid) return NextResponse.json({}, { status: 400 });
+
+    const ImageCovers = await Prisma.productcover.findMany({
+      where: {
+        productId: Number(pid),
+      },
+      select: {
+        id: true,
+        url: true,
+        name: true,
+      },
+    });
+    return NextResponse.json({ data: ImageCovers }, { status: 200 });
+  } catch (error) {
+    console.log("Get Image", error);
+    return NextResponse.json({ message: "Error Occured" }, { status: 500 });
+  }
 }
 
 export async function POST(request: Request) {

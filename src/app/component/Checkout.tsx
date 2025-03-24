@@ -681,13 +681,11 @@ export function ShippingForm({ orderid }: { orderid: string }) {
 
     if (value === 0) {
       setloading(true);
-      const updatereq = await ApiRequest(
-        "/api/order",
-        undefined,
-        "PUT",
-        "JSON",
-        { id: orderid, ty: "removeAddress" }
-      );
+      const updatereq = await ApiRequest({
+        url: "/api/order",
+        method: "PUT",
+        data: { id: orderid, ty: "removeAddress" },
+      });
       setloading(false);
       if (!updatereq.success) {
         errorToast("Can't Update Address");
@@ -919,11 +917,10 @@ export function Paypalbutton({
             } else if (!orderData.purchase_units) {
               throw new Error(JSON.stringify(orderData));
             } else {
-              const getPolicy = await ApiRequest(
-                `/api/policy?type=email`,
-                undefined,
-                "GET"
-              );
+              const getPolicy = await ApiRequest({
+                url: `/api/policy?type=email`,
+                method: "GET",
+              });
               if (!getPolicy.success) {
                 throw Error("Error Occured");
               }

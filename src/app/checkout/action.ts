@@ -28,9 +28,9 @@ import {
 import { ProductStockType } from "../component/ServerComponents";
 import nodemailer from "nodemailer";
 import { shippingtype } from "../component/Modals/User";
-import { getCheckoutdata } from "./page";
 import { generateInvoicePdf } from "../api/order/route";
 import { formatDate } from "../component/EmailTemplate";
+import getCheckoutdata from "@/src/app/checkout/getCheckOutData";
 
 interface Returntype<k = string> {
   success: boolean;

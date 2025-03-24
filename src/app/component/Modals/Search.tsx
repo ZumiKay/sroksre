@@ -7,8 +7,8 @@ import { useGlobalContext } from "@/src/context/GlobalContext";
 import { motion } from "framer-motion";
 import { Orderpricetype } from "@/src/context/OrderContext";
 import { useState } from "react";
-import { ApiRequest, Delayloading } from "@/src/context/CustomHook";
-import { errorToast, LoadingText } from "../Loading";
+import { ApiRequest } from "@/src/context/CustomHook";
+import { errorToast } from "../Loading";
 
 interface Searchproducttype {
   id: number;
@@ -29,11 +29,10 @@ export default function SearchContainer({ isMobile }: { isMobile: boolean }) {
     if (e.key === "Enter") {
       e.preventDefault();
       setloading(true);
-      const response = await ApiRequest(
-        `/api/products?ty=search&q=${search}`,
-        undefined,
-        "GET"
-      );
+      const response = await ApiRequest({
+        url: `/api/products?ty=search&q=${search}`,
+        method: "GET",
+      });
       setloading(false);
       if (!response.success) {
         errorToast("Error Occured");

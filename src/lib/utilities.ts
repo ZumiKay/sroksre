@@ -267,24 +267,80 @@ export const HasExactMatch = (arr1: string[][], arr2: string[][]): boolean => {
   return true;
 };
 
-export const ArraysAreEqualSets = (
-  array1: string[],
-  array2: string[]
-): boolean => {
-  if (array1.length !== array2.length) return false;
+export function compareArrays<T>(
+  arr1: T[],
+  arr2: T[],
+  options: {
+    strictOrder?: boolean; // If true, order matters
+    deepCompare?: boolean; // If true, performs deep comparison for objects
+  } = { strictOrder: true, deepCompare: false }
+): boolean {
+  // Check if arrays are the same reference
+  if (arr1 === arr2) return true;
 
-  const set1 = new Set(array1);
-  const set2 = new Set(array2);
+  // Check if either array is null/undefined or lengths differ
+  if (!arr1 || !arr2 || arr1.length !== arr2.length) return false;
 
-  if (set1.size !== set2.size) return false;
-
-  const set1Array = Array.from(set1);
-  for (let i = 0; i < set1Array.length; i++) {
-    if (!set2.has(set1Array[i])) return false;
+  // Strict order comparison
+  if (options.strictOrder) {
+    for (let i = 0; i < arr1.length; i++) {
+      if (
+        options.deepCompare &&
+        typeof arr1[i] === "object" &&
+        typeof arr2[i] === "object"
+      ) {
+        if (!deepEqual(arr1[i], arr2[i])) return false;
+      } else if (arr1[i] !== arr2[i]) {
+        return false;
+      }
+    }
+    return true;
   }
 
+  // Unordered comparison
+  const map = new Map<T, number>();
+
+  // Count occurrences in first array
+  for (const item of arr1) {
+    map.set(item, (map.get(item) || 0) + 1);
+  }
+
+  // Subtract occurrences from second array
+  for (const item of arr2) {
+    const count = map.get(item);
+    if (!count) return false;
+    map.set(item, count - 1);
+    if (count - 1 === 0) map.delete(item);
+  }
+
+  return map.size === 0;
+}
+
+// Helper function for deep object comparison
+function deepEqual(obj1: any, obj2: any): boolean {
+  if (obj1 === obj2) return true;
+
+  if (
+    typeof obj1 !== "object" ||
+    typeof obj2 !== "object" ||
+    obj1 == null ||
+    obj2 == null
+  ) {
+    return false;
+  }
+
+  const keys1 = Object.keys(obj1);
+  const keys2 = Object.keys(obj2);
+
+  if (keys1.length !== keys2.length) return false;
+
+  for (const key of keys1) {
+    if (!keys2.includes(key) || !deepEqual(obj1[key], obj2[key])) {
+      return false;
+    }
+  }
   return true;
-};
+}
 
 //Email Template
 //

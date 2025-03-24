@@ -5,7 +5,7 @@ import {
   useScreenSize,
 } from "@/src/context/CustomHook";
 import { useGlobalContext } from "@/src/context/GlobalContext";
-import { ChangeEvent, useRef, useState } from "react";
+import { ChangeEvent, Dispatch, SetStateAction, useRef, useState } from "react";
 import {
   ContainerLoading,
   errorToast,
@@ -18,22 +18,18 @@ import CropImage from "../Cropimage";
 import { upload } from "@vercel/blob/client";
 import { type PutBlobResult } from "@vercel/blob";
 import { SecondaryModal } from "../Modals";
-import { productcoverstype } from "@/src/context/GlobalType.type";
+import {
+  ImageDatatype,
+  productcoverstype,
+} from "@/src/context/GlobalType.type";
 import { v4 as uuidv4 } from "uuid";
 
-export type Imgurl = {
-  url: string;
-  type: string;
-  name: string;
-  isSave?: boolean;
-  id?: number;
-};
 interface imageuploadprops {
   limit: number;
   mutitlple: boolean;
   type: "createproduct" | "createbanner" | "createpromotion";
   bannertype?: string;
-  setreloaddata?: React.Dispatch<React.SetStateAction<boolean>>;
+  setreloaddata?: Dispatch<SetStateAction<boolean>>;
 }
 
 const filetourl = (file: File[]) => {
@@ -73,8 +69,8 @@ export const ImageUpload = (props: imageuploadprops) => {
     setopenmodal,
     globalindex,
   } = useGlobalContext();
-  const [Imgurl, seturl] = useState<Imgurl[]>([]);
-  const [Imgurltemp, seturltemp] = useState<Imgurl[]>([]);
+  const [Imgurl, seturl] = useState<ImageDatatype[]>([]);
+  const [Imgurltemp, seturltemp] = useState<ImageDatatype[]>([]);
   const [Files, setfiles] = useState<File[]>([]);
   const [Tempfiles, settempfiles] = useState<File[]>([]);
   const [crop, setcrop] = useState(false);
@@ -140,13 +136,11 @@ export const ImageUpload = (props: imageuploadprops) => {
       if (filteredFileUrl.length > 0) {
         if (Imgurltemp.length > 0 && Imgurltemp.every((i) => i.isSave)) {
           const asyncdeleteimage = async () => {
-            const deleteImage = await ApiRequest(
-              "/api/products/cover",
-              undefined,
-              "DELETE",
-              "JSON",
-              { covers: Imgurltemp, type: props.type }
-            );
+            const deleteImage = await ApiRequest({
+              url: "/api/products/cover",
+              method: "DELETE",
+              data: { covers: Imgurltemp, type: props.type },
+            });
             if (!deleteImage.success) {
               errorToast("Error Occured");
               return;
@@ -191,14 +185,22 @@ export const ImageUpload = (props: imageuploadprops) => {
   ) => {
     const update =
       type === "product"
-        ? await ApiRequest("/api/products/crud", undefined, "PUT", "JSON", {
-            ...product,
-            covers: data,
+        ? await ApiRequest({
+            url: "/api/products/crud",
+            method: "PUT",
+            data: {
+              ...product,
+              covers: data,
+            },
           })
-        : await ApiRequest("/api/banner", undefined, "PUT", "JSON", {
-            id: banner.id,
-            edittype: "cover",
-            image: data[0],
+        : await ApiRequest({
+            url: "/api/banner",
+            method: "PUT",
+            data: {
+              id: banner.id,
+              edittype: "cover",
+              image: data[0],
+            },
           });
 
     if (!update.success) {
@@ -304,7 +306,6 @@ export const ImageUpload = (props: imageuploadprops) => {
       return;
     }
     setselected(idx);
-
     setcrop(true);
   };
   return (

@@ -86,7 +86,7 @@ export default async function Checkoutpage({
 
 //Component
 
-export const getCheckoutdata = async (orderid?: string, userid?: number) => {
+const getCheckoutdata = async (orderid?: string, userid?: number) => {
   const result = await Prisma.orders.findFirst({
     where: userid ? { user: { id: userid } } : { id: orderid },
     include: {
@@ -157,7 +157,7 @@ export const getCheckoutdata = async (orderid?: string, userid?: number) => {
   };
 };
 
-export const calculatePrice = (price: number, percent: number) =>
+const calculatePrice = (price: number, percent: number) =>
   price - (price * percent) / 100;
 
 const OrderSummary = async ({ orderId }: { orderId: string }) => {

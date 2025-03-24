@@ -1,12 +1,14 @@
 import { Dayjs } from "dayjs";
-import { Categorytype } from "../app/api/categories/route";
 import { BannerType } from "../app/severactions/actions";
 import { InventoryInfoType } from "../app/dashboard/inventory/inventory.type";
 import { RGBColor } from "react-color";
+import { Dispatch, SetStateAction } from "react";
 
 type Role = "ADMIN" | "USER" | "EDITOR";
 export type InventoryPage = "product" | "banner" | "promotion";
 export type ActionState = "edit" | "delete" | "stock";
+export type RequestMethod = "GET" | "POST" | "PUT" | "DELETE";
+export type RequetDatatype = "JSON" | "FILE";
 export type Variantcontainertype =
   | "variant"
   | "stock"
@@ -14,6 +16,14 @@ export type Variantcontainertype =
   | "info"
   | "stockinfo"
   | "none";
+export const categorytype = {
+  normal: "normal",
+  sale: "sale",
+  popular: "popular",
+  latest: "latest",
+};
+
+export type Categorytype = keyof typeof categorytype;
 
 export interface ActionReturnType<t = string> {
   success: boolean;
@@ -188,16 +198,20 @@ export const FiltervalueInitialize: FilterValue = {
   email: "",
 };
 
+export type ImageDatatype = {
+  id?: number;
+  url: string;
+  name: string;
+  type?: string;
+  isSave?: boolean;
+};
+
 export interface BannerState {
   id?: number;
   name: string;
   type: BannerType;
   size: string;
-  image: {
-    url: string;
-    name: string;
-    type: string;
-  };
+  image: ImageDatatype;
   linktype?: string;
   parentcate?: SelectType;
   childcate?: SelectType;
@@ -383,7 +397,8 @@ export interface LoadingState {
   POST: boolean;
   PUT: boolean;
   DELETE: boolean;
-  IMAGE: any;
+
+  [x: string]: boolean;
 }
 export interface Sessiontype {
   id?: number;
@@ -414,3 +429,23 @@ export const Colorinitalize: Colortype = {
     a: 1,
   },
 };
+
+export interface ApiRequestHookProps {
+  url: string;
+  method: RequestMethod;
+  setloading?: Dispatch<SetStateAction<LoadingState>>;
+  data?: any;
+  datatype?: RequetDatatype;
+  revalidate?: string;
+}
+
+export interface InfiniteScrollReturnType {
+  items: SelectType[];
+  hasMore?: boolean;
+}
+
+export interface SearchAndSelectReturnType {
+  items: SelectType[];
+  hasMore?: boolean;
+  search?: string;
+}

@@ -13,11 +13,8 @@ import {
 } from "@/src/lib/utilities";
 import { NextRequest } from "next/server";
 import { extractQueryParams } from "../../banner/route";
-import {
-  ProductState,
-  VariantColorValueType,
-} from "@/src/context/GlobalContext";
 import { JsonObject } from "@prisma/client/runtime/library";
+import {ProductState, VariantColorValueType} from "@/src/context/GlobalType.type";
 
 export async function PUT(req: NextRequest) {
   try {

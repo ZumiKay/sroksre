@@ -1,13 +1,10 @@
 "use client";
 import { CSSProperties, ReactNode, useEffect, useState } from "react";
-import "../globals.css";
-
 import { useGlobalContext } from "@/src/context/GlobalContext";
 import PrimaryButton from "./Button";
 import { AnimatePresence, motion } from "framer-motion";
 import ReactSelect from "react-select/async";
 import makeAnimated from "react-select/animated";
-
 import { GetProductName } from "../dashboard/inventory/varaint_action";
 import { errorToast } from "./Loading";
 import { Button, Input } from "@heroui/react";

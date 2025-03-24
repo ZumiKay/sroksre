@@ -96,11 +96,10 @@ export default function Navbar({ session }: { session?: Usersessiontype }) {
 
   const getCartTotal = async () => {
     setloading(true);
-    const request = await ApiRequest(
-      "/api/order/cart?count=1",
-      undefined,
-      "GET"
-    );
+    const request = await ApiRequest({
+      url: "/api/order/cart?count=1",
+      method: "GET",
+    });
     setloading(false);
     if (!request.success) {
       return;
@@ -112,11 +111,10 @@ export default function Navbar({ session }: { session?: Usersessiontype }) {
     if (session?.role === "ADMIN") {
       const handleCheckNotification = async () => {
         setloading(true);
-        const makereq = await ApiRequest(
-          "/api/users/notification?ty=check",
-          undefined,
-          "GET"
-        );
+        const makereq = await ApiRequest({
+          url: "/api/users/notification?ty=check",
+          method: "GET",
+        });
         setloading(false);
         if (makereq.success) {
           setchecknotify(makereq.data.length);
@@ -315,7 +313,7 @@ const CategoriesContainer = (props: { setopen: any }) => {
 
   const router = useRouter();
   const fetchcate = async () => {
-    const request = await ApiRequest("/api/categories", undefined, "GET");
+    const request = await ApiRequest({ url: "/api/categories", method: "GET" });
     if (request.success) {
       setallcate(request.data);
     }
@@ -471,6 +469,7 @@ export const SubInventoryMenu = (props: Subinventorymenuprops) => {
     setbanner,
     setpromotion,
   } = useGlobalContext();
+  const router = useRouter();
 
   const handleClick = (obj: SelectionType) => {
     const index = props.index as number;
@@ -489,7 +488,9 @@ export const SubInventoryMenu = (props: Subinventorymenuprops) => {
             ? "bannereditindex"
             : "promotioneditindex"]: index,
         }));
-        setopenmodal({ ...openmodal, [obj.value as string]: true });
+        if (props.type === "product") {
+          router.push(`/dashboard/inventory/createproduct/${index}`);
+        } else setopenmodal({ ...openmodal, [obj.value as string]: true });
       } else if (obj.value === InventoryAction.STOCK && props.stockaction) {
         props.stocktype?.includes("stock") &&
           setproduct((prev) => ({ ...prev, stock: props.stock }));
@@ -512,6 +513,7 @@ export const SubInventoryMenu = (props: Subinventorymenuprops) => {
       if (obj.value === "createProduct") {
         setproduct(Productinitailizestate);
         setglobalindex((prev) => ({ ...prev, producteditindex: -1 }));
+        router.push("/dashboard/inventory/createproduct/0");
       } else if (obj.value === "createBanner") {
         setglobalindex((prev) => ({ ...prev, bannereditindex: -1 }));
         setbanner(BannerInitialize);
@@ -519,7 +521,9 @@ export const SubInventoryMenu = (props: Subinventorymenuprops) => {
         setpromotion(PromotionInitialize);
         setglobalindex((prev) => ({ ...prev, promotioneditindex: -1 }));
       }
-      setopenmodal({ ...openmodal, [obj.value as string]: true });
+
+      if (obj.value !== "createProduct")
+        setopenmodal({ ...openmodal, [obj.value as string]: true });
     }
   };
   return (
@@ -545,8 +549,8 @@ export const SubInventoryMenu = (props: Subinventorymenuprops) => {
       </DropdownTrigger>
       <DropdownMenu aria-label="Dynamic Actions" items={props.data}>
         {(item) => (
-          <DropdownItem key={item.value} onClick={() => handleClick(item)}>
-            {item.value}
+          <DropdownItem key={item.value} onPress={() => handleClick(item)}>
+            {item.label}
           </DropdownItem>
         )}
       </DropdownMenu>
@@ -578,11 +582,10 @@ export const NotificationMenu = forwardRef(
     useEffect(() => {
       const getAllNotification = async () => {
         setloading(true);
-        const result = await ApiRequest(
-          `/api/users/notification?ty=detail&p=${page}&lt=${notioffset}`,
-          undefined,
-          "GET"
-        );
+        const result = await ApiRequest({
+          url: `/api/users/notification?ty=detail&p=${page}&lt=${notioffset}`,
+          method: "GET",
+        });
         if (result.success) {
           if (notification) {
             setnotifydata([...result.data, ...notification]);
@@ -631,13 +634,11 @@ export const NotificationMenu = forwardRef(
     };
 
     const handleDelete = async (id: number) => {
-      const makereq = await ApiRequest(
-        "/api/users/notification",
-        undefined,
-        "DELETE",
-        "JSON",
-        { id }
-      );
+      const makereq = await ApiRequest({
+        url: "/api/users/notification",
+        method: "DELETE",
+        data: { id },
+      });
       if (makereq.success) {
         setnotifydata((prev) => prev?.filter((i) => i.id === id));
       } else {

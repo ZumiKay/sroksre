@@ -1,9 +1,7 @@
 "use client";
 import { ChangeEvent, FormEvent, useState } from "react";
 import PrimaryButton from "../component/Button";
-
 import { signIn } from "next-auth/react";
-
 import { errorToast, successToast } from "../component/Loading";
 import { useRouter } from "next/navigation";
 import { useGlobalContext, Userinitialize } from "@/src/context/GlobalContext";
@@ -108,13 +106,11 @@ export default function AuthenticatePage() {
       return;
     }
 
-    const request = await ApiRequest(
-      "/api/auth/register",
-      undefined,
-      "POST",
-      "JSON",
-      data
-    );
+    const request = await ApiRequest({
+      url: "/api/auth/register",
+      method: "POST",
+      data,
+    });
     setloading("authenticated");
 
     if (!request.success) {
@@ -150,13 +146,11 @@ export default function AuthenticatePage() {
     const method = isEmailType ? "POST" : "GET";
 
     // Make API request
-    const verifyreq = await ApiRequest(
-      URL,
-      undefined,
+    const verifyreq = await ApiRequest({
+      url: URL,
       method,
-      "JSON",
-      requestBody
-    );
+      data: requestBody,
+    });
 
     if (types === "cid") setloading("authenticated");
 
@@ -205,13 +199,12 @@ export default function AuthenticatePage() {
 
   const handleBack = async () => {
     if (verify.email) {
-      const deletecid = await ApiRequest(
-        "/api/users/vfy",
-        setisLoading,
-        "DELETE",
-        "JSON",
-        { type: "email", cid: data.cid }
-      );
+      const deletecid = await ApiRequest({
+        url: "/api/users/vfy",
+        setloading: setisLoading,
+        method: "DELETE",
+        data: { type: "email", cid: data.cid },
+      });
       if (!deletecid.success) {
         errorToast("Error Occured");
         return;
@@ -503,7 +496,8 @@ const PasswordRequirement = [
   { label: "Contain number", value: "num" },
 ];
 
-export const PasswordVerification = ({ password }: { password: string }) => {
+// Not exporting as a named export to avoid Next.js treating it as a page component
+function PasswordVerification({ password }: { password: string }) {
   // Function to check if the password meets the requirements
   const validatePassword = (password: string) => ({
     char: password.length >= 8,
@@ -532,3 +526,6 @@ export const PasswordVerification = ({ password }: { password: string }) => {
     </ul>
   );
 };
+
+// Export the component as default or use it directly in the file
+export { PasswordVerification };

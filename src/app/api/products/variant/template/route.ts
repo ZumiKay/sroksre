@@ -2,7 +2,7 @@ import { VariantTemplateType } from "@/src/app/component/Modals/Variantcomponent
 import Prisma from "@/src/lib/prisma";
 import { NextRequest } from "next/server";
 import { extractQueryParams } from "../../../banner/route";
-import { VariantColorValueType } from "@/src/context/GlobalContext";
+import {VariantColorValueType} from "@/src/context/GlobalType.type";
 
 export async function PUT(req: NextRequest) {
   const { id, variant } = (await req.json()) as VariantTemplateType;

@@ -1,10 +1,6 @@
 import { getServerSession } from "next-auth";
-import {
-  ProductState,
-  Usersessiontype,
-  VariantColorValueType,
-} from "./GlobalContext";
 import { authOptions } from "../app/api/auth/[...nextauth]/route";
+import {ProductState, Usersessiontype, VariantColorValueType} from "@/src/context/GlobalType.type";
 
 export const getUser = async (): Promise<Usersessiontype | null> => {
   const user = (await getServerSession(authOptions)) as any;

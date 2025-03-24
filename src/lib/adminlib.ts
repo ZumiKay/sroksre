@@ -1,23 +1,17 @@
-import { Role, hashedpassword } from "./userlib";
-import {
-  DeleteImageFromStorage,
-  caculateArrayPagination,
-  calculateDiscountProductPrice,
-  removeSpaceAndToLowerCase,
-} from "./utilities";
-
 import Prisma from "./prisma";
-import { Categorytype } from "../app/api/categories/route";
+import { Role, hashedpassword } from "./userlib";
+import { DeleteImageFromStorage } from "./utilities";
+
 import {
+  Categorytype,
   ProductInfo,
   ProductState,
   Stocktype,
   SubcategoriesState,
   userdata,
-  VariantColorValueType,
   Varianttype,
 } from "../context/GlobalType.type";
-
+import { GetProductReturnType } from "./adminlib#1";
 //
 //
 //Products Operations
@@ -25,7 +19,6 @@ import {
 //
 //
 //
-
 export interface Categorydata {
   name: string;
   description: string;
@@ -236,6 +229,10 @@ export const CreateProduct = async (
   data: ProductState
 ): Promise<ReturnType> => {
   try {
+    if (!data.covers || data.covers.length === 0) {
+      return { success: false, error: "Image is required" };
+    }
+
     const isProduct = await Prisma.products.findFirst({
       where: {
         name: data.name,
@@ -258,7 +255,7 @@ export const CreateProduct = async (
           stock: parseInt(`${data.stock}`),
           stocktype: data.stocktype,
           parentcategory_id: data.category.parent.id,
-          childcategory_id: data.category?.child.id,
+          childcategory_id: data.category?.child?.id,
           covers: {
             createMany: {
               data: data.covers.map((i) => ({
@@ -360,7 +357,10 @@ export interface updateProductData extends ProductState {
   type?: "editsize" | "editstock" | "editvariantstock" | "editvariant";
 }
 
-const updateDetails = async (details: [] | ProductInfo[], id: number) => {
+export const updateDetails = async (
+  details: [] | ProductInfo[],
+  id: number
+) => {
   try {
     // Delete Details
     const detailsToDelete = details
@@ -401,7 +401,7 @@ const updateDetails = async (details: [] | ProductInfo[], id: number) => {
   }
 };
 
-const updateProductVariantStock = async (
+export const updateProductVariantStock = async (
   variantstock: Stocktype[],
   id: number
 ): Promise<boolean | null> => {
@@ -517,7 +517,7 @@ const updateProductVariantStock = async (
   }
 };
 
-const handleUpdateProductVariant = async (
+export const handleUpdateProductVariant = async (
   id: number,
   variants: Varianttype[]
 ) => {
@@ -660,14 +660,14 @@ export const EditProduct = async (
     const isCategoryChange =
       (category?.parent.id &&
         existProduct?.parentcategory_id !== category?.parent.id) ||
-      (category?.child.id &&
+      (category?.child?.id &&
         existProduct.childcategory_id !== category?.child.id);
     if (isCategoryChange) {
       await Prisma.products.update({
         where: { id },
         data: {
           parentcategory_id: category.parent.id,
-          childcategory_id: category.child.id,
+          childcategory_id: category?.child?.id,
         },
       });
     }
@@ -865,259 +865,6 @@ export const DeleteProduct = async (id: number) => {
   }
 };
 
-type GetProductReturnType = {
-  success: boolean;
-  data?: any;
-  total?: number;
-  lowstock?: number;
-  totalfilter?: number;
-};
-
-export const GetAllProduct = async (
-  limit: number,
-  ty: string,
-  page: number,
-  query?: string,
-  parent_cate?: number,
-  sk?: string,
-  child_cate?: number,
-  promotionid?: number,
-  priceorder?: number,
-  detailcolor?: string,
-  detailsize?: string,
-  detailtext?: string,
-  selectpromo?: number,
-  promotionids?: string
-): Promise<GetProductReturnType> => {
-  try {
-    let totalproduct: number = 0;
-    let allproduct = [];
-    let lowstock = 0;
-
-    if (!promotionid || promotionid === -1) {
-      if (ty === "filter" || ty === "all") {
-        let products = await Prisma.products.findMany({
-          where: {
-            ...(!promotionids && selectpromo === 1
-              ? { promotion_id: null }
-              : {}),
-            ...(promotionids
-              ? {
-                  promotion: {
-                    id:
-                      promotionids.length > 1
-                        ? {
-                            in: promotionids
-                              .split(",")
-                              .map((i) => parseInt(i, 10)),
-                          }
-                        : { equals: parseInt(promotionids, 10) },
-                  },
-                }
-              : {}),
-          },
-          select: {
-            id: true,
-            name: true,
-            covers: {
-              orderBy: {
-                id: "asc",
-              },
-            },
-            price: true,
-            stock: true,
-            discount: true,
-            Stock: {
-              select: {
-                id: true,
-                Stockvalue: {
-                  select: {
-                    id: true,
-                    qty: true,
-                  },
-                },
-              },
-            },
-            stocktype: true,
-            details: true,
-            promotion_id: true,
-            promotion: true,
-            parentcateogries: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
-            childcategories: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
-          },
-
-          orderBy: {
-            price: priceorder === 1 ? "asc" : "desc",
-          },
-        });
-
-        products = products
-          .filter((prod) => {
-            const isName =
-              query &&
-              removeSpaceAndToLowerCase(prod.name).includes(
-                removeSpaceAndToLowerCase(query)
-              );
-
-            const isPid =
-              parent_cate && prod.parentcateogries?.id === parent_cate;
-            const isChildId =
-              child_cate && prod.childcategories?.id === child_cate;
-
-            const isLowStock =
-              sk && sk === "Low" && prod.Stock
-                ? prod.Stock.some((stock) =>
-                    stock.Stockvalue.some((i) => i.qty <= 5)
-                  )
-                : prod.stock
-                ? prod.stock <= 5
-                : false;
-
-            const conditions = [
-              query ? isName : true,
-              parent_cate ? isPid : true,
-              child_cate ? isChildId : true,
-              sk ? isLowStock : true,
-            ];
-
-            return conditions.every((i) => i);
-          })
-          .map((prod) => {
-            let lowstock = false;
-            if (prod.Stock) {
-              prod.Stock.forEach((stock) => {
-                lowstock = stock.Stockvalue.some((sub) => sub.qty <= 5);
-              });
-            }
-            return { ...prod, lowstock };
-          });
-
-        totalproduct = products.length;
-
-        allproduct = caculateArrayPagination(products, page, limit);
-      } else if (ty === "detail") {
-        //filter list product based on color and size
-        const colors =
-          detailcolor && detailcolor.includes(",")
-            ? detailcolor?.split(",")
-            : [detailcolor];
-        const texts =
-          detailtext && detailtext.includes(",")
-            ? detailtext.split(",")
-            : [detailtext];
-
-        let product = await Prisma.products.findMany({
-          where: {
-            parentcategory_id: parent_cate ?? undefined,
-            childcategory_id: child_cate ?? undefined,
-          },
-          include: {
-            details: true,
-            Variant: true,
-            covers: true,
-          },
-        });
-
-        const filteredproduct = product.filter((i) => {
-          const color = i.Variant.find((j) => j.option_type === "COLOR");
-          const text = i.Variant.find((j) => j.option_type === "TEXT");
-
-          if (color) {
-            const opt_val = color?.option_value as
-              | string[]
-              | VariantColorValueType[];
-            const productColors = opt_val
-              .filter((k: any) => k.val !== "")
-              .map((l: any) => {
-                return l.val.replace("#", "");
-              });
-
-            const text_value = text?.option_value as string[];
-            const otherFilter = text_value?.map((l) => {
-              return removeSpaceAndToLowerCase(l);
-            });
-
-            const hasSelectedColor =
-              colors &&
-              colors?.some((item) => productColors?.includes(item as string));
-
-            const hasSeletecFilter =
-              otherFilter &&
-              texts?.some((item) => otherFilter.includes(item as string));
-            return hasSelectedColor || hasSeletecFilter;
-          }
-          return false;
-        });
-        totalproduct = filteredproduct.length;
-
-        allproduct = caculateArrayPagination(filteredproduct, page, limit);
-      }
-    } else {
-      let product = await Prisma.products.findMany({
-        where: {
-          ...(promotionid !== -1
-            ? { OR: [{ promotion_id: null }, { promotion_id: promotionid }] }
-            : {}),
-          ...(promotionids ? { promotion_id: parseInt(promotionids, 10) } : {}),
-        },
-        select: {
-          id: true,
-          discount: true,
-          price: true,
-          name: true,
-          covers: {
-            orderBy: {
-              id: "asc",
-            },
-          },
-          promotion_id: true,
-        },
-        orderBy: {
-          id: "asc",
-        },
-      });
-      totalproduct = product.length;
-      allproduct = caculateArrayPagination(product, page, limit);
-    }
-
-    const result: Array<ProductState> = allproduct.map((i) => {
-      return {
-        ...i,
-        category: {
-          parent: i.parentcategories,
-          child: i.childcategories,
-        },
-        ...(i.discount && {
-          discount: calculateDiscountProductPrice({
-            price: i.price,
-            discount: i.discount,
-          }),
-        }),
-      };
-    }) as any;
-
-    return {
-      success: true,
-      data: result || [],
-      lowstock: lowstock,
-      total: Math.ceil(totalproduct / limit),
-      totalfilter: totalproduct,
-    };
-  } catch (error) {
-    console.log("Get Allproduct", error);
-    return { success: false };
-  }
-};
 export const GetProductByCategory = async ({
   limit,
   skip,

@@ -1,11 +1,26 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-/* :root {
+:root {
   width: 100%;
   overflow-x: hidden;
-  overflow-y: auto;
-} */
+}
+
+.bg_default {
+  @apply bg-[#495464]
+}
+
+h1 {
+  @apply text-4xl font-bold;
+}
+
+h2 {
+  @apply text-2xl font-bold;
+}
+
+h3 {
+  @apply text-lg font-bold;
+}
 
 @media screen and (max-width: 768px) {
   .Home__Container .second_section {

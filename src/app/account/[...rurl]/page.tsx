@@ -35,7 +35,7 @@ export default function ResetPage({ params }: { params: { rurl: string } }) {
     const handleVerify = async () => {
       if (match) {
         const url = `/api/users/vfy?cid=${match[1]}`;
-        const verify = await ApiRequest(url, undefined, "GET", "JSON");
+        const verify = await ApiRequest({ url, method: "GET" });
         if (!verify.success) {
           setloading(false);
           setverify(false);

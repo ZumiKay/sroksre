@@ -368,7 +368,7 @@ const Homecontainermodal = ({
       const fetcheditdetail = async () => {
         setloading(true);
         const url = `/api/home?id=${globalindex.homeeditindex}`;
-        const response = await ApiRequest(url, undefined, "GET");
+        const response = await ApiRequest({ url, method: "GET" });
         setloading(false);
 
         if (response.success) {
@@ -445,13 +445,17 @@ const Homecontainermodal = ({
       } else {
         // Update container
 
-        request = await ApiRequest("/api/home", undefined, "PUT", "JSON", {
-          ...data,
-          items: data.items.map((i) => ({
-            ...i,
-            item: undefined,
-            item_id: i.item?.id,
-          })),
+        request = await ApiRequest({
+          url: "/api/home",
+          method: "PUT",
+          data: {
+            ...data,
+            items: data.items.map((i) => ({
+              ...i,
+              item: undefined,
+              item_id: i.item?.id,
+            })),
+          },
         });
       }
 
@@ -732,7 +736,7 @@ function AddBannerContainer({
               }${filter.parentcate ? `&pid=${filter.parentcate}` : ""}${
                 filter.subcate ? `&cid=${filter.subcate}` : ""
               }${data.id ? `&conId=${data.id}` : ""}`;
-        const request = await ApiRequest(url, undefined, "GET");
+        const request = await ApiRequest({ url, method: "GET" });
 
         if (request.success) {
           setbanners(request.data);
@@ -748,11 +752,10 @@ function AddBannerContainer({
     if (isFilter) {
       const getCategories = async () => {
         const asyncfetchcategories = async () => {
-          const parentcategories = await ApiRequest(
-            "/api/categories/select?ty=parent",
-            undefined,
-            "GET"
-          );
+          const parentcategories = await ApiRequest({
+            url: "/api/categories/select?ty=parent",
+            method: "GET",
+          });
 
           if (parentcategories.success) {
             setcate((prev) => ({ ...prev, parent: parentcategories.data }));
@@ -808,11 +811,10 @@ function AddBannerContainer({
       setfilter((prev) => ({ ...prev, parentcate: value, subcate: "" } as any));
       const fetchSubCategories = async () => {
         const asyncfetchsubcate = async () => {
-          const childcategories = await ApiRequest(
-            `/api/categories/select?ty=child&pid=${value}`,
-            undefined,
-            "GET"
-          );
+          const childcategories = await ApiRequest({
+            url: `/api/categories/select?ty=child&pid=${value}`,
+            method: "GET",
+          });
 
           if (childcategories.success) {
             setcate((prev) => ({ ...prev, sub: childcategories.data }));

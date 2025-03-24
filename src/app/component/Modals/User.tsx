@@ -66,7 +66,7 @@ export const Createusermodal = ({
 
     //register User
     setloading(true);
-    const register = await ApiRequest(URL, undefined, method, "JSON", data);
+    const register = await ApiRequest({ url: URL, method, data });
     setloading(false);
     if (!register.success) {
       errorToast(register.error ?? "Failed to register");
@@ -362,14 +362,11 @@ export const EditProfile = ({
     if (ty === "shipping") {
       let updateopen = { ...open };
 
-      const request = await ApiRequest(
+      const request = await ApiRequest({
         url,
-        undefined,
-        "GET",
-        undefined,
-        undefined,
-        "userinfo"
-      );
+        method: "GET",
+        revalidate: "userinfo",
+      });
       setloading((prev) => ({ ...prev, get: false }));
       if (request.success) {
         userdata.shipping = request.data;

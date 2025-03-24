@@ -1,6 +1,6 @@
 "use server";
 
-import { ProductState } from "@/src/context/GlobalType.type";
+import {ProductState} from "@/src/context/GlobalType.type";
 import {
   Allstatus,
   getUser,
@@ -9,9 +9,9 @@ import {
   totalpricetype,
 } from "@/src/context/OrderContext";
 import Prisma from "@/src/lib/prisma";
-import { calculateDiscountProductPrice } from "@/src/lib/utilities";
+import {calculateDiscountProductPrice} from "@/src/lib/utilities";
 
-import { revalidatePath } from "next/cache";
+import {revalidatePath} from "next/cache";
 
 interface returntype {
   success: boolean;
@@ -108,14 +108,12 @@ export async function CheckCart(
       if (cartItems.some((i) => i.details)) {
         isInCart = cartItems.some((cart) => {
           const detail = cart.details?.filter((i) => i);
-          const areArraysEqual =
-            detail?.length === selectedDetail.length &&
-            detail?.every((obj, index) =>
-              Object.entries(obj).every(
-                ([key, value]) => value === selectedDetail[index][key]
-              )
-            );
-          return areArraysEqual;
+          return detail?.length === selectedDetail.length &&
+              detail?.every((obj, index) =>
+                  Object.entries(obj).every(
+                      ([key, value]) => value === selectedDetail[index][key]
+                  )
+              );
         });
       }
     } else {
@@ -184,16 +182,18 @@ export const getRelatedProduct = async (
           parent_id &&
           child_id &&
           promoid &&
-          i.category.parentcategory_id === parent_id &&
-          i.category?.childcategory_id === child_id &&
+          i.category.parent?.id === parent_id &&
+          i.category?.child?.id
+            === child_id &&
           i.promotion_id === promoid
         ) {
           score = 4;
         } else if (promoid && promoid === i.promotion_id) {
           score = 3;
-        } else if (child_id && i.category?.childcategory_id === child_id) {
+        } else if (child_id && i.category?.child?.id=== child_id) {
           score = 2;
-        } else if (i.category.parentcategory_id === parent_id) {
+        } else if (i.category.parent.id
+            === parent_id) {
           score = 1;
         }
         return { ...i, score };

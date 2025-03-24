@@ -1,11 +1,11 @@
 import { useGlobalContext } from "@/src/context/GlobalContext";
-import React, { ChangeEvent, useState } from "react";
+import React, { ChangeEvent, FormEvent, useState } from "react";
 import PrimaryButton from "../Button";
 import { errorToast } from "../Loading";
 import { SecondaryModal } from "../Modals";
 import { CirclePicker, ChromePicker } from "react-color";
-import { Button, Input } from "@heroui/react";
-import { ArraysAreEqualSets, HasPartialOverlap } from "@/src/lib/utilities";
+import { Button, Form, Input } from "@heroui/react";
+import { compareArrays, HasPartialOverlap } from "@/src/lib/utilities";
 import { ApiRequest, useScreenSize } from "@/src/context/CustomHook";
 import Multiselect from "../MutiSelect";
 import { NormalSkeleton } from "../Banner";
@@ -16,6 +16,7 @@ import {
   Stocktype,
   Variantcontainertype,
 } from "@/src/context/GlobalType.type";
+import { ColorDataType, variantdatatype } from "./VariantModal";
 
 interface ManageStockContainerProps {
   editindex?: number;
@@ -115,10 +116,14 @@ const CountLowStock = (stock: Stocktype) => {
 };
 
 const AsyncUpdateStock = async (editindex: number, stockArray: Stocktype[]) => {
-  const res = await ApiRequest("/api/products/crud", undefined, "PUT", "JSON", {
-    id: editindex,
-    varaintstock: stockArray,
-    type: "editvariantstock",
+  const res = await ApiRequest({
+    url: "/api/products/crud",
+    method: "PUT",
+    data: {
+      id: editindex,
+      varaintstock: stockArray,
+      type: "editvariantstock",
+    },
   });
 
   return res;
@@ -244,7 +249,7 @@ export function ManageStockContainer({
     const hasChangedVariantValues = stockValues.some(
       (val) =>
         !updatestockvalue.Stockvalue.some((i) =>
-          ArraysAreEqualSets(val, i.variant_val)
+          compareArrays(val, i.variant_val, { strictOrder: true })
         )
     );
 
@@ -285,7 +290,6 @@ export function ManageStockContainer({
     }
 
     setproduct((prev) => ({ ...prev, varaintstock: stockArray }));
-
     setlowstock(CountLowStock(stockArray[edit]));
     seteditsubidx(-1);
     setstock("");
@@ -333,7 +337,7 @@ export function ManageStockContainer({
                 color="danger"
                 variant="bordered"
                 startContent={<div> {"<"}</div>}
-                onClick={() => handleBackEditSubStock()}
+                onPress={() => handleBackEditSubStock()}
               >
                 Back
               </Button>
@@ -392,7 +396,7 @@ export function ManageStockContainer({
                   isLoading={loading}
                   variant="bordered"
                   color={isAddNew ? "success" : "primary"}
-                  onClick={() =>
+                  onPress={() =>
                     editsubidx === -1
                       ? handleAddNewSubStock()
                       : handleUpdateSubStock(editsubidx)
@@ -495,29 +499,71 @@ export function ManageStockContainer({
 }
 
 interface ColorSelectModal {
-  handleAddColor: () => void;
   edit: number;
   open: boolean;
   setopen: (val: boolean) => void;
+  temp: variantdatatype;
   setedit: React.Dispatch<React.SetStateAction<number>>;
-
+  colorstate: ColorDataType;
   color: Colortype;
   name: string;
   setcolor: (value: Colortype | string) => void;
+  settemp: React.Dispatch<React.SetStateAction<variantdatatype | undefined>>;
+  setcolorstate: React.Dispatch<React.SetStateAction<ColorDataType>>;
 }
 
 export const ColorSelectModal = ({
-  handleAddColor,
   edit,
   setedit,
+  colorstate,
   color,
   setcolor,
   name,
   open,
+  temp,
   setopen,
+  settemp,
+  setcolorstate,
 }: ColorSelectModal) => {
   const [colorpicker, setcolorpicker] = useState(false);
   const { isMobile } = useScreenSize();
+
+  const handleAddColor = React.useCallback(() => {
+    const { color, name } = colorstate;
+
+    const isValidHex = /^#([0-9A-F]{3}){1,2}$/i.test(color.hex);
+
+    if (!isValidHex) {
+      errorToast("Wrong Hex Code");
+      return;
+    }
+
+    if (color?.hex === "" || !name) {
+      errorToast(color.hex === "" ? "Please Select Color" : "Name is Required");
+      return;
+    }
+    const update = { ...temp };
+    if (edit === -1) {
+      update.value?.push({
+        val: color.hex,
+        name,
+      });
+    } else if (update.value && edit !== -1) {
+      update.value[edit] = {
+        val: color.hex,
+        name,
+      };
+    }
+    settemp(update as variantdatatype);
+    setcolorstate((prev) => ({ ...prev, color: Colorinitalize, name: "" }));
+    setedit(-1);
+  }, [colorstate, temp, edit]);
+
+  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    handleAddColor();
+    setopen(false);
+  };
   return (
     <>
       <div
@@ -542,25 +588,11 @@ export const ColorSelectModal = ({
             setopen(false);
           }}
           closebtn
-          footer={() => {
-            return (
-              <PrimaryButton
-                text={edit === -1 ? "Confirm" : "Update"}
-                type="button"
-                onClick={() => {
-                  handleAddColor();
-                  setopen(false);
-                }}
-                disable={color.hex === ""}
-                width="100%"
-                textsize="13px"
-                radius="10px"
-                height="35px"
-              />
-            );
-          }}
         >
-          <form className="w-full h-fit bg-white flex flex-col items-center justify-center gap-y-3 p-3">
+          <Form
+            onSubmit={handleSubmit}
+            className="w-full h-fit bg-white flex flex-col items-center justify-center gap-y-3 p-3"
+          >
             <Input
               type="text"
               fullWidth
@@ -649,7 +681,16 @@ export const ColorSelectModal = ({
                 </div>
               </SecondaryModal>
             )}
-          </form>
+            <PrimaryButton
+              text={edit === -1 ? "Confirm" : "Update"}
+              type="submit"
+              disable={color.hex === ""}
+              width="100%"
+              textsize="13px"
+              radius="10px"
+              height="35px"
+            />
+          </Form>
         </SecondaryModal>
       )}
     </>

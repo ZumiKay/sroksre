@@ -332,13 +332,11 @@ const inCartCheck = async (
   selecteddetail: Productorderdetailtype[],
   pid: number
 ) => {
-  const req = await ApiRequest(
-    "/api/order/cart/check",
-    undefined,
-    "POST",
-    "JSON",
-    { selecteddetail, pid }
-  );
+  const req = await ApiRequest({
+    url: "/api/order/cart/check",
+    method: "POST",
+    data: { selecteddetail, pid },
+  });
   return {
     success: req.success,
     incart: (req.data?.incart ?? false) as boolean,

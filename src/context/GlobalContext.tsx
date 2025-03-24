@@ -100,7 +100,6 @@ const LoadingStateInitialized: LoadingState = {
   POST: false,
   PUT: false,
   DELETE: false,
-  IMAGE: {},
 };
 
 export const Userinitialize: userdata = {

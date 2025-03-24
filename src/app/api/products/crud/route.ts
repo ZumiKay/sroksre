@@ -5,10 +5,10 @@ import {
   updateProductData,
 } from "@/src/lib/adminlib";
 import Prisma from "@/src/lib/prisma";
-
 import { NextRequest } from "next/server";
+
 export async function POST(req: NextRequest) {
-  const { createdproduct } = await req.json();
+  const createdproduct = await req.json();
 
   const created = await CreateProduct(createdproduct);
   if (created.success) {

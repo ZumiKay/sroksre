@@ -1,4 +1,4 @@
-"use server";
+
 
 import { NextRequest, NextResponse } from "next/server";
 import { VerifyApiRoute, methodtype } from "./lib/middlewareaction";
@@ -62,6 +62,6 @@ export default async function middleware(req: NextRequest) {
     }
   }
 }
-export const config = {
+ export const config = {
   matcher: ["/dashboard/:path*", "/account", "/api/:path*"],
 };

@@ -39,13 +39,10 @@ export default function UserDashboard() {
   const fetchuser = async (type: "userinfo" | "wishlist") => {
     const asyncfetch = async () => {
       const URL = `/api/users/info?ty=${type}`;
-      const userreq = await ApiRequest(
-        URL,
-        undefined,
-        "GET",
-        undefined,
-        undefined
-      );
+      const userreq = await ApiRequest({
+        url: URL,
+        method: "GET",
+      });
 
       if (userreq.success) {
         type === "userinfo"

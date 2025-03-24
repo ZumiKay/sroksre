@@ -6,6 +6,7 @@ const nextConfig = {
         protocol: "https",
         hostname: "firebasestorage.googleapis.com",
       },
+      { protocol: "https", hostname: "placehold.co" },
       {
         protocol: "https",
         hostname: "jrkeurxhiddg4zho.public.blob.vercel-storage.com",
