@@ -8,8 +8,7 @@ import {
 import dayjs from "dayjs";
 import Prisma from "@/src/lib/prisma";
 import { Prisma as prisma } from "@prisma/client";
-import { categorytype } from "../categories/route";
-import {PromotionState, SearchAndSelectReturnType, SelectType} from "@/src/context/GlobalType.type";
+import {categorytype, PromotionState, SearchAndSelectReturnType, SelectType} from "@/src/context/GlobalType.type";
 
 export async function POST(request: NextRequest) {
   try {

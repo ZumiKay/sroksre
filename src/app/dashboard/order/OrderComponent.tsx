@@ -31,6 +31,7 @@ import React from "react";
 import { useGlobalContext } from "@/src/context/GlobalContext";
 import { userdata } from "@/src/context/GlobalType.type";
 
+
 export const SelectionSSR = ({
   name,
   data,
@@ -604,13 +605,13 @@ export const AmountRange = ({
   setdata,
 }: {
   data: Filterdatatype;
-  setdata: React.Dispatch<React.SetStateAction<Filterdatatype>>;
+  setdata?: React.Dispatch<React.SetStateAction<Filterdatatype>>;
 }) => {
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
 
     // Check if the value is a valid non-negative number
-    if (/^\d*$/.test(value)) {
+    if (/^\d*$/.test(value) && setdata) {
       setdata((prev) => ({ ...prev, [name]: value }));
     } else {
       // Clear the input if the value is invalid (negative or non-numeric)
@@ -702,7 +703,7 @@ export function DetailModal({
   close: string;
   data: OrderDetailType;
   orderdata: AllorderStatus;
-  setclose: () => void;
+  setclose?: () => void;
   isAdmin: boolean;
 }) {
   const [type, settype] = useState<"user" | "shipping" | "close" | "none">(
@@ -711,7 +712,7 @@ export function DetailModal({
   const { openmodal } = useGlobalContext();
 
   const handleClick = (ty: typeof type) => {
-    if (ty === "close") {
+    if (ty === "close" && setclose) {
       setclose();
       return;
     }
@@ -804,7 +805,7 @@ export function DetailModal({
       size="3xl"
       open={openmodal[close] as boolean}
       onPageChange={() => {
-        setclose();
+      setclose &&  setclose();
       }}
       closebtn
       style={{ backgroundColor: "#f2f2f2" }}
@@ -1117,8 +1118,8 @@ export const OrderAlert = ({
   oid,
   close,
 }: {
-  settype: (type: string) => void;
-  close: () => void;
+  settype?: (type: string) => void;
+  close?: () => void;
   oid: string;
 }) => {
   const [loading, setloading] = useState(false);
@@ -1134,10 +1135,10 @@ export const OrderAlert = ({
       return;
     }
     successToast("Deleted");
-    close();
+    close && close();
   };
   const handleNo = () => {
-    settype("none");
+  settype &&  settype("none");
   };
   return (
     <Modal

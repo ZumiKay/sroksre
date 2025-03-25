@@ -10,7 +10,7 @@ import React, { useEffect, useState } from "react";
 type AsyncSelectionProps = {
   type: "normal" | "async";
   data?: (
-      offset?: number
+    offset?: number
   ) => Promise<InfiniteScrollReturnType> | Array<SelectType> | undefined;
 
   option?: Partial<SelectProps>;
@@ -19,12 +19,12 @@ type AsyncSelectionProps = {
 };
 
 export const AsyncSelection = ({
-                                 data,
-                                 option,
-                                 type,
-                                 reFetch = false,
-                                 forceRefetch
-                               }: AsyncSelectionProps) => {
+  data,
+  option,
+  type,
+  reFetch = false,
+  forceRefetch,
+}: AsyncSelectionProps) => {
   const [loading, setloading] = useState(false);
   const [isOpen, setIsOpen] = React.useState(false);
   const [items, setitems] = React.useState<SelectType[]>([
@@ -61,7 +61,7 @@ export const AsyncSelection = ({
   useEffect(() => {
     // Initial fetch or when offset changes
     fetchData(offset);
-  }, [offset]);
+  }, [offset, data]);
 
   // Handle open/close with refetch logic
   useEffect(() => {
@@ -88,23 +88,22 @@ export const AsyncSelection = ({
   });
 
   return (
-      <Select
-          {...option}
-          className="max-w-xs"
-          isLoading={loading}
-          items={items ?? []}
-          scrollRef={scrollerRef}
-          fullWidth
-          aria-label="selection"
-          selectionMode="single"
-          onOpenChange={setIsOpen}
-      >
-        {(item) => (
-            <SelectItem key={item.value} className="capitalize">
-              {item.label}
-            </SelectItem>
-        )}
-      </Select>
+    <Select
+      {...option}
+      className="max-w-xs"
+      isLoading={loading}
+      items={items ?? []}
+      scrollRef={scrollerRef}
+      fullWidth
+      aria-label="selection"
+      selectionMode="single"
+      onOpenChange={setIsOpen}
+    >
+      {(item) => (
+        <SelectItem key={item.value} className="capitalize">
+          {item.label}
+        </SelectItem>
+      )}
+    </Select>
   );
 };
-

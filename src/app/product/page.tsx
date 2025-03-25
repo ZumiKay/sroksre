@@ -14,7 +14,8 @@ import { format } from "date-fns";
 import { calculateDiscountProductPrice, IsNumber } from "@/src/lib/utilities";
 import NotFound from "../not-found";
 import type { Metadata } from "next";
-import { categorytype } from "../api/categories/route";
+import {categorytype} from "@/src/context/GlobalType.type";
+
 
 interface ProductParam {
   p?: string;

@@ -81,13 +81,21 @@ export const generateRandomPassword = () => {
   }
   return password;
 };
-export const generateRandomNumber = () => {
-  const randomNumber = Math.floor(10000000 + Math.random() * 90000000);
+export const generateRandomNumber = (length?: number): string => {
+  // Use 8 as the default length if not provided
+  const finalLength = length ?? 8;
 
-  // Convert the number to a string
-  const randomNumberString = randomNumber.toString();
+  // Validate the length
+  if (finalLength <= 0) {
+    throw new Error("Length must be a positive number");
+  }
 
-  return randomNumberString;
+  // Calculate range for the given length
+  const min = Math.pow(10, finalLength - 1); // e.g., 100000 for length 6
+  const max = Math.pow(10, finalLength) - 1; // e.g., 999999 for length 6
+
+  // Generate and return the random number as a string
+  return Math.floor(min + Math.random() * (max - min + 1)).toString();
 };
 export function IsNumber(str: string) {
   // Check if the input is a string and not empty

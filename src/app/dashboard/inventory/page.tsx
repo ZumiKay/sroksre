@@ -2,7 +2,11 @@
 import PrimaryButton from "../../component/Button";
 import { SubInventoryMenu } from "../../component/Navbar";
 import { useEffect, useState } from "react";
-import { ApiRequest, Delayloading } from "@/src/context/CustomHook";
+import {
+  ApiRequest,
+  Delayloading,
+  useScreenSize,
+} from "@/src/context/CustomHook";
 import { errorToast } from "../../component/Loading";
 import { FilterMenu } from "../../component/SideMenu";
 import dayjs from "dayjs";
@@ -97,6 +101,7 @@ export default function Inventory({
     promoids,
   } = searchParams as InventoryParamType;
   const [loaded, setloaded] = useState(false);
+  const { isDesktop } = useScreenSize();
   const router = useRouter();
   const searchParam = useSearchParams();
   const [show, setshow] = useState(limit ?? "1");
@@ -361,7 +366,7 @@ export default function Inventory({
   };
 
   const handleSelection = (key: number[]) => {
-    console.log({ key });
+    console.log(key[0]);
   };
 
   return (
@@ -538,24 +543,27 @@ export default function Inventory({
             </div>
           </div>
 
-          {type && (
-            <TableComponent
-              ty={type}
-              data={allData && allData[type as string]}
-              onPagination={(ty, val) =>
-                ty === "limit" ? handleShowPerPage(val) : handlePage(val)
-              }
-              isLoading={loaded}
-              pagination={{
-                itemscount,
-                show,
-                page: Number(page),
-                setpage: (val) => handlePage(val.toString()),
-                onShowPage: (val) => handleShowPerPage(val),
-              }}
-              onSelection={(key) => handleSelection(key)}
-            />
-          )}
+          <section className="w-full h-full max-defaultsize:overflow-x-auto overflow-hidden">
+            {" "}
+            {type && (
+              <TableComponent
+                ty={type}
+                data={allData && allData[type as string]}
+                onPagination={(ty, val) =>
+                  ty === "limit" ? handleShowPerPage(val) : handlePage(val)
+                }
+                isLoading={loaded}
+                pagination={{
+                  itemscount,
+                  show,
+                  page: Number(page),
+                  setpage: (val) => handlePage(val.toString()),
+                  onShowPage: (val) => handleShowPerPage(val),
+                }}
+                onSelection={(key) => handleSelection(key)}
+              />
+            )}
+          </section>
         </div>
       </LocalizationProvider>
     </>

@@ -12,6 +12,7 @@ const config: Config = {
   theme: {
     extend: {
       screens: {
+        defaultsize: "1000px",
         smaller_screen: "1155px",
         small_screen: "1490px",
         medium_screen: "1600px",

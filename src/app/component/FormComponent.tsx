@@ -1,15 +1,8 @@
 "use client";
 
-import { useGlobalContext } from "@/src/context/GlobalContext";
+import { Input, InputProps } from "@heroui/react";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
-import {
-  FormControl,
-  IconButton,
-  InputAdornment,
-  InputLabel,
-  OutlinedInput,
-} from "@mui/material";
 import {
   ChangeEvent,
   CSSProperties,
@@ -17,67 +10,26 @@ import {
   useState,
 } from "react";
 
-export const PasswordInput = ({
-  name,
-  label,
-  type,
-  onChange,
-  require,
-  width,
-  variant,
-}: {
-  name: string;
-  label: string;
-  type: "userinfo" | "auth";
-  onChange?: (e: ChangeEvent<HTMLInputElement>) => void;
-  require?: boolean;
-  width?: string;
-  variant?: "outlined" | "standard" | "filled";
-}) => {
-  const [showPassword, setShowPassword] = useState(false);
-  const { setuserinfo } = useGlobalContext();
-
-  const handleClickShowPassword = () => setShowPassword((show) => !show);
-
-  const handleMouseDownPassword = (
-    event: React.MouseEvent<HTMLButtonElement>
-  ) => {
-    event.preventDefault();
-  };
-  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-
-    type === "userinfo" && setuserinfo((prev) => ({ ...prev, [name]: value }));
-  };
+export const PasswordInput = (props: InputProps) => {
+  const [isVisible, setIsVisible] = useState(false);
+  const toggleVisibility = () => setIsVisible(!isVisible);
 
   return (
-    <FormControl
-      sx={{ width: width ?? "100%", height: "50px" }}
-      variant={variant ?? "outlined"}
-    >
-      <InputLabel htmlFor="outlined-adornment-password">{label}</InputLabel>
-      <OutlinedInput
-        id="outlined-adornment-password"
-        type={showPassword ? "text" : "password"}
-        name={name}
-        sx={{ backgroundColor: "white" }}
-        onChange={type === "auth" ? onChange : handleChange}
-        endAdornment={
-          <InputAdornment position="end">
-            <IconButton
-              aria-label="password"
-              onClick={handleClickShowPassword}
-              onMouseDown={handleMouseDownPassword}
-              edge="end"
-            >
-              {showPassword ? <VisibilityOff /> : <Visibility />}
-            </IconButton>
-          </InputAdornment>
-        }
-        label={label}
-        required={require}
-      />
-    </FormControl>
+    <Input
+      {...props}
+      aria-label="passwordInput"
+      type={isVisible ? "text" : "password"}
+      endContent={
+        <button
+          aria-label="toggle password visibility"
+          className="focus:outline-none"
+          type="button"
+          onClick={toggleVisibility}
+        >
+          {isVisible ? <Visibility /> : <VisibilityOff />}
+        </button>
+      }
+    />
   );
 };
 

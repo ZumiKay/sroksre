@@ -15,11 +15,10 @@ import {SecondaryModal} from "../Modals";
 import {AddSubCategoryMenu} from "../ToggleMenu";
 import PrimaryButton from "../Button";
 import {SelectionCustom} from "../Pagination_Component";
-import {Categorytype} from "../../api/categories/route";
 import {DateRangePicker, Input} from "@heroui/react";
 import {parseDate} from "@internationalized/date";
 import {NormalSkeleton, SelectAndSearchProduct} from "../Banner";
-import {CateogoryState, SelectType} from "@/src/context/GlobalType.type";
+import {Categorytype, CateogoryState, SelectType} from "@/src/context/GlobalType.type";
 
 const selecttype: Array<SelectType> = [
     {

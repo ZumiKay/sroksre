@@ -160,7 +160,7 @@ const colorinitalize: colortype = {
 };
 interface AddTemplateModalProps {
   openstate: boolean;
-  close: () => void;
+  close?: () => void;
   refresh?: () => void;
   data?: VariantTemplateType;
 }
@@ -257,7 +257,7 @@ export const AddTemplateModal = ({
         }
         successToast(`${variant.option_title} updated`);
         refresh && refresh();
-        close();
+        close && close();
         return;
       }
       const res = CreateVariantTemplate.bind(null, {
@@ -287,14 +287,14 @@ export const AddTemplateModal = ({
       setstep("");
       return;
     }
-    close();
+    close && close();
   };
   return (
     <SecondaryModal
       placement="top"
       closebtn
       open={openstate}
-      onPageChange={() => close()}
+      onPageChange={() => close && close()}
       size="md"
     >
       <div className="w-full h-full bg-white flex flex-col gap-y-5 p-2 relative rounded-md">

@@ -17,7 +17,7 @@ interface PaginationCustomProps {
   page?: number;
   setpage?: React.Dispatch<React.SetStateAction<number>>;
   show: string;
-  setshow: React.Dispatch<React.SetStateAction<string>>;
+  setshow?: React.Dispatch<React.SetStateAction<string>>;
   count: number;
   onSelectShowPerPage?: (value: number | string) => void;
   onPageChange?: () => void;

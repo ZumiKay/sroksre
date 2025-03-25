@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
     verifyEmail.parse({ email: data.email });
 
     let isUniqueOtp = false;
-    let otp = generateRandomNumber();
+    let otp = generateRandomNumber(6);
 
     while (!isUniqueOtp) {
       const isNotUniqiueOtp = await Prisma.user.findFirst({

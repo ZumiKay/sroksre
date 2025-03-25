@@ -31,6 +31,7 @@ import { AnimatePresence } from "framer-motion";
 import SearchContainer from "./Modals/Search";
 import { CloseVector } from "./Asset";
 import {
+  Accordion, AccordionItem,
   Button,
   Dropdown,
   DropdownItem,

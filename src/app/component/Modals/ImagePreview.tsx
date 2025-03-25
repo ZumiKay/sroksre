@@ -35,7 +35,6 @@ const ImagePreview = ({ open, data }: ImagePreviewProps) => {
         setImagedata(response.data);
       }
     };
-
     setImagedata(null); // Reset state on data change
     if (data.ty === "product" && data.id) {
       fetchImageData(data.id);

@@ -154,6 +154,7 @@ const CreateProductPage = ({ params }: { params: { editId?: string } }) => {
   );
 
   const handleCancel = () => {
+    setproduct(Productinitailizestate);
     Router.back();
   };
   return (

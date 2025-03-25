@@ -34,6 +34,7 @@ import {
 import { useGlobalContext } from "@/src/context/GlobalContext";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { Spinner } from "@heroui/spinner";
 
 interface TableComponentProps {
   ty: InventoryPage;
@@ -92,7 +93,7 @@ const BannerColumns: Array<ColumnType> = [
     uid: "size",
   },
   {
-    name: "Link",
+    name: "Link Type",
     uid: "linktype",
   },
   {
@@ -122,6 +123,7 @@ const PromotionColumns: Array<ColumnType> = [
     uid: "action",
   },
 ];
+
 interface Stock {
   type: string;
   value: number;
@@ -169,6 +171,7 @@ export default function TableComponent({
       toOpenModal[`cover${id}`] = true;
       toUpdateIndex.producteditindex = id;
     }
+
     setglobalindex((prev) => ({ ...prev, ...toUpdateIndex }));
     setopenmodal(toOpenModal);
   }, []);
@@ -221,10 +224,8 @@ export default function TableComponent({
         case "image":
         case "covers":
         case "banner": {
-          const data =
-            key === "image"
-              ? celldata[key][0]
-              : (celldata[key][0] as ImageDatatype);
+          const data = celldata[key][0] ? celldata[key][0] : celldata[key];
+          if (!data) return null;
           return (
             <Image
               className="w-[100px] h-[100px] object-cover rounded-sm"
@@ -326,56 +327,55 @@ export default function TableComponent({
     [memoizedTy, handleClick, handleAction, handleView]
   );
   return (
-    <div className="table_container w-full p-2 h-full">
-      <Table
-        isHeaderSticky
-        removeWrapper
-        selectedKeys={selectedData}
-        onSelectionChange={setselectedData}
-        aria-label="table container for product promotion and banner"
-        className="w-full min-h-[500px] h-full"
-        selectionMode="multiple"
-        showSelectionCheckboxes
-      >
-        <TableHeader columns={renderColumn()} className="bg_default text-white">
-          {(column) => (
-            <TableColumn
-              className="text-black text-lg"
-              key={column.uid}
-              align={column.uid === "action" ? "center" : "start"}
-            >
-              {column.name}
-            </TableColumn>
-          )}
-        </TableHeader>
-        <TableBody
-          isLoading={isLoading}
-          loadingContent={
-            <div className="w-full h-full flex flex-col gap-y-5">
-              <div className="w-full h-[50px] bg-white"></div>
-              {Array.from({ length: 5 }).map((i, idx) => (
-                <Skeleton key={idx} className="w-full h-[50px] rounded-lg" />
-              ))}
-            </div>
-          }
-          items={data ?? []}
-          emptyContent={"Click on Create Button To Create New Items"}
+    <>
+      <div className="table_container w-full p-2 h-full min-w-[900px]">
+        <Table
+          isHeaderSticky
+          removeWrapper
+          selectedKeys={selectedData}
+          onSelectionChange={setselectedData}
+          aria-label="table container for product promotion and banner"
+          className="w-full min-h-[500px] h-full"
+          selectionMode="multiple"
+          showSelectionCheckboxes
         >
-          {(item) => (
-            <TableRow key={item.id}>
-              {(columnKey) => (
-                <TableCell
-                  className="border-b-1 border-gray-300"
-                  key={columnKey}
-                >
-                  {renderCell(columnKey, item)}
-                </TableCell>
-              )}
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
-      <TableBottomContent {...pagination} />
-    </div>
+          <TableHeader
+            columns={renderColumn()}
+            className="bg_default text-white"
+          >
+            {(column) => (
+              <TableColumn
+                className="text-black text-lg"
+                key={column.uid}
+                align={column.uid === "action" ? "center" : "start"}
+              >
+                {column.name}
+              </TableColumn>
+            )}
+          </TableHeader>
+          <TableBody
+            isLoading={isLoading}
+            loadingContent={<Spinner />}
+            items={data ?? []}
+            emptyContent={"Click on Create Button To Create New Items"}
+          >
+            {(item) => (
+              <TableRow key={item.id}>
+                {(columnKey) => (
+                  <TableCell
+                    className="border-b-1 border-gray-300"
+                    key={columnKey}
+                  >
+                    {renderCell(columnKey, item)}
+                  </TableCell>
+                )}
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+
+        <TableBottomContent {...pagination} />
+      </div>
+    </>
   );
 }

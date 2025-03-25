@@ -1,5 +1,5 @@
 "use client";
-import { ChangeEvent, FormEvent, useState } from "react";
+import { FormEvent, useCallback, useState } from "react";
 import PrimaryButton from "../component/Button";
 import { signIn } from "next-auth/react";
 import { errorToast, successToast } from "../component/Loading";
@@ -9,11 +9,15 @@ import { ApiRequest } from "@/src/context/CustomHook";
 import ReactDOMServer from "react-dom/server";
 import { CredentialEmail } from "../component/EmailTemplate";
 import { SendVfyEmail } from "./actions";
-import { PasswordInput } from "../component/FormComponent";
-import RecapchaContainer from "../component/RecaphaComponent";
+
 import { VerifyRecapcha } from "../severactions/RecapchaAction";
 import { userdata } from "@/src/context/GlobalType.type";
-import { Button, Checkbox } from "@heroui/react";
+import { Form } from "@heroui/react";
+import {
+  LoginComponent,
+  RegisterUserForm,
+  VerfyEmailComponent,
+} from "./component";
 const validatePassword = (password: string) => {
   return (
     password.length >= 8 &&
@@ -21,9 +25,12 @@ const validatePassword = (password: string) => {
     /\d/.test(password)
   );
 };
+
+export type logintype = "login" | "register" | "forget";
+
 export default function AuthenticatePage() {
   const { setisLoading, isLoading } = useGlobalContext();
-  const [type, settype] = useState<"login" | "register" | "forget">("login");
+  const [type, settype] = useState<logintype>("login");
   const [loading, setloading] = useState<
     "authenticated" | "loading" | "unauthenticated"
   >("unauthenticated");
@@ -128,76 +135,78 @@ export default function AuthenticatePage() {
     settype("login");
   };
 
-  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const { value, name, checked } = e.target;
-    setdata({ ...data, [name]: name === "agreement" ? checked : value });
+  const handleChange = (name: string, value: string | boolean) => {
+    setdata({ ...data, [name]: value });
   };
-  const handleConfirm = async (types: "email" | "cid") => {
-    const isEmailType = types === "email";
-    const URL = `/api/users/vfy${types === "cid" ? `?cid=${data.cid}` : ""}`;
+  const handleConfirm = useCallback(
+    async (types: "email" | "cid") => {
+      const isEmailType = types === "email";
+      const URL = `/api/users/vfy${types === "cid" ? `?cid=${data.cid}` : ""}`;
 
-    if (isEmailType && !data.email) {
-      errorToast("Email Required");
-      return setloading("authenticated");
-    }
+      if (isEmailType && !data.email) {
+        errorToast("Email Required");
+        return setloading("authenticated");
+      }
 
-    setloading("loading");
-    const requestBody = isEmailType ? { email: data.email, type } : undefined;
-    const method = isEmailType ? "POST" : "GET";
+      setloading("loading");
+      const requestBody = isEmailType ? { email: data.email, type } : undefined;
+      const method = isEmailType ? "POST" : "GET";
 
-    // Make API request
-    const verifyreq = await ApiRequest({
-      url: URL,
-      method,
-      data: requestBody,
-    });
+      // Make API request
+      const verifyreq = await ApiRequest({
+        url: URL,
+        method,
+        data: requestBody,
+      });
 
-    if (types === "cid") setloading("authenticated");
+      if (types === "cid") setloading("authenticated");
 
-    if (verifyreq.success) {
-      const vfydata = verifyreq.data;
+      if (verifyreq.success) {
+        const vfydata = verifyreq.data;
 
-      if (isEmailType && data.email) {
-        const emailSubject =
-          type === "register" ? "Email Verification" : "Reset Password";
-        const emailTemplate = ReactDOMServer.renderToString(
-          <CredentialEmail {...vfydata} />
-        );
-        const sendemail = SendVfyEmail.bind(
-          null,
-          emailTemplate,
-          data.email,
-          emailSubject
-        );
+        if (isEmailType && data.email) {
+          const emailSubject =
+            type === "register" ? "Email Verification" : "Reset Password";
+          const emailTemplate = ReactDOMServer.renderToString(
+            <CredentialEmail {...vfydata} />
+          );
+          const sendemail = SendVfyEmail.bind(
+            null,
+            emailTemplate,
+            data.email,
+            emailSubject
+          );
 
-        const makereq = await sendemail();
-        setloading("authenticated");
+          const makereq = await sendemail();
+          setloading("authenticated");
 
-        if (!makereq.success) {
-          errorToast("Error occurred");
-          return;
+          if (!makereq.success) {
+            errorToast("Error occurred");
+            return;
+          }
+
+          successToast("Please Check Your Email");
+          setdata((prev) => ({ ...prev, password: "", confirmpassword: "" }));
         }
 
-        successToast("Please Check Your Email");
-        setdata((prev) => ({ ...prev, password: "", confirmpassword: "" }));
-      }
+        if (type === "register") {
+          setverify((prev) => ({ ...prev, [types]: true }));
+          if (vfydata?.id) setdata((prev) => ({ ...prev, id: vfydata.id }));
+        }
+      } else {
+        // Handle error scenario
+        setloading("authenticated");
+        errorToast(verifyreq.error ?? "Error Occurred");
 
-      if (type === "register") {
-        setverify((prev) => ({ ...prev, [types]: true }));
-        if (vfydata?.id) setdata((prev) => ({ ...prev, id: vfydata.id }));
+        if (type === "register") {
+          setverify((prev) => ({ ...prev, [types]: false }));
+        }
       }
-    } else {
-      // Handle error scenario
-      setloading("authenticated");
-      errorToast(verifyreq.error ?? "Error Occurred");
+    },
+    [data, type]
+  );
 
-      if (type === "register") {
-        setverify((prev) => ({ ...prev, [types]: false }));
-      }
-    }
-  };
-
-  const handleBack = async () => {
+  const handleBack = useCallback(async () => {
     if (verify.email) {
       const deletecid = await ApiRequest({
         url: "/api/users/vfy",
@@ -212,21 +221,13 @@ export default function AuthenticatePage() {
     }
     settype("login");
     setverify({ cid: false, email: false });
-  };
-
-  const servicesSignIn = async (type: "google" | "discord") => {
-    const res = await signIn(type);
-    if (res?.ok) {
-      router.replace("/dashboard");
-      router.refresh();
-    }
-  };
+  }, [data.cid, verify.email]);
 
   return (
     <>
       <title>Login / Signup | SrokSre</title>
 
-      <form
+      <Form
         onSubmit={handleLogin}
         className="authentication__container  w-full min-h-[90vh] mt-4 flex items-center justify-center"
       >
@@ -237,104 +238,26 @@ export default function AuthenticatePage() {
           h-fit p-5 
           rounded-lg`}
         >
+          <h3 className="w-full text-2xl text-white font-bold text-center">
+            {type === "register"
+              ? "Create Account"
+              : type === "forget"
+              ? "Reset Password"
+              : "Login to your account"}
+          </h3>
           {type === "register" && (!verify.cid || !verify.email) && (
             <div className="w-[80%] max-small_phone:w-[97%] flex flex-col gap-y-5">
-              {!verify.email ? (
-                <input
-                  type="email"
-                  name="email"
-                  placeholder="Email Address"
-                  className="email w-full p-3 rounded-md"
-                  value={data.email}
-                  onChange={handleChange}
-                  required
-                />
-              ) : (
-                <input
-                  type="number"
-                  name="cid"
-                  value={data.cid}
-                  placeholder="Verify Code"
-                  className="email w-full p-3 rounded-md"
-                  onChange={handleChange}
-                />
-              )}
+              <VerfyEmailComponent
+                data={data}
+                isVerify={verify.email}
+                handleChange={handleChange}
+              />
             </div>
           )}
           {type === "register" ? (
             <>
               {verify.email && verify.cid && (
-                <>
-                  <input
-                    type="text"
-                    className="username w-[80%] p-3 rounded-md"
-                    placeholder="Firstname"
-                    name="firstname"
-                    value={data.firstname}
-                    onChange={handleChange}
-                    required
-                  />
-                  <input
-                    type="text"
-                    className="username w-[80%] p-3 rounded-md"
-                    placeholder="Lastname"
-                    name="lastname"
-                    value={data.lastname}
-                    onChange={handleChange}
-                    required
-                  />
-                  <div className="w-full flex flex-col gap-y-2 items-center justify-center ">
-                    <PasswordInput
-                      name="password"
-                      label="Password"
-                      type="auth"
-                      width="80%"
-                      variant="filled"
-                      onChange={handleChange}
-                      require
-                    />
-                  </div>
-                  <PasswordInput
-                    name="confirmpassword"
-                    label="Confirm Password"
-                    width="80%"
-                    type="auth"
-                    variant="filled"
-                    onChange={handleChange}
-                    require
-                  />
-                  <div className="w-[80%] h-fit">
-                    <PasswordVerification password={data.password ?? ""} />
-                  </div>
-
-                  <RecapchaContainer
-                    captchaValue={data.recapcha}
-                    setcaptchaValue={(value) =>
-                      setdata((prev) => ({ ...prev, recapcha: value }))
-                    }
-                  />
-                  <div className="w-[80%] h-fit">
-                    <Checkbox
-                      checked={data.agreement}
-                      onChange={(val) => {
-                        setdata((prev) => ({
-                          ...prev,
-                          agreement: val.target.checked,
-                        }));
-                      }}
-                    >
-                      <strong className="text-white"> Agree to </strong>
-                      <a
-                        href="/privacyandpolicy"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-400 underline"
-                      >
-                        terms and conditions
-                      </a>
-                    </Checkbox>
-                  </div>
-                </>
+                <RegisterUserForm data={data} handleChange={handleChange} />
               )}
               <div className="form_actions flex flex-row gap-5 w-[80%] max-small_phone:w-[100%]">
                 {verify.cid && verify.email ? (
@@ -375,117 +298,17 @@ export default function AuthenticatePage() {
               </div>
             </>
           ) : (
-            <>
-              <input
-                type="email"
-                name="email"
-                placeholder="Email Address"
-                className="email w-[80%] max-small_phone:w-full p-3 rounded-md"
-                value={data.email}
-                onChange={handleChange}
-                required
-              />
-              {type === "login" && (
-                <>
-                  <div className="h-full flex justify-start w-[80%] max-small_phone:w-[103%]">
-                    <PasswordInput
-                      label="Password"
-                      type="auth"
-                      name="password"
-                      onChange={handleChange}
-                      width="100%"
-                    />
-                  </div>
-
-                  <div
-                    onClick={() => {
-                      settype("forget");
-                    }}
-                    className="w-[80%] text-lg underline text-right text-white cursor-pointer hover:text-black active:text-black"
-                  >
-                    Forget Password?
-                  </div>
-                  <div className="form_actions flex flex-col gap-y-5 w-[80%] ">
-                    <Button
-                      className="bg-[#438D86] w-full text-white font-bold"
-                      size="md"
-                      type="submit"
-                      isLoading={loading === "loading"}
-                    >
-                      Login
-                    </Button>
-                    <div
-                      onClick={() => {
-                        setdata(Userinitialize);
-                        settype("register");
-                      }}
-                      className="w-full text-right text-lg font-medium underline text-white cursor-pointer hover:text-black active:text-black"
-                    >
-                      Create Account ?
-                    </div>
-                    <label className="text-lg font-bold text-white">
-                      Sign with:{" "}
-                    </label>
-                    <div className="signinWith__container w-full flex flex-row items-center gap-x-2 gap-y-5 max-large_phone:flex-col">
-                      <PrimaryButton
-                        type="button"
-                        text="Discord"
-                        width="250px"
-                        color="black"
-                        height="50px"
-                        radius="10px"
-                        Icon={
-                          <i className="fa-brands fa-discord text-lg text-blue-900"></i>
-                        }
-                        onClick={() => servicesSignIn("discord")}
-                      />
-                      <PrimaryButton
-                        type="button"
-                        text="Gmail"
-                        hoverColor="black"
-                        hoverTextColor="white"
-                        width="250px"
-                        height="50px"
-                        color="white"
-                        textcolor="black"
-                        radius="10px"
-                        onClick={() => servicesSignIn("google")}
-                        Icon={
-                          <i className="fa-brands fa-google text-lg text-red-600"></i>
-                        }
-                      />
-                    </div>
-                  </div>
-                </>
-              )}
-              {type === "forget" && (
-                <>
-                  <PrimaryButton
-                    type="button"
-                    text="Verify"
-                    color="#3D788E"
-                    width="80%"
-                    height="50px"
-                    radius="10px"
-                    onClick={() => handleConfirm("email")}
-                    status={loading}
-                  />
-                  <PrimaryButton
-                    type="button"
-                    text="Back"
-                    color="lightcoral"
-                    width="80%"
-                    height="50px"
-                    radius="10px"
-                    disable={loading === "loading"}
-                    onClick={() => settype("login")}
-                  />
-                </>
-              )}
-            </>
+            <LoginComponent
+              handleChange={handleChange}
+              settype={(val) => settype(val as logintype)}
+              setdata={(val) => setdata(val)}
+              loading={loading === "loading"}
+              type={type}
+              handleConfirm={handleConfirm}
+            />
           )}
         </div>
-      </form>
+      </Form>
     </>
   );
 }
@@ -525,7 +348,7 @@ function PasswordVerification({ password }: { password: string }) {
       })}
     </ul>
   );
-};
+}
 
 // Export the component as default or use it directly in the file
 export { PasswordVerification };

@@ -9,7 +9,7 @@ interface Multiselectprops {
   type: "COLOR" | "TEXT";
   value: string[];
   label: string;
-  onSelect: (e: Set<string>) => void;
+  onSelect?: (e: Set<string>) => void;
 }
 
 export default function Multiselect({
@@ -31,7 +31,7 @@ export default function Multiselect({
   const handleSelectionChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const val = new Set(e.target.value.split(","));
     setValues(val);
-    onSelect(val);
+   onSelect && onSelect(val);
   };
 
   const renderValue = (items: SelectedItems<object>): ReactNode => {

@@ -387,6 +387,13 @@ export const EditProfile = ({
   }, [type]);
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
+    if (name.includes("password")) {
+      setdata((prev) => ({
+        ...prev,
+        password: { ...prev.password, [name]: value },
+      }));
+      return;
+    }
     if (name.endsWith("name") || name.endsWith("email")) {
       const end = name.endsWith("name") ? "name" : "email";
 
@@ -399,10 +406,6 @@ export const EditProfile = ({
   const handleUpdateuser = async () => {
     setloading((prev) => ({ ...prev, post: true }));
     const formeddata = new FormData();
-    data.password = {
-      newpassword: userinfo.newpassword as string,
-      oldpassword: userinfo.oldpassword as string,
-    };
     Object.entries(data).forEach(([key, val]) =>
       key === "name" || key === "password"
         ? formeddata.set(key, JSON.stringify(val))
@@ -534,7 +537,6 @@ export const EditProfile = ({
         )}
         {type === "email" && (
           <>
-            {" "}
             <TextInput
               type="email"
               name="newemail"
@@ -563,15 +565,17 @@ export const EditProfile = ({
         {type === "password" && (
           <>
             <PasswordInput
-              type="userinfo"
               name="oldpassword"
+              onChange={handleChange}
+              value={data.password.oldpassword}
               label="Old Password"
-            />{" "}
+            />
             <PasswordInput
-              type="userinfo"
               name="newpassword"
+              onChange={handleChange}
+              value={data.password.newpassword}
               label="New Password"
-            />{" "}
+            />
           </>
         )}
         {type === "shipping" && (
