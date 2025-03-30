@@ -22,45 +22,7 @@ import { categorytype, ProductState } from "@/src/context/GlobalType.type";
 import { compareArrays, IsNumber } from "@/src/lib/utilities";
 import ImageIcon from "../../../../../../public/Image/ImageIcon.png";
 import Image from "next/image";
-
-const FetchCategory = async ({
-  ty,
-  offset,
-  pid,
-  type,
-}: {
-  ty: "parent" | "child";
-  offset: number;
-  pid?: number;
-  type?: string;
-}) => {
-  const makereq = await ApiRequest({
-    url:
-      "/api/categories/select" +
-      `?ty=${ty}${type ? `&catetype=${type}` : ""}&take=${offset}${
-        pid ? `&pid=${pid}` : ""
-      }`,
-    method: "GET",
-    revalidate: "selectcate",
-  });
-  if (!makereq.success) {
-    return;
-  }
-  return makereq.data;
-};
-
-const FetchEditProduct = async (id: string) => {
-  const getReq = await ApiRequest({
-    url: `/api/products?ty=info&pid=${id}`,
-    method: "GET",
-    revalidate: "product",
-  });
-  if (!getReq.success) {
-    return { success: false };
-  }
-
-  return { success: true, data: getReq.data };
-};
+import { FetchCategory, FetchEditProduct } from "./action";
 
 const CreateProductPage = ({ params }: { params: { editId?: string } }) => {
   const { openmodal, product, setproduct, setopenmodal, setglobalindex } =
@@ -150,7 +112,7 @@ const CreateProductPage = ({ params }: { params: { editId?: string } }) => {
       }
       successToast(IsEdit ? "Product Updated" : "Product Created");
     },
-    [setproduct, setglobalindex, IsEdit, product]
+    [setproduct, IsEdit, product]
   );
 
   const handleCancel = () => {

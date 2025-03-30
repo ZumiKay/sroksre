@@ -213,6 +213,11 @@ export const decrypt = (text: string, key: string) => {
   return decrypted.toString("utf-8");
 };
 
+export const calculateDiscountPrice = (price: number, discount: number) => ({
+  percent: discount,
+  newprice: (price - (price * discount) / 100).toFixed(2),
+});
+
 export const isObjectEmpty = (data: Record<string, any>) =>
   Object.entries(data).every(([_, val]) => !val);
 

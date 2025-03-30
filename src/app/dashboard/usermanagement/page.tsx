@@ -5,10 +5,10 @@ import { UserCard } from "../../component/Card";
 import { ApiRequest, Delayloading } from "@/src/context/CustomHook";
 import { ContainerLoading, errorToast } from "../../component/Loading";
 import { useEffect, useState } from "react";
-import { FilterMenu } from "../../component/SideMenu";
 import { Createusermodal } from "../../component/Modals/User";
 import { useRouter, useSearchParams } from "next/navigation";
 import PaginationCustom from "../../component/Pagination_Component";
+import FilterMenu from "@/src/app/component/FilterMenu/FilterMenu";
 
 interface usermangementFilterType {
   search?: string;

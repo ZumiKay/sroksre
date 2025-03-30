@@ -31,12 +31,12 @@ import { Divider, Form, Input } from "@heroui/react";
 import { SelectType } from "@/src/context/GlobalType.type";
 import { AsyncSelection } from "@/src/app/component/AsynSelection";
 
-export const BannerType = [
+const BannerType = [
   { label: "Normal", value: "normal" },
   { label: "Product", value: "product" },
   { label: "Category", value: "category" },
 ];
-export const BannerSize = [
+const BannerSize = [
   { label: "Small", value: "small" },
   { label: "Normal", value: "normal" },
 ];

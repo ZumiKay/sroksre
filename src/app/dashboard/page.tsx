@@ -3,11 +3,7 @@ import { useEffect, useState } from "react";
 import PrimaryButton from "../component/Button";
 import { ToggleDownMenu } from "../component/ToggleMenu";
 import Card from "../component/Card";
-import {
-  ApiRequest,
-  Delayloading,
-  useEffectOnce,
-} from "@/src/context/CustomHook";
+import { ApiRequest, Delayloading } from "@/src/context/CustomHook";
 import { ContainerLoading } from "../component/Loading";
 import { EditProfile } from "../component/Modals/User";
 import { signOut } from "next-auth/react";
@@ -54,9 +50,9 @@ export default function UserDashboard() {
     await Delayloading(asyncfetch, setloading, 1000);
   };
 
-  useEffectOnce(() => {
+  useEffect(() => {
     fetchuser("userinfo");
-  });
+  }, []);
 
   useEffect(() => {
     if (userdata.open.whilist) {

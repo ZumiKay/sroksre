@@ -1,7 +1,7 @@
 "use server";
 
 import {
-  FilterValue,
+  FilterValueType,
   InventoryPage,
   Varianttype,
 } from "@/src/context/GlobalType.type";
@@ -14,17 +14,10 @@ import {
 import dayjs from "dayjs";
 import { revalidateTag } from "next/cache";
 
-const INVENTORYENUM = {
-  SIZE: "SIZE",
-  NORMAL: "NORMAL",
-  COLOR: "COLOR",
-  TEXT: "TEXT",
-};
-export type InventoryType = keyof typeof INVENTORYENUM;
 interface Returntype {
   success: boolean;
   message?: string;
-  data?: any;
+  data?: unknown;
 }
 interface createdata extends Varianttype {
   product_id?: number;
@@ -155,157 +148,16 @@ export const getSubCategories = async (pid: number) => {
   }
 };
 
-export const getTotalOfItems = async (
-  ty: string,
-  filtervalue?: FilterValue
-) => {
-  if (!ty) {
-    return { success: false, message: "Invalid request" };
-  }
-
-  let expiredpromo = 0;
-
-  try {
-    let result = 0;
-
-    if (ty === "product") {
-      const products = await Prisma.products.findMany({
-        where: {},
-        select: {
-          name: true,
-          parentcategory_id: true,
-          childcategory_id: true,
-          promotion_id: true,
-          promotion: true,
-        },
-      });
-
-      result = products.filter((i) => {
-        const isName =
-          filtervalue?.name &&
-          removeSpaceAndToLowerCase(i.name).includes(
-            removeSpaceAndToLowerCase(filtervalue.name)
-          );
-
-        const isPid =
-          filtervalue?.parentcate &&
-          i.parentcategory_id === filtervalue.parentcate;
-        const isChildId =
-          filtervalue?.childcate &&
-          i.childcategory_id === filtervalue.childcate;
-
-        const isPromo =
-          filtervalue?.promoselect && filtervalue.promotionid
-            ? i.promotion_id === null ||
-              i.promotion_id === filtervalue.promotionid
-            : i.promotion_id === null;
-
-        const conditions = [
-          filtervalue?.parentcate ? isPid : true,
-          filtervalue?.childcate ? isChildId : true,
-          filtervalue?.name ? isName : true,
-          filtervalue?.promoselect ? isPromo : true,
-        ];
-
-        return conditions.every((condition) => condition);
-      }).length;
-      if (filtervalue?.status) {
-        let product = await Prisma.products.findMany({
-          where: {},
-          select: {
-            stock: true,
-            stocktype: true,
-            Stock: {
-              select: {
-                id: true,
-                Stockvalue: {
-                  select: {
-                    id: true,
-                    qty: true,
-                  },
-                },
-              },
-            },
-            details: true,
-          },
-        });
-
-        product = product.filter((prod) => {
-          const isVariant =
-            prod.stocktype === "variant" &&
-            prod.Stock.some((i) => i.Stockvalue.some(({ qty }) => qty <= 5));
-
-          const isStock = prod.stock && prod.stock <= 3;
-          return isVariant || isStock;
-        });
-        result = product.length;
-      }
-    } else if (ty === "banner") {
-      result = await Prisma.banner.count({
-        where: filtervalue?.name ? { name: filtervalue?.name } : {},
-      });
-    } else if (ty === "promotion") {
-      let potentialresult = await Prisma.promotion.findMany({
-        where:
-          filtervalue?.name || filtervalue?.expiredate
-            ? {
-                OR: [
-                  {
-                    name: filtervalue.name,
-                  },
-                  {
-                    expireAt: {
-                      gte: new Date(
-                        filtervalue.expiredate as unknown as string
-                      ),
-                    },
-                  },
-                ],
-              }
-            : {},
-      });
-
-      let filterdresult = potentialresult.filter((i) => {
-        const promoexpire = dayjs(i.expireAt);
-        const filterdate = filtervalue?.expiredate
-          ? dayjs(filtervalue.expiredate)
-          : dayjs(new Date());
-
-        return (
-          promoexpire.diff(filterdate, "day") < 1 ||
-          promoexpire.isSame(filterdate)
-        );
-      });
-
-      filtervalue?.expiredate
-        ? (result = filterdresult.length)
-        : (result = potentialresult.length);
-      expiredpromo = filterdresult.length;
-    }
-
-    return { success: true, result, expiredpromo };
-  } catch (error) {
-    console.log("Count Items", error);
-    return { success: false, message: "Error Occured" };
-  }
-};
-
-export interface InventoryParamType {
+export interface InventoryParamType extends FilterValueType {
   ty?: InventoryPage;
   p?: string;
   limit?: string;
-  status?: string;
-  name?: string;
   parentcate?: string;
   childcate?: string;
-  expiredate?: string;
+  status?: string;
+  promoids?: string;
   pid?: string;
   promoselect?: "banner" | "product";
-  bannertype?: string;
-  bannersize?: string;
-  search?: string;
-  expired?: string;
-  promoids?: string;
 }
 
 export const DeleteTempImage = async () => {

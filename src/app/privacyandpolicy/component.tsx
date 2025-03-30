@@ -6,7 +6,7 @@ import { SecondaryModal } from "../component/Modals";
 import { TextField } from "@mui/material";
 
 import { useGlobalContext } from "@/src/context/GlobalContext";
-import { ChangeEvent, FormEvent, useEffect, useState } from "react";
+import { ChangeEvent, useEffect, useState } from "react";
 import {
   AddPolicyOrQuestion,
   Addpolicytype,
@@ -15,11 +15,11 @@ import {
 } from "./action";
 import { errorToast, successToast } from "../component/Loading";
 import { TabArrow } from "../component/Asset";
-import { PrimaryConfirmModal } from "../component/SideMenu";
 import { Button, Chip } from "@heroui/react";
 import { ApiRequest, useClickOutside } from "@/src/context/CustomHook";
 import { Showtypemodal } from "./secondcomponent";
 import Textarea from "@mui/joy/Textarea";
+import { PrimaryConfirmModal } from "../component/Modals/Alert_Modal";
 
 interface sidebarContentType {
   id: number;

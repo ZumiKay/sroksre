@@ -363,7 +363,7 @@ const Homecontainermodal = ({
     }));
   };
 
-  useEffectOnce(() => {
+  useEffect(() => {
     if (globalindex.homeeditindex && globalindex.homeeditindex !== -1) {
       const fetcheditdetail = async () => {
         setloading(true);
@@ -377,10 +377,10 @@ const Homecontainermodal = ({
       };
       fetcheditdetail();
     }
-  });
+  }, []);
 
   const handleCancel = () => {
-    let updatedata = { ...data };
+    const updatedata = { ...data };
     if (openmodal?.Addbanner || openmodal?.Addproduct) {
       const key = openmodal?.Addbanner ? "Addbanner" : "Addproduct";
       updatedata.items = [];

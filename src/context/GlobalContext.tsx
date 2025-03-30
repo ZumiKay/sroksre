@@ -5,19 +5,17 @@ import React, { useContext, useState } from "react";
 import { Ordertype, Productordertype } from "./OrderContext";
 import {
   AllDataState,
-  AllFilterValueState,
   Allrefstate,
   BannerState,
   CateogoryState,
   filterinventorytype,
-  FiltervalueInitialize,
+  FilterValueType,
   GlobalIndexState,
   ItemLength,
   Listproductfilter,
   LoadingState,
   OpenModalState,
   ProductState,
-  PromotionProductState,
   PromotionState,
   SubcategoriesState,
   userdata,
@@ -68,23 +66,14 @@ export const BannerInitialize: BannerState = {
     url: "",
   },
 };
-export const PromotionProductInitialize: PromotionProductState = {
-  id: 0,
-};
+
 export const PromotionInitialize: PromotionState = {
   name: "",
   description: "",
-  Products: [PromotionProductInitialize],
   selectbanner: false,
   selectproduct: false,
-
-  tempproduct: [],
 };
 
-export const AllFilterValueInitialize: AllFilterValueState = {
-  page: "product",
-  filter: FiltervalueInitialize,
-};
 const GlobalIndexInitializeState: GlobalIndexState = {
   producteditindex: -1,
   productcovereditindex: -1,
@@ -145,14 +134,11 @@ interface ContextType {
   setitemlength: React.Dispatch<React.SetStateAction<ItemLength>>;
   inventoryfilter: filterinventorytype;
   setinventoryfilter: React.Dispatch<React.SetStateAction<filterinventorytype>>;
-  allfiltervalue: Array<AllFilterValueState>;
   userinfo: Userdatastate;
   page: number;
   setpage: React.Dispatch<React.SetStateAction<number>>;
   setuserinfo: React.Dispatch<React.SetStateAction<Userdatastate>>;
-  setallfilterval: React.Dispatch<
-    React.SetStateAction<Array<AllFilterValueState>>
-  >;
+
   productorderdetail: Productordertype;
   setproductorderdetail: React.Dispatch<React.SetStateAction<Productordertype>>;
   user: userdata;
@@ -173,6 +159,14 @@ interface ContextType {
   setcart: React.Dispatch<React.SetStateAction<boolean>>;
   carttotal: number;
   setcarttotal: React.Dispatch<React.SetStateAction<number>>;
+  tableselectitems?: Array<number>;
+  settableselectitems: React.Dispatch<
+    React.SetStateAction<Array<number> | undefined>
+  >;
+  filtervalue?: FilterValueType;
+  setfiltervalue: React.Dispatch<
+    React.SetStateAction<FilterValueType | undefined>
+  >;
 }
 const GlobalContext = React.createContext<ContextType | null>(null);
 
@@ -200,8 +194,13 @@ export const GlobalContextProvider = ({
   const [order, setorder] = useState<Ordertype | undefined>(undefined);
   const [cart, setcart] = useState(false);
   const [carttotal, setcarttotal] = useState(0);
+  const [filtervalue, setfiltervalue] = useState<FilterValueType>();
   const [productorderdetail, setproductorderdetail] =
     useState<Productordertype>(Productdetailinitialize);
+
+  const [tableselectitems, settableselectitems] = useState<
+    Array<number> | undefined
+  >(undefined);
 
   const [listproductfilter, setlistprodfil] = useState<Listproductfilter>({
     size: [],
@@ -216,13 +215,14 @@ export const GlobalContextProvider = ({
   });
   const [inventoryfilter, setinventoryfilter] =
     useState<filterinventorytype>("product");
-  const [allfiltervalue, setallfilterval] = useState<AllFilterValueState[]>([
-    AllFilterValueInitialize,
-  ]);
 
   return (
     <GlobalContext.Provider
       value={{
+        filtervalue,
+        setfiltervalue,
+        tableselectitems,
+        settableselectitems,
         productorderdetail,
         setproductorderdetail,
         listproductfilter,
@@ -265,8 +265,6 @@ export const GlobalContextProvider = ({
         setitemlength,
         inventoryfilter,
         setinventoryfilter,
-        allfiltervalue,
-        setallfilterval,
         user,
         setuser,
         carttotal,
@@ -297,7 +295,7 @@ export const SaveCheck = (
   closecon: closecontype,
   openmodal: OpenModalState,
   open?: boolean,
-  deletecallback?: any
+  deletecallback?: () => void
 ) => {
   return {
     ...openmodal,

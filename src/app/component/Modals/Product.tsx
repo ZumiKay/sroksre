@@ -128,9 +128,9 @@ export function CreateProducts({
 
   //Fecth Product Info
 
-  useEffectOnce(() => {
+  useEffect(() => {
     fetchcate();
-  });
+  }, []);
   useEffect(() => {
     globalindex.producteditindex !== -1 &&
       fetchproductdata(globalindex.producteditindex);
@@ -412,7 +412,7 @@ export function CreateProducts({
                 data={stockTypeData}
                 onChange={(e) => {
                   const { value } = e.target;
-                  let updateproducts = { ...product };
+                  const updateproducts = { ...product };
 
                   if (
                     value === ProductStockType.Size ||

@@ -139,6 +139,7 @@ export function AddSubCategoryMenu({ index }: { index: number }) {
   const [editIdx, setedit] = useState(-1);
 
   useEffect(() => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
     index !== -1 && allData?.category && setcategory(allData.category[index]);
   }, []);
 
@@ -307,7 +308,7 @@ export function ToggleSelect({
             selected.includes(typeof i === "string" ? i : i.val)
           ) && (
             <Button
-              onClick={() => onClear && onClear(data, selected, promo, type)}
+              onPress={() => onClear && onClear(data, selected, promo, type)}
               size="sm"
               variant="bordered"
               color="danger"
@@ -329,7 +330,7 @@ export function ToggleSelect({
                 key={idx}
                 className="selectitem min-w-[50px] rounded-lg cursor-pointer w-fit h-fit break-words border border-black bg-white active:bg-gray-100 p-2"
                 onClick={() => {
-                  clickfunction && clickfunction(idx, type);
+                  if (clickfunction) clickfunction(idx, type);
                 }}
                 style={
                   selected?.includes(typeof i === "string" ? i : i.val)
@@ -389,6 +390,7 @@ const getOptions = async (value: string, selectedvalue?: string[]) => {
 
   return result;
 };
+
 export const SearchAndMultiSelect = () => {
   const { product, setproduct } = useGlobalContext();
 
@@ -422,7 +424,7 @@ export const SearchAndMultiSelect = () => {
         getOptions(
           value,
           selected?.map((i) => i.value as string)
-        ) as any
+        )
       }
       onChange={(val) => handleSelectChange(val as SelectType[] | null)}
       isMulti

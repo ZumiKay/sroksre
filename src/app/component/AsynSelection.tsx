@@ -83,7 +83,7 @@ export const AsyncSelection = ({
     isEnabled: isOpen,
     shouldUseLoader: false,
     onLoadMore: () => {
-      type === "async" && setoffset((prev) => prev + 5);
+      if (type === "async") setoffset((prev) => prev + 5);
     },
   });
 
@@ -96,7 +96,6 @@ export const AsyncSelection = ({
       scrollRef={scrollerRef}
       fullWidth
       aria-label="selection"
-      selectionMode="single"
       onOpenChange={setIsOpen}
     >
       {(item) => (

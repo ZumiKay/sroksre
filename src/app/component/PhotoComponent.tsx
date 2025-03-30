@@ -34,7 +34,7 @@ export const PrimaryPhoto = (props: Primaryphotoprops) => {
 
   useEffect(() => {
     setindex({ ...index, end: props.data?.length - 1 });
-  }, [props.data]);
+  }, [index, props.data]);
 
   const handleClick = (pos: string) => {
     const { start, end, current } = index;

@@ -1,6 +1,9 @@
+import { useGlobalContext } from "@/src/context/GlobalContext";
 import { SelectType } from "@/src/context/GlobalType.type";
 import {
   Button,
+  Chip,
+  Divider,
   Dropdown,
   DropdownItem,
   DropdownMenu,
@@ -9,7 +12,9 @@ import {
   Select,
   SelectItem,
 } from "@heroui/react";
-import { Key, useEffect, useState } from "react";
+import { Key } from "react";
+import { filtervaluetype } from "../../product/action";
+import { formatDate } from "../EmailTemplate";
 
 const DefaultActionContainer: Array<SelectType> = [
   {
@@ -104,6 +109,59 @@ export const TableBottomContent = ({
           onChange={setpage}
         />
       )}
+    </div>
+  );
+};
+
+const FilteredValueContainer = () => {
+  const { filtervalue, setfiltervalue } = useGlobalContext();
+
+  if (!filtervalue) return null;
+
+  const handleModifyFilter = (key: keyof filtervaluetype) => {
+    setfiltervalue((prev) => ({ ...prev, [key]: undefined }));
+  };
+
+  const displayKeys = ["status", "search", "expiredate", "promotiononly"];
+
+  return (
+    <div className="filteredvalue w-fit h-full flex flex-row gap-x-3 items-center">
+      {Object.entries(filtervalue)
+        .filter(
+          ([key, value]) => displayKeys.includes(key) && value !== undefined
+        )
+        .map(([key, val]) => {
+          if (key === "promotiononly" && !val) {
+            return null;
+          }
+
+          return (
+            <Chip
+              key={key}
+              onClose={() => handleModifyFilter(key as keyof filtervaluetype)}
+              className={key !== "promotiononly" ? "w-fit h-full" : ""}
+              variant={key !== "promotiononly" ? "bordered" : "solid"}
+              color={key === "promotiononly" ? "success" : "primary"}
+            >
+              {key === "promotiononly"
+                ? "Promotion Only"
+                : key === "expiredate"
+                ? formatDate(new Date(val))
+                : val}
+            </Chip>
+          );
+        })}
+    </div>
+  );
+};
+export const TopTableContent = () => {
+  const { tableselectitems } = useGlobalContext();
+  return (
+    <div className="toptablecontent w-full h-[40px] flex flex-row gap-x-3 items-center">
+      <p className="w-fit">{`Selected Item: ${
+        tableselectitems ? tableselectitems.length : 0
+      }`}</p>
+      <Divider orientation="vertical" />
     </div>
   );
 };

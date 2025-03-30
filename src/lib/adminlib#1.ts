@@ -14,7 +14,7 @@ import { ProductState } from "../context/GlobalType.type";
 
 export type GetProductReturnType = {
   success: boolean;
-  data?: any;
+  data?: unknown;
   total?: number;
   lowstock?: number;
   totalfilter?: number;
@@ -31,7 +31,6 @@ export const GetAllProduct = async (
   promotionid?: number,
   priceorder?: number,
   detailcolor?: string,
-  detailsize?: string,
   detailtext?: string,
   selectpromo?: number,
   promotionids?: string
@@ -81,7 +80,7 @@ export const GetAllProduct = async (
     };
 
     let totalproduct = 0;
-    let allproduct: any = [];
+    let allproduct: Array<Partial<Products | ProductState>> = [];
     let lowstock = 0;
 
     if (ty === "filter" || ty === "all") {
@@ -116,8 +115,8 @@ export const GetAllProduct = async (
         lowstock: prod.Stock.some((stock) =>
           stock.Stockvalue.some((val) => val.qty <= 5)
         ),
-      }));
-      lowstock = allproduct.filter((p: ProductState) => p?.lowstock).length;
+      })) as unknown as Array<ProductState>;
+      lowstock = allproduct.filter((p) => (p as ProductState)?.lowstock).length;
     } else if (ty === "detail") {
       const colors = detailcolor?.split(",");
       const texts = detailtext?.split(",");
@@ -137,12 +136,12 @@ export const GetAllProduct = async (
               : []),
           ],
         },
-      } as any;
+      } as never;
 
       const products = await Prisma.products.findMany({
         where,
         select: {
-          ...(select as any),
+          ...select,
           Variant: true,
           details: true,
         },
@@ -170,19 +169,22 @@ export const GetAllProduct = async (
       });
 
       totalproduct = await Prisma.products.count({ where });
-      allproduct = products as any;
+      allproduct = products as unknown as ProductState[];
     }
 
     // Transform results
-    const result: ProductState[] = allproduct.map((product: Products) => ({
-      ...product,
-      ...(product.discount && {
-        discount: calculateDiscountProductPrice({
-          price: product.price,
-          discount: product.discount,
+    const result: ProductState[] = allproduct.map((product) => {
+      const prod = product as Products;
+      return {
+        ...product,
+        ...(product.discount && {
+          discount: calculateDiscountProductPrice({
+            price: prod.price,
+            discount: prod.discount as never,
+          }),
         }),
-      }),
-    }));
+      } as ProductState;
+    });
 
     return {
       success: true,
@@ -233,7 +235,7 @@ export const EditProduct = async (
     }
 
     // Batch updates into a single Prisma transaction
-    const updates: Promise<any>[] = [];
+    const updates: Promise<Products>[] = [];
 
     // Stocktype and price updates
     if (
@@ -298,7 +300,7 @@ export const EditProduct = async (
 
     // Execute all basic updates in a transaction
     if (updates.length > 0) {
-      await Prisma.$transaction(updates as any);
+      await Prisma.$transaction(updates as never);
     }
 
     // Type-specific updates

@@ -1,10 +1,16 @@
-import { ApiRequest, useEffectOnce } from "@/src/context/CustomHook";
+import { ApiRequest } from "@/src/context/CustomHook";
 import {
   PromotionInitialize,
   useGlobalContext,
 } from "@/src/context/GlobalContext";
 import { useRouter, useSearchParams } from "next/navigation";
-import React, { ChangeEvent, FormEvent, useEffect, useState } from "react";
+import React, {
+  ChangeEvent,
+  FormEvent,
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
 import { BlurLoading, errorToast, infoToast, successToast } from "../Loading";
 import { SecondaryModal } from "../Modals";
 import { motion } from "framer-motion";
@@ -12,8 +18,13 @@ import { DateTimePicker } from "@mui/x-date-pickers";
 import dayjs from "dayjs";
 import PrimaryButton from "../Button";
 import { ImageUpload } from "./Image";
-import { Switch } from "@heroui/react";
-import { InventoryPage } from "@/src/context/GlobalType.type";
+import { Form, NumberInput, Switch, Input, Button } from "@heroui/react";
+import {
+  InventoryPage,
+  PromotionProductState,
+  PromotionState,
+} from "@/src/context/GlobalType.type";
+import { calculateDiscountPrice } from "@/src/lib/utilities";
 interface InventoryParamType {
   ty?: string;
   p?: string;
@@ -44,98 +55,105 @@ export const CreatePromotionModal = ({
     isLoading,
     globalindex,
     setglobalindex,
+    settableselectitems,
   } = useGlobalContext();
-
   const [loading, setloading] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPickDate, setisPickDate] = useState(false);
-
-  const fetchdata = async (id: number) => {
-    setloading(true);
-    const request = await ApiRequest({
-      url: `/api/promotion?ty=edit&p=${id}`,
-      method: "GET",
-    });
-    setloading(false);
-    if (request.success) {
-      setpromotion(request.data);
-    } else {
-      errorToast("Error Connection");
-    }
-  };
   useEffect(() => {
+    const fetchdata = async (id: number) => {
+      setloading(true);
+      const request = await ApiRequest({
+        url: `/api/promotion?ty=edit&p=${id}`,
+        method: "GET",
+      });
+      setloading(false);
+      if (!request.success) {
+        errorToast("Error Occured");
+        return;
+      }
+      setpromotion(request.data);
+    };
+
     if (globalindex.promotioneditindex !== -1) {
       fetchdata(globalindex.promotioneditindex);
-    } else {
-      setpromotion((prev) => ({ ...prev, id: -1 }));
-    }
-  }, []);
-
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const param = new URLSearchParams(searchParams);
-    const promo = { ...promotion };
-    const isProduct = promo.Products.filter((i) => i.id !== 0).length;
-    if (isProduct === 0 || !promo.expireAt) {
-      errorToast(
-        !promo.expireAt ? "Please Fill Expire Date" : "Please Select Product"
-      );
       return;
     }
+  }, [globalindex.promotioneditindex]);
 
-    const method = globalindex.promotioneditindex !== -1 ? "PUT" : "POST";
-
-    const createpromo = await ApiRequest({
-      url: "/api/promotion",
-      setloading: setisLoading,
-      method,
-      data: { ...promo, type: "edit" },
-    });
-    if (!createpromo.success) {
-      errorToast(createpromo.error ?? "Error Occured");
-      return;
-    }
-
-    setpromotion(PromotionInitialize);
-
-    successToast(
-      `Promotion ${
-        globalindex.promotioneditindex === -1 ? "Created" : "Updated"
-      }`
-    );
-    Object.keys(searchparams).forEach((key) => {
-      if (key === "ty") {
-        const type = "promotion";
-        param.set("ty", type);
-        settype(type);
-      } else {
-        param.delete(key);
+  const handleSubmit = useCallback(
+    async (e: FormEvent<HTMLFormElement>) => {
+      e.preventDefault();
+      const param = new URLSearchParams(searchParams);
+      const isProduct = promotion.products && promotion.products.length;
+      if (isProduct === 0 || !promotion.expireAt) {
+        errorToast(
+          !promotion.expireAt
+            ? "Please Fill Expire Date"
+            : "Please Select Product"
+        );
+        return;
       }
-    });
 
-    router.push(`?${param}`);
-    setglobalindex((prev) => ({ ...prev, promotioneditindex: -1 }));
-    setopenmodal((prev) => ({ ...prev, createPromotion: false }));
-    setreloaddata(true);
-  };
+      const method = globalindex.promotioneditindex !== -1 ? "PUT" : "POST";
+
+      const promodata: PromotionState = {
+        ...promotion,
+        expireAt: promotion.expireAt && (promotion.expireAt.toDate() as any),
+      };
+      const createpromo = await ApiRequest({
+        url: "/api/promotion",
+        setloading: setisLoading,
+        method,
+        data: method === "PUT" ? { ...promodata, type: "edit" } : promodata,
+      });
+      if (!createpromo.success) {
+        errorToast(createpromo.error ?? "Error Occured");
+        return;
+      }
+
+      setpromotion(PromotionInitialize);
+
+      successToast(
+        `Promotion ${
+          globalindex.promotioneditindex === -1 ? "Created" : "Updated"
+        }`
+      );
+      Object.keys(searchparams).forEach((key) => {
+        if (key === "ty") {
+          const type = "promotion";
+          param.set("ty", type);
+          settype(type);
+        } else {
+          param.delete(key);
+        }
+      });
+
+      router.push(`?${param}`);
+      setglobalindex((prev) => ({ ...prev, promotioneditindex: -1 }));
+      setopenmodal((prev) => ({ ...prev, createPromotion: false }));
+      setreloaddata(true);
+    },
+    [
+      searchParams,
+      promotion,
+      globalindex.promotioneditindex,
+      setisLoading,
+      setpromotion,
+      searchparams,
+      router,
+      setglobalindex,
+      setopenmodal,
+      setreloaddata,
+      settype,
+    ]
+  );
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     setpromotion((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
-  const handleCancel = async () => {
+  const handleCancel = useCallback(() => {
     const param = new URLSearchParams(searchParams);
-
-    const deletepromoproduct = await ApiRequest({
-      url: "/api/promotion",
-      setloading: setisLoading,
-      method: "PUT",
-      data: { type: "cancelproduct" },
-    });
-
-    if (!deletepromoproduct.success) {
-      errorToast("Error Occured");
-      return;
-    }
 
     Object.keys(searchParams).forEach((key) => {
       if (key === "ty") {
@@ -146,76 +164,107 @@ export const CreatePromotionModal = ({
         param.delete(key);
       }
     });
-
     setpromotion(PromotionInitialize);
-    setglobalindex((prev) => ({ ...prev, promotioneditindex: -1 }));
+    if (globalindex.promotioneditindex !== -1)
+      setglobalindex((prev) => ({ ...prev, promotioneditindex: -1 }));
     setopenmodal((prev) => ({ ...prev, createPromotion: false }));
     router.push(`?${param}`);
-    setreloaddata(true);
-  };
-  const handleSelectProductAndBanner = (type: "product" | "banner") => {
-    const param = new URLSearchParams(searchParams);
+  }, [
+    searchParams,
+    setpromotion,
+    globalindex.promotioneditindex,
+    setglobalindex,
+    setopenmodal,
+    router,
+    settype,
+  ]);
+  const handleSelectProductAndBanner = useCallback(
+    (type: "product" | "banner") => {
+      const param = new URLSearchParams(searchParams);
 
-    const isSelect = promotion.Products.every((i) => i.id !== 0);
+      setpromotion((prev) => ({
+        ...prev,
+        selectbanner: type === "banner",
+        selectproduct: type === "product",
+      }));
 
-    setpromotion((prev) => ({
-      ...prev,
-      products: isSelect ? prev.Products : [],
-      selectbanner: type === "banner",
-      selectproduct: type === "product",
-    }));
+      infoToast(`Start selection for ${type}`);
 
-    infoToast("Start selection by clicking on the card");
+      // Remove all parameters except 'ty'
+      param.forEach((_, key) => {
+        if (key !== "ty") {
+          param.delete(key);
+        }
+      });
 
-    // Remove all parameters except 'ty'
-    param.forEach((_, key) => {
-      if (key !== "ty") {
-        param.delete(key);
+      param.set("ty", type);
+      param.set("p", "1");
+      param.set("limit", "1");
+      settype(type);
+
+      router.push(`?${param}`, { scroll: false });
+
+      //Set select product and banne
+
+      if (globalindex.promotioneditindex !== -1) {
+        settableselectitems(
+          type === "product"
+            ? promotion.products?.map((i) => i.id)
+            : promotion.banner_id
+            ? [promotion.banner_id]
+            : undefined
+        );
       }
-    });
 
-    param.set("ty", type);
-    param.set("p", "1");
-    param.set("limit", "1");
-    settype(type);
-
-    router.push(`?${param}`, { scroll: false });
-    setreloaddata(true);
-    setopenmodal((prev) => ({ ...prev, createPromotion: false }));
-  };
+      setreloaddata(true);
+      setopenmodal((prev) => ({ ...prev, createPromotion: false }));
+    },
+    [
+      searchParams,
+      setpromotion,
+      settype,
+      router,
+      globalindex.promotioneditindex,
+      setreloaddata,
+      setopenmodal,
+      settableselectitems,
+      promotion.products,
+      promotion.banner_id,
+    ]
+  );
 
   return (
     <SecondaryModal
-      onPageChange={(val) =>
-        !isPickDate &&
-        setopenmodal((prev) => ({ ...prev, createPromotion: val }))
-      }
+      onPageChange={(val) => !isPickDate && handleCancel()}
       open={openmodal.createPromotion ?? false}
       size="xl"
       placement="top"
+      closebtn
     >
       {loading && <BlurLoading />}
       <div className="createPromotion__container relative rounded-lg w-full h-full bg-white p-3 flex flex-col items-center">
-        <form
+        <Form
           onSubmit={handleSubmit}
           className="promotionform w-full h-full flex flex-col justify-start items-center gap-y-5"
         >
-          <input
+          <Input
             type="text"
             name="name"
+            label={"Name"}
             placeholder="Name"
             value={promotion.name}
-            className="w-full h-[50px] pl-2 border border-gray-200 text-lg font-medium"
+            className="w-full h-[50px] text-lg font-bold"
             onChange={handleChange}
-            required
+            isRequired
           />
-          <input
+          <Input
             type="text"
             name="description"
+            label={"Description"}
             value={promotion.description}
             onChange={handleChange}
             placeholder="Description"
-            className="w-full h-[50px] pl-2 border border-gray-200 text-lg font-medium"
+            className="w-full h-[50px] text-lg font-bold"
           />
           <label className="w-full text-lg font-bold text-left">
             Expire Date*
@@ -241,57 +290,39 @@ export const CreatePromotionModal = ({
               Auto List at Sale Category
             </Switch>
           </div>
-          <PrimaryButton
-            text={
-              promotion.banner?.id || promotion.banner_id
+          <div className="w-full h-full flex flex-row items-center gap-5">
+            <Button
+              className="bg-[#3D788E] font-bold text-white w-full h-[40px]"
+              variant="solid"
+              onPress={() => handleSelectProductAndBanner("banner")}
+            >
+              {promotion.banner?.id || promotion.banner_id
                 ? "Edit Banner"
-                : "Select Banner"
-            }
-            onClick={() => {
-              handleSelectProductAndBanner("banner");
-            }}
-            type="button"
-            color="#3D788E"
-            radius="10px"
-            width="100%"
-            height="50px"
-          />
-          <PrimaryButton
-            text={
-              promotion.Products?.filter((i) => i.id !== 0).length > 0
-                ? "Edit Products"
-                : "Select Product"
-            }
-            onClick={() => handleSelectProductAndBanner("product")}
-            type="button"
-            radius="10px"
-            width="100%"
-            height="50px"
-          />
-          <div className="w-full h-fit flex flex-row gap-x-5">
-            <PrimaryButton
-              color="#44C3A0"
-              text={globalindex.promotioneditindex === -1 ? "Create" : "Update"}
-              type="submit"
-              status={
-                isLoading.POST || isLoading.PUT ? "loading" : "authenticated"
-              }
-              radius="10px"
-              width="100%"
-              height="50px"
-            />{" "}
-            <PrimaryButton
-              color="#F08080"
-              text="Cancel"
-              type="button"
-              disable={isLoading.POST || isLoading.PUT}
-              radius="10px"
-              width="100%"
-              height="50px"
-              onClick={() => handleCancel()}
-            />
+                : "Select Banner"}
+            </Button>
+            <Button
+              onPress={() => handleSelectProductAndBanner("product")}
+              className="bg_default  font-bold text-white w-full h-[40px]"
+              variant="solid"
+            >
+              {promotion.products && promotion.products.length <= 0
+                ? "Select Product"
+                : "Edti Product"}
+            </Button>
           </div>
-        </form>
+
+          <PrimaryButton
+            color="#44C3A0"
+            text={globalindex.promotioneditindex === -1 ? "Create" : "Update"}
+            type="submit"
+            status={
+              isLoading.POST || isLoading.PUT ? "loading" : "authenticated"
+            }
+            radius="10px"
+            width="100%"
+            height="50px"
+          />
+        </Form>
       </div>
       {openmodal.imageupload && (
         <ImageUpload
@@ -305,81 +336,63 @@ export const CreatePromotionModal = ({
   );
 };
 
-export const DiscountModals = ({
-  setreloaddata,
-}: {
-  setreloaddata: React.Dispatch<React.SetStateAction<boolean>>;
-}) => {
+export const DiscountModals = () => {
   const {
     promotion,
-    allData,
     setpromotion,
+    allData,
+    setalldata,
     globalindex,
     openmodal,
     setopenmodal,
+    tableselectitems,
   } = useGlobalContext();
   const [discount, setdiscount] = useState<number>(0);
 
-  useEffectOnce(() => {
+  useEffect(() => {
     if (globalindex.promotionproductedit !== -1) {
-      const idx = promotion.Products.findIndex(
-        (i) => i.id === globalindex.promotionproductedit
+      const product = allData?.product?.filter(
+        (prod) =>
+          prod.id && promotion?.products?.map((i) => i.id).includes(prod.id)
       );
-      const promo = promotion.Products[idx].discount;
-      const percent = promo?.percent;
-      setdiscount(percent ?? 0);
+      if (product && product.length > 0) {
+        setdiscount(product[0].discount?.percent ?? 0);
+      }
     }
-  });
+  }, []);
 
-  const handleDiscount = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    let promoproduct = [...promotion.Products];
-    let allproduct = [...(allData?.product ?? [])];
-    const producteditidx = globalindex.promotionproductedit;
+  const handleDiscount = useCallback(
+    (e: FormEvent<HTMLFormElement>) => {
+      e.preventDefault();
 
-    const calculateDiscount = (price: number) => ({
-      percent: discount,
-      newprice: (price - (price * discount) / 100).toFixed(2),
-      oldprice: price,
-    });
+      const discountpromoproduct: Array<PromotionProductState> = [];
+      setalldata((prev) => ({
+        ...prev,
+        product: prev?.product?.map((prod) => {
+          if (prod.id && tableselectitems?.includes(prod.id)) {
+            const calculatedDiscount = calculateDiscountPrice(
+              prod.price,
+              discount
+            );
+            discountpromoproduct.push({
+              id: prod.id,
+              discount: calculatedDiscount,
+            });
 
-    promoproduct = promoproduct.map((i) => {
-      if (producteditidx === -1 || i.id === producteditidx) {
-        return {
-          ...i,
-          discount: calculateDiscount(i.discount?.oldprice ?? 0),
-        };
-      }
-      return i;
-    });
+            return {
+              ...prod,
+              discount: calculatedDiscount,
+            };
+          }
+          return prod;
+        }),
+      }));
 
-    //update product discount
-    allproduct = allproduct.map((product) => {
-      const matchingPromoProduct = promoproduct.find(
-        (promoProduct) => promoProduct.id === product.id
-      );
-
-      if (matchingPromoProduct) {
-        const { percent, newprice } = matchingPromoProduct.discount || {};
-        return {
-          ...product,
-          discount: {
-            ...product.discount,
-            percent: percent as number,
-            newprice: newprice as string,
-          },
-        };
-      }
-
-      return product;
-    });
-
-    //update product
-
-    setpromotion((prev) => ({ ...prev, Products: promoproduct }));
-    setreloaddata(true);
-    setopenmodal((prev) => ({ ...prev, discount: false }));
-  };
+      setpromotion((prev) => ({ ...prev, products: discountpromoproduct }));
+      setopenmodal((prev) => ({ ...prev, discount: false }));
+    },
+    [setalldata, discount, promotion.products, tableselectitems]
+  );
 
   return (
     <SecondaryModal
@@ -398,27 +411,27 @@ export const DiscountModals = ({
         className="discount_content rounded-lg w-full h-full p-3 bg-white flex flex-col gap-y-5 justify-center items-center"
       >
         {globalindex.promotionproductedit === -1 && (
-          <h3 className="text-lg font-bold">
-            Set Discount For All Selected Product
-          </h3>
+          <h3 className="text-lg font-bold">Set Discount</h3>
         )}
-        <input
-          type="number"
+        <NumberInput
+          aria-label="discount modal"
           placeholder="Discount Percentage EX: 20"
           name="discount"
           value={discount}
-          min={1}
+          min={0}
           max={100}
-          className="w-full h-[50px] rounded-lg pl-3 text-lg font-bold round-lg border border-gray-300"
-          onChange={(e) => setdiscount(parseFloat(e.target.value))}
+          className="w-full h-[50px] font-bold"
+          startContent={"%"}
+          onValueChange={(val) => setdiscount(val)}
           required
         />
-        <PrimaryButton
+
+        <Button
           type="submit"
-          text="Confirm"
-          width="100%"
-          radius="10px"
-        />
+          className="w-full bg_default font-bold text-white"
+        >
+          {globalindex.promotionproductedit !== -1 ? "Edit" : "Set"}{" "}
+        </Button>
       </motion.form>
     </SecondaryModal>
   );

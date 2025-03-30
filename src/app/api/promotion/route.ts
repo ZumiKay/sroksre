@@ -8,7 +8,12 @@ import {
 import dayjs from "dayjs";
 import Prisma from "@/src/lib/prisma";
 import { Prisma as prisma } from "@prisma/client";
-import {categorytype, PromotionState, SearchAndSelectReturnType, SelectType} from "@/src/context/GlobalType.type";
+import {
+  categorytype,
+  PromotionState,
+  SearchAndSelectReturnType,
+  SelectType,
+} from "@/src/context/GlobalType.type";
 
 export async function POST(request: NextRequest) {
   try {
@@ -32,22 +37,24 @@ export async function POST(request: NextRequest) {
           name: promodata.name,
           description: promodata.description,
           expireAt: promodata.expireAt
-            ? new Date(promodata.expireAt.toString())
+            ? (promodata?.expireAt as unknown as Date)
             : new Date(),
         },
       });
 
-      // Update related products
-      await Promise.all(
-        promodata.Products.filter((i) => i.id !== 0).map((i) =>
-          tx.products.update({
-            where: { id: i.id },
-            data: {
-              promotion_id: create.id,
-            },
-          })
-        )
-      );
+      // Update discount product
+      if (promodata.products)
+        await Promise.all(
+          promodata.products.map((prod) =>
+            tx.products.update({
+              where: { id: prod?.id },
+              data: {
+                promotion_id: create.id,
+                discount: prod?.discount?.percent,
+              },
+            })
+          )
+        );
 
       // Check for Sale Category
 
@@ -76,11 +83,11 @@ export async function POST(request: NextRequest) {
     });
 
     //update banner
-    promodata.banner_id &&
-      (await Prisma.banner.update({
+    if (promodata.banner_id)
+      await Prisma.banner.update({
         where: { id: promodata.banner_id },
         data: { promotionId: result },
-      }));
+      });
 
     return Response.json({ data: { id: result } }, { status: 200 });
   } catch (error) {
@@ -109,7 +116,7 @@ export async function PUT(request: NextRequest) {
       if (
         !existingPromotion &&
         updatedata.type !== "product" &&
-        updatedata.type !== "cancelproduct"
+        updatedata.type !== "banner"
       ) {
         throw new Error("Promotion not found");
       }
@@ -132,7 +139,7 @@ export async function PUT(request: NextRequest) {
           data: {
             name: updatedata.name,
             description: updatedata.description,
-            expireAt: new Date(updatedata.expireAt as any),
+            expireAt: updatedata.expireAt as unknown as Date,
           },
         });
       }
@@ -146,68 +153,23 @@ export async function PUT(request: NextRequest) {
           });
 
           //update remove banner
-          existingPromotion.banner &&
-            (await tx.banner.update({
+          if (existingPromotion.banner)
+            await tx.banner.update({
               where: { id: existingPromotion.banner.id },
               data: { promotionId: null },
-            }));
+            });
         }
       }
 
       // Handle product updates
-      if (updatedata.type === "editproducts") {
+      if (updatedata.type === "editproduct" && updatedata.products) {
         await Promise.all(
-          updatedata.Products.map((product) =>
+          updatedata.products.map((product) =>
             tx.products.updateMany({
-              where: { id: product.id },
+              where: { id: product?.id },
               data: {
-                promotion_id: updatedata.id === -1 ? null : updatedata.id,
-                discount: product.discount?.percent,
-              },
-            })
-          )
-        );
-      }
-
-      // Handle canceling all product promotions
-      if (updatedata.type === "cancelproduct") {
-        await tx.products.updateMany({
-          where: { promotion_id: null },
-          data: { discount: null },
-        });
-      }
-
-      // Handle removing discounts from a single product
-      if (updatedata.type === "removediscount") {
-        await tx.products.update({
-          where: { id: updatedata.pid },
-          data: {
-            discount: null,
-            promotion_id: null,
-          },
-        });
-      }
-
-      // Handle product-specific updates
-      if (updatedata.type === "product") {
-        if (updatedata.tempproduct) {
-          await Promise.all(
-            updatedata.tempproduct.map((id) =>
-              tx.products.update({
-                where: { id },
-                data: { promotion_id: null, discount: null },
-              })
-            )
-          );
-        }
-
-        await Promise.all(
-          updatedata.Products.map((product) =>
-            tx.products.updateMany({
-              where: { id: product.id },
-              data: {
-                promotion_id: updatedata.id === -1 ? null : updatedata.id,
-                discount: product.discount?.percent,
+                promotion_id: product?.discount ? updatedata.id : null,
+                discount: product?.discount?.percent ?? null,
               },
             })
           )
@@ -302,14 +264,15 @@ export async function DELETE(request: NextRequest) {
   }
 }
 
+type tyType = "selection" | "edit" | "all" | "filter" | "byid";
 interface customparamPromotion {
   lt?: number;
   sk?: number;
   exp?: string;
-  ty?: string;
+  ty?: tyType;
   p?: number;
   search?: string;
-  limit?: number
+  limit?: number;
   expired?: number;
   ids?: string;
 }
@@ -318,6 +281,11 @@ export async function GET(request: NextRequest) {
   try {
     const URL = request.url.toString();
     const param: customparamPromotion = extractQueryParams(URL);
+
+    if (!param.ty) {
+      return Response.json({}, { status: 400 });
+    }
+
     let modified = {};
     let expirecount = 0;
     const now = dayjs(new Date());
@@ -352,7 +320,11 @@ export async function GET(request: NextRequest) {
 
     const total = await Prisma.promotion.count({
       where:
-       param.ty === "selection" ? {} : param.search || param.exp || param.expired ? (baseCondition as any) : {},
+        param.ty === "selection"
+          ? {}
+          : param.search || param.exp || param.expired
+          ? baseCondition
+          : {},
     });
 
     const { startIndex, endIndex } = calculatePagination(
@@ -382,30 +354,27 @@ export async function GET(request: NextRequest) {
 
       if (param.ty === "filter") {
         modified = caculateArrayPagination(
-          modified as any,
+          modified as Array<PromotionState>,
           param.p ?? 1,
           param.lt ?? 1
         );
       }
     } else if (param.ty === "selection" && param.limit) {
       const promotions = await Prisma.promotion.findMany({
-        where: baseCondition as any,
+        where: baseCondition,
         select: {
           id: true,
           name: true,
         },
-        take: param.lt,
+        take: param.limit,
       });
 
       const selectionresult: SearchAndSelectReturnType = {
-        items: promotions.map((item) => ({label: item.name, value: item.id})),
-        hasMore: total > param.limit
-      }
+        items: promotions.map((item) => ({ label: item.name, value: item.id })),
+        hasMore: total > param.limit,
+      };
 
-      return Response.json(
-        { data: promotions, isLimit: promotions.length <= 5 },
-        { status: 200 }
-      );
+      return Response.json({ data: selectionresult }, { status: 200 });
     } else if (param.ty === "byid") {
       //For Multiselect and Search Value
       if (!param.ids) {
@@ -429,40 +398,23 @@ export async function GET(request: NextRequest) {
       }));
 
       return Response.json({ data: value }, { status: 200 });
-    } else {
+    } else if (param.ty === "edit") {
       const promotion = await Prisma.promotion.findUnique({
         where: {
           id: param.p,
         },
-        include: { banner: true, Products: true },
+
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          expireAt: true,
+          banner: { select: { id: true, image: true } },
+        },
       });
 
-      if (promotion) {
-        const modifiedProducts = promotion.Products.map((j) => {
-          const price = parseFloat(j.price.toString());
-          const discount = parseFloat(j.discount?.toString() as string) || 0;
-
-          return {
-            ...j,
-            discount: {
-              percent: discount,
-              newPrice: (price - (price * discount) / 100).toFixed(2),
-              oldPrice: price,
-            },
-          };
-        });
-
-        const isAutoCate = await Prisma.childcategories.findFirst({
-          where: { name: promotion.name },
-        });
-
-        modified = {
-          ...promotion,
-          autocate: !!isAutoCate,
-          Products: modifiedProducts,
-        };
-      }
-    }
+      return Response.json({ data: promotion }, { status: 200 });
+    } else return Response.json({}, { status: 400 });
 
     const totalpromo = param.lt ? Math.ceil(total / param.lt) : undefined;
 

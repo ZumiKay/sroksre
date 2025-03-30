@@ -50,24 +50,8 @@ const convertStockData = (stock: Stocktype[]) => {
 export async function GET(request: NextRequest) {
   try {
     const url = request.nextUrl.toString();
-    const {
-      ty,
-      limit,
-      q,
-      pc,
-      sk,
-      cc,
-      p,
-      pid,
-      po,
-      dc,
-      ds,
-      dt,
-      vr,
-      vs,
-      sp,
-      pids,
-    } = extractQueryParams(url) as unknown as paramsType;
+    const { ty, limit, q, pc, sk, cc, p, pid, po, dc, ds, dt, sp, pids } =
+      extractQueryParams(url) as unknown as paramsType;
 
     const productId = pid ? parseInt(pid, 10) : undefined;
 
@@ -119,10 +103,10 @@ export async function GET(request: NextRequest) {
           Variant: true,
         },
       });
-      let allval = {
-        size: new Set<String>(),
-        color: new Set<String>(),
-        text: new Set<String>(),
+      const allval = {
+        size: new Set<string>(),
+        color: new Set<string>(),
+        text: new Set<string>(),
       };
 
       allfilter.forEach((filval) => {
@@ -216,7 +200,7 @@ export async function GET(request: NextRequest) {
             })
           : [];
 
-      const result: any = {
+      const result = {
         ...product,
         discount: product.promotion_id
           ? product.discount
@@ -304,7 +288,7 @@ export async function GET(request: NextRequest) {
           discount: true,
         },
       });
-      let result = searchproduct.map((i) => ({
+      const result = searchproduct.map((i) => ({
         ...i,
         price: calculateDiscountProductPrice({
           price: i.price,

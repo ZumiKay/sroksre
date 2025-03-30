@@ -12,6 +12,7 @@ import {
   GetOneWeekAgoDate,
   removeSpaceAndToLowerCase,
 } from "@/src/lib/utilities";
+import { Childcategories, Parentcategories } from "@prisma/client";
 import { cache } from "react";
 
 export const GetListProduct = async (
@@ -34,7 +35,7 @@ export const GetListProduct = async (
   sort?: number,
   promoid?: string
 ) => {
-  let data = {
+  const data = {
     parentcate_id: parseInt(parentcate_id),
     childcate_id: childcate_id ? parseInt(childcate_id) : undefined,
     page: parseInt(page),
@@ -191,7 +192,7 @@ export const GetListProduct = async (
         },
       });
 
-      products = (product?.autocategories.map((i) => i.product) as any) ?? [];
+      products = (product?.autocategories.map((i) => i.product) as never) ?? [];
       totalproduct = products.length;
       products = caculateArrayPagination(
         products,
@@ -309,9 +310,9 @@ export const GetListProduct = async (
               }
         );
 
-    isFilter && (products = filterproduct);
+    if (isFilter) products = filterproduct;
 
-    let result =
+    const result =
       products.length > 0
         ? (products.map((prod) => {
             if (prod.discount) {
@@ -339,7 +340,13 @@ export const GetListProduct = async (
   }
 };
 
-export const getCate = async (pid: string, cid?: string) => {
+export interface ListproductCateType extends Parentcategories {
+  sub?: Childcategories;
+}
+export const getCate = async (
+  pid: string,
+  cid?: string
+): Promise<ListproductCateType | null> => {
   try {
     const categories = await Prisma.parentcategories.findUnique({
       where: { id: parseInt(pid) },
@@ -357,8 +364,10 @@ export const getCate = async (pid: string, cid?: string) => {
     });
     return {
       ...categories,
-      sub: cid && categories?.sub.find((i) => i.id === parseInt(cid)),
-    };
+      sub: cid
+        ? (categories?.sub.find((i) => i.id === parseInt(cid)) as never)
+        : undefined,
+    } as ListproductCateType;
   } catch (error) {
     console.log("Fetch categories", error);
     return null;
@@ -439,7 +448,7 @@ export const getFilterValue = async (
   latest?: boolean
 ) => {
   try {
-    let filtervalues: filtervaluetype = {
+    const filtervalues: filtervaluetype = {
       variant: {
         color: [],
         text: [],
@@ -550,6 +559,7 @@ export const GetBannerLink = cache(async (id: number) => {
     });
 
     return banner;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (error) {
     return null;
   }

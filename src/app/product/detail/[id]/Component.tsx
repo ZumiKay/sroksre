@@ -8,10 +8,10 @@ import {
   Productorderdetailtype,
   Productordertype,
 } from "@/src/context/OrderContext";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Addtocart, AddWishlist } from "./action";
 import { errorToast, successToast } from "@/src/app/component/Loading";
-import { ApiRequest, useEffectOnce } from "@/src/context/CustomHook";
+import { ApiRequest } from "@/src/context/CustomHook";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Skeleton } from "@heroui/react";
 import {
@@ -80,19 +80,19 @@ export const OptionSection = ({
   const [qty, setqty] = useState(0);
   const [incart, setincart] = useState(isInCart);
 
-  useEffectOnce(() => {
+  useEffect(() => {
     const InitializeProductOrder = (
       data: Pick<
         ProductState,
         "id" | "stocktype" | "stock" | "variants" | "varaintstock"
       >
     ) => {
-      let type = data.stocktype;
+      const type = data.stocktype;
 
       if (type !== ProductStockType.stock) {
         const arr = InitializeDetail(
           type === "size" ? 1 : data.variants ? data.variants?.length : 0
-        ) as any[];
+        ) as never[];
 
         setproductorderdetail(
           (prev) =>
@@ -115,7 +115,7 @@ export const OptionSection = ({
         ? { qty: "Please Select Quantity" }
         : { option: "Please Select Option" }),
     });
-  });
+  }, []);
 
   const handleWishlist = async () => {
     const makereq = AddWishlist.bind(null, data.id ?? 0);
@@ -254,7 +254,7 @@ const stock = (
     isStock?: boolean
   ) => {
     setmess({ qty: "", option: "" });
-    let { value, name } = e.target;
+    const { value, name } = e.target;
     let val = 0;
 
     if (name === "quantity") {
@@ -365,9 +365,9 @@ const Variant = (
   const handleSelectVariant = async (idx: number, value: string) => {
     const Allvariant = [...(prob.variants ?? [])];
     const variant = Allvariant[idx];
-    let mess = { ...errormess };
+    const mess = { ...errormess };
 
-    let orderDetail = { ...productorderdetail } as Productordertype;
+    const orderDetail = { ...productorderdetail } as Productordertype;
     if (!orderDetail.details) {
       return;
     }
@@ -375,7 +375,7 @@ const Variant = (
     const isExist =
       isValid.length !== 0 ? isValid.findIndex((i) => i.id === variant.id) : -1;
 
-    let selectedvariant: Productorderdetailtype = {
+    const selectedvariant: Productorderdetailtype = {
       variant_id: variant.id ?? 0,
       value: value,
     };

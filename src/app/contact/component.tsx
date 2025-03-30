@@ -1,7 +1,7 @@
 "use client";
 import { TextField } from "@mui/material";
 import PrimaryButton from "../component/Button";
-import { ChangeEvent, FormEvent, useEffect, useState } from "react";
+import { ChangeEvent, FormEvent, useState } from "react";
 import { contacttype, SendInquiry } from "./action";
 import { successToast } from "../component/Loading";
 
@@ -44,7 +44,7 @@ export const ContactForm = ({
   ) => {
     const { value, name } = e.target;
 
-    setcontact((prev) => ({ ...prev, [name]: value } as any));
+    setcontact((prev) => ({ ...prev, [name]: value } as never));
   };
   return (
     <form onSubmit={handleSubmit} className="w-full h-fit grid gap-y-10">

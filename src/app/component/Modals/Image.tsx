@@ -5,7 +5,14 @@ import {
   useScreenSize,
 } from "@/src/context/CustomHook";
 import { useGlobalContext } from "@/src/context/GlobalContext";
-import { ChangeEvent, Dispatch, SetStateAction, useRef, useState } from "react";
+import {
+  ChangeEvent,
+  Dispatch,
+  SetStateAction,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import {
   ContainerLoading,
   errorToast,
@@ -33,7 +40,7 @@ interface imageuploadprops {
 }
 
 const filetourl = (file: File[]) => {
-  let url = [""];
+  const url = [""];
   file.map((obj) => url.push(URL.createObjectURL(obj)));
   return url.filter((i) => i !== "");
 };
@@ -81,7 +88,7 @@ export const ImageUpload = (props: imageuploadprops) => {
   const { isMobile } = useScreenSize();
 
   //Initialize
-  useEffectOnce(() => {
+  useEffect(() => {
     //Initialize Img URL
     const updatedImages =
       product.covers.length > 0
@@ -101,7 +108,7 @@ export const ImageUpload = (props: imageuploadprops) => {
 
       return newFiles;
     });
-  });
+  }, []);
 
   //Change Event
   const handleFile = async (e: ChangeEvent<HTMLInputElement>) => {

@@ -1,6 +1,12 @@
 "use server";
 import Link from "next/link";
-import { GetBannerLink, getCate, GetListProduct, getSubCate } from "./action";
+import {
+  GetBannerLink,
+  getCate,
+  GetListProduct,
+  getSubCate,
+  ListproductCateType,
+} from "./action";
 import { notFound } from "next/navigation";
 import Card from "../component/Card";
 import { PaginationSSR } from "../dashboard/order/OrderComponent";
@@ -14,8 +20,12 @@ import { format } from "date-fns";
 import { calculateDiscountProductPrice, IsNumber } from "@/src/lib/utilities";
 import NotFound from "../not-found";
 import type { Metadata } from "next";
-import {categorytype} from "@/src/context/GlobalType.type";
-
+import {
+  categorytype,
+  ImageDatatype,
+  ProductState,
+} from "@/src/context/GlobalType.type";
+import { Parentcategories } from "@prisma/client";
 
 interface ProductParam {
   p?: string;
@@ -116,7 +126,7 @@ const fetchPromotion = async (id: number, page: number, show: number) => {
     },
   });
 
-  let result = {
+  const result = {
     ...promotion,
     Products: promotion?.Products.map((prod) => {
       if (prod.discount) {
@@ -284,11 +294,12 @@ export default async function ProductsPage({
   }
 
   let subcate = undefined;
-  let cate: any = undefined;
+  let cate: ListproductCateType | null = null;
+
   if (!pid && cid) {
     subcate = await getSubCate(cid);
   } else {
-    cate = await getCate(pid ?? ppid ?? "0", cid);
+    cate = (await getCate(pid ?? ppid ?? "0", cid)) as never;
   }
 
   if ((pid && !cate) || (!pid && cid && !subcate)) {
@@ -296,10 +307,10 @@ export default async function ProductsPage({
   }
 
   if (promoid && !pid) {
-    cate = await Prisma.parentcategories.findFirst({
+    cate = (await Prisma.parentcategories.findFirst({
       where: { type: categorytype.sale },
       select: { id: true, name: true },
-    });
+    })) as Parentcategories;
   }
 
   ///////////
@@ -312,12 +323,13 @@ export default async function ProductsPage({
 
   const allproduct =
     (!ppid &&
+      cate &&
       (await GetListProduct(
         page,
         limit,
         pid ?? "0",
         cid,
-        cate?.type === "latest",
+        cate.type === "latest",
         {
           color: isColor,
           size: isSize,
@@ -463,9 +475,9 @@ export default async function ProductsPage({
               key={idx}
               name={i.name}
               price={i.price.toString()}
-              img={i.covers as any}
+              img={i.covers}
               index={idx}
-              discount={i.discount as any}
+              discount={i.discount}
               stock={i.stock || undefined}
               id={i.id}
               isAdmin={false}
@@ -480,8 +492,8 @@ export default async function ProductsPage({
             name={promo.name}
             description={promo.description ?? ""}
             expiredDate={promo.expireAt}
-            banner={promo.banner?.image as any}
-            product={promo.Products as any}
+            banner={promo.banner?.image as ImageDatatype}
+            product={promo.Products as ProductState[]}
           />
         ))
       )}

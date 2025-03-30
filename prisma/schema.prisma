@@ -244,6 +244,7 @@ model Promotion {
   name        String
   description String?
   banner      Banner?
+  banner_id   Int?
   expireAt    DateTime
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt

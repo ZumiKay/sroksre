@@ -1,20 +1,14 @@
 "use client";
 import PrimaryButton from "../../component/Button";
 import { SubInventoryMenu } from "../../component/Navbar";
-import { useEffect, useState } from "react";
-import {
-  ApiRequest,
-  Delayloading,
-  useScreenSize,
-} from "@/src/context/CustomHook";
+import { useCallback, useEffect, useState } from "react";
+import { ApiRequest, Delayloading } from "@/src/context/CustomHook";
 import { errorToast } from "../../component/Loading";
-import { FilterMenu } from "../../component/SideMenu";
 import dayjs from "dayjs";
 import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { redirect, useRouter, useSearchParams } from "next/navigation";
 import { InventoryParamType } from "./varaint_action";
-import { CreateProducts } from "../../component/Modals/Product";
 import { Category } from "../../component/Modals/Category";
 import { BannerModal } from "../../component/Modals/Banner";
 import {
@@ -27,12 +21,15 @@ import React from "react";
 import { useGlobalContext } from "@/src/context/GlobalContext";
 import {
   InventoryPage,
-  PromotionState,
+  ProductState,
   SelectType,
 } from "@/src/context/GlobalType.type";
 import TableComponent from "../../component/Table/Table_Component";
 import ImagePreview from "../../component/Modals/ImagePreview";
 import { Variantcontainer } from "../../component/Modals/VariantModal";
+import { Button } from "@heroui/react";
+import FilterMenu from "@/src/app/component/FilterMenu/FilterMenu";
+import { isDate } from "date-fns";
 
 const createmenu: Array<SelectType> = [
   {
@@ -78,30 +75,32 @@ export default function Inventory({
     setopenmodal,
     allData,
     setalldata,
-    isLoading,
-    setisLoading,
+    tableselectitems,
+    settableselectitems,
     promotion,
     setpromotion,
     itemlength,
     setitemlength,
     globalindex,
+    filtervalue,
+    setfiltervalue,
   } = useGlobalContext();
   const {
     ty: type,
     p,
     limit,
-    status,
-    name,
     parentcate,
     childcate,
-    expiredate,
-    bannersize,
-    bannertype,
     expired,
     promoids,
+    promotiononly,
+    expiredate,
+    search,
   } = searchParams as InventoryParamType;
   const [loaded, setloaded] = useState(false);
-  const { isDesktop } = useScreenSize();
+  const [updateLoading, setUpdateLoading] = useState<boolean | undefined>(
+    undefined
+  );
   const router = useRouter();
   const searchParam = useSearchParams();
   const [show, setshow] = useState(limit ?? "1");
@@ -111,17 +110,6 @@ export default function Inventory({
   const [reloaddata, setreloaddata] = useState(true);
   const [ty, settype] = useState<InventoryPage | undefined>(type);
   const [promoexpire, setpromoexpire] = useState(0);
-  const [filtervalue, setfiltervalue] = useState<InventoryParamType>({
-    parentcate,
-    childcate,
-    name,
-    expiredate,
-    bannersize,
-    bannertype,
-    status,
-    expired,
-    promoids,
-  });
 
   useEffect(() => {
     if (!type) {
@@ -129,142 +117,175 @@ export default function Inventory({
         `/dashboard/inventory${defaultparams(type ?? "product")}`
       );
     }
-
-    const isValid =
+    const Invalid =
       (p && !IsNumber(p)) ||
       (limit && !IsNumber(limit)) ||
       (parentcate && !IsNumber(parentcate)) ||
       (childcate && !IsNumber(childcate)) ||
-      (expired && !IsNumber(expired));
+      (expired && !IsNumber(expired)) ||
+      (promoids && !promoids.split(",").every(IsNumber));
 
-    if (isValid) {
+    if (Invalid) {
       return redirect(`/dashboard/inventory?ty=${type}&p=1&limit=1`);
     }
 
+    setfiltervalue({
+      search: search,
+      expiredate: expiredate && isDate(expiredate) ? expiredate : undefined,
+      promotiononly: promotiononly ? Boolean(promotiononly) : undefined,
+      parentcate:
+        parentcate && IsNumber(parentcate) ? Number(parentcate) : undefined,
+      childcate:
+        childcate && IsNumber(childcate) ? Number(childcate) : undefined,
+      // Array handling optimized
+      promoids:
+        promoids && promoids.split(",").every(IsNumber)
+          ? promoids.split(",")
+          : undefined,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    childcate,
+    expired,
+    expiredate,
+    limit,
+    p,
+    parentcate,
+    promoids,
+    promotiononly,
+    searchParams,
+    type,
+  ]);
+
+  useEffect(() => {
     if (reloaddata) {
       fetchdata(promotion.id);
     }
-  }, [reloaddata]);
+  }, [promotion.id, reloaddata, type, filtervalue]);
 
-  const fetchdata = async (pid?: number) => {
-    try {
-      let apiUrl: string = "";
-      const {
-        status,
-        name,
-        childcate,
-        parentcate,
-        bannersize,
-        bannertype,
-        expired,
-        expiredate,
-        promoids,
-      } = filtervalue;
+  const fetchdata = useCallback(
+    async (pid?: number) => {
+      try {
+        let apiUrl: string = "";
+        const {
+          status,
+          name,
+          childcate,
+          parentcate,
+          bannersize,
+          bannertype,
+          expired,
+          expiredate,
+          promoids,
+        } = filtervalue ?? {};
 
-      if (ty === "product") {
-        apiUrl =
-          status ||
-          name ||
-          childcate ||
-          parentcate ||
-          promotion.selectproduct ||
-          promoids
-            ? `/api/products?ty=filter&p=${page}&limit=${show}${
-                status ? `&sk=${status}` : ""
-              }${name ? `&q=${name}` : ""}${
-                parentcate ? `&pc=${parentcate}` : ""
-              }${childcate ? `&cc=${childcate}` : ""}${
-                pid ? `&pid=${pid}` : ""
-              }${promotion.selectproduct ? "&sp=1" : ""}${
-                promoids ? `&pids=${promoids}` : ""
-              }`
-            : `/api/products?ty=all&limit=${show}&p=${page}`;
-      } else if (ty === "banner") {
-        apiUrl =
-          name || bannersize || bannertype
-            ? `/api/banner?ty=filter&limit=${show}&p=${page}${
-                bannertype ? `&bty=${bannertype}` : ""
-              }${bannersize ? `&bs=${bannersize}` : ""}${
-                name ? `&q=${name}` : ""
-              }`
-            : promotion.selectbanner
-            ? `/api/banner?ty=filter&limit=${show}&p=${page}&bty=normal&promoselect=1`
-            : `/api/banner?ty=all&limit=${show}&p=${page}`;
-      } else if (ty === "promotion") {
-        apiUrl =
-          name || expiredate || expired
-            ? `/api/promotion?ty=filter&lt=${show}&p=${page ?? "1"}${
-                name ? `&q=${name}` : ""
-              }${expiredate ? `&exp=${dayjs(expiredate).toISOString()}` : ""}${
-                expired ? `&expired=${expired}` : ""
-              }`
-            : `/api/promotion?ty=all&lt=${show}&p=${page ?? "1"}`;
-      }
+        if (ty === "product") {
+          apiUrl =
+            status ||
+            name ||
+            childcate ||
+            parentcate ||
+            promotion.selectproduct ||
+            promoids
+              ? `/api/products?ty=filter&p=${page}&limit=${show}${
+                  status ? `&sk=${status}` : ""
+                }${name ? `&q=${name}` : ""}${
+                  parentcate ? `&pc=${parentcate}` : ""
+                }${childcate ? `&cc=${childcate}` : ""}${
+                  pid ? `&pid=${pid}` : ""
+                }${promotion.selectproduct ? "&sp=1" : ""}${
+                  promoids ? `&pids=${promoids}` : ""
+                }`
+              : `/api/products?ty=all&limit=${show}&p=${page}`;
+        } else if (ty === "banner") {
+          apiUrl =
+            name || bannersize || bannertype
+              ? `/api/banner?ty=filter&limit=${show}&p=${page}${
+                  bannertype ? `&bty=${bannertype}` : ""
+                }${bannersize ? `&bs=${bannersize}` : ""}${
+                  name ? `&q=${name}` : ""
+                }`
+              : promotion.selectbanner
+              ? `/api/banner?ty=filter&limit=${show}&p=${page}&bty=normal&promoselect=1`
+              : `/api/banner?ty=all&limit=${show}&p=${page}`;
+        } else if (ty === "promotion") {
+          apiUrl =
+            name || expiredate || expired
+              ? `/api/promotion?ty=filter&lt=${show}&p=${page ?? "1"}${
+                  name ? `&q=${name}` : ""
+                }${
+                  expiredate ? `&exp=${dayjs(expiredate).toISOString()}` : ""
+                }${expired ? `&expired=${expired}` : ""}`
+              : `/api/promotion?ty=all&lt=${show}&p=${page ?? "1"}`;
+        }
 
-      const makerequest = async () => {
-        const allfetchdata = await ApiRequest({
-          url: apiUrl,
-          method: "GET",
-        });
-
-        if (allfetchdata.success) {
-          let modifieddata = allfetchdata.data;
-
-          if (ty === "product") {
-            setlowstock(allfetchdata.lowstock as number);
-          }
-
-          if (promotion.selectproduct && type === "product") {
-            const productMap = new Map(
-              promotion.Products.map((product) => [
-                product.id,
-                product.discount,
-              ])
-            );
-
-            modifieddata = modifieddata.map((item: any) => {
-              if (productMap.has(item.id)) {
-                return {
-                  ...item,
-                  discount: productMap.get(item.id),
-                };
-              }
-              return item;
-            });
-          }
-
-          setalldata({ [ty as string]: modifieddata });
-          setpromoexpire(allfetchdata?.expirecount ?? 0);
-
-          if (ty === "promotion") {
-            let tempromoproduct = [...(promotion.tempproductstate ?? [])];
-            tempromoproduct = modifieddata.map((i: any) => i.products);
-            setpromotion((prev) => ({
-              ...prev,
-              tempproductstate: tempromoproduct,
-            }));
-          }
-
-          setitemlength({
-            total: allfetchdata.total ?? 0,
-            lowstock: allfetchdata.lowstock ?? 0,
-            totalpage: allfetchdata.totalpage ?? 0,
+        const makerequest = async () => {
+          const allfetchdata = await ApiRequest({
+            url: apiUrl,
+            method: "GET",
           });
 
-          setitemcount(allfetchdata.totalpage ?? 0);
-        }
-      };
+          if (allfetchdata.success) {
+            const modifieddata = allfetchdata.data;
+            let prevProductData: Partial<Array<ProductState>> | undefined =
+              undefined;
 
-      await Delayloading(makerequest, setloaded, 500);
+            if (ty === "product") {
+              prevProductData = [...(allData?.product ?? [])];
+              setlowstock(allfetchdata.lowstock as number);
+            }
 
-      ///Make Request
-    } catch (error) {
-      console.log("Inventory Fetch Error", error);
-      errorToast("Error Occrued, Relaod is Required");
-    } finally {
-      setreloaddata(false);
-    }
-  };
+            setalldata(
+              ty === "product"
+                ? {
+                    product: prevProductData
+                      ? (modifieddata as Array<ProductState>).map((newProd) => {
+                          const existingProd = promotion.products?.find(
+                            (prod) => prod?.id === newProd.id
+                          );
+                          return existingProd?.discount
+                            ? { ...newProd, discount: existingProd.discount }
+                            : newProd;
+                        })
+                      : modifieddata,
+                  }
+                : { [ty as string]: modifieddata }
+            );
+            setpromoexpire(allfetchdata?.expirecount ?? 0);
+
+            setitemlength({
+              total: allfetchdata.total ?? 0,
+              lowstock: allfetchdata.lowstock ?? 0,
+              totalpage: allfetchdata.totalpage ?? 0,
+            });
+
+            setitemcount(allfetchdata.totalpage ?? 0);
+          }
+        };
+
+        await Delayloading(makerequest, setloaded, 500);
+
+        ///Make Request
+      } catch (error) {
+        console.log("Inventory Fetch Error", error);
+        errorToast("Error Occrued, Relaod is Required");
+      } finally {
+        setreloaddata(false);
+      }
+    },
+    [
+      allData?.product,
+      filtervalue,
+      page,
+      promotion.products,
+      promotion.selectbanner,
+      promotion.selectproduct,
+      setalldata,
+      setitemlength,
+      show,
+      ty,
+    ]
+  );
 
   const handleShowPerPage = (value: number | string) => {
     const param = new URLSearchParams(searchParam);
@@ -284,90 +305,114 @@ export default function Inventory({
     setreloaddata(true);
   };
 
-  const handleUpdateProductBannerPromotion = async (
-    promotion: PromotionState,
-    type: "product" | "banner"
-  ) => {
-    const data =
-      type === "product"
-        ? {
-            id: promotion.id,
-            Products: promotion.Products,
-            tempproduct: promotion?.tempproduct,
-            type: type,
-          }
-        : { id: promotion.id, banner_id: promotion.banner_id, type: type };
+  const handleDoneButton = useCallback(async () => {
+    const url = `/api/promotion?ty=${
+      promotion.selectproduct
+        ? "editproduct"
+        : promotion.selectbanner
+        ? "editbanner"
+        : ""
+    }`;
 
-    const updatereq = await ApiRequest({
-      url: "/api/promotion",
-      setloading: setisLoading,
+    setUpdateLoading(true);
+    const updateReq = await ApiRequest({
+      url,
       method: "PUT",
-      data,
+      data: {
+        id: promotion.id,
+        products: promotion.products,
+        banner_id: promotion.banner_id,
+      },
     });
+    setUpdateLoading(false);
 
-    if (updatereq.success) {
-      return true;
-    } else {
-      console.error("Update request failed:", updatereq.error);
-      return null;
+    if (!updateReq.success) {
+      errorToast("Can't Update Promotion");
+      return;
     }
-  };
 
-  const handleDoneButton = async () => {
-    if (promotion.selectbanner || promotion.selectproduct) {
-      if (promotion.selectproduct && promotion.tempproduct) {
-        const updateproduct = await handleUpdateProductBannerPromotion(
-          promotion,
-          "product"
-        );
-        if (!updateproduct) {
-          errorToast("Failed to update");
-        }
-      } else if (
-        promotion.selectbanner &&
-        promotion.banner_id &&
-        globalindex.promotioneditindex !== -1
-      ) {
-        const updatebanner = await handleUpdateProductBannerPromotion(
-          promotion,
-          "banner"
-        );
-        if (!updatebanner) {
-          errorToast("Error Occured");
-          return;
-        }
-      }
-    }
+    setreloaddata(true);
     setopenmodal((prev) => ({
       ...prev,
       createPromotion: true,
     }));
-  };
+  }, [setopenmodal, promotion]);
 
-  const handleFilter = (value: InventoryPage) => {
-    const params = new URLSearchParams(searchParam);
+  const handleFilter = useCallback(
+    (value: InventoryPage) => {
+      if (!filtervalue) return;
+      const params = new URLSearchParams(searchParam);
+      //Reset Search Params
+      Object.keys(filtervalue).map((key) => {
+        if (key !== "ty" && key !== "p" && key !== "limit") {
+          params.delete(key);
+        }
+      });
 
-    //Reset Search Params
-    Object.keys(filtervalue).map((key) => {
-      if (key !== "ty" && key !== "p" && key !== "limit") {
-        params.delete(key);
+      params.set("ty", value);
+      params.set("p", "1");
+      params.set("limit", "1");
+
+      setpage("1");
+      setshow("1");
+      settype(value);
+      router.push(`?${params}`, { scroll: false });
+      setreloaddata(true);
+    },
+    [filtervalue, router, searchParam]
+  );
+
+  const handleSelection = useCallback(
+    (key: number[]) => {
+      if (!promotion.selectproduct && !promotion.selectbanner) {
+        settableselectitems(key);
+        return;
       }
-    });
 
-    params.set("ty", value);
-    params.set("p", "1");
-    params.set("limit", "1");
+      // Check product selection
+      if (promotion.selectproduct && type) {
+        //remove discount
+        setpromotion((prev) => ({
+          ...prev,
+          products: prev.products?.filter((prod) => !key.includes(prod.id)),
+        }));
+        setalldata((prev) => ({
+          ...prev,
+          product: prev?.product?.map((prod) =>
+            prod.id && !key.includes(prod.id)
+              ? { ...prod, discount: undefined }
+              : prod
+          ),
+        }));
+      }
 
-    setpage("1");
-    setshow("1");
-    settype(value);
-    router.push(`?${params}`, { scroll: false });
-    setreloaddata(true);
-  };
+      // Check banner selection
+      if (
+        promotion.selectbanner &&
+        type &&
+        promotion.banner_id &&
+        !key.includes(promotion.banner_id)
+      ) {
+        setpromotion((prev) => ({
+          ...prev,
+          banner_id: undefined,
+        }));
+      }
 
-  const handleSelection = (key: number[]) => {
-    console.log(key[0]);
-  };
+      settableselectitems(key);
+    },
+    [
+      promotion.banner_id,
+      promotion.selectbanner,
+      promotion.selectproduct,
+      setalldata,
+      setpromotion,
+      settableselectitems,
+      type,
+    ]
+  );
+
+  const handleSelectDelete = async () => {};
 
   return (
     <>
@@ -393,28 +438,16 @@ export default function Inventory({
         )}
         {openmodal.createPromotion && (
           <CreatePromotionModal
-            searchparams={searchParams as any}
+            searchparams={searchParams as InventoryParamType}
             settype={settype}
             setreloaddata={setreloaddata}
           />
         )}
         {openmodal.filteroption && (
-          <FilterMenu
-            name={name}
-            categories={{
-              parentid: parseInt(parentcate as string),
-              childid: parseInt(childcate as string),
-            }}
-            expiredAt={expiredate ? dayjs(expiredate).toISOString() : undefined}
-            type={ty}
-            param={searchParams}
-            expired={expired}
-            reloadData={() => setreloaddata(true)}
-            setfilterdata={setfiltervalue as any}
-            isSetPromotion={promotion.selectproduct}
-          />
+          <FilterMenu type={type} totalproduct={itemlength.total} />
         )}
-        {openmodal.discount && <DiscountModals setreloaddata={setreloaddata} />}
+        {openmodal.discount && <DiscountModals />}
+
         {openmodal.editvariantstock && (
           <Variantcontainer
             type="stock"
@@ -446,7 +479,7 @@ export default function Inventory({
                   </div>
 
                   <SubInventoryMenu
-                    data={createmenu as any}
+                    data={createmenu}
                     open="subcreatemenu_ivt"
                   />
 
@@ -482,7 +515,8 @@ export default function Inventory({
               ) : (
                 <>
                   {promotion.selectproduct &&
-                    promotion.Products.length !== 1 && (
+                    tableselectitems &&
+                    tableselectitems.length > 0 && (
                       <>
                         <PrimaryButton
                           color="#6FCF97"
@@ -515,24 +549,22 @@ export default function Inventory({
               )}
               {(promotion.selectproduct || promotion.selectbanner) && (
                 <>
-                  <PrimaryButton
-                    text="Done"
-                    type="button"
-                    status={isLoading.PUT ? "loading" : "authenticated"}
-                    radius="10px"
-                    style={{ minWidth: "150px" }}
-                    onClick={() => handleDoneButton()}
-                  />
+                  <Button
+                    isLoading={updateLoading}
+                    onPress={() => handleDoneButton()}
+                    className="bg_default w-[150px] h-full text-white font-bold"
+                  >
+                    Done
+                  </Button>
                 </>
               )}
-
               <PrimaryButton
                 color="#4688A0"
                 radius="10px"
                 style={{ minWidth: "150px" }}
                 type="button"
                 text={
-                  Object.values(filtervalue).some((i) => i !== undefined)
+                  Object.values(filtervalue ?? {}).some(Boolean)
                     ? "Clear Filter"
                     : "Filter"
                 }
@@ -540,6 +572,18 @@ export default function Inventory({
                   setopenmodal((prev) => ({ ...prev, filteroption: true }))
                 }
               />
+              {!promotion.selectbanner &&
+                !promotion.selectproduct &&
+                tableselectitems &&
+                tableselectitems.length > 0 && (
+                  <Button
+                    onPress={() => handleSelectDelete()}
+                    className="w-[150px] h-full"
+                    color="danger"
+                  >
+                    {`Delete ${tableselectitems.length}`}
+                  </Button>
+                )}
             </div>
           </div>
 
@@ -548,7 +592,7 @@ export default function Inventory({
             {type && (
               <TableComponent
                 ty={type}
-                data={allData && allData[type as string]}
+                data={allData && (allData[type as string] as never)}
                 onPagination={(ty, val) =>
                   ty === "limit" ? handleShowPerPage(val) : handlePage(val)
                 }
@@ -561,6 +605,8 @@ export default function Inventory({
                   onShowPage: (val) => handleShowPerPage(val),
                 }}
                 onSelection={(key) => handleSelection(key)}
+                singleselect={type === "banner" && promotion.selectbanner}
+                selectedvalue={tableselectitems}
               />
             )}
           </section>

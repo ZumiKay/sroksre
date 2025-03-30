@@ -13,11 +13,7 @@ import { usePathname, useRouter } from "next/navigation";
 import AccountMenu, { CartMenu } from "./SideMenu";
 import "../globals.css";
 import Link from "next/link";
-import {
-  ApiRequest,
-  useEffectOnce,
-  useScreenSize,
-} from "@/src/context/CustomHook";
+import { ApiRequest, useScreenSize } from "@/src/context/CustomHook";
 import LoadingIcon, { errorToast, infoToast } from "./Loading";
 
 import { CheckedNotification } from "../severactions/notification_action";
@@ -31,7 +27,6 @@ import { AnimatePresence } from "framer-motion";
 import SearchContainer from "./Modals/Search";
 import { CloseVector } from "./Asset";
 import {
-  Accordion, AccordionItem,
   Button,
   Dropdown,
   DropdownItem,
@@ -53,6 +48,7 @@ import {
 import {
   CateogoryState,
   NotificationType,
+  SelectType,
   Sessiontype,
   Usersessiontype,
 } from "@/src/context/GlobalType.type";
@@ -87,9 +83,9 @@ export default function Navbar({ session }: { session?: Usersessiontype }) {
   const navref = useRef<any>(null);
   const notiref = useRef<any>(null);
 
-  useEffectOnce(() => {
+  useEffect(() => {
     getCartTotal();
-  });
+  }, []);
 
   useEffect(() => {
     InitialMethod(session);
@@ -450,7 +446,7 @@ export function DashboordNavBar({ session }: { session?: Sessiontype }) {
   );
 }
 interface Subinventorymenuprops {
-  data: Array<SelectionType>;
+  data: Array<SelectType>;
   open?: string;
   type?: "product" | "banner" | "promotion";
   index?: number;
@@ -559,6 +555,7 @@ export const SubInventoryMenu = (props: Subinventorymenuprops) => {
   );
 };
 
+// eslint-disable-next-line react/display-name
 export const NotificationMenu = forwardRef(
   (
     {
@@ -649,7 +646,7 @@ export const NotificationMenu = forwardRef(
 
     return (
       <aside
-        ref={ref as any}
+        ref={ref as unknown}
         onScroll={() => {
           handleScroll();
         }}

@@ -6,6 +6,12 @@ import { Dispatch, SetStateAction } from "react";
 
 type Role = "ADMIN" | "USER" | "EDITOR";
 export type InventoryPage = "product" | "banner" | "promotion";
+export type FiltermenuType =
+  | "product"
+  | "banner"
+  | "promotion"
+  | "usermanagement"
+  | "listproduct";
 export type ActionState = "edit" | "delete" | "stock";
 export type RequestMethod = "GET" | "POST" | "PUT" | "DELETE";
 export type RequetDatatype = "JSON" | "FILE";
@@ -23,13 +29,24 @@ export const categorytype = {
   latest: "latest",
 };
 
+export const BannerTypeSelect = [
+  { label: "Normal", value: "normal" },
+  { label: "Product", value: "product" },
+  { label: "Category", value: "category" },
+];
+
+export const BannerSize = [
+  { label: "Small", value: "small" },
+  { label: "Normal", value: "normal" },
+];
+
 export type Categorytype = keyof typeof categorytype;
 
 export interface ActionReturnType<t = string> {
   success: boolean;
   message?: string;
   data?: t;
-  [x: string]: any;
+  [x: string]: boolean | string | t | undefined;
 }
 export interface SelectType {
   label: string;
@@ -95,7 +112,7 @@ export interface Varianttype {
   option_title: string;
   option_type: "COLOR" | "TEXT";
   option_value: Array<string | VariantColorValueType>;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface SubStockType {
@@ -125,6 +142,12 @@ export interface ProductCategoriesType {
   id: number;
   name: string;
 }
+
+export interface DiscountpriceType {
+  percent: number;
+  newprice: string;
+}
+
 export interface ProductState {
   id?: number;
   name: string;
@@ -144,10 +167,7 @@ export interface ProductState {
   lowstock?: boolean;
   incart?: boolean;
   promotion_id?: number;
-  discount?: {
-    percent: number;
-    newprice: string;
-  };
+  discount?: DiscountpriceType;
   relatedproductid?: Array<number>;
   relatedproduct?: Array<Relatedproducttype>;
   amount_sold?: number;
@@ -155,7 +175,7 @@ export interface ProductState {
   amount_wishlist?: number;
   createdAt?: Date;
 }
-export interface FilterValue {
+export interface FilterValueType {
   parentcate?: number;
   childcate?: number;
   status?: string;
@@ -165,12 +185,12 @@ export interface FilterValue {
   email?: string;
   expiredate?: string;
   promotionid?: number;
-  promoselect?: boolean;
+  promotiononly?: boolean;
   bannertype?: string;
   bannersize?: string;
   search?: string;
   expired?: string;
-  promoids?: number[];
+  promoids?: string[];
 }
 
 export interface Listproductfilter {
@@ -189,14 +209,6 @@ export interface NotificationType {
   createdAt?: string;
   checked: boolean;
 }
-
-export const FiltervalueInitialize: FilterValue = {
-  parentcate: 0,
-  childcate: 0,
-  status: "",
-  name: "",
-  email: "",
-};
 
 export type ImageDatatype = {
   id?: number;
@@ -248,11 +260,7 @@ export interface ItemLength {
 
 export interface PromotionProductState {
   id: number;
-  discount?: {
-    percent: number;
-    newprice: string;
-    oldprice: number;
-  };
+  discount?: DiscountpriceType;
 }
 export interface PromotionState {
   id?: number;
@@ -260,12 +268,10 @@ export interface PromotionState {
   description: string;
   selectproduct: boolean;
   selectbanner: boolean;
-  Products: Array<PromotionProductState>;
+  products?: Array<PromotionProductState>;
   expireAt?: Dayjs;
   banner_id?: number;
   banner?: BannerState;
-  tempproduct?: number[];
-  tempproductstate?: Array<PromotionProductState>;
   type?: string;
   isExpired?: boolean;
   autocate?: boolean;
@@ -293,7 +299,7 @@ export interface AllDataState {
     id: number;
     show: boolean;
   }[];
-  [x: string]: any;
+  [x: string]: unknown;
 }
 
 export interface Usersessiontype {
@@ -368,10 +374,6 @@ export interface GlobalIndexState {
   homeeditindex?: number;
 }
 
-export interface AllFilterValueState {
-  page: "product" | "banner" | "promotion" | "usermanagement" | "listproduct";
-  filter: FilterValue;
-}
 export interface CateogoryState {
   id?: number;
   name: string;
@@ -434,7 +436,7 @@ export interface ApiRequestHookProps {
   url: string;
   method: RequestMethod;
   setloading?: Dispatch<SetStateAction<LoadingState>>;
-  data?: any;
+  data?: unknown;
   datatype?: RequetDatatype;
   revalidate?: string;
 }

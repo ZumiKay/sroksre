@@ -1,9 +1,6 @@
 import {
-  Accordion,
-  AccordionItem,
   Button,
   Selection,
-  Skeleton,
   Table,
   TableBody,
   TableCell,
@@ -30,6 +27,7 @@ import {
   ActionContainer,
   TableBottomContent,
   tableBottomContentProps,
+  TopTableContent,
 } from "./Component";
 import { useGlobalContext } from "@/src/context/GlobalContext";
 import Image from "next/image";
@@ -44,6 +42,8 @@ interface TableComponentProps {
   onSelection?: (key: Array<number>) => void;
   onPagination: (ty: "page" | "limit", val: string) => void;
   pagination: tableBottomContentProps;
+  singleselect?: boolean;
+  selectedvalue?: Array<number>;
 }
 
 type ColumnType = {
@@ -135,9 +135,13 @@ export default function TableComponent({
   isLoading,
   onSelection,
   pagination,
+  singleselect,
+  selectedvalue,
 }: TableComponentProps) {
   const { setopenmodal, setglobalindex, setproduct } = useGlobalContext();
-  const [selectedData, setselectedData] = useState<Selection>(new Set([]));
+  const [selectedData, setselectedData] = useState<Selection>(
+    new Set(selectedvalue ?? [])
+  );
   const Router = useRouter();
   const renderColumn = useCallback(() => {
     return ty === InventoryType.Product
@@ -148,7 +152,11 @@ export default function TableComponent({
   }, [ty]);
 
   useEffect(() => {
-    onSelection && onSelection(Array.from(selectedData) as number[]);
+    if (onSelection) {
+      const convertedToNumber = Array.from(selectedData).map((i) => Number(i));
+      onSelection(convertedToNumber);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedData]);
 
   const memoizedTy = useMemo(() => ty, [ty]);
@@ -157,24 +165,27 @@ export default function TableComponent({
     alert("Open Detail with photo and title");
   }, []);
 
-  const handleView = useCallback((uid: string, id: number) => {
-    const toOpenModal: Partial<OpenModalState> = {};
-    const toUpdateIndex: Partial<GlobalIndexState> = {};
+  const handleView = useCallback(
+    (uid: string, id: number) => {
+      const toOpenModal: Partial<OpenModalState> = {};
+      const toUpdateIndex: Partial<GlobalIndexState> = {};
 
-    if (uid === "stock") {
-      toOpenModal.editvariantstock = true;
-      toUpdateIndex.producteditindex = id;
-    } else if (uid === "Products") {
-      toOpenModal["showproduct"] = true;
-      toUpdateIndex.producteditindex = id;
-    } else if (uid === "covers") {
-      toOpenModal[`cover${id}`] = true;
-      toUpdateIndex.producteditindex = id;
-    }
+      if (uid === "stock") {
+        toOpenModal.editvariantstock = true;
+        toUpdateIndex.producteditindex = id;
+      } else if (uid === "Products") {
+        toOpenModal["showproduct"] = true;
+        toUpdateIndex.producteditindex = id;
+      } else if (uid === "covers") {
+        toOpenModal[`cover${id}`] = true;
+        toUpdateIndex.producteditindex = id;
+      }
 
-    setglobalindex((prev) => ({ ...prev, ...toUpdateIndex }));
-    setopenmodal(toOpenModal);
-  }, []);
+      setglobalindex((prev) => ({ ...prev, ...toUpdateIndex }));
+      setopenmodal(toOpenModal);
+    },
+    [setglobalindex, setopenmodal]
+  );
 
   const handleAction = useCallback(
     (key: ActionState, id: number, type: InventoryPage, stock?: Stock) => {
@@ -202,7 +213,7 @@ export default function TableComponent({
         if (createKey === "createProduct") {
           Router.push(`/dashboard/inventory/createproduct/${id}`);
         } else modalState[createKey] = true;
-        indexState[indexKey] = id as any;
+        indexState[indexKey] = id as never;
       } else if (key === "delete") {
         modalState.confirmmodal = { index: id, type, open: true };
       } else if (type === "product" && stock) {
@@ -213,18 +224,20 @@ export default function TableComponent({
       setopenmodal((prev) => ({ ...prev, ...modalState } as never));
       setglobalindex((prev) => ({ ...prev, ...indexState }));
     },
-    [setopenmodal, setglobalindex, setproduct]
+    []
   );
 
   const renderCell = useCallback(
-    (key: Key, celldata: Record<string, any>) => {
+    (key: Key, celldata: { [x: string]: never }) => {
       if (!celldata) return null;
 
       switch (key) {
         case "image":
         case "covers":
         case "banner": {
-          const data = celldata[key][0] ? celldata[key][0] : celldata[key];
+          const data = celldata[key][0]
+            ? celldata[key][0]
+            : (celldata[key] as ImageDatatype);
           if (!data) return null;
           return (
             <Image
@@ -251,20 +264,12 @@ export default function TableComponent({
           );
 
         case "price": {
-          const { discount, price, id } = celldata as ProductState;
+          const { discount, price } = celldata as unknown as ProductState;
           return discount ? (
-            <div className="price_container w-full h-fit">
-              <Accordion>
-                <AccordionItem
-                  key={`price${id}`}
-                  title={`$${discount.newprice}`}
-                >
-                  <div className="listdownprice w-full h-fit flex flex-col items-center">
-                    <p>{`Discount: %${discount.percent}`}</p>
-                    <p>{`Original: $${price.toFixed(2)}`}</p>
-                  </div>
-                </AccordionItem>
-              </Accordion>
+            <div className="price_container w-full h-fit flex flex-col items-start">
+              <p className="font-bold">{`Discounted price: ${discount.newprice}USD`}</p>
+              <p className="text-red-500">{`Discount: %${discount.percent}`}</p>
+              <p>{`Price: ${price}USD`}</p>
             </div>
           ) : (
             celldata[key]
@@ -272,7 +277,7 @@ export default function TableComponent({
         }
 
         case "category":
-          const { category } = celldata as ProductState;
+          const { category } = celldata as unknown as ProductState;
           return (
             <div className="category_container w-full h-fit inline-flex gap-x-3">
               <p>{category.parent.name}</p>
@@ -286,7 +291,7 @@ export default function TableComponent({
           );
 
         case "stock":
-          const { stocktype, id } = celldata as ProductState;
+          const { stocktype, id } = celldata as unknown as ProductState;
           return stocktype === StockType.Stock ? (
             celldata[key]
           ) : (
@@ -324,7 +329,7 @@ export default function TableComponent({
           return celldata[key.toString()];
       }
     },
-    [memoizedTy, handleClick, handleAction, handleView]
+    [memoizedTy, handleClick, handleView, handleAction, ty]
   );
   return (
     <>
@@ -336,8 +341,9 @@ export default function TableComponent({
           onSelectionChange={setselectedData}
           aria-label="table container for product promotion and banner"
           className="w-full min-h-[500px] h-full"
-          selectionMode="multiple"
+          selectionMode={singleselect ? "single" : "multiple"}
           showSelectionCheckboxes
+          topContent={<TopTableContent />}
         >
           <TableHeader
             columns={renderColumn()}
@@ -366,7 +372,7 @@ export default function TableComponent({
                     className="border-b-1 border-gray-300"
                     key={columnKey}
                   >
-                    {renderCell(columnKey, item)}
+                    {renderCell(columnKey, item as never)}
                   </TableCell>
                 )}
               </TableRow>

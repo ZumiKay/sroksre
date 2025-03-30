@@ -47,31 +47,18 @@ interface cardprops {
   isTablet?: boolean;
   reloaddata?: () => void;
 }
-const editactionMenu: Array<SelectionType> = [
-  {
-    label: "Edit",
-    value: "createProduct",
-  },
-  { label: "Stock", value: "updatestock" },
-  {
-    label: "Delete",
-    value: "",
-  },
-];
+
 
 export default function Card(props: cardprops) {
   const {
     promotion,
-    setpromotion,
-    setglobalindex,
-    openmodal,
+
     setopenmodal,
     globalindex,
-    allData,
-    setalldata,
+
   } = useGlobalContext();
   const route = useRouter();
-  const isProduct = promotion.Products.find((i) => i.id === props.id);
+  const isProduct = promotion.products?.find((i) => i.id === props.id);
   const [previewphoto, setpreviewphoto] = useState(false);
   const [hover, sethover] = useState(false);
   const { isMobile, isTablet } = useScreenSize();
@@ -91,63 +78,7 @@ export default function Card(props: cardprops) {
     });
   const ref = useRef<HTMLDivElement | null>(null);
 
-  const handleSelectDiscount = async (id: number, type: "create" | "edit") => {
-    const promo = [...promotion.Products];
-    let temp: Array<number> = [];
 
-    const index = promo.findIndex((i) => i.id === id);
-
-    if (type == "create") {
-      if (!props.discount) {
-        if (!isProduct) {
-          const option = {
-            id: id,
-            discount: {
-              percent: 0,
-              newprice: "",
-              oldprice: parseFloat(props.price),
-            },
-          };
-          promo.push(option);
-        } else {
-          promo.splice(index, 1);
-        }
-      } else {
-        if (isProduct) {
-          const isExist = promotion.tempproduct?.includes(id);
-          !isExist && temp.push(id);
-          let allproduct = [...(allData?.product ?? [])];
-          allproduct = allproduct.map((i) => {
-            if (i.id === id) {
-              return { ...i, discount: undefined };
-            }
-            return i;
-          });
-
-          promo.splice(index, 1);
-          setalldata({ product: allproduct });
-        } else {
-          promo.push({
-            id: id,
-            discount: {
-              percent: 0,
-              newprice: "",
-              oldprice: parseFloat(props.price),
-            },
-          });
-        }
-      }
-
-      setpromotion((prev) => ({
-        ...prev,
-        Products: promo,
-        tempproduct: temp,
-      }));
-    } else {
-      setglobalindex((prev) => ({ ...prev, promotionproductedit: id }));
-      setopenmodal((prev) => ({ ...prev, discount: true }));
-    }
-  };
 
   ///JSX CONDITIONS
   ///
@@ -212,9 +143,7 @@ export default function Card(props: cardprops) {
     );
   };
 
-  const closename: string = (props.stocktype &&
-    props.id &&
-    props.stocktype + props.id) as string;
+
   //
   ///end
 
@@ -251,9 +180,7 @@ export default function Card(props: cardprops) {
       >
         <div
           onClick={() => {
-            if (promotion.selectproduct) {
-              handleSelectDiscount(props.id as number, "create");
-            } else if (!props.isAdmin) {
+           if (!props.isAdmin) {
               !previewphoto && route.push(`/product/detail/${props.id}`);
             }
           }}
@@ -267,31 +194,6 @@ export default function Card(props: cardprops) {
             isMobile={isMobile}
             isTablet={isTablet}
           />
-
-          <span className="absolute top-3 right-3">
-            {shouldShowCheckmark ? (
-              showCheckmark
-            ) : state.hover && props.isAdmin ? (
-              <SubInventoryMenu
-                data={editactionMenu}
-                index={props.id}
-                type="product"
-                style={{ right: "0", top: 0 }}
-                open="createProduct"
-                stock={props.stock}
-                stocktype={props.stocktype}
-                reloaddata={props.reloaddata}
-                stockaction={() => {
-                  setopenmodal((prev) => ({
-                    ...prev,
-                    [closename]: true,
-                  }));
-                }}
-              />
-            ) : (
-              ""
-            )}
-          </span>
         </div>
         <div className="card_detail w-full h-fit font-semibold flex flex-col justify-center gap-y-3  pl-2 rounded-b-md text-sm">
           <p className="card_info w-full max-w-[400px] h-fit text-lg">
@@ -303,28 +205,8 @@ export default function Card(props: cardprops) {
         {props.button && (
           <PrimaryButton type="button" text="Add To Cart" width={"100%"} />
         )}
-        {promotion.selectproduct && isProduct?.discount && (
-          <PrimaryButton
-            onClick={() => handleSelectDiscount(isProduct.id ?? 0, "edit")}
-            type="button"
-            text={isProduct?.discount?.percent === 0 ? "Set Discount" : "Edit"}
-            width="150px"
-            radius="10px"
-          />
-        )}
-        {showLowStock()}
       </div>
-      {openmodal && (
-        <>
-          {openmodal[closename] && (
-            <Variantcontainer
-              type="stock"
-              editindex={props.id}
-              closename={closename}
-            />
-          )}
-        </>
-      )}
+
     </>
   );
 }
@@ -525,24 +407,15 @@ export const BannerCard = ({
   id,
   type,
   isExpired,
-  reloaddata,
+
 }: Bannercardprops) => {
-  const { promotion, setpromotion, openmodal } = useGlobalContext();
+  const { promotion, setpromotion } = useGlobalContext();
 
   const [hover, sethover] = useState(false);
   const isBanner = promotion.banner_id === id;
 
   const ref = useClickOutside(() => sethover(false));
-  const actionMenu: Array<SelectionType> = [
-    {
-      label: "Edit",
-      value: type === "promotion" ? "createPromotion" : "createBanner",
-    },
-    {
-      label: "Delete",
-      value: "",
-    },
-  ];
+
   const handleSelectBanner = () => {
     sethover(true);
     if (promotion.selectbanner) {
@@ -585,31 +458,7 @@ export const BannerCard = ({
         {data.name.length === 0 ? "No name" : data.name}
       </p>
 
-      <span
-        // onClick={() =>
-        //   (!promotion.selectbanner || !openmodal.managebanner) && setopen(true)
-        // }
-        className="action_container absolute top-0 right-0"
-      >
-        {type === "banner" && isBanner && promotion.selectbanner && (
-          <Image
-            src={Checkmark}
-            alt="checkmark"
-            width={1000}
-            height={1000}
-            className="w-[30px] h-[30px] object-contain"
-          />
-        )}
-        {hover && !promotion.selectbanner && !openmodal?.managebanner && (
-          <SubInventoryMenu
-            data={actionMenu}
-            type={type}
-            style={{ top: "0", right: "0" }}
-            index={id}
-            reloaddata={reloaddata}
-          />
-        )}
-      </span>
+
     </div>
   );
 };
