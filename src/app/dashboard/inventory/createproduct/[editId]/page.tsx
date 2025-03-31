@@ -52,8 +52,8 @@ const CreateProductPage = ({ params }: { params: { editId?: string } }) => {
         if (!data.success) {
           return Router.push("/notfound");
         }
-        setproduct(data.data);
-        settempProduct(data.data);
+        setproduct(data?.data as ProductState);
+        settempProduct(data?.data as ProductState);
         setglobalindex((prev) => ({
           ...prev,
           producteditindex: Number(params.editId),
@@ -212,11 +212,11 @@ const CreateProductPage = ({ params }: { params: { editId?: string } }) => {
               <AsyncSelection
                 data={(take) =>
                   take
-                    ? FetchCategory({
+                    ? (FetchCategory({
                         ty: "parent",
                         offset: take,
                         type: categorytype.normal,
-                      })
+                      }) as never)
                     : undefined
                 }
                 type="async"
@@ -226,7 +226,7 @@ const CreateProductPage = ({ params }: { params: { editId?: string } }) => {
                   size: "lg",
                   labelPlacement: "outside",
                   placeholder: "Select",
-                  selectedKeys: product.category.parent.id
+                  selectedValue: product.category.parent.id
                     ? [product.category.parent.id.toString()]
                     : undefined,
                   isRequired: true,
@@ -239,7 +239,7 @@ const CreateProductPage = ({ params }: { params: { editId?: string } }) => {
                             ...prev.category,
                             parent: { id: Number(e.target.value) },
                           },
-                        } as any)
+                        } as ProductState)
                     );
                   },
                 }}
@@ -250,18 +250,18 @@ const CreateProductPage = ({ params }: { params: { editId?: string } }) => {
                 forceRefetch={product.category.parent.id}
                 data={(take) =>
                   take
-                    ? FetchCategory({
+                    ? (FetchCategory({
                         ty: "child",
                         pid: product.category.parent.id,
                         offset: take,
-                      })
+                      }) as never)
                     : undefined
                 }
                 option={{
                   name: "child",
                   label: "Child Categories",
                   size: "lg",
-                  selectedKeys: product.category.child
+                  selectedValue: product.category.child
                     ? [`${product.category.child.id}`]
                     : undefined,
                   isDisabled: !product.category.parent.id,
@@ -276,7 +276,7 @@ const CreateProductPage = ({ params }: { params: { editId?: string } }) => {
                             ...prev.category,
                             child: { id: Number(e.target.value) },
                           },
-                        } as any)
+                        } as ProductState)
                     ),
                 }}
               />

@@ -246,7 +246,7 @@ export default function TableComponent({
               width={100}
               height={100}
               loading="lazy"
-              alt={data.name}
+              alt={`cover${data.url}`}
               src={data.url}
             />
           );

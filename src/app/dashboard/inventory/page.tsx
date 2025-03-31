@@ -1,7 +1,7 @@
 "use client";
 import PrimaryButton from "../../component/Button";
 import { SubInventoryMenu } from "../../component/Navbar";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ApiRequest, Delayloading } from "@/src/context/CustomHook";
 import { errorToast } from "../../component/Loading";
 import dayjs from "dayjs";
@@ -96,7 +96,8 @@ export default function Inventory({
     promotiononly,
     expiredate,
     search,
-  } = searchParams as InventoryParamType;
+    pid,
+  } = useMemo(() => searchParams as InventoryParamType, [searchParams]);
   const [loaded, setloaded] = useState(false);
   const [updateLoading, setUpdateLoading] = useState<boolean | undefined>(
     undefined
@@ -105,9 +106,8 @@ export default function Inventory({
   const searchParam = useSearchParams();
   const [show, setshow] = useState(limit ?? "1");
   const [page, setpage] = useState(p ?? "1");
-  const [itemscount, setitemcount] = useState(0);
   const [lowstock, setlowstock] = useState(0);
-  const [reloaddata, setreloaddata] = useState(true);
+  const [reloaddata, setreloaddata] = useState(false);
   const [ty, settype] = useState<InventoryPage | undefined>(type);
   const [promoexpire, setpromoexpire] = useState(0);
 
@@ -123,6 +123,7 @@ export default function Inventory({
       (parentcate && !IsNumber(parentcate)) ||
       (childcate && !IsNumber(childcate)) ||
       (expired && !IsNumber(expired)) ||
+      (pid && !IsNumber(pid)) ||
       (promoids && !promoids.split(",").every(IsNumber));
 
     if (Invalid) {
@@ -130,19 +131,21 @@ export default function Inventory({
     }
 
     setfiltervalue({
+      categories: window.localStorage.getItem("categories")
+        ? JSON.parse(window.localStorage.getItem("categories") as string)
+        : undefined,
       search: search,
       expiredate: expiredate && isDate(expiredate) ? expiredate : undefined,
       promotiononly: promotiononly ? Boolean(promotiononly) : undefined,
-      parentcate:
-        parentcate && IsNumber(parentcate) ? Number(parentcate) : undefined,
-      childcate:
-        childcate && IsNumber(childcate) ? Number(childcate) : undefined,
+      parentcate: parentcate && IsNumber(parentcate) ? parentcate : undefined,
+      childcate: childcate && IsNumber(childcate) ? childcate : undefined,
       // Array handling optimized
       promoids:
         promoids && promoids.split(",").every(IsNumber)
           ? promoids.split(",")
           : undefined,
     });
+    setreloaddata(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     childcate,
@@ -151,25 +154,20 @@ export default function Inventory({
     limit,
     p,
     parentcate,
+    pid,
     promoids,
     promotiononly,
-    searchParams,
+    search,
     type,
   ]);
 
   useEffect(() => {
-    if (reloaddata) {
-      fetchdata(promotion.id);
-    }
-  }, [promotion.id, reloaddata, type, filtervalue]);
-
-  const fetchdata = useCallback(
-    async (pid?: number) => {
+    const fetchdata = async (pid?: number) => {
       try {
         let apiUrl: string = "";
         const {
           status,
-          name,
+          search,
           childcate,
           parentcate,
           bannersize,
@@ -182,37 +180,37 @@ export default function Inventory({
         if (ty === "product") {
           apiUrl =
             status ||
-            name ||
+            search ||
             childcate ||
             parentcate ||
             promotion.selectproduct ||
             promoids
               ? `/api/products?ty=filter&p=${page}&limit=${show}${
                   status ? `&sk=${status}` : ""
-                }${name ? `&q=${name}` : ""}${
+                }${search ? `&q=${search}` : ""}${
                   parentcate ? `&pc=${parentcate}` : ""
                 }${childcate ? `&cc=${childcate}` : ""}${
                   pid ? `&pid=${pid}` : ""
                 }${promotion.selectproduct ? "&sp=1" : ""}${
-                  promoids ? `&pids=${promoids}` : ""
+                  promoids ? `&pids=${promoids.join(",")}` : ""
                 }`
               : `/api/products?ty=all&limit=${show}&p=${page}`;
         } else if (ty === "banner") {
           apiUrl =
-            name || bannersize || bannertype
+            search || bannersize || bannertype
               ? `/api/banner?ty=filter&limit=${show}&p=${page}${
                   bannertype ? `&bty=${bannertype}` : ""
                 }${bannersize ? `&bs=${bannersize}` : ""}${
-                  name ? `&q=${name}` : ""
+                  search ? `&q=${search}` : ""
                 }`
               : promotion.selectbanner
               ? `/api/banner?ty=filter&limit=${show}&p=${page}&bty=normal&promoselect=1`
               : `/api/banner?ty=all&limit=${show}&p=${page}`;
         } else if (ty === "promotion") {
           apiUrl =
-            name || expiredate || expired
+            search || expiredate || expired
               ? `/api/promotion?ty=filter&lt=${show}&p=${page ?? "1"}${
-                  name ? `&q=${name}` : ""
+                  search ? `&q=${search}` : ""
                 }${
                   expiredate ? `&exp=${dayjs(expiredate).toISOString()}` : ""
                 }${expired ? `&expired=${expired}` : ""}`
@@ -227,18 +225,15 @@ export default function Inventory({
 
           if (allfetchdata.success) {
             const modifieddata = allfetchdata.data;
-            let prevProductData: Partial<Array<ProductState>> | undefined =
-              undefined;
 
             if (ty === "product") {
-              prevProductData = [...(allData?.product ?? [])];
               setlowstock(allfetchdata.lowstock as number);
             }
 
             setalldata(
-              ty === "product"
+              (ty === "product"
                 ? {
-                    product: prevProductData
+                    product: promotion.selectproduct
                       ? (modifieddata as Array<ProductState>).map((newProd) => {
                           const existingProd = promotion.products?.find(
                             (prod) => prod?.id === newProd.id
@@ -249,17 +244,15 @@ export default function Inventory({
                         })
                       : modifieddata,
                   }
-                : { [ty as string]: modifieddata }
+                : { [ty as string]: modifieddata }) as never
             );
             setpromoexpire(allfetchdata?.expirecount ?? 0);
-
             setitemlength({
               total: allfetchdata.total ?? 0,
               lowstock: allfetchdata.lowstock ?? 0,
               totalpage: allfetchdata.totalpage ?? 0,
+              totalitems: allfetchdata.totalfilter,
             });
-
-            setitemcount(allfetchdata.totalpage ?? 0);
           }
         };
 
@@ -272,20 +265,12 @@ export default function Inventory({
       } finally {
         setreloaddata(false);
       }
-    },
-    [
-      allData?.product,
-      filtervalue,
-      page,
-      promotion.products,
-      promotion.selectbanner,
-      promotion.selectproduct,
-      setalldata,
-      setitemlength,
-      show,
-      ty,
-    ]
-  );
+    };
+    if (reloaddata) {
+      fetchdata(promotion.id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reloaddata, promotion.id]);
 
   const handleShowPerPage = (value: number | string) => {
     const param = new URLSearchParams(searchParam);
@@ -444,7 +429,7 @@ export default function Inventory({
           />
         )}
         {openmodal.filteroption && (
-          <FilterMenu type={type} totalproduct={itemlength.total} />
+          <FilterMenu type={type} reloaddata={() => setreloaddata(true)} />
         )}
         {openmodal.discount && <DiscountModals />}
 
@@ -576,19 +561,19 @@ export default function Inventory({
                 !promotion.selectproduct &&
                 tableselectitems &&
                 tableselectitems.length > 0 && (
-                  <Button
-                    onPress={() => handleSelectDelete()}
-                    className="w-[150px] h-full"
-                    color="danger"
-                  >
-                    {`Delete ${tableselectitems.length}`}
-                  </Button>
+                  <PrimaryButton
+                    color="red"
+                    radius="10px"
+                    style={{ minWidth: "150px" }}
+                    type="button"
+                    text={`Delete ${tableselectitems.length}`}
+                    onClick={() => handleSelectDelete()}
+                  />
                 )}
             </div>
           </div>
 
           <section className="w-full h-full max-defaultsize:overflow-x-auto overflow-hidden">
-            {" "}
             {type && (
               <TableComponent
                 ty={type}
@@ -598,7 +583,7 @@ export default function Inventory({
                 }
                 isLoading={loaded}
                 pagination={{
-                  itemscount,
+                  itemscount: itemlength.totalpage,
                   show,
                   page: Number(page),
                   setpage: (val) => handlePage(val.toString()),

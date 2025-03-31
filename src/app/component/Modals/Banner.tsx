@@ -9,27 +9,17 @@ import {
   useEffect,
   useState,
 } from "react";
-import {
-  getChildCategoryForBanner,
-  getParentCategoryForBanner,
-  getProductForBanner,
-  getPromotionForBanner,
-} from "../../severactions/actions";
-import {
-  ApiRequest,
-  useEffectOnce,
-  useScreenSize,
-} from "@/src/context/CustomHook";
+import { ApiRequest, useScreenSize } from "@/src/context/CustomHook";
 import { errorToast, successToast } from "../Loading";
 import { SecondaryModal } from "../Modals";
-
-import PrimaryButton, { Selection } from "../Button";
+import PrimaryButton from "../Button";
 import { SelectAndSearchProduct } from "../Banner";
 import { ImageUpload } from "./Image";
 import { DeleteTempImage } from "../../dashboard/inventory/varaint_action";
 import { Divider, Form, Input } from "@heroui/react";
-import { SelectType } from "@/src/context/GlobalType.type";
+import { BannerState, SelectType } from "@/src/context/GlobalType.type";
 import { AsyncSelection } from "@/src/app/component/AsynSelection";
+import Image from "next/image";
 
 const BannerType = [
   { label: "Normal", value: "normal" },
@@ -94,12 +84,12 @@ export const BannerModal = ({
       setloading(false);
 
       if (request.success) {
-        setbanner(request.data);
+        setbanner(request.data as BannerState);
       } else {
         errorToast("Error Connection");
       }
     };
-    globalindex.bannereditindex !== -1 && fetchdata();
+    if (globalindex.bannereditindex !== -1) fetchdata();
   }, []);
 
   const handleCreate = useCallback(
@@ -169,8 +159,9 @@ export const BannerModal = ({
         setbanner(BannerInitialize);
         successToast(`Banner ${isCreating ? "Created" : "Updated"}`);
         setreloaddata?.(true);
-      } catch (error: any) {
-        errorToast(`Error: ${error.message || "Unknown error occurred"}`);
+      } catch (error) {
+        const err = error as Record<string, unknown>;
+        errorToast(`Error: ${err?.message || "Unknown error occurred"}`);
       } finally {
         setloading(false);
       }
@@ -186,7 +177,7 @@ export const BannerModal = ({
     ]
   );
 
-  const handleChange = (event: ChangeEvent<any>) => {
+  const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = event.target;
 
     if (name === "type" || name === "linktype") {
@@ -212,7 +203,7 @@ export const BannerModal = ({
     if (type === "parentcate")
       setbanner((prev) => ({
         ...prev,
-        parentcate: value as any,
+        parentcate: value as never,
         childcate: undefined,
       }));
     else
@@ -237,7 +228,7 @@ export const BannerModal = ({
             style={banner.size === "normal" ? { width: "100%" } : {}}
             className="flex flex-col w-full max-w-[80%] max-large_phone:max-w-full max-h-[80vh] min-h-[250px] border-2 border-dashed border-gray-300 rounded-lg"
           >
-            <img
+            <Image
               src={banner.image.url}
               alt={"Banner"}
               style={
@@ -283,9 +274,9 @@ export const BannerModal = ({
                   fullWidth: true,
                   label: "Type",
                   labelPlacement: "outside",
-                  selectedKeys: [banner.type],
+                  selectedValue: [banner.type],
                   name: "type",
-                  onChange: handleChange,
+                  onChange: (val) => handleChange(val as never),
                   isRequired: true,
                 }}
               />
@@ -297,8 +288,8 @@ export const BannerModal = ({
                   name: "size",
                   label: "Size",
                   labelPlacement: "outside",
-                  selectedKeys: [banner.size],
-                  onChange: handleChange,
+                  selectedValue: [banner.size],
+                  onChange: (val) => handleChange(val as never),
                   isRequired: true,
                 }}
               />
@@ -320,8 +311,10 @@ export const BannerModal = ({
                   label: "Link Type",
                   labelPlacement: "outside",
                   placeholder: "Select",
-                  selectedKeys: banner.linktype ? [banner.linktype] : undefined,
-                  onChange: handleChange,
+                  selectedValue: banner.linktype
+                    ? [banner.linktype]
+                    : undefined,
+                  onChange: (val) => handleChange(val as never),
                 }}
               />
             )}

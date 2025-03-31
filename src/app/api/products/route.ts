@@ -21,7 +21,8 @@ interface paramsType {
   cc?: number;
   sk?: string;
   p?: number;
-  pid?: string; //Promotion id
+  prodId?: number;
+  pid?: number; //Promotion id
   pids?: string; //Promotion Ids
   po?: number;
   dc?: string;
@@ -50,37 +51,35 @@ const convertStockData = (stock: Stocktype[]) => {
 export async function GET(request: NextRequest) {
   try {
     const url = request.nextUrl.toString();
-    const { ty, limit, q, pc, sk, cc, p, pid, po, dc, ds, dt, sp, pids } =
+    const { ty, limit, q, pc, sk, cc, p, pid, po, dc, dt, sp, pids, prodId } =
       extractQueryParams(url) as unknown as paramsType;
 
-    const productId = pid ? parseInt(pid, 10) : undefined;
+    if (!ty) {
+      return Response.json({}, { status: 400 });
+    }
 
     let response;
     if (ty === "all" || ty === "filter" || ty === "detail") {
-      const allProduct = await GetAllProduct(
+      const allProduct = await GetAllProduct({
         limit,
         ty,
-        p as number,
-        q,
-        pc,
+        page: p as number,
+        query: q,
+        parent_cate: pc,
+        child_cate: cc,
         sk,
-        cc,
-        productId,
-        po,
-        dc,
-        ds,
-        dt,
-        sp,
-        pids?.toString()
-      );
-
-      const total = await Prisma.products.count();
+        promotionid: pid,
+        priceorder: po,
+        detailcolor: dc,
+        detailtext: dt,
+        selectpromo: sp,
+        promotionids: pids,
+      });
 
       if (allProduct.success) {
         response = Response.json(
           {
             data: allProduct.data,
-            total: total,
             totalpage: allProduct.total,
             lowstock: allProduct.lowstock,
             totalfilter: allProduct.totalfilter,
@@ -129,7 +128,7 @@ export async function GET(request: NextRequest) {
       response = Response.json({ data: allvalarr }, { status: 200 });
     } else if (ty === "info") {
       const product = await Prisma.products.findUnique({
-        where: { id: productId },
+        where: { id: prodId },
         select: {
           id: true,
           name: true,
@@ -228,7 +227,7 @@ export async function GET(request: NextRequest) {
     } else if (ty === "stock") {
       const variant = await Prisma.variant.findMany({
         where: {
-          product_id: productId,
+          product_id: prodId,
         },
         orderBy: {
           id: "desc",
@@ -242,7 +241,7 @@ export async function GET(request: NextRequest) {
       });
       const stock = await Prisma.stock.findMany({
         where: {
-          product_id: productId,
+          product_id: prodId,
         },
         orderBy: { id: "asc" },
         select: {

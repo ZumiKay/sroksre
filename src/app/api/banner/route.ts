@@ -122,24 +122,63 @@ export async function DELETE(request: NextRequest) {
 
 //GET BANNER
 
-export function extractQueryParams(url: string) {
-  const queryString = url.split("?")[1];
+export function extractQueryParams(
+  url: string
+): Record<string, string | number | boolean | string[]> {
+  // Handle invalid input
+  if (typeof url !== "string" || !url) {
+    return {};
+  }
 
+  // Extract query string safely
+  const queryString = url.split("?")[1];
   if (!queryString) {
     return {};
   }
 
-  const paramsArray = queryString.split("&");
-  const queryParams: Record<string, string | number> = {};
+  const queryParams: Record<string, string | number | boolean | string[]> = {};
 
-  paramsArray.forEach((param) => {
-    const [key, value] = param.split("=");
-    queryParams[key] = isNaN(Number(value)) ? value : parseInt(value, 10);
-  });
+  try {
+    const paramsArray = queryString.split("&").filter((param) => param); // Remove empty entries
 
-  return queryParams;
+    paramsArray.forEach((param) => {
+      // Handle cases where there's no = sign or empty values
+      const [key, value] = param.split("=");
+      if (!key) return; // Skip if no key
+
+      // Decode URI component to handle encoded characters
+      const decodedValue = value !== undefined ? decodeURIComponent(value) : "";
+
+      // Parse the value based on its content
+      if (decodedValue === "") {
+        queryParams[key] = "";
+      }
+      // Handle boolean values
+      else if (decodedValue.toLowerCase() === "true") {
+        queryParams[key] = true;
+      } else if (decodedValue.toLowerCase() === "false") {
+        queryParams[key] = false;
+      }
+      // Handle comma-separated arrays
+      else if (decodedValue.includes(",")) {
+        queryParams[key] = decodedValue.split(",").map((item) => item.trim());
+      }
+      // Handle numeric values
+      else if (!isNaN(Number(decodedValue)) && decodedValue !== "") {
+        queryParams[key] = Number(decodedValue);
+      }
+      // Default to string
+      else {
+        queryParams[key] = decodedValue;
+      }
+    });
+
+    return queryParams;
+  } catch (error) {
+    console.error("Error parsing query parameters:", error);
+    return {};
+  }
 }
-
 const getBannerData = async (id: Array<number>, model: any) => {
   const data = await model.findMany({
     where: {
@@ -152,7 +191,7 @@ const getBannerData = async (id: Array<number>, model: any) => {
       name: true,
     },
   });
-  return data ? data.map((i: any) => ({ value: i.id, label: i.name })) : null;
+  return data ? data.map((i) => ({ value: i.id, label: i.name })) : null;
 };
 export async function GET(request: NextRequest) {
   const params = request.url.toString();

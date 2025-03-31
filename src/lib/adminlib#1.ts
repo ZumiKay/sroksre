@@ -6,10 +6,7 @@ import {
 } from "./adminlib";
 import Prisma from "./prisma";
 import { Prisma as prisma, Products } from "@prisma/client";
-import {
-  calculateDiscountProductPrice,
-  removeSpaceAndToLowerCase,
-} from "./utilities";
+import { calculateDiscountProductPrice } from "./utilities";
 import { ProductState } from "../context/GlobalType.type";
 
 export type GetProductReturnType = {
@@ -20,28 +17,44 @@ export type GetProductReturnType = {
   totalfilter?: number;
 };
 
-export const GetAllProduct = async (
-  limit: number,
-  ty: string,
-  page: number,
-  query?: string,
-  parent_cate?: number,
-  sk?: string,
-  child_cate?: number,
-  promotionid?: number,
-  priceorder?: number,
-  detailcolor?: string,
-  detailtext?: string,
-  selectpromo?: number,
-  promotionids?: string
-): Promise<GetProductReturnType> => {
+type GetProductParamsType = {
+  limit: number;
+  ty: string;
+  page: number;
+  query?: string;
+  parent_cate?: number;
+  sk?: string;
+  child_cate?: number;
+  promotionid?: number;
+  priceorder?: number;
+  detailcolor?: string;
+  detailtext?: string;
+  selectpromo?: number;
+  promotionids?: string;
+};
+
+export const GetAllProduct = async ({
+  limit,
+  ty,
+  page,
+  query,
+  parent_cate,
+  sk,
+  child_cate,
+  promotionid,
+  priceorder,
+  detailcolor,
+  detailtext,
+  selectpromo,
+  promotionids,
+}: GetProductParamsType): Promise<GetProductReturnType> => {
   try {
     // Base where clause
     const where: prisma.ProductsWhereInput | prisma.ProductsWhereUniqueInput = {
       ...(query && {
         name: {
-          contains: removeSpaceAndToLowerCase(query),
-          mode: "insensitive",
+          contains: query,
+          mode: "insensitive" as const,
         },
       }),
       ...(parent_cate && { parentcategory_id: parent_cate }),
@@ -86,7 +99,12 @@ export const GetAllProduct = async (
     if (ty === "filter" || ty === "all") {
       // Add low stock filter
       if (sk === "Low") {
-        where.Stock = { some: { Stockvalue: { some: { qty: { lte: 5 } } } } };
+        where.OR = [
+          {
+            Stock: { some: { Stockvalue: { some: { qty: { lte: 5 } } } } },
+            stock: { lte: 5 },
+          },
+        ];
       }
 
       const products = await Prisma.products.findMany({

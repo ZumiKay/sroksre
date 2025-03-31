@@ -1,7 +1,6 @@
 import {
   ApiRequest,
   Delayloading,
-  useEffectOnce,
   useScreenSize,
 } from "@/src/context/CustomHook";
 import { useGlobalContext } from "@/src/context/GlobalContext";

@@ -9,6 +9,8 @@ import {
   BannerTypeSelect,
   categorytype,
   FiltermenuType,
+  FilterValueType,
+  SelectType,
 } from "@/src/context/GlobalType.type";
 import dayjs from "dayjs";
 import { formatDate } from "../EmailTemplate";
@@ -20,11 +22,12 @@ import { FetchPromotionSelection } from "./action";
 
 const FilterMenu = ({
   type,
-  totalproduct,
+  reloaddata,
+  isLoading,
 }: {
   type?: FiltermenuType;
-  totalproduct?: number;
-  setisFilter?: React.Dispatch<React.SetStateAction<boolean>>;
+  reloaddata?: () => void;
+  isLoading?: boolean;
 }) => {
   const {
     openmodal,
@@ -39,11 +42,26 @@ const FilterMenu = ({
   const searchParams = useSearchParams();
 
   const handleChange = useCallback(
-    (e: ChangeEvent<HTMLInputElement>) => {
+    (e: ChangeEvent<HTMLInputElement>, cate?: SelectType) => {
       const { name, value } = e.target;
-      setfiltervalue((prev) => ({ ...prev, [name]: value }));
+
+      if (name === "search" && reloaddata) reloaddata();
+
+      const toBeUpdateFilterdValue: Partial<FilterValueType> = {
+        ...filtervalue,
+      };
+
+      if (cate) {
+        toBeUpdateFilterdValue.categories = {
+          ...toBeUpdateFilterdValue.categories,
+          [name]: cate,
+        } as never;
+      }
+      toBeUpdateFilterdValue[name as never] = value as never;
+
+      setfiltervalue((prev) => ({ ...prev, ...toBeUpdateFilterdValue }));
     },
-    [setfiltervalue]
+    [filtervalue, reloaddata, setfiltervalue]
   );
 
   const handleFilter = useCallback(() => {
@@ -61,13 +79,16 @@ const FilterMenu = ({
         params.set("promoids", val.join(","));
       }
 
-      if (key !== "p" && value && value !== "none") {
+      if (key === "categories") {
+        localStorage.setItem(key, JSON.stringify(value));
+      }
+
+      if (key !== "p" && key !== "categories" && value && value !== "none") {
         params.set(key, value as string);
       }
     });
 
     params.set("p", "1");
-
     router.push(`?${params}`);
 
     setopenmodal((prev) => ({ ...prev, filteroption: false }));
@@ -79,6 +100,9 @@ const FilterMenu = ({
     const params = new URLSearchParams(searchParams);
     Object.keys(filtervalue).map((key) => {
       if (key !== "p") {
+        if (window.localStorage.getItem(key)) {
+          window.localStorage.removeItem(key);
+        }
         params.delete(key);
       }
     });
@@ -91,8 +115,9 @@ const FilterMenu = ({
   }, [filtervalue, searchParams, router, setopenmodal]);
 
   const handleCloseModal = useCallback(() => {
-    if (!selectdate) setopenmodal((prev) => ({ ...prev, filteroption: false }));
-  }, [selectdate, setopenmodal]);
+    if (!selectdate && !isLoading)
+      setopenmodal((prev) => ({ ...prev, filteroption: false }));
+  }, [selectdate, setopenmodal, isLoading]);
 
   return (
     <SecondaryModal
@@ -103,26 +128,15 @@ const FilterMenu = ({
       closebtn
       footer={() => (
         <>
-          {type !== "listproduct" ? (
-            <PrimaryButton
-              type="button"
-              onClick={() => handleFilter()}
-              text="Filter"
-              disable={!filtervalue}
-              radius="10px"
-              width="100%"
-            />
-          ) : (
-            <PrimaryButton
-              type="button"
-              text={`Show Product ${totalproduct === 0 ? "" : totalproduct}`}
-              onClick={() =>
-                setopenmodal((prev) => ({ ...prev, filteroption: false }))
-              }
-              radius="10px"
-              width="100%"
-            />
-          )}
+          <PrimaryButton
+            type="button"
+            onClick={() => handleFilter()}
+            text="Filter"
+            disable={!filtervalue}
+            radius="10px"
+            width="100%"
+          />
+
           <PrimaryButton
             type="button"
             onClick={() => handleClear()}
@@ -130,6 +144,7 @@ const FilterMenu = ({
             color="lightcoral"
             radius="10px"
             width="100%"
+            disable={!filtervalue}
           />
         </>
       )}
@@ -231,25 +246,28 @@ const FilterMenu = ({
                 type="async"
                 data={(take) =>
                   take
-                    ? FetchCategory({
+                    ? (FetchCategory({
                         ty: "parent",
                         offset: take,
                         type: categorytype.normal,
-                      })
+                      }) as never)
                     : undefined
                 }
                 option={{
                   fullWidth: true,
-                  selectedKeys: filtervalue?.parentcate
+                  selectedValue: filtervalue?.parentcate
                     ? [filtervalue.parentcate]
                     : undefined,
-                  onChange: (val) => {
-                    handleChange({
-                      target: {
-                        name: "parentcate",
-                        value: val.target.value,
-                      },
-                    } as never);
+                  onValueChange: (val, cate) => {
+                    handleChange(
+                      {
+                        target: {
+                          name: "parentcate",
+                          value: val.target.value,
+                        },
+                      } as never,
+                      cate
+                    );
                   },
                   label: "Parent Categories",
                 }}
@@ -258,29 +276,29 @@ const FilterMenu = ({
                 type="async"
                 data={(take) =>
                   take && filtervalue?.parentcate
-                    ? FetchCategory({
+                    ? (FetchCategory({
                         ty: "child",
-                        pid: filtervalue?.parentcate,
+                        pid: Number(filtervalue?.parentcate),
                         offset: take,
-                      })
+                      }) as never)
                     : undefined
                 }
-                forceRefetch={filtervalue?.parentcate}
+                forceRefetch={Number(filtervalue?.parentcate ?? "0")}
                 option={{
                   fullWidth: true,
                   label: "Child Categories",
                   size: "md",
                   isDisabled: !filtervalue?.parentcate,
-                  selectedKeys: filtervalue?.childcate
+                  selectedValue: filtervalue?.childcate
                     ? [filtervalue.childcate]
                     : undefined,
-                  onChange: (val) => {
-                    handleChange({
-                      target: {
-                        name: "childcate",
-                        value: val.target.value,
-                      },
-                    } as never);
+                  onValueChange: (e, val) => {
+                    handleChange(
+                      {
+                        target: { name: "childcate", value: e.target.value },
+                      } as never,
+                      val
+                    );
                   },
                 }}
               />
@@ -300,7 +318,7 @@ const FilterMenu = ({
             ) : (
               <AsyncSelection
                 type="async"
-                data={(val = 5) => FetchPromotionSelection(val)}
+                data={(val = 5) => FetchPromotionSelection(val) as never}
                 option={{
                   selectionMode: "multiple",
                   label: "Promotion",

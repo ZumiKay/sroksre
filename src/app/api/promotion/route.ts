@@ -271,7 +271,7 @@ interface customparamPromotion {
   exp?: string;
   ty?: tyType;
   p?: number;
-  search?: string;
+  q?: string;
   limit?: number;
   expired?: number;
   ids?: string;
@@ -301,9 +301,9 @@ export async function GET(request: NextRequest) {
 
     // Base query condition
     const baseCondition: prisma.PromotionWhereInput = {
-      name: param.search
+      name: param.q
         ? {
-            contains: removeSpaceAndToLowerCase(param.search),
+            contains: removeSpaceAndToLowerCase(param.q),
             mode: "insensitive",
           }
         : {},
@@ -322,7 +322,7 @@ export async function GET(request: NextRequest) {
       where:
         param.ty === "selection"
           ? {}
-          : param.search || param.exp || param.expired
+          : param.q || param.exp || param.expired
           ? baseCondition
           : {},
     });

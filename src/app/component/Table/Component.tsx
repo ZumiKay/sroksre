@@ -1,5 +1,5 @@
 import { useGlobalContext } from "@/src/context/GlobalContext";
-import { SelectType } from "@/src/context/GlobalType.type";
+import { FilterValueType, SelectType } from "@/src/context/GlobalType.type";
 import {
   Button,
   Chip,
@@ -15,6 +15,7 @@ import {
 import { Key } from "react";
 import { filtervaluetype } from "../../product/action";
 import { formatDate } from "../EmailTemplate";
+import { useRouter, useSearchParams } from "next/navigation";
 
 const DefaultActionContainer: Array<SelectType> = [
   {
@@ -115,14 +116,32 @@ export const TableBottomContent = ({
 
 const FilteredValueContainer = () => {
   const { filtervalue, setfiltervalue } = useGlobalContext();
+  const searchParams = useSearchParams();
+  const Router = useRouter();
 
   if (!filtervalue) return null;
 
-  const handleModifyFilter = (key: keyof filtervaluetype) => {
+  const handleModifyFilter = (key: keyof FilterValueType) => {
+    const params = new URLSearchParams(searchParams);
     setfiltervalue((prev) => ({ ...prev, [key]: undefined }));
+    if (params.has(key)) params.delete(key);
+
+    if (key === "categories" && window.localStorage.getItem(key)) {
+      window.localStorage.removeItem(key);
+      params.delete("parentcate");
+      params.delete("childcate");
+    }
+
+    Router.push(`?${params}`);
   };
 
-  const displayKeys = ["status", "search", "expiredate", "promotiononly"];
+  const displayKeys = [
+    "status",
+    "search",
+    "expiredate",
+    "promotiononly",
+    "categories",
+  ];
 
   return (
     <div className="filteredvalue w-fit h-full flex flex-row gap-x-3 items-center">
@@ -138,12 +157,16 @@ const FilteredValueContainer = () => {
           return (
             <Chip
               key={key}
-              onClose={() => handleModifyFilter(key as keyof filtervaluetype)}
+              onClose={() => handleModifyFilter(key as keyof FilterValueType)}
               className={key !== "promotiononly" ? "w-fit h-full" : ""}
               variant={key !== "promotiononly" ? "bordered" : "solid"}
               color={key === "promotiononly" ? "success" : "primary"}
             >
-              {key === "promotiononly"
+              {key === "categories" && val
+                ? `${val.parentcate.label}${
+                    val?.childcate ? ` / ${val.childcate?.label}` : ""
+                  }`
+                : key === "promotiononly"
                 ? "Promotion Only"
                 : key === "expiredate"
                 ? formatDate(new Date(val))
@@ -162,6 +185,7 @@ export const TopTableContent = () => {
         tableselectitems ? tableselectitems.length : 0
       }`}</p>
       <Divider orientation="vertical" />
+      <FilteredValueContainer />
     </div>
   );
 };

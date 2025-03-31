@@ -176,8 +176,12 @@ export interface ProductState {
   createdAt?: Date;
 }
 export interface FilterValueType {
-  parentcate?: number;
-  childcate?: number;
+  parentcate?: string;
+  childcate?: string;
+  categories?: {
+    parentcate: ProductCategoriesType;
+    childcate?: ProductCategoriesType;
+  };
   status?: string;
   name?: string;
   firstname?: string;
@@ -256,6 +260,7 @@ export interface ItemLength {
   total: number;
   lowstock?: number;
   totalpage: number;
+  totalitems?: number;
 }
 
 export interface PromotionProductState {

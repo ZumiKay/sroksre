@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
           },
           take,
         })
-      ).map((item) => ({ label: item.name, value: item.id }));
+      ).map((item) => ({ label: item.name, value: item.id.toString() }));
 
       if (take) {
         const parentcount = await Prisma.parentcategories.count();
@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
           },
           take,
         })
-      ).map((item) => ({ label: item.name, value: item.id }));
+      ).map((item) => ({ label: item.name, value: item.id.toString() }));
       if (take) {
         const childcount = await Prisma.parentcategories.count();
         result.hasMore = childcount > take;

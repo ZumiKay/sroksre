@@ -21,7 +21,6 @@ import React from "react";
 import {
   ApiRequest,
   Delayloading,
-  useEffectOnce,
   useScreenSize,
 } from "@/src/context/CustomHook";
 import Image from "next/image";
@@ -38,7 +37,7 @@ import { BannerSkeleton } from "./Component";
 import { ContainerLoading, errorToast, successToast } from "../Loading";
 import { BannerModal } from "../Modals/Banner";
 import { parseDate } from "@internationalized/date";
-import { SelectType } from "@/src/context/GlobalType.type";
+import { BannerState, SelectType } from "@/src/context/GlobalType.type";
 
 interface HomeContainerModalProps {
   setprofile: any;
@@ -95,6 +94,7 @@ const CreateContainerType = ({
           (item, idx) =>
             item.item && (
               <Bannercard
+                key={idx}
                 id={item.item?.id ?? 0}
                 image={item.item?.image.url ?? ""}
                 isAdd={false}
@@ -247,6 +247,7 @@ const ScrollableContainerModal = ({
           (item, idx) =>
             item.item && (
               <Bannercard
+                key={idx}
                 id={item.item.id ?? 0}
                 image={item.item.image?.url ?? ""}
                 onClick={handleClick}
@@ -739,7 +740,7 @@ function AddBannerContainer({
         const request = await ApiRequest({ url, method: "GET" });
 
         if (request.success) {
-          setbanners(request.data);
+          setbanners(request.data as Array<BannersType>);
           setlimit(request.isLimit ?? false);
         }
       };

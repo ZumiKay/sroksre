@@ -1,6 +1,5 @@
 import { useState, useEffect, DependencyList, useRef } from "react";
 import Error from "next/error";
-import { useRouter, useSearchParams } from "next/navigation";
 import { ApiRequestHookProps } from "./GlobalType.type";
 
 export const ApiRequest = async ({
@@ -13,7 +12,7 @@ export const ApiRequest = async ({
 }: ApiRequestHookProps): Promise<{
   success: boolean;
   error?: string;
-  data?: any;
+  data?: unknown;
   total?: number;
   totalpage?: number;
   lowstock?: number;
@@ -24,13 +23,14 @@ export const ApiRequest = async ({
   isLimit?: boolean;
 }> => {
   try {
-    setloading && setloading((prev) => ({ ...prev, [method]: true }));
+    if (setloading) setloading((prev) => ({ ...prev, [method]: true }));
     const requestOptions: RequestInit = {
       method,
       next: { tags: [revalidate ?? ""] },
     };
     if (data) {
-      requestOptions.body = datatype === "JSON" ? JSON.stringify(data) : data;
+      requestOptions.body =
+        datatype === "JSON" ? JSON.stringify(data) : (data as never);
     }
 
     const response = await fetch(url, requestOptions);
@@ -40,7 +40,7 @@ export const ApiRequest = async ({
     if (!response.ok) {
       throw new Error(responseJson.message ?? "Error Occured");
     }
-    setloading && setloading((prev) => ({ ...prev, [method]: false }));
+    if (setloading) setloading((prev) => ({ ...prev, [method]: false }));
 
     if (method === "GET" || method === "POST") {
       return {
@@ -57,13 +57,14 @@ export const ApiRequest = async ({
     } else {
       return { success: true, message: responseJson.message };
     }
-  } catch (error: any) {
-    setloading && setloading((prev) => ({ ...prev, [method]: false }));
+  } catch (error) {
+    if (setloading) setloading((prev) => ({ ...prev, [method]: false }));
+    const err = error as Record<string, unknown>;
 
     return {
       success: false,
-      error: error.props ?? "Error Occured",
-      message: error.message ?? "Error Occured",
+      error: (err.props ?? "Error Occured") as string,
+      message: (err.message ?? "Error Occured") as string,
     };
   }
 };
@@ -75,47 +76,14 @@ export function useDebounceEffect(
 ) {
   useEffect(() => {
     const t = setTimeout(() => {
-      fn.apply(undefined, deps as any);
+      fn(...(deps as []));
     }, waitTime);
 
     return () => {
       clearTimeout(t);
     };
-  }, deps);
+  }, [deps, waitTime]);
 }
-
-export const useEffectOnce = (effect: () => void | (() => void)) => {
-  const destroyFunc = useRef<void | (() => void)>();
-  const effectCalled = useRef(false);
-  const renderAfterCalled = useRef(false);
-  const [val, setVal] = useState<number>(0);
-
-  if (effectCalled.current) {
-    renderAfterCalled.current = true;
-  }
-
-  useEffect(() => {
-    // only execute the effect first time around
-    if (!effectCalled.current) {
-      destroyFunc.current = effect();
-      effectCalled.current = true;
-    }
-
-    // this forces one render after the effect is run
-    setVal((val) => val + 1);
-
-    return () => {
-      // if the comp didn't render since the useEffect was called,
-      // we know it's the dummy React cycle
-      if (!renderAfterCalled.current) {
-        return;
-      }
-      if (destroyFunc.current) {
-        destroyFunc.current();
-      }
-    };
-  }, []);
-};
 
 export const useClickOutside = (callback: () => void) => {
   const ref = useRef<HTMLDivElement | null>(null);

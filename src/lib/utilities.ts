@@ -45,7 +45,7 @@ export const DeleteImageFromStorage = async (
   }
 };
 
-export const removeSpaceAndToLowerCase = (str: String) =>
+export const removeSpaceAndToLowerCase = (str: string) =>
   str.replace(/\s/g, "").toLowerCase();
 
 export const calculatePagination = (
@@ -250,7 +250,7 @@ export const HasPartialOverlap = (
   const array1 = Array.from(set1);
   const array2 = Array.from(set2);
 
-  for (let val of array1) {
+  for (const val of array1) {
     if (array2.includes(val)) {
       return true;
     }
@@ -271,7 +271,7 @@ export const HasExactMatch = (arr1: string[][], arr2: string[][]): boolean => {
     return false;
   }
 
-  for (let val of array1) {
+  for (const val of array1) {
     if (!array2.includes(val)) {
       return false;
     }
@@ -354,6 +354,16 @@ function deepEqual(obj1: any, obj2: any): boolean {
   }
   return true;
 }
+
+export const searchParamsToObject = (
+  searchParams?: URLSearchParams
+): Record<string, string | undefined> => {
+  const result: Record<string, string> = {};
+  searchParams?.forEach((value, key) => {
+    result[key] = value;
+  });
+  return result;
+};
 
 //Email Template
 //

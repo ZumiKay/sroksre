@@ -32,7 +32,7 @@ const ImagePreview = ({ open, data }: ImagePreviewProps) => {
       });
       setloading(false);
       if (response.success) {
-        setImagedata(response.data);
+        setImagedata(response.data as Array<ImageDatatype>);
       }
     };
     setImagedata(null); // Reset state on data change
@@ -55,24 +55,24 @@ const ImagePreview = ({ open, data }: ImagePreviewProps) => {
     [currentIdx, imagedata]
   );
 
-  if (!imagedata) return null; // Early return if no data
-
   return (
     <SecondaryModal size="md" open={open} onPageChange={() => setopenmodal({})}>
       {loading && <ContainerLoading />}
       <div className="image_container flex w-full min-h-[400px] flex-col items-center gap-y-3 bg-white">
-        <div className="preview h-[400px] w-full">
-          <Image
-            width={500}
-            height={500}
-            quality={100}
-            alt={imagedata[currentIdx].name ?? "image"}
-            src={imagedata[currentIdx].url}
-            loading="eager"
-            className="h-full w-full object-contain"
-          />
-        </div>
-        {imagedata.length > 1 && (
+        {imagedata && (
+          <div className="preview h-[400px] w-full">
+            <Image
+              width={500}
+              height={500}
+              quality={100}
+              alt={imagedata[currentIdx].name ?? "image"}
+              src={imagedata[currentIdx].url}
+              loading="eager"
+              className="h-full w-full object-contain"
+            />
+          </div>
+        )}
+        {imagedata && imagedata.length > 1 && (
           <div className="imageList flex h-[40px] w-full items-center justify-between gap-x-5 overflow-y-hidden overflow-x-auto p-2">
             <Button
               onPress={() => handleNavigate("prev")}

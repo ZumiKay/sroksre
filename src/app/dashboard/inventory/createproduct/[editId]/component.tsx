@@ -42,7 +42,7 @@ export const StockCreateSection = () => {
           onChange: ({ target }) => handleChange(target.name, target.value),
           name: "stocktype",
           size: "lg",
-          selectedKeys: [product.stocktype],
+          selectedValue: [product.stocktype],
           value: product.stocktype,
           placeholder: "Stock Type",
           isRequired: true,
