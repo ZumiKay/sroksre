@@ -1,13 +1,14 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "../app/api/auth/[...nextauth]/route";
-import {ProductState, Usersessiontype, VariantColorValueType} from "@/src/context/GlobalType.type";
+import {
+  ProductState,
+  userdata,
+  VariantColorValueType,
+} from "@/src/context/GlobalType.type";
+import { Address } from "@prisma/client";
+import { OrderUserType } from "../app/checkout/action";
+import dayjs from "dayjs";
 
-export const getUser = async (): Promise<Usersessiontype | null> => {
-  const user = (await getServerSession(authOptions)) as any;
-  const result = user?.user as Usersessiontype | null;
+export type OrderDetialModalType = "user" | "shipping" | "close" | "none";
 
-  return result;
-};
 export type Orderstatus =
   | "Incart"
   | "Unpaid"
@@ -66,4 +67,55 @@ export interface Ordertype {
   status: Orderstatus;
   price: totalpricetype;
   estimate?: Date;
+}
+
+export interface OrderDetailType {
+  user: userdata;
+  shipping: Address;
+  createdAt: Date;
+  updatedAt: Date;
+  price: totalpricetype;
+}
+export interface ModalDataType {
+  detail?: OrderDetailType;
+  product?: Array<Productordertype>;
+  action?: OrderUserType;
+}
+
+export interface DownloadData {
+  orderID: string;
+  orderDate: string;
+  buyer: string;
+  product: [
+    {
+      productid: string;
+      productname: string;
+      quantity: number;
+      price: number;
+      discount: number;
+    }
+  ];
+  shippingtype: string;
+  shippingprice?: number;
+  totalprice: number;
+}
+
+export interface Filterdatatype {
+  q?: string;
+  orderdate?: dayjs.Dayjs | string;
+  fromdate?: dayjs.Dayjs | string;
+  todate?: dayjs.Dayjs | string;
+  startprice?: number | string;
+  endprice?: number | string;
+  filename?: string;
+  [key: string]: number | dayjs.Dayjs | string | undefined;
+}
+
+export interface AllorderStatus {
+  id: string;
+  status: string;
+  price: totalpricetype;
+  shippingtype?: string;
+  createdAt: Date;
+  updatedAt: Date;
 }

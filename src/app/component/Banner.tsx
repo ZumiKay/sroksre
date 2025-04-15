@@ -56,6 +56,7 @@ interface SelectAndSearchProps {
   singleSelect?: boolean;
   placeholder?: string;
   debounceMs?: number; // Allow customizing debounce time
+  textsize?: string;
 }
 
 export const SelectAndSearchProduct = ({
@@ -66,6 +67,7 @@ export const SelectAndSearchProduct = ({
   singleSelect = false,
   placeholder = "Search Product",
   debounceMs = 300,
+  textsize,
 }: SelectAndSearchProps) => {
   const [isFocused, setIsFocused] = useState(false);
   const [isDelete, setIsDelete] = useState(false);
@@ -362,7 +364,8 @@ export const SelectAndSearchProduct = ({
           {renderSelectedValues}
           <span
             ref={inputRef}
-            className="min-w-[200px] w-full h-full text-lg flex flex-col justify-center cursor-pointer focus:outline-none"
+            style={{ fontSize: textsize }}
+            className="min-w-[200px] w-full h-full text-sm flex flex-col justify-center cursor-pointer focus:outline-none"
             role="textbox"
             onInput={handleInputChange}
             onClick={handleContainerClick}
@@ -393,6 +396,9 @@ export const SelectAndSearchProduct = ({
             className="option_container absolute bg-white w-full h-fit max-h-[400px]
                       overflow-y-auto overflow-x-hidden p-2 flex flex-col gap-y-5 items-center border border-gray-300 z-50"
           >
+            {!loading && (!options || options.length === 0) && (
+              <p className="text-gray-300 text-medium italic">No Items</p>
+            )}
             {renderOptions}
             {options.length > 0 && !isLimit && !loading && (
               <PrimaryButton

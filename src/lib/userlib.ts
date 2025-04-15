@@ -1,5 +1,5 @@
 import * as jose from "jose";
-import { z } from "zod";
+import { z, ZodError } from "zod";
 import { compare, genSaltSync, hashSync } from "bcryptjs";
 import Prisma from "./prisma";
 import { userdata } from "../app/account/actions";
@@ -20,7 +20,6 @@ export interface RegisterUser {
   lastname?: string;
   role?: Role;
   type?: string;
-
   phonenumber?: string;
 }
 export const secretkey = new TextEncoder().encode(
@@ -102,7 +101,7 @@ export const userlogin = async (
     } else {
       return { success: false, message: "Incorrect Information" };
     }
-  } catch (error: any) {
+  } catch (error) {
     console.log("Login", error);
     return { success: false, message: "Error Occured" };
   }
@@ -163,10 +162,11 @@ export const registerUser = async (data: RegisterUser): Promise<ReturnType> => {
     } else {
       return { success: false, message: isValid.error };
     }
-  } catch (error: any) {
+  } catch (error) {
+    const err = error as ZodError;
     console.log("Register", error);
-    if (error.issues) {
-      return { success: false, message: error.issues[0].message };
+    if (err.issues) {
+      return { success: false, message: err.issues[0].message };
     }
     return { success: false };
   }

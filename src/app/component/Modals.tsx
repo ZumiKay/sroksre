@@ -139,9 +139,10 @@ export function SecondaryModal({
       closeButton
       style={style}
       className="z-[200]"
+      aria-label="modal"
       scrollBehavior={scroll}
       onOpenChange={(open) => {
-        onPageChange && onPageChange(open);
+        if (onPageChange) onPageChange(open);
       }}
     >
       <ModalContent>

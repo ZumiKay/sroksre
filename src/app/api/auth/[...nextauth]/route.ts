@@ -1,13 +1,13 @@
-import NextAuth from "next-auth/next";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import NextAuth, { NextAuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import DiscordProvider from "next-auth/providers/discord";
-import CredentialProvider from "next-auth/providers/credentials";
+import CredentialsProvider from "next-auth/providers/credentials";
 import {
   getOAuthInfo,
   handleCheckandRegisterUser,
   userlogin,
 } from "@/src/lib/userlib";
-import { NextAuthOptions } from "next-auth";
 import { generateRandomPassword } from "@/src/lib/utilities";
 
 interface JwtType {
@@ -23,16 +23,15 @@ interface JwtType {
   jti: string;
 }
 
-export const authOptions: NextAuthOptions = {
+export const authConfig: NextAuthOptions = {
   pages: {
-    signIn: "../../../account/page.tsx",
-    error: "/error.tsx",
+    signIn: "../../../account",
+    error: "/error",
   },
   session: {
     strategy: "jwt",
     maxAge: 60 * 60 * 24 * 7,
   },
-
   providers: [
     GoogleProvider({
       clientId: process.env.GMAIL_CLIENTID as string,
@@ -42,8 +41,7 @@ export const authOptions: NextAuthOptions = {
       clientId: process.env.DISCORD_CLIENTID as string,
       clientSecret: process.env.DISCORD_CLIENTSECRET as string,
     }),
-
-    CredentialProvider({
+    CredentialsProvider({
       name: "Credentials",
       credentials: {
         email: { label: "Email", type: "text", placeholder: "Email" },
@@ -53,12 +51,12 @@ export const authOptions: NextAuthOptions = {
           placeholder: "Password",
         },
       },
-      async authorize(credentails: any): Promise<any> {
-        if (!credentails.email || !credentails.password) {
+      async authorize(credentials: any): Promise<any> {
+        if (!credentials.email || !credentials.password) {
           return null;
         }
 
-        const login = await userlogin(credentails);
+        const login = await userlogin(credentials);
         if (!login.success) {
           return null;
         }
@@ -68,15 +66,15 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async signIn(param): Promise<any> {
-      if (param.account?.provider !== "credentials") {
+    async signIn({ user, account }): Promise<boolean> {
+      if (account?.provider !== "credentials") {
         const checkuser = await handleCheckandRegisterUser({
           data: {
-            firstname: param.user.name as string,
-            email: param.user.email as string,
+            firstname: user.name as string,
+            email: user.email as string,
             password: generateRandomPassword(),
-            type: param.account?.provider,
-            oauthId: param.user.id,
+            type: account?.provider,
+            oauthId: user.id,
           },
         });
         if (!checkuser.success) {
@@ -84,47 +82,51 @@ export const authOptions: NextAuthOptions = {
         }
       }
 
-      return param.user;
+      return true;
     },
 
-    async jwt(params): Promise<any> {
-      if (params.token) {
-        let user = params?.user as any;
-        const jwt = params.token as unknown as JwtType;
-        let token = {
-          email: user?.email ?? jwt.email,
-          session_id: user?.sessionid ?? jwt.session_id,
-          role: user?.role ?? jwt.role,
-          id: user?.id ?? jwt.id,
+    async jwt({ token, user, account }) {
+      if (token) {
+        const typedUser = user as any;
+        const jwt = token as unknown as JwtType;
+
+        let updatedToken = {
+          ...token,
+          email: typedUser?.email ?? jwt.email,
+          session_id: typedUser?.sessionid ?? jwt.session_id,
+          role: typedUser?.role ?? jwt.role,
+          id: typedUser?.id ?? jwt.id,
         };
 
-        if (
-          params.account?.provider &&
-          params.account.provider !== "credentials"
-        ) {
-          const oauthUser = await getOAuthInfo(user.id, user.email);
+        if (account?.provider && account.provider !== "credentials") {
+          const oauthUser = await getOAuthInfo(typedUser.id, typedUser.email);
 
-          token = {
-            ...token,
+          updatedToken = {
+            ...updatedToken,
             id: oauthUser?.id,
             role: oauthUser?.role,
             session_id: oauthUser.session_id,
           };
         }
 
-        return token;
+        return updatedToken;
       }
-      return null;
+      return token;
     },
-    async session(params): Promise<any> {
-      //checksesstion
 
-      let session = { ...params.session };
-      session.user = { ...params.token };
-
-      return session;
+    async session({ session, token }) {
+      return {
+        ...session,
+        user: {
+          ...session.user,
+          id: token.id,
+          role: token.role,
+          session_id: token.session_id,
+        },
+      };
     },
   },
 };
-const Nextauth = NextAuth(authOptions);
-export { Nextauth as GET, Nextauth as POST };
+
+const handler = NextAuth(authConfig);
+export { handler as GET, handler as POST };

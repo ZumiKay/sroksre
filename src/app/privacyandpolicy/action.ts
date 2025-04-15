@@ -106,8 +106,8 @@ export const DeleteQP = async ({
     } else if (pid && !ppid) {
       await Prisma.policy.delete({ where: { id: pid } });
     } else if (pid || ppid) {
-      ppid && (await Prisma.paragraph.delete({ where: { id: ppid } }));
-      pid && (await Prisma.policy.delete({ where: { id: pid } }));
+      if (ppid) await Prisma.paragraph.delete({ where: { id: ppid } });
+      if (pid) await Prisma.policy.delete({ where: { id: pid } });
     }
 
     revalidatePath("/privacyandpolicy");

@@ -1,17 +1,17 @@
+"use client";
 import { userdata } from "@/src/context/GlobalType.type";
 import { PasswordInput } from "../component/FormComponent";
 import { logintype, PasswordVerification } from "./page";
 import RecapchaContainer from "../component/RecaphaComponent";
 import { Button, Checkbox, Input, InputOtp } from "@heroui/react";
 import { Userinitialize } from "@/src/context/GlobalContext";
-import PrimaryButton from "../component/Button";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useCallback } from "react";
 
 interface UserInputComponentProps {
   data?: userdata;
-  handleChange: (name: string, value: any) => void;
+  handleChange: (name: string, value: number | string | boolean | null) => void;
 }
 
 export const RegisterUserForm = ({
@@ -61,7 +61,6 @@ export const RegisterUserForm = ({
       </div>
 
       <RecapchaContainer
-        captchaValue={data?.recapcha ?? null}
         setcaptchaValue={(value) => handleChange("recapcha", value)}
       />
       <div className="w-[80%] h-fit">
@@ -200,35 +199,7 @@ export const LoginComponent = ({
             <label className="text-lg font-bold text-white w-full text-left">
               Sign with:{" "}
             </label>
-            <div className="signinWith__container w-full flex flex-row items-center gap-x-2 gap-y-5 max-large_phone:flex-col">
-              <PrimaryButton
-                type="button"
-                text="Discord"
-                width="250px"
-                color="black"
-                height="50px"
-                radius="10px"
-                Icon={
-                  <i className="fa-brands fa-discord text-lg text-blue-900"></i>
-                }
-                onClick={() => servicesSignIn("discord")}
-              />
-              <PrimaryButton
-                type="button"
-                text="Gmail"
-                hoverColor="black"
-                hoverTextColor="white"
-                width="250px"
-                height="50px"
-                color="white"
-                textcolor="black"
-                radius="10px"
-                onClick={() => servicesSignIn("google")}
-                Icon={
-                  <i className="fa-brands fa-google text-lg text-red-600"></i>
-                }
-              />
-            </div>
+            <div className="signinWith__container w-full flex flex-row items-center gap-x-2 gap-y-5 max-large_phone:flex-col"></div>
           </div>
         </>
       )}

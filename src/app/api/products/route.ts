@@ -58,88 +58,202 @@ export async function GET(request: NextRequest) {
       return Response.json({}, { status: 400 });
     }
 
-    let response;
-    if (ty === "all" || ty === "filter" || ty === "detail") {
-      const allProduct = await GetAllProduct({
-        limit,
-        ty,
-        page: p as number,
-        query: q,
-        parent_cate: pc,
-        child_cate: cc,
-        sk,
-        promotionid: pid,
-        priceorder: po,
-        detailcolor: dc,
-        detailtext: dt,
-        selectpromo: sp,
-        promotionids: pids,
-      });
-
-      if (allProduct.success) {
-        response = Response.json(
-          {
-            data: allProduct.data,
-            totalpage: allProduct.total,
-            lowstock: allProduct.lowstock,
-            totalfilter: allProduct.totalfilter,
-          },
-          { status: 200 }
-        );
-      } else {
-        response = Response.json(
-          { message: "Error Occurred" },
-          { status: 500 }
-        );
-      }
-    } else if (ty === "getfilval") {
-      const allfilter = await Prisma.products.findMany({
-        where: {
-          parentcategory_id: pc,
-          childcategory_id: cc,
-        },
-        select: {
-          Variant: true,
-        },
-      });
-      const allval = {
-        size: new Set<string>(),
-        color: new Set<string>(),
-        text: new Set<string>(),
-      };
-
-      allfilter.forEach((filval) => {
-        filval.Variant.forEach((variant) => {
-          if (variant.option_type === "COLOR") {
-            const opt_val = variant.option_value as VariantColorValueType[];
-            opt_val.map((i) => allval.color.add(i.val));
-          } else if (variant.option_type === "TEXT") {
-            const opt_val = variant.option_value as string[];
-            opt_val.map((i) => allval.text.add(i));
-          }
+    switch (ty) {
+      case "all":
+      case "filter":
+      case "detail": {
+        const allProduct = await GetAllProduct({
+          limit,
+          ty,
+          page: p as number,
+          query: q,
+          parent_cate: pc,
+          child_cate: cc,
+          sk,
+          promotionid: pid,
+          priceorder: po,
+          detailcolor: dc,
+          detailtext: dt,
+          selectpromo: sp,
+          promotionids: pids,
         });
-      });
-      const allvalarr = {
-        text: Array.from(allval.text),
-        size: Array.from(allval.size),
-        color: Array.from(allval.color).filter((i) => i !== ""),
-      };
 
-      response = Response.json({ data: allvalarr }, { status: 200 });
-    } else if (ty === "info") {
-      const product = await Prisma.products.findUnique({
-        where: { id: prodId },
-        select: {
-          id: true,
-          name: true,
-          price: true,
-          discount: true,
-          stock: true,
-          stocktype: true,
-          Variant: {
-            orderBy: { id: "asc" },
+        return allProduct.success
+          ? Response.json(
+              {
+                data: allProduct.data,
+                totalpage: allProduct.total,
+                lowstock: allProduct.lowstock,
+                totalfilter: allProduct.totalfilter,
+              },
+              { status: 200 }
+            )
+          : Response.json({ message: "Error Occurred" }, { status: 500 });
+      }
+
+      case "getfilval": {
+        const allfilter = await Prisma.products.findMany({
+          where: {
+            parentcategory_id: pc,
+            childcategory_id: cc,
           },
-          Stock: {
+          select: {
+            Variant: true,
+          },
+        });
+
+        // Using Map instead of Set for better performance with large data
+        const allval = {
+          size: new Set<string>(),
+          color: new Set<string>(),
+          text: new Set<string>(),
+        };
+
+        // Process variants in a single loop
+        for (const filval of allfilter) {
+          for (const variant of filval.Variant) {
+            if (variant.option_type === "COLOR") {
+              const opt_val = variant.option_value as VariantColorValueType[];
+              for (const item of opt_val) {
+                if (item.val) allval.color.add(item.val);
+              }
+            } else if (variant.option_type === "TEXT") {
+              const opt_val = variant.option_value as string[];
+              for (const item of opt_val) {
+                allval.text.add(item);
+              }
+            }
+          }
+        }
+
+        const allvalarr = {
+          text: Array.from(allval.text),
+          size: Array.from(allval.size),
+          color: Array.from(allval.color).filter(Boolean),
+        };
+
+        return Response.json({ data: allvalarr }, { status: 200 });
+      }
+
+      case "info": {
+        const product = await Prisma.products.findUnique({
+          where: { id: prodId },
+          select: {
+            id: true,
+            name: true,
+            price: true,
+            discount: true,
+            stock: true,
+            stocktype: true,
+            Variant: {
+              orderBy: { id: "asc" },
+            },
+            Stock: {
+              orderBy: { id: "asc" },
+              select: {
+                id: true,
+                Stockvalue: {
+                  select: {
+                    id: true,
+                    qty: true,
+                    variant_val: true,
+                  },
+                },
+              },
+            },
+            description: true,
+            parentcategory_id: true,
+            childcategory_id: true,
+            relatedproductId: true,
+            promotion_id: true,
+            details: true,
+            relatedproduct: {
+              select: {
+                id: true,
+                productId: true,
+              },
+            },
+            covers: {
+              select: {
+                id: true,
+                url: true,
+                type: true,
+              },
+            },
+          },
+        });
+
+        if (!product) {
+          return new Response(null, { status: 404 });
+        }
+
+        // Only fetch related products if needed
+        const otherProduct =
+          product.relatedproductId && product.relatedproduct
+            ? await Prisma.products.findMany({
+                where: {
+                  id: { in: product.relatedproduct.productId as number[] },
+                  // Exclude the current product
+                  NOT: { id: product.id },
+                },
+                select: {
+                  id: true,
+                  name: true,
+                  parentcategory_id: true,
+                  childcategory_id: true,
+                  covers: {
+                    select: {
+                      id: true,
+                      url: true,
+                    },
+                  },
+                },
+              })
+            : [];
+
+        // Calculate discount only once if needed
+        const calculatedDiscount =
+          product.promotion_id && product.discount
+            ? calculateDiscountProductPrice({
+                price: product.price,
+                discount: product.discount,
+              }).discount
+            : undefined;
+
+        // Use object destructuring and spread to create the result
+        const { parentcategory_id, childcategory_id, Variant, Stock, ...rest } =
+          product;
+
+        const result = {
+          ...rest,
+          discount: calculatedDiscount,
+          category: {
+            parent: { id: parentcategory_id },
+            child: { id: childcategory_id },
+          },
+          variants: Variant,
+          varaintstock: convertStockData(Stock as Stocktype[]),
+          relatedproduct: otherProduct,
+        };
+
+        return Response.json({ data: result }, { status: 200 });
+      }
+
+      case "stock": {
+        // Execute both queries in parallel
+        const [variant, stock] = await Promise.all([
+          Prisma.variant.findMany({
+            where: { product_id: prodId },
+            orderBy: { id: "desc" },
+            select: {
+              id: true,
+              option_title: true,
+              option_type: true,
+              option_value: true,
+            },
+          }),
+          Prisma.stock.findMany({
+            where: { product_id: prodId },
             orderBy: { id: "asc" },
             select: {
               id: true,
@@ -151,158 +265,75 @@ export async function GET(request: NextRequest) {
                 },
               },
             },
-          },
-          description: true,
-          parentcategory_id: true,
-          childcategory_id: true,
-          relatedproductId: true,
-          promotion_id: true,
-          details: true,
-          relatedproduct: {
-            select: {
-              id: true,
-              productId: true,
-            },
-          },
-          covers: {
-            select: {
-              id: true,
-              url: true,
-              type: true,
-            },
-          },
-        },
-      });
+          }),
+        ]);
 
-      if (!product) {
+        return Response.json(
+          {
+            data: {
+              varaintstock: convertStockData(stock as unknown as Stocktype[]),
+              variants: variant,
+            },
+          },
+          { status: 200 }
+        );
+      }
+
+      case "search": {
+        if (!q) {
+          return Response.json({ data: [] }, { status: 200 });
+        }
+
+        const searchproduct = await Prisma.products.findMany({
+          where: {
+            name: {
+              contains: removeSpaceAndToLowerCase(q),
+              mode: "insensitive",
+            },
+          },
+          select: {
+            id: true,
+            name: true,
+            covers: { select: { name: true, url: true } },
+            parentcategory_id: true,
+            childcategory_id: true,
+            price: true,
+            discount: true,
+          },
+        });
+
+        const result = searchproduct.map(
+          ({ covers, price, discount, ...rest }) => ({
+            ...rest,
+            price: calculateDiscountProductPrice({
+              price,
+              discount: discount ?? undefined,
+            }),
+            covers: covers[0],
+          })
+        );
+
+        return Response.json({ data: result }, { status: 200 });
+      }
+      case "homecontainer": {
+        const result = await Prisma.products.findMany({
+          take: limit,
+          select: {
+            id: true,
+            name: true,
+          },
+        });
+        return Response.json(
+          { data: result, isLimit: result.length > limit },
+          { status: 200 }
+        );
+      }
+
+      default:
         return new Response(null, { status: 404 });
-      }
-
-      const otherProduct =
-        product.relatedproductId && product.relatedproduct
-          ? await Prisma.products.findMany({
-              where: {
-                id: { in: product.relatedproduct.productId as number[] },
-              },
-              select: {
-                id: true,
-                name: true,
-                parentcategory_id: true,
-                childcategory_id: true,
-                covers: {
-                  select: {
-                    id: true,
-                    url: true,
-                  },
-                },
-              },
-            })
-          : [];
-
-      const result = {
-        ...product,
-        discount: product.promotion_id
-          ? product.discount
-            ? calculateDiscountProductPrice({
-                price: product.price,
-                discount: product.discount,
-              }).discount
-            : undefined
-          : undefined,
-        category: {
-          parent: { id: product.parentcategory_id },
-          child: { id: product.childcategory_id },
-        },
-        variants: product.Variant,
-        varaintstock: convertStockData(product.Stock as Stocktype[]),
-        relatedproduct: otherProduct.filter((i) => i.id !== product.id),
-        // Remove properties that are no longer needed
-        parentcategory_id: undefined,
-        childcategory_id: undefined,
-        Variant: undefined,
-        Stock: undefined,
-      };
-
-      return Response.json({ data: result }, { status: 200 });
-    } else if (ty === "stock") {
-      const variant = await Prisma.variant.findMany({
-        where: {
-          product_id: prodId,
-        },
-        orderBy: {
-          id: "desc",
-        },
-        select: {
-          id: true,
-          option_title: true,
-          option_type: true,
-          option_value: true,
-        },
-      });
-      const stock = await Prisma.stock.findMany({
-        where: {
-          product_id: prodId,
-        },
-        orderBy: { id: "asc" },
-        select: {
-          id: true,
-          Stockvalue: {
-            select: {
-              id: true,
-              qty: true,
-              variant_val: true,
-            },
-          },
-        },
-      });
-
-      response = Response.json(
-        {
-          data: {
-            varaintstock: convertStockData(stock as unknown as Stocktype[]),
-            variants: variant,
-          },
-        },
-        { status: 200 }
-      );
-    } else if (ty === "search") {
-      if (!q) {
-        return Response.json({ data: [] }, { status: 200 });
-      }
-
-      const searchproduct = await Prisma.products.findMany({
-        where: {
-          name: {
-            contains: removeSpaceAndToLowerCase(q),
-            mode: "insensitive",
-          },
-        },
-        select: {
-          id: true,
-          name: true,
-          covers: { select: { name: true, url: true } },
-          parentcategory_id: true,
-          childcategory_id: true,
-          price: true,
-          discount: true,
-        },
-      });
-      const result = searchproduct.map((i) => ({
-        ...i,
-        price: calculateDiscountProductPrice({
-          price: i.price,
-          discount: i.discount ?? undefined,
-        }),
-        covers: i.covers[0],
-      }));
-
-      response = Response.json({ data: result }, { status: 200 });
-    } else {
-      response = new Response(null, { status: 404 });
     }
-    return response;
   } catch (error) {
-    console.log("Fetch Product", error);
-    return Response.json({ message: "Error Occured" }, { status: 500 });
+    console.error("Fetch Product Error:", error);
+    return Response.json({ message: "Error Occurred" }, { status: 500 });
   }
 }

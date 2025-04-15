@@ -5,7 +5,13 @@ import {
 } from "@/src/context/GlobalType.type";
 import { Select, Selection, SelectItem, SelectProps } from "@heroui/react";
 import { useInfiniteScroll } from "@heroui/use-infinite-scroll";
-import React, { ChangeEvent, useCallback, useEffect, useState } from "react";
+import React, {
+  ChangeEvent,
+  useCallback,
+  useEffect,
+  useState,
+  useMemo,
+} from "react";
 
 interface CustomOnChangeType extends SelectProps {
   onValueChange?: (
@@ -18,7 +24,11 @@ type AsyncSelectionProps = {
   type: "normal" | "async";
   data?: (
     offset?: number
-  ) => Promise<InfiniteScrollReturnType> | Array<SelectType> | undefined;
+  ) =>
+    | Promise<InfiniteScrollReturnType>
+    | Array<SelectType>
+    | Readonly<Array<SelectType>>
+    | undefined;
 
   option?: Partial<CustomOnChangeType>;
   reFetch?: boolean;
@@ -33,42 +43,45 @@ export const AsyncSelection = ({
   forceRefetch,
 }: AsyncSelectionProps) => {
   const [loading, setloading] = useState(false);
-  const [isOpen, setIsOpen] = React.useState(false);
-  const [items, setitems] = React.useState<SelectType[]>([
+  const [isOpen, setIsOpen] = useState(false);
+  const [items, setitems] = useState<SelectType[]>([
     {
       label: "None",
       value: "0",
     },
   ]);
 
-  const [offset, setoffset] = React.useState(5);
-  const [hasMore, sethasMore] = React.useState(false);
-  const [selectedKey, setselectedKey] = React.useState<Selection>(
-    new Set([""])
-  );
+  const [offset, setoffset] = useState(5);
+  const [hasMore, sethasMore] = useState(false);
+  const [selectedKey, setselectedKey] = useState<Selection>(new Set([""]));
   const dataFetched = React.useRef(false);
+
+  // Memoize the selectedValues Set for better performance
+  const selectedValues = useMemo(
+    () => (option?.selectedValue ? new Set(option.selectedValue) : null),
+    [option?.selectedValue]
+  );
+
+  // Memorize isAsyncType to avoid recalculating
+  const isAsyncType = useMemo(() => type === "async", [type]);
 
   const fetchData = useCallback(
     async (limit: number) => {
       if (!data) return;
 
-      const isAsyncType = type === "async";
-      const selectedValues = option?.selectedValue
-        ? new Set(option.selectedValue)
-        : null;
-
       try {
         if (!isAsyncType) {
-          const items = data() as SelectType[];
-          setitems(items);
-          if (selectedValues && items) {
-            const matchingItems = items.filter((item) =>
+          const newItems = data() as SelectType[];
+          setitems(newItems);
+
+          if (selectedValues && newItems) {
+            const matchingItems = newItems.filter((item) =>
               selectedValues.has(String(item.value))
             );
 
             setselectedKey(
               matchingItems.length > 0
-                ? new Set(matchingItems.map((item) => item.value))
+                ? new Set(matchingItems.map((item) => String(item.value)))
                 : new Set([""])
             );
           }
@@ -79,18 +92,19 @@ export const AsyncSelection = ({
 
         setloading(true);
         const getdata = (await data(limit)) as InfiniteScrollReturnType;
-        const items = getdata?.items || [];
+        const newItems = getdata?.items || [];
 
-        // Batch state updates
-        setitems(items);
+        // Using a function update to guarantee we're working with latest state
+        setitems(newItems);
 
-        if (selectedValues && items.length) {
-          const matchingItems = items.filter((item) =>
+        if (selectedValues && newItems.length) {
+          const matchingItems = newItems.filter((item) =>
             selectedValues.has(String(item.value))
           );
+
           setselectedKey(
             matchingItems.length > 0
-              ? new Set(matchingItems.map((item) => item.value))
+              ? new Set(matchingItems.map((item) => String(item.value)))
               : new Set([""])
           );
         }
@@ -104,72 +118,75 @@ export const AsyncSelection = ({
         dataFetched.current = true;
       }
     },
-    [
-      data,
-      option?.selectedValue,
-      type,
-      setitems,
-      setselectedKey,
-      sethasMore,
-      setloading,
-    ]
+    [data, selectedValues, isAsyncType]
   );
 
+  // Combine related effects
   useEffect(() => {
-    // Initial fetch or when offset changes
+    // Initial fetch
     fetchData(offset);
-  }, [offset]);
+  }, [offset, fetchData]);
 
   // Handle open/close with refetch logic
   useEffect(() => {
     if (isOpen && (!dataFetched.current || reFetch)) {
       fetchData(offset);
     }
-  }, [isOpen, reFetch]);
+  }, [isOpen, reFetch, offset, fetchData]);
 
-  // Force refetch when forceRefetch changes (likely a counter or timestamp)
+  // Force refetch when forceRefetch changes
   useEffect(() => {
     if (forceRefetch !== undefined) {
       dataFetched.current = false;
       fetchData(offset);
     }
-  }, [forceRefetch]);
+  }, [forceRefetch, fetchData, offset]);
+
+  const handleLoadMore = useCallback(() => {
+    if (isAsyncType) setoffset((prev) => prev + 5);
+  }, [isAsyncType]);
 
   const [, scrollerRef] = useInfiniteScroll({
     hasMore: hasMore,
     isEnabled: isOpen,
     shouldUseLoader: false,
-    onLoadMore: () => {
-      if (type === "async") setoffset((prev) => prev + 5);
-    },
+    onLoadMore: handleLoadMore,
   });
+
+  const handleOpenChange = useCallback(
+    (open: boolean) => {
+      setIsOpen(open);
+      if (option?.onOpenChange) {
+        option.onOpenChange(open);
+      }
+    },
+    [option]
+  );
+
+  const handleChange = useCallback(
+    (val: ChangeEvent<HTMLSelectElement>) => {
+      if (option?.onValueChange) {
+        const selectedItem = items.find(
+          (i) => String(i.value) === String(val.target.value)
+        );
+        option.onValueChange(val, selectedItem);
+      }
+    },
+    [items, option]
+  );
 
   return (
     <Select
       {...option}
-      onChange={(val) => {
-        if (option?.onValueChange) {
-          option?.onValueChange(
-            val,
-            items.find((i) => i.value.toString() === val.target.value)
-          );
-        } else if (option?.onChange) option.onChange(val);
-      }}
-      onSelectionChange={setselectedKey}
+      onChange={handleChange}
+      onOpenChange={handleOpenChange}
       selectedKeys={selectedKey}
-      className="max-w-xs"
+      onSelectionChange={setselectedKey}
+      items={items}
       isLoading={loading}
-      items={items ?? []}
-      scrollRef={scrollerRef}
-      fullWidth
-      aria-label="selection"
-      onOpenChange={setIsOpen}
+      ref={scrollerRef as never}
     >
-      {(item) => (
-        <SelectItem key={item.value} className="capitalize">
-          {item.label}
-        </SelectItem>
-      )}
+      {(item) => <SelectItem key={item.value}>{item.label}</SelectItem>}
     </Select>
   );
 };

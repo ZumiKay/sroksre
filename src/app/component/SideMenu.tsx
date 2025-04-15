@@ -1,11 +1,24 @@
 "use client";
 import { StaticImageData } from "next/image";
 import PrimaryButton from "./Button";
-import React, { SetStateAction, useEffect, useState } from "react";
+import React, {
+  CSSProperties,
+  memo,
+  SetStateAction,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { CardSkeleton, SecondayCard } from "./Card";
 import { signOut } from "next-auth/react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useGlobalContext } from "@/src/context/GlobalContext";
+import {
+  BannerInitialize,
+  Productinitailizestate,
+  PromotionInitialize,
+  useGlobalContext,
+} from "@/src/context/GlobalContext";
 import {
   ApiRequest,
   Delayloading,
@@ -17,6 +30,7 @@ import { motion } from "framer-motion";
 import { Productordertype, totalpricetype } from "@/src/context/OrderContext";
 import { Createorder } from "../checkout/action";
 import {
+  AddIcon,
   Bin_Icon,
   CloseVector,
   EditIcon,
@@ -26,11 +40,21 @@ import {
   ProfileIcon,
   UserIcon,
 } from "./Asset";
-import { Homeeditmenu } from "./HomePage/EditMenu";
-import { Addicon } from "./Icons/Homepage";
-import { Homeitemtype } from "../severactions/containeraction";
-
-import { Sessiontype } from "@/src/context/GlobalType.type";
+import {
+  Homeitemtype,
+  SelectType,
+  Sessiontype,
+} from "@/src/context/GlobalType.type";
+import { InventoryAction } from "../dashboard/inventory/inventory.type";
+import {
+  Button,
+  Dropdown,
+  DropdownItem,
+  DropdownMenu,
+  DropdownTrigger,
+} from "@heroui/react";
+import Homeeditmenu from "./HomePage/EditMenu";
+import CreateHomeItemModal from "./HomeItem/CreateModal";
 
 interface accountmenuprops {
   setProfile: (value: SetStateAction<boolean>) => void;
@@ -75,19 +99,19 @@ const AccountMenuItems = [
   },
 ];
 
-export default function AccountMenu(props: accountmenuprops) {
+export default function AccountMenu({ session, setProfile }: accountmenuprops) {
   const pathname = usePathname();
-
-  const { openmodal, setopenmodal } = useGlobalContext();
-  const [loading, setloading] = useState(false);
-  const [Homeitems, sethomeitems] = useState<Homeitemtype[]>([]);
-  const [isEdit, setisEdit] = useState(false);
-  const [selected, setselected] = useState<number[] | undefined>([]);
-
   const router = useRouter();
-  const ref = useClickOutside(() => props.setProfile(false));
+  const { openmodal, setopenmodal } = useGlobalContext();
   const { isMobile } = useScreenSize();
+  const ref = useClickOutside(() => setProfile(false));
 
+  const [loading, setLoading] = useState(false);
+  const [homeItems, setHomeItems] = useState<Homeitemtype[]>([]);
+  const [isEdit, setIsEdit] = useState(false);
+  const [selected, setSelected] = useState<number[]>([]);
+
+  // Prevent background scrolling when menu is open
   useEffect(() => {
     document.body.style.overflowY = "hidden";
     return () => {
@@ -95,89 +119,220 @@ export default function AccountMenu(props: accountmenuprops) {
     };
   }, []);
 
-  const handleSignOut = async () => {
-    setloading(true);
+  // Filter menu items based on current path and user role
+  const filteredMenuItems = useMemo(() => {
+    return AccountMenuItems.filter((item) =>
+      pathname !== "/" ? item.name !== AccountMenuItems[4].name : true
+    ).filter((item) =>
+      session?.role === "ADMIN" ? item.isAdmin : item.isUser
+    );
+  }, [pathname, session?.role]);
 
-    const deleteSession = await ApiRequest({
-      url: "/api/users/logout",
-      method: "DELETE",
-    });
+  const handleSignOut = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await ApiRequest({
+        url: "/api/users/logout",
+        method: "DELETE",
+      });
 
-    if (!deleteSession.success) {
-      errorToast(deleteSession.message ?? "Error occured");
-    } else {
-      await signOut();
+      if (!response.success) {
+        errorToast(response.message ?? "Error occurred during logout");
+      } else {
+        await signOut();
+      }
+    } catch (error) {
+      errorToast("Failed to log out");
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const handleEdit = useCallback(async () => {
+    if (!isEdit) {
+      setIsEdit(true);
+      return;
     }
 
-    setloading(false);
-  };
-
-  const handleEdit = async () => {
-    if (!isEdit) {
-      setisEdit(true);
-    } else if (isEdit) {
-      //edit index of home items
-
-      setloading(true);
-      const updateidx = await ApiRequest({
+    // Save changes on home items ordering
+    setLoading(true);
+    try {
+      const response = await ApiRequest({
         url: "/api/home",
         method: "PUT",
         data: {
           ty: "idx",
-          edititems: Homeitems.map((i, idx) => ({ id: i.id, idx })),
+          edititems: homeItems.map((item, idx) => ({ id: item.id, idx })),
         },
       });
 
-      setloading(false);
-      if (!updateidx.success) {
-        errorToast("Error Occurred");
+      if (!response.success) {
+        errorToast("Failed to update items");
         return;
       }
 
-      setisEdit(false);
+      setIsEdit(false);
       router.refresh();
+    } catch (error) {
+      errorToast("An error occurred");
+      console.error(error);
+    } finally {
+      setLoading(false);
     }
-  };
+  }, [homeItems, isEdit, router]);
 
-  const handleDelete = async () => {
-    if (!selected?.length) {
+  const handleDelete = useCallback(async () => {
+    if (!selected.length) {
       errorToast("No item selected");
       return;
     }
-    const homeitem_id = selected.map((idx) => Homeitems[idx].id);
 
-    const deleteItemsAsync = async () => {
-      const deletereq = await ApiRequest({
-        url: "/api/home",
-        method: "DELETE",
-        data: { id: homeitem_id },
-      });
+    const itemIdsToDelete = selected.map((idx) => homeItems[idx].id);
 
-      if (!deletereq.success) {
-        errorToast(deletereq.message ?? "Error Occurred");
-        return;
+    const deleteItems = async () => {
+      try {
+        const response = await ApiRequest({
+          url: "/api/home",
+          method: "DELETE",
+          data: { id: itemIdsToDelete },
+        });
+
+        if (!response.success) {
+          errorToast(response.message ?? "Failed to delete items");
+          return;
+        }
+
+        const updatedItems = homeItems.filter(
+          (item) => !itemIdsToDelete.includes(item.id)
+        );
+        setHomeItems(updatedItems);
+        setSelected([]);
+        setIsEdit(false);
+        successToast("Items deleted successfully");
+      } catch (error) {
+        errorToast("Failed to delete items");
+        console.error(error);
       }
-
-      const updatedItems = Homeitems.filter((i) => !homeitem_id.includes(i.id));
-      sethomeitems(updatedItems);
-      setselected(undefined);
-      setisEdit(false);
-      successToast("Deleted Successfully");
     };
 
-    await Delayloading(deleteItemsAsync, setloading, 500);
-  };
+    await Delayloading(deleteItems, setLoading, 500);
+  }, [homeItems, selected]);
 
-  const handleOnEdit = (idx: number) => {
-    const updateselected = [...(selected ?? [])];
-    const isExist = updateselected.findIndex((i) => i === idx);
-    if (isExist !== -1) {
-      updateselected.splice(isExist, 1);
-    } else {
-      updateselected.push(idx);
-    }
-    setselected(updateselected);
-  };
+  const handleSelectItem = useCallback((idx: number) => {
+    setSelected((prev) => {
+      const existingIndex = prev.indexOf(idx);
+      if (existingIndex !== -1) {
+        // Remove item if already selected
+        return prev.filter((i) => i !== idx);
+      } else {
+        // Add item to selection
+        return [...prev, idx];
+      }
+    });
+  }, []);
+
+  const handleMenuItemClick = useCallback(
+    (link: string) => {
+      if (link) {
+        router.push(link);
+        router.refresh();
+        if (isMobile) setProfile(false);
+      } else {
+        setopenmodal((prev) => ({ ...prev, editHome: true }));
+      }
+    },
+    [isMobile, router, setProfile, setopenmodal]
+  );
+
+  const renderHomeEditor = () => (
+    <div className="w-[90%] h-full flex flex-col items-center gap-y-10">
+      <button
+        onClick={() => setopenmodal((prev) => ({ ...prev, editHome: false }))}
+        className="w-full h-fit text-left text-lg font-bold cursor-pointer transition hover:text-gray-600 pl-2"
+      >
+        {`< Back`}
+      </button>
+
+      <Homeeditmenu
+        isEdit={isEdit}
+        onEdit={handleSelectItem}
+        items={homeItems}
+        setItems={setHomeItems}
+      />
+
+      <div className="w-full flex flex-row gap-x-5 justify-start">
+        <PrimaryButton
+          type="button"
+          text={isEdit ? "Delete" : "Add New"}
+          color={isEdit ? "lightcoral" : "white"}
+          height="50px"
+          width="100%"
+          hoverColor="lightgray"
+          textcolor={isEdit ? "white" : "black"}
+          status={loading ? "loading" : "authenticated"}
+          disable={isEdit && selected.length === 0}
+          radius="10px"
+          border="1px solid lightgray"
+          onClick={
+            isEdit
+              ? handleDelete
+              : () => setopenmodal((prev) => ({ ...prev, homecontainer: true }))
+          }
+          Icon={isEdit ? <Bin_Icon /> : <AddIcon />}
+        />
+
+        <PrimaryButton
+          type="button"
+          onClick={handleEdit}
+          text={isEdit ? "Done" : "Edit"}
+          radius="10px"
+          height="50px"
+          hoverColor="lightgray"
+          width="100%"
+          border="1px solid lightgray"
+          color="white"
+          textcolor="black"
+          Icon={
+            <div className="w-[30px] h-[30px] bg-white rounded-full">
+              <PencilEditIcon />
+            </div>
+          }
+        />
+      </div>
+    </div>
+  );
+
+  const renderMainMenu = () => (
+    <>
+      <ul className="flex flex-col items-center w-full gap-y-10 mt-[10vh] mb-[10vh]">
+        {filteredMenuItems.map((item, idx) => (
+          <li
+            key={idx}
+            className="w-[80%] h-[50px] text-center font-bold text-lg rounded-md"
+          >
+            <button
+              onClick={() => handleMenuItemClick(item.link)}
+              className="w-full h-full flex flex-row items-center gap-x-5 pl-2 rounded-lg transition hover:bg-gray-200 active:bg-gray-200"
+            >
+              {item.icon}
+              <span className="text-lg font-bold">{item.name}</span>
+            </button>
+          </li>
+        ))}
+      </ul>
+
+      <PrimaryButton
+        text="Logout"
+        type="button"
+        color="#F08080"
+        width="80%"
+        status={loading ? "loading" : "authenticated"}
+        radius="10px"
+        onClick={handleSignOut}
+      />
+    </>
+  );
 
   return (
     <motion.aside
@@ -185,124 +340,21 @@ export default function AccountMenu(props: accountmenuprops) {
       initial={{ x: "100%" }}
       animate={{ x: 0 }}
       exit={{ x: "100%" }}
-      transition={{ duration: 0.5 }}
-      onMouseEnter={() => props.setProfile(true)}
-      className="fixed right-0 top-0 w-[430px] max-small_phone:w-full h-full z-[99] bg-[#FFFFFF] flex flex-col items-center"
+      transition={{ duration: 0.5, ease: "easeOut" }}
+      onMouseEnter={() => setProfile(true)}
+      className="fixed right-0 top-0 w-[430px] max-small_phone:w-full h-full z-[99] bg-white shadow-lg flex flex-col items-center"
     >
-      {openmodal?.editHome ? (
-        <div className="w-[90%] h-full flex flex-col items-center gap-y-10">
-          <h3
-            onClick={() =>
-              setopenmodal((prev) => ({ ...prev, editHome: false }))
-            }
-            className="w-full h-fit text-left text-lg font-bold cursor-pointer  transition hover:text-white active:text-white pl-2"
-          >
-            {`< Back`}
-          </h3>
-          <Homeeditmenu
-            isEdit={isEdit}
-            onEdit={handleOnEdit}
-            items={Homeitems}
-            setItems={sethomeitems}
-          />
-          <div className="w-full h-[40px] flex flex-row gap-x-5 justify-start">
-            <PrimaryButton
-              type="button"
-              text={isEdit ? "Delete" : "Add New"}
-              color={isEdit ? "lightcoral" : "white"}
-              height="50px"
-              width="100%"
-              hoverColor="lightgray"
-              textcolor={isEdit ? "white" : "black"}
-              status={loading ? "loading" : "authenticated"}
-              disable={isEdit && selected?.length === 0}
-              radius="10px"
-              border="1px solid lightgray"
-              onClick={() =>
-                isEdit
-                  ? handleDelete()
-                  : setopenmodal((prev) => ({ ...prev, homecontainer: true }))
-              }
-              Icon={isEdit ? <Bin_Icon /> : <Addicon />}
-            />
+      {openmodal.mangageHomeItem && <CreateHomeItemModal />}
+      {openmodal?.editHome ? renderHomeEditor() : renderMainMenu()}
 
-            <PrimaryButton
-              type="button"
-              onClick={() => handleEdit()}
-              text={isEdit ? "Done" : "Edit"}
-              radius="10px"
-              height="50px"
-              hoverColor="lightgray"
-              width="100%"
-              border="1px solid lightgray"
-              color="white"
-              textcolor="black"
-              Icon={
-                <div className="w-[30px] h-[30px] bg-white rounded-full">
-                  <PencilEditIcon />
-                </div>
-              }
-            />
-          </div>
-        </div>
-      ) : (
-        <>
-          <ul className="menu_container flex flex-col items-center w-full gap-y-10 mt-[10vh] mb-[10vh]">
-            {AccountMenuItems.filter((i) =>
-              pathname !== "/" ? i.name !== AccountMenuItems[4].name : true
-            )
-              .filter((i) =>
-                props.session?.role === "ADMIN" ? i.isAdmin : i.isUser
-              )
-              .map((item, idx) => (
-                <li
-                  key={idx}
-                  className="side_link w-[80%] h-[50px] text-center font-bold text-lg rounded-md transition hover:bg-gray-200 active:bg-gray-200 "
-                >
-                  {item.link === "" ? (
-                    <div
-                      onClick={() => {
-                        setopenmodal((prev) => ({ ...prev, editHome: true }));
-                      }}
-                      className="w-full h-full flex flex-row items-center cursor-pointer gap-x-5 pl-2 rounded-lg transition hover:bg-gray-200 active:bg-gray-200"
-                    >
-                      {item.icon}
-                      <h3 className="text-lg font-bold">{item.name}</h3>
-                    </div>
-                  ) : (
-                    <div
-                      onClick={() => {
-                        router.push(item.link);
-                        router.refresh();
-                        if (isMobile) props.setProfile(false);
-                      }}
-                      className="w-full h-full flex flex-row items-center gap-x-5 pl-2 rounded-lg transition hover:bg-gray-200 active:bg-gray-200 cursor-pointer"
-                    >
-                      {item.icon}
-                      <h3 className="text-lg font-bold">{item.name}</h3>
-                    </div>
-                  )}
-                </li>
-              ))}
-          </ul>
-          <PrimaryButton
-            text="Logout"
-            type="button"
-            color="#F08080"
-            width="80%"
-            status={loading ? "loading" : "authenticated"}
-            radius="10px"
-            onClick={() => handleSignOut()}
-          />
-        </>
-      )}
       {isMobile && (
-        <div
-          onClick={() => props.setProfile(false)}
-          className="w-fit h-fit absolute top-1 right-1"
+        <button
+          onClick={() => setProfile(false)}
+          className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100"
+          aria-label="Close menu"
         >
-          <CloseVector width="35px" height="35px" />
-        </div>
+          <CloseVector width="24px" height="24px" />
+        </button>
       )}
     </motion.aside>
   );
@@ -346,7 +398,7 @@ export function CartMenu(props: cardmenuprops) {
       });
 
       if (response.success) {
-        setitem(response.data);
+        setitem(response.data as Array<Productordertype>);
         settotal({ subtotal: response.total ?? 0, total: response.total ?? 0 });
       }
     };
@@ -405,7 +457,7 @@ export function CartMenu(props: cardmenuprops) {
         return;
       }
 
-      params.set("orderid", createOrder.data.encrypt ?? "");
+      params.set("orderid", createOrder?.data?.encrypt ?? "");
       params.set("step", "1");
       router.push(`/checkout?${params.toString()}`);
     }
@@ -478,3 +530,114 @@ export function CartMenu(props: cardmenuprops) {
     </aside>
   );
 }
+
+interface Subinventorymenuprops {
+  data: Array<SelectType> | Readonly<Array<SelectType>>;
+  open?: string;
+  type?: "product" | "banner" | "promotion";
+  index?: number;
+  style?: CSSProperties;
+  stock?: number;
+  stocktype?: string;
+  stockaction?: () => void;
+  reloaddata?: () => void;
+}
+
+export const SubInventoryMenu = memo((props: Subinventorymenuprops) => {
+  const {
+    openmodal,
+    setopenmodal,
+    setglobalindex,
+    setproduct,
+    setbanner,
+    setpromotion,
+  } = useGlobalContext();
+  const router = useRouter();
+
+  const handleClick = (obj: SelectType) => {
+    const index = props.index as number;
+
+    if (
+      props.type === "product" ||
+      props.type === "banner" ||
+      props.type === "promotion"
+    ) {
+      if (obj.value === InventoryAction.EDIT) {
+        setglobalindex((previndex) => ({
+          ...previndex,
+          [props.type === "product"
+            ? "producteditindex"
+            : props.type === "banner"
+            ? "bannereditindex"
+            : "promotioneditindex"]: index,
+        }));
+        if (props.type === "product") {
+          router.push(`/dashboard/inventory/createproduct/${index}`);
+        } else setopenmodal({ ...openmodal, [obj.value as string]: true });
+      } else if (obj.value === InventoryAction.STOCK && props.stockaction) {
+        if (props.stocktype?.includes("stock"))
+          setproduct((prev) => ({ ...prev, stock: props.stock }));
+        props.stockaction();
+      } else {
+        setopenmodal((prev) => ({
+          ...prev,
+          confirmmodal: {
+            ...prev.confirmmodal,
+            index: index,
+            type: props.type,
+            open: true,
+            onDelete: () => {
+              if (props.reloaddata) props.reloaddata();
+            },
+          },
+        }));
+      }
+    } else {
+      if (obj.value === "createProduct") {
+        setproduct(Productinitailizestate);
+        setglobalindex((prev) => ({ ...prev, producteditindex: -1 }));
+        router.push("/dashboard/inventory/createproduct/0");
+      } else if (obj.value === "createBanner") {
+        setglobalindex((prev) => ({ ...prev, bannereditindex: -1 }));
+        setbanner(BannerInitialize);
+      } else if (obj.value === "createPromotion") {
+        setpromotion(PromotionInitialize);
+        setglobalindex((prev) => ({ ...prev, promotioneditindex: -1 }));
+      }
+
+      if (obj.value !== "createProduct")
+        setopenmodal({ ...openmodal, [obj.value as string]: true });
+    }
+  };
+  return (
+    <Dropdown>
+      <DropdownTrigger>
+        <Button
+          color={props.type ? "default" : "success"}
+          variant="solid"
+          endContent={
+            !props.type ? (
+              <i className="fa-solid fa-plus text-sm font-bold text-white"></i>
+            ) : undefined
+          }
+          style={props.type ? { minWidth: "20px" } : {}}
+          className="font-bold text-white min-w-[150px]"
+        >
+          {props.type ? (
+            <i className="fa-solid fa-ellipsis-vertical text-lg text-black  w-fit h-fit p-2 transition hover:bg-gray-300"></i>
+          ) : (
+            "Create"
+          )}
+        </Button>
+      </DropdownTrigger>
+      <DropdownMenu aria-label="Dynamic Actions" items={props.data}>
+        {(item) => (
+          <DropdownItem key={item.value} onPress={() => handleClick(item)}>
+            {item.label}
+          </DropdownItem>
+        )}
+      </DropdownMenu>
+    </Dropdown>
+  );
+});
+SubInventoryMenu.displayName = "SubInventoryMenu";

@@ -1,61 +1,11 @@
 "use server";
-
 import Prisma from "@/src/lib/prisma";
 import { caculateArrayPagination } from "@/src/lib/utilities";
 import {
   SortProductByLatestAddDate,
   SortProductByPopularScore,
 } from "../api/home/route";
-
-const containerTypeOptions = {
-  slide: "slide",
-  category: "category",
-  scrollable: "scrollable",
-  banner: "banner",
-} as const;
-export type ContainerType = keyof typeof containerTypeOptions;
-
-export interface Homeitemtype {
-  id: string;
-  name: string;
-  type: ContainerType;
-  idx: number;
-}
-
-export interface BannersType {
-  id: number;
-  name: string;
-  type: "normal" | "small";
-  image: {
-    name: string;
-    url: string;
-    type: string;
-  };
-}
-
-export interface ContainerItemType {
-  id?: number;
-  item?: BannersType;
-  item_id?: number;
-}
-
-export interface Daterangetype {
-  start: string;
-  end: string;
-}
-
-export interface Containertype {
-  id?: number;
-  perrow?: number;
-  amountofitem?: number;
-  scrollabletype?: "popular" | "new" | "sale" | "custom";
-  daterange?: Daterangetype;
-  idx: number;
-  name: string;
-  type: ContainerType | "";
-  items: Array<ContainerItemType>;
-  item?: number[];
-}
+import { Containertype } from "@/src/context/GlobalType.type";
 
 export async function CreateContainer(data: Containertype) {
   try {
@@ -94,7 +44,7 @@ export async function CreateContainer(data: Containertype) {
         },
       });
       if (data.scrollabletype === "popular") {
-        const productsWithScores = SortProductByPopularScore(product as any);
+        const productsWithScores = SortProductByPopularScore(product as never);
 
         productsWithScores.forEach((prod) => {
           itemsIds.push(prod.id);

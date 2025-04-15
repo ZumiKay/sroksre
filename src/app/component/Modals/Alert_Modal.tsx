@@ -8,9 +8,10 @@ import {
 import { useRouter, useSearchParams } from "next/navigation";
 import { ApiRequest } from "@/src/context/CustomHook";
 import { errorToast } from "@/src/app/component/Loading";
-import Modal from "@/src/app/component/Modals";
 import PrimaryButton from "@/src/app/component/Button";
-import React from "react";
+import React, { useCallback, useState } from "react";
+import { SecondaryModal } from "../Modals";
+import { Button } from "@heroui/react";
 
 export const ConfirmModal = () => {
   const {
@@ -29,72 +30,85 @@ export const ConfirmModal = () => {
   } = useGlobalContext();
   const router = useRouter();
   const searchParam = useSearchParams();
-  const handleConfirm = async (confirm: boolean) => {
-    if (confirm) {
-      const URL = "/api/image";
-      if (
-        openmodal.confirmmodal?.closecon === "createProduct" &&
-        globalindex.producteditindex === -1 &&
-        product.covers.length > 0
-      ) {
-        const images = product.covers.map((i) => i.name);
-        const deleteimage = await ApiRequest({
-          url: URL,
-          setloading: setisLoading,
-          method: "DELETE",
-          data: { names: images },
-        });
-        if (!deleteimage.success) {
-          errorToast("Error Occured Reload Required");
-          return;
+  const handleConfirm = useCallback(
+    async (confirm: boolean) => {
+      if (confirm) {
+        const URL = "/api/image";
+        if (
+          openmodal.confirmmodal?.closecon === "createProduct" &&
+          globalindex.producteditindex === -1 &&
+          product.covers.length > 0
+        ) {
+          const images = product.covers.map((i) => i.name);
+          const deleteimage = await ApiRequest({
+            url: URL,
+            setloading: setisLoading,
+            method: "DELETE",
+            data: { names: images },
+          });
+          if (!deleteimage.success) {
+            errorToast("Error Occured Reload Required");
+            return;
+          }
+          setproduct(Productinitailizestate);
+        } else if (
+          openmodal.confirmmodal?.closecon === "createBanner" &&
+          globalindex.bannereditindex === -1 &&
+          banner.image.name.length > 0
+        ) {
+          const image = banner.image.name;
+          const deleteImage = await ApiRequest({
+            url: URL,
+            setloading: setisLoading,
+            method: "DELETE",
+            data: { name: image },
+          });
+          if (!deleteImage.success) {
+            errorToast("Error Occured Reload Required");
+            return;
+          }
+          setbanner(BannerInitialize);
         }
         setproduct(Productinitailizestate);
-      } else if (
-        openmodal.confirmmodal?.closecon === "createBanner" &&
-        globalindex.bannereditindex === -1 &&
-        banner.image.name.length > 0
-      ) {
-        const image = banner.image.name;
-        const deleteImage = await ApiRequest({
-          url: URL,
-          setloading: setisLoading,
-          method: "DELETE",
-          data: { name: image },
+        setglobalindex({
+          ...globalindex,
+          producteditindex: -1,
+          bannereditindex: -1,
         });
-        if (!deleteImage.success) {
-          errorToast("Error Occured Reload Required");
-          return;
-        }
-        setbanner(BannerInitialize);
-      }
-      setproduct(Productinitailizestate);
-      setglobalindex({
-        ...globalindex,
-        producteditindex: -1,
-        bannereditindex: -1,
-      });
 
-      setopenmodal({
-        ...openmodal,
-        [openmodal?.confirmmodal?.closecon as string]: false,
-        confirmmodal: {
-          open: false,
-          confirm: true,
-          closecon: "",
-        },
-      });
-    } else {
-      setopenmodal({
-        ...openmodal,
-        confirmmodal: {
-          ...openmodal.confirmmodal,
-          open: false,
-          confirm: false,
-          closecon: "",
-        },
-      });
-    }
-  };
+        setopenmodal({
+          ...openmodal,
+          [openmodal?.confirmmodal?.closecon as string]: false,
+          confirmmodal: {
+            open: false,
+            confirm: true,
+            closecon: "",
+          },
+        });
+      } else {
+        setopenmodal({
+          ...openmodal,
+          confirmmodal: {
+            ...openmodal.confirmmodal,
+            open: false,
+            confirm: false,
+            closecon: "",
+          },
+        });
+      }
+    },
+    [
+      banner.image.name,
+      globalindex,
+      openmodal,
+      product.covers,
+      setbanner,
+      setglobalindex,
+      setisLoading,
+      setopenmodal,
+      setproduct,
+    ]
+  );
 
   const handleConfirmDelete = async (confirm: boolean) => {
     const { type, index } = openmodal.confirmmodal ?? {};
@@ -139,9 +153,9 @@ export const ConfirmModal = () => {
           param.set("p", "1");
           router.push(`?${param}`, { scroll: false });
         }
-        openmodal.confirmmodal?.onAsyncDelete &&
-          (await openmodal.confirmmodal.onAsyncDelete());
-        openmodal.confirmmodal?.onDelete && openmodal.confirmmodal.onDelete();
+        if (openmodal.confirmmodal?.onAsyncDelete)
+          await openmodal.confirmmodal.onAsyncDelete();
+        if (openmodal.confirmmodal?.onDelete) openmodal.confirmmodal.onDelete();
       }
     }
 
@@ -161,7 +175,7 @@ export const ConfirmModal = () => {
   };
 
   return (
-    <Modal closestate={"confirmmodal"} customZIndex={200}>
+    <SecondaryModal open={openmodal.confirmmodal?.open ?? false} size="sm">
       <div className="confirm_container flex flex-col justify-center items-center gap-y-5 bg-white w-[250px] h-[280px] rounded-md">
         <h3 className="question w-full text-center text-lg font-bold text-black">
           {" "}
@@ -194,28 +208,24 @@ export const ConfirmModal = () => {
           />
         </div>
       </div>
-    </Modal>
+    </SecondaryModal>
   );
 };
 
 export const Alertmodal = () => {
   const { openmodal, setopenmodal } = useGlobalContext();
   const handleClose = async () => {
-    openmodal.alert?.action && (await openmodal.alert.action());
+    if (openmodal.alert?.action) await openmodal.alert.action();
     setopenmodal(
-      (prev) =>
-        ({
-          ...(prev ?? {}),
-          alert: { ...(prev.alert ?? {}), open: false },
-        } as any)
+      (prev) => ({ alert: { ...(prev.alert ?? {}), open: false } } as never)
     );
   };
   return (
-    <Modal closestate="discount">
+    <SecondaryModal open={openmodal.alert?.open ?? false} size="sm">
       <div className="alertmodal_container flex flex-col items-center  gap-y-10 w-fit h-fit min-w-[300px] p-5 bg-white rounded-lg">
-        <h1 className="text-xl font-bold text-center w-full break-all">
+        <h3 className="text-xl font-bold text-center w-full break-all">
           {openmodal.alert?.text ?? "Alert"}
-        </h1>
+        </h3>
 
         <div className="flex flex-row w-full h-[50px] justify-between">
           <PrimaryButton
@@ -229,51 +239,54 @@ export const Alertmodal = () => {
           />
         </div>
       </div>
-    </Modal>
+    </SecondaryModal>
   );
 };
 
-interface ConfirmModal {
-  actions: {
-    yes: (...arg: any) => Promise<void>;
-    no: (...arg: any) => void;
+export const SecondaryConfirmModal = () => {
+  const { setopenmodal, openmodal } = useGlobalContext();
+  const [loading, setloading] = useState(false);
+  const handleClose = () => {
+    setopenmodal({});
   };
-  loading: boolean;
-}
-
-export const PrimaryConfirmModal = ({ actions, loading }: ConfirmModal) => {
   const handleConfirm = async () => {
-    await actions.yes();
+    if (openmodal.confirmmodal?.onAsyncDelete) {
+      setloading(true);
+      await openmodal.confirmmodal.onAsyncDelete();
+      setloading(false);
+    }
+    setopenmodal({
+      ...openmodal,
+      confirmmodal: {
+        ...openmodal.confirmmodal,
+        open: false,
+        confirm: false,
+        closecon: "",
+      },
+    });
   };
-
-  const handleReject = () => actions.no();
-
   return (
-    <Modal closestate={"confirmmodal"} customZIndex={200}>
-      <div className="confirm_container flex flex-col justify-center items-center gap-y-5 bg-white w-[250px] h-[280px] rounded-md">
-        <h3 className="question text-lg font-bold text-black">
-          {" "}
-          Are You Sure ?
-        </h3>
-        <div className="btn_container w-4/5 h-fit flex flex-col justify-center items-center gap-y-3">
-          <PrimaryButton
-            type="button"
-            text="Yes"
-            radius="10px"
-            status={loading ? "loading" : "authenticated"}
-            onClick={handleConfirm}
-            color="#35C191"
-          />
-          <PrimaryButton
-            type="button"
-            text="No"
-            onClick={handleReject}
-            radius="10px"
-            disable={loading}
-            color="#F08080"
-          />
+    <SecondaryModal open={openmodal.confirmmodal?.open ?? false} size="sm">
+      <div className="w-full h-full bg-white flex flex-col items-center justify-center gap-y-5">
+        <h3 className="text-lg font-bold text-black">Are you sure ?</h3>
+        <div className="btn w-full h-[40px] flex flex-row items-center gap-x-3">
+          <Button
+            onPress={() => handleConfirm()}
+            isLoading={loading}
+            className="w-full h-full text-white font-bold"
+            color="success"
+          >
+            Yes
+          </Button>
+          <Button
+            style={{ backgroundColor: "lightcoral" }}
+            onPress={() => handleClose()}
+            className="w-full h-full text-white font-bold"
+          >
+            No
+          </Button>
         </div>
       </div>
-    </Modal>
+    </SecondaryModal>
   );
 };

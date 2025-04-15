@@ -1,15 +1,4 @@
 "use server";
-import {
-  BackAndEdit,
-  Checkoutproductcard,
-  FormWrapper,
-  Navigatebutton,
-  Paypalbutton,
-  Proceedbutton,
-  ShippingForm,
-  Shippingservicecard,
-  StepIndicator,
-} from "../component/Checkout";
 import { Shippingservice } from "@/src/context/Checkoutcontext";
 import { notFound, redirect } from "next/navigation";
 import Prisma from "@/src/lib/prisma";
@@ -25,6 +14,21 @@ import { getPolicesByPage } from "../api/policy/route";
 import Link from "next/link";
 import { Metadata } from "next";
 import { VariantColorValueType } from "@/src/context/GlobalType.type";
+import {
+  FormWrapper,
+  ShippingForm,
+} from "../component/Checkout/Form_Component";
+import {
+  Checkoutproductcard,
+  Shippingservicecard,
+  StepIndicator,
+} from "../component/Checkout/Component";
+import {
+  BackAndEdit,
+  Navigatebutton,
+  Proceedbutton,
+} from "../component/Checkout/Button";
+import { Paypalbutton } from "../component/PayPalButton";
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
@@ -32,18 +36,17 @@ export async function generateMetadata(): Promise<Metadata> {
     description: "Checkout page , payment with paypal",
   };
 }
-export default async function Checkoutpage({
-  searchParams,
-}: {
-  searchParams?: { [key: string]: string | string[] | undefined };
+export default async function Checkoutpage(props: {
+  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
+  const searchParams = await props.searchParams;
   const step = searchParams?.step ? parseInt(searchParams?.step as string) : 0;
   const orderid_param = searchParams?.orderid;
   if (!step || !orderid_param || orderid_param.length === 0) {
     return redirect("/");
   }
 
-  let orderid = decrypt(orderid_param as string, process.env.KEY as string);
+  const orderid = decrypt(orderid_param as string, process.env.KEY as string);
 
   const order = await checkOrder(orderid);
 
@@ -157,9 +160,6 @@ const getCheckoutdata = async (orderid?: string, userid?: number) => {
   };
 };
 
-const calculatePrice = (price: number, percent: number) =>
-  price - (price * percent) / 100;
-
 const OrderSummary = async ({ orderId }: { orderId: string }) => {
   const orderData = await getCheckoutdata(orderId);
 
@@ -190,7 +190,7 @@ const OrderSummary = async ({ orderId }: { orderId: string }) => {
               price={price}
               total={total}
               name={order.product.name}
-              details={order.selectedvariant as any}
+              details={order.selectedvariant as never}
             />
           );
         })}
@@ -267,13 +267,14 @@ const PaymentDetail = async ({
 
 const getOrderTotal = async (orderID: string) => {
   try {
-    let result = await Prisma.orders.findUnique({
+    const result = await Prisma.orders.findUnique({
       where: { id: orderID },
       select: { price: true },
     });
 
     return result?.price as unknown as totalpricetype;
   } catch (error) {
+    console.log("fetch Total", error);
     return null;
   }
 };

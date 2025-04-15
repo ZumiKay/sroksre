@@ -8,7 +8,7 @@ import { useGlobalContext, Userinitialize } from "@/src/context/GlobalContext";
 import { ApiRequest } from "@/src/context/CustomHook";
 import ReactDOMServer from "react-dom/server";
 import { CredentialEmail } from "../component/EmailTemplate";
-import { SendVfyEmail } from "./actions";
+import { CredentialEmailType, SendVfyEmail } from "./actions";
 
 import { VerifyRecapcha } from "../severactions/RecapchaAction";
 import { userdata } from "@/src/context/GlobalType.type";
@@ -125,7 +125,7 @@ export default function AuthenticatePage() {
       if (error === "false") {
         errorToast("Invalid Password");
       } else {
-        request.message && errorToast(request.message);
+        if (request.message) errorToast(request.message);
       }
       return;
     }
@@ -162,7 +162,7 @@ export default function AuthenticatePage() {
       if (types === "cid") setloading("authenticated");
 
       if (verifyreq.success) {
-        const vfydata = verifyreq.data;
+        const vfydata = verifyreq.data as CredentialEmailType;
 
         if (isEmailType && data.email) {
           const emailSubject =
@@ -250,14 +250,19 @@ export default function AuthenticatePage() {
               <VerfyEmailComponent
                 data={data}
                 isVerify={verify.email}
-                handleChange={handleChange}
+                handleChange={(name, val) => handleChange(name, val as string)}
               />
             </div>
           )}
           {type === "register" ? (
             <>
               {verify.email && verify.cid && (
-                <RegisterUserForm data={data} handleChange={handleChange} />
+                <RegisterUserForm
+                  handleChange={(name, val) =>
+                    handleChange(name, val as string)
+                  }
+                  data={data}
+                />
               )}
               <div className="form_actions flex flex-row gap-5 w-[80%] max-small_phone:w-[100%]">
                 {verify.cid && verify.email ? (
@@ -299,7 +304,7 @@ export default function AuthenticatePage() {
             </>
           ) : (
             <LoginComponent
-              handleChange={handleChange}
+              handleChange={(name, val) => handleChange(name, val as string)}
               settype={(val) => settype(val as logintype)}
               setdata={(val) => setdata(val)}
               loading={loading === "loading"}
@@ -328,7 +333,7 @@ function PasswordVerification({ password }: { password: string }) {
     num: /\d/.test(password),
   });
 
-  const validationStatus: Record<string, any> = validatePassword(password);
+  const validationStatus: Record<string, unknown> = validatePassword(password);
 
   return (
     <ul className="password_verification w-full h-fit flex flex-col gap-5 bg-white p-3 rounded-lg">

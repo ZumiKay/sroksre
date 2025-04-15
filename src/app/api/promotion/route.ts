@@ -19,80 +19,87 @@ export async function POST(request: NextRequest) {
   try {
     const promodata: PromotionState = await request.json();
 
-    const result = await Prisma.$transaction(async (tx) => {
-      // Check if the promotion already exists
-      const isExist = await tx.promotion.findFirst({
-        where: {
-          name: promodata.name,
-        },
+    const promotionId = await Prisma.$transaction(async (tx) => {
+      const existingPromotion = await tx.promotion.findFirst({
+        where: { name: promodata.name },
       });
 
-      if (isExist) {
-        throw new Error("Promotion Exist");
+      if (existingPromotion) {
+        throw new Error("Promotion already exists");
       }
 
       // Create the promotion
-      const create = await tx.promotion.create({
+      const newPromotion = await tx.promotion.create({
         data: {
           name: promodata.name,
           description: promodata.description,
           expireAt: promodata.expireAt
-            ? (promodata?.expireAt as unknown as Date)
+            ? new Date(promodata.expireAt)
             : new Date(),
         },
       });
 
-      // Update discount product
-      if (promodata.products)
+      // Process product updates concurrently if products exist
+      if (promodata.products?.length) {
         await Promise.all(
           promodata.products.map((prod) =>
             tx.products.update({
               where: { id: prod?.id },
               data: {
-                promotion_id: create.id,
+                promotion_id: newPromotion.id,
                 discount: prod?.discount?.percent,
               },
             })
           )
         );
+      }
 
-      // Check for Sale Category
-
+      // Handle sale category if autocate is enabled
       if (promodata.autocate) {
-        const salecategory = await tx.parentcategories.findFirst({
-          where: {
-            type: categorytype.sale,
-          },
+        const saleCategory = await tx.parentcategories.findFirst({
+          where: { type: categorytype.sale },
         });
 
-        if (!salecategory?.id) {
-          throw new Error("Sale Category not found");
+        if (!saleCategory) {
+          throw new Error("Sale category not found");
         }
-        // Add promotion to the sale category
+
         await tx.childcategories.create({
           data: {
-            parentcategoriesId: salecategory.id,
-            pid: create.id,
+            parentcategoriesId: saleCategory.id,
+            pid: newPromotion.id,
             name: promodata.name,
             type: categorytype.sale,
           },
         });
       }
 
-      return create.id;
+      // Update banner if banner_id exists (moved inside transaction)
+      if (promodata.banner_id) {
+        await tx.banner.update({
+          where: { id: promodata.banner_id },
+          data: { promotionId: newPromotion.id },
+        });
+      }
+
+      return newPromotion.id;
     });
 
-    //update banner
-    if (promodata.banner_id)
-      await Prisma.banner.update({
-        where: { id: promodata.banner_id },
-        data: { promotionId: result },
-      });
-
-    return Response.json({ data: { id: result } }, { status: 200 });
+    return Response.json({ data: { id: promotionId } }, { status: 200 });
   } catch (error) {
     console.error("Create Promotion Error:", error);
-    return Response.json({ message: "Error Occurred" }, { status: 500 });
+
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error occurred";
+    const statusCode = errorMessage === "Promotion already exists" ? 409 : 500;
+
+    return Response.json(
+      {
+        message: errorMessage,
+        success: false,
+      },
+      { status: statusCode }
+    );
   }
 }
 
@@ -409,7 +416,7 @@ export async function GET(request: NextRequest) {
           name: true,
           description: true,
           expireAt: true,
-          banner: { select: { id: true, image: true } },
+          banner: { select: { id: true, Image: true } },
         },
       });
 

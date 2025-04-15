@@ -1,11 +1,14 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { BannerState } from "@/src/context/GlobalType.type";
 import Prisma from "@/src/lib/prisma";
 import {
-  DeleteImageFromStorage,
   calculatePagination,
   removeSpaceAndToLowerCase,
 } from "@/src/lib/utilities";
+import prismatype from "@prisma/client";
+import { del } from "@vercel/blob";
 import { NextRequest } from "next/server";
+import { getUser } from "../../action";
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,7 +17,6 @@ export async function POST(request: NextRequest) {
     const create = await Prisma.banner.create({
       data: {
         name: data.name,
-        image: data.image,
         type: data.type,
         size: data.size,
         selectedproduct_id: data.selectedproduct?.map((i) => i.value),
@@ -24,8 +26,19 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    //remove temp image
-    await Prisma.tempimage.deleteMany({ where: { name: data.image.name } });
+    //create Image
+    if (data.Image.isSave) {
+      const user = await getUser();
+      await Prisma.image.create({
+        data: {
+          url: data.Image.url,
+          name: data.Image.name,
+          type: data.Image.type as string,
+          temp: false,
+          userId: user?.id,
+        },
+      });
+    }
 
     return Response.json({ data: { id: create.id } }, { status: 200 });
   } catch (error) {
@@ -42,6 +55,23 @@ interface Updatebannerprops extends BannerState {
   edittype?: string;
 }
 
+const CommonSelectBannerProps: prismatype.Prisma.BannerSelect = {
+  id: true,
+  name: true,
+  Image: {
+    select: {
+      url: true,
+      name: true,
+      type: true,
+    },
+  },
+  link: true,
+  linktype: true,
+  parentcate_id: true,
+  childcate_id: true,
+  selectedproduct_id: true,
+};
+
 export async function PUT(request: NextRequest) {
   try {
     const updatedata: Updatebannerprops = await request.json();
@@ -49,11 +79,9 @@ export async function PUT(request: NextRequest) {
     if (updatedata.id) {
       if (updatedata.edittype) {
         if (updatedata.edittype === "cover") {
-          await Prisma.banner.update({
-            where: { id: updatedata.id },
-            data: {
-              image: updatedata.image,
-            },
+          await Prisma.image.update({
+            where: { bannerId: updatedata.id },
+            data: updatedata.Image,
           });
         }
       } else {
@@ -61,32 +89,48 @@ export async function PUT(request: NextRequest) {
           where: {
             id: updatedata.id,
           },
+          select: CommonSelectBannerProps,
         });
         if (!isBanner) {
           return new Response(null, { status: 404 });
         }
-        await Prisma.banner.update({
-          where: {
-            id: isBanner.id,
-          },
-          data: {
-            name: updatedata.name,
-            type: updatedata.type,
-            image: updatedata.image,
-            size: updatedata.size,
-            linktype: updatedata.linktype,
-            link: updatedata.link,
-            parentcate_id: updatedata.parentcate?.value as number,
-            childcate_id: updatedata.childcate?.value as number,
-            selectedproduct_id: updatedata.selectedproduct?.map((i) => i.value),
-          },
-        });
+        if (
+          JSON.stringify(isBanner.Image) !== JSON.stringify(updatedata.Image)
+        ) {
+          const user = await getUser();
+          if (user)
+            await Prisma.image.create({
+              data: {
+                url: updatedata.Image.url,
+                name: updatedata.Image.name,
+                type: updatedata.Image.type as string,
+                temp: false,
+                userId: user?.id,
+              },
+            });
+        }
+
+        if (JSON.stringify(isBanner) !== JSON.stringify(updatedata))
+          await Prisma.banner.update({
+            where: {
+              id: isBanner.id,
+            },
+            data: {
+              name: updatedata.name,
+              type: updatedata.type,
+              size: updatedata.size,
+              linktype: updatedata.linktype,
+              link: updatedata.link,
+              parentcate_id: updatedata.parentcate?.value as number,
+              childcate_id: updatedata.childcate?.value as number,
+              selectedproduct_id: updatedata.selectedproduct?.map(
+                (i) => i.value
+              ),
+            },
+          });
       }
     }
 
-    await Prisma.tempimage.deleteMany({
-      where: { name: updatedata.image.name },
-    });
     return Response.json({ message: "Banner Updated" }, { status: 200 });
   } catch (error) {
     console.log("Update Banner", error);
@@ -99,18 +143,16 @@ export async function DELETE(request: NextRequest) {
 
     const isBanner = await Prisma.banner.findUnique({
       where: { id },
+      select: {
+        id: true,
+        Image: CommonSelectBannerProps.Image,
+      },
     });
     if (!isBanner) {
       return Response.json({ messasge: "Banner Not Found" }, { status: 500 });
     }
 
-    const name =
-      typeof isBanner.image === "object" &&
-      isBanner.image &&
-      "name" in isBanner.image &&
-      isBanner.image.name;
-
-    await DeleteImageFromStorage(name as string);
+    if (isBanner.Image) await del(isBanner.Image?.url);
     await Prisma.banner.delete({ where: { id } });
 
     return Response.json({ message: "Banner Deleted" }, { status: 200 });
@@ -191,7 +233,7 @@ const getBannerData = async (id: Array<number>, model: any) => {
       name: true,
     },
   });
-  return data ? data.map((i) => ({ value: i.id, label: i.name })) : null;
+  return data ? data.map((i: any) => ({ value: i.id, label: i.name })) : null;
 };
 export async function GET(request: NextRequest) {
   const params = request.url.toString();
@@ -227,6 +269,7 @@ export async function GET(request: NextRequest) {
     if (param.ty === "edit") {
       result = await Prisma.banner.findUnique({
         where: { id: param.p },
+        select: CommonSelectBannerProps,
       });
 
       if (
@@ -237,8 +280,8 @@ export async function GET(request: NextRequest) {
         result = {
           ...result,
           name: result.name,
-          type: result.type as any,
-          image: result.image as any,
+          type: result.type,
+          Image: result.Image,
           parentcate: result.parentcate_id
             ? (
                 await getBannerData(
@@ -276,7 +319,7 @@ export async function GET(request: NextRequest) {
           id: true,
           name: true,
           type: true,
-          image: true,
+          Image: CommonSelectBannerProps.Image,
           size: true,
         },
         take: endIndex - startIndex + 1,

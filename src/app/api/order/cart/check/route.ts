@@ -1,6 +1,6 @@
+import { getUser } from "@/src/app/action";
 import {
   Allstatus,
-  getUser,
   Productorderdetailtype,
   Productordertype,
 } from "@/src/context/OrderContext";

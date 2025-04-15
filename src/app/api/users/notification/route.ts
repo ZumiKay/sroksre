@@ -76,6 +76,29 @@ export async function GET(req: NextRequest) {
   }
 }
 
+type EditNotificationType = {
+  check?: boolean;
+  id?: number;
+};
+export async function PUT(req: NextRequest) {
+  try {
+    const { check, id } = (await req.json()) as EditNotificationType;
+
+    if (!id) return Response.json({}, { status: 400 });
+
+    if (check) {
+      await Prisma.notification.update({
+        where: { id },
+        data: { checked: check },
+      });
+    }
+    return Response.json({}, { status: 200 });
+  } catch (error) {
+    console.log("Edit Notification", error);
+    return Response.json({}, { status: 500 });
+  }
+}
+
 export async function DELETE(req: NextRequest) {
   try {
     const { id }: { id: number } = await req.json();

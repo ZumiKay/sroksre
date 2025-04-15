@@ -17,7 +17,6 @@ import { motion } from "framer-motion";
 import { DateTimePicker } from "@mui/x-date-pickers";
 import dayjs from "dayjs";
 import PrimaryButton from "../Button";
-import { ImageUpload } from "./Image";
 import { Form, NumberInput, Switch, Input, Button } from "@heroui/react";
 import {
   InventoryPage,
@@ -73,7 +72,7 @@ export const CreatePromotionModal = ({
         errorToast("Error Occured");
         return;
       }
-      setpromotion(request.data);
+      setpromotion(request.data as PromotionState);
     };
 
     if (globalindex.promotioneditindex !== -1) {
@@ -98,15 +97,11 @@ export const CreatePromotionModal = ({
 
       const method = globalindex.promotioneditindex !== -1 ? "PUT" : "POST";
 
-      const promodata: PromotionState = {
-        ...promotion,
-        expireAt: promotion.expireAt && (promotion.expireAt.toDate() as any),
-      };
       const createpromo = await ApiRequest({
         url: "/api/promotion",
         setloading: setisLoading,
         method,
-        data: method === "PUT" ? { ...promodata, type: "edit" } : promodata,
+        data: method === "PUT" ? { ...promotion, type: "edit" } : promotion,
       });
       if (!createpromo.success) {
         errorToast(createpromo.error ?? "Error Occured");
@@ -149,9 +144,12 @@ export const CreatePromotionModal = ({
       settype,
     ]
   );
-  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setpromotion((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-  };
+  const handleChange = useCallback(
+    (e: ChangeEvent<HTMLInputElement>) => {
+      setpromotion((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    },
+    [setpromotion]
+  );
   const handleCancel = useCallback(() => {
     const param = new URLSearchParams(searchParams);
 
@@ -235,7 +233,7 @@ export const CreatePromotionModal = ({
 
   return (
     <SecondaryModal
-      onPageChange={(val) => !isPickDate && handleCancel()}
+      onPageChange={() => !isPickDate && handleCancel()}
       open={openmodal.createPromotion ?? false}
       size="xl"
       placement="top"
@@ -275,7 +273,9 @@ export const CreatePromotionModal = ({
             onClose={() => setisPickDate(false)}
             onChange={(e) => {
               if (e) {
-                setpromotion((prev) => ({ ...prev, expireAt: e }));
+                handleChange({
+                  target: { name: "expireAt", value: e.toISOString() },
+                } as never);
               }
             }}
             sx={{ width: "100%", height: "50px" }}
@@ -324,14 +324,6 @@ export const CreatePromotionModal = ({
           />
         </Form>
       </div>
-      {openmodal.imageupload && (
-        <ImageUpload
-          mutitlple={false}
-          limit={1}
-          type="createpromotion"
-          setreloaddata={setreloaddata}
-        />
-      )}
     </SecondaryModal>
   );
 };

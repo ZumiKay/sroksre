@@ -1,20 +1,12 @@
+import React, { memo } from "react";
 import { SelectType } from "@/src/context/GlobalType.type";
 import { InventoryInfoType, StockType } from "../../inventory.type";
 import { AsyncSelection } from "@/src/app/component/AsynSelection";
 import { useGlobalContext } from "@/src/context/GlobalContext";
-import {
-  Button,
-  Divider,
-  Form,
-  Input,
-  NumberInput,
-  Textarea,
-} from "@heroui/react";
+import { Button, Divider, Input, NumberInput, Textarea } from "@heroui/react";
 import { VariantIcon } from "@/src/app/component/Asset";
 import ToggleMenu from "@/src/app/component/ToggleMenu";
-import React, { FormEvent } from "react";
 import { errorToast } from "@/src/app/component/Loading";
-import PrimaryButton from "@/src/app/component/Button";
 
 const StockOption: Array<SelectType> = [
   { label: "Normal", value: StockType.Stock },
@@ -24,7 +16,7 @@ const StockOption: Array<SelectType> = [
   },
 ];
 
-export const StockCreateSection = () => {
+export const StockCreateSection = memo(() => {
   const { product, setproduct, globalindex, setopenmodal } = useGlobalContext();
 
   function handleChange<t>(name: string, val: t) {
@@ -74,7 +66,8 @@ export const StockCreateSection = () => {
       )}
     </div>
   );
-};
+});
+StockCreateSection.displayName = "StockCreateSection";
 
 const initialDetail = {
   info_title: "",
@@ -99,7 +92,7 @@ const DetailsModal = () => {
     }
 
     setIndex(productdetailindex);
-  }, [globalindex.productdetailindex, product.details]);
+  }, [globalindex, globalindex.productdetailindex, product.details]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -180,7 +173,7 @@ const DetailsModal = () => {
   );
 };
 
-export const ProductDetailCreateSection = () => {
+export const ProductDetailCreateSection = memo(() => {
   const { product, openmodal, setopenmodal } = useGlobalContext();
 
   return (
@@ -204,4 +197,5 @@ export const ProductDetailCreateSection = () => {
       )}
     </div>
   );
-};
+});
+ProductDetailCreateSection.displayName = "ProductDetailCreateSection";

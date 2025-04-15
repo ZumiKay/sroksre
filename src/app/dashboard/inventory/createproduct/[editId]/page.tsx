@@ -1,5 +1,5 @@
 "use client";
-import React, { FormEvent, useCallback, useEffect, useState } from "react";
+import React, { FormEvent, useCallback, useEffect, useState, use } from "react";
 import { PrimaryPhoto } from "@/src/app/component/PhotoComponent";
 import { ApiRequest, useScreenSize } from "@/src/context/CustomHook";
 import {
@@ -24,7 +24,8 @@ import ImageIcon from "../../../../../../public/Image/ImageIcon.png";
 import Image from "next/image";
 import { FetchCategory, FetchEditProduct } from "./action";
 
-const CreateProductPage = ({ params }: { params: { editId?: string } }) => {
+const CreateProductPage = (props: { params: Promise<{ editId?: string }> }) => {
+  const params = use(props.params);
   const { openmodal, product, setproduct, setopenmodal, setglobalindex } =
     useGlobalContext();
   const { isMobile, isTablet } = useScreenSize();
@@ -61,7 +62,7 @@ const CreateProductPage = ({ params }: { params: { editId?: string } }) => {
       };
       asyncGetData();
     }
-  }, [params.editId]);
+  }, [Router, params.editId, setglobalindex, setproduct]);
 
   useEffect(() => {
     if (tempProduct) {
@@ -71,7 +72,7 @@ const CreateProductPage = ({ params }: { params: { editId?: string } }) => {
 
       setisChange(isDiffrent);
     }
-  }, [product]);
+  }, [product, tempProduct]);
 
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {

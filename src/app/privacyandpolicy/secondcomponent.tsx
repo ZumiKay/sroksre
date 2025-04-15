@@ -1,9 +1,9 @@
 "use client";
 import { Button, Select, SelectItem } from "@heroui/react";
-import Modal from "../component/Modals";
-import React, { ChangeEvent, useState } from "react";
+import { SecondaryModal } from "../component/Modals";
+import React, { ChangeEvent, useCallback, useState } from "react";
 import { showtype } from "../api/policy/route";
-import { ApiRequest, useScreenSize } from "@/src/context/CustomHook";
+import { ApiRequest } from "@/src/context/CustomHook";
 import { errorToast } from "../component/Loading";
 import { useGlobalContext } from "@/src/context/GlobalContext";
 import { useRouter } from "next/navigation";
@@ -22,26 +22,29 @@ export const Showtypemodal = ({
   id: number;
   value: Set<string>;
 }) => {
-  const { setopenmodal } = useGlobalContext();
+  const { openmodal, setopenmodal } = useGlobalContext();
   const router = useRouter();
   const [values, setValues] = React.useState(value ?? new Set([""]));
   const [loading, setloading] = useState(false);
-  const { isTablet, isMobile } = useScreenSize();
 
   const handleSelectionChange = (e: ChangeEvent<HTMLSelectElement>) => {
     setValues(new Set(e.target.value.split(",")));
   };
 
-  const handleUpdatePolicy = async () => {
+  const handleUpdatePolicy = useCallback(async () => {
     setloading(true);
     const value = Array.from(values)
       .filter((i) => i !== "")
       .join(",");
-    const request = await ApiRequest({url: "/api/policy", method: "PUT", data: {
-      id,
-      showtype: value,
-      ty: "showtype",
-    }});
+    const request = await ApiRequest({
+      url: "/api/policy",
+      method: "PUT",
+      data: {
+        id,
+        showtype: value,
+        ty: "showtype",
+      },
+    });
     if (!request.success) {
       errorToast("Error Occured");
       return;
@@ -49,13 +52,17 @@ export const Showtypemodal = ({
 
     setopenmodal((prev) => ({ ...prev, showtype: false }));
     router.refresh();
-  };
+  }, [id, router, setopenmodal, values]);
+
+  const handleClose = useCallback(() => {
+    setopenmodal({ policyshowtype: false });
+  }, [setopenmodal]);
 
   return (
-    <Modal
-      customwidth={isMobile ? "100vw" : isTablet ? "90vw" : ""}
-      closestate="showtype"
-      customZIndex={200}
+    <SecondaryModal
+      open={openmodal.policyshowtype ?? false}
+      onPageChange={() => handleClose()}
+      size="md"
     >
       <div className="w-full h-full bg-white rounded-lg p-3 flex flex-col gap-y-5">
         <h3 className="text-2xl font-bold">Set Policy For Display</h3>
@@ -79,31 +86,11 @@ export const Showtypemodal = ({
           color="success"
           style={{ color: "white", fontWeight: "bold" }}
           variant="solid"
-          onClick={() => handleUpdatePolicy()}
+          onPress={() => handleUpdatePolicy()}
         >
           Confirm
         </Button>
-        <Button
-          fullWidth
-          isLoading={loading}
-          size="lg"
-          variant="solid"
-          style={
-            !isMobile
-              ? {
-                  display: "none",
-                }
-              : {
-                  backgroundColor: "lightcoral",
-                  color: "white",
-                  fontWeight: "bold",
-                }
-          }
-          onClick={() => setopenmodal((prev) => ({ ...prev, showtype: false }))}
-        >
-          Close
-        </Button>
       </div>
-    </Modal>
+    </SecondaryModal>
   );
 };

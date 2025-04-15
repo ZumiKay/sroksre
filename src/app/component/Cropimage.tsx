@@ -18,9 +18,9 @@ import { useDebounceEffect } from "../../context/CustomHook";
 
 import "react-image-crop/dist/ReactCrop.css";
 import PrimaryButton, { Selection } from "./Button";
-import Modal, { SecondaryModal } from "./Modals";
+import { SecondaryModal } from "./Modals";
 import { errorToast } from "./Loading";
-import {ImageDatatype, productcoverstype} from "@/src/context/GlobalType.type";
+import { ImageDatatype } from "@/src/context/GlobalType.type";
 
 function centerAspectCrop(
   mediaWidth: number,

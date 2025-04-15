@@ -19,12 +19,13 @@ import TemplateContainer, {
   AddTemplateModal,
 } from "./Variantcomponent/TemplateContainer";
 import { VariantTemplateType } from "./Variantcomponent/Action";
-import { compareArrays, HasPartialOverlap } from "@/src/lib/utilities";
+import { HasPartialOverlap } from "@/src/lib/utilities";
 import { NormalSkeleton } from "../Banner";
 import React from "react";
 import {
   Colorinitalize,
   Colortype,
+  ProductState,
   Stocktype,
   VariantColorValueType,
   Variantcontainertype,
@@ -120,7 +121,7 @@ export const Variantcontainer = ({
       });
       setreloadtemp(false);
       if (res.success) {
-        settemplates(res.data);
+        settemplates(res.data as VariantTemplateType[]);
       }
     }
     if (reloadtemp) {
@@ -140,27 +141,25 @@ export const Variantcontainer = ({
           return;
         }
 
-        const { varaintstock, variants } = response.data;
+        const { varaintstock, variants } =
+          response.data as Partial<ProductState>;
 
         setproduct((prev) => ({ ...prev, varaintstock, variants }));
         setreloaddata(false);
       };
       await Delayloading(asyncfetchdata, setloading, 500);
     },
-    [type]
+    [setproduct, type]
   );
 
   useEffect(() => {
-    editindex &&
-      type &&
-      type === ProductStockType.stock &&
-      reloaddata &&
+    if (editindex && type && type === ProductStockType.stock && reloaddata)
       fetchstock(editindex);
-  }, [reloaddata]);
+  }, [editindex, fetchstock, reloaddata, type]);
 
   useEffect(() => {
     FetchTemplate();
-  }, [reloadtemp]);
+  }, [FetchTemplate, reloadtemp]);
 
   const handleCreate = () => {
     let update = product.variants ? [...product.variants] : undefined;
@@ -259,7 +258,7 @@ export const Variantcontainer = ({
   );
 
   const handleDeleteVaraint = (idx: number) => {
-    let update = { ...temp };
+    const update = { ...temp };
     update?.value?.splice(idx, 1);
     settemp(update as variantdatatype);
   };
@@ -273,19 +272,19 @@ export const Variantcontainer = ({
       }
 
       if (isEditTemp) {
-        setedittemplate(selectedtemp as any);
+        setedittemplate(selectedtemp as VariantTemplateType);
         setopen((prev) => ({ ...prev, addtemplate: true }));
       } else {
         setname(selectedtemp.variant?.option_title as string);
         settemp({
           name: selectedtemp.variant?.option_title as string,
-          type: selectedtemp.variant?.option_type as any,
-          value: selectedtemp.variant?.option_value as any,
+          type: selectedtemp.variant?.option_type as never,
+          value: selectedtemp.variant?.option_value as never,
         });
         setnew("info");
       }
     },
-    [templates]
+    [isEditTemp, templates]
   );
 
   const handleDeleteTemplate = useCallback(async (id: number) => {
@@ -422,11 +421,14 @@ export const Variantcontainer = ({
     if (!addnew) setnew("stock");
   };
 
-  const handleDeleteColor = (idx: number) => {
-    const update = { ...temp };
-    update.value?.splice(idx, 1);
-    settemp(update as any);
-  };
+  const handleDeleteColor = useCallback(
+    (idx: number) => {
+      const update = { ...temp };
+      update.value?.splice(idx, 1);
+      settemp(update as variantdatatype);
+    },
+    [temp]
+  );
 
   const handleSaveUpdateSubStock = useCallback(
     async (varaintstock: Stocktype[]) => {
@@ -448,11 +450,16 @@ export const Variantcontainer = ({
       setedit(-1);
       setselectedvalues(undefined);
       setstock("");
-      resetState && resetState();
+      if (resetState) resetState();
       setnew("stockinfo");
     },
-    [editindex]
+    [editindex, resetState]
   );
+
+  const handleClose = useCallback(() => {
+    if (resetState) resetState();
+    setopenmodal((prev) => ({ ...prev, [closename as string]: false }));
+  }, [closename, resetState, setopenmodal]);
 
   return (
     <SecondaryModal
@@ -462,10 +469,7 @@ export const Variantcontainer = ({
           ? (openmodal[closename] as boolean)
           : openmodal.addproductvariant ?? false
       }
-      onPageChange={() => {
-        resetState && resetState();
-        setopenmodal((prev) => ({ ...prev, [closename as string]: false }));
-      }}
+      onPageChange={() => handleClose()}
     >
       <div className="relative productvariant_creation rounded-t-md w-full h-full bg-white flex flex-col items-center justify-start pt-5 gap-y-5">
         <h3 className="title text-2xl font-bold text-left w-full h-[50px] pl-2 border-b-1 border-black ">
@@ -525,7 +529,7 @@ export const Variantcontainer = ({
                 settemp({
                   name: "",
                   value: [],
-                  type: e.target.value as any,
+                  type: e.target.value as never,
                 });
                 setnew("info");
               }}

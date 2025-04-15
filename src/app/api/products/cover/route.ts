@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import Prisma from "@/src/lib/prisma";
 import { handleUpload, HandleUploadBody } from "@vercel/blob/client";
-import { getUser } from "@/src/context/OrderContext";
 import { del } from "@vercel/blob";
 import { extractQueryParams } from "../../banner/route";
-import { IsNumber } from "@/src/lib/utilities";
+import { getUser } from "@/src/app/action";
 
 interface DataCoverType {
   url: string;
@@ -20,7 +19,7 @@ export async function GET(request: NextRequest) {
 
     if (!pid) return NextResponse.json({}, { status: 400 });
 
-    const ImageCovers = await Prisma.productcover.findMany({
+    const ImageCovers = await Prisma.image.findMany({
       where: {
         productId: Number(pid),
       },
@@ -52,21 +51,11 @@ export async function POST(request: Request) {
         // Generate a client token for the browser to upload the file
         // ⚠️ Authenticate and authorize users before generating the token.
         // Otherwise, you're allowing anonymous uploads.
-
         const user = await getUser();
 
         if (!user) {
           throw new Error("Unauthorized");
         }
-
-        //Save To Temp DB
-
-        await Prisma.tempimage.create({
-          data: {
-            name: pathname,
-            user_id: user.id,
-          },
-        });
 
         return {
           allowedContentTypes: [
@@ -80,21 +69,12 @@ export async function POST(request: Request) {
           }),
         };
       },
-      onUploadCompleted: async ({ blob, tokenPayload }) => {
+      onUploadCompleted: async () => {
         // Get notified of client upload completion
         // ⚠️ This will not work on `localhost` websites,
         // Use ngrok or similar to get the full upload flow
-
-        console.log("blob upload completed", blob, tokenPayload);
-
-        try {
-          console.log("Save Url To Database");
-        } catch (error) {
-          throw new Error("Could not update user");
-        }
       },
     });
-
     return NextResponse.json(UploadImage);
   } catch (error) {
     console.log("Save Image", error);
@@ -118,7 +98,7 @@ export async function DELETE(request: NextRequest) {
       const isSaved = data.covers.every((i) => i.id);
 
       if (isSaved) {
-        const isExist = await Prisma.productcover.findMany({
+        const isExist = await Prisma.image.findMany({
           where: {
             id: {
               in: data.covers.map((i) => i.id ?? 0),
@@ -127,9 +107,7 @@ export async function DELETE(request: NextRequest) {
         });
         if (isExist.length > 0) {
           await Promise.all(
-            isExist.map((i) =>
-              Prisma.productcover.delete({ where: { id: i?.id } })
-            )
+            isExist.map((i) => Prisma.image.delete({ where: { id: i?.id } }))
           );
           await Promise.all(isExist.map((cover) => del(cover.url)));
         }

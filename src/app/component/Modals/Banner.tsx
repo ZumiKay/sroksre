@@ -20,6 +20,7 @@ import { Divider, Form, Input } from "@heroui/react";
 import { BannerState, SelectType } from "@/src/context/GlobalType.type";
 import { AsyncSelection } from "@/src/app/component/AsynSelection";
 import Image from "next/image";
+import Default from "../../../../public/Image/default.png";
 
 const BannerType = [
   { label: "Normal", value: "normal" },
@@ -102,7 +103,7 @@ export const BannerModal = ({
         return;
       }
 
-      if (banner.image.name === "") {
+      if (banner.Image.name === "") {
         errorToast("Image is required");
         return;
       }
@@ -229,7 +230,7 @@ export const BannerModal = ({
             className="flex flex-col w-full max-w-[80%] max-large_phone:max-w-full max-h-[80vh] min-h-[250px] border-2 border-dashed border-gray-300 rounded-lg"
           >
             <Image
-              src={banner.image.url}
+              src={banner.Image.url.length > 0 ? banner.Image.url : Default}
               alt={"Banner"}
               style={
                 banner.size === "small"
@@ -369,7 +370,7 @@ export const BannerModal = ({
             </div>
           )}
           <PrimaryButton
-            text={banner.image?.url.length > 0 ? "EditImage" : "UploadImage"}
+            text={banner.Image?.url.length > 0 ? "EditImage" : "UploadImage"}
             width="100%"
             type="button"
             color="lightblue"

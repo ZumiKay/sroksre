@@ -22,6 +22,7 @@ import {
   OpenModalState,
   ProductState,
   PromotionState,
+  UserState,
 } from "@/src/context/GlobalType.type";
 import {
   ActionContainer,
@@ -36,7 +37,7 @@ import { Spinner } from "@heroui/spinner";
 
 interface TableComponentProps {
   ty: InventoryPage;
-  data?: Array<ProductState | BannerState | PromotionState>;
+  data?: Array<ProductState | BannerState | PromotionState | UserState>;
   onAction?: (key: string) => void;
   isLoading?: boolean;
   onSelection?: (key: Array<number>) => void;
@@ -51,6 +52,21 @@ type ColumnType = {
   uid: string;
   view?: boolean;
 };
+
+const UsermanagementColumns: Array<ColumnType> = [
+  {
+    name: "Id",
+    uid: "id",
+  },
+  { name: "Name", uid: "name" },
+  { name: "Email", uid: "email" },
+  {
+    name: "Role",
+    uid: "role",
+  },
+  { name: "Other", uid: "other" },
+  { name: "Action", uid: "action" },
+];
 
 const ProductColumns: Array<ColumnType> = [
   {
@@ -148,6 +164,8 @@ export default function TableComponent({
       ? ProductColumns
       : ty === InventoryType.Banner
       ? BannerColumns
+      : ty === "usermanagement"
+      ? UsermanagementColumns
       : PromotionColumns;
   }, [ty]);
 
@@ -179,6 +197,9 @@ export default function TableComponent({
       } else if (uid === "covers") {
         toOpenModal[`cover${id}`] = true;
         toUpdateIndex.producteditindex = id;
+      } else if (uid === "other") {
+        toOpenModal["other"] = true;
+        toUpdateIndex.useredit = id;
       }
 
       setglobalindex((prev) => ({ ...prev, ...toUpdateIndex }));
@@ -205,6 +226,10 @@ export default function TableComponent({
           createKey: "createPromotion",
           indexKey: "promotioneditindex",
         },
+        usermanagement: {
+          createKey: "createUser",
+          indexKey: "useredit",
+        },
       };
 
       const { createKey, indexKey } = config[type as InventoryPage];
@@ -212,10 +237,16 @@ export default function TableComponent({
       if (key === "edit") {
         if (createKey === "createProduct") {
           Router.push(`/dashboard/inventory/createproduct/${id}`);
+        } else if (createKey === "createUser") {
+          Router.push(`/dashboard/usermanagement/${id}`);
         } else modalState[createKey] = true;
         indexState[indexKey] = id as never;
       } else if (key === "delete") {
-        modalState.confirmmodal = { index: id, type, open: true };
+        modalState.confirmmodal = {
+          index: id,
+          type: type === "usermanagement" ? "user" : type,
+          open: true,
+        };
       } else if (type === "product" && stock) {
         modalState[`${stock.type}${id}`] = true;
         setproduct((prev) => ({ ...prev, id, stock: stock.value }));
@@ -224,7 +255,7 @@ export default function TableComponent({
       setopenmodal((prev) => ({ ...prev, ...modalState } as never));
       setglobalindex((prev) => ({ ...prev, ...indexState }));
     },
-    []
+    [Router, setglobalindex, setopenmodal, setproduct]
   );
 
   const renderCell = useCallback(
@@ -258,6 +289,11 @@ export default function TableComponent({
               onClick={handleClick}
             >
               {celldata.name}
+            </div>
+          ) : memoizedTy === "usermanagement" ? (
+            <div className="username">
+              <p>{`Firstname: ${celldata.firstname}`}</p>
+              {celldata?.lastname && <p>{`Lastname: ${celldata.lastname}`}</p>}
             </div>
           ) : (
             celldata[key]
@@ -304,7 +340,9 @@ export default function TableComponent({
               VIEW
             </Button>
           );
+
         case "Products":
+        case "other":
           return (
             <Button
               onPress={() => celldata.id && handleView(key, celldata.id)}
@@ -320,7 +358,11 @@ export default function TableComponent({
           return (
             <ActionContainer
               onAction={(val) =>
-                handleAction(val as ActionState, celldata.id, ty)
+                handleAction(
+                  val as ActionState,
+                  celldata.id,
+                  ty as InventoryPage
+                )
               }
             />
           );

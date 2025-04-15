@@ -1,6 +1,8 @@
+"use client";
 import { useState, useEffect, DependencyList, useRef } from "react";
 import Error from "next/error";
-import { ApiRequestHookProps } from "./GlobalType.type";
+import { ApiRequestHookProps, Usersessiontype } from "./GlobalType.type";
+import { useSession } from "next-auth/react";
 
 export const ApiRequest = async ({
   url,
@@ -21,6 +23,7 @@ export const ApiRequest = async ({
   expirecount?: number;
   message?: string;
   isLimit?: boolean;
+  isInCart?: boolean;
 }> => {
   try {
     if (setloading) setloading((prev) => ({ ...prev, [method]: true }));
@@ -53,6 +56,7 @@ export const ApiRequest = async ({
         valid: responseJson.valid ?? undefined,
         isLimit: method === "GET" && responseJson?.isLimit,
         expirecount: method === "GET" && responseJson?.expirecount,
+        isInCart: method === "GET" && responseJson?.isInCart,
       };
     } else {
       return { success: true, message: responseJson.message };
@@ -196,4 +200,15 @@ export const useDetectKeyboardOpen = (
   }, [isKeyboardOpen, minKeyboardHeight]);
 
   return isKeyboardOpen;
+};
+
+export const useCheckSession = () => {
+  const { data: session, status } = useSession();
+  const [user, setuser] = useState<Usersessiontype | null>(null);
+
+  useEffect(() => {
+    setuser((session?.user as Usersessiontype) ?? null);
+  }, [session]);
+
+  return { user, status };
 };

@@ -20,16 +20,13 @@ import {
   SubcategoriesState,
   userdata,
   Userdatastate,
+  UserState,
 } from "./GlobalType.type";
 
 export const Allrefinitialize: Allrefstate = {
   filterref: null,
 };
-export const CateogoryInitailizestate: CateogoryState = {
-  name: "",
-  description: "",
-  subcategories: [],
-};
+
 export const Productinitailizestate: ProductState = {
   name: "",
   price: 0.0,
@@ -118,8 +115,8 @@ interface ContextType {
   setglobalindex: React.Dispatch<React.SetStateAction<GlobalIndexState>>;
   product: ProductState;
   setproduct: React.Dispatch<React.SetStateAction<ProductState>>;
-  category: CateogoryState;
-  setcategory: React.Dispatch<React.SetStateAction<CateogoryState>>;
+  category: CateogoryState | null;
+  setcategory: React.Dispatch<React.SetStateAction<CateogoryState | null>>;
   banner: BannerState;
   setbanner: React.Dispatch<React.SetStateAction<BannerState>>;
   promotion: PromotionState;
@@ -138,11 +135,10 @@ interface ContextType {
   page: number;
   setpage: React.Dispatch<React.SetStateAction<number>>;
   setuserinfo: React.Dispatch<React.SetStateAction<Userdatastate>>;
-
   productorderdetail: Productordertype;
   setproductorderdetail: React.Dispatch<React.SetStateAction<Productordertype>>;
-  user: userdata;
-  setuser: React.Dispatch<React.SetStateAction<userdata>>;
+  user?: UserState;
+  setuser: React.Dispatch<React.SetStateAction<UserState | undefined>>;
   listproductfilter: Listproductfilter;
   setlistprodfil: React.Dispatch<React.SetStateAction<Listproductfilter>>;
   listproductfilval: Listproductfilter;
@@ -176,7 +172,7 @@ export const GlobalContextProvider = ({
   children: React.ReactNode;
 }) => {
   const [openmodal, setopenmodal] = useState<OpenModalState>({});
-  const [category, setcategory] = useState(CateogoryInitailizestate);
+  const [category, setcategory] = useState<CateogoryState | null>(null);
   const [subcate, setsubcate] = useState<SubcategoriesState[]>([]);
   const [globalindex, setglobalindex] = useState(GlobalIndexInitializeState);
   const [product, setproduct] = useState(Productinitailizestate);
@@ -185,7 +181,7 @@ export const GlobalContextProvider = ({
   const [allData, setalldata] = useState<AllDataState | undefined>(undefined);
   const [isLoading, setisLoading] = useState(LoadingStateInitialized);
   const [itemlength, setitemlength] = useState(ItemlengthInitialize);
-  const [user, setuser] = useState(Userinitialize);
+  const [user, setuser] = useState<UserState | undefined>(undefined);
   const [page, setpage] = useState(1);
   const [userinfo, setuserinfo] = useState({});
   const [error, seterror] = useState<boolean>(false);

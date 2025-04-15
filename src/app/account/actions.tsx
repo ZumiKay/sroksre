@@ -15,6 +15,14 @@ export interface userdata {
   cid?: string;
 }
 
+export interface CredentialEmailType {
+  id?: number;
+  message: string;
+  infotype: "code" | "link";
+  infovalue: string;
+  warn: string;
+}
+
 export const SendVfyEmail = async (
   html: string,
   to: string,

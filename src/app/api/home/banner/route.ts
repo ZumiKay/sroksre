@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { extractQueryParams } from "../../banner/route";
 import Prisma from "@/src/lib/prisma";
 import { removeSpaceAndToLowerCase } from "@/src/lib/utilities";
-import { ContainerType } from "@/src/app/severactions/containeraction";
+import { ContainerType } from "@/src/context/GlobalType.type";
 
 interface paramsType {
   q?: string;
@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
       select: {
         id: true,
         name: true,
-        image: true,
+        Image: true,
         size: true,
         Containeritems: { orderBy: { id: "asc" }, select: { id: true } },
       },
@@ -56,6 +56,7 @@ export async function GET(req: NextRequest) {
       { status: 200 }
     );
   } catch (error) {
+    console.log("Get Banner", error);
     return Response.json(
       { success: false, message: "Error Occured" },
       { status: 500 }

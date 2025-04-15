@@ -1,7 +1,10 @@
 "use server";
 
+import { getServerSession } from "next-auth";
 import Prisma from "../lib/prisma";
 import { removeSpaceAndToLowerCase } from "../lib/utilities";
+import { Usersessiontype } from "../context/GlobalType.type";
+import { authConfig } from "./api/auth/[...nextauth]/route";
 
 export type Homepagecontype = "banner" | "category" | "scrollcontainer";
 export type Scrollcontainertype = "popular" | "latest" | "custom";
@@ -64,4 +67,11 @@ export const getProductByCategory = async (
     console.log("Get product for banner", error);
     return { success: false };
   }
+};
+
+export const getUser = async (): Promise<Usersessiontype | null> => {
+  const user = await getServerSession(authConfig);
+  const result = user?.user as Usersessiontype | null;
+
+  return result;
 };

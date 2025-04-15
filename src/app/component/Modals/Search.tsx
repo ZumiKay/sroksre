@@ -9,6 +9,7 @@ import { Orderpricetype } from "@/src/context/OrderContext";
 import { useState } from "react";
 import { ApiRequest } from "@/src/context/CustomHook";
 import { errorToast } from "../Loading";
+import {ProductState} from "@/src/context/GlobalType.type";
 
 interface Searchproducttype {
   id: number;
@@ -38,7 +39,7 @@ export default function SearchContainer({ isMobile }: { isMobile: boolean }) {
         errorToast("Error Occured");
         return;
       }
-      setproduct(response.data);
+      setproduct(response.data as ProductState[]);
     }
   };
 

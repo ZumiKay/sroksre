@@ -1,13 +1,18 @@
 "use client";
-import { CSSProperties, ReactNode, useEffect, useState } from "react";
+import {
+  CSSProperties,
+  ReactNode,
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
 import { useGlobalContext } from "@/src/context/GlobalContext";
 import PrimaryButton from "./Button";
 import { AnimatePresence, motion } from "framer-motion";
 import ReactSelect from "react-select/async";
 import makeAnimated from "react-select/animated";
-import { GetProductName } from "../dashboard/inventory/varaint_action";
 import { errorToast } from "./Loading";
-import { Button, Input } from "@heroui/react";
+import { Button, Input, Tooltip } from "@heroui/react";
 import React from "react";
 import {
   ProductInfo,
@@ -143,8 +148,8 @@ export function AddSubCategoryMenu({ index }: { index: number }) {
     index !== -1 && allData?.category && setcategory(allData.category[index]);
   }, []);
 
-  const handleAdd = () => {
-    const updatecate = [...category.subcategories];
+  const handleAdd = useCallback(() => {
+    const updatecate = [...(category?.subcategories ?? [])];
     const isExist = updatecate.some((i) => i.name === name);
     if (isExist) {
       errorToast("Cateogory Exist");
@@ -158,26 +163,59 @@ export function AddSubCategoryMenu({ index }: { index: number }) {
     setname("");
     setedit(-1);
     setcategory((prev) => ({ ...prev, subcategories: updatecate }));
-  };
-  const handleCancel = () => {
-    const deletesub = { ...category };
-    deletesub.subcategories = [];
-
+  }, [category?.subcategories, editIdx, name, setcategory]);
+  const handleCancel = useCallback(() => {
+    setcategory((prev) => ({ ...prev, subcategories: undefined }));
+    setopenmodal((prev) => ({ ...prev, addsubcategory: false }));
     setname("");
     setedit(-1);
-    setcategory(deletesub);
-    setopenmodal((prev) => ({ ...prev, addsubcategory: false }));
-  };
-  const handleDelete = (idx: number) => {
-    const subcate = [...category.subcategories];
-    subcate.splice(idx, 1);
-    setcategory((prev) => ({ ...prev, subcategories: subcate }));
-  };
+  }, [setcategory, setopenmodal]);
+  const handleDelete = useCallback(
+    (idx: number) => {
+      setcategory((prev) => ({
+        ...prev,
+        subcategories: prev?.subcategories?.splice(idx, 1),
+      }));
+    },
+    [setcategory]
+  );
+
+  const handleSelectEdit = useCallback(
+    (idx: number) => {
+      setedit((prev) => (prev === idx ? -1 : idx));
+      setname(
+        idx === editIdx
+          ? ""
+          : category?.subcategories
+          ? category?.subcategories[idx].name
+          : ""
+      );
+    },
+    [category?.subcategories, editIdx]
+  );
   return (
-    <div className="AddSubCategory_menu w-full h-fit p-1 flex flex-col justify-center gap-y-5 transition rounded-md outline outline-2 outline-gray-300">
+    <div className="AddSubCategory_menu w-full h-fit p-1 flex flex-col justify-center gap-y-5 transition rounded-md outline outline-2 outline-gray-300 relative">
       <h2 className="text-lg font-bold">Sub Categories</h2>
+      {category?.subcategories && category?.subcategories?.length > 0 && (
+        <Tooltip
+          content="Delete All"
+          size="sm"
+          placement="left-end"
+          aria-label="tooltip"
+        >
+          <span className="absolute top-3 right-2">
+            <i
+              onClick={() => {
+                handleCancel();
+              }}
+              className="fa-solid fa-minus font-black p-[1px] h-fit absolute -right-2 -top-3  text-sm rounded-lg bg-red-500 text-white transition hover:bg-black "
+            ></i>{" "}
+          </span>
+        </Tooltip>
+      )}
+
       <div className="subcategory_list flex flex-row flex-wrap gap-5 p-4 place-content-start h-full  max-h-[120px] overflow-y-auto">
-        {category.subcategories?.map((cat, index) => (
+        {category?.subcategories?.map((cat, index) => (
           <div
             key={index}
             style={
@@ -188,12 +226,7 @@ export function AddSubCategoryMenu({ index }: { index: number }) {
             className="subcategory relative text-lg font-bold p-1 rounded-md outline outline-1 outline-offset-2 outline-black w-fit h-fit max-w-[100px] break-words cursor-pointer transition hover:bg-black hover:text-white"
           >
             <h3
-              onClick={() => {
-                setedit((prev) => (prev === index ? -1 : index));
-                setname(
-                  index === editIdx ? "" : category.subcategories[index].name
-                );
-              }}
+              onClick={() => handleSelectEdit(index)}
               className="subcategory__name text-lg font-medium"
             >
               {cat.name}
@@ -207,10 +240,10 @@ export function AddSubCategoryMenu({ index }: { index: number }) {
           </div>
         ))}
       </div>
-
       <div className="subcategoryform w-full h-full flex flex-col gap-y-3">
+        <p className="font-bold ">Add</p>
         <Input
-          size="lg"
+          size="sm"
           type="text"
           className="subcate_name w-full"
           placeholder="Name"
@@ -230,16 +263,6 @@ export function AddSubCategoryMenu({ index }: { index: number }) {
             color="#44C3A0"
             radius="10px"
             disable={name.length === 0}
-          />
-          <PrimaryButton
-            type="button"
-            text={"Delete"}
-            onClick={() => handleCancel()}
-            width="100%"
-            height="30px"
-            textsize="12px"
-            color="lightcoral"
-            radius="10px"
           />
         </div>
       </div>
@@ -375,21 +398,7 @@ export function ToggleSelect({
 
 const animatedComponents = makeAnimated();
 
-const getOptions = async (value: string, selectedvalue?: string[]) => {
-  const product = GetProductName.bind(null, value);
-  const searchreq = await product();
-
-  const filterd = selectedvalue
-    ? searchreq.data.filter((i) => !selectedvalue.includes(i.id.toString()))
-    : searchreq.data;
-
-  const result = filterd.map((i) => ({
-    label: i.name,
-    value: i.id,
-  }));
-
-  return result;
-};
+const getOptions = async (value: string, selectedvalue?: string[]) => {};
 
 export const SearchAndMultiSelect = () => {
   const { product, setproduct } = useGlobalContext();

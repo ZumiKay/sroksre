@@ -19,7 +19,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 const fetchhomeitems = async () => {
   const data = await fetchContainers("detail");
-  const res = data.map((i) => formatContainer(i as any));
+  const res = data.map((i) => formatContainer(i as never));
 
   return res;
 };

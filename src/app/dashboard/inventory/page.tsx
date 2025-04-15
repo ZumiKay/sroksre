@@ -1,7 +1,6 @@
 "use client";
 import PrimaryButton from "../../component/Button";
-import { SubInventoryMenu } from "../../component/Navbar";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, use } from "react";
 import { ApiRequest, Delayloading } from "@/src/context/CustomHook";
 import { errorToast } from "../../component/Loading";
 import dayjs from "dayjs";
@@ -15,7 +14,6 @@ import {
   CreatePromotionModal,
   DiscountModals,
 } from "../../component/Modals/Promotion";
-import { SelectionCustom } from "../../component/Pagination_Component";
 import { IsNumber } from "@/src/lib/utilities";
 import React from "react";
 import { useGlobalContext } from "@/src/context/GlobalContext";
@@ -30,8 +28,10 @@ import { Variantcontainer } from "../../component/Modals/VariantModal";
 import { Button } from "@heroui/react";
 import FilterMenu from "@/src/app/component/FilterMenu/FilterMenu";
 import { isDate } from "date-fns";
+import { AsyncSelection } from "../../component/AsynSelection";
+import { SubInventoryMenu } from "../../component/SideMenu";
 
-const createmenu: Array<SelectType> = [
+const createmenu: Readonly<Array<SelectType>> = Object.freeze([
   {
     label: "Product",
     value: "createProduct",
@@ -48,8 +48,8 @@ const createmenu: Array<SelectType> = [
     label: "Promotion",
     value: "createPromotion",
   },
-];
-const Filteroptions: Array<SelectType> = [
+]);
+const Filteroptions: Readonly<Array<SelectType>> = Object.freeze([
   {
     value: "product",
     label: "Product",
@@ -62,14 +62,31 @@ const Filteroptions: Array<SelectType> = [
     value: "promotion",
     label: "Promotion",
   },
-];
+]);
 
 const defaultparams = (type: string) => `?ty=${type}&p=1&limit=1`;
-export default function Inventory({
-  searchParams,
-}: {
-  searchParams?: { [key: string]: string | undefined };
-}) {
+
+// Check for valid number parameters
+const isValidParams = (params: InventoryParamType): boolean => {
+  const { p, limit, parentcate, childcate, expired, pid, promoids } = params;
+
+  return !(
+    (p && !IsNumber(p)) ||
+    (limit && !IsNumber(limit)) ||
+    (parentcate && !IsNumber(parentcate)) ||
+    (childcate && !IsNumber(childcate)) ||
+    (expired && !IsNumber(expired)) ||
+    (pid && !IsNumber(pid)) ||
+    (promoids && !promoids.split(",").every(IsNumber))
+  );
+};
+
+export default function Inventory(
+  props: {
+    searchParams?: Promise<{ [key: string]: string | undefined }>;
+  }
+) {
+  const searchParams = use(props.searchParams);
   const {
     openmodal,
     setopenmodal,
@@ -85,6 +102,10 @@ export default function Inventory({
     filtervalue,
     setfiltervalue,
   } = useGlobalContext();
+  const parsedParams = useMemo(
+    () => searchParams as InventoryParamType,
+    [searchParams]
+  );
   const {
     ty: type,
     p,
@@ -97,7 +118,8 @@ export default function Inventory({
     expiredate,
     search,
     pid,
-  } = useMemo(() => searchParams as InventoryParamType, [searchParams]);
+  } = parsedParams;
+
   const [loaded, setloaded] = useState(false);
   const [updateLoading, setUpdateLoading] = useState<boolean | undefined>(
     undefined
@@ -108,32 +130,30 @@ export default function Inventory({
   const [page, setpage] = useState(p ?? "1");
   const [lowstock, setlowstock] = useState(0);
   const [reloaddata, setreloaddata] = useState(false);
-  const [ty, settype] = useState<InventoryPage | undefined>(type);
+  const [ty, settype] = useState<InventoryPage>(type ?? "product");
   const [promoexpire, setpromoexpire] = useState(0);
 
+  //Prevent Excessive Redirect
+  const hasRedirected = useRef(false);
+
   useEffect(() => {
+    if (hasRedirected.current) return;
+
     if (!type) {
+      hasRedirected.current = true;
       return redirect(
         `/dashboard/inventory${defaultparams(type ?? "product")}`
       );
     }
-    const Invalid =
-      (p && !IsNumber(p)) ||
-      (limit && !IsNumber(limit)) ||
-      (parentcate && !IsNumber(parentcate)) ||
-      (childcate && !IsNumber(childcate)) ||
-      (expired && !IsNumber(expired)) ||
-      (pid && !IsNumber(pid)) ||
-      (promoids && !promoids.split(",").every(IsNumber));
 
-    if (Invalid) {
+    if (!isValidParams(parsedParams)) {
       return redirect(`/dashboard/inventory?ty=${type}&p=1&limit=1`);
     }
 
+    const storedCategories = window.localStorage.getItem("categories");
+
     setfiltervalue({
-      categories: window.localStorage.getItem("categories")
-        ? JSON.parse(window.localStorage.getItem("categories") as string)
-        : undefined,
+      categories: storedCategories ? JSON.parse(storedCategories) : undefined,
       search: search,
       expiredate: expiredate && isDate(expiredate) ? expiredate : undefined,
       promotiononly: promotiononly ? Boolean(promotiononly) : undefined,
@@ -272,23 +292,29 @@ export default function Inventory({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reloaddata, promotion.id]);
 
-  const handleShowPerPage = (value: number | string) => {
-    const param = new URLSearchParams(searchParam);
-    param.set("p", "1");
-    param.set("limit", value.toString());
-    setpage("1");
-    setshow(value as string);
-    router.push(`?${param}`);
-    setreloaddata(true);
-  };
+  const handleShowPerPage = useCallback(
+    (value: number | string) => {
+      const param = new URLSearchParams(searchParam);
+      param.set("p", "1");
+      param.set("limit", value.toString());
+      setpage("1");
+      setshow(value as string);
+      router.push(`?${param}`);
+      setreloaddata(true);
+    },
+    [router, searchParam]
+  );
 
-  const handlePage = (value: string) => {
-    const param = new URLSearchParams(searchParam);
-    param.set("p", value);
-    setpage(value);
-    router.push(`?${param}`);
-    setreloaddata(true);
-  };
+  const handlePage = useCallback(
+    (value: string) => {
+      const param = new URLSearchParams(searchParam);
+      param.set("p", value);
+      setpage(value);
+      router.push(`?${param}`);
+      setreloaddata(true);
+    },
+    [router, searchParam]
+  );
 
   const handleDoneButton = useCallback(async () => {
     const url = `/api/promotion?ty=${
@@ -449,17 +475,16 @@ export default function Inventory({
               !openmodal.managebanner ? (
                 <>
                   <div className="w-fit h-full">
-                    <SelectionCustom
-                      label="Filter"
-                      data={Filteroptions}
-                      placeholder="Item"
-                      value={type}
-                      onChange={(val) =>
-                        handleFilter(
-                          val.toString().toLowerCase() as InventoryPage
-                        )
-                      }
-                      style={{ width: "275px" }}
+                    <AsyncSelection
+                      type="normal"
+                      data={() => Filteroptions}
+                      option={{
+                        label: "Page",
+                        size: "lg",
+                        selectedValue: [ty],
+                        onValueChange: (val) =>
+                          handleFilter(val.target.value as InventoryPage),
+                      }}
                     />
                   </div>
 

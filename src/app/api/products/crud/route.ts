@@ -1,11 +1,6 @@
-import {
-  CreateProduct,
-  DeleteProduct,
-  EditProduct,
-  updateProductData,
-} from "@/src/lib/adminlib";
-import Prisma from "@/src/lib/prisma";
 import { NextRequest } from "next/server";
+import { CreateProduct, DeleteProduct } from "./createProductHandler";
+import { EditProduct, updateProductData } from "./editProductHandler";
 
 export async function POST(req: NextRequest) {
   const createdproduct = await req.json();
@@ -37,9 +32,4 @@ export async function DELETE(req: NextRequest) {
     console.error("Delete Product", error);
     return Response.json({ message: "Failed To Delete" }, { status: 500 });
   }
-}
-export async function GET() {
-  const product = await Prisma.products.findMany({});
-
-  return Response.json({ data: product.length }, { status: 200 });
 }

@@ -7,15 +7,15 @@ export default async function Footer() {
   const policies = await getPolicesByPage("footer");
   return (
     <footer className="footer__container mt-20 h-full w-full bg-[#F4F4F2] flex flex-col items-center pb-32">
-      <section className="footer__header flex flex-row items-center w-full h-fit">
+      <div className="footer__header flex flex-row items-center w-full h-fit">
         <Image
           className="logo pl-2 w-[130px] h-[130px] object-fill"
           alt="logo"
           src={Logo}
         />
         <hr className="h-line w-[90vw] h-[10px] bg-[#495464]" />
-      </section>
-      <section className="footer__body w-[95vw] flex flex-row justify-start flex-wrap gap-x-56 gap-y-10">
+      </div>
+      <div className="footer__body w-[95vw] flex flex-row justify-start flex-wrap gap-x-56 gap-y-10">
         <ul className="help__container list-none h-fit flex flex-col gap-y-5 w-fit">
           <li className="header font-bold text-xl">About Us</li>
           <li className="text-[15px] font-normal transition-colors hover:text-gray-300 active:text-gray-300">
@@ -42,7 +42,7 @@ export default async function Footer() {
             </li>
           ))}
         </ul>
-      </section>
+      </div>
     </footer>
   );
 }

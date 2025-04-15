@@ -3,7 +3,7 @@ import {
   generateRandomNumber,
   generateRandomPassword,
 } from "@/src/lib/utilities";
-import { z } from "zod";
+import { z, ZodError } from "zod";
 
 import { NextRequest } from "next/server";
 import { extractQueryParams } from "../../banner/route";
@@ -68,21 +68,22 @@ export async function POST(request: NextRequest) {
       };
 
       //initial user
-      data.type === "register"
-        ? await Prisma.user.create({
-            data: {
-              firstname: "",
-              email: "",
-              password: generateRandomPassword(),
-              vfy: otp,
-            },
-          })
-        : await Prisma.user.updateMany({
-            where: { email: data.email },
-            data: {
-              vfy: otp,
-            },
-          });
+      if (data.type === "register")
+        await Prisma.user.create({
+          data: {
+            firstname: "",
+            email: "",
+            password: generateRandomPassword(),
+            vfy: otp,
+          },
+        });
+      else
+        await Prisma.user.updateMany({
+          where: { email: data.email },
+          data: {
+            vfy: otp,
+          },
+        });
 
       return Response.json(
         { message: "Successfully Sent Code", data: emailTemplate },
@@ -91,12 +92,10 @@ export async function POST(request: NextRequest) {
     } else {
       return Response.json({ message: "Email already exist" }, { status: 500 });
     }
-  } catch (error: any) {
-    if (error?.issues) {
-      return Response.json(
-        { message: error.issues[0].message },
-        { status: 500 }
-      );
+  } catch (error) {
+    const err = error as ZodError;
+    if (err?.issues) {
+      return Response.json({ message: err.issues[0].message }, { status: 500 });
     }
     console.log("Verify User", error);
     return Response.json({ message: "Error Occured" }, { status: 500 });

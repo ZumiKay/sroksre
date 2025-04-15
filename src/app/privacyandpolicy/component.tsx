@@ -4,9 +4,8 @@ import { useSearchParams, useRouter } from "next/navigation";
 import PrimaryButton, { Selection } from "../component/Button";
 import { SecondaryModal } from "../component/Modals";
 import { TextField } from "@mui/material";
-
 import { useGlobalContext } from "@/src/context/GlobalContext";
-import { ChangeEvent, useEffect, useState } from "react";
+import { ChangeEvent, memo, useCallback, useEffect, useState } from "react";
 import {
   AddPolicyOrQuestion,
   Addpolicytype,
@@ -19,7 +18,9 @@ import { Button, Chip } from "@heroui/react";
 import { ApiRequest, useClickOutside } from "@/src/context/CustomHook";
 import { Showtypemodal } from "./secondcomponent";
 import Textarea from "@mui/joy/Textarea";
-import { PrimaryConfirmModal } from "../component/Modals/Alert_Modal";
+import { SecondaryConfirmModal } from "../component/Modals/Alert_Modal";
+import MenuIcon from "@mui/icons-material/Menu";
+import CancelIcon from "@mui/icons-material/Cancel";
 
 interface sidebarContentType {
   id: number;
@@ -41,28 +42,14 @@ export const PolicyButton = ({
   pid?: number;
   showtype?: string[];
 }) => {
-  const [loading, setloading] = useState(false);
   const router = useRouter();
-  let openstate = "editpolicy";
+
   const { openmodal, setopenmodal } = useGlobalContext();
-  const handleEdit = () => {
-    if (ty === "edit") setopenmodal((prev) => ({ ...prev, [openstate]: true }));
-
-    if (ty === "delete")
-      setopenmodal((prev) => ({ ...prev, primaryconfirm: true }));
-
-    if (ty === "showtype")
-      setopenmodal((prev) => ({ ...prev, showtype: true }));
-  };
-
   //Delete policy
-  const handleDelete = async () => {
-    setloading(true);
+  const handleDelete = useCallback(async () => {
     const makereq = DeleteQP.bind(null, { pid });
 
     const delreq = await makereq();
-
-    setloading(false);
 
     if (delreq.success) {
       successToast(delreq.message as string);
@@ -70,7 +57,21 @@ export const PolicyButton = ({
     } else {
       errorToast(delreq.message as string);
     }
-  };
+  }, [pid, router]);
+  const handleEdit = useCallback(() => {
+    if (ty === "edit") setopenmodal({ policymodal: true });
+
+    if (ty === "delete")
+      setopenmodal({
+        confirmmodal: {
+          open: true,
+          onAsyncDelete: handleDelete,
+        },
+      });
+
+    if (ty === "showtype") setopenmodal({ policyshowtype: true });
+  }, [handleDelete, setopenmodal, ty]);
+
   return (
     <>
       <PrimaryButton
@@ -80,90 +81,164 @@ export const PolicyButton = ({
         color={color}
         onClick={handleEdit}
       />
-      {openmodal[openstate] && ty === "edit" && (
-        <AddPolicyModal plc={policydata} openstate={openstate} edit={true} />
+      {openmodal["addpolicy"] && ty === "edit" && (
+        <AddPolicyModal plc={policydata} edit={true} />
       )}
-      {openmodal.primaryconfirm && ty === "delete" && (
-        <PrimaryConfirmModal
-          actions={{
-            yes: handleDelete,
-            no: () =>
-              setopenmodal((prev) => ({ ...prev, primaryconfirm: false })),
-          }}
-          loading={loading}
-        />
-      )}
-      {openmodal.showtype && ty === "showtype" && pid && (
+      {/*  */}
+      {openmodal.policyshowtype && ty === "showtype" && pid && (
         <Showtypemodal id={pid ?? 0} value={new Set(showtype ?? [""])} />
       )}
+      {openmodal.confirmmodal?.open && ty === "delete" && (
+        <SecondaryConfirmModal />
+      )}
     </>
   );
 };
 
-export const SidePolicyBar = ({
-  isAdmin,
-  data,
-}: {
-  isAdmin?: boolean;
-  data: sidebarContentType[];
-}) => {
-  const { openmodal, setopenmodal } = useGlobalContext();
-  const [open, setopen] = useState(false);
-  const router = useRouter();
-  const searchparams = useSearchParams();
-  const ref = useClickOutside(() => setopen(false));
+export const SidePolicyBar = memo(
+  ({ isAdmin, data }: { isAdmin?: boolean; data: sidebarContentType[] }) => {
+    const { openmodal, setopenmodal } = useGlobalContext();
+    const [isOpen, setIsOpen] = useState(false);
+    const router = useRouter();
+    const searchparams = useSearchParams();
+    const ref = useClickOutside(() => setIsOpen(false));
 
-  const handleClick = (link: number) => {
-    const params = new URLSearchParams(searchparams);
+    // Close sidebar when window resizes to larger viewports
+    useEffect(() => {
+      const handleResize = () => {
+        if (window.innerWidth > 1024) {
+          setIsOpen(false);
+        }
+      };
 
-    params.set("p", link.toString());
+      window.addEventListener("resize", handleResize);
+      return () => window.removeEventListener("resize", handleResize);
+    }, []);
 
-    router.push(`?${params}`);
-  };
-  return (
-    <>
-      <div
-        ref={ref}
-        onClick={() => setopen(!open)}
-        className="w-fit h-fit text-lg z-50 bg-gray-100 rounded-lg p-2 cursor-pointer smallest_screen:hidden flex items-center justify-center fixed top-20 right-2 transition-colors duration-100"
-      >
-        {open ? "Close" : "Menu"}
-      </div>
-      <motion.aside
-        ref={ref}
-        style={open ? { display: "block" } : {}}
-        className="sidebar fixed bg-white  left-0 w-[250px] h-fit p-3 flex flex-col items-start gap-y-10 rounded-lg
-      max-smallest_screen:hidden max-smallest_screen:top-[130px] max-smallest_screen:left-[60%] max-small_phone:left-[40%] z-50
-      "
-      >
-        {data.map((i, idx) => (
-          <div
-            key={idx}
-            onClick={() => handleClick(i.id)}
-            className="underline text-lg font-medium w-full h-fit transition-all hover:text-gray-300 cursor-pointer"
+    const handleClick = (link: number) => {
+      const params = new URLSearchParams(searchparams);
+      params.set("p", link.toString());
+      router.push(`?${params}`);
+      // Close sidebar on mobile after navigation
+      if (window.innerWidth < 1024) {
+        setIsOpen(false);
+      }
+    };
+
+    const toggleSidebar = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      setIsOpen(!isOpen);
+    };
+
+    // Sidebar variants for animations
+    const sidebarVariants = {
+      open: {
+        x: 0,
+        opacity: 1,
+        transition: { type: "spring", stiffness: 300, damping: 25 },
+      },
+      closed: {
+        x: "-100%",
+        opacity: 0,
+        transition: { type: "spring", stiffness: 300, damping: 25 },
+      },
+    };
+
+    // Overlay variants
+    const overlayVariants = {
+      open: { opacity: 1, display: "block" },
+      closed: { opacity: 0, transitionEnd: { display: "none" } },
+    };
+
+    return (
+      <>
+        {/* Hamburger button - visible on all screen sizes */}
+        <button
+          onClick={toggleSidebar}
+          className="fixed top-4 left-4 z-50 p-3 lg:hidden bg-white shadow-md rounded-full w-12 h-12 flex items-center justify-center"
+          aria-label={isOpen ? "Close Menu" : "Open Menu"}
+        >
+          {isOpen ? (
+            <MenuIcon fontSize="medium" />
+          ) : (
+            <CancelIcon fontSize="medium" />
+          )}
+        </button>
+
+        {/* Overlay - only visible on mobile when sidebar is open */}
+        <AnimatePresence>
+          {isOpen && (
+            <motion.div
+              initial="closed"
+              animate="open"
+              exit="closed"
+              variants={overlayVariants}
+              className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+              onClick={() => setIsOpen(false)}
+            />
+          )}
+        </AnimatePresence>
+
+        {/* Sidebar */}
+        <AnimatePresence>
+          <motion.aside
+            ref={ref}
+            initial={false}
+            animate={isOpen ? "open" : "closed"}
+            variants={sidebarVariants}
+            className={`
+              fixed top-0 left-0 z-50 
+              h-full w-[280px] bg-white shadow-xl
+              flex flex-col p-6 pt-20
+              transform transition-transform duration-300 ease-in-out
+              lg:translate-x-0 lg:static lg:h-auto lg:shadow-md lg:rounded-lg lg:pt-6 lg:z-auto
+            `}
           >
-            {i.content}
-          </div>
-        ))}
+            <div className="flex flex-col space-y-4 overflow-y-auto flex-grow">
+              {data.map((item, idx) => (
+                <div
+                  key={idx}
+                  onClick={() => handleClick(item.id)}
+                  className={`
+                    py-2 px-3 rounded-md text-base font-medium
+                    transition-colors duration-200
+                    hover:bg-gray-100 cursor-pointer
+                    ${
+                      searchparams.get("p") === item.id.toString()
+                        ? "bg-gray-100 font-semibold"
+                        : ""
+                    }
+                  `}
+                >
+                  {item.content}
+                </div>
+              ))}
+            </div>
 
-        {isAdmin && (
-          <PrimaryButton
-            text="Add New"
-            height="30px"
-            style={{ marginTop: "50px" }}
-            onClick={() =>
-              setopenmodal((prev) => ({ ...prev, addpolicy: true }))
-            }
-            type="button"
-            radius="10px"
-          />
-        )}
-      </motion.aside>
-      {openmodal.addpolicy && <AddPolicyModal />}
-    </>
-  );
-};
+            {isAdmin && (
+              <div className="mt-6 pt-4 border-t border-gray-200">
+                <PrimaryButton
+                  text="Add New Policy"
+                  height="40px"
+                  onClick={() =>
+                    setopenmodal((prev) => ({ ...prev, addpolicy: true }))
+                  }
+                  type="button"
+                  radius="8px"
+                  style={{ width: "100%" }}
+                />
+              </div>
+            )}
+          </motion.aside>
+        </AnimatePresence>
 
+        {openmodal.addpolicy && <AddPolicyModal />}
+      </>
+    );
+  }
+);
+
+SidePolicyBar.displayName = "SidePolicyBar";
 export interface Policydata {
   qa?: Array<Addquestiontype>;
   plc?: Addpolicytype;
@@ -209,7 +284,7 @@ export const AddPolicyModal = ({ qa, plc, edit, openstate }: Policydata) => {
     }
   }, []);
 
-  const AddMoreParagraph = () => {
+  const AddMoreParagraph = useCallback(() => {
     const updateparagraph = [...state.Paragraph];
 
     updateparagraph.push({ content: "" });
@@ -217,72 +292,75 @@ export const AddPolicyModal = ({ qa, plc, edit, openstate }: Policydata) => {
     setisEdit({ [`input${updateparagraph.length - 1}`]: true });
 
     setstate((prev) => ({ ...prev, Paragraph: updateparagraph }));
-  };
+  }, [state.Paragraph]);
 
-  const handleParagraphChange = (
-    e: ChangeEvent<HTMLTextAreaElement> | string,
-    idx: number
-  ) => {
-    const updateparagraph = [...state.Paragraph];
+  const handleParagraphChange = useCallback(
+    (e: ChangeEvent<HTMLTextAreaElement> | string, idx: number) => {
+      const updateparagraph = [...state.Paragraph];
 
-    if (typeof e !== "string") {
-      const { value } = e.target;
+      if (typeof e !== "string") {
+        const { value } = e.target;
 
-      updateparagraph[idx].content = value;
-    } else {
-      updateparagraph[idx].title = e;
-    }
-    setstate((prev) => ({ ...prev, Paragraph: updateparagraph }));
-  };
-  const handleDelete = async (
-    idx: number,
-    id?: number,
-    deltype?: Typeofpolicy
-  ) => {
-    const updatestate =
-      type === "Policy" ? [...state.Paragraph] : question ? [...question] : [];
-    updatestate.splice(idx, 1);
-    if (deltype && id) {
-      setloading((prev) => ({ ...prev, delete: false }));
-      const ids = {
-        qid: deltype === "question" ? id : undefined,
-        pid: deltype === "policy" ? id : undefined,
-        ppid: deltype === "paragraph" ? id : undefined,
-      };
+        updateparagraph[idx].content = value;
+      } else {
+        updateparagraph[idx].title = e;
+      }
+      setstate((prev) => ({ ...prev, Paragraph: updateparagraph }));
+    },
+    [state.Paragraph]
+  );
+  const handleDelete = useCallback(
+    async (idx: number, id?: number, deltype?: Typeofpolicy) => {
+      const updatestate =
+        type === "Policy"
+          ? [...state.Paragraph]
+          : question
+          ? [...question]
+          : [];
+      updatestate.splice(idx, 1);
+      if (deltype && id) {
+        setloading((prev) => ({ ...prev, delete: false }));
+        const ids = {
+          qid: deltype === "question" ? id : undefined,
+          pid: deltype === "policy" ? id : undefined,
+          ppid: deltype === "paragraph" ? id : undefined,
+        };
 
-      await deleteRequest(ids.qid, ids.pid, ids.ppid);
-      setloading((prev) => ({ ...prev, delete: true }));
-    }
-    if (type === "Policy") {
-      setstate((prev) => ({ ...prev, Paragraph: updatestate } as any));
-    } else {
-      setquestion(updatestate as any);
-    }
-  };
+        await deleteRequest(ids.qid, ids.pid, ids.ppid);
+        setloading((prev) => ({ ...prev, delete: true }));
+      }
+      if (type === "Policy") {
+        setstate((prev) => ({ ...prev, Paragraph: updatestate } as never));
+      } else {
+        setquestion(updatestate as never);
+      }
+    },
+    [question, state.Paragraph, type]
+  );
 
   //Question handler
-  const handleAddQuestion = () => {
+  const handleAddQuestion = useCallback(() => {
     const updatequestion = question ? [...question] : [];
 
     updatequestion.push({ question: "", answer: "" });
 
     setquestion(updatequestion);
-  };
+  }, [question]);
 
-  const handleChangeQuestion = (
-    e: ChangeEvent<HTMLTextAreaElement | HTMLInputElement>,
-    idx: number
-  ) => {
-    const { value, name } = e.target;
+  const handleChangeQuestion = useCallback(
+    (e: ChangeEvent<HTMLTextAreaElement | HTMLInputElement>, idx: number) => {
+      const { value, name } = e.target;
 
-    const updatequestion = question ? [...question] : [];
+      const updatequestion = question ? [...question] : [];
 
-    updatequestion[idx][name] = value;
+      updatequestion[idx][name] = value;
 
-    setquestion(updatequestion);
-  };
+      setquestion(updatequestion);
+    },
+    [question]
+  );
 
-  const handleSubmit = async () => {
+  const handleSubmit = useCallback(async () => {
     setloading((prev) => ({ ...prev, post: true }));
 
     const makereq = AddPolicyOrQuestion.bind(null, {
@@ -310,9 +388,9 @@ export const AddPolicyModal = ({ qa, plc, edit, openstate }: Policydata) => {
     setloading((prev) => ({ ...prev, post: false }));
     setstate({ title: "", Paragraph: [{ content: "" }] });
     setquestion([{ question: "", answer: "" }]);
-    openstate && setopenmodal((prev) => ({ ...prev, [openstate]: false }));
+    if (openstate) setopenmodal((prev) => ({ ...prev, [openstate]: false }));
     router.refresh();
-  };
+  }, [edit, openstate, question, router, setopenmodal, state, type]);
   return (
     <SecondaryModal
       open={
@@ -341,7 +419,6 @@ export const AddPolicyModal = ({ qa, plc, edit, openstate }: Policydata) => {
                   [openstate ?? "addpolicy"]: false,
                 }));
               }}
-              disable={Object.entries(loading).some(([key, val]) => val)}
               text="Cancel"
               radius="10px"
               color="lightcoral"
@@ -420,7 +497,7 @@ export const AddPolicyModal = ({ qa, plc, edit, openstate }: Policydata) => {
                 </div>
               ))}
               <Button
-                onClick={AddMoreParagraph}
+                onPress={() => AddMoreParagraph()}
                 type="button"
                 variant="bordered"
                 color="primary"
@@ -487,107 +564,93 @@ const questioncardAnimation = {
   },
 };
 
-export const QuestionCard = ({
-  isAdmin,
-  idx,
-  data,
-  isEdit,
-}: {
-  isAdmin?: boolean;
-  isEdit?: boolean;
-  idx: number;
-  data: Addquestiontype;
-}) => {
-  let openstate = `policyQ${idx}`;
-  const { openmodal, setopenmodal } = useGlobalContext();
-  const [loading, setloading] = useState(false);
-  const [open, setopen] = useState(false);
+export const QuestionCard = memo(
+  ({
+    isAdmin,
+    idx,
+    data,
+    isEdit,
+  }: {
+    isAdmin?: boolean;
+    isEdit?: boolean;
+    idx: number;
+    data: Addquestiontype;
+  }) => {
+    const openstate = `policyQ${idx}`;
+    const { openmodal, setopenmodal } = useGlobalContext();
+    const [open, setopen] = useState(false);
 
-  const handleDelete = async () => {
-    setloading(true);
-    const makereq = DeleteQP.bind(null, { qid: data.id });
-    const delreq = await makereq();
-    setloading(false);
-    if (delreq.success) {
-      successToast(delreq.message as string);
-    } else {
-      errorToast(delreq.message as string);
-    }
-    setopenmodal((prev) => ({
-      ...prev,
-      [`primarymodal${idx}`]: false,
-    }));
-  };
+    const handleDelete = useCallback(async () => {
+      const makereq = DeleteQP.bind(null, { qid: data.id });
+      const delreq = await makereq();
+      if (delreq.success) {
+        successToast(delreq.message as string);
+      } else {
+        errorToast(delreq.message as string);
+      }
+    }, [data.id]);
 
-  return (
-    <>
-      <motion.div
-        variants={questioncardAnimation}
-        initial="closed"
-        animate={open ? "open" : "closed"}
-        className="questioncard w-full  p-3 border-t-2 border-gray-300 flex flex-col items-start gap-y-5"
-      >
-        <div className="w-full h-fit flex flex-row justify-between items-center">
-          <label className="text-lg font-medium w-full">{data.question}</label>
-          <div className="w-[50px] " onClick={() => setopen(!open)}>
-            <TabArrow width="30" height="30" type={open ? "up" : "down"} />
+    const handleConfirmDelete = () => {
+      setopenmodal({
+        confirmmodal: { open: true, onAsyncDelete: handleDelete },
+      });
+    };
+
+    return (
+      <>
+        <motion.div
+          variants={questioncardAnimation}
+          initial="closed"
+          animate={open ? "open" : "closed"}
+          className="questioncard w-full  p-3 border-t-2 border-gray-300 flex flex-col items-start gap-y-5"
+        >
+          <div className="w-full h-fit flex flex-row justify-between items-center">
+            <label className="text-lg font-medium w-full">
+              {data.question}
+            </label>
+            <div className="w-[50px] " onClick={() => setopen(!open)}>
+              <TabArrow width="30" height="30" type={open ? "up" : "down"} />
+            </div>
           </div>
-        </div>
-        <AnimatePresence>
-          {open && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="answer w-full"
-            >
-              {data.answer}
-            </motion.div>
+          <AnimatePresence>
+            {open && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="answer w-full"
+              >
+                {data.answer}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {isAdmin && isEdit && (
+            <div className="btn_con flex flex-row items-center gap-x-5">
+              <PrimaryButton
+                text="Edit"
+                type="button"
+                radius="10px"
+                color="#4688A0"
+                onClick={() =>
+                  setopenmodal((prev) => ({ ...prev, [openstate]: true }))
+                }
+              />
+              <PrimaryButton
+                text="Delete"
+                type="button"
+                radius="10px"
+                onClick={() => handleConfirmDelete()}
+                color="lightcoral"
+              />
+            </div>
           )}
-        </AnimatePresence>
-
-        {isAdmin && isEdit && (
-          <div className="btn_con flex flex-row items-center gap-x-5">
-            <PrimaryButton
-              text="Edit"
-              type="button"
-              radius="10px"
-              color="#4688A0"
-              onClick={() =>
-                setopenmodal((prev) => ({ ...prev, [openstate]: true }))
-              }
-            />
-            <PrimaryButton
-              text="Delete"
-              type="button"
-              radius="10px"
-              onClick={() =>
-                setopenmodal((prev) => ({
-                  ...prev,
-                  [`primarymodal${idx}`]: true,
-                }))
-              }
-              color="lightcoral"
-            />
-          </div>
+        </motion.div>
+        {openmodal[openstate] && (
+          <AddPolicyModal qa={[data]} edit={true} openstate={openstate} />
         )}
-      </motion.div>
-      {openmodal[openstate] && (
-        <AddPolicyModal qa={[data]} edit={true} openstate={openstate} />
-      )}
-      {openmodal[`primarymodal${idx}`] && (
-        <PrimaryConfirmModal
-          actions={{
-            no: () =>
-              setopenmodal((prev) => ({
-                ...prev,
-                [`primarymodal${idx}`]: false,
-              })),
-            yes: handleDelete,
-          }}
-          loading={loading}
-        />
-      )}
-    </>
-  );
-};
+      </>
+    );
+  }
+);
+QuestionCard.displayName = "QuestionCard";

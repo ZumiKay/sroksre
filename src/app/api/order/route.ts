@@ -2,9 +2,9 @@ import { Shippingservice } from "@/src/context/Checkoutcontext";
 import { Orderpricetype, totalpricetype } from "@/src/context/OrderContext";
 import Prisma from "@/src/lib/prisma";
 import { calculateDiscountProductPrice } from "@/src/lib/utilities";
+import { Address } from "@prisma/client";
 import { NextRequest } from "next/server";
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
-import { shippingtype } from "../../component/Modals/User";
 
 //Edit Created Order Information
 export async function PUT(req: NextRequest) {
@@ -60,7 +60,7 @@ export async function PUT(req: NextRequest) {
       await Prisma.orders.update({
         where: { id },
         data: {
-          price: updateprice as any,
+          price: updateprice as never,
           shippingtype: Shippingservice[2].value, //Update to Pickup
         },
       });
@@ -92,7 +92,7 @@ interface GenerateInvoicePdf {
     totalprice: number;
   }[];
   price: totalpricetype;
-  shipping?: shippingtype;
+  shipping?: Address;
   createdAt?: string;
 }
 
@@ -347,10 +347,10 @@ export const generateInvoicePdf = async (Order: GenerateInvoicePdf) => {
   // Draw each product row in the table
   const wrapText = (text: string, maxWidth: number) => {
     const words = text.split(" ");
-    let lines = [];
+    const lines = [];
     let currentLine = "";
 
-    for (let word of words) {
+    for (const word of words) {
       const testLine = currentLine + word + " ";
       const width = font.widthOfTextAtSize(testLine, fontSize);
       if (width > maxWidth) {

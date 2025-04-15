@@ -1,9 +1,15 @@
 import { useGlobalContext } from "@/src/context/GlobalContext";
-import React, { ChangeEvent, FormEvent, useState } from "react";
+import React, {
+  ChangeEvent,
+  FormEvent,
+  memo,
+  useCallback,
+  useState,
+} from "react";
 import PrimaryButton from "../Button";
 import { errorToast } from "../Loading";
 import { SecondaryModal } from "../Modals";
-import { CirclePicker, ChromePicker } from "react-color";
+import { CirclePicker, ChromePicker, ColorResult } from "react-color";
 import { Button, Form, Input } from "@heroui/react";
 import { compareArrays, HasPartialOverlap } from "@/src/lib/utilities";
 import { ApiRequest, useScreenSize } from "@/src/context/CustomHook";
@@ -129,374 +135,429 @@ const AsyncUpdateStock = async (editindex: number, stockArray: Stocktype[]) => {
   return res;
 };
 
-export function ManageStockContainer({
-  newadd,
-  setedit,
-  edit,
-  stock,
-  setstock,
-  setnew,
-  setselectedstock,
-  selectedstock,
-  handleUpdateStock,
-  editsubidx,
-  seteditsubidx,
-  setadded,
-  isAddNew,
-  setisAddNew,
-  editindex,
-  setreloaddata,
-  isloading,
-}: ManageStockContainerProps) {
-  const { product, setproduct } = useGlobalContext();
-  const [lowstock, setlowstock] = useState(0);
-  const [loading, setloading] = useState(false);
+export const ManageStockContainer = memo(
+  ({
+    newadd,
+    setedit,
+    edit,
+    stock,
+    setstock,
+    setnew,
+    setselectedstock,
+    selectedstock,
+    handleUpdateStock,
+    editsubidx,
+    seteditsubidx,
+    setadded,
+    isAddNew,
+    setisAddNew,
+    editindex,
+    setreloaddata,
+    isloading,
+  }: ManageStockContainerProps) => {
+    const { product, setproduct } = useGlobalContext();
+    const [lowstock, setlowstock] = useState(0);
+    const [loading, setloading] = useState(false);
 
-  const handleSelectVariant = (value: Set<string>, label: string) => {
-    setselectedstock((prevSelectedStock) => {
-      const updatedStock = { ...prevSelectedStock };
+    const handleSelectVariant = useCallback(
+      (value: Set<string>, label: string) => {
+        setselectedstock((prevSelectedStock) => {
+          const updatedStock = { ...prevSelectedStock };
 
-      updatedStock[label] = Array.from(value).filter((i) => i !== "");
+          updatedStock[label] = Array.from(value).filter((i) => i !== "");
 
-      return updatedStock;
-    });
-  };
+          return updatedStock;
+        });
+      },
+      [setselectedstock]
+    );
 
-  const handleEdit = (idx: number) => {
-    //extract reponsible stock value for selected value
+    const handleEdit = useCallback(
+      (idx: number) => {
+        //extract reponsible stock value for selected value
 
-    if (product.varaintstock && product.variants) {
-      const createdstock = groupSelectedValue(
-        product.varaintstock[idx] as unknown as Stocktype,
-        product.variants as any
-      );
+        if (product.varaintstock && product.variants) {
+          const createdstock = groupSelectedValue(
+            product.varaintstock[idx] as unknown as Stocktype,
+            product.variants as never
+          );
 
-      setselectedstock(createdstock);
-      setlowstock(CountLowStock(product.varaintstock[idx]));
-      setedit(idx);
-      setnew("stockinfo");
-    }
-  };
+          setselectedstock(createdstock);
+          setlowstock(CountLowStock(product.varaintstock[idx]));
+          setedit(idx);
+          setnew("stockinfo");
+        }
+      },
+      [
+        product.varaintstock,
+        product.variants,
+        setedit,
+        setnew,
+        setselectedstock,
+      ]
+    );
 
-  const handleStockChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    if (value === "" || /^[0-9\b]+$/.test(value)) {
-      setstock(value);
-    }
-  };
+    const handleStockChange = useCallback(
+      (e: ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        if (value === "" || /^[0-9\b]+$/.test(value)) {
+          setstock(value);
+        }
+      },
+      [setstock]
+    );
 
-  const handleAddNewSubStock = () => {
-    if (isAddNew) {
-      handleUpdateStock(isAddNew);
-      setisAddNew(false);
-    } else {
-      setselectedstock(undefined);
-      setisAddNew(true);
-    }
-  };
+    const handleAddNewSubStock = useCallback(() => {
+      if (isAddNew) {
+        handleUpdateStock(isAddNew);
+        setisAddNew(false);
+      } else {
+        setselectedstock(undefined);
+        setisAddNew(true);
+      }
+    }, [handleUpdateStock, isAddNew, setisAddNew, setselectedstock]);
 
-  const handleDeleteSubStock = (idx: number) => {
-    if (!product.varaintstock) return;
+    const handleDeleteSubStock = useCallback(
+      (idx: number) => {
+        if (!product.varaintstock) return;
 
-    const updatedStock = product.varaintstock.map((stock) => ({
-      ...stock,
-      Stockvalue: stock.Stockvalue.filter((_, index) => index !== idx),
-    }));
+        const updatedStock = product.varaintstock.map((stock) => ({
+          ...stock,
+          Stockvalue: stock.Stockvalue.filter((_, index) => index !== idx),
+        }));
 
-    setproduct((prev) => ({
-      ...prev,
-      varaintstock: updatedStock,
-    }));
-  };
+        setproduct((prev) => ({
+          ...prev,
+          varaintstock: updatedStock,
+        }));
+      },
+      [product.varaintstock, setproduct]
+    );
 
-  const handleSubStockClick = (data: string[], qty: string, idx: number) => {
-    const variants = [...(product.variants ?? [])];
+    const handleSubStockClick = useCallback(
+      (data: string[], qty: string, idx: number) => {
+        const variants = [...(product.variants ?? [])];
 
-    //group select sub stock value
-    const res: { [key: string]: string[] } = {};
-    data.forEach((value, idx) => {
-      if (idx < variants.length) {
-        const variant = variants[idx];
-        const isVal = variant.option_value.some((opt) =>
-          typeof opt === "string" ? opt === value : opt.val === value
+        //group select sub stock value
+        const res: { [key: string]: string[] } = {};
+        data.forEach((value, idx) => {
+          if (idx < variants.length) {
+            const variant = variants[idx];
+            const isVal = variant.option_value.some((opt) =>
+              typeof opt === "string" ? opt === value : opt.val === value
+            );
+
+            if (isVal) {
+              if (!res[variant.option_title]) {
+                res[variant.option_title] = [];
+              }
+
+              if (!res[variant.option_title].includes(value)) {
+                res[variant.option_title].push(value);
+              }
+            }
+          }
+        });
+        setselectedstock(res);
+        setstock(qty);
+        seteditsubidx(idx);
+      },
+      [product.variants, seteditsubidx, setselectedstock, setstock]
+    );
+
+    const handleUpdateSubStock = useCallback(
+      async (idx: number) => {
+        const stockArray = [...(product.varaintstock ?? [])];
+        const updatestockvalue = stockArray[edit];
+
+        const stockValues = MapSelectedValuesToVariant(
+          selectedstock,
+          product.variants?.map((i) => i.option_title) ?? []
         );
 
-        if (isVal) {
-          if (!res[variant.option_title]) {
-            res[variant.option_title] = [];
-          }
+        const hasChangedVariantValues = stockValues.some(
+          (val) =>
+            !updatestockvalue.Stockvalue.some((i) =>
+              compareArrays(val, i.variant_val, { strictOrder: true })
+            )
+        );
 
-          if (!res[variant.option_title].includes(value)) {
-            res[variant.option_title].push(value);
-          }
-        }
-      }
-    });
-    setselectedstock(res);
-    setstock(qty);
-    seteditsubidx(idx);
-  };
-
-  const handleUpdateSubStock = async (idx: number) => {
-    const stockArray = [...(product.varaintstock ?? [])];
-    let updatestockvalue = stockArray[edit];
-
-    const stockValues = MapSelectedValuesToVariant(
-      selectedstock,
-      product.variants?.map((i) => i.option_title) ?? []
-    );
-
-    const hasChangedVariantValues = stockValues.some(
-      (val) =>
-        !updatestockvalue.Stockvalue.some((i) =>
-          compareArrays(val, i.variant_val, { strictOrder: true })
-        )
-    );
-
-    if (hasChangedVariantValues) {
-      const isOverlap = stockArray.some(
-        (item, idx) =>
-          idx !== edit &&
-          HasPartialOverlap(
-            item.Stockvalue.map((i) => i.variant_val),
-            stockValues
-          )
-      );
-      if (isOverlap) {
-        errorToast("Stock Exist");
-        return;
-      }
-
-      updatestockvalue.Stockvalue.splice(idx, 1);
-      stockValues.forEach((i) => {
-        updatestockvalue.Stockvalue.push({
-          qty: parseInt(stock, 10),
-          variant_val: i,
-        });
-      });
-    } else {
-      updatestockvalue.Stockvalue[idx].qty = parseInt(stock, 10);
-    }
-
-    if (editindex) {
-      setloading(true);
-      const req = await AsyncUpdateStock(editindex, stockArray);
-      setloading(false);
-      if (!req.success) {
-        errorToast("Error Occured");
-        return;
-      }
-      setreloaddata(true);
-    }
-
-    setproduct((prev) => ({ ...prev, varaintstock: stockArray }));
-    setlowstock(CountLowStock(stockArray[edit]));
-    seteditsubidx(-1);
-    setstock("");
-    setselectedstock(undefined);
-  };
-
-  const handleBackEditSubStock = () => {
-    if (editsubidx !== -1) {
-      setselectedstock(undefined);
-      setstock("");
-      seteditsubidx(-1);
-    } else if (isAddNew) {
-      setisAddNew(false);
-    }
-  };
-
-  const handleDeleteStock = async (idx: number) => {
-    const updatestock = [...(product.varaintstock ?? [])];
-    updatestock.splice(idx, 1);
-    if (editindex) {
-      setloading(true);
-      const req = await AsyncUpdateStock(editindex, updatestock);
-      setloading(false);
-      if (!req.success) {
-        errorToast("Error Occured");
-        return;
-      }
-      setreloaddata(true);
-    }
-
-    setproduct((prev) => ({
-      ...prev,
-      varaintstock: updatestock,
-    }));
-  };
-
-  return (
-    <>
-      <div className="stock_container w-full h-full relative">
-        {newadd === "stockinfo" ? (
-          <div className="createstock_container flex flex-col w-full h-full items-center justify-start gap-y-3">
-            {(editsubidx !== -1 || isAddNew) && (
-              <Button
-                className="self-start ml-2"
-                color="danger"
-                variant="bordered"
-                startContent={<div> {"<"}</div>}
-                onPress={() => handleBackEditSubStock()}
-              >
-                Back
-              </Button>
-            )}
-            <h3 className="text-lg font-medium">
-              {edit === -1 ? "Please Choose Variant" : "Edit Stock"}{" "}
-            </h3>
-
-            {lowstock !== 0 && edit !== -1 && (
-              <div className="text-red-500 text-sm font-medium">
-                Low Stock: {lowstock}
-              </div>
-            )}
-
-            {edit === -1 || isAddNew || editsubidx !== -1 ? (
-              <div className="variantlist relative  rounded-lg flex flex-col items-center justify-start gap-y-5 w-full h-full max-h-[60vh] p-5 overflow-y-auto">
-                {product.variants?.map((item, idx) => {
-                  return (
-                    <Multiselect
-                      key={item.id}
-                      id={idx}
-                      type={item.option_type}
-                      value={selectedstock[item.option_title]}
-                      data={item.option_value.map((i) => {
-                        if (typeof i === "string") {
-                          return { label: i, value: i };
-                        } else {
-                          return { label: i.name ?? "", value: i.val };
-                        }
-                      })}
-                      label={item.option_title}
-                      onSelect={(val) =>
-                        handleSelectVariant(val, item.option_title)
-                      }
-                    />
-                  );
-                })}
-              </div>
-            ) : (
-              product.varaintstock && (
-                <div className="editstock_container w-full h-fit flex flex-row flex-wrap items-start justify-center gap-5 pt-5">
-                  <RenderStockCards
-                    handleDeleteSubStock={handleDeleteSubStock}
-                    handleSubStockClick={handleSubStockClick}
-                    edit={edit}
-                  />
-                </div>
+        if (hasChangedVariantValues) {
+          const isOverlap = stockArray.some(
+            (item, idx) =>
+              idx !== edit &&
+              HasPartialOverlap(
+                item.Stockvalue.map((i) => i.variant_val),
+                stockValues
               )
-            )}
-            <div className="w-[50%] min-w-[275px] h-[40px] flex flex-row gap-x-3">
-              {edit !== -1 && (
+          );
+          if (isOverlap) {
+            errorToast("Stock Exist");
+            return;
+          }
+
+          updatestockvalue.Stockvalue.splice(idx, 1);
+          stockValues.forEach((i) => {
+            updatestockvalue.Stockvalue.push({
+              qty: parseInt(stock, 10),
+              variant_val: i,
+            });
+          });
+        } else {
+          updatestockvalue.Stockvalue[idx].qty = parseInt(stock, 10);
+        }
+
+        if (editindex) {
+          setloading(true);
+          const req = await AsyncUpdateStock(editindex, stockArray);
+          setloading(false);
+          if (!req.success) {
+            errorToast("Error Occured");
+            return;
+          }
+          setreloaddata(true);
+        }
+
+        setproduct((prev) => ({ ...prev, varaintstock: stockArray }));
+        setlowstock(CountLowStock(stockArray[edit]));
+        seteditsubidx(-1);
+        setstock("");
+        setselectedstock(undefined);
+      },
+      [
+        edit,
+        editindex,
+        product.varaintstock,
+        product.variants,
+        selectedstock,
+        seteditsubidx,
+        setproduct,
+        setreloaddata,
+        setselectedstock,
+        setstock,
+        stock,
+      ]
+    );
+
+    const handleBackEditSubStock = useCallback(() => {
+      if (editsubidx !== -1) {
+        setselectedstock(undefined);
+        setstock("");
+        seteditsubidx(-1);
+      } else if (isAddNew) {
+        setisAddNew(false);
+      }
+    }, [
+      editsubidx,
+      isAddNew,
+      seteditsubidx,
+      setisAddNew,
+      setselectedstock,
+      setstock,
+    ]);
+
+    const handleDeleteStock = useCallback(
+      async (idx: number) => {
+        const updatestock = [...(product.varaintstock ?? [])];
+        updatestock.splice(idx, 1);
+        if (editindex) {
+          setloading(true);
+          const req = await AsyncUpdateStock(editindex, updatestock);
+          setloading(false);
+          if (!req.success) {
+            errorToast("Error Occured");
+            return;
+          }
+          setreloaddata(true);
+        }
+
+        setproduct((prev) => ({
+          ...prev,
+          varaintstock: updatestock,
+        }));
+      },
+      [editindex, product.varaintstock, setproduct, setreloaddata]
+    );
+
+    const handleCreateStock = useCallback(() => {
+      if (!product.variants) {
+        errorToast("Please Create Variant");
+        return;
+      }
+      setadded(1);
+      setnew("stockinfo");
+    }, [product.variants, setadded, setnew]);
+
+    return (
+      <>
+        <div className="stock_container w-full h-full relative">
+          {newadd === "stockinfo" ? (
+            <div className="createstock_container flex flex-col w-full h-full items-center justify-start gap-y-3">
+              {(editsubidx !== -1 || isAddNew) && (
                 <Button
-                  className="h-full"
-                  fullWidth
-                  startContent={<div className="font-light text-3xl"> + </div>}
-                  isLoading={loading}
+                  className="self-start ml-2"
+                  color="danger"
                   variant="bordered"
-                  color={isAddNew ? "success" : "primary"}
-                  onPress={() =>
-                    editsubidx === -1
-                      ? handleAddNewSubStock()
-                      : handleUpdateSubStock(editsubidx)
-                  }
+                  startContent={<div> {"<"}</div>}
+                  onPress={() => handleBackEditSubStock()}
                 >
-                  {editsubidx !== -1 ? "Update" : "Add New"}
+                  Back
                 </Button>
               )}
-              {(edit === -1 || isAddNew || editsubidx !== -1) && (
-                <Input
-                  label={"Stock"}
-                  type="number"
-                  fullWidth
-                  size="sm"
-                  className="h-full"
-                  value={stock}
-                  onChange={handleStockChange}
-                />
+              <h3 className="text-lg font-medium">
+                {edit === -1 ? "Please Choose Variant" : "Edit Stock"}{" "}
+              </h3>
+
+              {lowstock !== 0 && edit !== -1 && (
+                <div className="text-red-500 text-sm font-medium">
+                  Low Stock: {lowstock}
+                </div>
               )}
-            </div>
-          </div>
-        ) : (
-          <div className="selectvariaint_container flex flex-col items-center justify-start gap-y-10 w-full h-full">
-            <div className="liststock_container flex flex-row flex-wrap gap-5 w-[90%] h-fit p-1 max-h-[46vh] overflow-y-auto">
-              {((product.varaintstock && product.varaintstock.length === 0) ||
-                !product.varaintstock) && (
-                <h3 className="text-lg text-gray-500 w-full outline outline-1 outline-gray-500 p-2 rounded-lg">
-                  No Stock
-                </h3>
-              )}
-              {isloading ? (
-                <NormalSkeleton
-                  style={{ flexDirection: "row" }}
-                  count={3}
-                  width="220px"
-                  height="50px"
-                />
+
+              {edit === -1 || isAddNew || editsubidx !== -1 ? (
+                <div className="variantlist relative  rounded-lg flex flex-col items-center justify-start gap-y-5 w-full h-full max-h-[60vh] p-5 overflow-y-auto">
+                  {product.variants?.map((item, idx) => {
+                    return (
+                      <Multiselect
+                        key={item.id}
+                        id={idx}
+                        type={item.option_type}
+                        value={selectedstock[item.option_title]}
+                        data={item.option_value.map((i) => {
+                          if (typeof i === "string") {
+                            return { label: i, value: i };
+                          } else {
+                            return { label: i.name ?? "", value: i.val };
+                          }
+                        })}
+                        label={item.option_title}
+                        onSelect={(val) =>
+                          handleSelectVariant(val, item.option_title)
+                        }
+                      />
+                    );
+                  })}
+                </div>
               ) : (
-                product.varaintstock &&
-                product.varaintstock.map((i, idx) => (
-                  <div
-                    key={idx}
-                    style={
-                      i.isLowStock
-                        ? { borderRight: "5px solid lightcoral" }
-                        : {}
-                    }
-                    className="stockcard w-[220px] h-[50px] flex flex-row items-center justify-evenly p-2 outline outline-2 outline-gray-300 rounded-lg transition duration-200 hover:bg-gray-300"
-                  >
-                    <h3 className="name text-lg font-semibold w-full">
-                      Stock {idx + 1}
-                    </h3>
-                    <div className="action w-full flex flex-row items-center justify-evenly">
-                      <h3
-                        onClick={() => handleEdit(idx)}
-                        className="w-fit h-fit text-lg font-normal text-blue-500 transition duration-200 cursor-pointer hover:text-black"
-                      >
-                        Edit
-                      </h3>
-                      <h3
-                        onClick={() => {
-                          //Delete Stock
-                          handleDeleteStock(idx);
-                        }}
-                        className="w-fit h-fit text-lg font-normal text-red-500 transition duration-200 cursor-pointer hover:text-black"
-                      >
-                        Delete
-                      </h3>
-                    </div>
+                product.varaintstock && (
+                  <div className="editstock_container w-full h-fit flex flex-row flex-wrap items-start justify-center gap-5 pt-5">
+                    <RenderStockCards
+                      handleDeleteSubStock={handleDeleteSubStock}
+                      handleSubStockClick={handleSubStockClick}
+                      edit={edit}
+                    />
                   </div>
-                ))
+                )
               )}
+              <div className="w-[50%] min-w-[275px] h-[40px] flex flex-row gap-x-3">
+                {edit !== -1 && (
+                  <Button
+                    className="h-full"
+                    fullWidth
+                    startContent={
+                      <div className="font-light text-3xl"> + </div>
+                    }
+                    isLoading={loading}
+                    variant="bordered"
+                    color={isAddNew ? "success" : "primary"}
+                    onPress={() =>
+                      editsubidx === -1
+                        ? handleAddNewSubStock()
+                        : handleUpdateSubStock(editsubidx)
+                    }
+                  >
+                    {editsubidx !== -1 ? "Update" : "Add New"}
+                  </Button>
+                )}
+                {(edit === -1 || isAddNew || editsubidx !== -1) && (
+                  <Input
+                    label={"Stock"}
+                    type="number"
+                    fullWidth
+                    size="sm"
+                    className="h-full"
+                    value={stock}
+                    onChange={handleStockChange}
+                  />
+                )}
+              </div>
             </div>
+          ) : (
+            <div className="selectvariaint_container flex flex-col items-center justify-start gap-y-10 w-full h-full">
+              <div className="liststock_container flex flex-row flex-wrap gap-5 w-[90%] h-fit p-1 max-h-[46vh] overflow-y-auto">
+                {((product.varaintstock && product.varaintstock.length === 0) ||
+                  !product.varaintstock) && (
+                  <h3 className="text-lg text-gray-500 w-full outline outline-1 outline-gray-500 p-2 rounded-lg">
+                    No Stock
+                  </h3>
+                )}
+                {isloading ? (
+                  <NormalSkeleton
+                    style={{ flexDirection: "row" }}
+                    count={3}
+                    width="220px"
+                    height="50px"
+                  />
+                ) : (
+                  product.varaintstock &&
+                  product.varaintstock.map((i, idx) => (
+                    <div
+                      key={idx}
+                      style={
+                        i.isLowStock
+                          ? { borderRight: "5px solid lightcoral" }
+                          : {}
+                      }
+                      className="stockcard w-[220px] h-[50px] flex flex-row items-center justify-evenly p-2 outline outline-2 outline-gray-300 rounded-lg transition duration-200 hover:bg-gray-300"
+                    >
+                      <h3 className="name text-lg font-semibold w-full">
+                        Stock {idx + 1}
+                      </h3>
+                      <div className="action w-full flex flex-row items-center justify-evenly">
+                        <h3
+                          onClick={() => handleEdit(idx)}
+                          className="w-fit h-fit text-lg font-normal text-blue-500 transition duration-200 cursor-pointer hover:text-black"
+                        >
+                          Edit
+                        </h3>
+                        <h3
+                          onClick={() => {
+                            //Delete Stock
+                            handleDeleteStock(idx);
+                          }}
+                          className="w-fit h-fit text-lg font-normal text-red-500 transition duration-200 cursor-pointer hover:text-black"
+                        >
+                          Delete
+                        </h3>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
 
-            <PrimaryButton
-              text={"Add Stock"}
-              type="button"
-              width="90%"
-              radius="10px"
-              height="40px"
-              textsize="12px"
-              onClick={() => {
-                //create stock
+              <PrimaryButton
+                text={"Add Stock"}
+                type="button"
+                width="90%"
+                radius="10px"
+                height="40px"
+                textsize="12px"
+                onClick={() => {
+                  //create stock
 
-                if (!product.variants) {
-                  errorToast("Please Create Variant");
-                  return;
-                }
-                setadded(1);
-                setnew("stockinfo");
-              }}
-            />
+                  handleCreateStock();
+                }}
+              />
 
-            {/*  */}
-          </div>
-        )}
-      </div>
-    </>
-  );
-}
+              {/*  */}
+            </div>
+          )}
+        </div>
+      </>
+    );
+  }
+);
+ManageStockContainer.displayName = "ManageStockContainer";
 
 interface ColorSelectModal {
   edit: number;
@@ -557,13 +618,42 @@ export const ColorSelectModal = ({
     settemp(update as variantdatatype);
     setcolorstate((prev) => ({ ...prev, color: Colorinitalize, name: "" }));
     setedit(-1);
-  }, [colorstate, temp, edit]);
+  }, [colorstate, temp, edit, settemp, setcolorstate, setedit]);
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    handleAddColor();
-    setopen(false);
-  };
+  const handleSubmit = useCallback(
+    (e: FormEvent<HTMLFormElement>) => {
+      e.preventDefault();
+      handleAddColor();
+      setopen(false);
+    },
+    [handleAddColor, setopen]
+  );
+
+  const handleUpdateColor = useCallback(
+    (e: ChangeEvent<HTMLInputElement>) => {
+      const value = e.target.value;
+      // Regular expression to validate hex color code (#RRGGBB or #RGB)
+      const isValidHex = /^#([0-9A-F]{3}){1,2}$/i.test(value);
+
+      if (!isValidHex) {
+        errorToast("Invalid Hex Code");
+        return;
+      }
+
+      setcolor({
+        rgb: { r: 0, g: 0, b: 0 },
+        hex: value, // Default to gray if invalid
+      });
+    },
+    [setcolor]
+  );
+
+  const handleSetColorState = useCallback(
+    (val: ColorResult) => {
+      setcolor({ ...val });
+    },
+    [setcolor]
+  );
   return (
     <>
       <div
@@ -645,18 +735,11 @@ export const ColorSelectModal = ({
                   <div className="w-full h-fit flex flex-col gap-3 items-center">
                     <CirclePicker
                       color={color.hex}
-                      onChange={(value) => {
-                        setcolor({
-                          hex: value.hex,
-                          rgb: value.rgb as any,
-                        });
-                      }}
+                      onChange={handleSetColorState}
                     />
                     <ChromePicker
                       color={color.hex}
-                      onChange={(val) =>
-                        setcolor({ hex: val.hex, rgb: val.rgb })
-                      }
+                      onChange={handleSetColorState}
                       disableAlpha
                     />
                   </div>
@@ -667,16 +750,7 @@ export const ColorSelectModal = ({
                     label="Hex Code"
                     value={color.hex}
                     size="lg"
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      // Regular expression to validate hex color code (#RRGGBB or #RGB)
-                      const isValidHex = /^#([0-9A-F]{3}){1,2}$/i.test(value);
-
-                      setcolor({
-                        rgb: { r: 0, g: 0, b: 0 },
-                        hex: value, // Default to gray if invalid
-                      });
-                    }}
+                    onChange={handleUpdateColor}
                   />
                 </div>
               </SecondaryModal>

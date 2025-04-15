@@ -1,4 +1,3 @@
-import { getUser } from "@/src/context/OrderContext";
 import { PolicyButton, QuestionCard, SidePolicyBar } from "./component";
 
 import {
@@ -13,10 +12,10 @@ import LoadingIcon from "../component/Loading";
 import { Props } from "../product/page";
 import { Metadata } from "next";
 import Prisma from "@/src/lib/prisma";
+import { getUser } from "../action";
 
-export async function generateMetadata({
-  searchParams,
-}: Props): Promise<Metadata> {
+export async function generateMetadata(props: Props): Promise<Metadata> {
+  const searchParams = await props.searchParams;
   const { p } = searchParams;
   const page = p ? parseInt(p.toString()) : undefined;
 
@@ -46,20 +45,18 @@ export async function generateMetadata({
   return { title: title, description: "Policy in our online store" };
 }
 
-export default async function PrivacyandPolicy({
-  searchParams,
-}: {
-  searchParams?: { [key: string]: string | undefined };
+export default async function PrivacyandPolicy(props: {
+  searchParams?: Promise<{ [key: string]: string | undefined }>;
 }) {
+  const searchParams = await props.searchParams;
   const params = searchParams;
   const pageId = params?.p ? parseInt(params.p) : undefined;
   const user = await getUser();
-
   const allpolicy = await getAllPolicy();
   let policy: Addpolicytype | Addquestiontype[] | null = null;
 
   if (pageId || pageId === 0) {
-    policy = (await getPolicyById(pageId)) as any;
+    policy = (await getPolicyById(pageId)) as never;
 
     if (!policy) {
       return notFound();
@@ -72,7 +69,7 @@ export default async function PrivacyandPolicy({
         ? "FAQs (Frequent Ask Question)"
         : policy
         ? "title" in policy
-          ? policy.title
+          ? (policy as Addpolicytype).title
           : undefined
         : undefined;
 
@@ -110,13 +107,13 @@ export default async function PrivacyandPolicy({
                       title="Edit"
                       ty="edit"
                       color="#4688A0"
-                      policydata={policy as Addpolicytype}
+                      policydata={policy as unknown as Addpolicytype}
                     />
                     <PolicyButton
                       title="Show"
                       ty="showtype"
                       color="black"
-                      showtype={(policy as Addpolicytype).showtype}
+                      showtype={(policy as unknown as Addpolicytype).showtype}
                       pid={pageId}
                     />
                     <PolicyButton
@@ -133,12 +130,12 @@ export default async function PrivacyandPolicy({
             <Suspense fallback={<LoadingIcon />}>
               {pageId !== 0 ? (
                 <PolicyContent
-                  paragrah={policy as Addpolicytype}
+                  paragrah={policy as unknown as Addpolicytype}
                   isAdmin={user?.role === "ADMIN"}
                 />
               ) : (
                 <PolicyContent
-                  question={policy as Addquestiontype[]}
+                  question={policy as unknown as Addquestiontype[]}
                   isAdmin={user?.role === "ADMIN"}
                 />
               )}
@@ -160,8 +157,8 @@ const PolicyContent = ({ paragrah, question, isAdmin }: Policycontent) => {
   return (
     <div className="w-full h-fit flex flex-col gap-y-5">
       {paragrah ? (
-        paragrah.Paragraph.map((i) => (
-          <div className="w-full h-fit flex flex-col gap-5">
+        paragrah.Paragraph.map((i, idx) => (
+          <div key={idx} className="w-full h-fit flex flex-col gap-5">
             {i.title && <h3 className="text-xl font-bold">{i.title}</h3>}
             <p
               key={i.id}

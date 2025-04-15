@@ -1,5 +1,3 @@
-import { deleteObject, ref } from "firebase/storage";
-import { storage } from "./firebase";
 import { Orderpricetype, Productordertype } from "../context/OrderContext";
 import {
   CipherKey,
@@ -32,19 +30,6 @@ export const GetOneWeekAgoDate = () => {
   return oneWeekAgo;
 };
 
-export const DeleteImageFromStorage = async (
-  filename: string
-): Promise<{ Sucess: boolean }> => {
-  try {
-    const deseRef = ref(storage, `productcovers/${filename}`);
-    await deleteObject(deseRef);
-    return { Sucess: true };
-  } catch (error) {
-    console.error("Firebase Storage", error);
-    return { Sucess: false };
-  }
-};
-
 export const removeSpaceAndToLowerCase = (str: string) =>
   str.replace(/\s/g, "").toLowerCase();
 
@@ -62,7 +47,7 @@ export const calculatePagination = (
 };
 
 export const caculateArrayPagination = (
-  arr: Array<any>,
+  arr: Array<unknown>,
   page: number,
   limit: number
 ) => {
@@ -184,10 +169,10 @@ export const encrypt = (text: string, key: string) => {
   ) as unknown as CipherKey;
 
   const iv = randomBytes(16); // Initialization vector
-  const cipher = createCipheriv(algorithm, keyBuffer, iv as any);
+  const cipher = createCipheriv(algorithm, keyBuffer, iv as never);
 
   let encrypted = cipher.update(text, "utf-8");
-  encrypted = Buffer.concat([encrypted as any, cipher.final()]);
+  encrypted = Buffer.concat([encrypted as never, cipher.final() as never]);
 
   return iv.toString("hex") + ":" + encrypted.toString("hex");
 };
@@ -205,10 +190,10 @@ export const decrypt = (text: string, key: string) => {
     "utf-8"
   ) as unknown as CipherKey;
 
-  const decipher = createDecipheriv(algorithm, keyBuffer, iv as any);
+  const decipher = createDecipheriv(algorithm, keyBuffer, iv as never);
 
-  let decrypted = decipher.update(encryptedText as any);
-  decrypted = Buffer.concat([decrypted as any, decipher.final()]);
+  let decrypted = decipher.update(encryptedText as never);
+  decrypted = Buffer.concat([decrypted as never, decipher.final() as never]);
 
   return decrypted.toString("utf-8");
 };
@@ -218,8 +203,8 @@ export const calculateDiscountPrice = (price: number, discount: number) => ({
   newprice: (price - (price * discount) / 100).toFixed(2),
 });
 
-export const isObjectEmpty = (data: Record<string, any>) =>
-  Object.entries(data).every(([_, val]) => !val);
+export const isObjectEmpty = (data: Record<string, unknown>) =>
+  Object.values(data).every((val) => !val);
 
 export const calculateDiscountProductPrice = (data: {
   price: number;
@@ -302,7 +287,7 @@ export function compareArrays<T>(
         typeof arr1[i] === "object" &&
         typeof arr2[i] === "object"
       ) {
-        if (!deepEqual(arr1[i], arr2[i])) return false;
+        if (!deepEqual(arr1[i] as never, arr2[i] as never)) return false;
       } else if (arr1[i] !== arr2[i]) {
         return false;
       }
@@ -330,7 +315,10 @@ export function compareArrays<T>(
 }
 
 // Helper function for deep object comparison
-function deepEqual(obj1: any, obj2: any): boolean {
+function deepEqual(
+  obj1: Record<string, unknown>,
+  obj2: Record<string, unknown>
+): boolean {
   if (obj1 === obj2) return true;
 
   if (
@@ -348,7 +336,10 @@ function deepEqual(obj1: any, obj2: any): boolean {
   if (keys1.length !== keys2.length) return false;
 
   for (const key of keys1) {
-    if (!keys2.includes(key) || !deepEqual(obj1[key], obj2[key])) {
+    if (
+      !keys2.includes(key) ||
+      !deepEqual(obj1[key] as never, obj2[key] as never)
+    ) {
       return false;
     }
   }

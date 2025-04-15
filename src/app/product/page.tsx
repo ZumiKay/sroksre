@@ -49,13 +49,12 @@ interface ProductParam {
 }
 
 export type Props = {
-  params: { id: string };
-  searchParams: { [key: string]: string | string[] | undefined };
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 };
 
-export async function generateMetadata({
-  searchParams,
-}: Props): Promise<Metadata> {
+export async function generateMetadata(props: Props): Promise<Metadata> {
+  const searchParams = await props.searchParams;
   // read route params
   const param = searchParams as ProductParam;
 
@@ -219,11 +218,12 @@ const isArrayWithEmptyStrings = (arr?: string[]): boolean => {
   return arr.every((item) => item === "");
 };
 
-export default async function ProductsPage({
-  searchParams,
-}: {
-  searchParams?: { [key: string]: string | string[] | undefined };
-}) {
+export default async function ProductsPage(
+  props: {
+    searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
+  }
+) {
+  const searchParams = await props.searchParams;
   const {
     pid,
     cid,

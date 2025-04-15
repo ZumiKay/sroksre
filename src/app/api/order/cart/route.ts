@@ -1,6 +1,5 @@
 import {
   Allstatus,
-  getUser,
   Productorderdetailtype,
   Productordertype,
   totalpricetype,
@@ -14,13 +13,17 @@ import {
 import { NextRequest } from "next/server";
 import { extractQueryParams } from "../../banner/route";
 import { JsonObject } from "@prisma/client/runtime/library";
-import {ProductState, VariantColorValueType} from "@/src/context/GlobalType.type";
+import {
+  ProductState,
+  VariantColorValueType,
+} from "@/src/context/GlobalType.type";
+import { getUser } from "@/src/app/action";
 
 export async function PUT(req: NextRequest) {
   try {
     const user = await getUser();
     if (!user) {
-      return Response.json({}, { status: 401 });
+      return Response.json({ error: "Unauthenticated" }, { status: 401 });
     }
 
     const { id, qty } = await req.json();
@@ -192,8 +195,8 @@ export async function GET(req: NextRequest) {
 
       const product = {
         ...item.product,
-        variants: item.product.Variant as any,
-        varaintstock: item.product.Stock as any,
+        variants: item.product.Variant,
+        varaintstock: item.product.Stock,
         Variant: undefined,
         Stock: undefined,
       } as unknown as ProductState;

@@ -1,48 +1,42 @@
 "use client";
 import { useGlobalContext } from "@/src/context/GlobalContext";
 import PrimaryButton from "../../component/Button";
-import { UserCard } from "../../component/Card";
 import { ApiRequest, Delayloading } from "@/src/context/CustomHook";
 import { ContainerLoading, errorToast } from "../../component/Loading";
-import { useEffect, useState } from "react";
-import { Createusermodal } from "../../component/Modals/User";
-import { useRouter, useSearchParams } from "next/navigation";
-import PaginationCustom from "../../component/Pagination_Component";
-import FilterMenu from "@/src/app/component/FilterMenu/FilterMenu";
+import { useCallback, useEffect, useState, use } from "react";
+import { redirect, useRouter, useSearchParams } from "next/navigation";
+import { IsNumber } from "@/src/lib/utilities";
+import TableComponent from "../../component/Table/Table_Component";
+import FilterMenu from "../../component/FilterMenu/FilterMenu";
 
 interface usermangementFilterType {
   search?: string;
   lt?: string;
   p?: string;
 }
-export default function UsermanagementPage({
-  searchParams,
-}: {
-  searchParams?: { [key: string]: string | undefined };
-}) {
+
+export default function UsermanagementPage(
+  props: {
+    searchParams?: Promise<{ [key: string]: string | undefined }>;
+  }
+) {
+  const searchParams = use(props.searchParams);
   const {
-    openmodal,
-    setopenmodal,
     itemlength,
     setitemlength,
     setalldata,
     allData,
+    setopenmodal,
+    openmodal,
   } = useGlobalContext();
   const { search, p, lt } = searchParams as usermangementFilterType;
-  const handleAdd = () => {
-    setopenmodal((prev) => ({ ...prev, createUser: true }));
-  };
   const [page, setpage] = useState(parseInt(p ?? "1"));
   const [showperpage, setshow] = useState(lt ?? "1");
-  const [isFilter, setisFilter] = useState(!!search);
   const [loading, setloading] = useState(false);
   const router = useRouter();
   const searchParam = useSearchParams();
 
-  useEffect(() => {
-    fetchdata();
-  }, [page, showperpage, searchParams]);
-  const fetchdata = async () => {
+  const fetchdata = useCallback(async () => {
     const asyncfetch = async () => {
       const URL = `/api/users?${search ? `ty=filter` : `ty=all`}${
         search ? `&search=${search}` : ""
@@ -57,21 +51,35 @@ export default function UsermanagementPage({
         totalpage: user.totalpage ?? 0,
       });
 
-      setalldata({ user: user.data });
+      setalldata({ user: user.data as never });
     };
     await Delayloading(asyncfetch, setloading, 2000);
-  };
+  }, [page, search, setalldata, setitemlength, showperpage]);
 
-  const handleSelectShow = (value: string) => {
-    const param = new URLSearchParams(searchParam);
-    param.set("lt", value);
+  useEffect(() => {
+    fetchdata();
+  }, [page, showperpage, search]);
 
-    router.push(`?${param}`);
-    router.refresh();
-  };
+  const handlePagination = useCallback(
+    (ty: "page" | "limit", val: string) => {
+      const param = new URLSearchParams(searchParam);
+      if (ty === "page") {
+        param.set("p", val);
+      } else {
+        param.set("p", "1");
+        param.set("lt", val);
+        setpage(1);
+      }
+
+      router.push(`?${param}`);
+    },
+    [router, searchParam]
+  );
   return (
     <>
       <title>User Management | SrokSre</title>
+      {openmodal.filteroption && <FilterMenu type="usermanagement" />}
+
       <div className="usermanagement_container relative w-full h-fit">
         {loading && <ContainerLoading />}
         <div className="w-full h-fit overflow-x-auto">
@@ -79,21 +87,11 @@ export default function UsermanagementPage({
             <PrimaryButton
               type="button"
               text="Add"
-              onClick={() => handleAdd()}
+              onClick={() => router.push(`/dashboard/usermanagement/0`)}
               color="#0097FA"
               Icon={<i className="fa-solid fa-plus font-bold text-lg"></i>}
               width="150px"
               radius="10px"
-            />
-            <PrimaryButton
-              color="#4688A0"
-              radius="10px"
-              type="button"
-              text={isFilter ? "Clear Filter" : "Filter"}
-              onClick={() =>
-                setopenmodal((prev) => ({ ...prev, filteroption: true }))
-              }
-              width="150px"
             />
             <PrimaryButton
               radius="10px"
@@ -101,46 +99,30 @@ export default function UsermanagementPage({
               text={`Total: ${itemlength.total}`}
               width="150px"
             />
+            <PrimaryButton
+              radius="10px"
+              type="button"
+              text={`Total: ${itemlength.total}`}
+              width="150px"
+              color="Filter"
+              onClick={() => setopenmodal({ filteroption: true })}
+            />
           </div>
         </div>
-        <div className="userlist w-full h-fit mt-10 flex flex-row gap-5 flex-wrap justify-center">
-          {!allData ||
-            !allData.user ||
-            (allData.user.length === 0 && (
-              <p className="text-lg font-normal text-gray-400">No User Found</p>
-            ))}
-          {allData?.user?.map((i, idx) => (
-            <UserCard
-              index={idx}
-              firstname={i.firstname}
-              lastname={i.lastname ?? ""}
-              email={i.email}
-              uid={i.id?.toString() ?? "0"}
-            />
-          ))}
-        </div>
-
-        <div className="w-full h-fit mt-16">
-          <PaginationCustom
-            count={itemlength.totalpage}
-            page={page}
-            show={showperpage}
-            setshow={setshow}
-            setpage={setpage}
-            onSelectShowPerPage={(value) => {
-              handleSelectShow(value.toString());
+        <section className="w-full h-full max-defaultsize:overflow-x-auto overflow-hidden">
+          <TableComponent
+            ty="usermanagement"
+            data={allData?.user ?? []}
+            pagination={{
+              itemscount: itemlength.total,
+              show: showperpage,
+              page: page,
+              setpage,
+              onShowPage: setshow,
             }}
+            onPagination={handlePagination}
           />
-        </div>
-
-        {openmodal.createUser && <Createusermodal setpage={setpage} />}
-        {openmodal.filteroption && (
-          <FilterMenu
-            type="usermanagement"
-            setisFilter={setisFilter}
-            param={searchParams}
-          />
-        )}
+        </section>
       </div>
     </>
   );

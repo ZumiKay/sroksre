@@ -30,6 +30,7 @@ model User {
   id           Int            @id @default(autoincrement())
   oauthId      String?
   type         String?
+  username     String         @default("")
   firstname    String
   lastname     String?
   email        String
@@ -48,7 +49,7 @@ model User {
   Notification Notification[]
   Wishlist     Wishlist[]
   Orderproduct Orderproduct[]
-  Tempimage    Tempimage[]
+  Image        Image[]
 }
 
 model Wishlist {
@@ -112,7 +113,7 @@ model Products {
   description       String            @default("")
   stocktype         String            @default("stock")
   stock             Int?
-  covers            Productcover[]
+  covers            Image[]
   details           Info[]
   parentcategory_id Int?
   childcategory_id  Int?
@@ -138,6 +139,8 @@ model Products {
   Autocategory      Productcategory[]
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
+
+  @@index([id, name, parentcategory_id, childcategory_id])
 }
 
 model Productcategory {
@@ -148,20 +151,20 @@ model Productcategory {
   autocategory    Parentcategories @relation(fields: [autocategory_id], references: [id])
 }
 
-model Productcover {
-  id        Int      @id @default(autoincrement())
+model Image {
+  id        Int       @id @default(autoincrement())
   url       String
   name      String
   type      String
-  Products  Products @relation(fields: [productId], references: [id])
-  productId Int
-}
+  Products  Products? @relation(fields: [productId], references: [id])
+  Banner    Banner?   @relation(fields: [bannerId], references: [id])
+  productId Int?
+  bannerId  Int?      @unique
+  temp      Boolean   @default(true)
+  User      User?     @relation(fields: [userId], references: [id])
+  userId    Int?
 
-model Tempimage {
-  id      Int    @id @default(autoincrement())
-  name    String
-  user_id Int
-  user    User   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  @@index([id, name])
 }
 
 model Producttype {
@@ -183,6 +186,8 @@ model Orders {
   shipping     Address?       @relation(fields: [shipping_id], references: [id])
   user         User           @relation(fields: [buyer_id], references: [id], onDelete: Cascade)
   Orderproduct Orderproduct[]
+
+  @@index([id, status, createdAt])
 }
 
 model Orderproduct {
@@ -204,7 +209,6 @@ model Banner {
   type               String
   size               String           @default("large")
   linktype           String?
-  image              Json
   parentcate_id      Int?
   childcate_id       Int?
   selectedproduct_id Json?
@@ -213,6 +217,9 @@ model Banner {
   Promotion          Promotion?       @relation(fields: [promotionId], references: [id])
   Containeritems     Containeritems[]
   promotionId        Int?             @unique
+  Image              Image?
+
+  @@index([id, name, type])
 }
 
 model Homecontainer {
@@ -249,6 +256,8 @@ model Promotion {
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
   Products    Products[]
+
+  @@index([id, name, expireAt])
 }
 
 model Answers {
@@ -344,6 +353,8 @@ model Paragraph {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   policy    Policy   @relation(fields: [policyId], references: [id], onDelete: Cascade)
+
+  @@index([id])
 }
 
 model Notification {
@@ -356,4 +367,6 @@ model Notification {
   user      User     @relation(fields: [userid], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([id, type])
 }

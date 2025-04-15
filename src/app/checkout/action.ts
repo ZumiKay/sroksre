@@ -5,10 +5,9 @@ import {
   Allstatus,
   Ordertype,
   Productordertype,
-  getUser,
   totalpricetype,
 } from "@/src/context/OrderContext";
-import { Orderproduct } from "@prisma/client";
+import { Address, Orderproduct } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import {
   CountryCode,
@@ -27,14 +26,15 @@ import {
 } from "@/src/lib/utilities";
 import { ProductStockType } from "../component/ServerComponents";
 import nodemailer from "nodemailer";
-import { shippingtype } from "../component/Modals/User";
 import { generateInvoicePdf } from "../api/order/route";
 import { formatDate } from "../component/EmailTemplate";
 import getCheckoutdata from "@/src/app/checkout/getCheckOutData";
+import { ProductState } from "@/src/context/GlobalType.type";
+import { getUser } from "../action";
 
 interface Returntype<k = string> {
   success: boolean;
-  data?: any;
+  data?: unknown;
   message?: k;
   status?: number;
 }
@@ -70,7 +70,7 @@ export async function getOrderAddress(orderId: string) {
 export async function Createorder(data: {
   price: totalpricetype;
   incartProduct: number[];
-}): Promise<Returntype<any>> {
+}) {
   const user = await getUser();
 
   const userid = user?.id;
@@ -107,9 +107,9 @@ export async function Createorder(data: {
       const create = await Prisma.orders.create({
         data: {
           id: generateID,
-          buyer_id: userid as any,
+          buyer_id: userid as number,
           status: Allstatus.unpaid,
-          price: data.price as any,
+          price: data.price as never,
           shippingtype: Shippingservice[2].value,
         },
       });
@@ -179,7 +179,7 @@ export interface OrderUserType extends Ordertype {
   };
   Orderproduct: Productordertype[];
   createdAt: Date;
-  shipping?: shippingtype;
+  shipping?: Address;
 }
 
 export async function updateStatus(
@@ -195,8 +195,8 @@ export async function updateStatus(
     }
 
     // Prepare updates
-    const productUpdates: Array<Promise<any>> = [];
-    const stockUpdates: Array<Promise<any>> = [];
+    const productUpdates: Array<Promise<ProductState>> = [];
+    const stockUpdates: Array<Promise<unknown>> = [];
 
     order.Orderproduct.forEach((cart) => {
       const { stocktype, Stock } = cart.product;
@@ -215,7 +215,7 @@ export async function updateStatus(
               ],
             },
             data: { stock: { decrement: cart.quantity } },
-          })
+          }) as never
         );
       } else {
         const stockValueIds = Stock.flatMap((sk) =>
@@ -275,7 +275,7 @@ export async function updateStatus(
           prob.quantity * (prob.price.discount?.newprice ?? prob.price.price),
       })),
       price: order.price as unknown as totalpricetype,
-      shipping: order.shipping as any,
+      shipping: order.shipping as never,
       createdAt: formatDate(order.createdAt),
     });
 
@@ -304,7 +304,7 @@ export async function updateStatus(
 export async function handleShippingAdddress(
   orderId: string,
   selected?: number,
-  shippingdata?: shippingtype,
+  shippingdata?: Address,
   isSave?: string
 ): Promise<Returntype> {
   try {
@@ -394,7 +394,7 @@ export async function updateShippingService(
       },
       data: {
         shippingtype,
-        price: updatePrice as any,
+        price: updatePrice as never,
       },
     });
 
@@ -431,7 +431,7 @@ const generateAccessToken = async () => {
   }
 };
 
-export async function Createpaypalorder(orderId: string): Promise<Returntype> {
+export async function Createpaypalorder(orderId: string) {
   try {
     const accessToken = await generateAccessToken();
 
@@ -495,7 +495,7 @@ export async function Createpaypalorder(orderId: string): Promise<Returntype> {
       Authorization: `Bearer ${accessToken}`,
     };
 
-    let orderItems: Paypalitemtype[] = order.Orderproduct.map((i) => {
+    const orderItems: Paypalitemtype[] = order.Orderproduct.map((i) => {
       const price = i.product.discount
         ? calculateDiscountProductPrice({
             price: i.product.price,
@@ -513,7 +513,7 @@ export async function Createpaypalorder(orderId: string): Promise<Returntype> {
       };
     });
 
-    let orderAmount: Paypalamounttype = {
+    const orderAmount: Paypalamounttype = {
       currency_code,
       value: orderPrice.total.toFixed(2),
       breakdown: {
@@ -525,7 +525,7 @@ export async function Createpaypalorder(orderId: string): Promise<Returntype> {
       },
     };
 
-    let orderShipping: PaypalshippingType = {
+    const orderShipping: PaypalshippingType = {
       type: shippingtype?.value !== "Pickup" ? "SHIPPING" : "NO_SHIPPING",
       ...(order.shipping && {
         address: {
@@ -563,7 +563,7 @@ export async function Createpaypalorder(orderId: string): Promise<Returntype> {
   }
 }
 
-export async function CaptureOrder(orderId: string): Promise<Returntype> {
+export async function CaptureOrder(orderId: string) {
   try {
     const accessToken = await generateAccessToken();
     const url = `${process.env.PAYPAL_BASE}/v2/checkout/orders/${orderId}/capture`;

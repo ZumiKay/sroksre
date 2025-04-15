@@ -1,18 +1,20 @@
 import Prisma from "@/src/lib/prisma";
 import { NextRequest } from "next/server";
 import { extractQueryParams } from "../banner/route";
-import {
-  ContainerType,
-  Containertype,
-  Homeitemtype,
-} from "../../severactions/containeraction";
-import { Homecontainer } from "@prisma/client";
+
 import {
   caculateArrayPagination,
   calculateDiscountProductPrice,
 } from "@/src/lib/utilities";
 import { calculatePopularityScore } from "../categories/route";
-import { ProductState } from "@/src/context/GlobalType.type";
+import {
+  Containertype,
+  ContainerType,
+  Homeitemtype,
+  ProductState,
+  RangeType,
+} from "@/src/context/GlobalType.type";
+import { Homecontainer } from "@prisma/client";
 
 interface Paramtype {
   ty?: "short" | "detail";
@@ -81,7 +83,6 @@ async function fetchContainerById(id: string) {
               id: true,
               name: true,
               type: true,
-              image: true,
               size: true,
             },
           },
@@ -127,7 +128,6 @@ export async function fetchContainers(ty: string) {
                 id: true,
                 name: true,
                 type: true,
-                image: true,
                 link: true,
                 parentcate_id: true,
                 childcate_id: true,
@@ -190,7 +190,7 @@ export function formatContainer(result: formatContainerType) {
     id: result.id,
     idx: result.idx,
     amountofitem: result.amountofitem || undefined,
-    scrollabletype: result.scrollabletype as any,
+    scrollabletype: result.scrollabletype as never,
     name: result.name ?? "",
     daterange: result.daterange,
     type: result.type as ContainerType,
@@ -244,12 +244,12 @@ export async function GET(request: NextRequest) {
           { status: 500 }
         );
       }
-      const res = formatContainer(result as any);
+      const res = formatContainer(result as never);
       return Response.json({ data: res }, { status: 200 });
     } else {
       const results = await fetchContainers(ty as string);
       const res =
-        ty === "detail" ? results.map(formatContainer as any) : results;
+        ty === "detail" ? results.map(formatContainer as never) : results;
       return Response.json({ data: res }, { status: 200 });
     }
   } catch (error) {
@@ -303,7 +303,7 @@ export async function PUT(req: Request) {
       );
     }
 
-    const updates: any = {};
+    const updates: Partial<formatContainerType> = {};
 
     // Check and update the name if it has changed
     if (container.name !== data.name) {
@@ -322,7 +322,7 @@ export async function PUT(req: Request) {
       updates.name = data.name;
     }
 
-    const existdaterange = container.daterange as any;
+    const existdaterange = container.daterange as RangeType;
 
     // Update the items when the amount of items or date range changes
     if (
@@ -358,14 +358,14 @@ export async function PUT(req: Request) {
 
       const sortedProduct =
         data.scrollabletype === "popular"
-          ? SortProductByPopularScore(product as any)
+          ? SortProductByPopularScore(product as never)
           : SortProductByLatestAddDate(product);
 
       const cutProduct = caculateArrayPagination(
         sortedProduct,
         1,
         data.amountofitem
-      );
+      ) as unknown as ProductState[];
       data.items = cutProduct.map((i) => {
         const existingItem = data.items.find((item) => item.item_id === i.id);
         return existingItem ? existingItem : { id: 0, item_id: i.id };
@@ -400,14 +400,14 @@ export async function PUT(req: Request) {
 
         const sortedProduct =
           data.scrollabletype === "popular"
-            ? SortProductByPopularScore(product as any)
+            ? SortProductByPopularScore(product as never)
             : SortProductByLatestAddDate(product);
 
         const cutProduct = caculateArrayPagination(
           sortedProduct,
           1,
           data.amountofitem
-        );
+        ) as ProductState[];
 
         data.items = data.items.filter((i) =>
           cutProduct.some((item) => item.id === i.item_id)
@@ -475,13 +475,13 @@ export async function PUT(req: Request) {
               ? { product_id: item.item_id }
               : { banner_id: item.item_id },
         })),
-      };
+      } as never;
     }
 
     if (Object.keys(updates).length > 0) {
       await Prisma.homecontainer.update({
         where: { id },
-        data: updates,
+        data: updates as never,
       });
 
       return Response.json(

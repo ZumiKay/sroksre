@@ -1,11 +1,8 @@
-
-import { getUser } from "@/src/context/OrderContext";
 import Prisma from "@/src/lib/prisma";
-import {NotificationType} from "@/src/context/GlobalType.type";
+import { NotificationType } from "@/src/context/GlobalType.type";
+import { getUser } from "../action";
 
-export const SaveNotification = async (
-  data: NotificationType
-)=> {
+export const SaveNotification = async (data: NotificationType) => {
   const user = await Prisma.user.findFirst({ where: { role: "ADMIN" } });
 
   if (!user) {
@@ -28,9 +25,7 @@ export const SaveNotification = async (
   }
 };
 
-export const CheckedNotification = async (
-  id: number
-) => {
+export const CheckedNotification = async (id: number) => {
   try {
     await Prisma.notification.update({
       where: { id },

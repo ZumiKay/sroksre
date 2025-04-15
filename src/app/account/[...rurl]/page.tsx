@@ -1,23 +1,24 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useFormState, useFormStatus } from "react-dom";
+import { useFormStatus } from "react-dom";
 import { verifyUser } from "./action";
 import PrimaryButton from "../../component/Button";
 import { ApiRequest } from "@/src/context/CustomHook";
-import { ChangeEvent, useEffect, useState } from "react";
+import { ChangeEvent, useEffect, useState, use, useActionState } from "react";
 import LoadingIcon from "../../component/Loading";
 import { PasswordInput } from "../../component/FormComponent";
 import { userdata } from "../actions";
 import { PasswordVerification } from "../page";
 
-export default function ResetPage({ params }: { params: { rurl: string } }) {
+export default function ResetPage(props: { params: Promise<{ rurl: string }> }) {
+  const params = use(props.params);
   const [verify, setverify] = useState(true);
   const [loading, setloading] = useState(true);
 
   const [data, setdata] = useState<userdata>();
 
-  const [state, formAction] = useFormState(verifyUser, {
+  const [state, formAction] = useActionState(verifyUser, {
     message: "",
     success: false,
   });

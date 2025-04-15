@@ -1,13 +1,10 @@
 import { CSSProperties, useEffect, useState } from "react";
 import "../globals.css";
 import Image from "next/image";
+import { ImageDatatype } from "@/src/context/GlobalType.type";
 
 interface Primaryphotoprops {
-  data: {
-    url: string;
-    name: string;
-    type: string;
-  }[];
+  data: Array<ImageDatatype>;
   style?: CSSProperties;
   setclick?: React.Dispatch<React.SetStateAction<boolean>>;
   hover: boolean;

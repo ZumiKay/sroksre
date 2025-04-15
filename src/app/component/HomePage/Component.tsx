@@ -246,6 +246,7 @@ export const CategoryContainer = ({ name, data }: CategoryContainerProps) => {
       <div className="categories mt-5 w-full h-fit flex flex-row flex-wrap justify-center gap-20">
         {data.map((cate, idx) => (
           <div
+            key={idx}
             onClick={() => {
               if (cate.link) {
                 router.push(cate.link);

@@ -1,11 +1,16 @@
-import { Dayjs } from "dayjs";
 import { BannerType } from "../app/severactions/actions";
 import { InventoryInfoType } from "../app/dashboard/inventory/inventory.type";
 import { RGBColor } from "react-color";
 import { Dispatch, SetStateAction } from "react";
+import { Address } from "@prisma/client";
+import { Stepindicatortype } from "./Checkoutcontext";
 
 type Role = "ADMIN" | "USER" | "EDITOR";
-export type InventoryPage = "product" | "banner" | "promotion";
+export type InventoryPage =
+  | "product"
+  | "banner"
+  | "promotion"
+  | "usermanagement";
 export type FiltermenuType =
   | "product"
   | "banner"
@@ -40,14 +45,27 @@ export const BannerSize = [
   { label: "Normal", value: "normal" },
 ];
 
+export const containerTypeOptions = {
+  slide: "slide",
+  category: "category",
+  scrollable: "scrollable",
+  banner: "banner",
+};
+
+export type BannerSizeType = "small" | "normal";
+
 export type Categorytype = keyof typeof categorytype;
+
+export type ScrollableTypeValueType = "popular" | "new" | "sale" | "custom";
 
 export interface ActionReturnType<t = string> {
   success: boolean;
   message?: string;
   data?: t;
-  [x: string]: boolean | string | t | undefined;
+  error?: string;
+  [x: string]: boolean | string | number | t | undefined;
 }
+
 export interface SelectType {
   label: string;
   value: string | number;
@@ -64,6 +82,7 @@ export interface userdata {
   agreement?: boolean;
   cid?: string;
   recapcha: string | null;
+  phonenumber?: string;
 }
 export interface infovaluetype {
   qty: number;
@@ -140,12 +159,16 @@ export interface Relatedproducttype {
 
 export interface ProductCategoriesType {
   id: number;
-  name: string;
+  name?: string;
 }
 
 export interface DiscountpriceType {
   percent: number;
   newprice: string;
+}
+export interface FullCategoryType {
+  parent: ProductCategoriesType;
+  child?: ProductCategoriesType;
 }
 
 export interface ProductState {
@@ -154,11 +177,8 @@ export interface ProductState {
   price: number;
   description: string;
   stocktype: string;
-  covers: productcoverstype[] | [];
-  category: {
-    parent: ProductCategoriesType;
-    child?: ProductCategoriesType;
-  };
+  covers: ImageDatatype[] | [];
+  category: FullCategoryType;
   details: ProductInfo[] | [];
   stock?: number;
   variantcount?: number;
@@ -220,6 +240,7 @@ export type ImageDatatype = {
   name: string;
   type?: string;
   isSave?: boolean;
+  temp?: boolean;
 };
 
 export interface BannerState {
@@ -227,7 +248,7 @@ export interface BannerState {
   name: string;
   type: BannerType;
   size: string;
-  image: ImageDatatype;
+  Image: ImageDatatype;
   linktype?: string;
   parentcate?: SelectType;
   childcate?: SelectType;
@@ -235,15 +256,18 @@ export interface BannerState {
   selectedpromotion?: SelectType;
   link?: string;
 }
+
 export interface UserState {
   id?: number;
+  username: string;
+  firstname: string;
   lastname?: string;
   password?: string;
   confirmpassword?: string;
   newpassword?: string;
   phonenumber?: string;
+  address?: Address[];
   role?: Role;
-  firstname: string;
   email: string;
   createdAt?: Date;
   updatedAt?: Date;
@@ -274,7 +298,7 @@ export interface PromotionState {
   selectproduct: boolean;
   selectbanner: boolean;
   products?: Array<PromotionProductState>;
-  expireAt?: Dayjs;
+  expireAt?: string;
   banner_id?: number;
   banner?: BannerState;
   type?: string;
@@ -364,6 +388,9 @@ export interface OpenModalState {
   orderactionmodal?: boolean;
   orderproductdetailmodal?: boolean;
   exportoption?: boolean;
+  policymodal?: boolean;
+  policyshowtype?: boolean;
+  mangageHomeItem?: boolean;
   [key: string]: boolean | confirmmodaltype | alerttype | undefined;
 }
 
@@ -379,17 +406,19 @@ export interface GlobalIndexState {
   homeeditindex?: number;
 }
 
+export type RangeType = {
+  start: string;
+  end: string;
+};
+
 export interface CateogoryState {
   id?: number;
   name: string;
-  description: string;
+  description?: string;
   childid?: number[];
-  subcategories: Array<SubcategoriesState> | [];
+  subcategories?: Array<SubcategoriesState>;
   type?: Categorytype;
-  daterange?: {
-    start: string;
-    end: string;
-  };
+  daterange?: RangeType;
 }
 export interface SubcategoriesState {
   id?: number;
@@ -455,4 +484,75 @@ export interface SearchAndSelectReturnType {
   items: SelectType[];
   hasMore?: boolean;
   search?: string;
+}
+
+//Checkout
+
+export const STEPS_INITIAL: ReadonlyArray<Stepindicatortype> = [
+  {
+    step: 1,
+    title: "Summary",
+    active: false,
+  },
+  {
+    step: 2,
+    title: "Fill in info",
+    active: false,
+  },
+  {
+    step: 3,
+    title: "Payment",
+    active: false,
+  },
+  {
+    step: 4,
+    title: "Complete",
+    noline: true,
+    active: false,
+  },
+] as const;
+
+export type ContainerType = keyof typeof containerTypeOptions;
+
+export interface Homeitemtype {
+  id: string;
+  name: string;
+  type: ContainerType;
+  idx: number;
+}
+
+export interface BannersType {
+  id: number;
+  name: string;
+  type: "normal" | "small";
+  image: ImageDatatype;
+}
+
+export interface ContainerItemType {
+  id?: number;
+  item?: BannersType;
+  item_id?: number;
+}
+
+export interface Daterangetype {
+  start: string;
+  end: string;
+}
+
+export interface Containertype {
+  id?: number;
+  perrow?: number;
+  amountofitem?: number;
+  scrollabletype?: ScrollableTypeValueType;
+  daterange?: Daterangetype;
+  idx: number;
+  name: string;
+  type: ContainerType | "";
+  item: number[];
+}
+
+export interface HomeContainerItemType {
+  id: number | string;
+  name: string;
+  img?: Array<ImageDatatype>;
 }

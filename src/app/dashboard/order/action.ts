@@ -8,11 +8,11 @@ import {
   removeSpaceAndToLowerCase,
 } from "@/src/lib/utilities";
 import { revalidatePath } from "next/cache";
-import { totalpricetype } from "@/src/context/OrderContext";
+import { Filterdatatype, totalpricetype } from "@/src/context/OrderContext";
 import { SendOrderEmail } from "../../checkout/action";
-import { Filterdatatype } from "./OrderComponent";
 import dayjs from "dayjs";
 import getCheckoutdata from "@/src/app/checkout/getCheckOutData";
+import { Orderproduct, Orders } from "@prisma/client";
 
 const AllorderType = {
   orderdetail: "orderdetail",
@@ -21,13 +21,18 @@ const AllorderType = {
   orderupdatestatus: "orderupdatestatus",
 };
 
+export type AllOrdersReturn = {
+  order: Array<Partial<Orders>>;
+  total: number;
+};
+
 export const GetOrder = async (
   id?: string,
   type?: string,
   page?: number,
   limit?: number,
   userid?: number
-) => {
+): Promise<Partial<Orders> | AllOrdersReturn | Orderproduct | unknown> => {
   if (id && type) {
     if (type === AllorderType.orderdetail) {
       const detail = await Prisma.orders.findUnique({
@@ -225,7 +230,6 @@ export const updateOrderStatus = async (
 export const deleteOrder = async (id: string): Promise<Returntype> => {
   try {
     await Prisma.orders.delete({ where: { id } });
-
     revalidatePath("dashboard/order");
     return { success: true, message: "Delete successfully" };
   } catch (error) {
@@ -330,6 +334,7 @@ export const ExportOrderData = async (filterdata: Filterdatatype) => {
 
     return { success: true, message: "Export Successfully", data: orderdata };
   } catch (error) {
+    console.log("Order Export", error);
     return { success: false, message: "Failed To Export" };
   }
 };

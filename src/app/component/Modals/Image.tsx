@@ -1,13 +1,10 @@
-import {
-  ApiRequest,
-  Delayloading,
-  useScreenSize,
-} from "@/src/context/CustomHook";
+import { ApiRequest, useScreenSize } from "@/src/context/CustomHook";
 import { useGlobalContext } from "@/src/context/GlobalContext";
 import {
   ChangeEvent,
   Dispatch,
   SetStateAction,
+  useCallback,
   useEffect,
   useRef,
   useState,
@@ -24,10 +21,7 @@ import CropImage from "../Cropimage";
 import { upload } from "@vercel/blob/client";
 import { type PutBlobResult } from "@vercel/blob";
 import { SecondaryModal } from "../Modals";
-import {
-  ImageDatatype,
-  productcoverstype,
-} from "@/src/context/GlobalType.type";
+import { ImageDatatype } from "@/src/context/GlobalType.type";
 import { v4 as uuidv4 } from "uuid";
 
 interface imageuploadprops {
@@ -44,6 +38,11 @@ const filetourl = (file: File[]) => {
   return url.filter((i) => i !== "");
 };
 
+const generateUniqueFileName = (file: File) => {
+  const fileExtension = file.name.split(".").pop() || "";
+  return `${Date.now()}-${uuidv4().substring(0, 8)}.${fileExtension}`;
+};
+
 const uploadToVercel = async (
   file: File
 ): Promise<{
@@ -51,9 +50,7 @@ const uploadToVercel = async (
   data?: PutBlobResult;
 }> => {
   try {
-    const uniqueFileName = `${new Date().toISOString()}-${uuidv4()}-${
-      file.name
-    }`;
+    const uniqueFileName = generateUniqueFileName(file);
     const Blob = await upload(uniqueFileName, file, {
       access: "public",
       handleUploadUrl: "/api/products/cover",
@@ -92,8 +89,8 @@ export const ImageUpload = (props: imageuploadprops) => {
     const updatedImages =
       product.covers.length > 0
         ? product.covers.map((i) => ({ ...i, isSave: true }))
-        : banner.image?.url.length > 0
-        ? [banner.image]
+        : banner.Image?.url.length > 0
+        ? [banner.Image]
         : [];
 
     seturl([...updatedImages]);
@@ -110,114 +107,102 @@ export const ImageUpload = (props: imageuploadprops) => {
   }, []);
 
   //Change Event
-  const handleFile = async (e: ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files;
-    const updateUrl = [...Imgurl];
+  const handleFile = useCallback(
+    async (e: ChangeEvent<HTMLInputElement>) => {
+      const selectedFile = e.target.files;
+      const updateUrl = [...Imgurl];
 
-    if (selectedFile) {
-      const filesArray = Array.from(selectedFile);
-      const allowedFileType = [
-        "image/jpeg",
-        "image/webp",
-        "image/png",
-        "image/svg+xml",
-        "image/gif",
-      ];
-      if (Imgurl.length + filesArray.length > props.limit) {
-        errorToast(`Can Upload ${props.limit} Images Only`);
-        return;
-      }
-      const filteredFile = filesArray.filter((file) =>
-        allowedFileType.includes(file.type)
-      );
-      const filteredFileUrl = filetourl(filteredFile);
-      filteredFileUrl.map((obj, index) =>
-        updateUrl.push({
-          url: obj,
-          name: filteredFile[index].name,
-          type: filteredFile[index].type,
-        })
-      );
-
-      if (filteredFileUrl.length > 0) {
-        if (Imgurltemp.length > 0 && Imgurltemp.every((i) => i.isSave)) {
-          const asyncdeleteimage = async () => {
-            const deleteImage = await ApiRequest({
-              url: "/api/products/cover",
-              method: "DELETE",
-              data: { covers: Imgurltemp, type: props.type },
-            });
-            if (!deleteImage.success) {
-              errorToast("Error Occured");
-              return;
-            }
-          };
-          await Delayloading(asyncdeleteimage, setloading, 1000);
+      if (selectedFile) {
+        const filesArray = Array.from(selectedFile);
+        const allowedFileType = [
+          "image/jpeg",
+          "image/webp",
+          "image/png",
+          "image/svg+xml",
+          "image/gif",
+        ];
+        if (Imgurl.length + filesArray.length > props.limit) {
+          errorToast(`Can Upload ${props.limit} Images Only`);
+          return;
         }
-        seturltemp([]);
-      }
+        const filteredFile = filesArray.filter((file) =>
+          allowedFileType.includes(file.type)
+        );
+        const filteredFileUrl = filetourl(filteredFile);
+        filteredFileUrl.map((obj, index) =>
+          updateUrl.push({
+            url: obj,
+            name: filteredFile[index].name,
+            type: filteredFile[index].type,
+          })
+        );
 
-      seturl(updateUrl);
-      setfiles((prev) => [...prev, ...filteredFile]);
-      setisEdit(true);
-    }
-  };
+        seturl(updateUrl);
+        setfiles((prev) => [...prev, ...filteredFile]);
+        setisEdit(true);
+      }
+    },
+    [Imgurl, props.limit]
+  );
 
   //Delete Image
-  const handleDelete = (index: number) => {
-    const updateUrl = [...Imgurl];
-    const updatefile = [...Files];
-    const temp = updateUrl[index];
-    const tempfile = updatefile[index];
+  const handleDelete = useCallback(
+    (index: number) => {
+      const updateUrl = [...Imgurl];
+      const updatefile = [...Files];
+      const temp = updateUrl[index];
+      const tempfile = updatefile[index];
 
-    updatefile.splice(index, 1);
+      updatefile.splice(index, 1);
 
-    updateUrl.splice(index, 1);
+      updateUrl.splice(index, 1);
 
-    seturltemp((prev) => [...prev, temp]);
-    settempfiles((prev) => [...prev, tempfile]);
-    seturl(updateUrl);
-    setisEdit(true);
-    setfiles(updatefile);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-  };
+      seturltemp((prev) => [...prev, temp]);
+      settempfiles((prev) => [...prev, tempfile]);
+      seturl(updateUrl);
+      setisEdit(true);
+      setfiles(updatefile);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    },
+    [Files, Imgurl]
+  );
 
   //Update Product when saved
-  const handleUpdateCover = async (
-    data: productcoverstype[],
-    type: "product" | "banner"
-  ) => {
-    const update =
-      type === "product"
-        ? await ApiRequest({
-            url: "/api/products/crud",
-            method: "PUT",
-            data: {
-              ...product,
-              covers: data,
-            },
-          })
-        : await ApiRequest({
-            url: "/api/banner",
-            method: "PUT",
-            data: {
-              id: banner.id,
-              edittype: "cover",
-              image: data[0],
-            },
-          });
+  const handleUpdateCover = useCallback(
+    async (data: ImageDatatype[], type: "product" | "banner") => {
+      const update =
+        type === "product"
+          ? await ApiRequest({
+              url: "/api/products/crud",
+              method: "PUT",
+              data: {
+                ...product,
+                covers: data,
+              },
+            })
+          : await ApiRequest({
+              url: "/api/banner",
+              method: "PUT",
+              data: {
+                id: banner.id,
+                edittype: "cover",
+                image: data[0],
+              },
+            });
 
-    if (!update.success) {
-      return null;
-    }
-    props.setreloaddata && props.setreloaddata(true);
-    return true;
-  };
+      if (!update.success) {
+        return null;
+      }
+      if (props.setreloaddata) props.setreloaddata(true);
+      return true;
+    },
+    [banner.id, product, props]
+  );
 
   //Saved to storage
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     try {
       setloading(true);
 
@@ -236,14 +221,30 @@ export const ImageUpload = (props: imageuploadprops) => {
           errorToast("Failed To Upload Image");
           return;
         }
-        uploadImage.data && uploadImages.push(uploadImage.data);
+        if (uploadImage.data) uploadImages.push(uploadImage.data);
       }
 
-      const savedUrl: productcoverstype[] = uploadImages.map((i) => ({
+      let savedUrl: ImageDatatype[] = uploadImages.map((i) => ({
         type: i.contentType,
         name: i.pathname,
         url: i.url,
+        isSaved: true,
       }));
+
+      if (savedUrl.length > 0) {
+        ///save image to db
+        const saveReq = await ApiRequest({
+          url: "/api/image",
+          method: "POST",
+          data: savedUrl,
+        });
+        if (!saveReq.success) {
+          throw new Error("Can't Save");
+        }
+
+        const savedData = saveReq.data as ImageDatatype[];
+        savedUrl = savedData;
+      }
 
       if (props.type === "createproduct") {
         if (globalindex.producteditindex !== -1) {
@@ -263,7 +264,7 @@ export const ImageUpload = (props: imageuploadprops) => {
             return;
           }
         }
-        setbanner({ ...banner, image: savedUrl[0] });
+        setbanner({ ...banner, Image: savedUrl[0] });
       }
 
       seturltemp([]);
@@ -291,29 +292,44 @@ export const ImageUpload = (props: imageuploadprops) => {
       errorToast("Failed To Save");
     } finally {
       setloading(false);
-      props.setreloaddata && props.setreloaddata(true);
+      if (props.setreloaddata) props.setreloaddata(true);
     }
-  };
-  const handleCancel = () => {
+  }, [
+    Files,
+    banner,
+    globalindex.bannereditindex,
+    globalindex.producteditindex,
+    handleUpdateCover,
+    openmodal,
+    product,
+    props,
+    setbanner,
+    setopenmodal,
+    setproduct,
+  ]);
+  const handleCancel = useCallback(() => {
     seturl([]);
     seturltemp([]);
     setopenmodal({ ...openmodal, imageupload: false });
-  };
-  const handleReset = async () => {
+  }, [openmodal, setopenmodal]);
+  const handleReset = useCallback(() => {
     seturl((prev) => [...prev, ...Imgurltemp]);
     setfiles((prev) => [...prev, ...Tempfiles]);
     seturltemp([]);
     settempfiles([]);
-  };
+  }, [Imgurltemp, Tempfiles]);
 
-  const handleselectImg = (idx: number) => {
-    if (Imgurl[idx].id) {
-      infoToast("To edit this image please delete and upload again");
-      return;
-    }
-    setselected(idx);
-    setcrop(true);
-  };
+  const handleselectImg = useCallback(
+    (idx: number) => {
+      if (Imgurl[idx].id) {
+        infoToast("To edit this image please delete and upload again");
+        return;
+      }
+      setselected(idx);
+      setcrop(true);
+    },
+    [Imgurl]
+  );
   return (
     <SecondaryModal
       onPageChange={() => handleCancel()}

@@ -339,7 +339,7 @@ const inCartCheck = async (
   });
   return {
     success: req.success,
-    incart: (req.data?.incart ?? false) as boolean,
+    incart: (req?.isInCart ?? false) as boolean,
   };
 };
 

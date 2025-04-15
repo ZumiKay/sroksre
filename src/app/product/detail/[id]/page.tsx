@@ -12,7 +12,8 @@ import { Metadata } from "next";
 import Image from "next/image";
 import { Relatedproducttype } from "@/src/context/GlobalType.type";
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
+export async function generateMetadata(props: Props): Promise<Metadata> {
+  const params = await props.params;
   const id = parseInt(params.id);
 
   const product = await Prisma.products.findUnique({
@@ -47,13 +48,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 interface SearchParamType {
   lt?: string;
 }
-export default async function ProductDetailPage({
-  params,
-  searchParams,
-}: {
-  params: { id: string };
-  searchParams?: { [key: string]: string | undefined };
-}) {
+export default async function ProductDetailPage(
+  props: {
+    params: Promise<{ id: string }>;
+    searchParams?: Promise<{ [key: string]: string | undefined }>;
+  }
+) {
+  const searchParams = await props.searchParams;
+  const params = await props.params;
   const user = await getUser();
   if (!params.id) {
     return notFound();

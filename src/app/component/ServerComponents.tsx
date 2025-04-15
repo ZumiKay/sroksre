@@ -1,11 +1,8 @@
 import Prisma from "@/src/lib/prisma";
 import "../globals.css";
-import {
-  Allstatus,
-  getUser,
-  Productorderdetailtype,
-} from "@/src/context/OrderContext";
+import { Allstatus, Productorderdetailtype } from "@/src/context/OrderContext";
 import { Stocktype } from "@/src/context/GlobalType.type";
+import { getUser } from "../action";
 
 //Helper functions
 export const ProductStockType = {

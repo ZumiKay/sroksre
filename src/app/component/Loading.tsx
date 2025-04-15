@@ -1,10 +1,11 @@
+"use client"
 import { toast } from "react-toastify";
 import "../globals.css";
 import { CSSProperties } from "react";
-import Modal from "./Modals";
 import { CircularProgress } from "@heroui/react";
+import { SecondaryModal } from "./Modals";
 
-export default function LoadingIcon({ style }: { style?: CSSProperties }) {
+export default function LoadingIcon() {
   return (
     <div className="loadingio-spinner-double-ring-op62hjn5ktc w-fit h-fit pl-10">
       <div className="ldio-jhvhak8eufc">
@@ -78,7 +79,7 @@ export const infoToast = (message: string, onClose?: () => void) => {
 
     toast.onChange((action) => {
       if (action.status === "removed") {
-        onClose && onClose();
+        if (onClose) onClose();
       }
     });
   }
@@ -86,12 +87,7 @@ export const infoToast = (message: string, onClose?: () => void) => {
 
 export const ContainerLoading = () => {
   return (
-    <Modal
-      closestate="none"
-      customheight="300px"
-      customwidth="280px"
-      customZIndex={299}
-    >
+    <SecondaryModal open={true} size="sm">
       <div className="loading_contianer w-full h-full bg-white rounded-lg p-5 grid place-content-center relative">
         <div className="loadingio-spinner-double-ring-op62hjn5ktc relative left-[16%] top-[10%]">
           <div className="ldio-jhvhak8eufc">
@@ -101,6 +97,6 @@ export const ContainerLoading = () => {
           </div>
         </div>
       </div>
-    </Modal>
+    </SecondaryModal>
   );
 };

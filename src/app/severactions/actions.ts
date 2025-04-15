@@ -1,8 +1,9 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use server";
 
 import Prisma from "@/src/lib/prisma";
 import { removeSpaceAndToLowerCase } from "@/src/lib/utilities";
-import {SelectType} from "../../context/GlobalType.type"
+import { SelectType } from "../../context/GlobalType.type";
 
 interface returnType {
   success: boolean;

@@ -1,12 +1,10 @@
-import { getUser } from "@/src/context/OrderContext";
 import TopModal from "./TopModal";
-import { redirect } from "next/navigation";
 import { Metadata } from "next";
 import Prisma from "@/src/lib/prisma";
+import { getUser } from "../action";
 
 export async function generateMetadata(): Promise<Metadata> {
   const user = await getUser();
-
   const data = await Prisma.user.findUnique({ where: { id: user?.id } });
   let title = "";
   if (data) {
@@ -23,17 +21,11 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 const DashboardLayout = async ({ children }: { children: React.ReactNode }) => {
-  const session = await getUser();
-
-  if (!session) {
-    return redirect("/account");
-  }
-
   return (
-    <section className="min-h-screen w-full h-full">
+    <main className="min-h-screen w-full h-full">
       <TopModal />
       {children}
-    </section>
+    </main>
   );
 };
 

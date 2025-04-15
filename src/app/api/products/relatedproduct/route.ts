@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { extractQueryParams } from "../../banner/route";
 import { calculateDiscountProductPrice } from "@/src/lib/utilities";
 import Prisma from "@/src/lib/prisma";
-import {ProductState} from "@/src/context/GlobalType.type";
+import { ProductState } from "@/src/context/GlobalType.type";
 
 interface GetRelatedProductParamType {
   targetId?: number;
@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
     }
 
     let maxprod = false;
-    let result = await Prisma.products.findMany({
+    const result = await Prisma.products.findMany({
       where: {
         id: { not: targetId },
       },
@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
         name: true,
         price: true,
         discount: true,
-        parentcateogries: true ,
+        parentcateogries: true,
         childcategories: true,
         promotion_id: true,
         childcategory_id: true,
@@ -48,7 +48,7 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    let product = result.map((i) => {
+    const product = result.map((i) => {
       const discount =
         i.discount &&
         calculateDiscountProductPrice({ price: i.price, discount: i.discount });
@@ -70,8 +70,7 @@ export async function GET(req: NextRequest) {
           parent_id &&
           child_id &&
           promoid &&
-          i.category?.parent.id
-            === parent_id &&
+          i.category?.parent.id === parent_id &&
           i.category?.child?.id === child_id &&
           i.promotion_id === promoid
         ) {
@@ -80,8 +79,7 @@ export async function GET(req: NextRequest) {
           score = 3;
         } else if (child_id && i.category?.child?.id === child_id) {
           score = 2;
-        } else if (i.category.parent.id
-            === parent_id) {
+        } else if (i.category.parent.id === parent_id) {
           score = 1;
         }
         return { ...i, score };

@@ -6,10 +6,8 @@ import {
   IsNumber,
   removeSpaceAndToLowerCase,
 } from "@/src/lib/utilities";
-import { revalidateTag } from "next/cache";
-
-import { Prisma as prisma, Role } from "@prisma/client";
-import {UserState} from "@/src/context/GlobalType.type";
+import { Prisma as prisma } from "@prisma/client";
+import { UserState } from "@/src/context/GlobalType.type";
 
 interface Userparam {
   lt?: number;
@@ -84,14 +82,19 @@ export async function GET(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const { id, type } = await request.json();
+    const { id } = await request.json();
 
-    await Prisma.wishlist.deleteMany({ where: { uid: id } });
-    await Prisma.orderproduct.deleteMany({ where: { user_id: id } });
-    await Prisma.orders.deleteMany({ where: { buyer_id: id } });
-    await Prisma.usersession.deleteMany({ where: { user_id: id } });
-    await Prisma.user.delete({ where: { id: id } });
+    if (!id) {
+      return Response.json({ error: "Invalid Data" }, { status: 400 });
+    }
 
+    await Prisma.$transaction([
+      Prisma.wishlist.deleteMany({ where: { uid: id } }),
+      Prisma.orderproduct.deleteMany({ where: { user_id: id } }),
+      Prisma.orders.deleteMany({ where: { buyer_id: id } }),
+      Prisma.usersession.deleteMany({ where: { user_id: id } }),
+      Prisma.user.delete({ where: { id: id } }),
+    ]);
     return Response.json({ message: "User Deleted" }, { status: 200 });
   } catch (error) {
     console.log("User Delete", error);
@@ -113,7 +116,6 @@ export async function PUT(request: NextRequest) {
       },
       data: { ...updateData },
     });
-    revalidateTag("usermanagement");
     return Response.json({ message: "User Updated" }, { status: 200 });
   } catch (error) {
     console.log("Edit User", error);

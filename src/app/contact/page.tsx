@@ -7,9 +7,9 @@ import { ContactForm } from "./component";
 import { Suspense } from "react";
 import LoadingIcon from "../component/Loading";
 import Image from "next/image";
-import { getUser } from "@/src/context/OrderContext";
 import Prisma from "@/src/lib/prisma";
 import { Metadata } from "next";
+import { getUser } from "../action";
 export function generateMetadata(): Metadata {
   return {
     title: "Contact | SrokSre",

@@ -5,6 +5,7 @@ import {
 } from "@/src/context/OrderContext";
 import { OrderUserType } from "../checkout/action";
 import { VariantColorValueType } from "@/src/context/GlobalType.type";
+import { CredentialEmailType } from "../account/actions";
 
 interface OerderEmailProps {
   order: OrderUserType;
@@ -22,7 +23,7 @@ const AllOrderStatusColor: { [key: string]: string } = {
 
 export function formatDate(date: Date) {
   // Ensure date is valid
-  if (!(date instanceof Date && !isNaN(date as any))) {
+  if (!(date instanceof Date && !isNaN(date as never))) {
     throw new Error("Invalid Date object");
   }
 
@@ -61,7 +62,7 @@ const ShowCard = ({ orderProduct }: { orderProduct: Productordertype }) => {
         cover: orderProduct.product?.covers[0].url as string,
         name: orderProduct.product?.name as string,
         quantity: orderProduct.quantity,
-        details: orderProduct.selectedvariant as any,
+        details: orderProduct.selectedvariant as never,
         price: price,
         total: Totalprice,
       }}
@@ -205,7 +206,7 @@ export function OrderReceiptTemplate({ order, isAdmin }: OerderEmailProps) {
           </tr>
 
           {order.Orderproduct.map((prob) => {
-            return <ShowCard orderProduct={prob} />;
+            return <ShowCard key={prob.id} orderProduct={prob} />;
           })}
 
           <tr style={{ height: "70px", width: "100%" }}>
@@ -460,12 +461,7 @@ export function CredentialEmail({
   infotype,
   infovalue,
   warn,
-}: {
-  message: string;
-  infotype: "code" | "link";
-  infovalue: string;
-  warn: string;
-}) {
+}: CredentialEmailType) {
   const styles = {
     container: {
       width: "100%",
