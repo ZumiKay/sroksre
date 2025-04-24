@@ -22,6 +22,7 @@ import {
 import {
   ApiRequest,
   Delayloading,
+  useCheckSession,
   useClickOutside,
   useScreenSize,
 } from "@/src/context/CustomHook";
@@ -54,7 +55,6 @@ import {
   DropdownTrigger,
 } from "@heroui/react";
 import Homeeditmenu from "./HomePage/EditMenu";
-import CreateHomeItemModal from "./HomeItem/CreateModal";
 
 interface accountmenuprops {
   setProfile: (value: SetStateAction<boolean>) => void;
@@ -99,10 +99,11 @@ const AccountMenuItems = [
   },
 ];
 
-export default function AccountMenu({ session, setProfile }: accountmenuprops) {
+export default function AccountMenu({ setProfile }: accountmenuprops) {
   const pathname = usePathname();
   const router = useRouter();
   const { openmodal, setopenmodal } = useGlobalContext();
+  const session = useCheckSession();
   const { isMobile } = useScreenSize();
   const ref = useClickOutside(() => setProfile(false));
 
@@ -124,9 +125,9 @@ export default function AccountMenu({ session, setProfile }: accountmenuprops) {
     return AccountMenuItems.filter((item) =>
       pathname !== "/" ? item.name !== AccountMenuItems[4].name : true
     ).filter((item) =>
-      session?.role === "ADMIN" ? item.isAdmin : item.isUser
+      session.user?.role === "ADMIN" ? item.isAdmin : item.isUser
     );
-  }, [pathname, session?.role]);
+  }, [pathname, session.user]);
 
   const handleSignOut = useCallback(async () => {
     setLoading(true);
@@ -245,6 +246,11 @@ export default function AccountMenu({ session, setProfile }: accountmenuprops) {
     [isMobile, router, setProfile, setopenmodal]
   );
 
+  const handleToggleHomeItemEdit = useCallback(() => {
+    if (isEdit) handleDelete();
+    else setopenmodal({ mangageHomeItem: true });
+  }, [handleDelete, isEdit, setopenmodal]);
+
   const renderHomeEditor = () => (
     <div className="w-[90%] h-full flex flex-col items-center gap-y-10">
       <button
@@ -274,11 +280,7 @@ export default function AccountMenu({ session, setProfile }: accountmenuprops) {
           disable={isEdit && selected.length === 0}
           radius="10px"
           border="1px solid lightgray"
-          onClick={
-            isEdit
-              ? handleDelete
-              : () => setopenmodal((prev) => ({ ...prev, homecontainer: true }))
-          }
+          onClick={() => handleToggleHomeItemEdit()}
           Icon={isEdit ? <Bin_Icon /> : <AddIcon />}
         />
 
@@ -344,7 +346,6 @@ export default function AccountMenu({ session, setProfile }: accountmenuprops) {
       onMouseEnter={() => setProfile(true)}
       className="fixed right-0 top-0 w-[430px] max-small_phone:w-full h-full z-[99] bg-white shadow-lg flex flex-col items-center"
     >
-      {openmodal.mangageHomeItem && <CreateHomeItemModal />}
       {openmodal?.editHome ? renderHomeEditor() : renderMainMenu()}
 
       {isMobile && (

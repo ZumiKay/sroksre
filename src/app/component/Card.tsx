@@ -10,7 +10,7 @@ import { Orderpricetype, totalpricetype } from "@/src/context/OrderContext";
 import { ApiRequest, useScreenSize } from "@/src/context/CustomHook";
 import { SelectionCustom } from "./Pagination_Component";
 import {
-  productcoverstype,
+  ImageDatatype,
   VariantColorValueType,
 } from "@/src/context/GlobalType.type";
 import { useGlobalContext } from "@/src/context/GlobalContext";
@@ -19,7 +19,7 @@ import { Chip, Skeleton } from "@heroui/react";
 interface cardprops {
   name: string;
   price: string;
-  img: productcoverstype[];
+  img: ImageDatatype[];
   isAdmin?: boolean;
   button?: boolean;
   index?: number;

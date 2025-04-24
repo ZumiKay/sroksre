@@ -4,7 +4,11 @@ import { compare, genSaltSync, hashSync } from "bcryptjs";
 import Prisma from "./prisma";
 import { userdata } from "../app/account/actions";
 
-import { checkpassword, getOneWeekFromToday } from "./utilities";
+import {
+  checkpassword,
+  generateRandomNumber,
+  getOneWeekFromToday,
+} from "./utilities";
 
 export enum Role {
   USER = "USER",
@@ -123,54 +127,96 @@ export const logout = async (sessionid: string) => {
 
 interface ReturnType {
   success: boolean;
+  vfycode?: string;
   message?: string;
 }
 export const registerUser = async (data: RegisterUser): Promise<ReturnType> => {
   try {
+    // Validate user input
     validateUserInput.parse(data);
 
-    const isExist = await Prisma.user.findFirst({
+    // Check if user already exists
+    const existingUser = await Prisma.user.findFirst({
       where: { email: data.email },
       select: { email: true },
     });
 
-    if (isExist) {
-      return { success: false, message: "User exist" };
+    if (existingUser) {
+      return { success: false, message: "User already exists" };
     }
 
-    const isValid = checkpassword(data.password);
-    if (isValid.isValid) {
-      const password = hashedpassword(data.password);
-      const datatosave = {
-        email: data.email,
-        firstname: data.firstname,
-        lastname: data.lastname ?? null,
-        password: password,
-      };
-      //verify email
+    // Validate password
+    const passwordValidation = checkpassword(data.password);
+    if (!passwordValidation.isValid) {
+      return { success: false, message: passwordValidation.error };
+    }
 
-      if (!data.id) {
-        await Prisma.user.create({ data: { ...datatosave } });
-      } else {
-        await Prisma.user.update({
-          where: { id: data.id },
-          data: { ...datatosave, vfy: null },
-        });
-      }
+    // Hash password and prepare user data
+    const hashedPassword = hashedpassword(data.password);
+    const userData = {
+      email: data.email,
+      firstname: data.firstname,
+      lastname: data.lastname ?? null,
+      password: hashedPassword,
+    };
+
+    // Handle new user registration vs. updating existing user
+    if (!data.id) {
+      // Generate unique verification code
+      const vfyCode = await generateUniqueVerificationCode();
+
+      // Create new user with verification code
+      await Prisma.user.create({
+        data: {
+          ...userData,
+          vfy: vfyCode,
+          isVerified: false,
+        },
+      });
+
+      return { success: true, vfycode: vfyCode };
+    } else {
+      // Update existing user
+      await Prisma.user.update({
+        where: { id: data.id },
+        data: {
+          ...userData,
+          vfy: null,
+          isVerified: true,
+        },
+      });
 
       return { success: true };
-    } else {
-      return { success: false, message: isValid.error };
     }
   } catch (error) {
-    const err = error as ZodError;
-    console.log("Register", error);
-    if (err.issues) {
-      return { success: false, message: err.issues[0].message };
+    // Improved error handling
+    if (error instanceof ZodError) {
+      return {
+        success: false,
+        message: error.issues[0]?.message || "Validation error",
+      };
     }
-    return { success: false };
+
+    console.error("Register error:", error);
+    return { success: false, message: "Registration failed" };
   }
 };
+
+// Helper function to generate a unique verification code
+async function generateUniqueVerificationCode(): Promise<string> {
+  let vfyCode: string;
+  let isUnique = false;
+
+  do {
+    vfyCode = generateRandomNumber(8);
+    const existingUser = await Prisma.user.findFirst({
+      where: { vfy: vfyCode },
+    });
+    isUnique = !existingUser;
+  } while (!isUnique);
+
+  return vfyCode;
+}
 
 export const handleCheckandRegisterUser = async ({
   data,

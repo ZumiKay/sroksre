@@ -1,4 +1,4 @@
-import { CSSProperties } from "react";
+import { CSSProperties, SVGProps } from "react";
 
 export const LogoVector = () => {
   return (
@@ -298,11 +298,16 @@ export const Delete_Icon = () => {
   );
 };
 
-export const CircleCheckMark = () => {
+export const CircleCheckMark = ({
+  props,
+}: {
+  props?: SVGProps<SVGSVGElement>;
+}) => {
   return (
     <svg
-      width="25"
-      height="25"
+      width={"25"}
+      height={"25"}
+      {...props}
       viewBox="0 0 150 150"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"

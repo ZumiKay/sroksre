@@ -81,12 +81,10 @@ const isValidParams = (params: InventoryParamType): boolean => {
   );
 };
 
-export default function Inventory(
-  props: {
-    searchParams?: Promise<{ [key: string]: string | undefined }>;
-  }
-) {
-  const searchParams = use(props.searchParams);
+export default function Inventory(props: {
+  searchParams?: Promise<{ [key: string]: string | undefined }>;
+}) {
+  const searchParams = use(props.searchParams as never);
   const {
     openmodal,
     setopenmodal,
@@ -154,9 +152,8 @@ export default function Inventory(
 
     setfiltervalue({
       categories: storedCategories ? JSON.parse(storedCategories) : undefined,
-      search: search,
+      search: search ?? "",
       expiredate: expiredate && isDate(expiredate) ? expiredate : undefined,
-      promotiononly: promotiononly ? Boolean(promotiononly) : undefined,
       parentcate: parentcate && IsNumber(parentcate) ? parentcate : undefined,
       childcate: childcate && IsNumber(childcate) ? childcate : undefined,
       // Array handling optimized
@@ -481,6 +478,7 @@ export default function Inventory(
                       option={{
                         label: "Page",
                         size: "lg",
+                        className: "w-[200px]",
                         selectedValue: [ty],
                         onValueChange: (val) =>
                           handleFilter(val.target.value as InventoryPage),

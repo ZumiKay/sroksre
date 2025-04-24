@@ -22,7 +22,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 const DashboardLayout = async ({ children }: { children: React.ReactNode }) => {
   return (
-    <main className="min-h-screen w-full h-full">
+    <main className="min-h-screen w-full h-full flex flex-col items-center">
       <TopModal />
       {children}
     </main>

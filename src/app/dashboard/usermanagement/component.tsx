@@ -46,6 +46,7 @@ export const PasswordSection = () => {
         value={user?.password}
         onChange={handleChange}
         label="Password"
+        labelPlacement="outside"
         size="md"
         isRequired
       />
@@ -115,6 +116,7 @@ export const PasswordSection = () => {
         value={user?.confirmpassword}
         onChange={handleChange}
         label="Confirm Password"
+        labelPlacement="outside"
         size="md"
         isRequired
       />

@@ -53,16 +53,20 @@ const WishlistTab = memo(() => {
   }, [deleteId, editdata, setalldata]);
 
   return (
-    <div className="wishlisttab w-full h-fit">
-      <h1 className="wishlist"> Wishlist </h1>
-      <Divider />
-      <Button
-        onPress={handleEdit}
-        style={editdata ? { backgroundColor: "lightcoral" } : {}}
-        className="font-bold bg_default text-white w-[200px] h-[40px]"
-      >
-        {editdata ? `Delete ${deleteId.length} Item` : "Edit"}
-      </Button>
+    <div className="wishlisttab w-full h-full flex flex-col items-start gap-y-10">
+      <div className="w-full h-fit">
+        <h1 className="wishlist"> Wishlist </h1>
+        <Divider />
+      </div>
+      {allData?.product && allData.product.length > 0 && (
+        <Button
+          onPress={handleEdit}
+          style={editdata ? { backgroundColor: "lightcoral" } : {}}
+          className="font-bold bg_default text-white w-[200px] h-[40px]"
+        >
+          {editdata ? `Delete ${deleteId.length} Item` : "Edit"}
+        </Button>
+      )}
       <div className="productlist w-full h-fit flex flex-row gap-5 flex-wrap">
         {loading &&
           Array.from({ length: 3 }).map((_, idx) => (

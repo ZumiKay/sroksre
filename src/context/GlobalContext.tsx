@@ -57,7 +57,7 @@ export const BannerInitialize: BannerState = {
   name: "",
   type: "normal",
   size: "normal",
-  image: {
+  Image: {
     name: "",
     type: "",
     url: "",

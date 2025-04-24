@@ -1,6 +1,5 @@
 "use client";
 import {
-  BannerInitialize,
   Productinitailizestate,
   PromotionInitialize,
   useGlobalContext,
@@ -9,7 +8,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ApiRequest } from "@/src/context/CustomHook";
 import { errorToast } from "@/src/app/component/Loading";
 import PrimaryButton from "@/src/app/component/Button";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { SecondaryModal } from "../Modals";
 import { Button } from "@heroui/react";
 
@@ -22,110 +21,125 @@ export const ConfirmModal = () => {
     product,
     setproduct,
     banner,
-    setbanner,
     setpromotion,
     setinventoryfilter,
     globalindex,
     setglobalindex,
   } = useGlobalContext();
+
   const router = useRouter();
   const searchParam = useSearchParams();
+
+  // Memoize common modal closing logic
+  const resetConfirmModal = useCallback(() => {
+    return {
+      open: false,
+      confirm: false,
+      closecon: "",
+      index: -1,
+      type: undefined,
+    };
+  }, []);
+
+  // Extract URL based on type to avoid repeated logic
+  const getApiUrl = useMemo(() => {
+    const { type } = openmodal.confirmmodal || {};
+    if (type === "product") return "/api/products/crud";
+    if (type === "banner") return "/api/banner";
+    if (type === "promotion") return "/api/promotion";
+    if (type === "user") return "/api/users";
+    return "/api/users/info";
+  }, [openmodal.confirmmodal]);
+
+  // Handle creation cancellation
   const handleConfirm = useCallback(
     async (confirm: boolean) => {
-      if (confirm) {
-        const URL = "/api/image";
-        if (
-          openmodal.confirmmodal?.closecon === "createProduct" &&
-          globalindex.producteditindex === -1 &&
-          product.covers.length > 0
-        ) {
-          const images = product.covers.map((i) => i.name);
-          const deleteimage = await ApiRequest({
-            url: URL,
-            setloading: setisLoading,
-            method: "DELETE",
-            data: { names: images },
-          });
-          if (!deleteimage.success) {
-            errorToast("Error Occured Reload Required");
-            return;
-          }
-          setproduct(Productinitailizestate);
-        } else if (
-          openmodal.confirmmodal?.closecon === "createBanner" &&
-          globalindex.bannereditindex === -1 &&
-          banner.image.name.length > 0
-        ) {
-          const image = banner.image.name;
-          const deleteImage = await ApiRequest({
-            url: URL,
-            setloading: setisLoading,
-            method: "DELETE",
-            data: { name: image },
-          });
-          if (!deleteImage.success) {
-            errorToast("Error Occured Reload Required");
-            return;
-          }
-          setbanner(BannerInitialize);
-        }
-        setproduct(Productinitailizestate);
-        setglobalindex({
-          ...globalindex,
-          producteditindex: -1,
-          bannereditindex: -1,
+      if (!confirm) {
+        setopenmodal((prev) => ({
+          ...prev,
+          confirmmodal: resetConfirmModal(),
+        }));
+        return;
+      }
+
+      const closeconKey = openmodal.confirmmodal?.closecon as string;
+      const isNewProduct =
+        closeconKey === "createProduct" && globalindex.producteditindex === -1;
+      const isNewBanner =
+        closeconKey === "createBanner" && globalindex.bannereditindex === -1;
+      const URL = "/api/image";
+
+      // Handle image deletion if needed
+      if (isNewProduct && product.covers.length > 0) {
+        const images = product.covers.map((i) => i.name);
+        const deleteimage = await ApiRequest({
+          url: URL,
+          setloading: setisLoading,
+          method: "DELETE",
+          data: { names: images },
         });
 
-        setopenmodal({
-          ...openmodal,
-          [openmodal?.confirmmodal?.closecon as string]: false,
-          confirmmodal: {
-            open: false,
-            confirm: true,
-            closecon: "",
-          },
+        if (!deleteimage.success) {
+          errorToast("Error Occured Reload Required");
+          return;
+        }
+      } else if (isNewBanner && banner.Image.name.length > 0) {
+        const deleteImage = await ApiRequest({
+          url: URL,
+          setloading: setisLoading,
+          method: "DELETE",
+          data: { name: banner.Image.name },
         });
-      } else {
-        setopenmodal({
-          ...openmodal,
-          confirmmodal: {
-            ...openmodal.confirmmodal,
-            open: false,
-            confirm: false,
-            closecon: "",
-          },
-        });
+
+        if (!deleteImage.success) {
+          errorToast("Error Occured Reload Required");
+          return;
+        }
       }
+
+      // Reset states
+      setproduct(Productinitailizestate);
+      setglobalindex((prev) => ({
+        ...prev,
+        producteditindex: -1,
+        bannereditindex: -1,
+      }));
+
+      // Close modal
+      setopenmodal((prev) => ({
+        ...prev,
+        [closeconKey]: false,
+        confirmmodal: resetConfirmModal(),
+      }));
     },
     [
-      banner.image.name,
-      globalindex,
-      openmodal,
+      openmodal.confirmmodal,
+      globalindex.producteditindex,
+      globalindex.bannereditindex,
       product.covers,
-      setbanner,
-      setglobalindex,
+      banner.Image,
       setisLoading,
-      setopenmodal,
       setproduct,
+      setglobalindex,
+      setopenmodal,
+      resetConfirmModal,
     ]
   );
 
-  const handleConfirmDelete = async (confirm: boolean) => {
-    const { type, index } = openmodal.confirmmodal ?? {};
-    const param = new URLSearchParams(searchParam);
+  // Handle deletion
+  const handleConfirmDelete = useCallback(
+    async (confirm: boolean) => {
+      if (!confirm) {
+        setopenmodal((prev) => ({
+          ...prev,
+          confirmmodal: resetConfirmModal(),
+        }));
+        return;
+      }
 
-    const URL =
-      type === "product"
-        ? "/api/products/crud"
-        : type === "banner"
-        ? "/api/banner"
-        : type === "promotion"
-        ? "/api/promotion"
-        : type === "user"
-        ? "/api/users"
-        : "/api/users/info";
+      const { type, index, onAsyncDelete, onDelete } =
+        openmodal.confirmmodal || {};
 
-    if (confirm) {
       if (type === "promotioncancel") {
         setpromotion(PromotionInitialize);
         setinventoryfilter("promotion");
@@ -133,7 +147,7 @@ export const ConfirmModal = () => {
         setopenmodal((prev) => ({ ...prev, createPromotion: false }));
       } else {
         const deleteRequest = await ApiRequest({
-          url: URL,
+          url: getApiUrl,
           setloading: setisLoading,
           method: "DELETE",
           data: type !== "userinfo" ? { id: index } : {},
@@ -147,61 +161,72 @@ export const ConfirmModal = () => {
         if (type === "user") {
           setglobalindex((prev) => ({ ...prev, useredit: -1 }));
           setopenmodal((prev) => ({ ...prev, createUser: false }));
-        }
 
-        if (type === "user") {
+          const param = new URLSearchParams(searchParam);
           param.set("p", "1");
           router.push(`?${param}`, { scroll: false });
         }
-        if (openmodal.confirmmodal?.onAsyncDelete)
-          await openmodal.confirmmodal.onAsyncDelete();
-        if (openmodal.confirmmodal?.onDelete) openmodal.confirmmodal.onDelete();
-      }
-    }
 
-    // Reset confirm modal state
-    setopenmodal((prev) => ({
-      ...prev,
-      [type === "promotion" ? "createPromotion" : ""]: false,
-      confirmmodal: {
-        ...prev.confirmmodal,
-        open: false,
-        confirm: false,
-        closecon: "",
-        index: -1,
-        type: undefined,
-      },
-    }));
-  };
+        if (onAsyncDelete) await onAsyncDelete();
+        if (onDelete) onDelete();
+      }
+
+      // Reset confirm modal state
+      setopenmodal((prev) => ({
+        ...prev,
+        [type === "promotion" ? "createPromotion" : ""]: false,
+        confirmmodal: resetConfirmModal(),
+      }));
+    },
+    [
+      openmodal.confirmmodal,
+      setpromotion,
+      setinventoryfilter,
+      setglobalindex,
+      setopenmodal,
+      setisLoading,
+      getApiUrl,
+      router,
+      searchParam,
+      resetConfirmModal,
+    ]
+  );
+
+  // Memoize the open state to prevent unnecessary re-renders
+  const isModalOpen = useMemo(
+    () => openmodal.confirmmodal?.open ?? false,
+    [openmodal.confirmmodal?.open]
+  );
+
+  // Determine the handler based on modal type
+  const handleAction = useCallback(
+    (isConfirmed: boolean) => {
+      return openmodal.confirmmodal?.type
+        ? handleConfirmDelete(isConfirmed)
+        : handleConfirm(isConfirmed);
+    },
+    [openmodal.confirmmodal?.type, handleConfirmDelete, handleConfirm]
+  );
 
   return (
-    <SecondaryModal open={openmodal.confirmmodal?.open ?? false} size="sm">
-      <div className="confirm_container flex flex-col justify-center items-center gap-y-5 bg-white w-[250px] h-[280px] rounded-md">
+    <SecondaryModal open={isModalOpen} size="md">
+      <div className="confirm_container flex flex-col justify-center items-center gap-y-5 bg-white rounded-md h-[200px]">
         <h3 className="question w-full text-center text-lg font-bold text-black">
-          {" "}
           {openmodal.confirmmodal?.Warn ?? "Are you sure ?"}
         </h3>
-        <div className="btn_container w-4/5 h-fit flex flex-col justify-center items-center gap-y-3">
+        <div className="btn_container w-full h-fit flex flex-col justify-center items-center gap-y-3">
           <PrimaryButton
             type="button"
             text="Yes"
             radius="10px"
             status={isLoading.DELETE ? "loading" : "authenticated"}
-            onClick={() =>
-              openmodal.confirmmodal?.type
-                ? handleConfirmDelete(true)
-                : handleConfirm(true)
-            }
+            onClick={() => handleAction(true)}
             color="#35C191"
           />
           <PrimaryButton
             type="button"
             text="No"
-            onClick={() =>
-              openmodal.confirmmodal?.type
-                ? handleConfirmDelete(false)
-                : handleConfirm(false)
-            }
+            onClick={() => handleAction(false)}
             radius="10px"
             disable={isLoading.DELETE}
             color="#F08080"

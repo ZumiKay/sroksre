@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
     return Response.json({ message: "Type is required" }, { status: 400 });
 
   try {
-    const result: SearchAndSelectReturnType | { [x: string]: any } = {};
+    const result: SearchAndSelectReturnType | { [x: string]: unknown } = {};
 
     if (ty === "parent") {
       result.items = (
@@ -84,6 +84,8 @@ export async function GET(request: NextRequest) {
         { status: 200 }
       );
     }
+
+    return Response.json({ data: [] }, { status: 200 });
   } catch (error) {
     console.log("Fetch Select Categories", error);
     return Response.json({ message: "Error occured" }, { status: 500 });

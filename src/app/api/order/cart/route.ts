@@ -16,6 +16,7 @@ import { JsonObject } from "@prisma/client/runtime/library";
 import {
   ProductState,
   VariantColorValueType,
+  Varianttype,
 } from "@/src/context/GlobalType.type";
 import { getUser } from "@/src/app/action";
 
@@ -104,41 +105,29 @@ export async function GET(req: NextRequest) {
     const url = req.nextUrl.toString();
     const { count } = extractQueryParams(url);
     const user = await getUser();
+
     if (!user) {
       return Response.json({}, { status: 200 });
     }
 
-    if (count) {
-      if (count !== 1) {
-        return Response.json({}, { status: 404 });
-      }
-      const countCartIems = await Prisma.orderproduct.count({
-        where: {
-          AND: [
-            {
-              user_id: user.id,
-            },
-            {
-              status: Allstatus.incart,
-            },
-          ],
-        },
-      });
+    // Common where clause to avoid repetition
+    const whereClause = {
+      AND: [{ user_id: user.id }, { status: Allstatus.incart }],
+    };
 
-      return Response.json({ data: countCartIems }, { status: 200 });
+    // Just return count if that's all that's needed
+    if (count === 1) {
+      const countCartItems = await Prisma.orderproduct.count({
+        where: whereClause,
+      });
+      return Response.json({ data: countCartItems }, { status: 200 });
+    } else if (count) {
+      return Response.json({}, { status: 200 });
     }
 
+    // Get full cart data with optimized query
     const orderproduct = await Prisma.orderproduct.findMany({
-      where: {
-        AND: [
-          {
-            user_id: user.id,
-          },
-          {
-            status: Allstatus.incart,
-          },
-        ],
-      },
+      where: whereClause,
       orderBy: { id: "asc" },
       select: {
         id: true,
@@ -153,9 +142,7 @@ export async function GET(req: NextRequest) {
             stocktype: true,
             stock: true,
             Stock: {
-              orderBy: {
-                id: "asc",
-              },
+              orderBy: { id: "asc" },
               select: {
                 id: true,
                 Stockvalue: {
@@ -167,55 +154,30 @@ export async function GET(req: NextRequest) {
               },
             },
             Variant: {
-              orderBy: {
-                id: "asc",
-              },
+              orderBy: { id: "asc" },
             },
           },
         },
       },
     });
 
-    const cartItems: Productordertype[] = orderproduct.map((item) => {
-      const discount = calculateDiscountProductPrice({
-        price: item.product.price,
-        discount: item.product.discount ? item.product.discount : undefined,
-      });
-      const detail = item.details as Productorderdetailtype[];
-      const selectedvariant = item.product.Variant?.filter(
-        (variant, idx) => variant.id === detail[idx].variant_id
-      ).map((selected, idx) => {
-        const val = selected.option_value as (string | VariantColorValueType)[];
-        return val.filter((j) =>
-          typeof j === "string"
-            ? detail[idx].value === j
-            : detail[idx].value === j.val
-        );
-      });
-
-      const product = {
-        ...item.product,
-        variants: item.product.Variant,
-        varaintstock: item.product.Stock,
-        Variant: undefined,
-        Stock: undefined,
-      } as unknown as ProductState;
-
-      const maxqty = getmaxqtybaseStockType(
-        product,
-        detail.map((i) => i.value)
-      );
-      return {
-        id: item.id,
-        price: discount,
-        quantity: item.quantity,
-        maxqty,
-        product,
-        selectedvariant: selectedvariant.flat(),
-      };
-    });
-
-    const totalPrice = calculateCartTotalPrice(cartItems);
+    const cartItems = processCartItems(
+      orderproduct.map((i) => ({
+        ...i,
+        product: {
+          ...i.product,
+          price: calculateDiscountProductPrice({
+            price: i.product.price,
+            discount: i.product.discount ?? undefined,
+          }),
+          variants: i.product.Variant,
+          varaintstock: i.product.Stock,
+          Variant: undefined,
+          Stock: undefined,
+        },
+      })) as unknown as Productordertype[]
+    );
+    const totalPrice = calculateCartTotalPrice(cartItems as never);
 
     return Response.json(
       { data: cartItems, total: totalPrice },
@@ -223,8 +185,60 @@ export async function GET(req: NextRequest) {
     );
   } catch (error) {
     console.log("Get Cart", error);
-    return Response.json({ message: "Error Occured" }, { status: 500 });
+    return Response.json({ message: "Error Occurred" }, { status: 500 });
   }
+}
+
+// Separate function to process cart items for better readability
+
+function processCartItems(orderproduct: Productordertype[]) {
+  return orderproduct.map((item) => {
+    const discount =
+      item.product?.price &&
+      item.product.discount &&
+      calculateDiscountProductPrice({
+        price: item?.product?.price,
+        discount: item.product.discount as unknown as number,
+      });
+
+    const detail = item.details as Productorderdetailtype[];
+    const selectedvariant =
+      item.product?.variants &&
+      processSelectedVariants(item.product?.variants, detail);
+
+    const maxqty = getmaxqtybaseStockType(
+      item.product as ProductState,
+      detail.map((i) => i.value)
+    );
+
+    return {
+      id: item.id,
+      price: discount,
+      quantity: item.quantity,
+      maxqty,
+      product: item.product,
+      selectedvariant: selectedvariant && selectedvariant.flat(),
+    };
+  });
+}
+
+// Further breakdown complex operations
+function processSelectedVariants(
+  variants: Varianttype[],
+  details: Productorderdetailtype[]
+) {
+  if (!variants) return [];
+
+  return variants
+    .filter((variant, idx) => variant.id === details[idx]?.variant_id)
+    .map((selected, idx) => {
+      const val = selected.option_value as (string | VariantColorValueType)[];
+      return val.filter((j) =>
+        typeof j === "string"
+          ? details[idx].value === j
+          : details[idx].value === j.val
+      );
+    });
 }
 
 export async function DELETE(req: NextRequest) {

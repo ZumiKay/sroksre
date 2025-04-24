@@ -45,7 +45,7 @@ export const ApiRequest = async ({
     }
     if (setloading) setloading((prev) => ({ ...prev, [method]: false }));
 
-    if (method === "GET" || method === "POST") {
+    if (method === "GET" || method === "POST" || method === "PUT") {
       return {
         success: true,
         data: responseJson.data,
@@ -139,6 +139,7 @@ export const Delayloading = async (
 export const useScreenSize = () => {
   const [screenSize, setScreenSize] = useState({
     isMobile: false,
+    isSmallTablet: false,
     isTablet: false,
     isDesktop: false,
     isSmallDesktop: false,
@@ -146,6 +147,7 @@ export const useScreenSize = () => {
 
   useEffect(() => {
     setScreenSize({
+      isSmallTablet: window.innerWidth > 432 && window.innerWidth < 650,
       isMobile: window && window?.innerWidth <= 432,
       isTablet: window && window?.innerWidth >= 432 && window?.innerWidth < 768,
       isDesktop: window && window?.innerWidth >= 768,
@@ -156,6 +158,7 @@ export const useScreenSize = () => {
     const handleResize = () => {
       setScreenSize({
         isMobile: window.innerWidth <= 432,
+        isSmallTablet: window.innerWidth > 432 && window.innerWidth < 650,
         isTablet: window.innerWidth >= 432 && window.innerWidth < 768,
         isSmallDesktop:
           window && window.innerWidth >= 768 && window.innerWidth < 850,

@@ -356,6 +356,18 @@ export const searchParamsToObject = (
   return result;
 };
 
+export function getBaseUrl() {
+  // For server-side rendering
+  if (typeof window === "undefined") {
+    return process.env.NEXT_PUBLIC_BASE_URL || process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : "http://localhost:3000";
+  }
+
+  // For client-side rendering
+  return window.location.origin;
+}
+
 //Email Template
 //
 //

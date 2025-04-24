@@ -12,8 +12,7 @@ import {
   Select,
   SelectItem,
 } from "@heroui/react";
-import { Key } from "react";
-import { filtervaluetype } from "../../product/action";
+import { Key, useCallback } from "react";
 import { formatDate } from "../EmailTemplate";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -118,22 +117,29 @@ const FilteredValueContainer = () => {
   const { filtervalue, setfiltervalue } = useGlobalContext();
   const searchParams = useSearchParams();
   const Router = useRouter();
+  const handleModifyFilter = useCallback(
+    (key: keyof FilterValueType) => {
+      const params = new URLSearchParams(searchParams);
 
-  if (!filtervalue) return null;
+      const toUpdateFilterValue = { ...(filtervalue ?? {}) };
+      if (params.has(key)) params.delete(key);
 
-  const handleModifyFilter = (key: keyof FilterValueType) => {
-    const params = new URLSearchParams(searchParams);
-    setfiltervalue((prev) => ({ ...prev, [key]: undefined }));
-    if (params.has(key)) params.delete(key);
+      if (key === "categories" && window.localStorage.getItem(key)) {
+        window.localStorage.removeItem(key);
+        params.delete("parentcate");
+        params.delete("childcate");
+        toUpdateFilterValue.categories = undefined;
+      }
 
-    if (key === "categories" && window.localStorage.getItem(key)) {
-      window.localStorage.removeItem(key);
-      params.delete("parentcate");
-      params.delete("childcate");
-    }
+      if (key === "name") {
+        toUpdateFilterValue.search = "";
+      }
 
-    Router.push(`?${params}`);
-  };
+      setfiltervalue(toUpdateFilterValue);
+      Router.push(`?${params}`);
+    },
+    [Router, filtervalue, searchParams, setfiltervalue]
+  );
 
   const displayKeys = [
     "status",
@@ -145,35 +151,40 @@ const FilteredValueContainer = () => {
 
   return (
     <div className="filteredvalue w-fit h-full flex flex-row gap-x-3 items-center">
-      {Object.entries(filtervalue)
-        .filter(
-          ([key, value]) => displayKeys.includes(key) && value !== undefined
-        )
-        .map(([key, val]) => {
-          if (key === "promotiononly" && !val) {
-            return null;
-          }
+      {filtervalue &&
+        Object.entries(filtervalue)
+          .filter(
+            ([key, value]) =>
+              displayKeys.includes(key) &&
+              value !== undefined &&
+              !(typeof value === "string" && value.length === 0) &&
+              !(key === "search" && (!value || value === ""))
+          )
+          .map(([key, val]) => {
+            if (key === "promotiononly" && !val) {
+              return null;
+            }
 
-          return (
-            <Chip
-              key={key}
-              onClose={() => handleModifyFilter(key as keyof FilterValueType)}
-              className={key !== "promotiononly" ? "w-fit h-full" : ""}
-              variant={key !== "promotiononly" ? "bordered" : "solid"}
-              color={key === "promotiononly" ? "success" : "primary"}
-            >
-              {key === "categories" && val
-                ? `${val.parentcate.label}${
-                    val?.childcate ? ` / ${val.childcate?.label}` : ""
-                  }`
-                : key === "promotiononly"
-                ? "Promotion Only"
-                : key === "expiredate"
-                ? formatDate(new Date(val))
-                : val}
-            </Chip>
-          );
-        })}
+            return (
+              <Chip
+                key={key}
+                onClose={() => handleModifyFilter(key as keyof FilterValueType)}
+                className={key !== "promotiononly" ? "w-fit h-full" : ""}
+                variant={key !== "promotiononly" ? "bordered" : "solid"}
+                color={key === "promotiononly" ? "success" : "primary"}
+              >
+                {key === "categories" && val
+                  ? `${val.parentcate.label}${
+                      val?.childcate ? ` / ${val.childcate?.label}` : ""
+                    }`
+                  : key === "promotiononly"
+                  ? "Promotion Only"
+                  : key === "expiredate"
+                  ? formatDate(new Date(val))
+                  : val}
+              </Chip>
+            );
+          })}
     </div>
   );
 };

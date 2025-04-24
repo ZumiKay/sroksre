@@ -14,7 +14,6 @@ import CookieConsent from "react-cookie-consent";
 import Link from "next/link";
 import { AnimatePresence } from "framer-motion";
 import AccountMenu, { CartMenu } from "../SideMenu";
-import Homecontainermodal from "../HomePage/Modals";
 import SearchContainer from "../Modals/Search";
 import DefaultImage from "@/public/Image/default.png";
 import Logo from "@/public/Image/Logo.svg";
@@ -25,12 +24,13 @@ import Bell from "@/public/Image/blackbell.svg";
 import ActiveBell from "@/public/Image/whitebell.svg";
 import Profile from "@/public/Image/profile.svg";
 import { CategoriesContainer, NotificationMenu } from "./Component";
+import CreateHomeItemModal from "../HomeItem/CreateModal";
 
 export default function Navbar() {
   const { cart, setcart, carttotal, setcarttotal, setopenmodal, openmodal } =
     useGlobalContext();
   const { user } = useCheckSession();
-  const { isTablet, isMobile } = useScreenSize();
+  const { isMobile } = useScreenSize();
   const socket = useSocket();
   const router = useRouter();
 
@@ -57,8 +57,8 @@ export default function Navbar() {
       }
     };
 
-    getCartTotal();
-  }, [setcarttotal]);
+    if (user?.role === "USER") getCartTotal();
+  }, [setcarttotal, user]);
 
   // Admin notification socket listener
   useEffect(() => {
@@ -109,6 +109,7 @@ export default function Navbar() {
 
   return (
     <>
+      {openmodal.mangageHomeItem && <CreateHomeItemModal />}
       <nav className="navbar__container sticky top-0 z-50 w-full h-[60px] bg-[#F3F3F3] flex flex-row justify-between item-center">
         {categories && <CategoriesContainer setopen={setcategories} />}
 
@@ -164,7 +165,7 @@ export default function Navbar() {
             <div className="w-[30px] h-[30px] max-smallest_tablet:w-[25px] max-smallest_tablet:h-[25px] max-small_phone:w-[25px] max-small_phone:h-[25px] relative">
               <Image
                 ref={navref}
-                src={opennotification ? ActiveBell : Bell}
+                src={!opennotification ? ActiveBell : Bell}
                 alt="notification"
                 onClick={toggleNotification}
                 width={30}

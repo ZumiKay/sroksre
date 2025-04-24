@@ -4,6 +4,10 @@ import { RGBColor } from "react-color";
 import { Dispatch, SetStateAction } from "react";
 import { Address } from "@prisma/client";
 import { Stepindicatortype } from "./Checkoutcontext";
+import { StaticImageData } from "next/image";
+import ProfileIcon from "@/public/Image/profile.png";
+import WishListIcon from "@/public/Image/bookmark.png";
+import LockIcon from "@/public/Image/lock.png";
 
 type Role = "ADMIN" | "USER" | "EDITOR";
 export type InventoryPage =
@@ -51,6 +55,16 @@ export const containerTypeOptions = {
   scrollable: "scrollable",
   banner: "banner",
 };
+
+export interface ProfileSideBarItemsType extends SelectType {
+  icon: StaticImageData;
+}
+export const ProfileSideBarItems: Readonly<Array<ProfileSideBarItemsType>> =
+  Object.freeze([
+    { label: "Profile", value: "profile", icon: ProfileIcon },
+    { label: "Wishlist", value: "wishlist", icon: WishListIcon },
+    { label: "Security", value: "security", icon: LockIcon },
+  ]);
 
 export type BannerSizeType = "small" | "normal";
 
@@ -266,11 +280,13 @@ export interface UserState {
   confirmpassword?: string;
   newpassword?: string;
   phonenumber?: string;
-  address?: Address[];
+  addresses?: Address[];
   role?: Role;
   email: string;
   createdAt?: Date;
   updatedAt?: Date;
+  code?: string;
+  isVerified?: boolean;
 }
 export interface Userdatastate {
   firstname?: string;

@@ -11,6 +11,7 @@ import React, {
   useEffect,
   useState,
   useMemo,
+  useRef,
 } from "react";
 
 interface CustomOnChangeType extends SelectProps {
@@ -42,19 +43,20 @@ export const AsyncSelection = ({
   reFetch = false,
   forceRefetch,
 }: AsyncSelectionProps) => {
-  const [loading, setloading] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
-  const [items, setitems] = useState<SelectType[]>([
+  const [items, setItems] = useState<SelectType[]>([
     {
       label: "None",
       value: "0",
     },
   ]);
 
-  const [offset, setoffset] = useState(5);
-  const [hasMore, sethasMore] = useState(false);
-  const [selectedKey, setselectedKey] = useState<Selection>(new Set([""]));
-  const dataFetched = React.useRef(false);
+  const [offset, setOffset] = useState(5);
+  const [hasMore, setHasMore] = useState(false);
+  const [selectedKey, setSelectedKey] = useState<Selection>(new Set([""]));
+  const dataFetched = useRef(false);
+  const prevForceRefetch = useRef(forceRefetch);
 
   // Memoize the selectedValues Set for better performance
   const selectedValues = useMemo(
@@ -72,14 +74,14 @@ export const AsyncSelection = ({
       try {
         if (!isAsyncType) {
           const newItems = data() as SelectType[];
-          setitems(newItems);
+          setItems(newItems ?? []);
 
           if (selectedValues && newItems) {
             const matchingItems = newItems.filter((item) =>
               selectedValues.has(String(item.value))
             );
 
-            setselectedKey(
+            setSelectedKey(
               matchingItems.length > 0
                 ? new Set(matchingItems.map((item) => String(item.value)))
                 : new Set([""])
@@ -90,61 +92,60 @@ export const AsyncSelection = ({
           return;
         }
 
-        setloading(true);
+        setLoading(true);
         const getdata = (await data(limit)) as InfiniteScrollReturnType;
-        const newItems = getdata?.items || [];
+        const newItems = getdata?.items ?? [];
 
         // Using a function update to guarantee we're working with latest state
-        setitems(newItems);
+        setItems(newItems);
 
         if (selectedValues && newItems.length) {
           const matchingItems = newItems.filter((item) =>
             selectedValues.has(String(item.value))
           );
 
-          setselectedKey(
+          setSelectedKey(
             matchingItems.length > 0
               ? new Set(matchingItems.map((item) => String(item.value)))
               : new Set([""])
           );
         }
 
-        sethasMore(getdata?.hasMore ?? false);
-        setloading(false);
+        setHasMore(getdata?.hasMore ?? false);
+        setLoading(false);
         dataFetched.current = true;
       } catch (error) {
         console.error("Error fetching data:", error);
-        if (isAsyncType) setloading(false);
+        if (isAsyncType) setLoading(false);
         dataFetched.current = true;
       }
     },
     [data, selectedValues, isAsyncType]
   );
 
-  // Combine related effects
+  // Combined effect for all data fetching scenarios
   useEffect(() => {
-    // Initial fetch
-    fetchData(offset);
-  }, [offset, fetchData]);
+    const shouldFetch =
+      // First load
+      !dataFetched.current ||
+      // forceRefetch changed
+      (forceRefetch !== undefined &&
+        forceRefetch !== prevForceRefetch.current) ||
+      // Component is open and reFetch is true
+      (isOpen && reFetch);
 
-  // Handle open/close with refetch logic
-  useEffect(() => {
-    if (isOpen && (!dataFetched.current || reFetch)) {
-      fetchData(offset);
-    }
-  }, [isOpen, reFetch, offset, fetchData]);
-
-  // Force refetch when forceRefetch changes
-  useEffect(() => {
-    if (forceRefetch !== undefined) {
+    if (shouldFetch) {
       dataFetched.current = false;
       fetchData(offset);
+      prevForceRefetch.current = forceRefetch;
     }
-  }, [forceRefetch, fetchData, offset]);
+  }, [fetchData, offset, isOpen, reFetch, forceRefetch]);
 
   const handleLoadMore = useCallback(() => {
-    if (isAsyncType) setoffset((prev) => prev + 5);
-  }, [isAsyncType]);
+    if (isAsyncType && hasMore) {
+      setOffset((prev) => prev + 5);
+    }
+  }, [isAsyncType, hasMore]);
 
   const [, scrollerRef] = useInfiniteScroll({
     hasMore: hasMore,
@@ -181,12 +182,17 @@ export const AsyncSelection = ({
       onChange={handleChange}
       onOpenChange={handleOpenChange}
       selectedKeys={selectedKey}
-      onSelectionChange={setselectedKey}
-      items={items}
+      onSelectionChange={setSelectedKey}
       isLoading={loading}
       ref={scrollerRef as never}
     >
-      {(item) => <SelectItem key={item.value}>{item.label}</SelectItem>}
+      {items && items.length === 0 ? (
+        <SelectItem key={"none"}>None</SelectItem>
+      ) : (
+        items?.map((item) => (
+          <SelectItem key={item.value}>{item.label}</SelectItem>
+        ))
+      )}
     </Select>
   );
 };

@@ -1,7 +1,16 @@
 "use client";
+import { renderToString } from "react-dom/server";
 import { useGlobalContext } from "@/src/context/GlobalContext";
-import { SelectType, UserState } from "@/src/context/GlobalType.type";
-import { Button, Divider, Form, Input, NumberInput } from "@heroui/react";
+import { ProfileSideBarItems, UserState } from "@/src/context/GlobalType.type";
+import {
+  Badge,
+  Button,
+  CircularProgress,
+  Divider,
+  Form,
+  Input,
+  Skeleton,
+} from "@heroui/react";
 import {
   ChangeEvent,
   FormEvent,
@@ -10,37 +19,51 @@ import {
   useState,
 } from "react";
 import { AsyncSelection } from "../component/AsynSelection";
-import { listofprovinces } from "@/src/lib/utilities";
+import { getBaseUrl, listofprovinces } from "@/src/lib/utilities";
 import { Address } from "@prisma/client";
 import { ApiRequest, Delayloading } from "@/src/context/CustomHook";
-import {
-  ContainerLoading,
-  errorToast,
-  successToast,
-} from "../component/Loading";
+import { errorToast, successToast } from "../component/Loading";
 import { FetchDataForDashboard } from "./action";
+import Image from "next/image";
+import { SendVfyEmail } from "../account/actions";
+import { CredentialEmail } from "../component/EmailTemplate";
 
 export type ProfilePageType = "profile" | "wishlist" | "security" | "deletion";
 
-const ProfileSideBarItems: Readonly<Array<SelectType>> = Object.freeze([
-  { label: "Profile", value: "profile" },
-  { label: "Wishlist", value: "wishlist" },
-  { label: "Security", value: "security" },
-]);
-
 interface ProfileSideBarProps {
   onSelect?: (val: string) => void;
+  isSelected?: string;
 }
 
-export const ProfileSideBar = ({ onSelect }: ProfileSideBarProps) => {
+export const ProfileSideBar = ({
+  onSelect,
+  isSelected,
+}: ProfileSideBarProps) => {
   return (
-    <aside className="sidebar_container w-[300px] h-full flex flex-col items-center gap-y-10 border-l-2 border-gray-300">
+    <aside className="sidebar_container min-w-[150px] w-[280px] max-large_tablet:w-1/2 min-h-full p-3 pr-0 bg-gray-200 flex flex-col gap-y-10 rounded-lg">
       {ProfileSideBarItems.map((item) => (
         <div
-          className="sidecard w-full h-[40px] p-5 hover:bg-slate-400 active:bg-slate-400 cursor-default rounded-lg"
+          style={
+            isSelected === item.value
+              ? {
+                  backgroundColor: "white",
+                  borderTopRightRadius: 0,
+                  borderBottomRightRadius: 0,
+                }
+              : {}
+          }
+          className="sidecard w-full h-full flex flex-row gap-x-3 p-5 items-center font-bold hover:bg-incart active:bg-slate-400 
+          hover:text-white active:text-white cursor-default rounded-lg"
           onClick={() => onSelect && onSelect(item.value as string)}
           key={item.value}
         >
+          <Image
+            width={25}
+            height={25}
+            alt="icon"
+            src={item.icon}
+            loading="lazy"
+          />
           {item.label}
         </div>
       ))}
@@ -51,22 +74,21 @@ export const ProfileSideBar = ({ onSelect }: ProfileSideBarProps) => {
 const AddressForm = ({
   editdata,
   close,
-  loading,
-  setloading,
 }: {
-  editdata?: Partial<Address>;
+  editdata?: number;
   close?: () => void;
-  loading?: boolean;
-  setloading?: (val: boolean) => void;
 }) => {
-  const [address, setaddress] = useState<Partial<Address> | undefined>(
-    editdata
-  );
+  const { user } = useGlobalContext();
+  const [loading, setloading] = useState(false);
+  const [address, setaddress] = useState<Partial<Address> | undefined>({
+    firstname: user?.firstname,
+    lastname: user?.lastname,
+  });
 
   useEffect(() => {
     const asyncGetAddress = async () => {
       const makeRequest = await FetchDataForDashboard(
-        `/api/users/info?ty=address&id=${editdata?.id}`
+        `/api/users/info?ty=address&id=${editdata}`
       );
       if (!makeRequest) {
         return;
@@ -87,9 +109,9 @@ const AddressForm = ({
       e.preventDefault();
       if (setloading) setloading(true);
       const makeRequest = await ApiRequest({
-        url: "/api/users/info",
-        method: "PUT",
-        data: { ...address, ty: "address" },
+        url: "/api/users/info/address",
+        method: editdata ? "PUT" : "POST",
+        data: address,
       });
       if (setloading) setloading(false);
       if (!makeRequest.success) {
@@ -110,18 +132,25 @@ const AddressForm = ({
       onSubmit={handleSubmit}
       className="adressform w-full h-fit flex flex-col items-center gap-y-5"
     >
-      <div className="name w-full h-fit flex flex-row items-center">
+      {loading && <CircularProgress />}
+      <div className="name w-full h-fit flex flex-row items-center gap-5">
         <Input
           value={address?.firstname}
+          label="Firstname"
+          labelPlacement="outside"
+          placeholder="Fistname"
           name="firstname"
-          size="sm"
+          size="md"
           fullWidth
           onChange={handleChange}
         />
         <Input
           value={address?.lastname}
+          label="Lastname"
+          labelPlacement="outside"
+          placeholder="Lastname"
           name="lastname"
-          size="sm"
+          size="md"
           fullWidth
           onChange={handleChange}
         />
@@ -130,31 +159,40 @@ const AddressForm = ({
         <Input
           value={address?.houseId}
           name="houseId"
-          placeholder="HomeNo"
+          label="House/Apt No"
+          labelPlacement="outside"
+          placeholder="No"
           isRequired
-          size="sm"
+          onChange={handleChange}
+          size="md"
         />
         <Input
           value={address?.street ?? undefined}
+          label="Street"
+          labelPlacement="outside"
           name="street"
           placeholder="Street"
           isRequired
-          size="sm"
+          size="md"
           onChange={handleChange}
         />
       </div>
-      <div className="areainfo">
+      <div className="areainfo w-full h-fit flex flex-row items-center gap-5">
         <Input
+          label="District"
+          labelPlacement="outside"
           name="district"
-          size="sm"
+          size="md"
           value={address?.district}
-          placeholder="District"
+          placeholder="District / Khan"
           isRequired
           onChange={handleChange}
         />
         <Input
-          name="songkat"
-          size="sm"
+          name="songkhat"
+          label="Sangkat / Commune"
+          labelPlacement="outside"
+          size="md"
           value={address?.songkhat}
           placeholder="Sangkat / Commune"
           onChange={handleChange}
@@ -166,6 +204,7 @@ const AddressForm = ({
         option={{
           label: "Province / City",
           labelPlacement: "outside",
+          placeholder: "select",
           fullWidth: true,
           selectedValue: address?.province ? [address?.province] : undefined,
           onValueChange: (e) =>
@@ -174,29 +213,28 @@ const AddressForm = ({
             } as never),
         }}
       />
-      <NumberInput
-        min={0}
+      <Input
         name="postalcode"
         label="Postal Code"
         labelPlacement="outside"
-        isWheelDisabled
-        value={Number(address?.postalcode)}
+        placeholder="Postal Code"
+        value={address?.postalcode}
         onValueChange={(val) =>
           handleChange({ target: { name: "postalcode", value: val } } as never)
         }
-        size="sm"
+        size="md"
       />
       <div className="btn flex flex-row items-end gap-x-3">
         <Button
           isLoading={loading}
           type="submit"
-          color="primary"
-          className="font-bold text-white"
+          size="md"
+          className=" bg-incart font-bold text-white"
         >
-          Add
+          {editdata ? "Update" : "Add"}
         </Button>
         <Button
-          className="bg-rose-400 font-bold text-whtie
+          className="bg-red-400 font-bold text-white
         "
           onPress={() => handleCancel()}
           isDisabled={loading}
@@ -208,11 +246,20 @@ const AddressForm = ({
   );
 };
 
-type profileactiontype = "AddAddress" | "EditAddress" | "EditInfo" | "Readonly";
+type profileactiontype =
+  | "AddAddress"
+  | "EditEmail"
+  | "VerifyEmail"
+  | "VerifyEmailOnly"
+  | "EditInfo"
+  | "Readonly"
+  | "Done";
 export const ProfileTab = () => {
   const { user, setuser } = useGlobalContext();
   const [loading, setloading] = useState(false);
   const [actionty, setactionty] = useState<profileactiontype>("Readonly");
+  const [editaddress, seteditaddress] = useState<number | undefined>(undefined);
+  const [temp, settemp] = useState<UserState | undefined>();
 
   useEffect(() => {
     async function fetchUser() {
@@ -225,6 +272,7 @@ export const ProfileTab = () => {
         return;
       }
       setuser(makeRequest as UserState);
+      settemp(makeRequest as UserState);
     }
     fetchUser();
   }, []);
@@ -244,107 +292,406 @@ export const ProfileTab = () => {
         errorToast(editrequest.error ?? "Error Occured");
         return;
       }
+      setactionty("Readonly");
       successToast("User Updated");
     },
     [user]
   );
 
+  const handleAddressClick = useCallback((data: number) => {
+    seteditaddress((prev) => (prev === data ? undefined : data));
+  }, []);
+
+  const handleCloseAddressForm = useCallback(() => {
+    setactionty("Readonly");
+    seteditaddress(undefined);
+  }, []);
+
+  const handleDeleteAddress = useCallback(
+    (id: number) => {
+      setuser(
+        (prev) =>
+          ({
+            ...prev,
+            addresses: prev?.addresses?.filter((i) => i.id !== id),
+          } as never)
+      );
+    },
+    [setuser]
+  );
+  const handleResetUser = useCallback(() => {
+    setuser(temp);
+    settemp(undefined);
+  }, [setuser, temp]);
+
+  const handleChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setuser((prev) => ({ ...prev, [name]: value } as never));
+  }, []);
+
+  const handleEditEmail = useCallback(
+    async (vfyExistEmail?: boolean) => {
+      if (!user?.email) return;
+
+      // Helper functions to reduce repetition
+      const verifyEmail = async () => {
+        const vfyReq = await ApiRequest({
+          method: "PUT",
+          url: "api/users/info",
+          data: {
+            ty: "email",
+            email: user?.email,
+          },
+        });
+
+        console.log(vfyReq.data);
+
+        if (!vfyReq.success) {
+          setloading(false);
+          errorToast("Can't Verify Email");
+          return null;
+        }
+
+        return vfyReq.data;
+      };
+
+      const sendVerificationEmail = async (
+        template: string,
+        subject: string
+      ) => {
+        const sendEmail = SendVfyEmail.bind(
+          null,
+          template,
+          user.email,
+          subject
+        );
+
+        const sendReq = await sendEmail();
+        if (!sendReq.success) {
+          errorToast("Error Occurred");
+          return false;
+        }
+        return true;
+      };
+
+      // Handle verification link flow
+      if (vfyExistEmail) {
+        setactionty("VerifyEmailOnly");
+        setloading(true);
+        const verificationCode = await verifyEmail();
+
+        if (!verificationCode) {
+          setloading(false);
+          return;
+        }
+
+        const baseUrl = getBaseUrl();
+
+        const linkTemplate = renderToString(
+          <CredentialEmail
+            infotype="link"
+            infovalue={`${baseUrl}/verify?vc=${verificationCode}`}
+            warn="For Verification Only"
+            message="Verify Email Through This Link"
+          />
+        );
+
+        const sent = await sendVerificationEmail(
+          linkTemplate,
+          "Email Verification"
+        );
+        setloading(false);
+        setactionty("Readonly");
+        if (sent) successToast("Verify Code Sent");
+        return;
+      }
+
+      // Handle different action types
+      if (actionty !== "EditEmail") {
+        setactionty("EditEmail");
+        return;
+      }
+
+      if (actionty === "EditEmail") {
+        setloading(true);
+
+        const verificationCode = await verifyEmail();
+        if (!verificationCode) {
+          setloading(false);
+          return;
+        }
+
+        const codeTemplate = renderToString(
+          <CredentialEmail
+            message="Verify your email"
+            infotype="code"
+            infovalue={verificationCode as string}
+            warn="For Verification Only"
+          />
+        );
+
+        const sent = await sendVerificationEmail(codeTemplate, "Verify Email");
+        setloading(false);
+        if (sent) successToast("Verification Sent");
+      } else if (actionty === "VerifyEmail") {
+        setloading(true);
+
+        const updateEmail = await ApiRequest({
+          method: "PUT",
+          url: "/users/info",
+          data: {
+            ty: "vfyemail",
+            code: user.code,
+          },
+        });
+
+        setloading(false);
+
+        if (!updateEmail.success) {
+          errorToast(updateEmail.error ?? "Can't Verify Email");
+          return;
+        }
+
+        successToast("Email Updated");
+      }
+    },
+    [actionty, user?.code, user?.email]
+  );
+
+  const handleBackEmail = useCallback(() => {
+    if (actionty === "EditEmail") {
+      setactionty("Readonly");
+      setuser((prev) => ({ ...prev, email: temp?.email } as never));
+    } else if (actionty === "VerifyEmail") {
+      setactionty("EditEmail");
+    }
+  }, [actionty, setuser, temp?.email]);
+
   return (
-    <div className="w-full h-fit flex flex-col items-center gap-y-5">
-      {loading && <ContainerLoading />}
-      <Form
-        onSubmit={handleSubmit}
-        className="profile w-full h-fit flex flex-col items-center gap-y-5"
-      >
-        <Button
-          type={actionty === "EditInfo" ? "submit" : "button"}
-          onPress={() => setactionty("EditInfo")}
-          style={
-            actionty === "EditInfo" ? {} : { backgroundColor: "lightcoral" }
-          }
-          className="bg_default w-[100px] h-[30px] text-white font-bold"
-        >
-          {actionty === "EditInfo" ? "Done" : "Edit Info"}
-        </Button>
-        <Input name="username" value={user?.username} />
-        <div className="name flex flex-row w-full h-[40px]">
-          <Input
-            className="w-full h-full"
-            name="firstname"
-            value={user?.firstname}
-            size="lg"
-            isReadOnly={actionty === "Readonly"}
-          />
-          <Input
-            className="w-full h-full"
-            name="lastname"
-            value={user?.firstname}
-            size="lg"
-            isReadOnly={actionty === "Readonly"}
-          />
-        </div>
-        <div className="info flex flex-row w-full h-[40px]">
-          <Input
-            fullWidth
-            name="email"
-            type="email"
-            label="Email"
-            labelPlacement="outside"
-            value={user?.email}
-            size="lg"
-            isReadOnly={actionty === "Readonly"}
-          />
-          <Input
-            fullWidth
-            name="phonenumber"
-            label="Phonenumber"
-            labelPlacement="outside"
-            placeholder="855023880880"
-            type="number"
-            value={user?.phonenumber}
-            size="lg"
-            isReadOnly={actionty === "Readonly"}
-          />
-        </div>
-      </Form>
-      <div className="Address_container w-full h-fit ">
-        <div className="w-full h-fit border-2 border-gray-300 rounded-lg p-2 flex flex-row items-start gap-3 flex-wrap">
-          {user?.address?.map((address, idx) => (
-            <div
-              key={address.id}
-              className="addresscard w-[150px] h-[50px] rounded-lg border-1 border-gray-300 hover:bg-blue-400 active:bg-blue-400"
-            >
-              {`Location ${idx + 1}`}
-            </div>
+    <div className="w-full h-fit flex flex-col items-center gap-y-20">
+      {actionty === "Readonly" && loading ? (
+        <div className="w-full h-fit flex flex-col gap-y-5">
+          {Array.from({ length: 5 }).map((i, idx) => (
+            <Skeleton key={idx} className="w-full h-[50px] rounded-lg" />
           ))}
         </div>
-        {actionty === "AddAddress" || actionty === "EditAddress" ? (
-          <AddressForm
-            editdata={
-              actionty === "EditAddress"
-                ? user?.address && user.address[0]
-                : undefined
-            }
-            close={() => setactionty("Readonly")}
-            loading={loading}
-            setloading={setloading}
-          />
-        ) : (
-          <Button
-            onPress={() => setactionty("AddAddress")}
-            color="primary"
-            className="font-bold"
+      ) : (
+        <>
+          <Form
+            onSubmit={handleSubmit}
+            className="profile w-full h-fit flex flex-col items-center gap-y-10"
           >
-            Add Address
-          </Button>
-        )}
-      </div>
+            <div className="w-full h-fit flex flex-row items-center gap-3">
+              <Button
+                type={actionty === "Done" ? "submit" : "button"}
+                onPress={() =>
+                  setactionty((prev) =>
+                    prev === "Readonly"
+                      ? "EditInfo"
+                      : prev === "EditInfo"
+                      ? "Done"
+                      : "Readonly"
+                  )
+                }
+                style={
+                  actionty === "EditInfo"
+                    ? {}
+                    : { backgroundColor: "lightcoral" }
+                }
+                size="sm"
+                className="text-white font-bold bg-incart self-start"
+                isLoading={actionty === "Done" && loading}
+              >
+                {actionty === "EditInfo" ? "Done" : "Edit Info"}
+              </Button>
+              {JSON.stringify(temp) !== JSON.stringify(user) && (
+                <Button
+                  size="sm"
+                  color="success"
+                  variant="solid"
+                  className="font-bold"
+                  isDisabled={actionty === "Readonly"}
+                  onPress={() => handleResetUser()}
+                >
+                  Reset
+                </Button>
+              )}
+            </div>
+
+            <div className="w-full h-fit">
+              <p className="w-full text-left text-lg font-bold">User Info</p>
+              <Divider />
+            </div>
+            <Input
+              name="username"
+              value={user?.username}
+              label="Username"
+              labelPlacement="outside"
+              onChange={handleChange}
+              placeholder="Username"
+              isReadOnly={actionty === "Readonly"}
+            />
+            <div className="name flex flex-row w-full h-fit gap-3 max-small_phone:flex-wrap">
+              <Input
+                className="w-full h-full"
+                name="firstname"
+                label="Firstname"
+                labelPlacement="outside"
+                value={user?.firstname}
+                onChange={handleChange}
+                size="lg"
+                isReadOnly={actionty === "Readonly"}
+              />
+              <Input
+                className="w-full h-full"
+                name="lastname"
+                label="Lastname"
+                labelPlacement="outside"
+                value={user?.lastname}
+                onChange={handleChange}
+                size="lg"
+                isReadOnly={actionty === "Readonly"}
+              />
+            </div>
+            <Input
+              fullWidth
+              name="phonenumber"
+              label="Phonenumber"
+              labelPlacement="outside"
+              placeholder="855023880880"
+              type="number"
+              value={user?.phonenumber}
+              onChange={handleChange}
+              size="lg"
+              isReadOnly={actionty === "Readonly"}
+            />
+            <div className="Address_container w-full h-fit flex flex-col gap-y-5">
+              <h3 className="text-lg">Address</h3>
+              <div className="w-full min-h-[100px] h-fit border-2 border-gray-300 rounded-lg p-2 flex flex-row items-start gap-3 flex-wrap">
+                {(!user?.addresses || user.addresses.length === 0) && (
+                  <p className="text-md text-gray-300">No Address</p>
+                )}
+                {user?.addresses &&
+                  user?.addresses?.map((address, idx) => (
+                    <Badge
+                      isInvisible={actionty !== "EditInfo"}
+                      key={address.id}
+                      content="-"
+                      color="danger"
+                      onClick={() => handleDeleteAddress(address.id)}
+                    >
+                      <div
+                        key={address.id}
+                        onClick={() => handleAddressClick(address.id)}
+                        className="addresscard w-[150px] h-[50px] grid place-content-center rounded-lg font-bold border-2 border-incart  
+                      hover:bg-incart hover:border-0 active:bg-incart active:border-0"
+                        style={
+                          address.id === editaddress
+                            ? { backgroundColor: "lightgray" }
+                            : {}
+                        }
+                      >
+                        {`Location ${idx + 1}`}
+                      </div>
+                    </Badge>
+                  ))}
+              </div>
+
+              {actionty === "Readonly" && loading && (
+                <Skeleton className="w-full h-[100px] rounded-lg" />
+              )}
+              {actionty === "AddAddress" || editaddress ? (
+                <AddressForm
+                  editdata={editaddress}
+                  close={() => handleCloseAddressForm()}
+                />
+              ) : (
+                <Button
+                  onPress={() => setactionty("AddAddress")}
+                  size="sm"
+                  className="bg-incart text-white font-bold max-w-xs"
+                >
+                  Add Address
+                </Button>
+              )}
+            </div>
+          </Form>
+
+          <div className="Email_container w-full h-fit flex flex-col gap-y-5">
+            <div className="w-full h-fit">
+              <h3 className="w-full text-left">Email Address</h3>
+              <Divider />
+            </div>
+            <Input
+              type="email"
+              size="lg"
+              name="email"
+              aria-label="email addresss"
+              value={user?.email}
+              onChange={handleChange}
+              isDisabled={
+                actionty !== "EditEmail" && actionty !== "VerifyEmail"
+              }
+            />
+            {actionty === "VerifyEmail" && (
+              <Input
+                className="max-w-xs"
+                type="text"
+                size="sm"
+                name="code"
+                label="Code"
+                labelPlacement="outside"
+                aria-label="code"
+                placeholder="Verify Code"
+              />
+            )}
+            <div className="btn w-full h-fit flex flex-row gap-3">
+              {!user?.isVerified && (
+                <Button
+                  onPress={() => handleEditEmail(true)}
+                  className="bg-orange-300 font-bold text-white"
+                  isLoading={!user?.isVerified && loading}
+                  size="sm"
+                >
+                  Verify
+                </Button>
+              )}
+              <Button
+                size="sm"
+                className="bg-incart text-white font-bold"
+                onPress={() => handleEditEmail()}
+                isLoading={
+                  (actionty === "EditEmail" || actionty === "VerifyEmail") &&
+                  loading
+                }
+              >
+                {actionty === "VerifyEmail"
+                  ? "Confirm"
+                  : actionty === "EditEmail"
+                  ? "Verify"
+                  : "Edit"}
+              </Button>
+              {actionty === "VerifyEmail" ||
+                (actionty === "EditEmail" && (
+                  <Button
+                    isDisabled={actionty !== "EditEmail"}
+                    size="sm"
+                    onPress={() => handleBackEmail()}
+                    className="bg-red-400 font-bold text-white "
+                  >
+                    Back
+                  </Button>
+                ))}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 };
 
 export const SecurityTab = () => {
-  const { user, setuser } = useGlobalContext();
+  const { user, setuser, setopenmodal } = useGlobalContext();
   const [loading, setloading] = useState(false);
 
   const handleChange = useCallback(
@@ -373,7 +720,7 @@ export const SecurityTab = () => {
     },
     [user]
   );
-  const handleDeleteAcc = async () => {
+  const asyncDeleteAcc = useCallback(async () => {
     setloading(true);
     const deleteRequest = await ApiRequest({
       url: "/api/users",
@@ -386,15 +733,25 @@ export const SecurityTab = () => {
       return;
     }
     successToast("Account Deleted");
-  };
+  }, [user?.id]);
+
+  const handleDeleteAcc = useCallback(() => {
+    setopenmodal({
+      confirmmodal: {
+        open: true,
+        onAsyncDelete: asyncDeleteAcc,
+      },
+    });
+  }, [asyncDeleteAcc, setopenmodal]);
 
   return (
     <div className="security_tab w-full h-fit flex flex-col items-center gap-y-5">
-      <h1>Security</h1>
-      <Divider />
+      <h1 className="w-full text-left">Security</h1>
 
-      <h3>Password</h3>
-      <Divider />
+      <div className="w-full h-fit">
+        <p className="text-lg font-bold">Password</p>
+        <Divider />
+      </div>
       <Form
         onSubmit={handleSubmit}
         className="w-full h-fit flex flex-col items-center gap-y-5"
@@ -405,12 +762,14 @@ export const SecurityTab = () => {
           fullWidth
           size="md"
           value={user?.password}
+          name="password"
           onChange={handleChange}
         />
         <Input
           fullWidth
           size="md"
           type="password"
+          name="newpassword"
           label="New Password"
           value={user?.newpassword}
           onChange={handleChange}
@@ -420,21 +779,27 @@ export const SecurityTab = () => {
           size="md"
           type="password"
           label="Confirm Password"
+          name="confirmpassword"
           value={user?.confirmpassword}
           onChange={handleChange}
         />
         <Button
           isLoading={loading}
           type="submit"
-          color="primary"
-          size="sm"
-          className="font-bold text-white self-end"
+          size="md"
+          isDisabled={
+            !user?.password || !user.newpassword || !user.confirmpassword
+          }
+          className="font-bold text-white self-end bg-incart"
         >
           Change Password
         </Button>
       </Form>
-      <h3>Delete Account</h3>
-      <Divider className="bg-red-400" />
+
+      <div className="w-full">
+        <h3 className="w-full text-left text-red-500">Danger</h3>
+        <Divider />
+      </div>
       <div className="w-full h-fit flex flex-col gap-y-5">
         <Button
           onPress={() => handleDeleteAcc()}

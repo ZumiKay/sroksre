@@ -63,9 +63,9 @@ export default function Modal({
           closestate !== "none"
         ) {
           const updateIndex = Object.fromEntries(
-            Object.entries(globalindex).map(([key, _]) => [key, -1])
+            Object.keys(globalindex).map((key) => [key, -1])
           ) as unknown as GlobalIndexState;
-          action && action();
+          if (action) action();
           setglobalindex(updateIndex);
 
           if (closestate === "createCategory") {
@@ -93,7 +93,7 @@ export default function Modal({
 interface SecondaryModalInterface {
   header?: () => ReactNode;
   children: ReactNode;
-  footer?: (onClose: () => void) => ReactNode;
+  footer?: () => React.JSX.Element;
   open: boolean;
   onPageChange?: (val: boolean) => void;
   closebtn?: boolean;
@@ -146,7 +146,7 @@ export function SecondaryModal({
       }}
     >
       <ModalContent>
-        {(onClose) => (
+        {() => (
           <>
             {header && (
               <ModalHeader className="flex flex-col gap-1">
@@ -154,7 +154,7 @@ export function SecondaryModal({
               </ModalHeader>
             )}
             <ModalBody className="overflow-y-auto">{children}</ModalBody>
-            {footer && <ModalFooter>{footer(onClose)}</ModalFooter>}
+            {footer && <ModalFooter>{footer()}</ModalFooter>}
           </>
         )}
       </ModalContent>

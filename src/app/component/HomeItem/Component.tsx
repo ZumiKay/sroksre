@@ -24,10 +24,12 @@ export const ItemTypeCard = ({
   return (
     <div
       style={isActive ? { border: `2px solid black` } : {}}
-      className="ItemTypeCard w-[220px] h-[350px] rounded-lg border-1 border-gray-300 transition-all"
+      className="ItemTypeCard w-[250px] h-[200px] rounded-lg border-1 border-gray-300 transition-all p-2 hover:border-3 hover:border-gray-400"
       onClick={() => onSelect && onSelect(des.value)}
     >
-      <div className="Icon w-[95%] h-[80%]">{<Img />}</div>
+      <div className="Icon w-full h-[150px] grid place-content-center">
+        {<Img />}
+      </div>
 
       <div className="description w-full h-[20%] flex flex-col gap-y-3 relative">
         <p className="font-bold text-lg">{des.type}</p>

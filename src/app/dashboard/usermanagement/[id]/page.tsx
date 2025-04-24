@@ -1,13 +1,28 @@
 "use client";
 import { Button, Divider, Form, Input } from "@heroui/react";
 import { redirect, useRouter } from "next/navigation";
-import { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useState, use } from "react";
+import {
+  ChangeEvent,
+  FormEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  use,
+} from "react";
 import { PasswordSection } from "../component";
-import { IsNumber } from "@/src/lib/utilities";
+import { getBaseUrl, IsNumber } from "@/src/lib/utilities";
 import { useGlobalContext } from "@/src/context/GlobalContext";
 import { ApiRequest } from "@/src/context/CustomHook";
-import { ContainerLoading, errorToast } from "@/src/app/component/Loading";
+import {
+  ContainerLoading,
+  errorToast,
+  successToast,
+} from "@/src/app/component/Loading";
 import { UserState } from "@/src/context/GlobalType.type";
+import { renderToString } from "react-dom/server";
+import { CredentialEmail } from "@/src/app/component/EmailTemplate";
+import { SendVfyEmail } from "@/src/app/account/actions";
 
 const FetchUser = async (id: number) => {
   const makereq = await ApiRequest({
@@ -75,27 +90,61 @@ const CreateUserPage = (props: { params: Promise<{ id?: string }> }) => {
   const handleSubmit = useCallback(
     async (e: FormEvent<HTMLFormElement>) => {
       e.preventDefault();
+
+      if (user?.password !== user?.confirmpassword) {
+        errorToast("Confirm Password must match");
+        return;
+      }
+
       setloading(true);
       const makerequest = await ApiRequest({
         method: isEdit ? "PUT" : "POST",
         url: "/api/auth/register",
         data: user,
       });
-      setloading(false);
 
-      if (!makerequest.success) {
+      if (!makerequest.success || !makerequest.data) {
+        setloading(false);
         errorToast(makerequest.error ?? "Error Occured");
         return;
       }
+
+      //send email verification
+      const template = renderToString(
+        <CredentialEmail
+          infotype="link"
+          infovalue={`${getBaseUrl()}/account/verify?vc=${makerequest.data}`}
+          message="Please Click link for verification"
+          warn="For Verification Only"
+        />
+      );
+
+      const sendEmail = SendVfyEmail.bind(
+        null,
+        template,
+        user?.email as string,
+        "Email Verification"
+      );
+      const sendReq = await sendEmail();
+      setloading(false);
+      if (!sendReq.success) {
+        errorToast("Can't Verfiy Email");
+        return;
+      }
+
+      successToast("User created");
+
       setuser(undefined);
     },
     [isEdit, setuser, user]
   );
 
   return (
-    <div className="createuserpage w-full h-full flex flex-col items-center gap-y-5">
-      <h1>{isEdit ? "Edit User" : "Create User"}</h1>
-      {isEdit && loading && <ContainerLoading />}
+    <div className="createuserpage w-[95%] h-full flex flex-col items-center gap-y-5">
+      <h1 className="w-full pt-3 text-left text-4xl">
+        {isEdit ? "Edit User" : "Create User"}
+      </h1>
+      {isEdit && !user && loading && <ContainerLoading />}
       <Form
         onSubmit={handleSubmit}
         className="createuser_form w-full h-fit flex flex-col gap-y-5"
@@ -106,6 +155,8 @@ const CreateUserPage = (props: { params: Promise<{ id?: string }> }) => {
           <Input
             name="firstname"
             type="text"
+            label="Firstname"
+            labelPlacement="outside"
             value={user?.firstname}
             size="md"
             onChange={handleChange}
@@ -114,6 +165,8 @@ const CreateUserPage = (props: { params: Promise<{ id?: string }> }) => {
           <Input
             name="lastname"
             type="text"
+            label="Lastname"
+            labelPlacement="outside"
             value={user?.lastname}
             size="md"
             onChange={handleChange}
@@ -124,12 +177,16 @@ const CreateUserPage = (props: { params: Promise<{ id?: string }> }) => {
           type="text"
           size="md"
           name="username"
+          label="Username"
+          labelPlacement="outside"
           onChange={handleChange}
         />
         <Input
           name="email"
           type="email"
           size="md"
+          label="Email"
+          labelPlacement="outside"
           value={user?.email}
           onChange={handleChange}
         />
@@ -139,19 +196,20 @@ const CreateUserPage = (props: { params: Promise<{ id?: string }> }) => {
 
         <Divider />
 
-        <div className="btn_section w-[300px] h-[40px] self-end">
+        <div className="btn_section w-[300px] h-[40px] flex flex-row gap-x-3">
           <Button
             type="submit"
             isLoading={loading}
-            className="bg_default w-full h-full text-white font-bold"
+            size="md"
+            className="bg_default text-white font-bold"
           >
-            {isEdit ? "Create" : "Update"}
+            {!isEdit ? "Create" : "Update"}
           </Button>
           <Button
             onPress={() => handleCancel()}
-            color="danger"
             isDisabled={loading}
-            className="font-bold text-white"
+            className="font-bold bg-red-400 text-white"
+            size="md"
           >
             Cancel
           </Button>

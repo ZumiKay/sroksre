@@ -71,14 +71,47 @@ const ScrollableType: Array<SelectionType<ScrollableTypeValueType>> = [
   { label: "Custom", value: "custom" },
 ];
 
-const FooterContainer = memo(() => {
-  return (
-    <div className="btnSec w-full h-[40px] flex flex-row gap-x-3">
-      <Button> Confirm </Button>
-      <Button> Back </Button>
-    </div>
-  );
-});
+interface FooterContainerPropaType {
+  handleBack?: () => void;
+  handleClose?: () => void;
+  type: ContainerType | null;
+}
+
+const FooterContainer = memo(
+  ({ handleBack, handleClose, type }: FooterContainerPropaType) => {
+    const handleClick = useCallback(
+      (ty: "back" | "close") => {
+        if (ty === "back" && handleBack) {
+          handleBack();
+        } else if (ty === "close" && handleClose) handleClose();
+      },
+      [handleBack, handleClose]
+    );
+
+    return (
+      <div className="btnSec w-full h-[40px] flex flex-row gap-x-3 justify-end">
+        <Button
+          onPress={() => handleClick("close")}
+          size="sm"
+          className="text-white font-bold bg_default"
+        >
+          {" "}
+          Confirm{" "}
+        </Button>
+        {type && (
+          <Button
+            onPress={() => handleClick("back")}
+            size="sm"
+            className="text-white font-bold bg-red-300"
+          >
+            {" "}
+            Back{" "}
+          </Button>
+        )}
+      </div>
+    );
+  }
+);
 FooterContainer.displayName = "FooterContainer";
 
 const ManageContainerType = ({
@@ -95,7 +128,7 @@ const ManageContainerType = ({
     [setType]
   );
   return (
-    <div className="w-full h-fit flex flex-row gap-5 items-start">
+    <div className="w-full h-fit flex flex-row gap-5 items-center justify-center flex-wrap">
       {containerTypes.map((item) => (
         <ItemTypeCard
           key={item.type}
@@ -113,7 +146,8 @@ const ManageContainerType = ({
 };
 
 const CreateHomeItemModal = () => {
-  const { openmodal, setopenmodal, globalindex } = useGlobalContext();
+  const { openmodal, setopenmodal, globalindex, setglobalindex } =
+    useGlobalContext();
   const [state, setstate] = useState<Containertype | null>(null);
   const [type, settype] = useState<ContainerType | null>(null);
   const [manageItem, setmanageItem] = useState(false);
@@ -143,20 +177,37 @@ const CreateHomeItemModal = () => {
     setstate((prev) => ({ ...prev, [event.name]: event.value } as never));
   }, []);
 
+  const handleBack = useCallback(() => {
+    setstate(null);
+    settype(null);
+    setmanageItem(false);
+    setglobalindex((prev) => ({ ...prev, homeeditindex: undefined }));
+  }, [setglobalindex]);
+
+  const Modaltitle = useCallback(() => {
+    return type === "banner"
+      ? "Banner"
+      : type === "category"
+      ? "Categories"
+      : type === "scrollable"
+      ? "Scrollable Container"
+      : type === "slide"
+      ? "Slide"
+      : "Item";
+  }, [type]);
+
   return (
     <SecondaryModal
       open={openmodal.mangageHomeItem ?? false}
-      size="lg"
+      size="2xl"
       onPageChange={() => handleCloseModal()}
+      footer={() => <FooterContainer type={type} handleBack={handleBack} />}
       closebtn
-      footer={FooterContainer}
     >
       <div className="CreateHomeContainer w-full h-full bg-white">
         <h3>{`${
-          globalindex.homeeditindex !== -1
-            ? "Edit Container"
-            : "Create Container"
-        }`}</h3>
+          globalindex.homeeditindex ? "Edit" : "Create"
+        } ${Modaltitle()}`}</h3>
       </div>
 
       {!type ? (
@@ -166,8 +217,10 @@ const CreateHomeItemModal = () => {
           <Form className="DetailForm w-full h-fit flex flex-col items-start gap-3">
             <Input
               aria-label="container_name"
+              label="Container Name"
+              labelPlacement="outside"
               name="name"
-              size="sm"
+              size="md"
               placeholder="Name"
               onChange={handleChange}
               isRequired
@@ -179,6 +232,10 @@ const CreateHomeItemModal = () => {
                   <AsyncSelection
                     option={{
                       name: "scrollabletype",
+                      label: "Scroll Type",
+                      labelPlacement: "outside",
+                      placeholder: "Type",
+                      isRequired: true,
                       selectedValue: state?.scrollabletype
                         ? [state.scrollabletype]
                         : undefined,
@@ -190,9 +247,14 @@ const CreateHomeItemModal = () => {
 
                   {state?.scrollabletype !== "custom" && (
                     <NumberInput
-                      size="sm"
+                      size="md"
                       name="amountofitem"
+                      label="Amount of Item"
+                      labelPlacement="outside"
+                      aria-label="amount per item"
+                      placeholder="amount of item"
                       value={state?.amountofitem}
+                      isRequired
                       onValueChange={(val) =>
                         handleChange({
                           target: {
@@ -209,6 +271,7 @@ const CreateHomeItemModal = () => {
                   state.scrollabletype === "popular") ||
                   (state?.scrollabletype === "sale" && (
                     <DateRangePicker
+                      aria-label="date picker"
                       size="sm"
                       value={
                         state.daterange

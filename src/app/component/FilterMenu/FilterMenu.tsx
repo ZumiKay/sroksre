@@ -1,8 +1,7 @@
 import { useGlobalContext } from "@/src/context/GlobalContext";
 import PrimaryButton from "../Button";
 import { SecondaryModal } from "../Modals";
-import { ChangeEvent, useCallback, useState } from "react";
-
+import { ChangeEvent, memo, useCallback, useMemo, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
   BannerSize,
@@ -20,119 +19,331 @@ import { Checkbox, Divider } from "@heroui/react";
 import { FetchCategory } from "../../dashboard/inventory/createproduct/[editId]/action";
 import { FetchPromotionSelection } from "./action";
 
-const FilterMenu = ({
-  type,
-  reloaddata,
-  isLoading,
-}: {
-  type?: FiltermenuType;
-  reloaddata?: () => void;
-  isLoading?: boolean;
-}) => {
-  const {
-    openmodal,
-    setopenmodal,
-    promotion,
-    globalindex,
-    filtervalue,
-    setfiltervalue,
-  } = useGlobalContext();
-  const [selectdate, setselectdate] = useState(false);
-  const router = useRouter();
-  const searchParams = useSearchParams();
+const FilterMenu = memo(
+  ({
+    type,
+    reloaddata,
+    isLoading,
+  }: {
+    type?: FiltermenuType;
+    reloaddata?: () => void;
+    isLoading?: boolean;
+  }) => {
+    const {
+      openmodal,
+      setopenmodal,
+      promotion,
+      globalindex,
+      filtervalue,
+      setfiltervalue,
+    } = useGlobalContext();
 
-  const handleChange = useCallback(
-    (e: ChangeEvent<HTMLInputElement>, cate?: SelectType) => {
-      const { name, value } = e.target;
-
-      if (name === "search" && reloaddata) reloaddata();
-
-      const toBeUpdateFilterdValue: Partial<FilterValueType> = {
-        ...filtervalue,
-      };
-
-      if (cate) {
-        toBeUpdateFilterdValue.categories = {
-          ...toBeUpdateFilterdValue.categories,
-          [name]: cate,
-        } as never;
-      }
-      toBeUpdateFilterdValue[name as never] = value as never;
-
-      setfiltervalue((prev) => ({ ...prev, ...toBeUpdateFilterdValue }));
-    },
-    [filtervalue, reloaddata, setfiltervalue]
-  );
-
-  const handleFilter = useCallback(() => {
-    if (!filtervalue) return;
-    const params = new URLSearchParams(searchParams);
-    const filtervalues = Object.entries(filtervalue);
-
-    filtervalues.map(([key, value]) => {
-      if (key === "expiredate" && value) {
-        const val = dayjs(value as string);
-        params.set(key, formatDate(val.toDate()));
-      }
-      if (key === "promoids" && value) {
-        const val = value as number[];
-        params.set("promoids", val.join(","));
-      }
-
-      if (key === "categories") {
-        localStorage.setItem(key, JSON.stringify(value));
-      }
-
-      if (key !== "p" && key !== "categories" && value && value !== "none") {
-        params.set(key, value as string);
-      }
+    // All hooks must be at the top level - never inside conditionals or memoized components
+    const [tempFilter, settempFilter] = useState<FilterValueType>({
+      ...filtervalue,
+      search: "",
     });
+    const isFilter = useMemo(() => {
+      return tempFilter && Object.values(tempFilter).some((i) => i);
+    }, [tempFilter]);
+    const [selectdate, setselectdate] = useState(false);
+    const router = useRouter();
+    const searchParams = useSearchParams();
 
-    params.set("p", "1");
-    router.push(`?${params}`);
+    // Callbacks remain the same as they don't affect hook order
+    const handleChange = useCallback(
+      (e: ChangeEvent<HTMLInputElement>, cate?: SelectType) => {
+        const { name, value } = e.target;
 
-    setopenmodal((prev) => ({ ...prev, filteroption: false }));
-  }, [filtervalue, router, searchParams, setopenmodal]);
+        if (name === "search" && reloaddata) reloaddata();
 
-  const handleClear = useCallback(() => {
-    if (!filtervalue) return;
+        const toBeUpdateFilterdValue: Partial<FilterValueType> = {
+          ...filtervalue,
+        };
 
-    const params = new URLSearchParams(searchParams);
-    Object.keys(filtervalue).map((key) => {
-      if (key !== "p") {
-        if (window.localStorage.getItem(key)) {
-          window.localStorage.removeItem(key);
+        if (cate) {
+          toBeUpdateFilterdValue.categories = {
+            ...toBeUpdateFilterdValue.categories,
+            [name]: cate,
+          } as never;
         }
-        params.delete(key);
-      }
-    });
+        toBeUpdateFilterdValue[name as never] = value as never;
 
-    params.set("p", "1");
+        settempFilter((prev) => ({ ...prev, ...toBeUpdateFilterdValue }));
+      },
+      [filtervalue, reloaddata]
+    );
 
-    router.push(`?${params}`);
+    const handleFilter = useCallback(() => {
+      if (!tempFilter) return;
+      const params = new URLSearchParams(searchParams);
+      const filtervalues = Object.entries(tempFilter);
 
-    setopenmodal((prev) => ({ ...prev, filteroption: false }));
-  }, [filtervalue, searchParams, router, setopenmodal]);
+      filtervalues.map(([key, value]) => {
+        if (key === "expiredate" && value) {
+          const val = dayjs(value as string);
+          params.set(key, formatDate(val.toDate()));
+        }
+        if (key === "promoids" && value) {
+          const val = value as number[];
+          params.set("promoids", val.join(","));
+        }
 
-  const handleCloseModal = useCallback(() => {
-    if (!selectdate && !isLoading)
+        if (key === "categories" && value) {
+          localStorage.setItem(key, JSON.stringify(value));
+        }
+
+        if (key !== "p" && key !== "categories" && value && value !== "none") {
+          params.set(key, value as string);
+        }
+      });
+
+      params.set("p", "1");
+      router.push(`?${params}`);
+
+      setfiltervalue(tempFilter);
       setopenmodal((prev) => ({ ...prev, filteroption: false }));
-  }, [selectdate, setopenmodal, isLoading]);
+    }, [router, searchParams, setfiltervalue, setopenmodal, tempFilter]);
 
-  return (
-    <SecondaryModal
-      open={openmodal.filteroption ?? false}
-      size="5xl"
-      onPageChange={() => handleCloseModal()}
-      placement="top"
-      closebtn
-      footer={() => (
+    const handleClear = useCallback(() => {
+      if (!tempFilter) return;
+
+      const params = new URLSearchParams(searchParams);
+      Object.keys(tempFilter).map((key) => {
+        if (key !== "p") {
+          if (window.localStorage.getItem(key)) {
+            window.localStorage.removeItem(key);
+          }
+          params.delete(key);
+        }
+      });
+
+      params.set("p", "1");
+
+      router.push(`?${params}`);
+
+      settempFilter({ search: "" });
+      setfiltervalue(undefined);
+      setopenmodal((prev) => ({ ...prev, filteroption: false }));
+    }, [tempFilter, searchParams, router, setfiltervalue, setopenmodal]);
+
+    const handleCloseModal = useCallback(() => {
+      if (!selectdate && !isLoading)
+        setopenmodal((prev) => ({ ...prev, filteroption: false }));
+    }, [selectdate, setopenmodal, isLoading]);
+
+    // Memoize rendering parts without using hooks inside them
+    const searchInputMemo = useMemo(() => {
+      if (type === "listproduct") return null;
+
+      const placeholder =
+        type === "usermanagement" ? "Search (ID , Email)" : "Search Name";
+
+      return (
+        <input
+          type="text"
+          name="search"
+          placeholder={placeholder}
+          value={tempFilter?.search || ""}
+          onChange={handleChange}
+          className="search w-full pl-2 h-[50px] rounded-md border border-gray-300"
+        />
+      );
+    }, [type, tempFilter?.search, handleChange]);
+
+    // Memoize banner section
+    const bannerSectionMemo = useMemo(() => {
+      if (type !== "banner") return null;
+
+      return (
+        <>
+          <div className="w-full h-fit flex flex-col gap-y-5">
+            <label className="w-full text-lg font-medium">Banner Type</label>
+            <AsyncSelection
+              type="normal"
+              data={() => [
+                { label: "All", value: "none" },
+                ...BannerTypeSelect,
+              ]}
+              option={{
+                name: "bannertype",
+                "aria-label": "banner type",
+                selectedKeys: tempFilter?.bannertype
+                  ? [tempFilter.bannertype]
+                  : undefined,
+                onChange: (val) => handleChange(val as never),
+              }}
+            />
+          </div>
+          <div className="w-full h-fit flex flex-col gap-y-5">
+            <label className="w-full text-lg font-medium">Banner Size</label>
+            <AsyncSelection
+              type="normal"
+              data={() => [{ label: "All", value: "none", ...BannerSize }]}
+              option={{
+                name: "banner size",
+                "aria-label": "bannersize",
+                selectedKeys: tempFilter?.bannersize
+                  ? [tempFilter.bannersize]
+                  : undefined,
+                onChange: (val) => handleChange(val as never),
+              }}
+            />
+          </div>
+        </>
+      );
+    }, [type, tempFilter?.bannertype, tempFilter?.bannersize, handleChange]);
+
+    // Memoize promotion section
+    const promotionSectionMemo = useMemo(() => {
+      if (type !== "promotion") return null;
+
+      return (
+        <div
+          onMouseEnter={() => setselectdate(true)}
+          onMouseLeave={() => setselectdate(false)}
+          className="w-full h-[50px] relative z-[100]"
+        >
+          <DateTimePicker
+            sx={{ width: "100%" }}
+            value={tempFilter?.expiredate ? dayjs(tempFilter.expiredate) : null}
+            onChange={(e) => {
+              if (e) {
+                handleChange({
+                  target: {
+                    name: "expireddate",
+                    value: e.toDate(),
+                  },
+                } as never);
+              }
+            }}
+          />
+        </div>
+      );
+    }, [type, tempFilter?.expiredate, handleChange]);
+
+    // Memoize product section
+    const productSectionMemo = useMemo(() => {
+      if (type !== "product") return null;
+
+      return (
+        <>
+          <h3>Detail Options</h3>
+          <Divider />
+          <div className="w-full h-fit flex flex-row gap-x-3">
+            <AsyncSelection
+              type="async"
+              data={(take) =>
+                take
+                  ? (FetchCategory({
+                      ty: "parent",
+                      offset: take,
+                      type: categorytype.normal,
+                    }) as never)
+                  : undefined
+              }
+              option={{
+                fullWidth: true,
+                selectedValue: tempFilter?.parentcate
+                  ? [tempFilter.parentcate]
+                  : undefined,
+                onValueChange: (val, cate) => {
+                  handleChange(
+                    {
+                      target: {
+                        name: "parentcate",
+                        value: val.target.value,
+                      },
+                    } as never,
+                    cate
+                  );
+                },
+                label: "Parent Categories",
+              }}
+            />
+            <AsyncSelection
+              type="async"
+              data={(take) =>
+                take && tempFilter?.parentcate
+                  ? (FetchCategory({
+                      ty: "child",
+                      pid: Number(tempFilter?.parentcate),
+                      offset: take,
+                    }) as never)
+                  : undefined
+              }
+              forceRefetch={Number(tempFilter?.parentcate ?? "0")}
+              option={{
+                fullWidth: true,
+                label: "Child Categories",
+                size: "md",
+                isDisabled: !tempFilter?.parentcate,
+                selectedValue: tempFilter?.childcate
+                  ? [tempFilter.childcate]
+                  : undefined,
+                onValueChange: (e, val) => {
+                  handleChange(
+                    {
+                      target: { name: "childcate", value: e.target.value },
+                    } as never,
+                    val
+                  );
+                },
+              }}
+            />
+          </div>
+          {globalindex.promotioneditindex !== -1 && promotion.selectproduct ? (
+            <Checkbox
+              className="w-full h-[40px]"
+              onValueChange={(value) => {
+                handleChange({
+                  target: { name: "promotiononly", value: value as never },
+                } as never);
+              }}
+            >
+              Only Discount
+            </Checkbox>
+          ) : (
+            <AsyncSelection
+              type="async"
+              data={(val = 5) => FetchPromotionSelection(val) as never}
+              option={{
+                selectionMode: "multiple",
+                label: "Promotion",
+                selectedKeys: tempFilter?.promoids
+                  ? tempFilter.promoids
+                  : undefined,
+                onChange: (e) =>
+                  handleChange({
+                    target: {
+                      name: "promoids",
+                      value: e.target.value.split(",") as never,
+                    },
+                  } as never),
+              }}
+            />
+          )}
+        </>
+      );
+    }, [
+      type,
+      tempFilter?.parentcate,
+      tempFilter?.childcate,
+      tempFilter?.promoids,
+      globalindex.promotioneditindex,
+      promotion.selectproduct,
+      handleChange,
+    ]);
+
+    // Memoize footer buttons
+    const footerButtonsMemo = useMemo(
+      () => (
         <>
           <PrimaryButton
             type="button"
             onClick={() => handleFilter()}
             text="Filter"
-            disable={!filtervalue}
+            disable={!isFilter}
             radius="10px"
             width="100%"
           />
@@ -144,202 +355,34 @@ const FilterMenu = ({
             color="lightcoral"
             radius="10px"
             width="100%"
-            disable={!filtervalue}
+            disable={!isFilter}
           />
         </>
-      )}
-    >
-      <div className="filtermenu w-full relative  h-fit bg-white p-5 max-small_phone:max-h-[50vh] rounded-md flex flex-col justify-center gap-y-5">
-        {type !== "usermanagement" && (
-          <input
-            type="text"
-            name="search"
-            placeholder="Search Name"
-            value={filtervalue?.search}
-            onChange={handleChange}
-            className="search w-full pl-2 h-[50px] rounded-md border border-gray-300"
-            hidden={type === "listproduct"}
-          />
-        )}
+      ),
+      [isFilter, handleFilter, handleClear]
+    );
 
-        {type === "usermanagement" && (
-          <input
-            type="text"
-            name="search"
-            placeholder="Search (ID , Email)"
-            value={filtervalue?.search}
-            onChange={handleChange}
-            className="search w-full pl-2 h-[50px] rounded-md border border-gray-300"
-          />
-        )}
-        {type === "banner" && (
-          <>
-            <div className="w-full h-fit flex flex-col gap-y-5">
-              <label className="w-full text-lg font-medium">Banner Type</label>
-              <AsyncSelection
-                type="normal"
-                data={() => [
-                  { label: "All", value: "none" },
-                  ...BannerTypeSelect,
-                ]}
-                option={{
-                  name: "bannertype",
-                  "aria-label": "banner type",
-                  selectedKeys: filtervalue?.bannertype
-                    ? [filtervalue.bannertype]
-                    : undefined,
-                  onChange: (val) => handleChange(val as never),
-                }}
-              />
-            </div>
-            <div className="w-full h-fit flex flex-col gap-y-5">
-              <label className="w-full text-lg font-medium">Banner Size</label>
-              <AsyncSelection
-                type="normal"
-                data={() => [{ label: "All", value: "none", ...BannerSize }]}
-                option={{
-                  name: "banner size",
-                  "aria-label": "bannersize",
-                  selectedKeys: filtervalue?.bannersize
-                    ? [filtervalue.bannersize]
-                    : undefined,
-                  onChange: (val) => handleChange(val as never),
-                }}
-              />
-            </div>
-          </>
-        )}
-        {type === "promotion" && (
-          <>
-            <div
-              onMouseEnter={() => setselectdate(true)}
-              onMouseLeave={() => setselectdate(false)}
-              className="w-full h-[50px] relative z-[100]"
-            >
-              <DateTimePicker
-                sx={{ width: "100%" }}
-                value={
-                  filtervalue?.expiredate ? dayjs(filtervalue.expiredate) : null
-                }
-                onChange={(e) => {
-                  if (e) {
-                    handleChange({
-                      target: {
-                        name: "expireddate",
-                        value: e.toDate(),
-                      },
-                    } as never);
-                  }
-                }}
-              />{" "}
-            </div>
+    // Return the component with memoized parts
+    return (
+      <SecondaryModal
+        open={openmodal.filteroption ?? false}
+        size="5xl"
+        onPageChange={handleCloseModal}
+        placement="top"
+        closebtn
+        footer={() => footerButtonsMemo}
+      >
+        <div className="filtermenu w-full relative h-fit bg-white p-5 max-small_phone:max-h-[50vh] rounded-md flex flex-col justify-center gap-y-5">
+          {searchInputMemo}
+          {bannerSectionMemo}
+          {promotionSectionMemo}
+          {productSectionMemo}
+        </div>
+      </SecondaryModal>
+    );
+  }
+);
 
-            {/* Expire Filtering  */}
-          </>
-        )}
-        {type === "product" && (
-          <>
-            <h3>Detail Options</h3>
-            <Divider />
-            <div className="w-full h-fit flex flex-row gap-x-3">
-              <AsyncSelection
-                type="async"
-                data={(take) =>
-                  take
-                    ? (FetchCategory({
-                        ty: "parent",
-                        offset: take,
-                        type: categorytype.normal,
-                      }) as never)
-                    : undefined
-                }
-                option={{
-                  fullWidth: true,
-                  selectedValue: filtervalue?.parentcate
-                    ? [filtervalue.parentcate]
-                    : undefined,
-                  onValueChange: (val, cate) => {
-                    handleChange(
-                      {
-                        target: {
-                          name: "parentcate",
-                          value: val.target.value,
-                        },
-                      } as never,
-                      cate
-                    );
-                  },
-                  label: "Parent Categories",
-                }}
-              />
-              <AsyncSelection
-                type="async"
-                data={(take) =>
-                  take && filtervalue?.parentcate
-                    ? (FetchCategory({
-                        ty: "child",
-                        pid: Number(filtervalue?.parentcate),
-                        offset: take,
-                      }) as never)
-                    : undefined
-                }
-                forceRefetch={Number(filtervalue?.parentcate ?? "0")}
-                option={{
-                  fullWidth: true,
-                  label: "Child Categories",
-                  size: "md",
-                  isDisabled: !filtervalue?.parentcate,
-                  selectedValue: filtervalue?.childcate
-                    ? [filtervalue.childcate]
-                    : undefined,
-                  onValueChange: (e, val) => {
-                    handleChange(
-                      {
-                        target: { name: "childcate", value: e.target.value },
-                      } as never,
-                      val
-                    );
-                  },
-                }}
-              />
-            </div>
-            {globalindex.promotioneditindex !== -1 &&
-            promotion.selectproduct ? (
-              <Checkbox
-                className="w-full h-[40px]"
-                onValueChange={(value) => {
-                  handleChange({
-                    target: { name: "promotiononly", value: value as never },
-                  } as never);
-                }}
-              >
-                Only Discount
-              </Checkbox>
-            ) : (
-              <AsyncSelection
-                type="async"
-                data={(val = 5) => FetchPromotionSelection(val) as never}
-                option={{
-                  selectionMode: "multiple",
-                  label: "Promotion",
-                  selectedKeys: filtervalue?.promoids
-                    ? filtervalue.promoids
-                    : undefined,
-                  onChange: (e) =>
-                    handleChange({
-                      target: {
-                        name: "promoids",
-                        value: e.target.value.split(",") as never,
-                      },
-                    } as never),
-                }}
-              />
-            )}
-          </>
-        )}
-      </div>
-    </SecondaryModal>
-  );
-};
+FilterMenu.displayName = "FilterMenu";
 
 export default FilterMenu;

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { CSSProperties, MouseEventHandler, ReactNode, useState } from "react";
@@ -198,28 +199,30 @@ interface Inputfileuploadprops {
   ref: any;
   multiple: boolean;
 }
-export const InputFileUpload = React.forwardRef(
-  (props: Inputfileuploadprops, ref: any) => {
-    return (
-      <Button
-        component="label"
-        variant="contained"
-        fullWidth
-        sx={{ height: "50px", boxShadow: "0", borderRadius: "10px" }}
-        startIcon={<i className="fa-solid fa-cloud-arrow-up"></i>}
-      >
-        Upload Image
-        <VisuallyHiddenInput
-          ref={ref}
-          multiple={props.multiple}
-          accept=".jpg, .png , .webp"
-          onChange={props.onChange}
-          type="file"
-        />
-      </Button>
-    );
-  }
-);
+export const InputFileUpload = React.forwardRef(((
+  props: Inputfileuploadprops,
+  ref: never
+) => {
+  return (
+    <Button
+      component="label"
+      variant="contained"
+      fullWidth
+      sx={{ height: "50px", boxShadow: "0", borderRadius: "10px" }}
+      startIcon={<i className="fa-solid fa-cloud-arrow-up"></i>}
+    >
+      Upload Image
+      <VisuallyHiddenInput
+        ref={ref}
+        multiple={props.multiple}
+        accept=".jpg, .png , .webp"
+        onChange={props.onChange}
+        type="file"
+      />
+    </Button>
+  );
+}) as never);
+InputFileUpload.displayName = "InputFileUpload";
 
 interface Selectcontainerprops {
   data: Array<string | VariantColorValueType>;
@@ -290,7 +293,7 @@ const MenuProps = {
   },
 };
 
-const names = Object.entries(Allstatus).map(([_, val]) => val);
+const names = Object.values(Allstatus).map((val) => val);
 
 export function MultipleSelect() {
   const [selectedData, setselectedData] = useState<string[]>([]);

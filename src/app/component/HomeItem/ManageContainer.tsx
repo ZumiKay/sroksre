@@ -35,7 +35,7 @@ const FetchItem = async (
 ) => {
   const url = `/api/${
     ty === "scrollable"
-      ? `product?ty=homecontainer&limit=${offset}${
+      ? `products?ty=homecontainer&limit=${offset}${
           filter?.search ? `search=${filter.search}` : ""
         }${
           filter?.categories?.parent
@@ -61,7 +61,9 @@ const FetchItem = async (
 };
 
 const ManageContainer = ({ type, manage }: ManageContainerProps) => {
-  const [filterValue, setFilterValue] = useState<FilterType | null>(null);
+  const [filterValue, setFilterValue] = useState<FilterType | undefined>(
+    undefined
+  );
   const [items, setItems] = useState<HomeContainerItemType[]>([]);
   const [itemsPerPage, setItemsPerPage] = useState(5);
   const [isLoading, setIsLoading] = useState(false);
@@ -72,7 +74,7 @@ const ManageContainer = ({ type, manage }: ManageContainerProps) => {
     const fetchData = async () => {
       setIsLoading(true);
       try {
-        const data = await FetchItem(type, itemsPerPage, filterValue);
+        const data = await FetchItem(type, itemsPerPage, filterValue ?? null);
         if (data) {
           setItems(data.data as HomeContainerItemType[]);
           sethasMore(data.isLimit ?? false);
@@ -104,7 +106,7 @@ const ManageContainer = ({ type, manage }: ManageContainerProps) => {
     (containerType: ContainerType) => {
       if (containerType === "scrollable") {
         return (
-          <>
+          <div className="w-full h-fit flex flex-row items-center gap-3">
             <AsyncSelection
               type="async"
               data={(offset) =>
@@ -121,14 +123,16 @@ const ManageContainer = ({ type, manage }: ManageContainerProps) => {
               }}
             />
             <AsyncSelection
-              type={filterValue?.categories?.parent.id ? "async" : "normal"}
+              type={"async"}
               forceRefetch={filterValue?.categories?.parent.id}
               data={(offset) =>
-                FetchCategory({
-                  ty: "child",
-                  offset: offset ?? 5,
-                  pid: filterValue?.categories?.parent.id,
-                }) as never
+                (filterValue?.categories?.parent.id
+                  ? FetchCategory({
+                      ty: "child",
+                      offset: offset ?? 5,
+                      pid: filterValue?.categories?.parent.id,
+                    })
+                  : undefined) as never
               }
               option={{
                 label: "Child Categories", // Fixed label that was incorrectly "Parent Categories"
@@ -138,23 +142,28 @@ const ManageContainer = ({ type, manage }: ManageContainerProps) => {
                   : undefined,
                 name: "child",
                 onChange: handleChange as never,
+                isDisabled: !filterValue?.categories?.parent.id,
               }}
             />
-          </>
+          </div>
         );
       }
 
       // Default case
       return (
-        <>
+        <div className="w-full h-fit flex flex-row gap-x-3">
           <AsyncSelection
             type="normal"
             data={() => BannerTypeSelect}
             option={{
+              label: "Banner Type",
               name: "bannertype",
-              selectedValue: filterValue?.bannertype
-                ? [filterValue.bannertype] // Fixed to use bannertype instead of bannersize
-                : undefined,
+              selectedValue:
+                type === "category"
+                  ? [type]
+                  : filterValue?.bannertype
+                  ? [filterValue.bannertype] // Fixed to use bannertype instead of bannersize
+                  : undefined,
               onChange: handleChange as never,
             }}
           />
@@ -162,6 +171,7 @@ const ManageContainer = ({ type, manage }: ManageContainerProps) => {
             type="normal"
             data={() => BannerSize}
             option={{
+              label: "Banner Size",
               name: "bannersize",
               selectedValue: filterValue?.bannersize
                 ? [filterValue.bannersize]
@@ -169,10 +179,17 @@ const ManageContainer = ({ type, manage }: ManageContainerProps) => {
               onChange: handleChange as never,
             }}
           />
-        </>
+        </div>
       );
     },
-    [filterValue, handleChange]
+    [
+      filterValue?.bannersize,
+      filterValue?.bannertype,
+      filterValue?.categories?.child?.id,
+      filterValue?.categories?.parent.id,
+      handleChange,
+      type,
+    ]
   );
 
   const handleSelect = useCallback(
@@ -188,21 +205,30 @@ const ManageContainer = ({ type, manage }: ManageContainerProps) => {
 
   return (
     <div className="w-full h-full flex flex-col items-start gap-y-4">
-      <div className="w-full bg-gray-50 p-4 rounded-lg">
-        <Input
-          name="search"
-          size="sm"
-          value={filterValue?.search ?? ""}
-          placeholder="Search"
-          onChange={handleChange}
-          className="mb-3"
-        />
-        <div className="w-full flex flex-row flex-wrap gap-3">
-          {renderFilterSelection(type)}
+      {items && items.length > 0 && (
+        <div className="w-full bg-gray-50 p-4 rounded-lg">
+          <Input
+            name="search"
+            size="sm"
+            value={filterValue?.search ?? ""}
+            placeholder="Search"
+            onChange={handleChange}
+            className="mb-3"
+          />
+          <div className="w-full flex flex-row flex-wrap gap-3">
+            {renderFilterSelection(type)}
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="w-full min-h-[200px] relative">
+        {!items ||
+          (items.length === 0 && (
+            <p className="w-full h-fit text-center text-lg text-gray-300 font-normal">
+              {" "}
+              No Items
+            </p>
+          ))}
         {isLoading ? (
           <div className="absolute inset-0 flex items-center justify-center">
             <CircularProgress />
@@ -221,7 +247,7 @@ const ManageContainer = ({ type, manage }: ManageContainerProps) => {
         )}
       </div>
 
-      {items.length >= itemsPerPage && (
+      {hasMore && (
         <Button
           onPress={handleLoadMore}
           size="sm"
