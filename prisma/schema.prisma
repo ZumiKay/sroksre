@@ -183,6 +183,7 @@ model Orders {
   estimate     DateTime?
   price        Json
   shippingtype String         @default("Normal")
+  orderDate    DateTime?
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
   shipping_id  Int?
@@ -233,7 +234,7 @@ model Homecontainer {
   scrollabletype String?
   amountofitem   Int?
   daterange      Json?
-  item           Containeritems[]
+  items          Containeritems[]
   createdAt      DateTime         @default(now())
   updateAt       DateTime         @updatedAt
 }

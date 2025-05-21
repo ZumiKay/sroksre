@@ -12,6 +12,7 @@ import React, {
   useState,
   useMemo,
   useRef,
+  ReactNode,
 } from "react";
 
 interface CustomOnChangeType extends SelectProps {
@@ -34,6 +35,7 @@ type AsyncSelectionProps = {
   option?: Partial<CustomOnChangeType>;
   reFetch?: boolean;
   forceRefetch?: number;
+  customRender?: (item: SelectType<string>) => ReactNode;
 };
 
 export const AsyncSelection = ({
@@ -42,6 +44,7 @@ export const AsyncSelection = ({
   type,
   reFetch = false,
   forceRefetch,
+  customRender,
 }: AsyncSelectionProps) => {
   const [loading, setLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
@@ -139,7 +142,7 @@ export const AsyncSelection = ({
       fetchData(offset);
       prevForceRefetch.current = forceRefetch;
     }
-  }, [fetchData, offset, isOpen, reFetch, forceRefetch]);
+  }, [offset, isOpen, reFetch, forceRefetch]);
 
   const handleLoadMore = useCallback(() => {
     if (isAsyncType && hasMore) {
@@ -171,6 +174,8 @@ export const AsyncSelection = ({
           (i) => String(i.value) === String(val.target.value)
         );
         option.onValueChange(val, selectedItem);
+      } else if (option?.onChange) {
+        option.onChange(val);
       }
     },
     [items, option]
@@ -185,12 +190,24 @@ export const AsyncSelection = ({
       onSelectionChange={setSelectedKey}
       isLoading={loading}
       ref={scrollerRef as never}
+      items={items}
+      renderValue={
+        customRender
+          ? (renderValues) =>
+              renderValues.map((item) => customRender(item.data as SelectType))
+          : undefined
+      }
     >
       {items && items.length === 0 ? (
         <SelectItem key={"none"}>None</SelectItem>
       ) : (
         items?.map((item) => (
-          <SelectItem key={item.value}>{item.label}</SelectItem>
+          <SelectItem
+            key={item.value}
+            textValue={customRender ? item.value.toString() : undefined}
+          >
+            {item.label}
+          </SelectItem>
         ))
       )}
     </Select>

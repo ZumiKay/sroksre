@@ -281,48 +281,74 @@ interface BannerProps {
 }
 
 export const Banner: React.FC<BannerProps> = (props) => {
-  const imgref = useRef(null);
+  const containerRef = useRef(null);
   const { scrollYProgress } = useScroll({
-    target: imgref,
+    target: containerRef,
     offset: ["start end", "end start"],
   });
-  const translateY = useTransform(scrollYProgress, [0, 1], ["10%", "-2%"]);
+
+  const translateY = useTransform(scrollYProgress, [0, 1], ["10%", "-5%"]);
+  const opacity = useTransform(
+    scrollYProgress,
+    [0, 0.3, 0.8, 1],
+    [0.6, 1, 1, 0.8]
+  );
+
   return (
     <div
       key={props.data.name}
-      style={props.style}
-      className="w-full h-auto max-h-[90vh] flex flex-col overflow-hidden bg-white relative"
-      ref={imgref}
+      style={{
+        ...props.style,
+        boxShadow: "0 4px 30px rgba(0, 0, 0, 0.1)",
+      }}
+      className="w-full h-auto max-h-[90vh] flex flex-col overflow-hidden bg-white relative rounded-lg"
+      ref={containerRef}
     >
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/70 z-10 pointer-events-none" />
+
       <motion.img
         src={props.data.image.url}
         alt={props.data.image.name}
-        style={{ translateY }}
+        style={{ translateY, opacity }}
         loading="lazy"
         width={600}
         height={600}
-        className="object-cover w-full h-auto max-h-[90vh] min-h-[600px]"
+        className="object-cover w-full h-auto max-h-[90vh] min-h-[600px] transition-all duration-300 hover:scale-[1.02]"
       />
-      <motion.h3
-        initial={{ paddingLeft: "0px" }}
-        whileInView={{ paddingLeft: "50px" }}
-        transition={{
-          duration: 2,
-          ease: "linear",
-        }}
-        className="w-[85%] h-fit absolute bottom-20 text-white font-black text-5xl"
-      >
-        {props.data.name}
-      </motion.h3>
-      {props.data.link && (
-        <PrimaryButton
-          text="Learn More"
-          width="270px"
-          height="50px"
-          type="button"
-          onClick={() => (window.location.href = props.data.link as string)}
-        />
-      )}
+
+      <div className="absolute bottom-0 left-0 w-full p-8 z-20 flex flex-col gap-6">
+        <motion.h3
+          initial={{ x: -50, opacity: 0 }}
+          whileInView={{ x: 0, opacity: 1 }}
+          transition={{
+            duration: 0.8,
+            ease: "easeOut",
+          }}
+          className="w-[85%] text-white font-black text-5xl md:text-6xl leading-tight drop-shadow-lg"
+        >
+          {props.data.name}
+        </motion.h3>
+
+        {props.data.link && (
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            whileInView={{ y: 0, opacity: 1 }}
+            transition={{
+              duration: 0.6,
+              delay: 0.3,
+              ease: "easeOut",
+            }}
+          >
+            <PrimaryButton
+              text="Learn More"
+              width="270px"
+              height="50px"
+              type="button"
+              onClick={() => (window.location.href = props.data.link as string)}
+            />
+          </motion.div>
+        )}
+      </div>
     </div>
   );
 };

@@ -44,10 +44,12 @@ export const ConfirmModal = () => {
   // Extract URL based on type to avoid repeated logic
   const getApiUrl = useMemo(() => {
     const { type } = openmodal.confirmmodal || {};
+
     if (type === "product") return "/api/products/crud";
     if (type === "banner") return "/api/banner";
     if (type === "promotion") return "/api/promotion";
     if (type === "user") return "/api/users";
+    if (type === "ordermanagement") return "/api/order/list";
     return "/api/users/info";
   }, [openmodal.confirmmodal]);
 
@@ -146,29 +148,42 @@ export const ConfirmModal = () => {
         setglobalindex((prev) => ({ ...prev, promotioneditindex: -1 }));
         setopenmodal((prev) => ({ ...prev, createPromotion: false }));
       } else {
-        const deleteRequest = await ApiRequest({
-          url: getApiUrl,
-          setloading: setisLoading,
-          method: "DELETE",
-          data: type !== "userinfo" ? { id: index } : {},
-        });
-
-        if (!deleteRequest.success) {
-          errorToast("Failed To Delete");
-          return;
+        if (onAsyncDelete) {
+          await onAsyncDelete();
         }
 
-        if (type === "user") {
-          setglobalindex((prev) => ({ ...prev, useredit: -1 }));
-          setopenmodal((prev) => ({ ...prev, createUser: false }));
+        if (
+          type === "banner" ||
+          type === "product" ||
+          type === "promotion" ||
+          type === "user" ||
+          type === "userinfo" ||
+          type === "ordermanagement"
+        ) {
+          const deleteRequest = await ApiRequest({
+            url: getApiUrl,
+            setloading: setisLoading,
+            method: "DELETE",
+            data: type !== "userinfo" ? { id: index } : {},
+          });
 
-          const param = new URLSearchParams(searchParam);
-          param.set("p", "1");
-          router.push(`?${param}`, { scroll: false });
+          if (!deleteRequest.success) {
+            errorToast("Failed To Delete");
+            return;
+          }
+
+          if (type === "user") {
+            setglobalindex((prev) => ({ ...prev, useredit: -1 }));
+            setopenmodal((prev) => ({ ...prev, createUser: false }));
+
+            const param = new URLSearchParams(searchParam);
+            param.set("p", "1");
+            router.push(`?${param}`, { scroll: false });
+          }
         }
-
-        if (onAsyncDelete) await onAsyncDelete();
-        if (onDelete) onDelete();
+        if (onDelete) {
+          onDelete();
+        }
       }
 
       // Reset confirm modal state

@@ -1,157 +1,24 @@
 import Prisma from "@/src/lib/prisma";
 import { NextRequest } from "next/server";
 import { extractQueryParams } from "../banner/route";
+import { Prisma as PrismaType } from "@prisma/client";
 
+import { calculateDiscountProductPrice } from "@/src/lib/utilities";
 import {
-  caculateArrayPagination,
-  calculateDiscountProductPrice,
-} from "@/src/lib/utilities";
-import { calculatePopularityScore } from "../categories/route";
-import {
-  Containertype,
   ContainerType,
   Homeitemtype,
-  ProductState,
-  RangeType,
+  ImageDatatype,
 } from "@/src/context/GlobalType.type";
 import { Homecontainer } from "@prisma/client";
+import {
+  fetchContainerById,
+  fetchContainers,
+  HomeDetailUpdate,
+} from "./extendRoute";
 
 interface Paramtype {
   ty?: "short" | "detail";
   id?: string;
-}
-
-export function SortProductByPopularScore(
-  product: Array<
-    Record<
-      keyof Pick<
-        ProductState,
-        "id" | "amount_incart" | "amount_sold" | "amount_wishlist"
-      >,
-      number
-    >
-  >
-) {
-  return product
-    ?.map((prod) => {
-      const score = calculatePopularityScore({
-        amount_incart: prod.amount_incart ?? 0,
-        amount_sold: prod.amount_sold ?? 0,
-        amount_wishlist: prod.amount_wishlist ?? 0,
-      });
-      return { id: prod.id, score };
-    })
-    .sort((a, b) => b.score - a.score);
-}
-export function SortProductByLatestAddDate(
-  product: Array<Record<keyof Pick<ProductState, "createdAt">, Date>>
-) {
-  return product.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-}
-
-async function fetchContainerById(id: string) {
-  return Prisma.homecontainer.findUnique({
-    where: { id: parseInt(id) },
-    select: {
-      id: true,
-      idx: true,
-      name: true,
-      type: true,
-      scrollabletype: true,
-      amountofitem: true,
-      daterange: true,
-      item: {
-        select: {
-          id: true,
-          product_id: true,
-          banner_id: true,
-          product: {
-            select: {
-              id: true,
-              name: true,
-              covers: {
-                select: {
-                  name: true,
-                  url: true,
-                  type: true,
-                },
-              },
-            },
-          },
-          banner: {
-            select: {
-              id: true,
-              name: true,
-              type: true,
-              size: true,
-            },
-          },
-        },
-      },
-    },
-  });
-}
-
-export async function fetchContainers(ty: string) {
-  if (ty === "detail") {
-    return Prisma.homecontainer.findMany({
-      orderBy: { idx: "asc" },
-      select: {
-        id: true,
-        idx: true,
-        name: true,
-        type: true,
-        scrollabletype: true,
-        amountofitem: true,
-        daterange: true,
-        item: {
-          select: {
-            id: true,
-            product_id: true,
-            banner_id: true,
-            product: {
-              select: {
-                id: true,
-                name: true,
-                discount: true,
-                price: true,
-                covers: {
-                  select: {
-                    name: true,
-                    url: true,
-                  },
-                },
-              },
-            },
-            banner: {
-              select: {
-                id: true,
-                name: true,
-                type: true,
-                link: true,
-                parentcate_id: true,
-                childcate_id: true,
-                selectedproduct_id: true,
-                promotionId: true,
-              },
-            },
-          },
-        },
-      },
-    });
-  } else {
-    return Prisma.homecontainer.findMany({
-      select: {
-        id: true,
-        idx: true,
-        name: true,
-        type: true,
-      },
-      orderBy: {
-        idx: "asc",
-      },
-    });
-  }
 }
 
 interface covertype {
@@ -166,7 +33,7 @@ interface formatContainerType extends Homecontainer {
     product?: {
       id: number;
       name: string;
-      covers: Array<covertype>;
+      covers: Array<ImageDatatype>;
       price: number;
       discount: number;
     };
@@ -226,6 +93,39 @@ export function formatContainer(result: formatContainerType) {
   };
 }
 
+const CheckCreateReq = (data: Homeitemtype) =>
+  !data.name ||
+  !data.type ||
+  !data.idx ||
+  !data.items ||
+  data.items.length === 0;
+
+export async function POST(req: NextRequest) {
+  try {
+    const createData = (await req.json()) as Homeitemtype;
+
+    if (CheckCreateReq(createData)) {
+      return Response.json({ error: "Invalid Param" }, { status: 400 });
+    }
+
+    await Prisma.homecontainer.create({
+      data: {
+        ...createData,
+        items: {
+          createMany: {
+            data: createData.items as never,
+          },
+        },
+      },
+    });
+
+    return Response.json({ message: "Item Created" }, { status: 200 });
+  } catch (error) {
+    console.log("Create HomeContainer", error);
+    return Response.json({ error: "Error Occured" }, { status: 500 });
+  }
+}
+
 export async function GET(request: NextRequest) {
   const url = request.url.toString();
   const { ty, id } = extractQueryParams(url) as Paramtype;
@@ -258,239 +158,73 @@ export async function GET(request: NextRequest) {
   }
 }
 
-interface editrequest extends Containertype {
-  ty?: string;
-  edititems?: Pick<Homeitemtype, "id" | "idx">[];
+interface editrequest {
+  ids?: Array<number>;
+  ty?: "order" | "info" | "containeritems";
+  edititems?: Array<Homeitemtype>;
 }
 
 export async function PUT(req: Request) {
-  const data = (await req.json()) as editrequest;
-  const id = data.id;
-
   try {
-    if (!data.ty && !id) {
-      return Response.json(
-        { success: false, message: "Invalid Request" },
-        { status: 400 }
-      );
-    }
+    const updateData: editrequest = await req.json();
 
-    if (data.ty === "idx" && data.edititems && data.edititems.length > 0) {
-      await Promise.all(
-        data.edititems.map((item) =>
-          Prisma.homecontainer.update({
-            where: { id: parseInt(item.id) },
-            data: { idx: item.idx },
-          })
-        )
-      );
+    const toUpdateItems: Partial<Array<Homeitemtype>> = [];
 
-      return Response.json(
-        { success: true, message: "HomeItems Updated" },
-        { status: 200 }
-      );
-    }
+    const defaultSelectParam: PrismaType.HomecontainerSelect = {
+      id: true,
+      idx: true,
+      ...(updateData.ty === "info" && {
+        name: true,
+        scrollabletype: true,
+        amountofitem: true,
+        daterange: true,
+        items: true,
+      }),
+    };
 
-    const container = await Prisma.homecontainer.findUnique({
-      where: { id },
-      include: { item: true },
+    const Items = await Prisma.homecontainer.findMany({
+      where: {
+        id: { in: updateData.ids },
+      },
+      select: defaultSelectParam,
     });
 
-    if (!container) {
-      return Response.json(
-        { success: false, message: "Container Not Found" },
-        { status: 404 }
-      );
+    if (Items.length === 0) {
+      return Response.json({ data: "No Items" }, { status: 404 });
     }
 
-    const updates: Partial<formatContainerType> = {};
-
-    // Check and update the name if it has changed
-    if (container.name !== data.name) {
-      const existingContainer = await Prisma.homecontainer.findFirst({
-        where: { name: data.name },
-        select: { name: true },
-      });
-
-      if (existingContainer) {
-        return Response.json(
-          { success: false, message: "Container Name Exists" },
-          { status: 400 }
-        );
-      }
-
-      updates.name = data.name;
-    }
-
-    const existdaterange = container.daterange as RangeType;
-
-    // Update the items when the amount of items or date range changes
-    if (
-      container.amountofitem &&
-      container.daterange &&
-      data.amountofitem &&
-      data.daterange &&
-      (data.amountofitem !== container.amountofitem ||
-        data.daterange.start !== existdaterange.start ||
-        data.daterange.end !== existdaterange.end)
-    ) {
-      updates.amountofitem = parseInt(data.amountofitem.toString());
-      updates.daterange = {
-        start: data.daterange.start,
-        end: data.daterange.end,
-      };
-
-      const product = await Prisma.products.findMany({
-        where: {
-          createdAt: {
-            gte: new Date(data.daterange.start),
-            lte: new Date(data.daterange.end),
-          },
-        },
-        select: {
-          id: true,
-          amount_incart: true,
-          amount_sold: true,
-          amount_wishlist: true,
-          createdAt: true,
-        },
-      });
-
-      const sortedProduct =
-        data.scrollabletype === "popular"
-          ? SortProductByPopularScore(product as never)
-          : SortProductByLatestAddDate(product);
-
-      const cutProduct = caculateArrayPagination(
-        sortedProduct,
-        1,
-        data.amountofitem
-      ) as unknown as ProductState[];
-      data.items = cutProduct.map((i) => {
-        const existingItem = data.items.find((item) => item.item_id === i.id);
-        return existingItem ? existingItem : { id: 0, item_id: i.id };
-      });
-    }
-
-    // Update the scrollable type if it has changed
-    if (container.scrollabletype !== data.scrollabletype) {
-      updates.scrollabletype = data.scrollabletype;
-
-      if (
-        data.amountofitem &&
-        (data.scrollabletype === "new" || data.scrollabletype === "popular")
-      ) {
-        const product = await Prisma.products.findMany({
-          where: data.daterange
-            ? {
-                createdAt: {
-                  gte: new Date(data.daterange.start),
-                  lte: new Date(data.daterange.end),
-                },
+    switch (updateData.ty) {
+      case "order":
+        if (updateData.edititems) {
+          updateData.edititems.forEach((edititem) => {
+            Items.forEach((item) => {
+              if (item.idx !== edititem.idx) {
+                toUpdateItems.push({ id: item.id, idx: edititem.idx } as never);
               }
-            : {},
-          select: {
-            id: true,
-            amount_incart: true,
-            amount_sold: true,
-            amount_wishlist: true,
-            createdAt: true,
-          },
-        });
-
-        const sortedProduct =
-          data.scrollabletype === "popular"
-            ? SortProductByPopularScore(product as never)
-            : SortProductByLatestAddDate(product);
-
-        const cutProduct = caculateArrayPagination(
-          sortedProduct,
-          1,
-          data.amountofitem
-        ) as ProductState[];
-
-        data.items = data.items.filter((i) =>
-          cutProduct.some((item) => item.id === i.item_id)
+            });
+          });
+        }
+        break;
+      case "info":
+        const updateProcess = await HomeDetailUpdate(
+          updateData.edititems as Array<Homeitemtype>,
+          Items as Array<Homeitemtype>,
+          updateData.ty
         );
-      }
+        if (!updateProcess) {
+          return Response.json(
+            { error: "Can't Update Items" },
+            { status: 500 }
+          );
+        }
+
+        break;
+
+      default:
+        return Response.json({ error: "Invalid Param" }, { status: 400 });
     }
 
-    // Check and update the idx if it has changed
-    if (container.idx !== data.idx) {
-      updates.idx = data.idx;
-    }
-
-    // Check and update the type if it has changed
-    if (container.type !== data.type) {
-      if (container.type === "scrollable" && container.daterange) {
-        updates.daterange = null;
-      }
-      updates.type = data.type;
-    }
-
-    // Update items if they have changed
-    const newItems = data.items;
-    const existingItems = container.item;
-
-    const itemsToCreate = newItems.filter(
-      (newItem) =>
-        !existingItems.some((existingItem) => existingItem.id === newItem.id)
-    );
-
-    const itemsToDelete = existingItems.filter(
-      (existingItem) =>
-        !newItems?.some((newItem) => newItem.id === existingItem.id)
-    );
-
-    const itemsToUpdate = newItems.filter((newItem) =>
-      existingItems.some(
-        (existingItem) =>
-          existingItem.id === newItem.id &&
-          ((existingItem.banner_id &&
-            existingItem.banner_id !== newItem.item_id) ||
-            (existingItem.product_id &&
-              existingItem.product_id !== newItem.item_id))
-      )
-    );
-
-    if (
-      itemsToCreate.length > 0 ||
-      itemsToDelete.length > 0 ||
-      itemsToUpdate.length > 0
-    ) {
-      updates.item = {
-        deleteMany: {
-          id: { in: itemsToDelete.map((item) => item.id) },
-        },
-        createMany: {
-          data:
-            container.type === "scrollable"
-              ? itemsToCreate.map((i) => ({ product_id: i.item_id }))
-              : itemsToCreate.map((i) => ({ banner_id: i.item_id })),
-        },
-        update: itemsToUpdate?.map((item) => ({
-          where: { id: item.id },
-          data:
-            container.type === "scrollable"
-              ? { product_id: item.item_id }
-              : { banner_id: item.item_id },
-        })),
-      } as never;
-    }
-
-    if (Object.keys(updates).length > 0) {
-      await Prisma.homecontainer.update({
-        where: { id },
-        data: updates as never,
-      });
-
-      return Response.json(
-        { success: true, message: "Container Updated" },
-        { status: 200 }
-      );
-    } else {
-      return Response.json({ success: true }, { status: 200 });
-    }
+    return Response.json({ message: "Update Successfully" }, { status: 200 });
   } catch (error) {
     console.error("Edit container error:", error);
     return Response.json(

@@ -114,7 +114,7 @@ export async function PUT(request: NextRequest) {
       where: {
         id: updateData.id,
       },
-      data: { ...updateData },
+      data: updateData as never,
     });
     return Response.json({ message: "User Updated" }, { status: 200 });
   } catch (error) {

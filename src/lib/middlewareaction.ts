@@ -1,78 +1,147 @@
 import { Role } from "@prisma/client";
 
-export type methodtype = "POST" | "PUT" | "GET" | "DELETE";
+export type MethodType = "POST" | "PUT" | "GET" | "DELETE";
 
-const allAdminRoute: Map<string, methodtype[]> = new Map([
-  ["/products/crud", ["POST", "PUT", "DELETE"]],
-  ["/banner", ["POST", "PUT", "DELETE"]],
-  ["/image", ["DELETE"]],
-  ["/categories", ["POST", "PUT", "DELETE"]],
-  ["/users", ["GET", "DELETE", "POST", "PUT"]],
-  ["/users/info", ["GET", "POST", "PUT", "DELETE"]],
-  ["/products", ["POST", "PUT", "DELETE"]],
-  ["/products/cover", ["POST", "PUT", "DELETE", "GET"]],
-  ["/products/variant/template", ["POST", "PUT", "GET", "DELETE"]],
-  ["/promotion", ["POST", "PUT", "DELETE", "GET"]],
-  ["/policy", ["POST", "PUT", "DELETE", "GET"]],
-  ["/users/notification", ["POST", "GET", "DELETE"]],
-  ["/order", ["POST", "PUT", "GET", "DELETE"]],
-  ["/home/product", ["GET"]],
-  ["/home/banner", ["GET"]],
-  ["/home", ["POST", "PUT", "DELETE", "GET"]],
-  ["/users/logout", ["DELETE"]],
-]);
+// Immutable route definitions using Maps for O(1) lookup performance
+const ADMIN_ROUTES: ReadonlyMap<string, ReadonlySet<MethodType>> = new Map([
+  ["/products/crud", new Set(["POST", "PUT", "DELETE"])],
+  ["/banner", new Set(["POST", "PUT", "DELETE", "GET"])],
+  ["/image", new Set(["POST", "DELETE"])],
+  ["/categories", new Set(["POST", "PUT", "DELETE"])],
+  ["/users", new Set(["GET", "DELETE", "POST", "PUT"])],
+  ["/users/admin", new Set(["GET", "PUT"])],
+  ["/users/info", new Set(["GET", "POST", "PUT", "DELETE"])],
+  ["/products", new Set(["POST", "PUT", "DELETE"])],
+  ["/products/cover", new Set(["POST", "PUT", "DELETE", "GET"])],
+  ["/products/variant/template", new Set(["POST", "PUT", "GET", "DELETE"])],
+  ["/promotion", new Set(["POST", "PUT", "DELETE", "GET"])],
+  ["/policy", new Set(["POST", "PUT", "DELETE", "GET"])],
+  ["/users/notification", new Set(["POST", "GET", "DELETE"])],
+  ["/order", new Set(["POST", "PUT", "GET", "DELETE"])],
+  ["/home/product", new Set(["GET"])],
+  ["/home/banner", new Set(["GET"])],
+  ["/home", new Set(["POST", "PUT", "DELETE", "GET"])],
+  ["/users/logout", new Set(["DELETE"])],
+]) as never;
 
-const allPublicRoute: Map<string, methodtype[]> = new Map([
-  ["/products", ["GET"]],
-  ["/products/relatedproduct", ["GET"]],
-  ["/categories", ["GET"]],
-  ["/categories/select", ["GET"]],
-  ["/auth/register", ["POST"]],
-  ["/order/cart/check", ["POST"]],
-  ["/users/vfy", ["POST", "DELETE", "GET"]],
-]);
+const PUBLIC_ROUTES: ReadonlyMap<string, ReadonlySet<MethodType>> = new Map([
+  ["/products", new Set(["GET"])],
+  ["/products/relatedproduct", new Set(["GET"])],
+  ["/categories", new Set(["GET"])],
+  ["/categories/select", new Set(["GET"])],
+  ["/auth/register", new Set(["POST"])],
+  ["/order/cart/check", new Set(["POST"])],
+  ["/users/vfy", new Set(["POST", "DELETE", "GET"])],
+]) as never;
 
-const userRoute: Map<string, methodtype[]> = new Map([
-  ["/users/logout", ["DELETE"]],
-  ["/auth/users/info", ["GET", "DELETE"]],
-  ["/policy", ["GET"]],
-  ["/order", ["POST", "PUT", "GET", "DELETE"]],
-  ["/order/cart", ["POST", "GET", "DELETE"]],
-  ["/users/info", ["GET", "POST", "PUT", "DELETE"]],
-  ["/users/logout", ["DELETE"]],
-]);
+const USER_ROUTES: ReadonlyMap<string, ReadonlySet<MethodType>> = new Map([
+  ["/users/logout", new Set(["DELETE"])],
+  ["/auth/users/info", new Set(["GET", "DELETE"])],
+  ["/policy", new Set(["GET"])],
+  ["/order", new Set(["POST", "PUT", "GET", "DELETE"])],
+  ["/order/cart", new Set(["POST", "GET", "DELETE"])],
+  ["/users/info", new Set(["GET", "POST", "PUT", "DELETE"])],
+]) as never;
 
-export const VerifyApiRoute = (
-  url: string,
-  method: methodtype,
+/**
+ * Verifies if a request to a specific API route is allowed based on the user's role.
+ *
+ * @param path The API route path
+ * @param method The HTTP method
+ * @param role The user's role (or null if not authenticated)
+ * @returns Object indicating whether access is allowed, with optional reason
+ */
+export const verifyApiRoute = (
+  path: string,
+  method: MethodType,
   role: Role | null
-): { success: boolean } => {
-  const normalizedUrl = url.toLowerCase();
-
-  if (!Role) {
-    return { success: false };
+): { success: boolean; reason?: string } => {
+  // Security validation: Ensure parameters are valid
+  if (!path || !method) {
+    return { success: false, reason: "INVALID_PARAMETERS" };
   }
 
-  const isUserRoute = userRoute.get(normalizedUrl)?.includes(method);
+  // Normalize path by removing trailing slashes and converting to lowercase
+  const normalizedPath = path.toLowerCase().replace(/\/+$/, "");
 
-  // Check if it's a valid user route
-  if (isUserRoute && role === Role.USER) {
+  if (normalizedPath.startsWith("/auth")) {
     return { success: true };
   }
+  if (role === null) {
+    // Check if user is authenticated when required
+    // Check if this is a public route that doesn't require authentication
+    const isPublicPath = PUBLIC_ROUTES.has(normalizedPath);
+    const isPublicMethod =
+      isPublicPath && PUBLIC_ROUTES.get(normalizedPath)?.has(method);
 
-  // Check if it's a valid admin route
-  const isAdminRoute = allAdminRoute.get(normalizedUrl)?.includes(method);
-  if (isAdminRoute && role === Role.ADMIN) {
-    return { success: true };
+    if (isPublicMethod) {
+      return { success: true };
+    }
+
+    return { success: false, reason: "AUTHENTICATION_REQUIRED" };
   }
 
-  if (isAdminRoute && role !== Role.ADMIN) {
-    return { success: false };
+  // ADMIN role has access to both admin and user routes
+  if (role === Role.ADMIN) {
+    // Check admin routes
+    const isAdminPath = ADMIN_ROUTES.has(normalizedPath);
+    const isAdminMethod =
+      isAdminPath && ADMIN_ROUTES.get(normalizedPath)?.has(method);
+
+    if (isAdminMethod) {
+      return { success: true };
+    }
+
+    // Check user routes as admin can access user routes too
+    const isUserPath = USER_ROUTES.has(normalizedPath);
+    const isUserMethod =
+      isUserPath && USER_ROUTES.get(normalizedPath)?.has(method);
+
+    if (isUserMethod) {
+      return { success: true };
+    }
+
+    // Check public routes
+    const isPublicPath = PUBLIC_ROUTES.has(normalizedPath);
+    const isPublicMethod =
+      isPublicPath && PUBLIC_ROUTES.get(normalizedPath)?.has(method);
+
+    if (isPublicMethod) {
+      return { success: true };
+    }
+
+    return { success: false, reason: "ACCESS_DENIED" };
   }
 
-  if (!isAdminRoute && !isUserRoute) {
-    return { success: true };
+  // USER role can only access user routes and public routes
+  if (role === Role.USER) {
+    // Check user routes
+    const isUserPath = USER_ROUTES.has(normalizedPath);
+    const isUserMethod =
+      isUserPath && USER_ROUTES.get(normalizedPath)?.has(method);
+
+    if (isUserMethod) {
+      return { success: true };
+    }
+
+    // Check public routes
+    const isPublicPath = PUBLIC_ROUTES.has(normalizedPath);
+    const isPublicMethod =
+      isPublicPath && PUBLIC_ROUTES.get(normalizedPath)?.has(method);
+
+    if (isPublicMethod) {
+      return { success: true };
+    }
+
+    return { success: false, reason: "ACCESS_DENIED" };
   }
 
-  return { success: false };
+  return { success: false, reason: "INVALID_ROLE" };
+};
+
+// Export route maps for testing purposes
+export const ROUTES = {
+  ADMIN: ADMIN_ROUTES,
+  USER: USER_ROUTES,
+  PUBLIC: PUBLIC_ROUTES,
 };

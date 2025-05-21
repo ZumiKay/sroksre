@@ -8,7 +8,7 @@ import { useGlobalContext } from "@/src/context/GlobalContext";
 import { useSocket } from "@/src/context/SocketContext";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { infoToast } from "../Loading";
+import { ContainerLoading, infoToast } from "../Loading";
 import Image from "next/image";
 import CookieConsent from "react-cookie-consent";
 import Link from "next/link";
@@ -29,7 +29,7 @@ import CreateHomeItemModal from "../HomeItem/CreateModal";
 export default function Navbar() {
   const { cart, setcart, carttotal, setcarttotal, setopenmodal, openmodal } =
     useGlobalContext();
-  const { user } = useCheckSession();
+  const { user, status } = useCheckSession();
   const { isMobile } = useScreenSize();
   const socket = useSocket();
   const router = useRouter();
@@ -109,6 +109,7 @@ export default function Navbar() {
 
   return (
     <>
+      {status === "loading" && <ContainerLoading />}
       {openmodal.mangageHomeItem && <CreateHomeItemModal />}
       <nav className="navbar__container sticky top-0 z-50 w-full h-[60px] bg-[#F3F3F3] flex flex-row justify-between item-center">
         {categories && <CategoriesContainer setopen={setcategories} />}

@@ -1,75 +1,106 @@
-import { PolicyButton, QuestionCard, SidePolicyBar } from "./component";
-
+"use client";
+import { QuestionCard, SidePolicyBar } from "./component";
+import { Addpolicytype, Addquestiontype } from "./action";
+import { use, useCallback, useEffect, useMemo, useState } from "react";
+import { ApiRequest, useCheckSession } from "@/src/context/CustomHook";
+import { Policy, Question } from "@prisma/client";
 import {
-  Addpolicytype,
-  Addquestiontype,
-  getAllPolicy,
-  getPolicyById,
-} from "./action";
-import { notFound } from "next/navigation";
-import { Suspense } from "react";
-import LoadingIcon from "../component/Loading";
-import { Props } from "../product/page";
-import { Metadata } from "next";
-import Prisma from "@/src/lib/prisma";
-import { getUser } from "../action";
+  ContainerLoading,
+  errorToast,
+  successToast,
+} from "../component/Loading";
+import { useRouter } from "next/navigation";
+import { useGlobalContext } from "@/src/context/GlobalContext";
+import { AddPolicyModal } from "../component/Modals/CreatePolicyModal";
+import { Showtypemodal } from "./secondcomponent";
+import { ConfirmModal } from "../component/Modals/Alert_Modal";
+import { Typeofpolicy } from "@/src/context/GlobalType.type";
+import { Button } from "@heroui/react";
 
-export async function generateMetadata(props: Props): Promise<Metadata> {
-  const searchParams = await props.searchParams;
-  const { p } = searchParams;
-  const page = p ? parseInt(p.toString()) : undefined;
+type PageParamType = {
+  p?: string;
+};
 
-  if (!page && page !== 0) {
-    return {
-      title: "Policy And Privacy Information | SrokSre",
-      description:
-        "Shipping Policy , Return Policy , FAQs , Frequently Ask Question",
-    };
-  }
+const policies = [{ id: 0, title: "Frequency Ask Question" }];
 
-  if (page === 0) {
-    return {
-      title: "Frequent Ask Question | SrokSre",
-      description:
-        "Question Frequent Asked By Custommer Through Our Email Or Contact",
-    };
-  }
-  let title = "";
-
-  const policy = await Prisma.policy.findUnique({ where: { id: page } });
-
-  if (policy) {
-    title = `${policy.title} | SrokSre`;
-  }
-
-  return { title: title, description: "Policy in our online store" };
-}
-
-export default async function PrivacyandPolicy(props: {
+export default function PrivacyandPolicy(props: {
   searchParams?: Promise<{ [key: string]: string | undefined }>;
 }) {
-  const searchParams = await props.searchParams;
-  const params = searchParams;
-  const pageId = params?.p ? parseInt(params.p) : undefined;
-  const user = await getUser();
-  const allpolicy = await getAllPolicy();
-  let policy: Addpolicytype | Addquestiontype[] | null = null;
+  const { openmodal, setopenmodal } = useGlobalContext();
+  const searchParams = use(props.searchParams as never);
+  const [loading, setloading] = useState(false);
+  const [isEdit, setIsEdit] = useState(false);
+  const { user } = useCheckSession();
+  const params = searchParams as PageParamType;
+  const router = useRouter();
 
-  if (pageId || pageId === 0) {
-    policy = (await getPolicyById(pageId)) as never;
+  const pageId = useMemo(
+    () => (params?.p ? parseInt(params.p) : undefined),
+    [params.p]
+  );
 
-    if (!policy) {
-      return notFound();
+  const [page, setpage] = useState<number | undefined>(pageId);
+  const [allpolicy, setallpolicy] = useState<Array<Policy>>();
+
+  const [policy, setpolicy] = useState<
+    Policy | Array<Policy> | Array<Question> | null
+  >(null);
+  const [pageTitle, setPageTitle] = useState<string>(
+    "Privacy Policy | SrokSre"
+  );
+
+  // Update the title state when dependencies change
+  useEffect(() => {
+    if (page === 0) {
+      setPageTitle("Frequent Ask Question | SrokSre");
+    } else if (page !== undefined && (policy as Policy)?.title) {
+      setPageTitle(`${(policy as Policy).title} | SrokSre`);
+    } else {
+      setPageTitle("Privacy Policy | SrokSre");
     }
-  }
+  }, [page, policy]);
 
-  const ShowTitle = () => {
+  useEffect(() => {
+    async function GetAllPolicy() {
+      setloading(true);
+      const makeReq = await ApiRequest({
+        url: "/api/policy?type=all",
+        method: "GET",
+      });
+      setloading(false);
+      if (!makeReq.success) {
+        errorToast("Error Connection");
+        return;
+      }
+      setallpolicy(makeReq.data as Array<Policy>);
+    }
+    GetAllPolicy();
+  }, []);
+
+  useEffect(() => {
+    async function FetchData() {
+      setloading(true);
+      const getReq = await ApiRequest({
+        url: `/api/policy?type=${page === 0 ? "faq" : page ? "id" : "all"}${
+          page ? `&id=${page}` : ""
+        }`,
+        method: "GET",
+      });
+      setloading(false);
+      if (getReq.data) {
+        setpolicy(getReq.data as never);
+      }
+    }
+    FetchData();
+  }, [page]);
+
+  const ShowTitle = useCallback(() => {
     const title =
       pageId === 0
         ? "FAQs (Frequent Ask Question)"
         : policy
         ? "title" in policy
-          ? (policy as Addpolicytype).title
+          ? (policy as Policy).title
           : undefined
         : undefined;
 
@@ -78,72 +109,152 @@ export default async function PrivacyandPolicy(props: {
         {title}
       </h3>
     );
-  };
+  }, [pageId, policy]);
+
+  const handleNavigateSideBar = useCallback(
+    (key: number) => {
+      const params = new URLSearchParams(searchParams as never);
+      let value: number | undefined = undefined;
+
+      if (pageId === key) {
+        params.delete("p");
+      } else {
+        params.set("p", key.toString());
+        value = key;
+      }
+      setpage(value);
+      router.push(`?${params}`);
+    },
+    [pageId, router, searchParams]
+  );
+
+  const deleteRequest = useCallback(
+    async (id: number, type: Typeofpolicy) => {
+      const makeReq = await ApiRequest({
+        url: `/api/policy?ty=${type}id=${id}`,
+        method: "DELETE",
+      });
+      if (!makeReq.success) {
+        errorToast("Can't Delete Policy");
+        return;
+      }
+      successToast("Policy Deleted");
+
+      //Update Policy
+      const param = new URLSearchParams(searchParams as never);
+      param.delete("p");
+      router.push(`${param}`);
+    },
+    [router, searchParams]
+  );
+  const handleClickBtn = useCallback(
+    ({
+      type,
+      id,
+      deltype,
+    }: {
+      type: "Edit" | "Delete" | "Showtype";
+      id?: number;
+      deltype?: Typeofpolicy;
+    }) => {
+      switch (type) {
+        case "Delete":
+          setopenmodal({
+            confirmmodal: {
+              open: true,
+              onAsyncDelete:
+                id && deltype ? () => deleteRequest(id, deltype) : undefined,
+            },
+          });
+          break;
+        case "Edit":
+          setIsEdit(true);
+          setopenmodal({ addpolicy: true });
+          break;
+        case "Showtype":
+          setopenmodal({ policyshowtype: true });
+          break;
+
+        default:
+          break;
+      }
+    },
+    [deleteRequest, setopenmodal]
+  );
 
   return (
-    <div className="w-full min-h-screen">
-      <SidePolicyBar
-        isAdmin={user?.role === "ADMIN"}
-        data={[
-          { id: 0, content: "FAQs" },
-          ...allpolicy.map((i) => ({ id: i.id, content: i.title })),
-        ]}
-      />
-      <div className="w-full content max-smallest_screen:pl-[5%] pl-[25%] pr-[10%] pt-5">
-        {!params?.p ? (
-          <>
-            <h2 className="text-5xl font-bold w-full">
-              Policies and More Informations
-            </h2>
-          </>
-        ) : (
-          <>
-            <div className="w-full h-fit flex flex-col items-start gap-y-5 mb-10">
-              <ShowTitle />
-              {pageId !== 0 && user && user.role === "ADMIN" && (
-                <div className="w-full overflow-x-auto">
-                  <div className="w-full min-w-[280px] h-[40px] flex flex-row gap-6 items-center justify-start">
-                    <PolicyButton
-                      title="Edit"
-                      ty="edit"
-                      color="#4688A0"
-                      policydata={policy as unknown as Addpolicytype}
-                    />
-                    <PolicyButton
-                      title="Show"
-                      ty="showtype"
-                      color="black"
-                      showtype={(policy as unknown as Addpolicytype).showtype}
-                      pid={pageId}
-                    />
-                    <PolicyButton
-                      title="Delete"
-                      ty="delete"
-                      color="lightcoral"
-                      pid={pageId}
-                    />
+    <>
+      {openmodal["addpolicy"] && (
+        <AddPolicyModal
+          plc={isEdit ? (policy as unknown as Addpolicytype) : undefined}
+          edit={isEdit}
+        />
+      )}
+      {/*  */}
+      {openmodal.policyshowtype && page && (
+        <Showtypemodal
+          id={page}
+          value={new Set((policy as Policy).showtype ?? [""])}
+        />
+      )}
+      {openmodal.confirmmodal?.open && <ConfirmModal />}
+      <div className="w-full min-h-screen flex flex-row items-start pt-3">
+        {loading && <ContainerLoading />}
+        <SidePolicyBar
+          handleNavigate={handleNavigateSideBar}
+          page={page}
+          data={[...policies, ...(allpolicy ?? [])]}
+        />
+        <div className="w-full content pl-5 max-large_tablet:pl-0">
+          {!params?.p ? (
+            <>
+              <h2 className="text-5xl font-bold w-full">
+                Policies and More Information
+              </h2>
+            </>
+          ) : (
+            <>
+              <div className="w-full h-fit flex flex-col items-start gap-y-5 mb-10">
+                <ShowTitle />
+                {pageId !== 0 && user && user.role === "ADMIN" && (
+                  <div className="w-full overflow-x-auto">
+                    <div className="w-full min-w-[280px] h-[40px] flex flex-row gap-6 items-center justify-start">
+                      <Button
+                        className="font-bold bg-paid text-white"
+                        onPress={() => handleClickBtn({ type: "Edit" })}
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        className="font-bold bg-incart text-white"
+                        onPress={() => handleClickBtn({ type: "Showtype" })}
+                      >
+                        Display
+                      </Button>
+                      <Button className="font-bold text-white bg-red-400">
+                        Delete
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
 
-            <Suspense fallback={<LoadingIcon />}>
               {pageId !== 0 ? (
                 <PolicyContent
-                  paragrah={policy as unknown as Addpolicytype}
+                  paragrah={(policy as unknown as Addpolicytype) ?? []}
                   isAdmin={user?.role === "ADMIN"}
                 />
               ) : (
                 <PolicyContent
-                  question={policy as unknown as Addquestiontype[]}
+                  question={(policy as unknown as Array<Addquestiontype>) ?? []}
                   isAdmin={user?.role === "ADMIN"}
                 />
               )}
-            </Suspense>
-          </>
-        )}
+            </>
+          )}
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -157,7 +268,7 @@ const PolicyContent = ({ paragrah, question, isAdmin }: Policycontent) => {
   return (
     <div className="w-full h-fit flex flex-col gap-y-5">
       {paragrah ? (
-        paragrah.Paragraph.map((i, idx) => (
+        paragrah.Paragraph?.map((i, idx) => (
           <div key={idx} className="w-full h-fit flex flex-col gap-5">
             {i.title && <h3 className="text-xl font-bold">{i.title}</h3>}
             <p
@@ -170,18 +281,19 @@ const PolicyContent = ({ paragrah, question, isAdmin }: Policycontent) => {
         ))
       ) : (
         <>
-          {!question?.length && (
+          {!question || !Array.isArray(question) || question.length === 0 ? (
             <h3 className="font-bold text-lg text-red-500">No question</h3>
+          ) : (
+            question.map((q, idx) => (
+              <QuestionCard
+                key={idx}
+                isAdmin={isAdmin}
+                isEdit={true}
+                idx={idx}
+                data={q}
+              />
+            ))
           )}
-          {question?.map((q, idx) => (
-            <QuestionCard
-              key={idx}
-              isAdmin={isAdmin}
-              isEdit={true}
-              idx={idx}
-              data={q}
-            />
-          ))}
         </>
       )}
     </div>

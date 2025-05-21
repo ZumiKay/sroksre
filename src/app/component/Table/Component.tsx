@@ -39,7 +39,7 @@ export const ActionContainer = ({
         <Button
           variant="solid"
           size="lg"
-          className="w-[100px] p-2 text-sm text-black bg-green-400 h-full font-bold"
+          className="w-[100px] p-2 text-sm text-white bg-green-400 h-full font-bold"
         >
           Actions
         </Button>

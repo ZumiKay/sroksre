@@ -107,7 +107,7 @@ const fetchPromotion = async (id: number, page: number, show: number) => {
         select: {
           id: true,
           name: true,
-          image: true,
+          Image: true,
         },
       },
       Products: {
@@ -144,7 +144,7 @@ const fetchPromotion = async (id: number, page: number, show: number) => {
 
     banner: {
       ...promotion?.banner,
-      image: promotion?.banner?.image as unknown as {
+      image: promotion?.banner?.Image as unknown as {
         url: string;
         name: string;
       },
@@ -218,11 +218,9 @@ const isArrayWithEmptyStrings = (arr?: string[]): boolean => {
   return arr.every((item) => item === "");
 };
 
-export default async function ProductsPage(
-  props: {
-    searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
-  }
-) {
+export default async function ProductsPage(props: {
+  searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
   const searchParams = await props.searchParams;
   const {
     pid,

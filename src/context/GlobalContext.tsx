@@ -11,6 +11,7 @@ import {
   filterinventorytype,
   FilterValueType,
   GlobalIndexState,
+  Homeitemtype,
   ItemLength,
   Listproductfilter,
   LoadingState,
@@ -163,6 +164,10 @@ interface ContextType {
   setfiltervalue: React.Dispatch<
     React.SetStateAction<FilterValueType | undefined>
   >;
+  homeContainer?: Homeitemtype;
+  sethomeContainer: React.Dispatch<
+    React.SetStateAction<Homeitemtype | undefined>
+  >;
 }
 const GlobalContext = React.createContext<ContextType | null>(null);
 
@@ -191,6 +196,7 @@ export const GlobalContextProvider = ({
   const [cart, setcart] = useState(false);
   const [carttotal, setcarttotal] = useState(0);
   const [filtervalue, setfiltervalue] = useState<FilterValueType>();
+  const [homeContainer, sethomeContainer] = useState<Homeitemtype>();
   const [productorderdetail, setproductorderdetail] =
     useState<Productordertype>(Productdetailinitialize);
 
@@ -265,6 +271,8 @@ export const GlobalContextProvider = ({
         setuser,
         carttotal,
         setcarttotal,
+        homeContainer,
+        sethomeContainer,
       }}
     >
       {children}

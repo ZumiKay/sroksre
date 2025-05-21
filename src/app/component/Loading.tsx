@@ -1,9 +1,10 @@
-"use client"
+"use client";
 import { toast } from "react-toastify";
 import "../globals.css";
-import { CSSProperties } from "react";
+import { CSSProperties, useEffect, useState } from "react";
 import { CircularProgress } from "@heroui/react";
 import { SecondaryModal } from "./Modals";
+import { motion } from "framer-motion";
 
 export default function LoadingIcon() {
   return (
@@ -85,18 +86,100 @@ export const infoToast = (message: string, onClose?: () => void) => {
   }
 };
 
-export const ContainerLoading = () => {
+type LoadingProps = {
+  message?: string;
+  showAfterDelay?: boolean;
+  delayMs?: number;
+};
+
+export const ContainerLoading = ({
+  message = "Loading your content...",
+  showAfterDelay = true,
+  delayMs = 300,
+}: LoadingProps) => {
+  const [visible, setVisible] = useState(!showAfterDelay);
+
+  // Only show loading indicator after a brief delay to avoid flashing for quick operations
+  useEffect(() => {
+    if (showAfterDelay) {
+      const timer = setTimeout(() => setVisible(true), delayMs);
+      return () => clearTimeout(timer);
+    }
+  }, [showAfterDelay, delayMs]);
+
+  if (!visible) return null;
+
   return (
     <SecondaryModal open={true} size="sm">
-      <div className="loading_contianer w-full h-full bg-white rounded-lg p-5 grid place-content-center relative">
-        <div className="loadingio-spinner-double-ring-op62hjn5ktc relative left-[16%] top-[10%]">
-          <div className="ldio-jhvhak8eufc">
-            <div></div>
-            <div></div>
-            <div></div>
-          </div>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.3 }}
+        className="loading-container w-full h-full bg-white rounded-lg p-8 flex flex-col items-center justify-center gap-6"
+        role="alert"
+        aria-busy="true"
+        aria-live="polite"
+      >
+        {/* Loading spinner with improved animation */}
+        <div className="loading-spinner relative">
+          <motion.div
+            animate={{
+              rotate: 360,
+            }}
+            transition={{
+              duration: 1.5,
+              repeat: Infinity,
+              ease: "linear",
+            }}
+            className="w-16 h-16 border-4 border-incart border-r-transparent border-b-incart border-l-transparent rounded-full"
+          />
+
+          <motion.div
+            animate={{
+              rotate: -360,
+            }}
+            transition={{
+              duration: 2.5,
+              repeat: Infinity,
+              ease: "linear",
+            }}
+            className="w-10 h-10 border-4 border-t-transparent border-incart border-b-transparent border-l-incart rounded-full absolute top-3 left-3"
+          />
         </div>
-      </div>
+
+        {/* Loading message */}
+        <motion.p
+          className="text-gray-700 text-lg font-medium text-center"
+          initial={{ opacity: 0, y: 5 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+        >
+          {message}
+        </motion.p>
+
+        {/* Progress dots animation */}
+        <motion.div
+          className="flex space-x-2 mt-1"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3 }}
+        >
+          {[0, 1, 2].map((dot) => (
+            <motion.div
+              key={dot}
+              className="w-2 h-2 bg-incart rounded-full"
+              initial={{ opacity: 0.3 }}
+              animate={{ opacity: [0.3, 1, 0.3] }}
+              transition={{
+                duration: 1.5,
+                repeat: Infinity,
+                delay: dot * 0.3,
+                ease: "easeInOut",
+              }}
+            />
+          ))}
+        </motion.div>
+      </motion.div>
     </SecondaryModal>
   );
 };

@@ -452,7 +452,10 @@ export default function Inventory(props: {
           />
         )}
         {openmodal.filteroption && (
-          <FilterMenu type={type} reloaddata={() => setreloaddata(true)} />
+          <FilterMenu
+            type={type as never}
+            reloaddata={() => setreloaddata(true)}
+          />
         )}
         {openmodal.discount && <DiscountModals />}
 

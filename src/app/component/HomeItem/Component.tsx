@@ -1,8 +1,8 @@
 import { JSX } from "react";
 import { CircleCheckMark } from "../Asset";
 import {
+  ContainerItemCardType,
   ContainerType,
-  HomeContainerItemType,
 } from "@/src/context/GlobalType.type";
 
 interface ItemTypeCard {
@@ -44,8 +44,8 @@ export const ItemTypeCard = ({
 };
 
 type ItemCardProps = {
-  item: HomeContainerItemType;
-  onSelect: (val: number | string) => void;
+  item: ContainerItemCardType;
+  onSelect: (val: number) => void;
   isSelected: boolean;
 };
 export const ItemCard = ({ item, onSelect, isSelected }: ItemCardProps) => {

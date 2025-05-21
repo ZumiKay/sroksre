@@ -23,7 +23,7 @@ import { HasPartialOverlap } from "@/src/lib/utilities";
 import { NormalSkeleton } from "../Banner";
 import React from "react";
 import {
-  Colorinitalize,
+  colorPalette,
   Colortype,
   ProductState,
   Stocktype,
@@ -81,7 +81,7 @@ export const Variantcontainer = ({
   const [temp, settemp] = useState<variantdatatype>();
   const [reloadtemp, setreloadtemp] = useState(true);
   const [colordata, setcolordata] = useState<ColorDataType>({
-    color: Colorinitalize,
+    color: colorPalette,
     name: "",
   });
   const [open, setopen] = useState({

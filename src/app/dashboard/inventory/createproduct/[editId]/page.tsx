@@ -62,7 +62,7 @@ const CreateProductPage = (props: { params: Promise<{ editId?: string }> }) => {
       };
       asyncGetData();
     }
-  }, [Router, params.editId, setglobalindex, setproduct]);
+  }, [params.editId]);
 
   useEffect(() => {
     if (tempProduct) {

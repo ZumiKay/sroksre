@@ -3,6 +3,7 @@ import * as XLSX from "xlsx";
 import { useGlobalContext } from "@/src/context/GlobalContext";
 import {
   AllorderStatus,
+  DownloadData,
   Filterdatatype,
   ModalDataType,
   OrderDetailType,
@@ -20,57 +21,44 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { DetailModal, OrderProductDetailsModal } from "./Detail_Component";
 import { AllorderType } from "@/src/lib/utilities";
 import { OrderUserType } from "../../checkout/action";
+import { GetOrder } from "./actions";
 
 export const DownloadButton = () => {
   const { openmodal, setopenmodal } = useGlobalContext();
   const [open, setopen] = useState(false);
   const [totalcount, settotalcount] = useState(0);
+  const params = useSearchParams();
   const [loading, setloading] = useState(false);
   const [downloaddata, setdata] = useState({
     filename: "",
     filedata: [],
   });
-  const handleGetData = useCallback(async (filterdata: Filterdatatype) => {
-    //get order data
-    setloading(true);
-    const orderdata = await ExportOrderData({
-      ...filterdata,
-      orderdate: undefined,
-      fromdate:
-        filterdata.fromdate && (filterdata.fromdate as Dayjs).toString(),
-      todate: filterdata.todate && (filterdata.todate as Dayjs).toString(),
-    });
-    setloading(false);
+  const handleGetData = useCallback(
+    async (filterdata: Filterdatatype) => {
+      //get order data
+      setloading(true);
 
-    if (!orderdata.success && !orderdata.data) {
-      errorToast("Error occured");
-      return;
-    }
-    const exporteddata: Array<{ [x: string]: unknown }> = [];
-    orderdata.data?.forEach((i) => {
-      i.Orderproduct.forEach((j) => {
-        const price = i.price as unknown as totalpricetype;
-        exporteddata.push({
-          OrderID: i.id,
-          OrderDate: i.createdAt,
-          ProductName: j.product.name,
-          ProductPricePerUnit: j.product.price,
-          ProductDisount: j.product.discount,
-          ShippingType: i.shippingtype,
-          ShippingPrice: price.shipping ?? 0,
-          TotalPrice: price.total,
-        });
+      const exportdata = await GetOrder(params as never);
+
+      setloading(false);
+
+      if (!exportdata?.success && !exportdata?.data) {
+        errorToast("Error occured");
+        return;
+      }
+
+      const data = exportdata.data as Array<DownloadData>;
+
+      setdata({
+        filename: filterdata.filename ?? `Sheet ${new Date().toISOString()}`,
+        filedata: data as never,
       });
-    });
 
-    setdata({
-      filename: filterdata.filename ?? "Sheet",
-      filedata: exporteddata as never,
-    });
-
-    settotalcount(orderdata.data?.length ?? 0);
-    setopen(true);
-  }, []);
+      settotalcount(data.length);
+      setopen(true);
+    },
+    [params]
+  );
 
   const handleDownload = useCallback(() => {
     const workbook = XLSX.utils.book_new();

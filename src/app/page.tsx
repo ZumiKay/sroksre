@@ -2,13 +2,14 @@
 
 import { Metadata } from "next";
 import { Orderpricetype } from "../context/OrderContext";
-import { fetchContainers, formatContainer } from "./api/home/route";
+import { formatContainer } from "./api/home/route";
 import {
   Banner,
   CategoryContainer,
   ScrollableContainer,
   SlideShow,
 } from "./component/HomePage/Component";
+import { fetchContainers } from "./api/home/extendRoute";
 
 export async function generateMetadata(): Promise<Metadata> {
   return {

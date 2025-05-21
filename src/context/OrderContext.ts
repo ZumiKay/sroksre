@@ -6,25 +6,45 @@ import {
 import { Address } from "@prisma/client";
 import { OrderUserType } from "../app/checkout/action";
 import dayjs from "dayjs";
+import { isValidDate } from "../lib/utilities";
+
+export const AllOrderStatusData = [
+  { label: "All", value: "All", color: "lightgray" },
+  { label: "Incart", value: "Incart", color: "#495464" },
+  { label: "Unpaid", value: "Unpaid", color: "#EB5757" },
+  { label: "Paid", value: "Paid", color: "#35C191" },
+  { label: "Preparing", value: "Preparing", color: "#0097FA" },
+  { label: "Shipped", value: "Shipped", color: "#60513C" },
+  { label: "Arrived", value: "Arrived", color: "#35C191" },
+  { label: "Problem", value: "Problem", color: "red" },
+  { label: "Cancelled", value: "Cancelled", color: "#EB5757" },
+];
 
 export type OrderDetialModalType = "user" | "shipping" | "close" | "none";
 
+export type OrderGetReqType = "product" | "all" | "user" | "export" | "filter";
+
 export type Orderstatus =
+  | "All"
   | "Incart"
   | "Unpaid"
   | "Paid"
   | "Preparing"
   | "Shipped"
   | "Arrived"
-  | "Problem";
+  | "Problem"
+  | "Cancelled";
 
 export enum Allstatus {
+  all = "All",
   incart = "Incart",
   unpaid = "Unpaid",
   paid = "Paid",
   prepareing = "Preparing",
   shipped = "Shipped",
   arrived = "Arrived",
+  cancelled = "Cancelled",
+  problem = "Problem",
 }
 
 export interface Productorderdetailtype {
@@ -66,6 +86,7 @@ export interface Ordertype {
   products: Array<Productordertype>;
   status: Orderstatus;
   price: totalpricetype;
+  orderDate?: Date;
   estimate?: Date;
 }
 
@@ -102,13 +123,15 @@ export interface DownloadData {
 
 export interface Filterdatatype {
   q?: string;
-  orderdate?: dayjs.Dayjs | string;
-  fromdate?: dayjs.Dayjs | string;
-  todate?: dayjs.Dayjs | string;
-  startprice?: number | string;
-  endprice?: number | string;
+  orderdate?: Date;
+  fromdate?: Date;
+  todate?: dayjs.Dayjs;
+  startprice?: string;
+  endprice?: string;
   filename?: string;
-  [key: string]: number | dayjs.Dayjs | string | undefined;
+  p?: number;
+  lt?: number;
+  [key: string]: number | dayjs.Dayjs | string | undefined | Date;
 }
 
 export interface AllorderStatus {
@@ -118,4 +141,33 @@ export interface AllorderStatus {
   shippingtype?: string;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export function isValidFilterParam(key: string, value: unknown): boolean {
+  // Handle null or undefined
+  if (value === null || value === undefined) {
+    return true; // Optional params can be null/undefined
+  }
+
+  // Check specific fields
+  switch (key) {
+    case "q":
+    case "filename":
+    case "startprice":
+    case "endprice":
+      return typeof value === "string";
+
+    case "orderdate":
+    case "fromdate":
+    case "todate":
+      return isValidDate(value);
+
+    default:
+      // For dynamic [key: string] check if it's string, number, or Date
+      return (
+        typeof value === "string" ||
+        typeof value === "number" ||
+        isValidDate(value)
+      );
+  }
 }

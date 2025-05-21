@@ -36,6 +36,7 @@ export async function POST(request: NextRequest) {
           type: data.Image.type as string,
           temp: false,
           userId: user?.id,
+          bannerId: create.id,
         },
       });
     }

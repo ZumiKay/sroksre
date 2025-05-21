@@ -17,7 +17,7 @@ import Multiselect from "../MutiSelect";
 import { NormalSkeleton } from "../Banner";
 import RenderStockCards from "./Variantcomponent/StockCard";
 import {
-  Colorinitalize,
+  colorPalette,
   Colortype,
   Stocktype,
   Variantcontainertype,
@@ -616,7 +616,7 @@ export const ColorSelectModal = ({
       };
     }
     settemp(update as variantdatatype);
-    setcolorstate((prev) => ({ ...prev, color: Colorinitalize, name: "" }));
+    setcolorstate((prev) => ({ ...prev, color: colorPalette, name: "" }));
     setedit(-1);
   }, [colorstate, temp, edit, settemp, setcolorstate, setedit]);
 
@@ -659,7 +659,7 @@ export const ColorSelectModal = ({
       <div
         onClick={() => {
           setedit(-1);
-          setcolor(Colorinitalize);
+          setcolor(colorPalette);
           setopen(true);
         }}
         className={`cursor-pointer transition duration-200 w-fit h-fit text-sm ${

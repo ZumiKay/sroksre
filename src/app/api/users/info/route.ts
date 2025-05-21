@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
       return Response.json({ message: "User not found" }, { status: 401 });
     }
 
-    const { ty, vc } = extractQueryParams(request.url.toString());
+    const { ty, vc, uid } = extractQueryParams(request.url.toString());
 
     if (vc) {
       return await handleVfyEmailByLink(user.id, vc as string);
@@ -28,9 +28,12 @@ export async function GET(request: NextRequest) {
     let result: QueryResult = null;
 
     switch (ty) {
-      case "shipping":
+      case "shipping": {
+        if (user.role === "ADMIN" && !uid && Number(uid)) {
+          return Response.json({ error: "Invalid Data" }, { status: 400 });
+        }
         result = (await Prisma.address.findMany({
-          where: { userId: user.id },
+          where: { userId: user.role === "ADMIN" ? Number(uid) : user.id },
           select: {
             id: true,
             houseId: true,
@@ -44,6 +47,7 @@ export async function GET(request: NextRequest) {
           },
         })) as unknown as Address;
         break;
+      }
 
       case "userinfo":
         result = (await Prisma.user.findUnique({

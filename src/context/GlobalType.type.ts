@@ -8,13 +8,15 @@ import { StaticImageData } from "next/image";
 import ProfileIcon from "@/public/Image/profile.png";
 import WishListIcon from "@/public/Image/bookmark.png";
 import LockIcon from "@/public/Image/lock.png";
+import { Ordertype } from "./OrderContext";
 
 type Role = "ADMIN" | "USER" | "EDITOR";
 export type InventoryPage =
   | "product"
   | "banner"
   | "promotion"
-  | "usermanagement";
+  | "usermanagement"
+  | "ordermanagement";
 export type FiltermenuType =
   | "product"
   | "banner"
@@ -31,6 +33,7 @@ export type Variantcontainertype =
   | "info"
   | "stockinfo"
   | "none";
+export type Typeofpolicy = "policy" | "question" | "paragraph";
 export const categorytype = {
   normal: "normal",
   sale: "sale",
@@ -80,9 +83,10 @@ export interface ActionReturnType<t = string> {
   [x: string]: boolean | string | number | t | undefined;
 }
 
-export interface SelectType {
+export interface SelectType<t = string> {
   label: string;
-  value: string | number;
+  value: number | t;
+  color?: string;
 }
 export interface userdata {
   id?: number;
@@ -340,6 +344,7 @@ export interface AllDataState {
   category?: CateogoryState[];
   filteredData?: ProductState[] | BannerState[] | PromotionState[];
   user?: UserState[];
+  orders?: Ordertype[];
   tempbanner?: {
     id: number;
     show: boolean;
@@ -350,6 +355,7 @@ export interface AllDataState {
 export interface Usersessiontype {
   sub: number;
   id: number;
+  username: string;
   role: Role;
   session_id: string;
 }
@@ -366,7 +372,8 @@ export type confirmmodaltype = {
     | "promotion"
     | "promotioncancel"
     | "user"
-    | "userinfo";
+    | "userinfo"
+    | "ordermanagement";
   onDelete?: () => void;
   onAsyncDelete?: () => Promise<void>;
 };
@@ -407,6 +414,8 @@ export interface OpenModalState {
   policymodal?: boolean;
   policyshowtype?: boolean;
   mangageHomeItem?: boolean;
+  userdetail?: boolean;
+  showproducts?: boolean;
   [key: string]: boolean | confirmmodaltype | alerttype | undefined;
 }
 
@@ -420,6 +429,8 @@ export interface GlobalIndexState {
   promotionproductedit: number;
   useredit: number;
   homeeditindex?: number;
+  userId?: number;
+  orderId?: string;
 }
 
 export type RangeType = {
@@ -472,7 +483,7 @@ export interface Colortype {
   hex: string;
   rgb: RGBColor;
 }
-export const Colorinitalize: Colortype = {
+export const colorPalette: Colortype = {
   hex: "#f5f5f5",
   rgb: {
     r: 245,
@@ -531,10 +542,16 @@ export const STEPS_INITIAL: ReadonlyArray<Stepindicatortype> = [
 export type ContainerType = keyof typeof containerTypeOptions;
 
 export interface Homeitemtype {
-  id: string;
+  id?: number;
+  idx: number;
   name: string;
   type: ContainerType;
-  idx: number;
+  items?: Array<ContainerItemType>;
+  scrollabletype?: ScrollableTypeValueType;
+  amountofitem?: number;
+  daterange?: RangeType;
+  createAt?: Date;
+  updateAt: Date;
 }
 
 export interface BannersType {
@@ -544,10 +561,18 @@ export interface BannersType {
   image: ImageDatatype;
 }
 
+export interface ContainerItemCardType {
+  id: number;
+  name: string;
+  img: string;
+}
+
 export interface ContainerItemType {
   id?: number;
-  item?: BannersType;
-  item_id?: number;
+  homecontainerId?: number;
+  banner_id?: number;
+  product_id?: number;
+  item?: ContainerItemCardType;
 }
 
 export interface Daterangetype {
@@ -564,7 +589,7 @@ export interface Containertype {
   idx: number;
   name: string;
   type: ContainerType | "";
-  item: number[];
+  items: number[];
 }
 
 export interface HomeContainerItemType {

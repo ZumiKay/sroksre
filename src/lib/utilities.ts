@@ -368,6 +368,22 @@ export function getBaseUrl() {
   return window.location.origin;
 }
 
+export function isValidDate(value: unknown): boolean {
+  // Check if value is a Date object
+  if (value instanceof Date) {
+    // Check if the date is valid (not NaN)
+    return !isNaN(value.getTime());
+  }
+
+  // If it's not a Date object, try to create one from the value
+  if (typeof value === "string" || typeof value === "number") {
+    const date = new Date(value);
+    return !isNaN(date.getTime());
+  }
+
+  return false;
+}
+
 //Email Template
 //
 //

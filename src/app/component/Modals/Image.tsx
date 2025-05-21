@@ -16,7 +16,7 @@ import {
   successToast,
 } from "../Loading";
 import Image from "next/image";
-import PrimaryButton, { InputFileUpload } from "../Button";
+import PrimaryButton, { UploadInput } from "../Button";
 import CropImage from "../Cropimage";
 import { upload } from "@vercel/blob/client";
 import { type PutBlobResult } from "@vercel/blob";
@@ -382,7 +382,7 @@ export const ImageUpload = (props: imageuploadprops) => {
             ))}
           </div>
           <div className="action__container w-1/2 max-smallest_screen:w-full flex flex-col items-center gap-y-5 h-fit">
-            <InputFileUpload
+            <UploadInput
               ref={fileInputRef}
               onChange={handleFile}
               multiple={props.mutitlple}

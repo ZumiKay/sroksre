@@ -8,6 +8,7 @@ import {
 import { extractQueryParams } from "../banner/route";
 import Prisma from "@/src/lib/prisma";
 import {
+  ContainerItemCardType,
   Stocktype,
   VariantColorValueType,
 } from "@/src/context/GlobalType.type";
@@ -317,14 +318,32 @@ export async function GET(request: NextRequest) {
       }
       case "homecontainer": {
         const result = await Prisma.products.findMany({
+          where: {
+            AND: [
+              { ...(q ? { name: { contains: q, mode: "insensitive" } } : {}) },
+              { ...(pc && { parentcategory_id: pc }) },
+              { ...(cc && { childcategory_id: cc }) },
+            ],
+          },
           take: limit,
           select: {
             id: true,
             name: true,
+            covers: {
+              take: 1,
+            },
           },
         });
+        const ItemData: Array<ContainerItemCardType> = result.map((prod) => ({
+          ...prod,
+          img: prod.covers[0],
+          covers: undefined,
+        })) as never;
         return Response.json(
-          { data: result, isLimit: result.length > limit },
+          {
+            data: ItemData,
+            isLimit: ItemData.length > limit,
+          },
           { status: 200 }
         );
       }

@@ -1,7 +1,12 @@
 "use client";
 import { useGlobalContext } from "@/src/context/GlobalContext";
-import { ChangeEvent, useCallback, useState } from "react";
+import { ChangeEvent, useCallback, useEffect, useState } from "react";
 import { PasswordInput } from "../../component/FormComponent";
+import { SecondaryModal } from "../../component/Modals";
+import { CircularProgress, Tab, Tabs } from "@heroui/react";
+import { Address } from "@prisma/client";
+import { ApiRequest } from "@/src/context/CustomHook";
+import { errorToast } from "../../component/Loading";
 
 export const PasswordSection = () => {
   const { user, setuser } = useGlobalContext();
@@ -136,5 +141,148 @@ export const PasswordSection = () => {
         </p>
       )}
     </div>
+  );
+};
+
+const AddressTable = ({ addresses }: { addresses: Address[] }) => {
+  return (
+    <div className="w-full overflow-x-auto shadow-md rounded-lg">
+      <table className="min-w-full divide-y divide-gray-200">
+        <thead className="bg-gray-50">
+          <tr>
+            <th
+              scope="col"
+              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              ID
+            </th>
+            <th
+              scope="col"
+              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              First Name
+            </th>
+            <th
+              scope="col"
+              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              Last Name
+            </th>
+            <th
+              scope="col"
+              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              Street
+            </th>
+            <th
+              scope="col"
+              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              House ID
+            </th>
+            <th
+              scope="col"
+              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              Province
+            </th>
+            <th
+              scope="col"
+              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              District
+            </th>
+            <th
+              scope="col"
+              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              Songkhat
+            </th>
+            <th
+              scope="col"
+              className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              Postal Code
+            </th>
+          </tr>
+        </thead>
+        <tbody className="bg-white divide-y divide-gray-200">
+          {addresses.map((address) => (
+            <tr key={address.id} className="hover:bg-gray-50">
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                {address.id}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                {address.firstname}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                {address.lastname}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                {address.street || "-"}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                {address.houseId}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                {address.province}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                {address.district}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                {address.songkhat}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                {address.postalcode}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+};
+
+export const UserDetailModel = () => {
+  const { openmodal, setopenmodal, globalindex } = useGlobalContext();
+  const [addresses, setaddresses] = useState<Address[]>();
+  const [loading, setloading] = useState(false);
+
+  useEffect(() => {
+    async function fetchAddress() {
+      setloading(true);
+      const getReq = await ApiRequest({
+        url: `/api/users/info?ty=shipping&uid=${globalindex.useredit}`,
+        method: "GET",
+      });
+      setloading(false);
+
+      if (!getReq.success) {
+        errorToast("Can't Find Address");
+        return;
+      }
+      setaddresses(getReq.data as Address[]);
+    }
+    fetchAddress();
+  }, [globalindex.useredit]);
+
+  return (
+    <SecondaryModal
+      onPageChange={() => {
+        setopenmodal({});
+      }}
+      open={openmodal.userdetail ?? false}
+      size="md"
+    >
+      <div className="flex w-full h-full flex-col min-h-[400px] items-center">
+        {loading && <CircularProgress />}
+        {!addresses || addresses.length === 0 ? (
+          <p>No Address</p>
+        ) : (
+          <AddressTable addresses={addresses} />
+        )}
+      </div>
+    </SecondaryModal>
   );
 };

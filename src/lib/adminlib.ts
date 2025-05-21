@@ -277,6 +277,7 @@ export const Createadmin = async (data: userdata) => {
       password: hashedpassword(data.password as string),
       email: data.email as string,
       role: "ADMIN",
+      isVerified: true,
     },
   });
 

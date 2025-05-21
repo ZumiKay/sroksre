@@ -12,14 +12,14 @@ import {
 } from "@/src/context/OrderContext";
 import { useRouter, useSearchParams } from "next/navigation";
 import { OrderReceiptTemplate } from "../../component/EmailTemplate";
-import { deleteOrder, updateOrderStatus } from "./action";
+import { deleteOrder } from "./action";
 import { errorToast, successToast } from "../../component/Loading";
 import dayjs, { Dayjs } from "dayjs";
 import { OrderUserType } from "../../checkout/action";
 import { isObjectEmpty } from "@/src/lib/utilities";
 import PaginationCustom from "../../component/Pagination_Component";
 import { Input } from "@heroui/react";
-import { useScreenSize } from "@/src/context/CustomHook";
+import { ApiRequest, useScreenSize } from "@/src/context/CustomHook";
 import React from "react";
 import { useGlobalContext } from "@/src/context/GlobalContext";
 import { SecondaryConfirmModal } from "../../component/Modals/Alert_Modal";
@@ -33,208 +33,246 @@ const FilterDataKeys = [
   "todate",
 ];
 
+type OrderFilterMenuProps = {
+  type: "filter" | "export";
+  close: "exportoption" | "filteroption";
+  handleNext?: (
+    data: Filterdatatype,
+    setTotalCount?: React.Dispatch<React.SetStateAction<number>>
+  ) => void;
+  loading?: boolean;
+  open: boolean;
+};
+
 export const OrderFilterMenu = memo(
   ({
     type,
     close,
     handleNext,
-    loading,
+    loading = false,
     open,
-  }: {
-    type: "filter" | "export";
-    close: "exportoption" | "filteroption";
-    handleNext?: (
-      data: Filterdatatype,
-      settotalcount?: React.Dispatch<React.SetStateAction<number>>
-    ) => void;
-    loading?: boolean;
-    open: boolean;
-  }) => {
-    const [pickdate, setpickdate] = useState(false);
+  }: OrderFilterMenuProps) => {
+    // State management
+    const [datePickerOpen, setDatePickerOpen] = useState(false);
+    const [filterData, setFilterData] = useState<Filterdatatype>({});
+    const [isFilterApplied, setIsFilterApplied] = useState(false);
+
+    // Hooks
     const router = useRouter();
     const searchParams = useSearchParams();
-    const [filterdata, setfilterdata] = useState<Filterdatatype>({});
-    const [isFilter, setisFilter] = useState(false);
     const { setopenmodal } = useGlobalContext();
     const { isMobile } = useScreenSize();
 
+    // Load filter data from URL params on component mount
     useEffect(() => {
-      if (FilterDataKeys.some((i) => searchParams.has(i))) {
-        searchParams.forEach((val, key) => {
-          setfilterdata((prev) => ({ ...prev, [key]: val }));
+      if (FilterDataKeys.some((key) => searchParams.has(key))) {
+        const newFilterData = {} as Filterdatatype;
+
+        searchParams.forEach((value, key) => {
+          newFilterData[key] = value;
         });
+
+        setFilterData(newFilterData);
       }
     }, [searchParams]);
 
+    // Filter handler
     const handleFilter = useCallback(() => {
-      const params = new URLSearchParams(searchParams);
-      Object.entries(filterdata).forEach(([key, val]) => {
+      const params = new URLSearchParams(searchParams.toString());
+
+      Object.entries(filterData).forEach(([key, value]) => {
         if (key === "page") {
-          params.set(key, "1");
-        } else {
-          if (val) {
-            params.set(key, `${val}`);
-          }
+          params.set(key, "1"); // Reset to first page when applying filters
+        } else if (value) {
+          params.set(key, `${value}`);
         }
       });
-      router.push(`?${params}`);
-      setisFilter(true);
 
+      router.push(`?${params.toString()}`);
+      setIsFilterApplied(true);
       setopenmodal((prev) => ({ ...prev, [close]: false }));
-    }, [close, filterdata, router, searchParams, setopenmodal]);
+    }, [close, filterData, router, searchParams, setopenmodal]);
 
+    // Clear filters
     const handleClear = useCallback(() => {
-      const params = new URLSearchParams(searchParams);
-      Object.entries(filterdata).forEach(([key, val]) => {
+      const params = new URLSearchParams(searchParams.toString());
+
+      Object.keys(filterData).forEach((key) => {
         if (key !== "page" && key !== "show") {
-          if (val) {
-            params.delete(key);
-          }
+          params.delete(key);
         }
       });
-      router.push(`?${params}`);
-      setfilterdata({});
-    }, [filterdata, router, searchParams]);
 
+      router.push(`?${params.toString()}`);
+      setFilterData({});
+    }, [filterData, router, searchParams]);
+
+    // Input change handler
     const handleChange = useCallback(
-      (event: ChangeEvent<HTMLInputElement> | Dayjs | null, name?: string) => {
+      (
+        event: React.ChangeEvent<HTMLInputElement> | Dayjs | null,
+        name?: string
+      ) => {
         if (dayjs.isDayjs(event) && name) {
-          setfilterdata((prev) => ({ ...prev, [name]: event }));
+          setFilterData((prev) => ({ ...prev, [name]: event }));
         } else if (event && "target" in event) {
-          setfilterdata((prev) => ({
-            ...prev,
-            [event.target.name]: event.target.value,
-          }));
+          const { name, value } = event.target;
+          setFilterData((prev) => ({ ...prev, [name]: value }));
         }
       },
       []
     );
 
-    const next = useCallback(() => {
-      if (!filterdata.filename) {
+    // Export handler
+    const handleExport = useCallback(() => {
+      if (!filterData.filename) {
         errorToast("Filename required");
         return;
       }
-      if (handleNext) handleNext(filterdata);
-    }, [filterdata, handleNext]);
+
+      handleNext?.(filterData);
+    }, [filterData, handleNext]);
+
+    // Determine if filters can be cleared
+    const canClearFilters = !isObjectEmpty(filterData);
+
+    // Determine export button state
+    const exportDisabled = isObjectEmpty(filterData);
 
     return (
-      <SecondaryModal
-        size="4xl"
-        open={open}
-        closebtn
-        onPageChange={(val) =>
-          !pickdate && setopenmodal((prev) => ({ ...prev, [close]: val }))
-        }
-        header={() => (
-          <p className="font-bold text-2xl" hidden={type !== "filter"}>
-            Filter by
-          </p>
-        )}
-        placement={isMobile ? "top" : "center"}
-        footer={() => {
-          return (
-            <div className="Filter_btn inline-flex items-center gap-x-5 w-full h-[50px]">
+      <LocalizationProvider dateAdapter={AdapterDayjs}>
+        <SecondaryModal
+          size="4xl"
+          open={open}
+          closebtn
+          onPageChange={(val) => {
+            if (!datePickerOpen) {
+              setopenmodal((prev) => ({ ...prev, [close]: val }));
+            }
+          }}
+          header={() => (
+            <h2 className="font-bold text-2xl" hidden={type !== "filter"}>
+              Filter by
+            </h2>
+          )}
+          placement={isMobile ? "top" : "center"}
+          footer={() => (
+            <div className="inline-flex items-center gap-x-5 w-full">
               {type === "filter" ? (
                 <PrimaryButton
                   width="100%"
                   type="button"
-                  text="Filter"
+                  text="Apply Filters"
                   radius="10px"
-                  disable={isFilter}
-                  onClick={() => handleFilter()}
+                  disable={isFilterApplied}
+                  onClick={handleFilter}
                 />
               ) : (
                 <PrimaryButton
                   width="100%"
                   type="button"
-                  text={`Export`}
+                  text="Export"
                   status={loading ? "loading" : "authenticated"}
                   radius="10px"
-                  disable={isObjectEmpty(filterdata)}
-                  onClick={() => {
-                    next();
-                  }}
+                  disable={exportDisabled}
+                  onClick={handleExport}
                 />
               )}
               <PrimaryButton
                 type="button"
                 width="100%"
-                text="Clear"
-                disable={isObjectEmpty(filterdata)}
-                onClick={() => handleClear()}
+                text="Clear All"
+                disable={!canClearFilters}
+                onClick={handleClear}
                 color="lightcoral"
                 radius="10px"
               />
             </div>
-          );
-        }}
-      >
-        <LocalizationProvider dateAdapter={AdapterDayjs}>
-          <div className="w-full h-full max-h-[50vh] bg-white rounded-lg grid gap-y-5 font-bold text-lg p-5">
-            <Input
-              type="text"
-              value={filterdata.q}
-              onChange={handleChange}
-              labelPlacement="outside"
-              label={
-                type === "export"
-                  ? "Customer (ID or Name)"
-                  : "Search (Customer Email , Name , Order Id)"
-              }
-              placeholder="Search"
-              name="q"
-              size="lg"
-              className="w-full"
-            />
-            {type === "export" && (
-              <Input
-                type="text"
-                id="filename"
-                size="lg"
-                name="filename"
-                label="File Name"
-                labelPlacement="outside"
-                placeholder="Sheet1"
-                onChange={handleChange}
-                className="w-full"
-              />
-            )}
+          )}
+        >
+          <div className="w-full max-h-[50vh] bg-white rounded-lg p-6 overflow-y-auto">
+            <div className="space-y-6">
+              {/* Search Input */}
+              <div className="filter-field">
+                <Input
+                  type="text"
+                  value={filterData.q || ""}
+                  onChange={handleChange}
+                  labelPlacement="outside"
+                  label={
+                    type === "export"
+                      ? "Customer (ID or Name)"
+                      : "Search (Customer Email, Name, Order ID)"
+                  }
+                  placeholder="Enter search terms..."
+                  name="q"
+                  size="lg"
+                  className="w-full"
+                />
+              </div>
 
-            <label className="text-lg font-bold w-full text-left">
-              Price Range{" "}
-            </label>
-            <AmountRange setdata={setfilterdata} data={filterdata} />
-            <label className="text-lg w-full text-left font-bold">
-              Date Range
-            </label>
+              {/* Filename Input (Export Only) */}
+              {type === "export" && (
+                <div className="filter-field">
+                  <Input
+                    type="text"
+                    id="filename"
+                    size="lg"
+                    name="filename"
+                    label="File Name"
+                    labelPlacement="outside"
+                    placeholder="Sheet1"
+                    value={filterData.filename || ""}
+                    onChange={handleChange}
+                    className="w-full"
+                  />
+                </div>
+              )}
 
-            <div className="w-full h-fit flex flex-row items-center gap-x-5">
-              <DateTimePicker
-                label={"From"}
-                onOpen={() => setpickdate(true)}
-                onClose={() => setpickdate(false)}
-                value={filterdata.fromdate ? dayjs(filterdata.fromdate) : null}
-                sx={{ width: "100%", height: "50px" }}
-                name="fromdate"
-                onChange={(e) => handleChange(e, "fromdate")}
-              />
-              <DateTimePicker
-                label={"To"}
-                onOpen={() => setpickdate(true)}
-                onClose={() => setpickdate(false)}
-                value={filterdata.todate ? dayjs(filterdata.todate) : null}
-                sx={{ width: "100%", height: "50px" }}
-                name="todate"
-                onChange={(e) => handleChange(e, "todate")}
-              />
+              {/* Price Range */}
+              <div className="filter-field">
+                <label className="text-lg font-bold block mb-2">
+                  Price Range
+                </label>
+                <AmountRange setdata={setFilterData} data={filterData} />
+              </div>
+
+              {/* Date Range */}
+              <div className="filter-field">
+                <label className="text-lg font-bold block mb-2">
+                  Date Range
+                </label>
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <DateTimePicker
+                    label="From"
+                    onOpen={() => setDatePickerOpen(true)}
+                    onClose={() => setDatePickerOpen(false)}
+                    value={
+                      filterData.fromdate ? dayjs(filterData.fromdate) : null
+                    }
+                    sx={{ width: "100%", height: "50px" }}
+                    name="fromdate"
+                    onChange={(e) => handleChange(e, "fromdate")}
+                  />
+                  <DateTimePicker
+                    label="To"
+                    onOpen={() => setDatePickerOpen(true)}
+                    onClose={() => setDatePickerOpen(false)}
+                    value={filterData.todate ? dayjs(filterData.todate) : null}
+                    sx={{ width: "100%", height: "50px" }}
+                    name="todate"
+                    onChange={(e) => handleChange(e, "todate")}
+                  />
+                </div>
+              </div>
             </div>
           </div>
-        </LocalizationProvider>
-      </SecondaryModal>
+        </SecondaryModal>
+      </LocalizationProvider>
     );
   }
 );
+
 OrderFilterMenu.displayName = "OrderFilterMenu";
 
 export const AmountRange = memo(
@@ -442,8 +480,7 @@ const UpdateStatus = memo(
     oid: string;
     order: OrderUserType;
   }) => {
-    const router = useRouter();
-    const [status, setstatus] = useState("");
+    const [status, setstatus] = useState<Allstatus | string>("");
     const [loading, setloading] = useState(false);
     const handleSelect = (e: ChangeEvent<HTMLSelectElement>) => {
       setstatus(e.target.value as typeof order.status);
@@ -465,21 +502,23 @@ const UpdateStatus = memo(
           isAdmin={false}
         />
       );
-      const makereq = updateOrderStatus.bind(
-        null,
-        status as never,
-        oid,
-        emailTemplate
-      );
-      const update = await makereq();
+      const update = await ApiRequest({
+        url: "/api/order/list",
+        method: "PUT",
+        data: {
+          template: emailTemplate,
+          id: oid,
+          status,
+          ty: "status",
+        },
+      });
       setloading(false);
       if (!update.success) {
-        errorToast(update.message);
+        errorToast(update?.message ?? "Updated");
         return;
       }
-      successToast(update.message);
-      router.refresh();
-    }, [oid, order, router, status]);
+      successToast(update?.message ?? "Error Occured");
+    }, [oid, order, status]);
     return (
       <div className="w-full h-full flex flex-col gap-y-10">
         <p className="w-full text-center font-bold text-xl">Update Status</p>

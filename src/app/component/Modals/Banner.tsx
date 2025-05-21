@@ -65,12 +65,6 @@ export const BannerModal = ({
   const handleCancel = async () => {
     //delete temp image
 
-    const delreq = await DeleteTempImage();
-    if (!delreq.success) {
-      errorToast("Error occured");
-      return;
-    }
-
     setopenmodal({ ...openmodal, createBanner: false });
     setglobalindex({ ...globalindex, bannereditindex: -1 });
   };
@@ -242,6 +236,8 @@ export const BannerModal = ({
               }
               className="w-full min-h-[250px] mt-2 object-cover"
               loading="lazy"
+              width={300}
+              height={500}
             />
           </div>
         </div>

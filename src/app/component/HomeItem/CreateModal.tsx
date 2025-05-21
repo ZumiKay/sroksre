@@ -1,7 +1,17 @@
 "use client";
 import { useGlobalContext } from "@/src/context/GlobalContext";
 import { SecondaryModal } from "../Modals";
-import { ChangeEvent, JSX, memo, useCallback, useState } from "react";
+import {
+  ChangeEvent,
+  FormEvent,
+  JSX,
+  memo,
+  RefObject,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import {
   Button,
   DateRangePicker,
@@ -12,8 +22,9 @@ import {
   RangeValue,
 } from "@heroui/react";
 import {
-  Containertype,
+  ContainerItemType,
   ContainerType,
+  Homeitemtype,
   ScrollableTypeValueType,
 } from "@/src/context/GlobalType.type";
 import {
@@ -27,6 +38,8 @@ import ManageContainer from "./ManageContainer";
 import { AsyncSelection } from "../AsynSelection";
 import { SelectionType } from "../../dashboard/inventory/inventory.type";
 import { parseDate } from "@internationalized/date";
+import { ApiRequest } from "@/src/context/CustomHook";
+import { ContainerLoading, errorToast, successToast } from "../Loading";
 
 const containerTypes: Array<{
   type: string;
@@ -71,14 +84,22 @@ const ScrollableType: Array<SelectionType<ScrollableTypeValueType>> = [
   { label: "Custom", value: "custom" },
 ];
 
-interface FooterContainerPropaType {
+interface FooterContainerPropType {
   handleBack?: () => void;
   handleClose?: () => void;
-  type: ContainerType | null;
+  type?: ContainerType;
+  ref?: RefObject<HTMLFormElement | null>;
+  isLoading?: boolean;
 }
 
 const FooterContainer = memo(
-  ({ handleBack, handleClose, type }: FooterContainerPropaType) => {
+  ({
+    handleBack,
+    handleClose,
+    type,
+    ref,
+    isLoading,
+  }: FooterContainerPropType) => {
     const handleClick = useCallback(
       (ty: "back" | "close") => {
         if (ty === "back" && handleBack) {
@@ -87,16 +108,19 @@ const FooterContainer = memo(
       },
       [handleBack, handleClose]
     );
+    const handleSubmitForm = useCallback(() => {
+      ref?.current?.submit();
+    }, [ref]);
 
     return (
       <div className="btnSec w-full h-[40px] flex flex-row gap-x-3 justify-end">
         <Button
-          onPress={() => handleClick("close")}
+          onPress={() => (type ? handleSubmitForm() : handleClick("close"))}
           size="sm"
           className="text-white font-bold bg_default"
+          isLoading={isLoading}
         >
-          {" "}
-          Confirm{" "}
+          {type ? "Confirm" : "Next"}
         </Button>
         {type && (
           <Button
@@ -112,20 +136,16 @@ const FooterContainer = memo(
     );
   }
 );
+
 FooterContainer.displayName = "FooterContainer";
 
-const ManageContainerType = ({
-  containertype,
-  setType,
-}: {
-  containertype: ContainerType | null;
-  setType: React.Dispatch<React.SetStateAction<ContainerType | null>>;
-}) => {
+const ManageContainerType = () => {
+  const { homeContainer, sethomeContainer } = useGlobalContext();
   const handleSelectContainerType = useCallback(
     (val: ContainerType) => {
-      setType((prev) => (prev === val ? null : val));
+      sethomeContainer((prev) => ({ ...prev, type: val } as never));
     },
-    [setType]
+    [sethomeContainer]
   );
   return (
     <div className="w-full h-fit flex flex-row gap-5 items-center justify-center flex-wrap">
@@ -133,7 +153,7 @@ const ManageContainerType = ({
         <ItemTypeCard
           key={item.type}
           Img={item.icon}
-          isActive={item.value === containertype}
+          isActive={item.value === homeContainer?.type}
           des={{
             value: item.value,
             type: item.type,
@@ -146,75 +166,166 @@ const ManageContainerType = ({
 };
 
 const CreateHomeItemModal = () => {
-  const { openmodal, setopenmodal, globalindex, setglobalindex } =
-    useGlobalContext();
-  const [state, setstate] = useState<Containertype | null>(null);
-  const [type, settype] = useState<ContainerType | null>(null);
+  const {
+    openmodal,
+    setopenmodal,
+    globalindex,
+    setglobalindex,
+    homeContainer,
+    sethomeContainer,
+  } = useGlobalContext();
+  const formRef = useRef<HTMLFormElement>(null);
+
   const [manageItem, setmanageItem] = useState(false);
+  const [loading, setloading] = useState(false);
 
   const handleCloseModal = useCallback(() => {
     setopenmodal({ mangageHomeItem: false });
   }, [setopenmodal]);
 
-  const handleSelectItem = useCallback((val: number) => {
-    setstate(
-      (prev) => ({ ...(prev ?? {}), item: prev?.item?.push(val) } as never)
-    );
-  }, []);
-
-  const handleChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
-    const event = e.target;
-
-    if (event.name === "daterange") {
-      const dateVal = event.value as unknown as RangeValue<DateValue>;
-      const val: RangeValue<string> = {
-        start: dateVal.start.toString(),
-        end: dateVal.end.toString(),
-      };
-      event.value = val as never;
+  useEffect(() => {
+    async function getData() {
+      if (!globalindex.homeeditindex) return;
+      const getReq = await ApiRequest({
+        url: `/api/home?id=${globalindex.homeeditindex}`,
+        method: "GET",
+      });
+      if (!getReq.success) {
+        errorToast(getReq.error ?? "Error Occured");
+        return;
+      }
+      sethomeContainer(getReq.data as Homeitemtype);
     }
+    getData();
+  }, [globalindex.homeeditindex]);
 
-    setstate((prev) => ({ ...prev, [event.name]: event.value } as never));
-  }, []);
+  const handleSelectItem = useCallback(
+    (val: number) => {
+      if (!homeContainer?.type) return;
+
+      const itemExists = homeContainer.items?.some((item) =>
+        item.product_id ? item.product_id === val : item.banner_id === val
+      );
+
+      let newItems: ContainerItemType[] = [];
+
+      if (itemExists) {
+        newItems =
+          homeContainer.items?.filter((item) =>
+            item.product_id ? item.product_id !== val : item.banner_id !== val
+          ) || [];
+      } else {
+        const newItem: ContainerItemType =
+          homeContainer.type === "scrollable"
+            ? { product_id: val }
+            : { banner_id: val };
+
+        newItems = [...(homeContainer.items || []), newItem];
+      }
+
+      // Update the container with the new items
+      sethomeContainer(
+        (prev) =>
+          ({
+            ...prev,
+            items: newItems,
+          } as never)
+      );
+    },
+    [homeContainer?.items, homeContainer?.type, sethomeContainer]
+  );
+
+  const handleChange = useCallback(
+    (e: ChangeEvent<HTMLInputElement>) => {
+      const event = e.target;
+
+      if (event.name === "daterange") {
+        const dateVal = event.value as unknown as RangeValue<DateValue>;
+        const val: RangeValue<string> = {
+          start: dateVal.start.toString(),
+          end: dateVal.end.toString(),
+        };
+        event.value = val as never;
+      }
+
+      sethomeContainer(
+        (prev) => ({ ...prev, [event.name]: event.value } as never)
+      );
+    },
+    [sethomeContainer]
+  );
 
   const handleBack = useCallback(() => {
-    setstate(null);
-    settype(null);
+    sethomeContainer(undefined);
     setmanageItem(false);
     setglobalindex((prev) => ({ ...prev, homeeditindex: undefined }));
-  }, [setglobalindex]);
+  }, [setglobalindex, sethomeContainer]);
 
   const Modaltitle = useCallback(() => {
-    return type === "banner"
+    return homeContainer?.type === "banner"
       ? "Banner"
-      : type === "category"
+      : homeContainer?.type === "category"
       ? "Categories"
-      : type === "scrollable"
+      : homeContainer?.type === "scrollable"
       ? "Scrollable Container"
-      : type === "slide"
+      : homeContainer?.type === "slide"
       ? "Slide"
       : "Item";
-  }, [type]);
+  }, [homeContainer?.type]);
+
+  const handleSubmit = useCallback(
+    async (e: FormEvent<HTMLFormElement>) => {
+      e.preventDefault();
+      setloading(true);
+      const creatReq = await ApiRequest({
+        url: "/api/home",
+        method: globalindex.homeeditindex === -1 ? "POST" : "PUT",
+        data: homeContainer,
+      });
+      setloading(false);
+      if (!creatReq.success) {
+        errorToast("Can't Create");
+        return;
+      }
+      successToast(
+        `Item ${globalindex.homeeditindex === -1 ? "Created" : "Updated"}`
+      );
+      sethomeContainer(undefined);
+      e.currentTarget.reset();
+    },
+    [globalindex.homeeditindex, homeContainer, sethomeContainer]
+  );
 
   return (
     <SecondaryModal
       open={openmodal.mangageHomeItem ?? false}
       size="2xl"
       onPageChange={() => handleCloseModal()}
-      footer={() => <FooterContainer type={type} handleBack={handleBack} />}
+      footer={() => (
+        <FooterContainer
+          type={homeContainer?.type}
+          handleBack={handleBack}
+          isLoading={loading}
+          ref={formRef}
+        />
+      )}
       closebtn
     >
+      {loading && <ContainerLoading />}
       <div className="CreateHomeContainer w-full h-full bg-white">
         <h3>{`${
           globalindex.homeeditindex ? "Edit" : "Create"
         } ${Modaltitle()}`}</h3>
       </div>
 
-      {!type ? (
-        <ManageContainerType containertype={type} setType={settype} />
+      {!homeContainer?.type ? (
+        <ManageContainerType />
       ) : (
         <>
-          <Form className="DetailForm w-full h-fit flex flex-col items-start gap-3">
+          <Form
+            onSubmit={handleSubmit}
+            className="DetailForm w-full h-fit flex flex-col items-start gap-3"
+          >
             <Input
               aria-label="container_name"
               label="Container Name"
@@ -222,11 +333,12 @@ const CreateHomeItemModal = () => {
               name="name"
               size="md"
               placeholder="Name"
+              value={homeContainer?.name}
               onChange={handleChange}
               isRequired
             />
 
-            {type === "scrollable" && (
+            {homeContainer.type === "scrollable" && (
               <>
                 <div className="w-full h-fit flex flex-row flex-wrap gap-5 items-start">
                   <AsyncSelection
@@ -236,8 +348,8 @@ const CreateHomeItemModal = () => {
                       labelPlacement: "outside",
                       placeholder: "Type",
                       isRequired: true,
-                      selectedValue: state?.scrollabletype
-                        ? [state.scrollabletype]
+                      selectedValue: homeContainer?.scrollabletype
+                        ? [homeContainer?.scrollabletype]
                         : undefined,
                       onChange: handleChange as never,
                     }}
@@ -245,7 +357,7 @@ const CreateHomeItemModal = () => {
                     data={() => ScrollableType}
                   />
 
-                  {state?.scrollabletype !== "custom" && (
+                  {homeContainer?.scrollabletype !== "custom" && (
                     <NumberInput
                       size="md"
                       name="amountofitem"
@@ -253,7 +365,7 @@ const CreateHomeItemModal = () => {
                       labelPlacement="outside"
                       aria-label="amount per item"
                       placeholder="amount of item"
-                      value={state?.amountofitem}
+                      value={homeContainer?.amountofitem}
                       isRequired
                       onValueChange={(val) =>
                         handleChange({
@@ -267,17 +379,17 @@ const CreateHomeItemModal = () => {
                   )}
                 </div>
 
-                {(state?.scrollabletype &&
-                  state.scrollabletype === "popular") ||
-                  (state?.scrollabletype === "sale" && (
+                {(homeContainer?.scrollabletype &&
+                  homeContainer.scrollabletype === "popular") ||
+                  (homeContainer?.scrollabletype === "sale" && (
                     <DateRangePicker
                       aria-label="date picker"
                       size="sm"
                       value={
-                        state.daterange
+                        homeContainer.daterange
                           ? {
-                              start: parseDate(state.daterange.start),
-                              end: parseDate(state.daterange.end),
+                              start: parseDate(homeContainer.daterange.start),
+                              end: parseDate(homeContainer.daterange.end),
                             }
                           : null
                       }
@@ -300,10 +412,11 @@ const CreateHomeItemModal = () => {
 
             {manageItem && (
               <ManageContainer
-                type={type}
                 manage={{
-                  selectedKey: state?.item,
-                  setSelectKey: handleSelectItem as never,
+                  setSelectKey: handleSelectItem,
+                  selectedKey: (homeContainer.type === "scrollable"
+                    ? homeContainer.items?.map((i) => i.product_id)
+                    : homeContainer.items?.map((i) => i.banner_id)) as number[],
                 }}
               />
             )}

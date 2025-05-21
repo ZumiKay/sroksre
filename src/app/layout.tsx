@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import { Prompt } from "next/font/google";
-import "./globals.css";
 import Footer from "./component/Footer";
 import { Suspense } from "react";
 import { ContainerLoading } from "./component/Loading";
 import Navbar from "./component/Navbar/Navbar";
 import ClientProviders from "@/src/app/component/ClientProvider";
+import "./globals.css";
 const prompt = Prompt({
   weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
   subsets: ["latin"],

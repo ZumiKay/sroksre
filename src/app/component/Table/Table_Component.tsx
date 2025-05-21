@@ -40,11 +40,12 @@ interface TableComponentProps {
   data?: Array<ProductState | BannerState | PromotionState | UserState>;
   onAction?: (key: string) => void;
   isLoading?: boolean;
-  onSelection?: (key: Array<number>) => void;
+  onSelection?: (key: Array<number | string>) => void;
   onPagination: (ty: "page" | "limit", val: string) => void;
   pagination: tableBottomContentProps;
   singleselect?: boolean;
-  selectedvalue?: Array<number>;
+  selectedvalue?: Array<number | string>;
+  isAdmin?: boolean;
 }
 
 type ColumnType = {
@@ -130,7 +131,7 @@ const PromotionColumns: Array<ColumnType> = [
   { name: "Banner", uid: "banner" },
   {
     name: "Product",
-    uid: "Products",
+    uid: "products",
   },
 
   { name: "Expire At", uid: "expireAt" },
@@ -138,6 +139,18 @@ const PromotionColumns: Array<ColumnType> = [
     name: "Action",
     uid: "action",
   },
+];
+
+const OrderColumns: Array<ColumnType> = [
+  { name: "Id", uid: "id" },
+  {
+    name: "Buyer",
+    uid: "user",
+  },
+  { name: "Status", uid: "status" },
+  { name: "Product", uid: "products" },
+  { name: "Price", uid: "price" },
+  { name: "Action", uid: "action" },
 ];
 
 interface Stock {
@@ -153,8 +166,10 @@ export default function TableComponent({
   pagination,
   singleselect,
   selectedvalue,
+  isAdmin,
 }: TableComponentProps) {
-  const { setopenmodal, setglobalindex, setproduct } = useGlobalContext();
+  const { setopenmodal, setglobalindex, setproduct, setreloaddata } =
+    useGlobalContext();
   const [selectedData, setselectedData] = useState<Selection>(
     new Set(selectedvalue ?? [])
   );
@@ -166,8 +181,10 @@ export default function TableComponent({
       ? BannerColumns
       : ty === "usermanagement"
       ? UsermanagementColumns
+      : ty === "ordermanagement"
+      ? OrderColumns.filter((i) => (!isAdmin ? i.uid !== "buyer" : true))
       : PromotionColumns;
-  }, [ty]);
+  }, [isAdmin, ty]);
 
   useEffect(() => {
     if (onSelection) {
@@ -184,28 +201,33 @@ export default function TableComponent({
   }, []);
 
   const handleView = useCallback(
-    (uid: string, id: number) => {
+    (uid: string, id: number | string) => {
       const toOpenModal: Partial<OpenModalState> = {};
       const toUpdateIndex: Partial<GlobalIndexState> = {};
 
       if (uid === "stock") {
         toOpenModal.editvariantstock = true;
-        toUpdateIndex.producteditindex = id;
-      } else if (uid === "Products") {
+        toUpdateIndex.producteditindex = id as number;
+      } else if (uid === "products") {
         toOpenModal["showproduct"] = true;
-        toUpdateIndex.producteditindex = id;
+        if (ty === "ordermanagement") {
+          toUpdateIndex.orderId = id as string;
+        } else if (ty === "promotion") {
+          toUpdateIndex.promotioneditindex = id as number;
+        }
       } else if (uid === "covers") {
         toOpenModal[`cover${id}`] = true;
-        toUpdateIndex.producteditindex = id;
+        toUpdateIndex.producteditindex = id as number;
       } else if (uid === "other") {
         toOpenModal["other"] = true;
-        toUpdateIndex.useredit = id;
+        if (ty === "usermanagement") toOpenModal["userdetail"] = true;
+        toUpdateIndex.useredit = id as number;
       }
 
       setglobalindex((prev) => ({ ...prev, ...toUpdateIndex }));
       setopenmodal(toOpenModal);
     },
-    [setglobalindex, setopenmodal]
+    [setglobalindex, setopenmodal, ty]
   );
 
   const handleAction = useCallback(
@@ -230,6 +252,10 @@ export default function TableComponent({
           createKey: "createUser",
           indexKey: "useredit",
         },
+        ordermanagement: {
+          createKey: "updateStatus",
+          indexKey: "orderId",
+        },
       };
 
       const { createKey, indexKey } = config[type as InventoryPage];
@@ -246,6 +272,9 @@ export default function TableComponent({
           index: id,
           type: type === "usermanagement" ? "user" : type,
           open: true,
+          onDelete() {
+            setreloaddata(true);
+          },
         };
       } else if (type === "product" && stock) {
         modalState[`${stock.type}${id}`] = true;
@@ -255,7 +284,7 @@ export default function TableComponent({
       setopenmodal((prev) => ({ ...prev, ...modalState } as never));
       setglobalindex((prev) => ({ ...prev, ...indexState }));
     },
-    [Router, setglobalindex, setopenmodal, setproduct]
+    [Router, setglobalindex, setopenmodal, setproduct, setreloaddata]
   );
 
   const renderCell = useCallback(
@@ -266,9 +295,10 @@ export default function TableComponent({
         case "image":
         case "covers":
         case "banner": {
-          const data = celldata[key][0]
-            ? celldata[key][0]
-            : (celldata[key] as ImageDatatype);
+          const data =
+            celldata[key] && celldata[key][0]
+              ? celldata[key][0]
+              : (celldata[key] as ImageDatatype);
           if (!data) return null;
           return (
             <Image
@@ -292,6 +322,7 @@ export default function TableComponent({
             </div>
           ) : memoizedTy === "usermanagement" ? (
             <div className="username">
+              <p>{`Username: ${celldata.username ?? ""}`}</p>
               <p>{`Firstname: ${celldata.firstname}`}</p>
               {celldata?.lastname && <p>{`Lastname: ${celldata.lastname}`}</p>}
             </div>
@@ -341,7 +372,7 @@ export default function TableComponent({
             </Button>
           );
 
-        case "Products":
+        case "products":
         case "other":
           return (
             <Button

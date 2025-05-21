@@ -1,22 +1,23 @@
 "use server";
 
 import Prisma from "@/src/lib/prisma";
-import { revalidatePath } from "next/cache";
 
 interface returntype {
   success: boolean;
   message?: string;
 }
 
+export interface ParagraphType {
+  id?: number;
+  title?: string;
+  content: string;
+}
+
 export interface Addpolicytype {
   id?: number;
   title: string;
   showtype?: string[];
-  Paragraph: {
-    id?: number;
-    title?: string;
-    content: string;
-  }[];
+  Paragraph: Array<ParagraphType>;
 }
 
 export interface Addquestiontype {
@@ -36,14 +37,37 @@ export const AddPolicyOrQuestion = async (
   try {
     const { question, policy } = data;
 
+    // Check if we have either valid questions or a valid policy
     if (question) {
+      // Validate question data
+      if (!Array.isArray(question) || question.length === 0) {
+        return {
+          success: false,
+          message: "Invalid request: Question data must be a non-empty array",
+        };
+      }
+
+      // Create questions in a single database operation
       await Prisma.question.createMany({
         data: question.map((q) => ({
           question: q.question,
           answer: q.answer,
         })),
       });
-    } else if (policy) {
+
+      return { success: true, message: "Questions created successfully" };
+    }
+
+    if (policy) {
+      // Validate policy data
+      if (!policy.title || !policy.Paragraph || policy.Paragraph.length === 0) {
+        return {
+          success: false,
+          message: "Invalid request: Policy must have a title and paragraphs",
+        };
+      }
+
+      // Create policy with paragraphs in a single database operation
       await Prisma.policy.create({
         data: {
           title: policy.title,
@@ -57,105 +81,25 @@ export const AddPolicyOrQuestion = async (
           },
         },
       });
-    } else {
-      return { success: false, message: "Invalid request" };
+
+      return { success: true, message: "Policy created successfully" };
     }
 
-    revalidatePath("/privacyandpolicy");
-
-    return { success: true, message: "Created Successfully" };
+    // If neither question nor policy is provided
+    return {
+      success: false,
+      message:
+        "Invalid request: Either question or policy data must be provided",
+    };
   } catch (error) {
-    console.log("Create Policy Error", error);
-    return { success: false, message: "Error Occured" };
+    console.error("Create Policy/Question Error:", error);
+
+    return {
+      success: false,
+      message:
+        error instanceof Error
+          ? `Error: ${error.message}`
+          : "An unexpected error occurred",
+    };
   }
-};
-
-export const getPolicy = async (qid?: number, pid?: number) => {
-  if (!qid && !pid) {
-    return { success: false, message: "Invalid data" };
-  }
-
-  const result = await (qid
-    ? Prisma.question.findUnique({ where: { id: qid } })
-    : Prisma.policy.findUnique({
-        where: { id: pid },
-        include: { Paragraph: true },
-      }));
-
-  return { success: true, data: result };
-};
-
-interface deletepolicytype {
-  pid?: number;
-  qid?: number;
-  ppid?: number;
-}
-
-export const DeleteQP = async ({
-  pid,
-  qid,
-  ppid,
-}: deletepolicytype): Promise<returntype> => {
-  try {
-    if (!pid && !qid && !ppid) {
-      return { success: false, message: "Invalid request" };
-    }
-
-    if (qid) {
-      await Prisma.question.delete({ where: { id: qid } });
-    } else if (pid && !ppid) {
-      await Prisma.policy.delete({ where: { id: pid } });
-    } else if (pid || ppid) {
-      if (ppid) await Prisma.paragraph.delete({ where: { id: ppid } });
-      if (pid) await Prisma.policy.delete({ where: { id: pid } });
-    }
-
-    revalidatePath("/privacyandpolicy");
-    return { success: true, message: "Delete successfully" };
-  } catch (error) {
-    console.log("Delete Policy", error);
-    return { success: false, message: "Error occured" };
-  }
-};
-
-export const getAllPolicy = async () => {
-  const result = await Prisma.policy.findMany({
-    select: {
-      id: true,
-      title: true,
-    },
-  });
-  return result;
-};
-
-export const getPolicyById = async (id: number) => {
-  if (id === 0) {
-    const questions = await Prisma.question.findMany({
-      select: {
-        id: true,
-        question: true,
-        answer: true,
-      },
-    });
-    return questions;
-  }
-
-  const result = await Prisma.policy.findUnique({
-    where: { id },
-    select: {
-      id: true,
-      title: true,
-      showtype: true,
-      Paragraph: {
-        orderBy: { id: "asc" },
-        select: {
-          id: true,
-          title: true,
-          content: true,
-        },
-      },
-    },
-  });
-
-  return { ...result, showtype: result?.showtype?.split(",") };
 };

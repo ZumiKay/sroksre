@@ -7,6 +7,7 @@ import { useCallback, useEffect, useState, use, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import TableComponent from "../../component/Table/Table_Component";
 import FilterMenu from "../../component/FilterMenu/FilterMenu";
+import { UserDetailModel } from "./component";
 
 interface usermangementFilterType {
   search?: string;
@@ -162,6 +163,7 @@ export default function UsermanagementPage(props: {
           reloaddata={fetchdata}
         />
       )}
+      {openmodal.userdetail && <UserDetailModel />}
 
       <div className="usermanagement_container relative w-full h-fit">
         {loading && <ContainerLoading />}

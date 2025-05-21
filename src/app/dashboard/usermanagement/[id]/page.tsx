@@ -26,7 +26,7 @@ import { SendVfyEmail } from "@/src/app/account/actions";
 
 const FetchUser = async (id: number) => {
   const makereq = await ApiRequest({
-    url: `/api/users?search=${id}`,
+    url: `/api/users/admin?uid=${id}`,
     method: "GET",
   });
 
@@ -62,7 +62,7 @@ const CreateUserPage = (props: { params: Promise<{ id?: string }> }) => {
         setloading(false);
 
         if (!userdata) {
-          return redirect("/notfound");
+          return;
         }
 
         setuser(userdata as UserState);
@@ -91,50 +91,59 @@ const CreateUserPage = (props: { params: Promise<{ id?: string }> }) => {
     async (e: FormEvent<HTMLFormElement>) => {
       e.preventDefault();
 
-      if (user?.password !== user?.confirmpassword) {
+      if (!isEdit && user?.password !== user?.confirmpassword) {
         errorToast("Confirm Password must match");
         return;
       }
 
+      const url = isEdit ? "/api/users/admin" : "/api/auth/resgister";
+
       setloading(true);
       const makerequest = await ApiRequest({
         method: isEdit ? "PUT" : "POST",
-        url: "/api/auth/register",
+        url,
         data: user,
       });
 
-      if (!makerequest.success || !makerequest.data) {
+      if (!makerequest.success) {
         setloading(false);
         errorToast(makerequest.error ?? "Error Occured");
         return;
       }
 
       //send email verification
-      const template = renderToString(
-        <CredentialEmail
-          infotype="link"
-          infovalue={`${getBaseUrl()}/account/verify?vc=${makerequest.data}`}
-          message="Please Click link for verification"
-          warn="For Verification Only"
-        />
-      );
+      if (makerequest.data) {
+        const template = renderToString(
+          <CredentialEmail
+            infotype="link"
+            infovalue={`${getBaseUrl()}/account/verify?vc=${makerequest.data}`}
+            message="Please Click link for verification"
+            warn="For Verification Only"
+          />
+        );
 
-      const sendEmail = SendVfyEmail.bind(
-        null,
-        template,
-        user?.email as string,
-        "Email Verification"
-      );
-      const sendReq = await sendEmail();
-      setloading(false);
-      if (!sendReq.success) {
-        errorToast("Can't Verfiy Email");
-        return;
+        const sendEmail = SendVfyEmail.bind(
+          null,
+          template,
+          user?.email as string,
+          "Email Verification"
+        );
+        const sendReq = await sendEmail();
+        setloading(false);
+        if (!sendReq.success) {
+          errorToast("Can't Verfiy Email");
+          return;
+        }
+      } else {
+        setloading(false);
       }
 
-      successToast("User created");
-
-      setuser(undefined);
+      if (isEdit) {
+        successToast("User Updated");
+      } else {
+        successToast("User created");
+        setuser(undefined);
+      }
     },
     [isEdit, setuser, user]
   );
@@ -190,11 +199,15 @@ const CreateUserPage = (props: { params: Promise<{ id?: string }> }) => {
           value={user?.email}
           onChange={handleChange}
         />
-        <h3>Security</h3>
-        <Divider />
-        <PasswordSection />
+        {!isEdit && (
+          <>
+            <h3>Security</h3>
+            <Divider />
+            <PasswordSection />
 
-        <Divider />
+            <Divider />
+          </>
+        )}
 
         <div className="btn_section w-[300px] h-[40px] flex flex-row gap-x-3">
           <Button
