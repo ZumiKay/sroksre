@@ -15,7 +15,6 @@ import { SecondaryModal } from "../Modals";
 import PrimaryButton from "../Button";
 import { SelectAndSearchProduct } from "../Banner";
 import { ImageUpload } from "./Image";
-import { DeleteTempImage } from "../../dashboard/inventory/varaint_action";
 import { Divider, Form, Input } from "@heroui/react";
 import { BannerState, SelectType } from "@/src/context/GlobalType.type";
 import { AsyncSelection } from "@/src/app/component/AsynSelection";
@@ -236,8 +235,8 @@ export const BannerModal = ({
               }
               className="w-full min-h-[250px] mt-2 object-cover"
               loading="lazy"
-              width={300}
-              height={500}
+              width={10000}
+              height={1000}
             />
           </div>
         </div>
@@ -292,7 +291,7 @@ export const BannerModal = ({
               />
             </div>
           </div>
-          {banner.type !== "normal" && (
+          {banner.type && banner.type !== "normal" && (
             <div className="Section_divider w-full h-fit">
               <h3>Banner Options</h3>
               <Divider />

@@ -56,14 +56,28 @@ const ImagePreview = ({ open, data }: ImagePreviewProps) => {
   );
 
   return (
-    <SecondaryModal size="md" open={open} onPageChange={() => setopenmodal({})}>
+    <SecondaryModal
+      size={data.ty === "banner" ? "full" : "lg"}
+      open={open}
+      onPageChange={() => setopenmodal({})}
+      closebtn
+    >
       {loading && <ContainerLoading />}
       <div className="image_container flex w-full min-h-[400px] flex-col items-center gap-y-3 bg-white">
         {imagedata && (
-          <div className="preview h-[400px] w-full">
+          <div
+            style={
+              data.ty === "banner"
+                ? {
+                    height: "auto",
+                  }
+                : {}
+            }
+            className="preview h-[400px] w-full"
+          >
             <Image
-              width={500}
-              height={500}
+              width={data.ty === "banner" ? 1000 : 500}
+              height={data.ty === "banner" ? 1000 : 500}
               quality={100}
               alt={imagedata[currentIdx].name ?? "image"}
               src={imagedata[currentIdx].url}

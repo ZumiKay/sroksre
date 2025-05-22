@@ -59,6 +59,7 @@ interface Updatebannerprops extends BannerState {
 const CommonSelectBannerProps: prismatype.Prisma.BannerSelect = {
   id: true,
   name: true,
+  type: true,
   Image: {
     select: {
       url: true,
@@ -71,6 +72,7 @@ const CommonSelectBannerProps: prismatype.Prisma.BannerSelect = {
   parentcate_id: true,
   childcate_id: true,
   selectedproduct_id: true,
+  size: true,
 };
 
 export async function PUT(request: NextRequest) {
@@ -80,9 +82,24 @@ export async function PUT(request: NextRequest) {
     if (updatedata.id) {
       if (updatedata.edittype) {
         if (updatedata.edittype === "cover") {
-          await Prisma.image.update({
+          const prevItem = await Prisma.image.findUnique({
             where: { bannerId: updatedata.id },
-            data: updatedata.Image,
+            select: {
+              url: true,
+            },
+          });
+          if (prevItem) {
+            ///Remove Old Image
+            await Prisma.image.delete({ where: { bannerId: updatedata.id } });
+            await del(prevItem.url);
+          }
+
+          /// Link New Image
+          await Prisma.image.update({
+            where: { id: updatedata.Image.id },
+            data: {
+              bannerId: updatedata.id,
+            },
           });
         }
       } else {

@@ -371,7 +371,7 @@ export default function Inventory(props: {
   );
 
   const handleSelection = useCallback(
-    (key: number[]) => {
+    (key: Array<string | number>) => {
       if (!promotion.selectproduct && !promotion.selectbanner) {
         settableselectitems(key);
         return;
@@ -420,21 +420,30 @@ export default function Inventory(props: {
     ]
   );
 
-  const handleSelectDelete = async () => {};
+  const handleSelectDelete = async () => {
+    alert("Delete Selected Items");
+  };
 
   return (
     <>
       <title>Inventory Management | SrokSre</title>
       <LocalizationProvider dateAdapter={AdapterDayjs}>
-        {type &&
-          globalindex.producteditindex !== -1 &&
-          openmodal[`cover${globalindex.producteditindex}`] && (
+        {(openmodal[`cover${globalindex.producteditindex}`] ||
+          openmodal[`showbanner${globalindex.bannereditindex}`]) &&
+          (globalindex.producteditindex !== -1 ||
+            globalindex.bannereditindex !== -1) && (
             <ImagePreview
               open={
-                openmodal[`cover${globalindex.producteditindex}`] as boolean
+                (openmodal[`showbanner${globalindex.bannereditindex}`] ||
+                  openmodal[`cover${globalindex.producteditindex}`]) as boolean
               }
               data={{
                 id: globalindex.producteditindex,
+                image:
+                  allData?.banner &&
+                  allData.banner.find(
+                    (i) => i.id === globalindex.bannereditindex
+                  )?.Image,
                 ty: type as InventoryPage,
               }}
             />

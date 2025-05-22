@@ -100,7 +100,7 @@ const BannerColumns: Array<ColumnType> = [
     name: "Id",
     uid: "id",
   },
-  { name: "Image", uid: "image" },
+  { name: "Image", uid: "Image" },
   {
     name: "Name",
     uid: "name",
@@ -215,6 +215,10 @@ export default function TableComponent({
         } else if (ty === "promotion") {
           toUpdateIndex.promotioneditindex = id as number;
         }
+      } else if (uid === "Image") {
+        toOpenModal[`showbanner${id}`] = true;
+        toUpdateIndex.bannereditindex = id as number;
+        console.log(toOpenModal);
       } else if (uid === "covers") {
         toOpenModal[`cover${id}`] = true;
         toUpdateIndex.producteditindex = id as number;
@@ -292,7 +296,7 @@ export default function TableComponent({
       if (!celldata) return null;
 
       switch (key) {
-        case "image":
+        case "Image":
         case "covers":
         case "banner": {
           const data =
@@ -302,7 +306,7 @@ export default function TableComponent({
           if (!data) return null;
           return (
             <Image
-              className="w-[100px] h-[100px] object-cover rounded-sm"
+              className="w-[100px] h-[100px] object-contain rounded-sm"
               onClick={() => handleView(key, celldata.id)}
               width={100}
               height={100}
@@ -399,7 +403,7 @@ export default function TableComponent({
           );
 
         default:
-          return celldata[key.toString()];
+          return celldata[key.toString()] ?? "none";
       }
     },
     [memoizedTy, handleClick, handleView, handleAction, ty]

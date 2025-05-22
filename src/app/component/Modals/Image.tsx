@@ -9,12 +9,7 @@ import {
   useRef,
   useState,
 } from "react";
-import {
-  ContainerLoading,
-  errorToast,
-  infoToast,
-  successToast,
-} from "../Loading";
+import { ContainerLoading, errorToast, successToast } from "../Loading";
 import Image from "next/image";
 import PrimaryButton, { UploadInput } from "../Button";
 import CropImage from "../Cropimage";
@@ -188,7 +183,7 @@ export const ImageUpload = (props: imageuploadprops) => {
               data: {
                 id: banner.id,
                 edittype: "cover",
-                image: data[0],
+                Image: data[0],
               },
             });
 
@@ -228,7 +223,7 @@ export const ImageUpload = (props: imageuploadprops) => {
         type: i.contentType,
         name: i.pathname,
         url: i.url,
-        isSaved: true,
+        isSave: true,
       }));
 
       if (savedUrl.length > 0) {
@@ -319,17 +314,14 @@ export const ImageUpload = (props: imageuploadprops) => {
     settempfiles([]);
   }, [Imgurltemp, Tempfiles]);
 
-  const handleselectImg = useCallback(
-    (idx: number) => {
-      if (Imgurl[idx].id) {
-        infoToast("To edit this image please delete and upload again");
-        return;
-      }
-      setselected(idx);
-      setcrop(true);
-    },
-    [Imgurl]
-  );
+  const handleselectImg = useCallback((idx: number) => {
+    // if (Imgurl[idx].id) {
+    //   infoToast("To edit this image please delete and upload again");
+    //   return;
+    // }
+    setselected(idx);
+    setcrop(true);
+  }, []);
   return (
     <SecondaryModal
       onPageChange={() => handleCancel()}

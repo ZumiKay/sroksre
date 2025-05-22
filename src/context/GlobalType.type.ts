@@ -34,6 +34,9 @@ export type Variantcontainertype =
   | "stockinfo"
   | "none";
 export type Typeofpolicy = "policy" | "question" | "paragraph";
+
+export type Aspect_Ratio_Type = "16";
+
 export const categorytype = {
   normal: "normal",
   sale: "sale",
@@ -259,6 +262,9 @@ export type ImageDatatype = {
   type?: string;
   isSave?: boolean;
   temp?: boolean;
+  productId?: number;
+  bannerId?: number;
+  userId?: number;
 };
 
 export interface BannerState {
@@ -416,6 +422,7 @@ export interface OpenModalState {
   mangageHomeItem?: boolean;
   userdetail?: boolean;
   showproducts?: boolean;
+  showbanner?: boolean;
   [key: string]: boolean | confirmmodaltype | alerttype | undefined;
 }
 

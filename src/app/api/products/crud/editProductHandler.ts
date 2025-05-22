@@ -408,7 +408,7 @@ export const EditProduct = async (
         await updateProductCategory(tx, id, existProduct as never, category);
 
         // Group 3: Cover image updates
-        await updateProductCovers(tx, covers as never);
+        await updateProductCovers(id, tx, covers as never);
 
         // Group 4: Product details updates
         if (details?.length) {
@@ -574,6 +574,7 @@ const updateProductCategory = async (
  * Updates product cover images
  */
 const updateProductCovers = async (
+  productId: number,
   tx: PrismaType.TransactionClient,
   covers?: { id: number; temp: boolean }[]
 ): Promise<void> => {
@@ -584,7 +585,7 @@ const updateProductCovers = async (
   if (newCovers.length) {
     await tx.image.updateMany({
       where: { id: { in: newCovers.map((i) => i.id as number) } },
-      data: { temp: false },
+      data: { temp: false, productId },
     });
   }
 };

@@ -156,9 +156,9 @@ interface ContextType {
   setcart: React.Dispatch<React.SetStateAction<boolean>>;
   carttotal: number;
   setcarttotal: React.Dispatch<React.SetStateAction<number>>;
-  tableselectitems?: Array<number>;
+  tableselectitems?: Array<number | string>;
   settableselectitems: React.Dispatch<
-    React.SetStateAction<Array<number> | undefined>
+    React.SetStateAction<Array<number | string> | undefined>
   >;
   filtervalue?: FilterValueType;
   setfiltervalue: React.Dispatch<
@@ -201,7 +201,7 @@ export const GlobalContextProvider = ({
     useState<Productordertype>(Productdetailinitialize);
 
   const [tableselectitems, settableselectitems] = useState<
-    Array<number> | undefined
+    Array<number | string> | undefined
   >(undefined);
 
   const [listproductfilter, setlistprodfil] = useState<Listproductfilter>({
