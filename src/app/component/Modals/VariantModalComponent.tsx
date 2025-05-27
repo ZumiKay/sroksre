@@ -419,7 +419,7 @@ export const ManageStockContainer = memo(
                   {product.variants?.map((item, idx) => {
                     return (
                       <Multiselect
-                        key={item.id}
+                        key={"Select" + idx}
                         id={idx}
                         type={item.option_type}
                         value={selectedstock[item.option_title]}

@@ -5,9 +5,10 @@ import PrimaryButton from "./Button";
 import SelectArrow from "../../../public/Image/Arrow_down.svg";
 import { AnimatePresence, motion } from "framer-motion";
 import { DeleteIcon } from "./Asset";
-import { Skeleton } from "@heroui/react";
+import { CircularProgress, Skeleton } from "@heroui/react";
 import { SelectType } from "@/src/context/GlobalType.type";
 import { useCallback, useMemo } from "react";
+import { ApiRequest } from "@/src/context/CustomHook";
 
 //
 
@@ -117,19 +118,20 @@ export const SelectAndSearchProduct = ({
       try {
         const finalUrl = constructUrl(searchLimit, searchValue);
 
-        const response = await fetch(finalUrl, {
-          // Add cache control to optimize fetch requests
-          cache: "no-store", // Use this for data that changes frequently
+        const response = await ApiRequest({
+          url: finalUrl,
+          method: "GET",
+          cache: "no-store",
         });
 
-        const data = await response.json();
-
-        if (data.success) {
-          setOptions(data.data || []);
-          setIsLimit(data.isLimit ?? false);
+        if (!response.success) {
+          return null;
         }
 
-        return data;
+        setOptions(response.data as Array<SelectType>);
+        setIsLimit(response.isLimit || false);
+
+        return true;
       } catch (error) {
         console.error("Error fetching options:", error);
         return null;
@@ -197,7 +199,7 @@ export const SelectAndSearchProduct = ({
     const newLimit = limit + 3;
     const data = await fetchData(newLimit, inputValue);
 
-    if (data?.success) {
+    if (data) {
       setLimit(newLimit);
     }
   }, [fetchData, inputValue, limit]);
@@ -261,7 +263,7 @@ export const SelectAndSearchProduct = ({
   // Virtual rendering optimization - only render visible options
   const renderOptions = useMemo(() => {
     if (loading) {
-      return <NormalSkeleton width="100%" height="30px" count={3} />;
+      return <CircularProgress color="default" />;
     }
 
     // Only render visible options for performance with large datasets

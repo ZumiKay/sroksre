@@ -2,8 +2,10 @@ import { ImageDatatype } from "@/src/context/GlobalType.type";
 import Prisma from "@/src/lib/prisma";
 import { NextRequest } from "next/server";
 import { getUser } from "../../action";
+import { del } from "@vercel/blob";
 interface Deleteimagedata {
   ids: Array<number>;
+  type?: "normal" | "temp";
 }
 
 export async function POST(req: NextRequest) {
@@ -72,16 +74,74 @@ export async function POST(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
-    const data: Deleteimagedata = await req.json();
-    if (!data) {
-      return Response.json({ message: "Nothing To Delete" }, { status: 403 });
+    // Validate request data
+    const data = (await req.json()) as Deleteimagedata;
+
+    if (!data.ids?.length || !data.type) {
+      return Response.json(
+        {
+          success: false,
+          message: "Missing required fields: ids array or type",
+        },
+        { status: 400 }
+      );
     }
 
-    await Prisma.image.deleteMany({ where: { id: { in: data.ids } } });
+    // Handle temporary image deletion (with file storage cleanup)
+    if (data.type === "temp") {
+      const images = await Prisma.image.findMany({
+        where: { id: { in: data.ids } },
+        select: { url: true, id: true },
+      });
 
-    return Response.json({ message: "Delete Successfully" }, { status: 200 });
+      if (images.length === 0) {
+        return Response.json(
+          { success: false, message: "No images found with the provided ids" },
+          { status: 404 }
+        );
+      }
+
+      // Fix: Use Promise.all correctly
+      await Promise.all([
+        // Delete files from storage
+        ...images.map((img) => del(img.url)),
+        // Delete database records
+        Prisma.image.deleteMany({ where: { id: { in: data.ids } } }),
+      ]);
+
+      return Response.json(
+        {
+          success: true,
+          message: "Images deleted successfully",
+          count: images.length,
+        },
+        { status: 200 }
+      );
+    }
+
+    // Handle non-temporary image deletion (database only)
+    const result = await Prisma.image.deleteMany({
+      where: { id: { in: data.ids } },
+    });
+
+    return Response.json(
+      {
+        success: true,
+        message: "Images deleted successfully",
+        count: result.count,
+      },
+      { status: 200 }
+    );
   } catch (error) {
-    console.log("Delete Image", error);
-    return Response.json({ message: "Error Delete Image" }, { status: 500 });
+    console.error("Error deleting image(s):", error);
+
+    return Response.json(
+      {
+        success: false,
+        message: "Failed to delete image(s)",
+        error: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 }
+    );
   }
 }

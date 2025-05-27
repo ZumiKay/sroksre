@@ -303,7 +303,7 @@ export default function TableComponent({
             celldata[key] && celldata[key][0]
               ? celldata[key][0]
               : (celldata[key] as ImageDatatype);
-          if (!data) return null;
+          if (!data || !data.url) return null;
           return (
             <Image
               className="w-[100px] h-[100px] object-contain rounded-sm"

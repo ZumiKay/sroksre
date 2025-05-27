@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     const result: SearchAndSelectReturnType | { [x: string]: unknown } = {};
 
     if (ty === "parent") {
-      result.items = (
+      result.data = (
         await Prisma.parentcategories.findMany({
           where: catetype
             ? {
@@ -41,12 +41,12 @@ export async function GET(request: NextRequest) {
 
       if (take) {
         const parentcount = await Prisma.parentcategories.count();
-        result.hasMore = parentcount > take;
+        result.isLimit = parentcount > take;
       }
 
-      return Response.json({ data: result }, { status: 200 });
+      return Response.json({ ...result }, { status: 200 });
     } else if (ty === "child" && pid) {
-      result.items = (
+      result.data = (
         await Prisma.childcategories.findMany({
           where: {
             parentcategoriesId: parseInt(pid),
@@ -56,10 +56,10 @@ export async function GET(request: NextRequest) {
       ).map((item) => ({ label: item.name, value: item.id.toString() }));
       if (take) {
         const childcount = await Prisma.parentcategories.count();
-        result.hasMore = childcount > take;
+        result.isLimit = childcount > take;
       }
 
-      return Response.json({ data: result }, { status: 200 });
+      return Response.json({ ...result }, { status: 200 });
     } else if (ty === "promocate" && promoid) {
       const categories = await Prisma.products.findMany({
         where: { promotion_id: parseInt(promoid) },

@@ -384,6 +384,33 @@ export function isValidDate(value: unknown): boolean {
   return false;
 }
 
+//fix function
+
+export const handleLocalstorage = (ids: number[], remove?: boolean) => {
+  const savedImages = JSON.parse(
+    localStorage.getItem("savedImages") || "[]"
+  ) as number[];
+
+  if (remove) {
+    // Remove all ids in the array from savedImages
+    ids.forEach((id) => {
+      const index = savedImages.indexOf(id);
+      if (index > -1) {
+        savedImages.splice(index, 1);
+      }
+    });
+    localStorage.setItem("savedImages", JSON.stringify(savedImages));
+    return;
+  }
+
+  // Add all ids in the array to savedImages (avoid duplicates)
+  ids.forEach((id) => {
+    if (!savedImages.includes(id)) {
+      savedImages.push(id);
+    }
+  });
+  localStorage.setItem("savedImages", JSON.stringify(savedImages));
+};
 //Email Template
 //
 //

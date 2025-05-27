@@ -18,6 +18,7 @@ import { type PutBlobResult } from "@vercel/blob";
 import { SecondaryModal } from "../Modals";
 import { ImageDatatype } from "@/src/context/GlobalType.type";
 import { v4 as uuidv4 } from "uuid";
+import { handleLocalstorage } from "@/src/lib/utilities";
 
 interface imageuploadprops {
   limit: number;
@@ -31,6 +32,34 @@ const filetourl = (file: File[]) => {
   const url = [""];
   file.map((obj) => url.push(URL.createObjectURL(obj)));
   return url.filter((i) => i !== "");
+};
+
+const urlToFile = async (
+  url: string,
+  filename: string,
+  mimeType: string
+): Promise<File> => {
+  try {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    return new File([blob], filename, { type: mimeType });
+  } catch (error) {
+    console.error("Error converting URL to File:", error);
+    throw new Error("Failed to convert URL to File");
+  }
+};
+
+// Helper function to convert multiple URLs to Files
+const urlsToFiles = async (images: ImageDatatype[]): Promise<File[]> => {
+  try {
+    const filePromises = images.map((img) =>
+      urlToFile(img.url, img.name || "image.jpg", img.type || "image/jpeg")
+    );
+    return await Promise.all(filePromises);
+  } catch (error) {
+    console.error("Error converting URLs to Files:", error);
+    return [];
+  }
 };
 
 const generateUniqueFileName = (file: File) => {
@@ -57,6 +86,28 @@ const uploadToVercel = async (
     return { success: false };
   }
 };
+
+const deleteTempImage = async () => {
+  const ids = localStorage.getItem("tempimageids")
+    ? (JSON.parse(localStorage.getItem("tempimageids") as never) as number[])
+    : [];
+
+  if (ids.length === 0) {
+    return true;
+  }
+
+  await ApiRequest({
+    url: "/api/image/temp",
+    method: "DELETE",
+    data: {
+      ids,
+      type: "temp",
+    },
+  });
+
+  return true;
+};
+
 export const ImageUpload = (props: imageuploadprops) => {
   const {
     product,
@@ -81,24 +132,36 @@ export const ImageUpload = (props: imageuploadprops) => {
   //Initialize
   useEffect(() => {
     //Initialize Img URL
-    const updatedImages =
-      product.covers.length > 0
-        ? product.covers.map((i) => ({ ...i, isSave: true }))
-        : banner.Image?.url.length > 0
-        ? [banner.Image]
-        : [];
+    const initializeImages = async () => {
+      await deleteTempImage();
 
-    seturl([...updatedImages]);
-    //Initailize File
-    setfiles((prevFiles) => {
-      const newLength = updatedImages.length;
+      let initialImages: ImageDatatype[] = [];
 
-      const newFiles = Array(newLength).fill(null);
+      if (product.covers.length > 0) {
+        initialImages = product.covers.map((img) => ({ ...img, isSave: true }));
+      } else if (banner.Image?.url) {
+        initialImages = [banner.Image];
+      }
 
-      newFiles.splice(0, prevFiles.length, ...prevFiles);
+      seturl(initialImages);
 
-      return newFiles;
-    });
+      // Initialize files array with placeholders
+      setfiles(Array(initialImages.length).fill(null));
+
+      // Convert URLs to Files for existing images
+      if (initialImages.length > 0) {
+        urlsToFiles(initialImages).then((convertedFiles) => {
+          setfiles((prevFiles) => {
+            const newFiles = [...prevFiles];
+            convertedFiles.forEach((file, index) => {
+              if (file) newFiles[index] = file;
+            });
+            return newFiles;
+          });
+        });
+      }
+    };
+    initializeImages();
   }, []);
 
   //Change Event
@@ -237,6 +300,8 @@ export const ImageUpload = (props: imageuploadprops) => {
           throw new Error("Can't Save");
         }
 
+        handleLocalstorage(savedUrl.map((i) => i.id) as number[]);
+
         const savedData = saveReq.data as ImageDatatype[];
         savedUrl = savedData;
       }
@@ -308,8 +373,8 @@ export const ImageUpload = (props: imageuploadprops) => {
     setopenmodal({ ...openmodal, imageupload: false });
   }, [openmodal, setopenmodal]);
   const handleReset = useCallback(() => {
-    seturl((prev) => [...prev, ...Imgurltemp]);
-    setfiles((prev) => [...prev, ...Tempfiles]);
+    seturl((prev) => (prev.length === 4 ? [] : [...prev, ...Imgurltemp]));
+    setfiles((prev) => (prev.length === 4 ? [] : [...prev, ...Tempfiles]));
     seturltemp([]);
     settempfiles([]);
   }, [Imgurltemp, Tempfiles]);
@@ -411,7 +476,6 @@ export const ImageUpload = (props: imageuploadprops) => {
             Files={Files}
             setfile={setfiles}
             setimgurl={seturl}
-            type={props.bannertype ? "createproduct" : props.type}
           />
         )}
       </div>

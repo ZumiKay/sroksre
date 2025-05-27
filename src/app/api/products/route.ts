@@ -22,7 +22,7 @@ interface paramsType {
   cc?: number;
   sk?: string;
   p?: number;
-  prodId?: number;
+  id?: number;
   pid?: number; //Promotion id
   pids?: string; //Promotion Ids
   po?: number;
@@ -52,7 +52,7 @@ const convertStockData = (stock: Stocktype[]) => {
 export async function GET(request: NextRequest) {
   try {
     const url = request.nextUrl.toString();
-    const { ty, limit, q, pc, sk, cc, p, pid, po, dc, dt, sp, pids, prodId } =
+    const { ty, limit, q, pc, sk, cc, p, pid, po, dc, dt, sp, pids, id } =
       extractQueryParams(url) as unknown as paramsType;
 
     if (!ty) {
@@ -138,7 +138,7 @@ export async function GET(request: NextRequest) {
 
       case "info": {
         const product = await Prisma.products.findUnique({
-          where: { id: prodId },
+          where: { id },
           select: {
             id: true,
             name: true,
@@ -244,7 +244,7 @@ export async function GET(request: NextRequest) {
         // Execute both queries in parallel
         const [variant, stock] = await Promise.all([
           Prisma.variant.findMany({
-            where: { product_id: prodId },
+            where: { product_id: id },
             orderBy: { id: "desc" },
             select: {
               id: true,
@@ -254,7 +254,7 @@ export async function GET(request: NextRequest) {
             },
           }),
           Prisma.stock.findMany({
-            where: { product_id: prodId },
+            where: { product_id: id },
             orderBy: { id: "asc" },
             select: {
               id: true,

@@ -5,12 +5,12 @@ import Link from "next/link";
 import ToggleMenu from "@/src/app/component/ToggleMenu";
 import { getRelatedProduct } from "./action";
 import Card from "@/src/app/component/Card";
-import { getUser } from "@/src/context/OrderContext";
 import Prisma from "@/src/lib/prisma";
 import { Props } from "../../page";
 import { Metadata } from "next";
 import Image from "next/image";
 import { Relatedproducttype } from "@/src/context/GlobalType.type";
+import { getUser } from "@/src/app/action";
 
 export async function generateMetadata(props: Props): Promise<Metadata> {
   const params = await props.params;
@@ -48,12 +48,10 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
 interface SearchParamType {
   lt?: string;
 }
-export default async function ProductDetailPage(
-  props: {
-    params: Promise<{ id: string }>;
-    searchParams?: Promise<{ [key: string]: string | undefined }>;
-  }
-) {
+export default async function ProductDetailPage(props: {
+  params: Promise<{ id: string }>;
+  searchParams?: Promise<{ [key: string]: string | undefined }>;
+}) {
   const searchParams = await props.searchParams;
   const params = await props.params;
   const user = await getUser();
@@ -134,6 +132,7 @@ export default async function ProductDetailPage(
 
             {data?.policy.map((pol) => (
               <ToggleMenu
+                key={pol.id}
                 name={pol.title}
                 isAdmin={false}
                 paragraph={pol.Paragraph}
@@ -160,16 +159,18 @@ export default async function ProductDetailPage(
 const ShowRelated = ({ data }: { data: Relatedproducttype[] }) => {
   return (
     <div className="w-full h-fit grid grid-cols-3 gap-y-5">
-      {data.map((related) => (
-        <Link href={`/product/detail/${related.id}`}>
+      {data.map((related, idx) => (
+        <Link key={idx} href={`/product/detail/${related.id}`}>
           <div
             key={related.id}
             className="w-[200px] h-fit flex flex-col gap-y-3 items-center justify-center p-2 rounded-lg border-2 border-black transition-all duration-200 hover:bg-black hover:text-white cursor-pointer"
           >
-            <img
+            <Image
               src={related.covers[0].url}
               alt="cover"
               className="w-[100px] h-[100px] object-cover rounded-lg"
+              width={200}
+              height={200}
               loading="lazy"
             />
             <h3 className="w-full text-center">{related.name}</h3>
@@ -205,7 +206,7 @@ const ShowSimilarProduct = async ({
 
   if (data.success) {
     relatedproduct = data.data;
-    data.maxprod && (isLimit = data.maxprod);
+    if (data.maxprod) isLimit = data.maxprod;
   }
 
   return (

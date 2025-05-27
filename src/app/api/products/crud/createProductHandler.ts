@@ -57,7 +57,7 @@ export const CreateProduct = async (
           // Update cover images (mark as non-temporary and associate with product)
           (async () => {
             const coverIds = data.covers
-              .filter((cover) => cover.isSave)
+              .filter((cover) => cover.id)
               .map((cover) => cover.id as number);
 
             if (coverIds.length > 0) {

@@ -73,12 +73,12 @@ export const ConfirmModal = () => {
 
       // Handle image deletion if needed
       if (isNewProduct && product.covers.length > 0) {
-        const images = product.covers.map((i) => i.name);
+        const images = product.covers.map((i) => i.id);
         const deleteimage = await ApiRequest({
           url: URL,
           setloading: setisLoading,
           method: "DELETE",
-          data: { names: images },
+          data: { ids: images, type: "normal" },
         });
 
         if (!deleteimage.success) {

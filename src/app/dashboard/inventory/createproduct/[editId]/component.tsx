@@ -17,7 +17,7 @@ const StockOption: Array<SelectType> = [
 ];
 
 export const StockCreateSection = memo(() => {
-  const { product, setproduct, globalindex, setopenmodal } = useGlobalContext();
+  const { product, setproduct, setopenmodal } = useGlobalContext();
 
   function handleChange<t>(name: string, val: t) {
     setproduct((prev) => ({ ...prev, [name]: val }));
@@ -39,6 +39,7 @@ export const StockCreateSection = memo(() => {
           placeholder: "Stock Type",
           isRequired: true,
           errorMessage: "Stock Type is Required",
+          "aria-label": "Select Stock Type",
         }}
       />
       {product.stocktype === StockType.Stock ? (
@@ -59,7 +60,8 @@ export const StockCreateSection = memo(() => {
           startContent={<VariantIcon />}
           onPress={() => setopenmodal({ addproductvariant: true })}
         >
-          {globalindex.producteditindex === -1 ? "Create" : "Edit"} Variant
+          {product.variants && product.variants.length > 0 ? "Create" : "Edit"}{" "}
+          Variant
         </Button>
       ) : (
         <></>

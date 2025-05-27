@@ -78,6 +78,8 @@ export type Categorytype = keyof typeof categorytype;
 
 export type ScrollableTypeValueType = "popular" | "new" | "sale" | "custom";
 
+export type BannerLinkType = "parent" | "sub";
+
 export interface ActionReturnType<t = string> {
   success: boolean;
   message?: string;
@@ -273,7 +275,7 @@ export interface BannerState {
   type: BannerType;
   size: string;
   Image: ImageDatatype;
-  linktype?: string;
+  linktype?: BannerLinkType;
   parentcate?: SelectType;
   childcate?: SelectType;
   selectedproduct?: SelectType[];
@@ -507,10 +509,11 @@ export interface ApiRequestHookProps {
   data?: unknown;
   datatype?: RequetDatatype;
   revalidate?: string;
+  cache?: RequestCache;
 }
 
 export interface InfiniteScrollReturnType {
-  items: SelectType[];
+  data: SelectType[];
   hasMore?: boolean;
 }
 

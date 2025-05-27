@@ -9,33 +9,68 @@ import prismatype from "@prisma/client";
 import { del } from "@vercel/blob";
 import { NextRequest } from "next/server";
 import { getUser } from "../../action";
+import { z } from "zod";
+
+const ImageSchema = z.object({
+  id: z.number(),
+  url: z.string().url().trim(),
+  name: z.string().trim().max(255),
+  type: z.string().trim().max(50),
+});
+
+const SelectOptionSchema = z.object({
+  value: z.number().int().positive(),
+  label: z.string().trim(),
+});
+
+const BannerStateSchema = z.object({
+  name: z.string().trim().min(1).max(255),
+  type: z.string().trim().min(1).max(50),
+  size: z.string().trim().max(50),
+  selectedproduct: z.array(SelectOptionSchema).optional().nullable(),
+  parentcate: SelectOptionSchema.optional().nullable(),
+  childcate: SelectOptionSchema.optional().nullable(),
+  linktype: z.string().trim().max(50),
+  Image: ImageSchema,
+});
 
 export async function POST(request: NextRequest) {
   try {
-    const data: BannerState = await request.json();
+    // Parse and validate the incoming data
+    const rawData = await request.json();
 
+    // Validate the data against our schema
+    const validatedData = BannerStateSchema.parse(rawData);
+
+    // Prepare sanitized data for database
+    const createData = {
+      name: validatedData.name,
+      type: validatedData.type,
+      size: validatedData.size,
+      selectedproduct_id:
+        validatedData.selectedproduct?.map((i) => i.value) || [],
+      parentcate_id: validatedData.parentcate?.value || null,
+      childcate_id: validatedData.childcate?.value || null,
+      linktype: validatedData.linktype,
+    };
+
+    // Create the banner with sanitized data
     const create = await Prisma.banner.create({
-      data: {
-        name: data.name,
-        type: data.type,
-        size: data.size,
-        selectedproduct_id: data.selectedproduct?.map((i) => i.value),
-        parentcate_id: data.parentcate?.value as number,
-        childcate_id: data.childcate?.value as number,
-        linktype: data.linktype,
-      },
+      data: createData,
     });
 
-    //create Image
-    if (data.Image.isSave) {
+    // Create Image if needed
+    if (validatedData.Image.id) {
       const user = await getUser();
-      await Prisma.image.create({
+
+      if (!user?.id) {
+        throw new Error("User not authenticated");
+      }
+
+      await Prisma.image.update({
+        where: { id: validatedData.Image.id },
         data: {
-          url: data.Image.url,
-          name: data.Image.name,
-          type: data.Image.type as string,
           temp: false,
-          userId: user?.id,
           bannerId: create.id,
         },
       });
@@ -43,7 +78,17 @@ export async function POST(request: NextRequest) {
 
     return Response.json({ data: { id: create.id } }, { status: 200 });
   } catch (error) {
-    console.log("Create Banner", error);
+    console.error("Create Banner Error:", error);
+
+    // Check if it's a validation error
+    if (error instanceof z.ZodError) {
+      return Response.json(
+        { message: "Invalid data", errors: error.errors },
+        { status: 400 }
+      );
+    }
+
+    // Generic error
     return Response.json(
       { message: "Failed To Create Banner" },
       { status: 500 }
@@ -325,24 +370,33 @@ export async function GET(request: NextRequest) {
         };
       }
     } else {
-      result = await Prisma.banner.findMany({
-        where: {
-          type: param.bty,
-          size: param.bs,
-          name: param.q && {
-            contains: removeSpaceAndToLowerCase(param.q),
+      result = (
+        await Prisma.banner.findMany({
+          where: {
+            type: param.bty,
+            size: param.bs,
+            name: param.q && {
+              contains: removeSpaceAndToLowerCase(param.q),
+            },
           },
-        },
-        select: {
-          id: true,
-          name: true,
-          type: true,
-          Image: CommonSelectBannerProps.Image,
-          size: true,
-        },
-        take: endIndex - startIndex + 1,
-        skip: startIndex,
-      });
+          select: {
+            id: true,
+            name: true,
+            type: true,
+            Image: CommonSelectBannerProps.Image,
+            size: true,
+            linktype: true,
+          },
+          take: endIndex - startIndex + 1,
+          skip: startIndex,
+        })
+      ).map((i) => ({
+        ...i,
+        linktype:
+          i.linktype === "parent" || i.linktype === "sub"
+            ? `${i.linktype.toUpperCase()} / CATEGORY`
+            : i.linktype,
+      }));
     }
 
     return Response.json(

@@ -28,9 +28,8 @@ export const FetchCategory = async ({
 
 export const FetchEditProduct = async (id: string) => {
   const getReq = await ApiRequest({
-    url: `/api/products?ty=info&pid=${id}`,
+    url: `/api/products?ty=info&id=${id}`,
     method: "GET",
-    revalidate: "product",
   });
   if (!getReq.success) {
     return { success: false };

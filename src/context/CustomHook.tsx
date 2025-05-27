@@ -11,6 +11,7 @@ export const ApiRequest = async ({
   data,
   datatype = "JSON",
   revalidate,
+  cache,
 }: ApiRequestHookProps): Promise<{
   success: boolean;
   error?: string;
@@ -30,6 +31,7 @@ export const ApiRequest = async ({
     const requestOptions: RequestInit = {
       method,
       next: { tags: [revalidate ?? ""] },
+      cache,
     };
     if (data) {
       requestOptions.body =

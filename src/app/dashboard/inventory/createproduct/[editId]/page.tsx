@@ -6,7 +6,7 @@ import {
   Productinitailizestate,
   useGlobalContext,
 } from "@/src/context/GlobalContext";
-import { Button, Divider, Form, Input, NumberInput } from "@heroui/react";
+import { Button, Form, Input, NumberInput } from "@heroui/react";
 import { AsyncSelection } from "@/src/app/component/AsynSelection";
 import { ProductDetailCreateSection, StockCreateSection } from "./component";
 import { SearchAndMultiSelect } from "@/src/app/component/ToggleMenu";
@@ -19,7 +19,11 @@ import { useRouter } from "next/navigation";
 import { ImageUpload } from "@/src/app/component/Modals/Image";
 import { Variantcontainer } from "@/src/app/component/Modals/VariantModal";
 import { categorytype, ProductState } from "@/src/context/GlobalType.type";
-import { compareArrays, IsNumber } from "@/src/lib/utilities";
+import {
+  compareArrays,
+  handleLocalstorage,
+  IsNumber,
+} from "@/src/lib/utilities";
 import ImageIcon from "../../../../../../public/Image/ImageIcon.png";
 import Image from "next/image";
 import { FetchCategory, FetchEditProduct } from "./action";
@@ -46,23 +50,29 @@ const CreateProductPage = (props: { params: Promise<{ editId?: string }> }) => {
     }
 
     if (params.editId && Number(params.editId)) {
-      const asyncGetData = async () => {
+      const fetchProductData = async () => {
         setloading(true);
-        const data = await FetchEditProduct(params.editId as string);
-        setloading(false);
-        if (!data.success) {
-          return Router.push("/notfound");
+        try {
+          const data = await FetchEditProduct(params.editId as string);
+          if (!data.success) {
+            return Router.push("/notfound");
+          }
+          setproduct(data?.data as ProductState);
+          settempProduct(data?.data as ProductState);
+          setglobalindex((prev) => ({
+            ...prev,
+            producteditindex: Number(params.editId),
+          }));
+        } catch (error) {
+          Router.push("/notfound");
+          throw error;
+        } finally {
+          setloading(false);
         }
-        setproduct(data?.data as ProductState);
-        settempProduct(data?.data as ProductState);
-        setglobalindex((prev) => ({
-          ...prev,
-          producteditindex: Number(params.editId),
-        }));
       };
-      asyncGetData();
+      fetchProductData();
     }
-  }, [params.editId]);
+  }, [params.editId, Router, setproduct, setglobalindex]);
 
   useEffect(() => {
     if (tempProduct) {
@@ -76,8 +86,7 @@ const CreateProductPage = (props: { params: Promise<{ editId?: string }> }) => {
 
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      const value = e.target.value;
-      const name = e.target.name;
+      const { value, name } = e.target;
 
       // Validation for positive numbers
       if (name === "price" && !/^\d*\.?\d{0,2}$/.test(value)) {
@@ -96,22 +105,30 @@ const CreateProductPage = (props: { params: Promise<{ editId?: string }> }) => {
     async (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault();
       setloading(true);
-      const makeReq = await ApiRequest({
-        url: "/api/products/crud",
-        method: IsEdit ? "PUT" : "POST",
-        data: product,
-      });
-      setloading(false);
+      try {
+        const makeReq = await ApiRequest({
+          url: "/api/products/crud",
+          method: IsEdit ? "PUT" : "POST",
+          data: product,
+        });
 
-      if (!makeReq.success) {
-        errorToast(makeReq.error ?? "Error Occured");
-        return;
-      }
+        if (!makeReq.success) {
+          errorToast(makeReq.error ?? "Error Occurred");
+          return;
+        }
 
-      if (!IsEdit) {
-        setproduct(Productinitailizestate);
+        if (!IsEdit) {
+          setproduct(Productinitailizestate);
+        }
+
+        handleLocalstorage(product.covers.map((i) => i.id) as number[], true);
+        successToast(IsEdit ? "Product Updated" : "Product Created");
+      } catch (error) {
+        errorToast("Failed to process request");
+        throw error; // Re-throw the error for further handling if needed
+      } finally {
+        setloading(false);
       }
-      successToast(IsEdit ? "Product Updated" : "Product Created");
     },
     [setproduct, IsEdit, product]
   );
@@ -120,197 +137,231 @@ const CreateProductPage = (props: { params: Promise<{ editId?: string }> }) => {
     setproduct(Productinitailizestate);
     Router.back();
   };
+
+  const handleImageUpload = () => {
+    setopenmodal({ imageupload: true });
+  };
+
   return (
-    <>
+    <div className="bg-gray-50 min-h-screen">
+      {/* Modals */}
       {openmodal.imageupload && (
         <ImageUpload limit={4} mutitlple={true} type="createproduct" />
       )}
       {openmodal.addproductvariant && <Variantcontainer />}
-      <div className="createproduct_page w-full min-h-screen h-full flex flex-col items-start gap-y-5">
-        <h1 className="w-fit h-fit text-center p-3 bg_default text-white">
-          {IsEdit ? "Edit Product" : "Create Product"}
-        </h1>
+
+      {/* Main Container */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="mb-6">
+          <h1 className="inline-block px-6 py-3 text-xl font-semibold bg_default text-white rounded-md shadow-sm">
+            {IsEdit ? "Edit Product" : "Create Product"}
+          </h1>
+        </div>
+
         {loading && <ContainerLoading />}
+
         <Form
-          className="w-full h-fit flex flex-row gap-x-3 max-smaller_screen:flex-col max-smaller_screen:gap-y-5 max-smaller_screen:items-center"
+          className="bg-white shadow-md rounded-lg overflow-hidden"
           aria-label="create product form"
           onSubmit={CreateAndUpdateProduct}
         >
-          <div className="image_section min-w-[300px] w-2/3 h-full flex flex-col gap-y-3 items-center ">
-            <div className="w-fit h-fit relative">
-              <PrimaryPhoto
-                data={product.covers}
-                showcount={true}
-                hover={true}
-                isMobile={isMobile}
-                isTablet={isTablet}
-              />
-            </div>
-            <Button
-              className="text-white bg_default  font-bold"
-              size="lg"
-              fullWidth
-              radius="none"
-              startContent={
-                <Image src={ImageIcon} alt="imageicon" width={20} height={20} />
-              }
-              onPress={() => setopenmodal({ imageupload: true })}
-              variant="flat"
-            >
-              {product.covers.length ? "Change Image" : "Add Image"}
-            </Button>
-          </div>
-          <div className="input_section w-full h-fit flex flex-col justify-center gap-y-10 pr-5 max-smaller_screen:p-2 ">
-            <Input
-              isRequired
-              type="text"
-              label="Product Name"
-              labelPlacement="outside"
-              placeholder="Name"
-              name="name"
-              onChange={handleChange}
-              value={product.name}
-              errorMessage=""
-              size="lg"
-              className="w-[100%] h-[40px]  font-bold rounded-md"
-            />
-            <Input
-              isRequired
-              type="text"
-              label="Short Description"
-              placeholder="Description"
-              labelPlacement="outside"
-              errorMessage=""
-              name="description"
-              onChange={handleChange}
-              value={product.description}
-              size="lg"
-              className="w-[100%] h-[40px] text-lg pl-1 font-bold rounded-md "
-            />
-            <NumberInput
-              isRequired
-              label="Price"
-              labelPlacement="outside"
-              placeholder="0.00"
-              className="h-[40px] text-lg font-bold"
-              size="lg"
-              minValue={0.0}
-              value={product.price}
-              name="price"
-              onValueChange={(val) =>
-                setproduct((prev) => ({ ...prev, price: val }))
-              }
-              startContent={
-                <div className="pointer-events-none flex items-center">
-                  <span className="text-default-400 text-small">$</span>
+          <div className="p-6 grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Image Section */}
+            <div className="lg:col-span-1 flex flex-col gap-5 items-center">
+              <div className="w-full flex justify-center">
+                <div className="relative">
+                  <PrimaryPhoto
+                    data={product.covers}
+                    showcount={true}
+                    hover={true}
+                    isMobile={isMobile}
+                    isTablet={isTablet}
+                  />
                 </div>
-              }
-            />
-
-            <h3>Category Section</h3>
-            <Divider />
-            <div className="w-full h-fit flex flex-row justify-start items-start gap-3 flex-wrap">
-              <AsyncSelection
-                data={(take) =>
-                  take
-                    ? (FetchCategory({
-                        ty: "parent",
-                        offset: take,
-                        type: categorytype.normal,
-                      }) as never)
-                    : undefined
-                }
-                type="async"
-                option={{
-                  name: "parent",
-                  label: "Parent Categories",
-                  size: "lg",
-                  labelPlacement: "outside",
-                  placeholder: "Select",
-                  selectedValue: product.category.parent.id
-                    ? [product.category.parent.id.toString()]
-                    : undefined,
-                  isRequired: true,
-                  onChange: (e) => {
-                    setproduct(
-                      (prev) =>
-                        ({
-                          ...prev,
-                          category: {
-                            ...prev.category,
-                            parent: { id: Number(e.target.value) },
-                          },
-                        } as ProductState)
-                    );
-                  },
-                }}
-              />
-
-              <AsyncSelection
-                type={product.category.parent.id ? "async" : "normal"}
-                forceRefetch={product.category.parent.id}
-                data={(take) =>
-                  take
-                    ? (FetchCategory({
-                        ty: "child",
-                        pid: product.category.parent.id,
-                        offset: take,
-                      }) as never)
-                    : undefined
-                }
-                option={{
-                  name: "child",
-                  label: "Child Categories",
-                  size: "lg",
-                  selectedValue: product.category.child
-                    ? [`${product.category.child.id}`]
-                    : undefined,
-                  isDisabled: !product.category.parent.id,
-                  labelPlacement: "outside",
-                  placeholder: "Select",
-                  onChange: (e) =>
-                    setproduct(
-                      (prev) =>
-                        ({
-                          ...prev,
-                          category: {
-                            ...prev.category,
-                            child: { id: Number(e.target.value) },
-                          },
-                        } as ProductState)
-                    ),
-                }}
-              />
-            </div>
-            <StockCreateSection />
-            <Divider />
-            <ProductDetailCreateSection />
-            <div className="w-full h-fit flex flex-col gap-y-5 z-50">
-              <label className="font-bold text-lg">
-                Add related product (Optional)
-              </label>
-              <SearchAndMultiSelect />
-            </div>
-            <div className="btn w-full h-[40px] flex flex-row items-center justify-center gap-x-3">
+              </div>
               <Button
-                type="submit"
-                isLoading={loading}
-                isDisabled={IsEdit ? isChange : false}
-                className="font-bold w-full h-full bg-green-500 text-white"
+                className="text-white bg_default font-medium transition-transform hover:scale-105"
+                size="lg"
+                fullWidth
+                radius="sm"
+                startContent={
+                  <Image
+                    src={ImageIcon}
+                    alt="imageicon"
+                    width={20}
+                    height={20}
+                  />
+                }
+                onPress={handleImageUpload}
+                variant="flat"
               >
-                {IsEdit ? "Update" : "Create"}
+                {product.covers.length ? "Change Image" : "Add Image"}
               </Button>
-              <Button
-                onPress={() => handleCancel()}
-                className="font-bold w-full bg-red-300 h-full text-white"
-              >
-                Cancel
-              </Button>
+            </div>
+
+            {/* Input Section */}
+            <div className="lg:col-span-2 space-y-6">
+              <div className="space-y-6 flex flex-col gap-y-5">
+                <Input
+                  isRequired
+                  type="text"
+                  label="Product Name"
+                  labelPlacement="outside"
+                  placeholder="Enter product name"
+                  name="name"
+                  onChange={handleChange}
+                  value={product.name}
+                  size="lg"
+                  className="font-medium"
+                />
+
+                <Input
+                  isRequired
+                  type="text"
+                  label="Short Description"
+                  placeholder="Brief description of the product"
+                  labelPlacement="outside"
+                  name="description"
+                  onChange={handleChange}
+                  value={product.description}
+                  size="lg"
+                  className="font-medium"
+                />
+
+                <NumberInput
+                  isRequired
+                  label="Price"
+                  labelPlacement="outside"
+                  placeholder="0.00"
+                  className="font-medium"
+                  size="lg"
+                  minValue={0.0}
+                  value={product.price}
+                  name="price"
+                  onValueChange={(val) =>
+                    setproduct((prev) => ({ ...prev, price: val }))
+                  }
+                  startContent={
+                    <div className="pointer-events-none flex items-center">
+                      <span className="text-default-400 text-small">$</span>
+                    </div>
+                  }
+                />
+              </div>
+
+              <div className="pt-4 border-t border-gray-200">
+                <h3 className="text-lg font-semibold mb-4">Category</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <AsyncSelection
+                    data={(take) =>
+                      take
+                        ? (FetchCategory({
+                            ty: "parent",
+                            offset: take,
+                            type: categorytype.normal,
+                          }) as never)
+                        : undefined
+                    }
+                    type="async"
+                    option={{
+                      name: "parent",
+                      label: "Parent Categories",
+                      size: "lg",
+                      labelPlacement: "outside",
+                      placeholder: "Select parent category",
+                      selectedValue: product.category.parent.id
+                        ? [`${product.category.parent.id}`]
+                        : undefined,
+                      isRequired: true,
+                      onChange: (e) => {
+                        setproduct(
+                          (prev) =>
+                            ({
+                              ...prev,
+                              category: {
+                                ...prev.category,
+                                parent: { id: Number(e.target.value) },
+                              },
+                            } as ProductState)
+                        );
+                      },
+                    }}
+                  />
+
+                  <AsyncSelection
+                    type={product.category.parent.id ? "async" : "normal"}
+                    forceRefetch={product.category.parent.id}
+                    data={(take) =>
+                      take
+                        ? (FetchCategory({
+                            ty: "child",
+                            pid: product.category.parent.id,
+                            offset: take,
+                          }) as never)
+                        : undefined
+                    }
+                    option={{
+                      name: "child",
+                      label: "Child Categories",
+                      size: "lg",
+                      selectedValue: product.category.child
+                        ? [`${product.category.child.id}`]
+                        : undefined,
+                      isDisabled: !product.category.parent.id,
+                      labelPlacement: "outside",
+                      placeholder: "Select child category",
+                      onChange: (e) =>
+                        setproduct(
+                          (prev) =>
+                            ({
+                              ...prev,
+                              category: {
+                                ...prev.category,
+                                child: { id: Number(e.target.value) },
+                              },
+                            } as ProductState)
+                        ),
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-gray-200">
+                <StockCreateSection />
+              </div>
+
+              <div className="pt-4 border-t border-gray-200">
+                <ProductDetailCreateSection />
+              </div>
+
+              <div className="pt-4 border-t border-gray-200">
+                <label className="block text-lg font-semibold mb-3">
+                  Related Products (Optional)
+                </label>
+                <SearchAndMultiSelect />
+              </div>
+
+              <div className="pt-6 flex gap-4">
+                <Button
+                  type="submit"
+                  isLoading={loading}
+                  isDisabled={IsEdit ? isChange : false}
+                  className="flex-1 py-3 font-semibold bg-green-500 text-white hover:bg-green-600 transition-colors"
+                >
+                  {IsEdit ? "Update Product" : "Create Product"}
+                </Button>
+                <Button
+                  onPress={() => handleCancel()}
+                  className="flex-1 py-3 font-semibold bg-red-400 hover:bg-red-500 text-white transition-colors"
+                >
+                  Cancel
+                </Button>
+              </div>
             </div>
           </div>
         </Form>
       </div>
-    </>
+    </div>
   );
 };
 

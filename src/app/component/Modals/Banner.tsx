@@ -16,10 +16,15 @@ import PrimaryButton from "../Button";
 import { SelectAndSearchProduct } from "../Banner";
 import { ImageUpload } from "./Image";
 import { Divider, Form, Input } from "@heroui/react";
-import { BannerState, SelectType } from "@/src/context/GlobalType.type";
+import {
+  BannerLinkType,
+  BannerState,
+  SelectType,
+} from "@/src/context/GlobalType.type";
 import { AsyncSelection } from "@/src/app/component/AsynSelection";
 import Image from "next/image";
 import Default from "../../../../public/Image/default.png";
+import { handleLocalstorage } from "@/src/lib/utilities";
 
 const BannerType = [
   { label: "Normal", value: "normal" },
@@ -50,7 +55,7 @@ export const BannerModal = ({
   const [loading, setloading] = useState(false);
   const { isMobile } = useScreenSize();
 
-  const Linktype = [
+  const Linktype: Array<SelectType<BannerLinkType>> = [
     {
       label: "Parent Category",
       value: "parent",
@@ -96,7 +101,7 @@ export const BannerModal = ({
         return;
       }
 
-      if (banner.Image.name === "") {
+      if (!banner.Image.id) {
         errorToast("Image is required");
         return;
       }
@@ -151,6 +156,7 @@ export const BannerModal = ({
         }
 
         setbanner(BannerInitialize);
+        handleLocalstorage([banner.Image.id as number], true);
         successToast(`Banner ${isCreating ? "Created" : "Updated"}`);
         setreloaddata?.(true);
       } catch (error) {
@@ -175,37 +181,42 @@ export const BannerModal = ({
     const { name, value } = event.target;
 
     if (name === "type" || name === "linktype") {
-      setbanner((prev) => ({
-        ...prev,
-        linktype:
-          value === "product"
-            ? value
-            : value === "category"
-            ? "parent"
-            : undefined,
-        [name]: value,
-      }));
+      setbanner(
+        (prev) =>
+          ({
+            ...prev,
+            linktype:
+              value === "product"
+                ? value
+                : value === "category"
+                ? "parent"
+                : undefined,
+            [name]: value,
+          } as never)
+      );
     } else {
       setbanner((prev) => ({ ...prev, [name]: value }));
     }
   };
 
-  const handleSelectProduct = (
-    type: string,
-    value?: Array<SelectType> | SelectType
-  ) => {
-    if (type === "parentcate")
-      setbanner((prev) => ({
-        ...prev,
-        parentcate: value as never,
-        childcate: undefined,
-      }));
-    else
-      setbanner((prev) => ({
-        ...prev,
-        [type]: value,
-      }));
-  };
+  const handleSelectProduct = useCallback(
+    (type: string, value?: Array<SelectType> | SelectType) => {
+      if (type === "parentcate") {
+        const parentVal = value as SelectType<string>;
+
+        setbanner((prev) => ({
+          ...prev,
+          parentcate: { ...parentVal, value: parseInt(`${parentVal.value}`) },
+          childcate: undefined,
+        }));
+      } else
+        setbanner((prev) => ({
+          ...prev,
+          [type]: value,
+        }));
+    },
+    [setbanner]
+  );
 
   return (
     <SecondaryModal
@@ -314,7 +325,7 @@ export const BannerModal = ({
                 }}
               />
             )}
-            {banner.linktype === "product" && (
+            {banner.type === "product" && (
               <div className="w-full h-fit flex flex-col gap-y-5">
                 <label className="w-full h-fit text-sm font-bold">
                   Select Products

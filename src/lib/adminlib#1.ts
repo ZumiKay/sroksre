@@ -76,8 +76,7 @@ export const GetAllProduct = async ({
       promotion_id: true,
       covers: {
         orderBy: { id: "asc" },
-        take: 1,
-        select: { id: true, url: true },
+        select: { id: true, url: true, name: true },
       }, // Adjust fields as needed
       parentcateogries: { select: { id: true, name: true } },
       childcategories: { select: { id: true, name: true } },

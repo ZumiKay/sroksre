@@ -97,7 +97,7 @@ export const AsyncSelection = ({
 
         setLoading(true);
         const getdata = (await data(limit)) as InfiniteScrollReturnType;
-        const newItems = getdata?.items ?? [];
+        const newItems = getdata?.data ?? getdata ?? [];
 
         // Using a function update to guarantee we're working with latest state
         setItems(newItems);
@@ -142,6 +142,7 @@ export const AsyncSelection = ({
       fetchData(offset);
       prevForceRefetch.current = forceRefetch;
     }
+    console.log(data?.());
   }, [offset, isOpen, reFetch, forceRefetch]);
 
   const handleLoadMore = useCallback(() => {
