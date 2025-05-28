@@ -35,6 +35,8 @@ import {
   VariantOptionModal,
   VariantTypeSection,
 } from "./VariantModalComponent#2";
+import { AddIcon, DeleteIcon } from "../Asset";
+import { VariantColorIcon } from "../Icons/VariantComponent";
 
 export interface variantdatatype {
   id?: number;
@@ -307,6 +309,16 @@ export const Variantcontainer = ({
       setopenmodal((prev) => ({ ...prev, addproductvariant: false }));
       return;
     } else {
+      if (newadd === "info") {
+        setnew("type");
+        setoption("");
+        setadded(-1);
+        setname("");
+        settemp(undefined);
+        if (edit !== -1) setedit(-1);
+        return;
+      }
+
       if (newadd === "stockinfo") {
         handleCreateAndUpdateVariantStock();
         return;
@@ -595,7 +607,16 @@ export const Variantcontainer = ({
           </>
         )}
         {newadd === "info" && (
-          <div className="addcontainer w-[95%] h-full flex flex-col gap-y-5 rounded-lg p-2">
+          <div className="w-full max-w-[95%] bg-white rounded-xl shadow-sm p-5 space-y-6 border border-gray-100">
+            <div className="mb-2">
+              <h2 className="text-xl font-semibold text-gray-800 mb-1">
+                {edit === -1 ? "Add New Variant" : "Edit Variant"}
+              </h2>
+              <p className="text-sm text-gray-500">
+                Configure your variant options below
+              </p>
+            </div>
+
             <Input
               name="name"
               type="text"
@@ -605,8 +626,26 @@ export const Variantcontainer = ({
               size="lg"
               className="w-full"
             />
+
             {temp && temp.type === "COLOR" ? (
-              <div className="color_container w-full h-fit flex flex-col gap-y-5">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-md font-medium text-gray-700">
+                    Color Options
+                  </h3>
+                  <Button
+                    color="primary"
+                    variant="flat"
+                    size="sm"
+                    onPress={() =>
+                      setopen((prev) => ({ ...prev, addcolor: true }))
+                    }
+                    startContent={<AddIcon />}
+                  >
+                    Add Color
+                  </Button>
+                </div>
+
                 <ColorSelectModal
                   temp={temp}
                   settemp={settemp}
@@ -629,45 +668,81 @@ export const Variantcontainer = ({
                   }}
                 />
 
-                <div className="listcolor flex flex-row flex-wrap gap-3 w-full">
-                  {temp?.value?.some((i) => i !== "") ? (
-                    temp?.value?.map((color, idx) => {
-                      return (
-                        typeof color !== "string" && (
-                          <Badge
-                            content="-"
-                            color="danger"
-                            onClick={() => handleDeleteColor(idx)}
-                            key={idx}
-                          >
-                            <div
-                              className={`w-fit h-[50px] rounded-lg flex flex-row justify-center items-center gap-x-3 cursor-pointer p-2 transition-colors active:bg-gray-300 hover:bg-gray-300`}
-                              onClick={() => handleColorSelect(idx, "color")}
-                            >
-                              {/* Display created Color */}
-                              <div
-                                className="color w-[30px] h-[30px] rounded-full"
-                                style={{ backgroundColor: color.val }}
-                              ></div>
-                              {color.name && (
-                                <p className="w-fit h-fit text-lg font-light">
-                                  {color.name}
-                                </p>
-                              )}
-                            </div>
-                          </Badge>
-                        )
-                      );
-                    })
+                <div className="mt-2">
+                  {!temp?.value?.some((i) => i !== "") ? (
+                    <div className="flex flex-col items-center justify-center p-6 border border-dashed border-gray-200 rounded-lg bg-gray-50">
+                      <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center mb-2">
+                        <VariantColorIcon />
+                      </div>
+                      <h3 className="text-gray-500 font-medium">
+                        No Colors Added Yet
+                      </h3>
+                      <p className="text-gray-400 text-sm mt-1">
+                        Click the {`"Add Color"`} button to get started
+                      </p>
+                    </div>
                   ) : (
-                    <h3 className="warn_mess text-lg text-black font-normal">
-                      No Color Added Yet
-                    </h3>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                      {temp?.value?.map(
+                        (color, idx) =>
+                          typeof color !== "string" && (
+                            <div key={idx} className="relative group">
+                              <button
+                                onClick={() => handleDeleteColor(idx)}
+                                className="absolute -top-2 -right-2 z-10 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center 
+                                shadow-md transform transition-transform opacity-0 group-hover:opacity-100 hover:scale-110"
+                                aria-label="Delete color"
+                              >
+                                <DeleteIcon />
+                              </button>
+
+                              <div
+                                onClick={() => handleColorSelect(idx, "color")}
+                                className="w-full bg-white border border-gray-200 rounded-lg p-3 shadow-sm 
+                               hover:shadow-md hover:border-blue-200 transition-all cursor-pointer flex items-center gap-3"
+                              >
+                                <div
+                                  className="w-8 h-8 rounded-full shadow-inner flex-shrink-0"
+                                  style={{
+                                    backgroundColor: color.val,
+                                    boxShadow:
+                                      "inset 0 2px 4px 0 rgba(0, 0, 0, 0.1)",
+                                  }}
+                                ></div>
+                                {color.name && (
+                                  <span className="text-sm font-medium text-gray-700 truncate">
+                                    {color.name}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          )
+                      )}
+                    </div>
                   )}
                 </div>
               </div>
             ) : (
-              <>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-md font-medium text-gray-700">
+                    Text Options
+                  </h3>
+                  <Button
+                    color="primary"
+                    variant="flat"
+                    size="sm"
+                    onClick={() => {
+                      setedit(-1);
+                      setoption("");
+                      setopen((prev) => ({ ...prev, addoption: true }));
+                    }}
+                    startContent={<AddIcon />}
+                  >
+                    Add Option
+                  </Button>
+                </div>
+
                 {open.addoption && (
                   <VariantOptionModal
                     open={open.addoption}
@@ -681,72 +756,50 @@ export const Variantcontainer = ({
                     temp={temp}
                   />
                 )}
-                <div className="text-container flex flex-col items-center justify-start gap-y-3">
-                  <h3
-                    onClick={() => {
-                      setedit(-1);
-                      setoption("");
-                      setopen((prev) => ({ ...prev, addoption: true }));
-                    }}
-                    className="text-sm w-ft h-fit cursor-pointer font-medium text-blue-500 transition duration-300 hover:text-gray-300 active:text-gray-300"
-                  >
-                    Add Option
-                  </h3>
-                  <div className="opitonlist flex flex-row gap-3 flex-wrap w-full items-start justify-start h-fit">
-                    {temp?.value.length === 0 && (
-                      <h3 className="warn_mess text-lg text-black font-normal">
-                        No Option Yet
-                      </h3>
-                    )}
-                    {temp?.value.map((i, idx) => (
-                      <Badge
-                        key={idx}
-                        content="-"
-                        color="danger"
-                        onClick={() => handleDeleteVaraint(idx)}
-                      >
-                        <h3
-                          onClick={() => handleColorSelect(idx, "text")}
-                          className="option text-[15px] cursor-pointer p-2 rounded-lg text-black outline outline-2 outline-black font-normal transition duration-200 w-fit h-fit"
-                        >
-                          {i.toString()}
-                        </h3>
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              </>
-            )}
 
-            <div className="flex flex-row gap-x-5 w-full h-[35px]">
-              <PrimaryButton
-                text={`${added === -1 ? "Create" : "Update"}`}
-                type="button"
-                disable={name === "" || temp?.value.length === 0}
-                textsize="12px"
-                onClick={() => handleCreate()}
-                radius="10px"
-                width="100%"
-                height="100%"
-              />
-              <PrimaryButton
-                text="Back"
-                color="lightcoral"
-                type="button"
-                textsize="12px"
-                onClick={() => {
-                  setedit(-1);
-                  setname("");
-                  settemp(undefined);
-                  setnew(added === -1 ? "type" : "variant");
-                }}
-                radius="10px"
-                width="100%"
-                height="100%"
-              />
-            </div>
+                <div className="mt-2">
+                  {temp?.value.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center p-6 border border-dashed border-gray-200 rounded-lg bg-gray-50">
+                      <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center mb-2">
+                        <VariantColorIcon />
+                      </div>
+                      <h3 className="text-gray-500 font-medium">
+                        No Options Added Yet
+                      </h3>
+                      <p className="text-gray-400 text-sm mt-1">
+                        Click the {`"Add Option"`} button to get started
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {temp?.value.map((i, idx) => (
+                        <div key={idx} className="relative group">
+                          <button
+                            onClick={() => handleDeleteVaraint(idx)}
+                            className="absolute -top-2 -right-2 z-10 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center 
+                              shadow-md transform transition-transform opacity-0 group-hover:opacity-100 hover:scale-110"
+                            aria-label="Delete option"
+                          >
+                            <DeleteIcon />
+                          </button>
+
+                          <div
+                            onClick={() => handleColorSelect(idx, "text")}
+                            className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-sm font-medium text-gray-800
+                             hover:bg-gray-100 hover:border-gray-300 transition-colors duration-200 cursor-pointer"
+                          >
+                            {i.toString()}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )}
+
         {newadd === "variant" && (
           <PrimaryButton
             text="Add new"
@@ -765,81 +818,94 @@ export const Variantcontainer = ({
         )}
         {/* Choose Type of between Variant and Stock */}
         {newadd === "none" && (
-          <>
-            <div className="w-[90%] h-full grid grid-cols-1 gap-5 place-items-center">
-              <div
-                onClick={() => setnew("variant")}
-                className="card w-[350px] h-[250px] 
-                max-small_phone:w-[200px] max-small_phone:h-[150px]
-              bg-blue-300 rounded-lg grid place-content-center place-items-center transition duration-200 cursor-pointer hover:bg-transparent hover:outline hover:outline-1 hover:outline-black"
-              >
+          <div className="w-[90%] grid grid-cols-1 md:grid-cols-2 gap-6 place-items-center py-8">
+            {/* Variant Card */}
+            <div
+              onClick={() => setnew("variant")}
+              className="w-full max-w-[350px] aspect-[7/5] bg-gradient-to-br from-blue-300 to-blue-200 
+    rounded-xl shadow-md hover:shadow-lg transition-all duration-300 
+    flex flex-col items-center justify-center gap-4 p-6 group
+    border border-transparent hover:border-blue-400"
+            >
+              <div className="w-24 h-24 mb-2 transition-transform duration-300 group-hover:scale-110">
                 <Image
                   src={Variantimg}
-                  alt="Icon"
-                  className="w-[100px] h-[100px] object-contain pb-10"
+                  alt="Variant Icon"
+                  className="w-full h-full object-contain"
                 />
-                <div className=" w-full h-fit text-black flex flex-row items-center gap-x-5">
-                  <h3 className="text-2xl font-bold">
-                    {`${
-                      !product.variants || product.variants.length === 0
-                        ? "Create"
-                        : ""
-                    } Variant`}
-                  </h3>
-                  <div
-                    style={
-                      !product.variants || product.variants.length === 0
-                        ? { display: "none" }
-                        : {}
-                    }
-                    className="font-bold w-[40px] h-[40px] text-[15px] p-1 bg-black text-white rounded-full grid place-content-center"
-                  >
-                    {product.variants?.length}
-                  </div>
-                </div>
               </div>
-              <div
-                onClick={() => {
-                  if (!product.variants || product.variants.length === 0) {
-                    errorToast("Please Create Variant");
-                    return;
-                  }
-                  setnew("stock");
-                }}
-                className="card w-[350px] h-[250px] max-small_phone:w-[200px] max-small_phone:h-[150px] bg-blue-300 rounded-lg grid place-content-center place-items-center transition duration-200 cursor-pointer hover:bg-transparent hover:outline hover:outline-1 hover:outline-black"
-              >
-                <Image
-                  src={Variantstockimg}
-                  alt="Icon"
-                  className="w-[70px] h-[70px[ object-contain pb-10"
-                />
-
-                <div className=" w-full h-fit text-black flex flex-row items-center gap-x-5">
-                  <h3 className="text-2xl font-bold">
-                    {`${
-                      !product.varaintstock || product.varaintstock.length === 0
-                        ? "Create"
-                        : ""
-                    } Stock`}
-                  </h3>
-                  <div
-                    style={
-                      !product.varaintstock || product.varaintstock.length === 0
-                        ? { display: "none" }
-                        : {}
-                    }
-                    className="font-bold w-[40px] h-[40px] text-[15px] p-1 bg-black text-white rounded-full grid place-content-center"
+              <div className="flex items-center justify-center gap-3">
+                <h3 className="text-xl md:text-2xl font-semibold text-gray-800">
+                  {!product.variants || product.variants.length === 0
+                    ? "Create Variant"
+                    : "Variants"}
+                </h3>
+                {product.variants && product.variants.length > 0 && (
+                  <span
+                    className="flex items-center justify-center w-8 h-8 bg-gray-800 text-white 
+        text-sm font-bold rounded-full animate-pulse"
                   >
-                    {product.varaintstock?.length}
-                  </div>
-                </div>
+                    {product.variants.length}
+                  </span>
+                )}
               </div>
             </div>
-          </>
+
+            {/* Stock Card */}
+            <div
+              onClick={() => {
+                if (!product.variants || product.variants.length === 0) {
+                  errorToast("Please Create Variant");
+                  return;
+                }
+                setnew("stock");
+              }}
+              className={`w-full max-w-[350px] aspect-[7/5] rounded-xl shadow-md p-6
+    flex flex-col items-center justify-center gap-4 transition-all duration-300
+    border border-transparent
+    ${
+      !product.variants || product.variants.length === 0
+        ? "bg-gradient-to-br from-gray-300 to-gray-200 cursor-not-allowed opacity-70"
+        : "bg-gradient-to-br from-blue-300 to-blue-200 hover:shadow-lg group hover:border-blue-400 cursor-pointer"
+    }`}
+            >
+              <div className="w-20 h-20 mb-2 transition-transform duration-300 group-hover:scale-110">
+                <Image
+                  src={Variantstockimg}
+                  alt="Stock Icon"
+                  className="w-full h-full object-contain"
+                />
+              </div>
+              <div className="flex items-center justify-center gap-3">
+                <h3 className="text-xl md:text-2xl font-semibold text-gray-800">
+                  {!product.varaintstock || product.varaintstock.length === 0
+                    ? "Create Stock"
+                    : "Stock"}
+                </h3>
+                {product.varaintstock && product.varaintstock.length > 0 && (
+                  <span
+                    className="flex items-center justify-center w-8 h-8 bg-gray-800 text-white 
+        text-sm font-bold rounded-full animate-pulse"
+                  >
+                    {product.varaintstock.length}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
         )}
       </div>
 
-      <div className="flex flex-row justify-end gap-x-5 w-full h-fit bg-white rounded-b-lg p-2 border-t-2 border-gray-500">
+      <div className=" flex flex-row justify-end gap-x-5 w-full h-fit bg-white rounded-b-lg p-2 border-t-2 border-gray-500">
+        {newadd === "info" && (
+          <Button
+            onPress={() => handleCreate()}
+            className="font-bold w-[150px]"
+            color="primary"
+          >
+            Create
+          </Button>
+        )}
         {editsubstockidx === -1 && (
           <>
             <PrimaryButton
@@ -847,7 +913,7 @@ export const Variantcontainer = ({
               onClick={() => handleBack()}
               status={loading ? "loading" : "authenticated"}
               type="button"
-              width="30%"
+              width="150px"
               height="40px"
               color="lightcoral"
               radius="10px"

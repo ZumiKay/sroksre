@@ -12,6 +12,7 @@ import { SecondaryModal } from "../Modals";
 import { errorToast } from "../Loading";
 import PrimaryButton from "../Button";
 import { Form, Input } from "@heroui/react";
+import { VariantIcon } from "../Icons/VariantComponent";
 
 type VariantTypeSectionProps = {
   loading: boolean;
@@ -163,49 +164,105 @@ export const VariantTypeSection = memo(
       );
     }, []);
     return (
-      <div className="w-full flex flex-col items-center gap-y-5">
+      <div className="w-full flex flex-col items-center gap-y-6 py-4">
+        {/* Empty State */}
         {(product.variants?.length === 0 || !product.variants) && (
-          <h3 className="text-lg text-gray-500 w-[90%] rounded-lg outline outline-1 outline-gray-500 p-2">
-            No Variant
-          </h3>
+          <div className="w-[90%] py-6 px-4 rounded-lg border border-dashed border-gray-300 bg-gray-50">
+            <div className="flex flex-col items-center justify-center text-center">
+              <VariantIcon />
+              <h3 className="text-lg font-medium text-gray-500">
+                No Variants Added
+              </h3>
+              <p className="text-sm text-gray-400 mt-1">
+                Create variants to define product options
+              </p>
+            </div>
+          </div>
         )}
+
+        {/* Loading State */}
         {loading ? (
           <NormalSkeleton count={3} width="90%" height="fit-content" />
         ) : (
-          product.variants &&
-          product.variants.map((obj, idx) => (
-            <motion.div
-              initial={{ x: "-120%" }}
-              animate={{ x: 0 }}
-              transition={{
-                duration: 0.2,
-              }}
-              key={idx}
-              className="relative varaint_container w-[90%] max-small_phone:w-[100%] h-fit border border-black rounded-lg p-2"
-            >
-              <h3 className="variant_name font-medium text-lg w-fit h-fit">
-                {obj.option_title === "" ? "No Name" : obj.option_title}
-              </h3>
-              <motion.div className="varaints flex flex-row flex-wrap gap-3 w-full items-center">
-                <TextRender {...obj} />
-                <ColorRender {...obj} />
-                <div className="action flex flex-row items-start w-full h-fit gap-x-5">
-                  <div
-                    onClick={() => handleVariantEdit(idx)}
-                    className="edit text-sm cursor-pointer text-blue-500 hover:text-white active:text-white transition duration-500"
-                  >
-                    Edit
+          /* Variants List */
+          <div className="w-full space-y-4 px-4">
+            {product.variants &&
+              product.variants.map((obj, idx) => (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.3, delay: idx * 0.1 }}
+                  key={idx}
+                  className="variant-card relative w-full bg-white rounded-xl shadow-sm 
+                      hover:shadow-md transition-all duration-200 overflow-hidden
+                      border border-gray-100 hover:border-blue-200"
+                >
+                  {/* Variant Header */}
+                  <div className="flex justify-between items-center p-4 border-b border-gray-100">
+                    <h3 className="font-semibold text-lg text-gray-800">
+                      {obj.option_title === ""
+                        ? "Unnamed Variant"
+                        : obj.option_title}
+                    </h3>
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => handleVariantEdit(idx)}
+                        className="edit-btn flex items-center gap-1.5 px-3 py-1.5 text-sm 
+                            bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100 
+                            transition-colors duration-200"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-4 w-4"
+                          viewBox="0 0 20 20"
+                          fill="currentColor"
+                        >
+                          <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                        </svg>
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleVariantDelete(idx)}
+                        className="delete-btn flex items-center gap-1.5 px-3 py-1.5 text-sm 
+                            bg-red-50 text-red-600 rounded-md hover:bg-red-100 
+                            transition-colors duration-200"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-4 w-4"
+                          viewBox="0 0 20 20"
+                          fill="currentColor"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                        Delete
+                      </button>
+                    </div>
                   </div>
-                  <div
-                    onClick={() => handleVariantDelete(idx)}
-                    className="edit text-sm cursor-pointer text-red-500 hover:text-white active:text-white transition duration-500"
-                  >
-                    Delete
+
+                  {/* Variant Options */}
+                  <div className="p-4">
+                    <motion.div
+                      className="flex flex-row flex-wrap gap-3 w-full items-start"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.2 }}
+                    >
+                      {/* Text and Color Renderers */}
+                      <div className="options-container space-y-3 w-full">
+                        <TextRender {...obj} />
+                        <ColorRender {...obj} />
+                      </div>
+                    </motion.div>
                   </div>
-                </div>
-              </motion.div>
-            </motion.div>
-          ))
+                </motion.div>
+              ))}
+          </div>
         )}
       </div>
     );

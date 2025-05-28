@@ -60,7 +60,7 @@ export const StockCreateSection = memo(() => {
           startContent={<VariantIcon />}
           onPress={() => setopenmodal({ addproductvariant: true })}
         >
-          {product.variants && product.variants.length > 0 ? "Create" : "Edit"}{" "}
+          {product.variants && product.variants.length > 0 ? "Edit" : "Create"}{" "}
           Variant
         </Button>
       ) : (

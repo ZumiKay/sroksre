@@ -306,7 +306,7 @@ export default function TableComponent({
           if (!data || !data.url) return null;
           return (
             <Image
-              className="w-[100px] h-[100px] object-contain rounded-sm"
+              className="w-[100px] h-[100px] object-contain rounded-sm bg-white"
               onClick={() => handleView(key, celldata.id)}
               width={100}
               height={100}

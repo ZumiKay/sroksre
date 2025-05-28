@@ -1,6 +1,8 @@
 import { PixelCrop } from "react-image-crop";
 
-export function canvasPreview(
+const TO_RADIANS = Math.PI / 180;
+
+export async function canvasPreview(
   image: HTMLImageElement,
   canvas: HTMLCanvasElement,
   crop: PixelCrop,
@@ -13,51 +15,51 @@ export function canvasPreview(
     throw new Error("No 2d context");
   }
 
-  // Set proper canvas dimensions to match crop size
-  canvas.width = crop.width;
-  canvas.height = crop.height;
-
-  // Clear the canvas
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  // Save the current context state
-  ctx.save();
-
-  // Move the origin to center for rotation
-  ctx.translate(canvas.width / 2, canvas.height / 2);
-  ctx.rotate((rotate * Math.PI) / 180);
-  ctx.scale(scale, scale);
-
-  // Move back to draw the image
-  ctx.translate(-canvas.width / 2, -canvas.height / 2);
-
-  // Calculate scaling between image natural size and displayed size
   const scaleX = image.naturalWidth / image.width;
   const scaleY = image.naturalHeight / image.height;
+  // devicePixelRatio slightly increases sharpness on retina devices
+  // at the expense of slightly slower render times and needing to
+  // size the image back down if you want to download/upload and be
+  // true to the images natural size.
+  const pixelRatio = window.devicePixelRatio;
+  // const pixelRatio = 1
 
-  // Calculate actual source area accounting for scale and rotation
-  const actualCropX = crop.x * scaleX;
-  const actualCropY = crop.y * scaleY;
-  const actualCropWidth = crop.width * scaleX;
-  const actualCropHeight = crop.height * scaleY;
+  canvas.width = Math.floor(crop.width * scaleX * pixelRatio);
+  canvas.height = Math.floor(crop.height * scaleY * pixelRatio);
 
-  // Draw the cropped image to the canvas
+  ctx.scale(pixelRatio, pixelRatio);
+  ctx.imageSmoothingQuality = "high";
+
+  const cropX = crop.x * scaleX;
+  const cropY = crop.y * scaleY;
+
+  const rotateRads = rotate * TO_RADIANS;
+  const centerX = image.naturalWidth / 2;
+  const centerY = image.naturalHeight / 2;
+
+  ctx.save();
+
+  // 5) Move the crop origin to the canvas origin (0,0)
+  ctx.translate(-cropX, -cropY);
+  // 4) Move the origin to the center of the original position
+  ctx.translate(centerX, centerY);
+  // 3) Rotate around the origin
+  ctx.rotate(rotateRads);
+  // 2) Scale the image
+  ctx.scale(scale, scale);
+  // 1) Move the center of the image to the origin (0,0)
+  ctx.translate(-centerX, -centerY);
   ctx.drawImage(
     image,
-    actualCropX,
-    actualCropY,
-    actualCropWidth,
-    actualCropHeight,
     0,
     0,
-    crop.width,
-    crop.height
+    image.naturalWidth,
+    image.naturalHeight,
+    0,
+    0,
+    image.naturalWidth,
+    image.naturalHeight
   );
 
-  // Restore the context state
   ctx.restore();
-
-  return new Promise<void>((resolve) => {
-    resolve();
-  });
 }

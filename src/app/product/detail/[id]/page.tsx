@@ -1,17 +1,27 @@
+"use server";
+
 import { notFound } from "next/navigation";
-import { GetProductDetailById } from "./detail_action";
-import { ButtonForSimilarProd, OptionSection, ShowPrice } from "./Component";
-import Link from "next/link";
-import ToggleMenu from "@/src/app/component/ToggleMenu";
-import { getRelatedProduct } from "./action";
-import Card from "@/src/app/component/Card";
-import Prisma from "@/src/lib/prisma";
-import { Props } from "../../page";
 import { Metadata } from "next";
 import Image from "next/image";
-import { Relatedproducttype } from "@/src/context/GlobalType.type";
-import { getUser } from "@/src/app/action";
+import Link from "next/link";
 
+import { GetProductDetailById } from "./detail_action";
+import { ButtonForSimilarProd, OptionSection, ShowPrice } from "./Component";
+import ToggleMenu from "@/src/app/component/ToggleMenu";
+import Card from "@/src/app/component/Card";
+import { getRelatedProduct } from "./action";
+import { getUser } from "@/src/app/action";
+import Prisma from "@/src/lib/prisma";
+
+import { Props } from "../../page";
+import { Relatedproducttype } from "@/src/context/GlobalType.type";
+
+// Type definitions
+interface SearchParamType {
+  lt?: string;
+}
+
+// Metadata generation
 export async function generateMetadata(props: Props): Promise<Metadata> {
   const params = await props.params;
   const id = parseInt(params.id);
@@ -21,159 +31,44 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
     select: {
       name: true,
       parentcateogries: {
-        select: {
-          name: true,
-        },
+        select: { name: true },
       },
       childcategories: {
-        select: {
-          name: true,
-        },
+        select: { name: true },
       },
     },
   });
 
   if (!product) return { title: "" };
-  const title = product.name ?? "" + `| SrokSre`;
+
+  const title = `${product.name ?? ""} | SrokSre`;
   const description = `${product.name} ${
     product.parentcateogries?.name ?? ""
   } ${product.childcategories?.name ?? ""} at SrokSre online store`;
 
-  return {
-    title,
-    description,
-  };
+  return { title, description };
 }
 
-interface SearchParamType {
-  lt?: string;
-}
-export default async function ProductDetailPage(props: {
-  params: Promise<{ id: string }>;
-  searchParams?: Promise<{ [key: string]: string | undefined }>;
-}) {
-  const searchParams = await props.searchParams;
-  const params = await props.params;
-  const user = await getUser();
-  if (!params.id) {
-    return notFound();
-  }
-
-  const searchparam = searchParams as SearchParamType;
-
-  const { success, data } = await GetProductDetailById(params.id);
-
-  if (!success || !data?.data) {
-    return notFound();
-  }
-
+// Component for showing related products
+const RelatedProductGrid = ({ data }: { data: Relatedproducttype[] }) => {
   return (
-    <div className="productdetail__container h-full pt-5">
-      <div
-        className="product_section flex flex-row w-full h-fit 
-      max-smallest_tablet:flex-col max-smallest_tablet:items-center"
-      >
-        <div className="w-full h-fit overflow-x-auto">
-          <div className="w-full grid grid-cols-2 gap-3 max-small_screen:flex max-small_screen:flex-row max-small_screen:justify-start max-small_screen:items-center">
-            {data?.data.covers.map((img, idx) => (
-              <Image
-                key={idx}
-                src={img.url}
-                alt={`Cover ${idx + 1}`}
-                className="w-[400px] h-[500px] object-cover
-                max-medium_screen:w-[350px] max-medium_screen:h-[450px]
-                "
-                width={777}
-                height={777}
-                loading="lazy"
-              />
-            ))}
-          </div>
-        </div>
-        <div
-          className="product_detail  w-3/4 max-smallest_tablet:w-[95vw] 
-        max-smallest_tablet:pl-0 flex flex-col pl-4 gap-y-10 h-fit"
-        >
-          <h3 className="product_name text-3xl font-bold h-fit pt-1 break-words">
-            {data?.data.name}
-          </h3>
-          <p className="product_description text-lg font-normal w-full">
-            {data?.data.description ?? "No Description"}
-          </p>
-          <ShowPrice
-            price={data?.data.price ?? 0}
-            discount={data?.data.discount}
-          />
-
-          {data?.data.relatedproduct && data.data.relatedproduct.length > 0 && (
-            <>
-              <h3 className="text-lg font-bold">Other Version</h3>
-              <ShowRelated data={data.data.relatedproduct} />
-            </>
-          )}
-
-          <div className="w-full h-fit flex flex-col gap-y-5">
-            <OptionSection
-              data={data.data}
-              isAdmin={user?.role === "ADMIN"}
-              isInWishlist={
-                data.isInWishlist ? data.isInWishlist.isExist : false
-              }
-              isInCart={data.incart}
-            />
-          </div>
-
-          <div className="w-full h-full flex flex-col justify-start gap-y-2 ">
-            <ToggleMenu
-              name="Product Detail"
-              isAdmin={false}
-              data={data?.data.details}
-            />
-
-            {data?.policy.map((pol) => (
-              <ToggleMenu
-                key={pol.id}
-                name={pol.title}
-                isAdmin={false}
-                paragraph={pol.Paragraph}
-              />
-            ))}
-          </div>
-        </div>
-      </div>
-      {data.data.relatedproduct && (
-        <div className="relatedproduct__section w-full h-full mt-10 flex flex-col gap-y-10">
-          <ShowSimilarProduct
-            pid={params.id}
-            parent_id={data?.data.category?.parent?.id ?? 0}
-            child_id={data?.data.category?.child?.id ?? 0}
-            promoid={data?.data.promotion_id}
-            limit={searchparam.lt ? parseInt(searchparam.lt) : undefined}
-          />
-        </div>
-      )}
-    </div>
-  );
-}
-
-const ShowRelated = ({ data }: { data: Relatedproducttype[] }) => {
-  return (
-    <div className="w-full h-fit grid grid-cols-3 gap-y-5">
-      {data.map((related, idx) => (
-        <Link key={idx} href={`/product/detail/${related.id}`}>
+    <div className="grid grid-cols-3 gap-y-5 w-full">
+      {data.map((related) => (
+        <Link key={related.id} href={`/product/detail/${related.id}`}>
           <div
-            key={related.id}
-            className="w-[200px] h-fit flex flex-col gap-y-3 items-center justify-center p-2 rounded-lg border-2 border-black transition-all duration-200 hover:bg-black hover:text-white cursor-pointer"
+            className="flex flex-col items-center justify-center gap-y-3 p-2 w-[200px] h-fit 
+                         border-2 border-black rounded-lg 
+                         transition-all duration-200 hover:bg-black hover:text-white cursor-pointer"
           >
             <Image
               src={related.covers[0].url}
-              alt="cover"
+              alt={related.name}
               className="w-[100px] h-[100px] object-cover rounded-lg"
               width={200}
               height={200}
               loading="lazy"
             />
-            <h3 className="w-full text-center">{related.name}</h3>
+            <h3 className="w-full text-center text-sm">{related.name}</h3>
           </div>
         </Link>
       ))}
@@ -181,7 +76,8 @@ const ShowRelated = ({ data }: { data: Relatedproducttype[] }) => {
   );
 };
 
-const ShowSimilarProduct = async ({
+// Component for showing similar products
+const SimilarProductSection = async ({
   pid,
   parent_id,
   child_id,
@@ -194,9 +90,7 @@ const ShowSimilarProduct = async ({
   promoid?: number;
   limit?: number;
 }) => {
-  let relatedproduct = null;
-  let isLimit = true;
-  const data = await getRelatedProduct(
+  const { success, data, maxprod } = await getRelatedProduct(
     parseInt(pid, 10),
     parent_id,
     limit,
@@ -204,35 +98,150 @@ const ShowSimilarProduct = async ({
     promoid
   );
 
-  if (data.success) {
-    relatedproduct = data.data;
-    if (data.maxprod) isLimit = data.maxprod;
+  if (!success || !data || data.length === 0) {
+    return null;
   }
 
+  const isMaxLimitReached = maxprod ?? true;
+
   return (
-    data.data &&
-    data.data.length > 0 && (
-      <>
-        <h3 className="text-lg font-bold w-full h-fit text-left pl-2">
-          You might also like:
-        </h3>
+    <>
+      <h3 className="text-lg font-bold w-full text-left pl-2">
+        You might also like:
+      </h3>
 
-        <div className="w-full h-fit flex flex-row overflow-x-auto gap-x-5">
-          {relatedproduct?.map((prod, idx) => (
-            <Card
-              key={idx}
-              name={prod.name}
-              price={prod.price.toFixed(2)}
-              img={prod.covers}
-              index={idx}
-              discount={prod.discount}
-              id={prod.id}
-            />
-          ))}
-        </div>
+      <div className="flex flex-row gap-x-5 overflow-x-auto pb-4">
+        {data.map((prod, idx) => (
+          <Card
+            key={idx}
+            name={prod.name}
+            price={prod.price.toFixed(2)}
+            img={prod.covers}
+            index={idx}
+            discount={prod.discount}
+            id={prod.id}
+          />
+        ))}
+      </div>
 
-        {!isLimit && <ButtonForSimilarProd lt={limit} />}
-      </>
-    )
+      {!isMaxLimitReached && <ButtonForSimilarProd lt={limit} />}
+    </>
   );
 };
+
+// Main component
+export default async function ProductDetailPage(props: {
+  params: Promise<{ id: string }>;
+  searchParams?: Promise<{ [key: string]: string | undefined }>;
+}) {
+  const searchParams = await props.searchParams;
+  const params = await props.params;
+  const user = await getUser();
+
+  if (!params.id) {
+    return notFound();
+  }
+
+  const searchparam = searchParams as SearchParamType;
+  const { success, data } = await GetProductDetailById(params.id);
+
+  if (!success || !data?.data) {
+    return notFound();
+  }
+
+  const productData = data.data;
+  const hasRelatedProducts =
+    productData.relatedproduct && productData.relatedproduct.length > 0;
+
+  return (
+    <div className="pt-5 h-full">
+      {/* Product main section */}
+      <section className="flex flex-row w-full h-fit max-smallest_tablet:flex-col max-smallest_tablet:items-center">
+        {/* Product images */}
+        <div className="w-full h-fit overflow-x-auto">
+          <div className="grid grid-cols-2 gap-3 w-full max-small_screen:flex max-small_screen:flex-row max-small_screen:items-center">
+            {productData.covers.map((img, idx) => (
+              <Image
+                key={idx}
+                src={img.url}
+                alt={`${productData.name} - Image ${idx + 1}`}
+                className="w-[400px] h-[500px] object-cover max-medium_screen:w-[350px] max-medium_screen:h-[450px]"
+                width={777}
+                height={777}
+                loading={idx === 0 ? "eager" : "lazy"}
+                priority={idx === 0}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Product details */}
+        <div className="w-3/4 pl-4 flex flex-col gap-y-10 h-fit max-smallest_tablet:w-[95vw] max-smallest_tablet:pl-0">
+          <h1 className="text-3xl font-bold h-fit pt-1 break-words">
+            {productData.name}
+          </h1>
+
+          <p className="text-lg font-normal w-full">
+            {productData.description ?? "No Description"}
+          </p>
+
+          <ShowPrice
+            price={productData.price ?? 0}
+            discount={productData.discount}
+          />
+
+          {/* Other versions section */}
+          {hasRelatedProducts && productData.relatedproduct && (
+            <>
+              <h3 className="text-lg font-bold">Other Version</h3>
+              <RelatedProductGrid data={productData.relatedproduct} />
+            </>
+          )}
+
+          {/* Product options */}
+          <div className="w-full h-fit flex flex-col gap-y-5">
+            <OptionSection
+              data={productData}
+              isAdmin={user?.role === "ADMIN"}
+              isInWishlist={
+                data.isInWishlist ? data.isInWishlist.isExist : false
+              }
+              isInCart={data.incart}
+            />
+          </div>
+
+          {/* Product details and policies */}
+          <div className="w-full h-full flex flex-col justify-start gap-y-2">
+            <ToggleMenu
+              name="Product Detail"
+              isAdmin={false}
+              data={productData.details}
+            />
+
+            {data.policy.map((pol) => (
+              <ToggleMenu
+                key={pol.id}
+                name={pol.title}
+                isAdmin={false}
+                paragraph={pol.Paragraph}
+              />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Related products section */}
+      {productData.relatedproduct && (
+        <section className="w-full h-full mt-10 flex flex-col gap-y-10">
+          <SimilarProductSection
+            pid={params.id}
+            parent_id={productData.category?.parent?.id ?? 0}
+            child_id={productData.category?.child?.id ?? 0}
+            promoid={productData.promotion_id}
+            limit={searchparam.lt ? parseInt(searchparam.lt) : undefined}
+          />
+        </section>
+      )}
+    </div>
+  );
+}

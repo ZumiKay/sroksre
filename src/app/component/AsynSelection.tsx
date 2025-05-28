@@ -142,7 +142,6 @@ export const AsyncSelection = ({
       fetchData(offset);
       prevForceRefetch.current = forceRefetch;
     }
-    console.log(data?.());
   }, [offset, isOpen, reFetch, forceRefetch]);
 
   const handleLoadMore = useCallback(() => {

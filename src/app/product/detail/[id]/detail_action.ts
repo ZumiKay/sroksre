@@ -89,7 +89,7 @@ export async function GetProductDetailById(pid: string) {
           })
         : [];
 
-    const result: any = {
+    const result = {
       ...product,
       discount: product.promotion_id
         ? product.discount
@@ -117,7 +117,7 @@ export async function GetProductDetailById(pid: string) {
 
     const isInWishlist = await Checkwishlist(id);
 
-    const ProductResult = result as ProductState;
+    const ProductResult = result as unknown as ProductState;
 
     const checkcart = await CheckCart(undefined, ProductResult.id);
 

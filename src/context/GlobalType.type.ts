@@ -152,7 +152,7 @@ export type VariantColorValueType = {
 export interface Varianttype {
   id?: number;
   option_title: string;
-  option_type: "COLOR" | "TEXT";
+  option_type: "COLOR" | "TEXT" | "";
   option_value: Array<string | VariantColorValueType>;
   [key: string]: unknown;
 }
