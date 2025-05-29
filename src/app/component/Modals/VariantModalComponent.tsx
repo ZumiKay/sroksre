@@ -1,4 +1,3 @@
-import { useGlobalContext } from "@/src/context/GlobalContext";
 import React, {
   ChangeEvent,
   FormEvent,
@@ -19,12 +18,15 @@ import RenderStockCards from "./Variantcomponent/StockCard";
 import {
   colorPalette,
   Colortype,
+  ProductState,
   Stocktype,
   Variantcontainertype,
 } from "@/src/context/GlobalType.type";
 import { ColorDataType, variantdatatype } from "./VariantModal";
 
 interface ManageStockContainerProps {
+  product: ProductState;
+  setproduct: React.Dispatch<React.SetStateAction<ProductState>>;
   editindex?: number;
   newadd: string;
   stock: string;
@@ -154,8 +156,9 @@ export const ManageStockContainer = memo(
     editindex,
     setreloaddata,
     isloading,
+    product,
+    setproduct,
   }: ManageStockContainerProps) => {
-    const { product, setproduct } = useGlobalContext();
     const [lowstock, setlowstock] = useState(0);
     const [loading, setloading] = useState(false);
 
@@ -182,6 +185,8 @@ export const ManageStockContainer = memo(
             product.variants as never
           );
 
+          console.log({ createdstock });
+
           setselectedstock(createdstock);
           setlowstock(CountLowStock(product.varaintstock[idx]));
           setedit(idx);
@@ -189,8 +194,8 @@ export const ManageStockContainer = memo(
         }
       },
       [
-        product.varaintstock,
-        product.variants,
+        product?.varaintstock,
+        product?.variants,
         setedit,
         setnew,
         setselectedstock,
@@ -231,12 +236,12 @@ export const ManageStockContainer = memo(
           varaintstock: updatedStock,
         }));
       },
-      [product.varaintstock, setproduct]
+      [product?.varaintstock, setproduct]
     );
 
     const handleSubStockClick = useCallback(
       (data: string[], qty: string, idx: number) => {
-        const variants = [...(product.variants ?? [])];
+        const variants = [...(product?.variants ?? [])];
 
         //group select sub stock value
         const res: { [key: string]: string[] } = {};
@@ -262,12 +267,12 @@ export const ManageStockContainer = memo(
         setstock(qty);
         seteditsubidx(idx);
       },
-      [product.variants, seteditsubidx, setselectedstock, setstock]
+      [product?.variants, seteditsubidx, setselectedstock, setstock]
     );
 
     const handleUpdateSubStock = useCallback(
       async (idx: number) => {
-        const stockArray = [...(product.varaintstock ?? [])];
+        const stockArray = [...(product?.varaintstock ?? [])];
         const updatestockvalue = stockArray[edit];
 
         const stockValues = MapSelectedValuesToVariant(
@@ -327,8 +332,8 @@ export const ManageStockContainer = memo(
       [
         edit,
         editindex,
-        product.varaintstock,
-        product.variants,
+        product?.varaintstock,
+        product?.variants,
         selectedstock,
         seteditsubidx,
         setproduct,
@@ -376,184 +381,182 @@ export const ManageStockContainer = memo(
           varaintstock: updatestock,
         }));
       },
-      [editindex, product.varaintstock, setproduct, setreloaddata]
+      [editindex, product?.varaintstock, setproduct, setreloaddata]
     );
 
     const handleCreateStock = useCallback(() => {
-      if (!product.variants) {
+      if (!product?.variants) {
         errorToast("Please Create Variant");
         return;
       }
       setadded(1);
       setnew("stockinfo");
-    }, [product.variants, setadded, setnew]);
+    }, [product?.variants, setadded, setnew]);
 
     return (
-      <>
-        <div className="stock_container w-full h-full relative">
-          {newadd === "stockinfo" ? (
-            <div className="createstock_container flex flex-col w-full h-full items-center justify-start gap-y-3">
-              {(editsubidx !== -1 || isAddNew) && (
-                <Button
-                  className="self-start ml-2"
-                  color="danger"
-                  variant="bordered"
-                  startContent={<div> {"<"}</div>}
-                  onPress={() => handleBackEditSubStock()}
-                >
-                  Back
-                </Button>
-              )}
-              <h3 className="text-lg font-medium">
-                {edit === -1 ? "Please Choose Variant" : "Edit Stock"}{" "}
+      <div className="stock_container w-full h-full relative p-4">
+        {newadd === "stockinfo" ? (
+          <div className="createstock_container flex flex-col w-full h-full items-center justify-start gap-y-4 max-w-3xl mx-auto">
+            {/* Back button section */}
+            {(editsubidx !== -1 || isAddNew) && (
+              <Button
+                className="self-start"
+                color="danger"
+                variant="bordered"
+                startContent={<div className="font-medium">{"<"}</div>}
+                onPress={() => handleBackEditSubStock()}
+              >
+                Back
+              </Button>
+            )}
+
+            {/* Header section with consistent styling */}
+            <div className="w-full text-center mb-2">
+              <h3 className="text-xl font-semibold">
+                {edit === -1 ? "Please Choose Variant" : "Edit Stock"}
               </h3>
 
               {lowstock !== 0 && edit !== -1 && (
-                <div className="text-red-500 text-sm font-medium">
+                <div className="text-red-500 text-sm font-medium mt-1">
                   Low Stock: {lowstock}
                 </div>
               )}
-
-              {edit === -1 || isAddNew || editsubidx !== -1 ? (
-                <div className="variantlist relative  rounded-lg flex flex-col items-center justify-start gap-y-5 w-full h-full max-h-[60vh] p-5 overflow-y-auto">
-                  {product.variants?.map((item, idx) => {
-                    return (
-                      <Multiselect
-                        key={"Select" + idx}
-                        id={idx}
-                        type={item.option_type}
-                        value={selectedstock[item.option_title]}
-                        data={item.option_value.map((i) => {
-                          if (typeof i === "string") {
-                            return { label: i, value: i };
-                          } else {
-                            return { label: i.name ?? "", value: i.val };
-                          }
-                        })}
-                        label={item.option_title}
-                        onSelect={(val) =>
-                          handleSelectVariant(val, item.option_title)
-                        }
-                      />
-                    );
-                  })}
-                </div>
-              ) : (
-                product.varaintstock && (
-                  <div className="editstock_container w-full h-fit flex flex-row flex-wrap items-start justify-center gap-5 pt-5">
-                    <RenderStockCards
-                      handleDeleteSubStock={handleDeleteSubStock}
-                      handleSubStockClick={handleSubStockClick}
-                      edit={edit}
-                    />
-                  </div>
-                )
-              )}
-              <div className="w-[50%] min-w-[275px] h-[40px] flex flex-row gap-x-3">
-                {edit !== -1 && (
-                  <Button
-                    className="h-full"
-                    fullWidth
-                    startContent={
-                      <div className="font-light text-3xl"> + </div>
-                    }
-                    isLoading={loading}
-                    variant="bordered"
-                    color={isAddNew ? "success" : "primary"}
-                    onPress={() =>
-                      editsubidx === -1
-                        ? handleAddNewSubStock()
-                        : handleUpdateSubStock(editsubidx)
-                    }
-                  >
-                    {editsubidx !== -1 ? "Update" : "Add New"}
-                  </Button>
-                )}
-                {(edit === -1 || isAddNew || editsubidx !== -1) && (
-                  <Input
-                    label={"Stock"}
-                    type="number"
-                    fullWidth
-                    size="sm"
-                    className="h-full"
-                    value={stock}
-                    onChange={handleStockChange}
-                  />
-                )}
-              </div>
             </div>
-          ) : (
-            <div className="selectvariaint_container flex flex-col items-center justify-start gap-y-10 w-full h-full">
-              <div className="liststock_container flex flex-row flex-wrap gap-5 w-[90%] h-fit p-1 max-h-[46vh] overflow-y-auto">
-                {((product.varaintstock && product.varaintstock.length === 0) ||
-                  !product.varaintstock) && (
-                  <h3 className="text-lg text-gray-500 w-full outline outline-1 outline-gray-500 p-2 rounded-lg">
-                    No Stock
+
+            {/* Variant selection or stock editing section */}
+            {edit === -1 || isAddNew || editsubidx !== -1 ? (
+              <div className="variantlist bg-gray-50 rounded-lg flex flex-col items-center justify-start gap-y-5 w-full h-full max-h-[60vh] p-6 overflow-y-auto shadow-sm">
+                {product.variants?.map((item, idx) => (
+                  <Multiselect
+                    key={"Select" + idx}
+                    id={idx}
+                    type={item.option_type as never}
+                    value={selectedstock[item.option_title]}
+                    data={item.option_value.map((i) => {
+                      if (typeof i === "string") {
+                        return { label: i, value: i };
+                      } else {
+                        return { label: i.name ?? "", value: i.val };
+                      }
+                    })}
+                    label={item.option_title}
+                    onSelect={(val) =>
+                      handleSelectVariant(val, item.option_title)
+                    }
+                  />
+                ))}
+              </div>
+            ) : (
+              product.varaintstock && (
+                <div className="editstock_container w-full h-fit flex flex-row flex-wrap items-start justify-center gap-5 py-4 bg-gray-50 rounded-lg shadow-sm">
+                  <RenderStockCards
+                    product={product}
+                    handleDeleteSubStock={handleDeleteSubStock}
+                    handleSubStockClick={handleSubStockClick}
+                    edit={edit}
+                  />
+                </div>
+              )
+            )}
+
+            {/* Action buttons and input section */}
+            <div className="w-full max-w-md flex flex-row gap-x-3 mt-2">
+              {edit !== -1 && (
+                <Button
+                  className="h-[44px]"
+                  fullWidth
+                  startContent={<div className="font-light text-xl">+</div>}
+                  isLoading={loading}
+                  variant="bordered"
+                  color={isAddNew ? "success" : "primary"}
+                  onPress={() =>
+                    editsubidx === -1
+                      ? handleAddNewSubStock()
+                      : handleUpdateSubStock(editsubidx)
+                  }
+                >
+                  {editsubidx !== -1 ? "Update" : "Add New"}
+                </Button>
+              )}
+              {(edit === -1 || isAddNew || editsubidx !== -1) && (
+                <Input
+                  label={"Stock"}
+                  type="number"
+                  fullWidth
+                  size="md"
+                  className="h-[44px]"
+                  value={stock}
+                  onChange={handleStockChange}
+                />
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="selectvariaint_container flex flex-col items-center justify-start gap-y-6 w-full h-full max-w-3xl mx-auto">
+            <h3 className="text-xl font-semibold my-2">Stock Management</h3>
+
+            <div className="liststock_container flex flex-row flex-wrap gap-5 w-full h-fit p-3 max-h-[50vh] overflow-y-auto bg-gray-50 rounded-lg shadow-sm">
+              {!isloading &&
+                (!product?.varaintstock ||
+                  product.varaintstock.length === 0) && (
+                  <h3 className="text-lg text-gray-500 w-full bg-gray-100 p-4 rounded-lg text-center">
+                    No Stock Items Available
                   </h3>
                 )}
-                {isloading ? (
-                  <NormalSkeleton
-                    style={{ flexDirection: "row" }}
-                    count={3}
-                    width="220px"
-                    height="50px"
-                  />
-                ) : (
-                  product.varaintstock &&
-                  product.varaintstock.map((i, idx) => (
-                    <div
-                      key={idx}
-                      style={
-                        i.isLowStock
-                          ? { borderRight: "5px solid lightcoral" }
-                          : {}
-                      }
-                      className="stockcard w-[220px] h-[50px] flex flex-row items-center justify-evenly p-2 outline outline-2 outline-gray-300 rounded-lg transition duration-200 hover:bg-gray-300"
-                    >
-                      <h3 className="name text-lg font-semibold w-full">
-                        Stock {idx + 1}
-                      </h3>
-                      <div className="action w-full flex flex-row items-center justify-evenly">
-                        <h3
-                          onClick={() => handleEdit(idx)}
-                          className="w-fit h-fit text-lg font-normal text-blue-500 transition duration-200 cursor-pointer hover:text-black"
-                        >
-                          Edit
-                        </h3>
-                        <h3
-                          onClick={() => {
-                            //Delete Stock
-                            handleDeleteStock(idx);
-                          }}
-                          className="w-fit h-fit text-lg font-normal text-red-500 transition duration-200 cursor-pointer hover:text-black"
-                        >
-                          Delete
-                        </h3>
-                      </div>
+
+              {isloading ? (
+                <NormalSkeleton
+                  style={{ flexDirection: "row" }}
+                  count={3}
+                  width="100%"
+                  height="60px"
+                />
+              ) : (
+                product.varaintstock &&
+                product.varaintstock.map((i, idx) => (
+                  <div
+                    key={idx}
+                    style={
+                      i.isLowStock
+                        ? { borderLeft: "4px solid #f87171" }
+                        : { borderLeft: "4px solid #10b981" }
+                    }
+                    className="stockcard w-full sm:w-[calc(50%-10px)] h-[60px] flex flex-row items-center justify-between p-3 bg-white shadow-sm rounded-lg transition duration-200 hover:bg-gray-100"
+                  >
+                    <h3 className="name text-base font-medium">
+                      Stock {idx + 1}
+                    </h3>
+                    <div className="action flex flex-row items-center gap-x-4">
+                      <button
+                        onClick={() => handleEdit(idx)}
+                        className="px-3 py-1 text-sm font-medium text-blue-600 rounded-md hover:bg-blue-50 transition duration-200"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDeleteStock(idx)}
+                        className="px-3 py-1 text-sm font-medium text-red-600 rounded-md hover:bg-red-50 transition duration-200"
+                      >
+                        Delete
+                      </button>
                     </div>
-                  ))
-                )}
-              </div>
-
-              <PrimaryButton
-                text={"Add Stock"}
-                type="button"
-                width="90%"
-                radius="10px"
-                height="40px"
-                textsize="12px"
-                onClick={() => {
-                  //create stock
-
-                  handleCreateStock();
-                }}
-              />
-
-              {/*  */}
+                  </div>
+                ))
+              )}
             </div>
-          )}
-        </div>
-      </>
+
+            <PrimaryButton
+              text={"Add New Stock"}
+              type="button"
+              width="100%"
+              radius="8px"
+              height="44px"
+              textsize="14px"
+              onClick={() => handleCreateStock()}
+            />
+          </div>
+        )}
+      </div>
     );
   }
 );

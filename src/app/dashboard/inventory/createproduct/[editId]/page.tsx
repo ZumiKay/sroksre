@@ -30,7 +30,7 @@ import { FetchCategory, FetchEditProduct } from "./action";
 
 const CreateProductPage = (props: { params: Promise<{ editId?: string }> }) => {
   const params = use(props.params);
-  const { openmodal, product, setproduct, setopenmodal, setglobalindex } =
+  const { openmodal, setopenmodal, setglobalindex, product, setproduct } =
     useGlobalContext();
   const { isMobile, isTablet } = useScreenSize();
   const [loading, setloading] = useState(false);
@@ -44,9 +44,13 @@ const CreateProductPage = (props: { params: Promise<{ editId?: string }> }) => {
       ? Number(params.editId) > 0
       : false;
 
+  // Add a state to track if data is loaded for edit mode
+  const [dataLoaded, setDataLoaded] = useState(!IsEdit);
+
   useEffect(() => {
     if (params.editId && !IsNumber(params.editId)) {
-      return Router.push("/notfound");
+      Router.push("/notfound");
+      return;
     }
 
     if (params.editId && Number(params.editId)) {
@@ -55,14 +59,18 @@ const CreateProductPage = (props: { params: Promise<{ editId?: string }> }) => {
         try {
           const data = await FetchEditProduct(params.editId as string);
           if (!data.success) {
-            return Router.push("/notfound");
+            Router.push("/notfound");
+            return;
           }
-          setproduct(data?.data as ProductState);
+
+          setproduct(data?.data as never);
           settempProduct(data?.data as ProductState);
           setglobalindex((prev) => ({
             ...prev,
             producteditindex: Number(params.editId),
           }));
+          // Mark data as loaded
+          setDataLoaded(true);
         } catch (error) {
           Router.push("/notfound");
           throw error;
@@ -72,7 +80,7 @@ const CreateProductPage = (props: { params: Promise<{ editId?: string }> }) => {
       };
       fetchProductData();
     }
-  }, [params.editId, Router, setproduct, setglobalindex]);
+  }, [IsEdit, Router, params.editId, setglobalindex, setproduct]);
 
   useEffect(() => {
     if (tempProduct) {
@@ -82,7 +90,7 @@ const CreateProductPage = (props: { params: Promise<{ editId?: string }> }) => {
 
       setisChange(isDiffrent);
     }
-  }, [product, tempProduct]);
+  }, [tempProduct, product]);
 
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -104,6 +112,7 @@ const CreateProductPage = (props: { params: Promise<{ editId?: string }> }) => {
   const CreateAndUpdateProduct = useCallback(
     async (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault();
+
       setloading(true);
       try {
         const makeReq = await ApiRequest({
@@ -130,7 +139,7 @@ const CreateProductPage = (props: { params: Promise<{ editId?: string }> }) => {
         setloading(false);
       }
     },
-    [setproduct, IsEdit, product]
+    [IsEdit, product, setproduct]
   );
 
   const handleCancel = () => {
@@ -141,6 +150,15 @@ const CreateProductPage = (props: { params: Promise<{ editId?: string }> }) => {
   const handleImageUpload = () => {
     setopenmodal({ imageupload: true });
   };
+
+  // If in edit mode and data is not yet loaded, show loading state only
+  if (IsEdit && !dataLoaded) {
+    return (
+      <div className="bg-gray-50 min-h-screen flex justify-center items-center">
+        <ContainerLoading />
+      </div>
+    );
+  }
 
   return (
     <div className="bg-gray-50 min-h-screen">
@@ -327,11 +345,14 @@ const CreateProductPage = (props: { params: Promise<{ editId?: string }> }) => {
               </div>
 
               <div className="pt-4 border-t border-gray-200">
-                <StockCreateSection />
+                <StockCreateSection product={product} setproduct={setproduct} />
               </div>
 
               <div className="pt-4 border-t border-gray-200">
-                <ProductDetailCreateSection />
+                <ProductDetailCreateSection
+                  product={product}
+                  setproduct={setproduct}
+                />
               </div>
 
               <div className="pt-4 border-t border-gray-200">

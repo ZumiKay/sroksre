@@ -44,8 +44,6 @@ const RateLimitRoute = [
   "/api/auth/signout",
   "/api/auth/session",
   "/api/users/logout",
-  "/api/categories",
-  "/api/categories/select",
 ];
 
 // Get or create a rate limiter for a specific config key
@@ -256,21 +254,27 @@ export default async function middleware(req: NextRequest) {
   // API Route handling with enhanced security
   if (url.startsWith("/api")) {
     // Apply general rate limiting for API endpoints
-    const rateLimitResult = apiRateLimiter.try(ip);
+    // if (url !== "/api/auth/session") {
+    //   const rateLimitResult = apiRateLimiter.try(ip);
 
-    if (!rateLimitResult.success) {
-      return new NextResponse(
-        JSON.stringify({ error: "Too many requests, please try again later" }),
-        {
-          status: 429,
-          headers: {
-            ...Object.fromEntries(secureHeaders),
-            "Content-Type": "application/json",
-            "Retry-After": String(Math.ceil(rateLimitResult.remaining / 1000)),
-          },
-        }
-      );
-    }
+    //   if (!rateLimitResult.success) {
+    //     return new NextResponse(
+    //       JSON.stringify({
+    //         error: "Too many requests, please try again later",
+    //       }),
+    //       {
+    //         status: 429,
+    //         headers: {
+    //           ...Object.fromEntries(secureHeaders),
+    //           "Content-Type": "application/json",
+    //           "Retry-After": String(
+    //             Math.ceil(rateLimitResult.remaining / 1000)
+    //           ),
+    //         },
+    //       }
+    //     );
+    //   }
+    // }
 
     const method: MethodType = req.method as MethodType;
     const role = token?.role as Role | null;

@@ -16,7 +16,7 @@ import CropImage from "../Cropimage";
 import { upload } from "@vercel/blob/client";
 import { type PutBlobResult } from "@vercel/blob";
 import { SecondaryModal } from "../Modals";
-import { ImageDatatype } from "@/src/context/GlobalType.type";
+import { ImageDatatype, ProductState } from "@/src/context/GlobalType.type";
 import { v4 as uuidv4 } from "uuid";
 import { handleLocalstorage } from "@/src/lib/utilities";
 
@@ -26,6 +26,8 @@ interface imageuploadprops {
   type: "createproduct" | "createbanner" | "createpromotion";
   bannertype?: string;
   setreloaddata?: Dispatch<SetStateAction<boolean>>;
+  product?: ProductState;
+  setproduct?: Dispatch<SetStateAction<ProductState>>;
 }
 
 const filetourl = (file: File[]) => {
@@ -109,15 +111,8 @@ const deleteTempImage = async () => {
 };
 
 export const ImageUpload = (props: imageuploadprops) => {
-  const {
-    product,
-    setproduct,
-    banner,
-    setbanner,
-    openmodal,
-    setopenmodal,
-    globalindex,
-  } = useGlobalContext();
+  const { banner, setbanner, openmodal, setopenmodal, globalindex } =
+    useGlobalContext();
   const [Imgurl, seturl] = useState<ImageDatatype[]>([]);
   const [Imgurltemp, seturltemp] = useState<ImageDatatype[]>([]);
   const [Files, setfiles] = useState<File[]>([]);
@@ -137,8 +132,15 @@ export const ImageUpload = (props: imageuploadprops) => {
 
       let initialImages: ImageDatatype[] = [];
 
-      if (product.covers.length > 0) {
-        initialImages = product.covers.map((img) => ({ ...img, isSave: true }));
+      if (
+        props.product &&
+        props.product.covers &&
+        props.product.covers.length > 0
+      ) {
+        initialImages = props.product.covers.map((img) => ({
+          ...img,
+          isSave: true,
+        }));
       } else if (banner.Image?.url) {
         initialImages = [banner.Image];
       }
@@ -162,7 +164,7 @@ export const ImageUpload = (props: imageuploadprops) => {
       }
     };
     initializeImages();
-  }, []);
+  }, [banner.Image, props.product]);
 
   //Change Event
   const handleFile = useCallback(
@@ -236,7 +238,7 @@ export const ImageUpload = (props: imageuploadprops) => {
               url: "/api/products/crud",
               method: "PUT",
               data: {
-                ...product,
+                ...(props.product ?? {}),
                 covers: data,
               },
             })
@@ -256,7 +258,7 @@ export const ImageUpload = (props: imageuploadprops) => {
       if (props.setreloaddata) props.setreloaddata(true);
       return true;
     },
-    [banner.id, product, props]
+    [banner.id, props]
   );
 
   //Saved to storage
@@ -300,13 +302,12 @@ export const ImageUpload = (props: imageuploadprops) => {
           throw new Error("Can't Save");
         }
 
-        handleLocalstorage(savedUrl.map((i) => i.id) as number[]);
-
         const savedData = saveReq.data as ImageDatatype[];
         savedUrl = savedData;
+        handleLocalstorage(savedUrl.map((i) => i.id) as number[]);
       }
 
-      if (props.type === "createproduct") {
+      if (props.type === "createproduct" && props.setproduct) {
         if (globalindex.producteditindex !== -1) {
           const update = await handleUpdateCover(savedUrl, "product");
 
@@ -315,7 +316,7 @@ export const ImageUpload = (props: imageuploadprops) => {
             return;
           }
         }
-        setproduct({ ...product, covers: savedUrl });
+        props.setproduct((prev) => ({ ...prev, covers: savedUrl }));
       } else if (props.type === "createbanner") {
         if (globalindex.bannereditindex !== -1) {
           const update = await handleUpdateCover(savedUrl, "banner");
@@ -361,11 +362,9 @@ export const ImageUpload = (props: imageuploadprops) => {
     globalindex.producteditindex,
     handleUpdateCover,
     openmodal,
-    product,
     props,
     setbanner,
     setopenmodal,
-    setproduct,
   ]);
   const handleCancel = useCallback(() => {
     seturl([]);

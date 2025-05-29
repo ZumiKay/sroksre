@@ -14,7 +14,7 @@ import {
   ManageStockContainer,
   MapSelectedValuesToVariant,
 } from "./VariantModalComponent";
-import { Badge, Button, Input } from "@heroui/react";
+import { Button, Input } from "@heroui/react";
 import TemplateContainer, {
   AddTemplateModal,
 } from "./Variantcomponent/TemplateContainer";
@@ -135,7 +135,7 @@ export const Variantcontainer = ({
   const fetchstock = useCallback(
     async (index: number) => {
       const asyncfetchdata = async () => {
-        const URL = `/api/products?ty=${type}&pid=${index}`;
+        const URL = `/api/products?ty=${type}&id=${index}`;
         const response = await ApiRequest({ url: URL, method: "GET" });
 
         if (!response.success) {
@@ -160,8 +160,8 @@ export const Variantcontainer = ({
   }, [editindex, fetchstock, reloaddata, type]);
 
   useEffect(() => {
-    FetchTemplate();
-  }, [FetchTemplate, reloadtemp]);
+    if (newadd === "type") FetchTemplate();
+  }, [FetchTemplate, newadd, reloadtemp]);
 
   const handleCreate = () => {
     let update = product.variants ? [...product.variants] : undefined;
@@ -499,6 +499,8 @@ export const Variantcontainer = ({
             setname={setname}
             setnew={setnew}
             settemp={settemp}
+            product={product}
+            setproduct={setproduct}
           />
         ) : (
           // stock__container
@@ -506,6 +508,8 @@ export const Variantcontainer = ({
           //
           (newadd === "stock" || newadd === "stockinfo") && (
             <ManageStockContainer
+              product={product}
+              setproduct={setproduct}
               setreloaddata={setreloaddata}
               isloading={loading}
               editindex={editindex}

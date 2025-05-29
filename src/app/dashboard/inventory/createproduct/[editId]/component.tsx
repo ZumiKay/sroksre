@@ -1,5 +1,5 @@
-import React, { memo } from "react";
-import { SelectType } from "@/src/context/GlobalType.type";
+import React, { memo, useEffect } from "react";
+import { ProductState, SelectType } from "@/src/context/GlobalType.type";
 import { InventoryInfoType, StockType } from "../../inventory.type";
 import { AsyncSelection } from "@/src/app/component/AsynSelection";
 import { useGlobalContext } from "@/src/context/GlobalContext";
@@ -16,8 +16,16 @@ const StockOption: Array<SelectType> = [
   },
 ];
 
-export const StockCreateSection = memo(() => {
-  const { product, setproduct, setopenmodal } = useGlobalContext();
+interface ProductDetailsProps {
+  product: ProductState;
+  setproduct: React.Dispatch<React.SetStateAction<ProductState>>;
+}
+
+export const StockCreateSection = ({
+  product,
+  setproduct,
+}: ProductDetailsProps) => {
+  const { setopenmodal } = useGlobalContext();
 
   function handleChange<t>(name: string, val: t) {
     setproduct((prev) => ({ ...prev, [name]: val }));
@@ -34,8 +42,7 @@ export const StockCreateSection = memo(() => {
           onChange: ({ target }) => handleChange(target.name, target.value),
           name: "stocktype",
           size: "lg",
-          selectedValue: [product.stocktype],
-          value: product.stocktype,
+          selectedValue: product.stocktype ? [product.stocktype] : undefined,
           placeholder: "Stock Type",
           isRequired: true,
           errorMessage: "Stock Type is Required",
@@ -68,16 +75,14 @@ export const StockCreateSection = memo(() => {
       )}
     </div>
   );
-});
-StockCreateSection.displayName = "StockCreateSection";
+};
 
 const initialDetail = {
   info_title: "",
   info_value: "",
 };
-const DetailsModal = () => {
-  const { setopenmodal, product, globalindex, setproduct, setglobalindex } =
-    useGlobalContext();
+const DetailsModal = ({ product, setproduct }: ProductDetailsProps) => {
+  const { setopenmodal, globalindex, setglobalindex } = useGlobalContext();
   const [normaldetail, setNormalDetail] = React.useState(initialDetail);
   const [index, setIndex] = React.useState(-1);
 
@@ -175,29 +180,31 @@ const DetailsModal = () => {
   );
 };
 
-export const ProductDetailCreateSection = memo(() => {
-  const { product, openmodal, setopenmodal } = useGlobalContext();
+export const ProductDetailCreateSection = memo(
+  ({ product, setproduct }: ProductDetailsProps) => {
+    const { openmodal, setopenmodal } = useGlobalContext();
 
-  return (
-    <div className="product_detail w-full h-fit flex flex-col gap-y-5">
-      <ToggleMenu
-        name="Product Details"
-        data={product.details}
-        isAdmin={true}
-      />
-      {!openmodal.productdetail ? (
-        <Button
-          onPress={() => setopenmodal({ productdetail: true })}
-          className="w-full bg_default text-white font-bold h-[40px]"
-        >
-          Add Detail
-        </Button>
-      ) : (
-        <div className="w-full h-full">
-          <DetailsModal />
-        </div>
-      )}
-    </div>
-  );
-});
+    return (
+      <div className="product_detail w-full h-fit flex flex-col gap-y-5">
+        <ToggleMenu
+          name="Product Details"
+          data={product.details}
+          isAdmin={true}
+        />
+        {!openmodal.productdetail ? (
+          <Button
+            onPress={() => setopenmodal({ productdetail: true })}
+            className="w-full bg_default text-white font-bold h-[40px]"
+          >
+            Add Detail
+          </Button>
+        ) : (
+          <div className="w-full h-full">
+            <DetailsModal product={product} setproduct={setproduct} />
+          </div>
+        )}
+      </div>
+    );
+  }
+);
 ProductDetailCreateSection.displayName = "ProductDetailCreateSection";

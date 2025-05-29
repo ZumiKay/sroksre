@@ -1,8 +1,8 @@
-import { useGlobalContext } from "@/src/context/GlobalContext";
 import { StockCard } from "../Stock";
 import { Badge } from "@heroui/react";
 import { useMemo } from "react";
 import {
+  ProductState,
   SubStockType,
   VariantColorValueType,
   Varianttype,
@@ -12,15 +12,14 @@ interface RenderStockCardsProps {
   handleDeleteSubStock: (idx: number) => void;
   edit: number;
   handleSubStockClick: (val: string[], qty: string, idx: number) => void;
+  product: ProductState;
 }
 const RenderStockCards = ({
   edit,
   handleDeleteSubStock,
   handleSubStockClick,
+  product,
 }: RenderStockCardsProps) => {
-  const { product } = useGlobalContext();
-  if (!product || !product.variants) return null;
-
   const { variants, varaintstock } = product;
 
   const stockValues = useMemo(
@@ -36,15 +35,16 @@ const RenderStockCards = ({
   );
 
   const variantLookup = useMemo(() => {
-    return variants.reduce((acc, variant) => {
+    return variants?.reduce((acc, variant) => {
       // Map each variant option value to its variant
       variant.option_value.forEach((opt) => {
         const key = typeof opt === "string" ? opt : opt.val; // Handle string and object values
         if (key) acc[key] = variant; // Avoid empty keys
       });
       return acc;
-    }, {} as { [key: string]: any });
+    }, {} as { [key: string]: unknown });
   }, [variants]);
+  if (!product || !product.variants) return null;
 
   return (
     stockValues?.map((i, idx) => {
@@ -70,7 +70,7 @@ const RenderStockCards = ({
             {i.variant_val
               ?.filter((i) => i !== "")
               .map((item) => {
-                const variant = variantLookup[item] as Varianttype;
+                const variant = variantLookup?.[item] as Varianttype;
                 const isColor =
                   variant.option_type === "COLOR"
                     ? (variant.option_value as VariantColorValueType[])

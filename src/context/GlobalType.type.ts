@@ -199,7 +199,7 @@ export interface ProductState {
   name: string;
   price: number;
   description: string;
-  stocktype: string;
+  stocktype?: string;
   covers: ImageDatatype[] | [];
   category: FullCategoryType;
   details: ProductInfo[] | [];

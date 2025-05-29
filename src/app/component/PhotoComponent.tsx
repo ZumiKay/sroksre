@@ -1,7 +1,12 @@
-import { CSSProperties, TouchEvent, useEffect, useState } from "react";
+import { CSSProperties, memo, TouchEvent, useEffect, useState } from "react";
 import "../globals.css";
 import Image from "next/image";
 import { ImageDatatype } from "@/src/context/GlobalType.type";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faChevronLeft,
+  faChevronRight,
+} from "@fortawesome/free-solid-svg-icons";
 
 interface Primaryphotoprops {
   data: Array<ImageDatatype>;
@@ -13,7 +18,7 @@ interface Primaryphotoprops {
   isTablet?: boolean;
 }
 
-export const PrimaryPhoto = (props: Primaryphotoprops) => {
+export const PrimaryPhoto = memo((props: Primaryphotoprops) => {
   const [index, setIndex] = useState({
     start: 0,
     end: 0,
@@ -113,8 +118,12 @@ export const PrimaryPhoto = (props: Primaryphotoprops) => {
               onMouseEnter={() => props.setclick && props.setclick(true)}
               onMouseLeave={() => props.setclick && props.setclick(false)}
               aria-label="Previous image"
+              type="button"
             >
-              <i className="fa-solid fa-chevron-left text-2xl text-black group-hover:text-gray-800"></i>
+              <FontAwesomeIcon
+                className="text-2xl text-black group-hover:text-gray-800"
+                icon={faChevronLeft}
+              />
             </button>
 
             <button
@@ -125,8 +134,12 @@ export const PrimaryPhoto = (props: Primaryphotoprops) => {
               onMouseEnter={() => props.setclick && props.setclick(true)}
               onMouseLeave={() => props.setclick && props.setclick(false)}
               aria-label="Next image"
+              type="button"
             >
-              <i className="fa-solid fa-chevron-right text-2xl text-black group-hover:text-gray-800"></i>
+              <FontAwesomeIcon
+                icon={faChevronRight}
+                className="text-2xl text-black group-hover:text-gray-800"
+              />
             </button>
           </>
         )}
@@ -139,4 +152,6 @@ export const PrimaryPhoto = (props: Primaryphotoprops) => {
       )}
     </div>
   );
-};
+});
+
+PrimaryPhoto.displayName = "PrimaryPhoto"; // For better debugging in React DevTools

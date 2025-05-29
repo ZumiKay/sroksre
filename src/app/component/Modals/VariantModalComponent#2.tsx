@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { NormalSkeleton } from "../Banner";
 import React, { memo, useCallback } from "react";
 import {
+  ProductState,
   VariantColorValueType,
   Variantcontainertype,
   Varianttype,
@@ -20,6 +21,8 @@ type VariantTypeSectionProps = {
   setname: React.Dispatch<React.SetStateAction<string>>;
   setadded: React.Dispatch<React.SetStateAction<number>>;
   setnew: React.Dispatch<React.SetStateAction<Variantcontainertype>>;
+  product: ProductState;
+  setproduct: React.Dispatch<React.SetStateAction<ProductState>>;
 };
 
 export const VariantTypeSection = memo(
@@ -29,9 +32,9 @@ export const VariantTypeSection = memo(
     setname,
     setadded,
     setnew,
+    product,
+    setproduct,
   }: VariantTypeSectionProps) => {
-    const { product, setproduct } = useGlobalContext();
-
     const handleVariantEdit = useCallback(
       (idx: number) => {
         if (product.variants) {

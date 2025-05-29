@@ -245,7 +245,7 @@ export async function GET(request: NextRequest) {
         const [variant, stock] = await Promise.all([
           Prisma.variant.findMany({
             where: { product_id: id },
-            orderBy: { id: "desc" },
+            orderBy: { id: "asc" },
             select: {
               id: true,
               option_title: true,
