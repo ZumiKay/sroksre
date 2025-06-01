@@ -161,7 +161,18 @@ const getAllPromotion = async () => {
       id: true,
       name: true,
       description: true,
-      banner: true,
+      banner: {
+        select: {
+          id: true,
+          name: true,
+          Image: {
+            select: {
+              url: true,
+              name: true,
+            },
+          },
+        },
+      },
       expireAt: true,
       createdAt: true,
       Products: {
@@ -490,7 +501,7 @@ export default async function ProductsPage(props: {
             name={promo.name}
             description={promo.description ?? ""}
             expiredDate={promo.expireAt}
-            banner={promo.banner?.image as ImageDatatype}
+            banner={promo.banner?.Image as ImageDatatype}
             product={promo.Products as ProductState[]}
           />
         ))

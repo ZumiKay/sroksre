@@ -156,10 +156,10 @@ export default async function ProductDetailPage(props: {
   return (
     <div className="pt-5 h-full">
       {/* Product main section */}
-      <section className="flex flex-row w-full h-fit max-smallest_tablet:flex-col max-smallest_tablet:items-center">
+      <section className="flex flex-row w-full h-fit max-large_tablet:flex-col max-smallest_tablet:items-center">
         {/* Product images */}
         <div className="w-full h-fit overflow-x-auto">
-          <div className="grid grid-cols-2 gap-3 w-full max-small_screen:flex max-small_screen:flex-row max-small_screen:items-center">
+          <div className=" grid grid-cols-2 gap-3 w-full max-small_screen:flex max-small_screen:flex-row max-small_screen:items-center">
             {productData.covers.map((img, idx) => (
               <Image
                 key={idx}
@@ -176,7 +176,7 @@ export default async function ProductDetailPage(props: {
         </div>
 
         {/* Product details */}
-        <div className="w-3/4 pl-4 flex flex-col gap-y-10 h-fit max-smallest_tablet:w-[95vw] max-smallest_tablet:pl-0">
+        <div className="w-3/4 pl-4 flex flex-col gap-y-10 h-fit max-large_tablet:w-[95vw] max-smallest_tablet:pl-0">
           <h1 className="text-3xl font-bold h-fit pt-1 break-words">
             {productData.name}
           </h1>
@@ -211,7 +211,7 @@ export default async function ProductDetailPage(props: {
           </div>
 
           {/* Product details and policies */}
-          <div className="w-full h-full flex flex-col justify-start gap-y-2">
+          <div className="max-w-[800px] max-large_tablet:max-w-[100vw] max-large_tablet:w-full flex flex-col justify-start gap-y-2">
             <ToggleMenu
               name="Product Detail"
               isAdmin={false}

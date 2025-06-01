@@ -32,8 +32,9 @@ import {
 } from "./Component";
 import { useGlobalContext } from "@/src/context/GlobalContext";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Spinner } from "@heroui/spinner";
+import { formatDate } from "../EmailTemplate";
 
 interface TableComponentProps {
   ty: InventoryPage;
@@ -174,6 +175,7 @@ export default function TableComponent({
     new Set(selectedvalue ?? [])
   );
   const Router = useRouter();
+  const searchParams = useSearchParams();
   const renderColumn = useCallback(() => {
     return ty === InventoryType.Product
       ? ProductColumns
@@ -202,36 +204,69 @@ export default function TableComponent({
 
   const handleView = useCallback(
     (uid: string, id: number | string) => {
-      const toOpenModal: Partial<OpenModalState> = {};
-      const toUpdateIndex: Partial<GlobalIndexState> = {};
+      // Create new objects only when needed instead of always
+      let toOpenModal: Partial<OpenModalState> = {};
+      let toUpdateIndex: Partial<GlobalIndexState> = {};
 
-      if (uid === "stock") {
-        toOpenModal.editvariantstock = true;
-        toUpdateIndex.producteditindex = id as number;
-      } else if (uid === "products") {
-        toOpenModal["showproduct"] = true;
-        if (ty === "ordermanagement") {
-          toUpdateIndex.orderId = id as string;
-        } else if (ty === "promotion") {
-          toUpdateIndex.promotioneditindex = id as number;
-        }
-      } else if (uid === "Image") {
-        toOpenModal[`showbanner${id}`] = true;
-        toUpdateIndex.bannereditindex = id as number;
-        console.log(toOpenModal);
-      } else if (uid === "covers") {
-        toOpenModal[`cover${id}`] = true;
-        toUpdateIndex.producteditindex = id as number;
-      } else if (uid === "other") {
-        toOpenModal["other"] = true;
-        if (ty === "usermanagement") toOpenModal["userdetail"] = true;
-        toUpdateIndex.useredit = id as number;
+      switch (uid) {
+        case "stock":
+          toOpenModal = { editvariantstock: true };
+          toUpdateIndex = { producteditindex: id as number };
+          break;
+
+        case "products":
+          toOpenModal = { showproduct: true };
+
+          if (ty === "ordermanagement") {
+            toUpdateIndex = { orderId: id as string };
+          } else if (ty === "promotion") {
+            // Move URL manipulation outside state updates
+            const searchParam = new URLSearchParams(searchParams);
+            searchParam.set("ty", "product");
+            searchParam.set("promoids", String(id));
+
+            // Return early after navigation to avoid unnecessary state updates
+            Router.push(`?${searchParam}`);
+            return;
+          }
+          break;
+
+        case "Image":
+          // Create keys dynamically only when needed
+          toOpenModal = { [`showbanner${id}`]: true };
+          toUpdateIndex = { bannereditindex: id as number };
+          break;
+
+        case "covers":
+          toOpenModal = { [`cover${id}`]: true };
+          toUpdateIndex = { producteditindex: id as number };
+          break;
+
+        case "other":
+          toOpenModal = { other: true };
+
+          if (ty === "usermanagement") {
+            toOpenModal.userdetail = true;
+          }
+
+          toUpdateIndex = { useredit: id as number };
+          break;
+
+        default:
+          // Return early if no matching case to avoid unnecessary state updates
+          return;
       }
 
-      setglobalindex((prev) => ({ ...prev, ...toUpdateIndex }));
-      setopenmodal(toOpenModal);
+      // Only update state if we have changes
+      if (Object.keys(toUpdateIndex).length > 0) {
+        setglobalindex((prev) => ({ ...prev, ...toUpdateIndex }));
+      }
+
+      if (Object.keys(toOpenModal).length > 0) {
+        setopenmodal(toOpenModal);
+      }
     },
-    [setglobalindex, setopenmodal, ty]
+    [Router, searchParams, setglobalindex, setopenmodal, ty]
   );
 
   const handleAction = useCallback(
@@ -300,10 +335,13 @@ export default function TableComponent({
         case "covers":
         case "banner": {
           const data =
-            celldata[key] && celldata[key][0]
-              ? celldata[key][0]
-              : (celldata[key] as ImageDatatype);
-          if (!data || !data.url) return null;
+            ((celldata[key] &&
+              (celldata[key][0]
+                ? celldata[key][0]
+                : key === "banner"
+                ? (celldata[key] as BannerState).Image
+                : celldata[key])) as ImageDatatype) || undefined;
+          if (!data) return null;
           return (
             <Image
               className="w-[100px] h-[100px] object-contain rounded-sm bg-white"
@@ -323,6 +361,14 @@ export default function TableComponent({
               onClick={handleClick}
             >
               {celldata.name}
+
+              {celldata?.lowstock ? (
+                <span className="text-red-500 text-sm pl-2">
+                  {"(Low Stock)"}
+                </span>
+              ) : (
+                <></>
+              )}
             </div>
           ) : memoizedTy === "usermanagement" ? (
             <div className="username">
@@ -338,12 +384,12 @@ export default function TableComponent({
           const { discount, price } = celldata as unknown as ProductState;
           return discount ? (
             <div className="price_container w-full h-fit flex flex-col items-start">
-              <p className="font-bold">{`Discounted price: ${discount.newprice}USD`}</p>
+              <p className="font-bold">{`Discounted price: ${discount.newprice} USD`}</p>
               <p className="text-red-500">{`Discount: %${discount.percent}`}</p>
-              <p>{`Price: ${price}USD`}</p>
+              <p>{`Price: ${price} USD`}</p>
             </div>
           ) : (
-            celldata[key]
+            `${celldata[key]} (USD)`
           );
         }
 
@@ -402,6 +448,11 @@ export default function TableComponent({
             />
           );
 
+        case "expireAt":
+          return new Date(celldata[key])
+            ? formatDate(new Date(celldata[key]))
+            : "none";
+
         default:
           return celldata[key.toString()] ?? "none";
       }
@@ -446,7 +497,7 @@ export default function TableComponent({
               <TableRow key={item.id}>
                 {(columnKey) => (
                   <TableCell
-                    className="border-b-1 border-gray-300"
+                    className="border-b-1 border-gray-300 relative"
                     key={columnKey}
                   >
                     {renderCell(columnKey, item as never)}

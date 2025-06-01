@@ -4,7 +4,7 @@ import { SecondaryModal } from "../component/Modals";
 import React, { ChangeEvent, useCallback, useState } from "react";
 import { showtype } from "../api/policy/route";
 import { ApiRequest } from "@/src/context/CustomHook";
-import { errorToast } from "../component/Loading";
+import { errorToast, successToast } from "../component/Loading";
 import { useGlobalContext } from "@/src/context/GlobalContext";
 import { useRouter } from "next/navigation";
 
@@ -45,11 +45,13 @@ export const Showtypemodal = ({
         ty: "showtype",
       },
     });
+    setloading(false);
     if (!request.success) {
       errorToast("Error Occured");
       return;
     }
 
+    successToast("Policy Updated");
     setopenmodal((prev) => ({ ...prev, showtype: false }));
     router.refresh();
   }, [id, router, setopenmodal, values]);

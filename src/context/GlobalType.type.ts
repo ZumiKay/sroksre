@@ -440,6 +440,7 @@ export interface GlobalIndexState {
   homeeditindex?: number;
   userId?: number;
   orderId?: string;
+  selectedpromoid?: number;
 }
 
 export type RangeType = {
@@ -605,5 +606,12 @@ export interface Containertype {
 export interface HomeContainerItemType {
   id: number | string;
   name: string;
+  size?: BannerSizeType;
+  type?: BannerType;
+  category?: {
+    parent: number;
+    child: number;
+  };
+  linktype?: BannerLinkType;
   img?: Array<ImageDatatype>;
 }

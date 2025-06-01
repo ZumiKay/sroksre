@@ -1,6 +1,6 @@
 import Prisma from "./prisma";
 import { Prisma as prisma, Products } from "@prisma/client";
-import { calculateDiscountProductPrice } from "./utilities";
+import { calculateDiscountPrice, IsNumber } from "./utilities";
 import { ProductState } from "../context/GlobalType.type";
 
 export type GetProductReturnType = {
@@ -26,6 +26,7 @@ type GetProductParamsType = {
   selectpromo?: number;
   promotionids?: string;
 };
+const LowStockValue = 5;
 
 export const GetAllProduct = async ({
   limit,
@@ -44,6 +45,7 @@ export const GetAllProduct = async ({
 }: GetProductParamsType): Promise<GetProductReturnType> => {
   try {
     // Base where clause
+
     const where: prisma.ProductsWhereInput | prisma.ProductsWhereUniqueInput = {
       ...(query && {
         name: {
@@ -54,7 +56,7 @@ export const GetAllProduct = async ({
       ...(parent_cate && { parentcategory_id: parent_cate }),
       ...(child_cate && { childcategory_id: child_cate }),
       ...(promotionids && {
-        promotion_id: promotionids.includes(",")
+        promotion_id: promotionids.toString().includes(",")
           ? { in: promotionids.split(",").map((id) => parseInt(id, 10)) }
           : parseInt(promotionids, 10),
       }),
@@ -123,9 +125,11 @@ export const GetAllProduct = async ({
           parent: prod.parentcateogries,
           child: prod.childcategories,
         },
-        lowstock: prod.Stock.some((stock) =>
-          stock.Stockvalue.some((val) => val.qty <= 5)
-        ),
+        lowstock:
+          prod.Stock.some((stock) =>
+            stock.Stockvalue.some((val) => val.qty <= LowStockValue)
+          ) ||
+          (prod.stock && prod.stock <= LowStockValue),
       })) as unknown as Array<ProductState>;
       lowstock = allproduct.filter((p) => (p as ProductState)?.lowstock).length;
     } else if (ty === "detail") {
@@ -188,11 +192,8 @@ export const GetAllProduct = async ({
       const prod = product as Products;
       return {
         ...product,
-        ...(product.discount && {
-          discount: calculateDiscountProductPrice({
-            price: prod.price,
-            discount: prod.discount as never,
-          }),
+        ...(prod.discount && {
+          discount: calculateDiscountPrice(prod.price, prod.discount),
         }),
       } as ProductState;
     });

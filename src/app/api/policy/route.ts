@@ -150,12 +150,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Invalid Data" }, { status: 400 });
     }
 
-    let result:
-      | Policy
-      | Array<Policy>
-      | Array<Question>
-      | Record<string, unknown>
-      | null;
+    let result: Policy | Array<Policy> | Array<Question> | null;
 
     switch (type) {
       case "all":
@@ -173,7 +168,8 @@ export async function GET(req: NextRequest) {
           (await Prisma.policy.findUnique({
             where: { id },
             include: { Paragraph: true },
-          })) ?? {};
+          })) ?? ({} as Policy);
+
         break;
       default:
         return NextResponse.json(

@@ -11,7 +11,6 @@ import { Prisma as prisma } from "@prisma/client";
 import {
   categorytype,
   PromotionState,
-  SearchAndSelectReturnType,
   SelectType,
 } from "@/src/context/GlobalType.type";
 
@@ -348,7 +347,17 @@ export async function GET(request: NextRequest) {
         select: {
           id: true,
           name: true,
-          banner: true,
+          banner: {
+            select: {
+              id: true,
+              Image: {
+                select: {
+                  url: true,
+                  name: true,
+                },
+              },
+            },
+          },
           expireAt: true,
         },
       });
@@ -376,12 +385,12 @@ export async function GET(request: NextRequest) {
         take: param.limit,
       });
 
-      const selectionresult: SearchAndSelectReturnType = {
-        items: promotions.map((item) => ({ label: item.name, value: item.id })),
+      const selectionresult = {
+        data: promotions.map((item) => ({ label: item.name, value: item.id })),
         hasMore: total > param.limit,
       };
 
-      return Response.json({ data: selectionresult }, { status: 200 });
+      return Response.json({ ...selectionresult }, { status: 200 });
     } else if (param.ty === "byid") {
       //For Multiselect and Search Value
       if (!param.ids) {

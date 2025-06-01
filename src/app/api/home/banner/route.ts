@@ -45,12 +45,22 @@ export async function GET(req: NextRequest) {
       return bHasContainerItem - aHasContainerItem;
     });
 
+    const responseData = sortedBanners
+      .filter((i) => i.id)
+      .map((sort) => {
+        return {
+          id: sort.id,
+          name: sort.name,
+          size: sort.size,
+          image: sort.Image?.url,
+          type: sort.size,
+        };
+      });
+
     return Response.json(
       {
         success: true,
-        data: sortedBanners
-          .map((i) => ({ ...i, type: i.size, size: undefined }))
-          .filter((i) => i),
+        data: responseData,
         isLimit: banner.length < takeInt,
       },
       { status: 200 }

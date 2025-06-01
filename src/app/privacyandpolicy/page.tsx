@@ -184,54 +184,63 @@ export default function PrivacyandPolicy(props: {
 
   return (
     <>
+      <title>{pageTitle}</title>
+
+      {/* Modal components - grouped together for better organization */}
       {openmodal["addpolicy"] && (
         <AddPolicyModal
           plc={isEdit ? (policy as unknown as Addpolicytype) : undefined}
           edit={isEdit}
         />
       )}
-      {/*  */}
       {openmodal.policyshowtype && page && (
         <Showtypemodal
           id={page}
-          value={new Set((policy as Policy).showtype ?? [""])}
+          value={new Set((policy as Policy).showtype?.split(",") ?? [""])}
         />
       )}
       {openmodal.confirmmodal?.open && <ConfirmModal />}
-      <div className="w-full min-h-screen flex flex-row items-start pt-3">
+
+      <div className="flex flex-row items-start w-full min-h-screen pt-3">
         {loading && <ContainerLoading />}
+
         <SidePolicyBar
           handleNavigate={handleNavigateSideBar}
           page={page}
           data={[...policies, ...(allpolicy ?? [])]}
         />
-        <div className="w-full content pl-5 max-large_tablet:pl-0">
+
+        <div className="w-[80%] pl-5 content max-large_tablet:pl-0 max-large_tablet:w-full">
           {!params?.p ? (
-            <>
-              <h2 className="text-5xl font-bold w-full">
+            <div className="mb-10">
+              <h2 className="w-full text-5xl font-bold">
                 Policies and More Information
               </h2>
-            </>
+            </div>
           ) : (
             <>
-              <div className="w-full h-fit flex flex-col items-start gap-y-5 mb-10">
+              <div className="flex flex-col items-start w-full h-fit gap-y-5 mb-10">
                 <ShowTitle />
-                {pageId !== 0 && user && user.role === "ADMIN" && (
+
+                {pageId !== 0 && user?.role === "ADMIN" && (
                   <div className="w-full overflow-x-auto">
-                    <div className="w-full min-w-[280px] h-[40px] flex flex-row gap-6 items-center justify-start">
+                    <div className="flex flex-row items-center justify-start w-full h-[40px] min-w-[280px] gap-6">
                       <Button
-                        className="font-bold bg-paid text-white"
+                        className="font-bold text-white bg-paid hover:bg-paid/90 transition-colors"
                         onPress={() => handleClickBtn({ type: "Edit" })}
                       >
                         Edit
                       </Button>
                       <Button
-                        className="font-bold bg-incart text-white"
+                        className="font-bold text-white bg-incart hover:bg-incart/90 transition-colors"
                         onPress={() => handleClickBtn({ type: "Showtype" })}
                       >
                         Display
                       </Button>
-                      <Button className="font-bold text-white bg-red-400">
+                      <Button
+                        className="font-bold text-white bg-red-400 hover:bg-red-500 transition-colors"
+                        onPress={() => handleClickBtn({ type: "Delete" })}
+                      >
                         Delete
                       </Button>
                     </div>

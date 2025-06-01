@@ -24,6 +24,8 @@ import {
   useGlobalContext,
 } from "@/src/context/GlobalContext";
 import { ProductStockType } from "@/src/app/component/ServerComponents";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faHeart } from "@fortawesome/free-solid-svg-icons";
 
 export const ShowPrice = ({
   price,
@@ -230,7 +232,7 @@ export const OptionSection = ({
           color="black"
           radius="10px"
           width="100%"
-          Icon={<i className="fa-regular fa-heart text-lg"></i>}
+          Icon={<FontAwesomeIcon icon={faHeart} />}
           onClick={() => !isInWishlist && handleWishlist()}
         />
       </div>
@@ -238,7 +240,7 @@ export const OptionSection = ({
   );
 };
 
-const stock = (
+const Stock = (
   max: number,
   errormess: errormessType,
   setmess: React.Dispatch<React.SetStateAction<errormessType>>,
@@ -246,8 +248,8 @@ const stock = (
   isStock?: boolean,
   isloading?: boolean
 ) => {
-  const showLowStock = max ? max <= 5 : false;
   const { setproductorderdetail, productorderdetail } = useGlobalContext();
+  const showLowStock = max ? max <= 5 : false;
 
   const handleChange = (
     e: React.ChangeEvent<HTMLSelectElement>,
@@ -473,7 +475,7 @@ const ShowOptionandStock = ({
 
   return type === "stock" ? (
     prob.stock && prob.stock > 0 ? (
-      stock(prob.stock, errormess, setmess, undefined, true)
+      Stock(prob.stock, errormess, setmess, undefined, true)
     ) : (
       Productunvaliable
     )
@@ -483,7 +485,7 @@ const ShowOptionandStock = ({
         Variant(
           i.id ?? 0,
           i.option_title,
-          i.option_type,
+          i.option_type as never,
           idx,
           i.option_value,
           prob,
@@ -495,7 +497,7 @@ const ShowOptionandStock = ({
         )
       )}
       {prob.varaintstock && prob.varaintstock.length !== 0
-        ? stock(qty, errormess, setmess, undefined, undefined, isloading)
+        ? Stock(qty, errormess, setmess, undefined, undefined, isloading)
         : qty === 0
         ? Productunvaliable
         : ""}

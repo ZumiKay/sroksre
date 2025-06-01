@@ -15,6 +15,8 @@ import PrimaryButton from "../Button";
 import { AsyncSelection } from "../AsynSelection";
 import { TextField } from "@mui/material";
 import { Button, Chip, Form, Textarea } from "@heroui/react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faTrash } from "@fortawesome/free-solid-svg-icons";
 
 interface Policydata {
   qa?: Array<Addquestiontype>;
@@ -55,13 +57,36 @@ const ParagraphItem = memo(
     index: number;
     isEditable: boolean;
     onTitleChange: (value: string, idx: number) => void;
-    onContentChange: (
-      e: React.ChangeEvent<HTMLInputElement>,
-      idx: number
-    ) => void;
+    onContentChange: (e: string, idx: number) => void;
     onToggleEdit: (idx: number) => void;
     onDelete: (idx: number, id?: number, type?: Typeofpolicy) => void;
   }) => {
+    // Initialize with paragraph.content
+    const [content, setContent] = useState<string>(paragraph.content || "");
+    const [title, setitle] = useState(paragraph.title || "");
+
+    // Update local state when paragraph.content changes from parent
+    useEffect(() => {
+      setContent(paragraph.content || "");
+    }, [paragraph.content]);
+
+    const handleChangeContent = useCallback(
+      (val: string) => {
+        setContent(val || "");
+
+        onContentChange(val || "", index);
+      },
+      [index, onContentChange]
+    );
+
+    const handleTitleChange = useCallback(
+      (val: string) => {
+        setitle(val || "");
+        onTitleChange(val || "", index);
+      },
+      [index, onTitleChange]
+    );
+
     return (
       <div className="w-full h-fit flex flex-col gap-5 relative mt-2">
         <div className="w-full h-fit flex flex-row items-center gap-3">
@@ -71,26 +96,29 @@ const ParagraphItem = memo(
           >
             {isEditable ? "Done" : "Edit"}
           </Chip>
-          <i
+
+          <FontAwesomeIcon
+            icon={faTrash}
             onClick={() => onDelete(index, paragraph.id, "paragraph")}
-            className={`fa-solid fa-trash relative transition duration-300 active:text-white`}
-          ></i>
+            className="relative transition duration-300 active:text-white"
+          />
         </div>
         <TextField
           name={`sub${index + 1}`}
           fullWidth
           type="text"
           label={`Sub Title #${index + 1}`}
-          value={paragraph.title || ""}
-          onChange={(e) => onTitleChange(e.target.value, index)}
+          value={paragraph.title || title}
+          onChange={(e) => handleTitleChange(e.target.value)}
           disabled={!isEditable}
         />
         <Textarea
           minRows={5}
-          value={paragraph.content}
-          onChange={(e) => onContentChange(e, index)}
-          variant="bordered"
+          className="w-full p-2  rounded min-h-[100px]"
+          value={content}
           placeholder="Paragraph"
+          variant="bordered"
+          onValueChange={(e) => handleChangeContent(e)}
           disabled={!isEditable}
           required
         />
@@ -218,16 +246,13 @@ export const AddPolicyModal = ({ qa, plc, edit, openstate }: Policydata) => {
   }, []);
 
   // Optimize paragraph content change handler
-  const handleParagraphChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>, idx: number) => {
-      setstate((prev) => {
-        const updatedParagraphs = [...prev.Paragraph];
-        updatedParagraphs[idx].content = e.target.value;
-        return { ...prev, Paragraph: updatedParagraphs };
-      });
-    },
-    []
-  );
+  const handleParagraphChange = useCallback((e: string, idx: number) => {
+    setstate((prev) => {
+      const updatedParagraphs = [...prev.Paragraph];
+      updatedParagraphs[idx].content = e;
+      return { ...prev, Paragraph: updatedParagraphs };
+    });
+  }, []);
 
   // Optimize paragraph title change handler
   const handleParagraphTitleChange = useCallback(
@@ -363,13 +388,19 @@ export const AddPolicyModal = ({ qa, plc, edit, openstate }: Policydata) => {
       return (
         !state.title ||
         state.Paragraph.length === 0 ||
-        state.Paragraph.some((p) => !p.content)
+        state.Paragraph.some((p) => !p.content || p.content.length === 0)
       );
     } else {
       return (
         !question ||
         question.length === 0 ||
-        question.some((q) => !q.question || !q.answer)
+        question.some(
+          (q) =>
+            !q.question ||
+            !q.answer ||
+            q.question.length === 0 ||
+            q.answer.length === 0
+        )
       );
     }
   }, [state, question, type]);

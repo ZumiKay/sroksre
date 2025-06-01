@@ -57,43 +57,57 @@ export const CategoriesContainer = (props: {
       );
       if (isMobile) props.setopen(false);
     },
-    []
+    [isMobile, props, router]
   );
   return (
     <div
       onMouseLeave={() => props.setopen(false)}
-      className="categories__container w-full max-h-screen min-h-[50vh] h-full 
-        absolute top-[57px] z-[99] bg-[#F3F3F3] flex flex-row gap-5 justify-start 
-        max-large_phone:justify-center items-start flex-wrap  overflow-x-hidden 
-        max-small_phone:h-screen max-small_phone:pb-20"
+      className="categories__container absolute top-[57px] z-[99] 
+    w-full h-full min-h-[50vh] max-h-screen
+    flex flex-row flex-wrap items-start justify-start gap-5
+    bg-[#F3F3F3] overflow-x-hidden
+    max-large_phone:justify-center 
+    max-small_phone:h-screen max-small_phone:pb-20"
     >
       {loading ? (
-        <div className="w-full h-full flex items-center justify-center">
+        <div className="flex items-center justify-center w-full h-full">
           <LoadingIcon />
         </div>
       ) : (
-        <>
+        <div className="flex flex-row flex-wrap items-start justify-start gap-5 w-full px-4 py-6">
+          {/* Main categories */}
           {allcate
             ?.filter((i) => i.type !== "latest")
-            .map((i) => (
+            .map((category) => (
               <div
-                key={i.id}
-                className="category flex flex-col w-[200px] max-small_phone:w-[90%] pt-10 items-center justify-start p-1"
+                key={category.id}
+                className="category flex flex-col items-center justify-start 
+              w-[200px] pt-6 p-1
+              max-small_phone:w-[90%]"
               >
                 <h3
                   onClick={() =>
-                    i.type &&
-                    i.id &&
-                    handleCateClick({ type: i.type, id: i.id })
+                    category.type &&
+                    category.id &&
+                    handleCateClick({ type: category.type, id: category.id })
                   }
-                  className="category_header w-full bg-[#495464] transition cursor-pointer hover:bg-white hover:text-black active:bg-white active:text-black rounded-md p-3 h-fit  break-words  text-center text-white font-medium"
+                  className="category_header w-full h-fit p-3
+                bg-[#495464] text-white
+                font-medium text-center break-words rounded-md
+                transition-colors duration-200 cursor-pointer
+                hover:bg-white hover:text-black 
+                active:bg-white active:text-black"
                 >
-                  {" "}
-                  {i.name}
+                  {category.name}
                 </h3>
-                <div className="category_subheader w-full h-fit flex flex-col gap-y-5 pt-5 font-normal text-center">
-                  {i.subcategories
-                    ?.filter((i) => (i.isExpired ? !i.isExpired : true))
+
+                <div
+                  className="category_subheader w-full h-fit pt-5 
+              flex flex-col gap-y-4 
+              font-normal text-center"
+                >
+                  {category.subcategories
+                    ?.filter((sub) => (sub.isExpired ? !sub.isExpired : true))
                     .map((sub) => (
                       <div
                         key={sub.id}
@@ -106,28 +120,39 @@ export const CategoriesContainer = (props: {
                             pid: sub.pid,
                           })
                         }
+                        className="py-1 px-2 rounded-sm hover:bg-gray-200 transition-colors duration-200 cursor-pointer"
                       >
-                        <h4 className="subcategory"> {sub.name} </h4>
+                        <h4 className="subcategory">{sub.name}</h4>
                       </div>
                     ))}
                 </div>
               </div>
             ))}
-          <div className="category flex flex-col w-[200px] max-small_phone:w-[90%] h-fit pt-10 items-center justify-start p-1 gap-y-5">
+
+          {/* Special categories (latest/popular) */}
+          <div
+            className="category flex flex-col items-center justify-start 
+        w-[200px] h-fit pt-6 p-1 gap-y-4
+        max-small_phone:w-[90%]"
+          >
             {allcate
               ?.filter((i) => i.type === "latest" || i.type === "popular")
               .map((item, idx) => (
                 <h3
                   key={idx}
                   onClick={() => router.push(`/product?pid=${item.id}`)}
-                  className="category_header bg-[#495464] transition cursor-pointer hover:bg-white hover:text-black active:bg-white active:text-black rounded-md p-3 w-full h-fit  break-words  text-center text-white font-medium"
+                  className="category_header w-full h-fit p-3
+                bg-[#495464] text-white
+                font-medium text-center break-words rounded-md
+                transition-colors duration-200 cursor-pointer
+                hover:bg-white hover:text-black 
+                active:bg-white active:text-black"
                 >
-                  {" "}
                   {item.name}
                 </h3>
               ))}
           </div>
-        </>
+        </div>
       )}
     </div>
   );

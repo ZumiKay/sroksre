@@ -8,6 +8,7 @@ import {
   Allrefstate,
   BannerState,
   CateogoryState,
+  ContainerType,
   filterinventorytype,
   FilterValueType,
   GlobalIndexState,

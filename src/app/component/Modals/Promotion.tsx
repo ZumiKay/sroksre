@@ -9,6 +9,7 @@ import React, {
   FormEvent,
   useCallback,
   useEffect,
+  useMemo,
   useState,
 } from "react";
 import { BlurLoading, errorToast, infoToast, successToast } from "../Loading";
@@ -84,13 +85,17 @@ export const CreatePromotionModal = ({
   const handleSubmit = useCallback(
     async (e: FormEvent<HTMLFormElement>) => {
       e.preventDefault();
+      console.log("Promotion Submit", promotion);
       const param = new URLSearchParams(searchParams);
-      const isProduct = promotion.products && promotion.products.length;
-      if (isProduct === 0 || !promotion.expireAt) {
+      const isNotProduct =
+        !promotion.products || promotion.products.length === 0;
+      if (isNotProduct || !promotion.expireAt || !promotion.name) {
         errorToast(
           !promotion.expireAt
             ? "Please Fill Expire Date"
-            : "Please Select Product"
+            : isNotProduct
+            ? "Please Select Product"
+            : "Please Fill All Required Fields"
         );
         return;
       }
@@ -268,6 +273,7 @@ export const CreatePromotionModal = ({
             Expire Date*
           </label>
           <DateTimePicker
+            disablePast
             value={promotion.expireAt ? dayjs(promotion.expireAt) : null}
             onOpen={() => setisPickDate(true)}
             onClose={() => setisPickDate(false)}
@@ -305,7 +311,7 @@ export const CreatePromotionModal = ({
               className="bg_default  font-bold text-white w-full h-[40px]"
               variant="solid"
             >
-              {promotion.products && promotion.products.length <= 0
+              {!promotion.products || promotion.products.length === 0
                 ? "Select Product"
                 : "Edti Product"}
             </Button>
@@ -328,9 +334,14 @@ export const CreatePromotionModal = ({
   );
 };
 
+const fadeAnimation = {
+  initial: { opacity: 0 },
+  animate: { opacity: 1 },
+  exit: { opacity: 0 },
+};
+
 export const DiscountModals = () => {
   const {
-    promotion,
     setpromotion,
     allData,
     setalldata,
@@ -339,25 +350,35 @@ export const DiscountModals = () => {
     setopenmodal,
     tableselectitems,
   } = useGlobalContext();
+
   const [discount, setdiscount] = useState<number>(0);
 
+  // Memoize values that are used in calculations
+  const isEditing = useMemo(
+    () => globalindex.promotionproductedit !== -1,
+    [globalindex.promotionproductedit]
+  );
+
+  const selectedProducts = useMemo(() => {
+    if (!allData?.product || !tableselectitems?.length) return [];
+    return allData.product.filter(
+      (prod) => prod.id && tableselectitems.includes(prod.id)
+    );
+  }, [allData?.product, tableselectitems]);
+
+  // Clean up useEffect
   useEffect(() => {
-    if (globalindex.promotionproductedit !== -1) {
-      const product = allData?.product?.filter(
-        (prod) =>
-          prod.id && promotion?.products?.map((i) => i.id).includes(prod.id)
-      );
-      if (product && product.length > 0) {
-        setdiscount(product[0].discount?.percent ?? 0);
-      }
+    if (isEditing && selectedProducts.length > 0) {
+      setdiscount(selectedProducts[0].discount?.percent ?? 0);
     }
-  }, []);
+  }, [isEditing, selectedProducts]);
 
   const handleDiscount = useCallback(
     (e: FormEvent<HTMLFormElement>) => {
       e.preventDefault();
 
       const discountpromoproduct: Array<PromotionProductState> = [];
+
       setalldata((prev) => ({
         ...prev,
         product: prev?.product?.map((prod) => {
@@ -366,6 +387,7 @@ export const DiscountModals = () => {
               prod.price,
               discount
             );
+
             discountpromoproduct.push({
               id: prod.id,
               discount: calculatedDiscount,
@@ -380,49 +402,69 @@ export const DiscountModals = () => {
         }),
       }));
 
-      setpromotion((prev) => ({ ...prev, products: discountpromoproduct }));
+      setpromotion((prev) => ({
+        ...prev,
+        products: [...(prev.products ?? []), ...discountpromoproduct],
+      }));
       setopenmodal((prev) => ({ ...prev, discount: false }));
     },
-    [setalldata, discount, promotion.products, tableselectitems]
+    [setalldata, setpromotion, setopenmodal, tableselectitems, discount]
+  );
+
+  // Memoize the modal open state
+  const isModalOpen = useMemo(
+    () => openmodal.discount ?? false,
+    [openmodal.discount]
+  );
+
+  // Handler for modal state change
+  const handleModalChange = useCallback(
+    (val: boolean) => setopenmodal((prev) => ({ ...prev, discount: val })),
+    [setopenmodal]
+  );
+
+  // Handler for discount value change
+  const handleDiscountChange = useCallback(
+    (val: number) => setdiscount(val),
+    []
   );
 
   return (
     <SecondaryModal
       size="xl"
-      open={openmodal.discount ?? false}
-      onPageChange={(val) =>
-        setopenmodal((prev) => ({ ...prev, discount: val }))
-      }
+      open={isModalOpen}
+      onPageChange={handleModalChange}
       closebtn
     >
       <motion.form
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
+        {...fadeAnimation}
         onSubmit={handleDiscount}
-        className="discount_content rounded-lg w-full h-full p-3 bg-white flex flex-col gap-y-5 justify-center items-center"
+        className="w-full p-5 bg-white rounded-lg shadow-sm flex flex-col gap-y-6"
       >
-        {globalindex.promotionproductedit === -1 && (
-          <h3 className="text-lg font-bold">Set Discount</h3>
+        {!isEditing && (
+          <h3 className="text-xl font-semibold text-center text-gray-800">
+            Set Discount
+          </h3>
         )}
+
         <NumberInput
-          aria-label="discount modal"
-          placeholder="Discount Percentage EX: 20"
+          aria-label="discount percentage"
+          placeholder="Discount Percentage (e.g. 20)"
           name="discount"
           value={discount}
           min={0}
           max={100}
-          className="w-full h-[50px] font-bold"
-          startContent={"%"}
-          onValueChange={(val) => setdiscount(val)}
+          className="w-full h-12 font-medium"
+          startContent={<span className="text-gray-500">%</span>}
+          onValueChange={handleDiscountChange}
           required
         />
 
         <Button
           type="submit"
-          className="w-full bg_default font-bold text-white"
+          className="w-full h-12 bg_default font-semibold text-white rounded-md hover:opacity-90 transition-opacity"
         >
-          {globalindex.promotionproductedit !== -1 ? "Edit" : "Set"}{" "}
+          {isEditing ? "Update Discount" : "Set Discount"}
         </Button>
       </motion.form>
     </SecondaryModal>

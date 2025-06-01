@@ -55,8 +55,10 @@ const FetchItem = async (
               }`
             : ""
         }`
-      : `home/banner?${filter?.search ? `&q=${filter.search}` : ""}${
-          filter?.bannertype ? `&ty=${filter.bannertype}` : ""
+      : `home/banner?${filter?.search ? `q=${filter.search}` : ""}${
+          filter?.bannertype
+            ? `${filter.search ? "&" : ""}ty=${filter.bannertype}`
+            : ""
         }`
   }`;
 
@@ -102,7 +104,7 @@ const ManageContainer = ({ manage }: ManageContainerProps) => {
   useEffect(() => {
     let isMounted = true;
     const fetchData = async () => {
-      if (!homeContainer?.type) return;
+      if (!homeContainer?.items) return;
       setIsLoading(true);
       try {
         const data = await FetchItem(
@@ -111,6 +113,7 @@ const ManageContainer = ({ manage }: ManageContainerProps) => {
           filterValue ?? null
         );
         if (data && isMounted) {
+          console.log("Fetched Data:", data);
           sethomeContainer(
             (prev) =>
               ({

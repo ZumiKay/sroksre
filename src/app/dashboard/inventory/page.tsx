@@ -286,8 +286,19 @@ export default function Inventory(props: {
     if (reloaddata) {
       fetchdata(promotion.id);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reloaddata, promotion.id]);
+  }, [
+    reloaddata,
+    promotion.id,
+    filtervalue,
+    ty,
+    promotion.selectproduct,
+    promotion.selectbanner,
+    promotion.products,
+    page,
+    show,
+    setalldata,
+    setitemlength,
+  ]);
 
   const handleShowPerPage = useCallback(
     (value: number | string) => {
@@ -314,37 +325,39 @@ export default function Inventory(props: {
   );
 
   const handleDoneButton = useCallback(async () => {
-    const url = `/api/promotion?ty=${
-      promotion.selectproduct
-        ? "editproduct"
-        : promotion.selectbanner
-        ? "editbanner"
-        : ""
-    }`;
+    if (globalindex.promotioneditindex !== -1) {
+      const url = `/api/promotion?ty=${
+        promotion.selectproduct
+          ? "editproduct"
+          : promotion.selectbanner
+          ? "editbanner"
+          : ""
+      }`;
 
-    setUpdateLoading(true);
-    const updateReq = await ApiRequest({
-      url,
-      method: "PUT",
-      data: {
-        id: promotion.id,
-        products: promotion.products,
-        banner_id: promotion.banner_id,
-      },
-    });
-    setUpdateLoading(false);
+      setUpdateLoading(true);
+      const updateReq = await ApiRequest({
+        url,
+        method: "PUT",
+        data: {
+          id: promotion.id,
+          products: promotion.products,
+          banner_id: promotion.banner_id,
+        },
+      });
+      setUpdateLoading(false);
 
-    if (!updateReq.success) {
-      errorToast("Can't Update Promotion");
-      return;
+      if (!updateReq.success) {
+        errorToast("Can't Update Promotion");
+        return;
+      }
+
+      setreloaddata(true);
     }
-
-    setreloaddata(true);
     setopenmodal((prev) => ({
       ...prev,
       createPromotion: true,
     }));
-  }, [setopenmodal, promotion]);
+  }, [globalindex.promotioneditindex, promotion, setopenmodal]);
 
   const handleFilter = useCallback(
     (value: InventoryPage) => {
@@ -377,34 +390,13 @@ export default function Inventory(props: {
         return;
       }
 
-      // Check product selection
-      if (promotion.selectproduct && type) {
-        //remove discount
-        setpromotion((prev) => ({
-          ...prev,
-          products: prev.products?.filter((prod) => !key.includes(prod.id)),
-        }));
-        setalldata((prev) => ({
-          ...prev,
-          product: prev?.product?.map((prod) =>
-            prod.id && !key.includes(prod.id)
-              ? { ...prod, discount: undefined }
-              : prod
-          ),
-        }));
-      }
-
       // Check banner selection
-      if (
-        promotion.selectbanner &&
-        type &&
-        promotion.banner_id &&
-        !key.includes(promotion.banner_id)
-      ) {
-        setpromotion((prev) => ({
-          ...prev,
-          banner_id: undefined,
-        }));
+      if (promotion.selectbanner) {
+        if (promotion.banner_id && key.includes(promotion.banner_id)) {
+          setpromotion((prev) => ({ ...prev, banner_id: undefined }));
+        } else {
+          setpromotion((prev) => ({ ...prev, banner_id: key[0] as number }));
+        }
       }
 
       settableselectitems(key);
@@ -413,16 +405,40 @@ export default function Inventory(props: {
       promotion.banner_id,
       promotion.selectbanner,
       promotion.selectproduct,
-      setalldata,
       setpromotion,
       settableselectitems,
-      type,
     ]
   );
 
   const handleSelectDelete = async () => {
+    //TODO Delete Multiple Inventory Items
     alert("Delete Selected Items");
   };
+
+  const handleRemoveDiscount = useCallback(
+    (id: number[]) => {
+      if (promotion.selectproduct && !promotion.products) {
+        errorToast("No Products Selected");
+        return;
+      }
+
+      if (promotion.selectproduct) {
+        setpromotion((prev) => ({
+          ...prev,
+          products: prev.products?.filter((prod) => !id.includes(prod.id)),
+        }));
+        setalldata((prev) => ({
+          ...prev,
+          product: prev?.product?.map((prod) =>
+            prod.id && id.includes(prod.id)
+              ? { ...prod, discount: undefined }
+              : prod
+          ),
+        }));
+      }
+    },
+    [promotion.products, promotion.selectproduct, setalldata, setpromotion]
+  );
 
   return (
     <>
@@ -509,7 +525,10 @@ export default function Inventory(props: {
                     style={{ minWidth: "150px" }}
                     radius="10px"
                     type="button"
-                    text={"Total: " + itemlength.total}
+                    text={
+                      "Total: " +
+                      (itemlength.totalitems ?? itemlength.total ?? 0)
+                    }
                   />
                   {type === "product" ? (
                     <PrimaryButton
@@ -551,6 +570,16 @@ export default function Inventory(props: {
                             }));
                           }}
                         />
+
+                        <PrimaryButton
+                          color="lightcoral"
+                          type="button"
+                          text="Remove Discount"
+                          radius="10px"
+                          onClick={() =>
+                            handleRemoveDiscount(tableselectitems as number[])
+                          }
+                        />
                       </>
                     )}
                 </>
@@ -572,7 +601,7 @@ export default function Inventory(props: {
                   <Button
                     isLoading={updateLoading}
                     onPress={() => handleDoneButton()}
-                    className="bg_default w-[150px] h-full text-white font-bold"
+                    className="bg_default w-[150px] h-[40px] text-white font-bold"
                   >
                     Done
                   </Button>
