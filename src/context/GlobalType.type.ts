@@ -325,7 +325,8 @@ export interface PromotionState {
   description: string;
   selectproduct: boolean;
   selectbanner: boolean;
-  products?: Array<PromotionProductState>;
+  view?: "product" | "banner";
+  Products?: Array<PromotionProductState>;
   expireAt?: string;
   banner_id?: number;
   banner?: BannerState;

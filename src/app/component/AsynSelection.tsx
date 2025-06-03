@@ -58,7 +58,7 @@ export const AsyncSelection = ({
   const [offset, setOffset] = useState(5);
   const [hasMore, setHasMore] = useState(false);
   const [selectedKey, setSelectedKey] = useState<Selection>(new Set([""]));
-  const dataFetched = useRef(false);
+  const initialFetchDone = useRef(false);
   const prevForceRefetch = useRef(forceRefetch);
 
   // Memoize the selectedValues Set for better performance
@@ -91,7 +91,6 @@ export const AsyncSelection = ({
             );
           }
 
-          dataFetched.current = true;
           return;
         }
 
@@ -116,39 +115,66 @@ export const AsyncSelection = ({
 
         setHasMore(getdata?.hasMore ?? false);
         setLoading(false);
-        dataFetched.current = true;
       } catch (error) {
         console.error("Error fetching data:", error);
         if (isAsyncType) setLoading(false);
-        dataFetched.current = true;
       }
     },
     [data, selectedValues, isAsyncType]
   );
 
-  // Combined effect for all data fetching scenarios
+  // Effect to handle forceRefetch changes
   useEffect(() => {
-    const shouldFetch =
-      // First load
-      !dataFetched.current ||
-      // forceRefetch changed
-      (forceRefetch !== undefined &&
-        forceRefetch !== prevForceRefetch.current) ||
-      // Component is open and reFetch is true
-      (isOpen && reFetch);
-
-    if (shouldFetch) {
-      dataFetched.current = false;
+    if (
+      forceRefetch !== undefined &&
+      forceRefetch !== prevForceRefetch.current &&
+      isOpen
+    ) {
       fetchData(offset);
       prevForceRefetch.current = forceRefetch;
     }
-  }, [offset, isOpen, reFetch, forceRefetch]);
+  }, [forceRefetch, isOpen, offset, fetchData]);
+
+  // Effect specifically for when dropdown opens
+  useEffect(() => {
+    if (isOpen) {
+      // If this is the first time opening or reFetch is true, fetch data
+      if (!initialFetchDone.current || reFetch) {
+        setOffset(5); // Reset offset when opening
+        fetchData(5); // Fetch with initial limit
+        initialFetchDone.current = true;
+      }
+    }
+  }, [isOpen, reFetch, fetchData]);
+
+  // Add a new effect that runs on component mount to fetch data
+  // if it's async type AND has a selected value
+  useEffect(() => {
+    if (
+      isAsyncType &&
+      selectedValues &&
+      selectedValues.size > 0 &&
+      !initialFetchDone.current
+    ) {
+      fetchData(5);
+      initialFetchDone.current = true;
+    }
+  }, [isAsyncType, selectedValues, fetchData]);
 
   const handleLoadMore = useCallback(() => {
     if (isAsyncType && hasMore) {
       setOffset((prev) => prev + 5);
     }
   }, [isAsyncType, hasMore]);
+
+  // Effect to handle loading more data when offset changes
+  useEffect(() => {
+    // Only fetch more data if initialFetchDone is true (after first open)
+    // and we're not just resetting to the initial offset
+    if (initialFetchDone.current && offset > 5 && isOpen) {
+      fetchData(offset);
+    }
+  }, [offset, isOpen, fetchData]);
 
   const [, scrollerRef] = useInfiniteScroll({
     hasMore: hasMore,

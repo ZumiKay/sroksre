@@ -67,26 +67,43 @@ const FilterMenu = memo(
             [name]: cate,
           } as never;
         }
+
         toBeUpdateFilterdValue[name as never] = value as never;
 
-        settempFilter((prev) => ({ ...prev, ...toBeUpdateFilterdValue }));
+        settempFilter((prev) => ({
+          ...prev,
+          ...(name === "promoids"
+            ? {
+                ...toBeUpdateFilterdValue,
+                promoids: toBeUpdateFilterdValue.promoids?.filter(
+                  (i) => i.length > 0
+                ),
+              }
+            : toBeUpdateFilterdValue),
+        }));
       },
       [filtervalue, reloaddata]
     );
 
     const handleFilter = useCallback(() => {
       if (!tempFilter) return;
+
       const params = new URLSearchParams(searchParams);
       const filtervalues = Object.entries(tempFilter);
 
       filtervalues.map(([key, value]) => {
+        if (value === "none" || value === undefined || value === "") {
+          params.delete(key);
+        }
+
         if (key === "expiredate" && value) {
           const val = dayjs(value as string);
           params.set(key, formatDate(val.toDate()));
         }
         if (key === "promoids" && value) {
-          const val = value as number[];
-          params.set("promoids", val.join(","));
+          const val = value as string[];
+
+          params.set("promoids", val.filter((i) => i.length > 0).join(","));
         }
 
         if (key === "categories" && value) {
@@ -310,7 +327,7 @@ const FilterMenu = memo(
               option={{
                 selectionMode: "multiple",
                 label: "Promotion",
-                selectedKeys: tempFilter?.promoids
+                selectedValue: tempFilter?.promoids
                   ? tempFilter.promoids
                   : undefined,
                 onChange: (e) =>

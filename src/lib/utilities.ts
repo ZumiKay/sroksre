@@ -411,6 +411,7 @@ export const handleLocalstorage = (ids: number[], remove?: boolean) => {
   });
   localStorage.setItem("savedImages", JSON.stringify(savedImages));
 };
+
 //Email Template
 //
 //

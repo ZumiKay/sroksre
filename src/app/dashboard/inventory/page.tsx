@@ -208,7 +208,7 @@ export default function Inventory(props: {
                   parentcate ? `&pc=${parentcate}` : ""
                 }${childcate ? `&cc=${childcate}` : ""}${
                   pid ? `&pid=${pid}` : ""
-                }${promotion.selectproduct ? "&sp=1" : ""}${
+                }${!pid && promotion.selectproduct ? "&sp=1" : ""}${
                   promoids ? `&pids=${promoids.join(",")}` : ""
                 }`
               : `/api/products?ty=all&limit=${show}&p=${page}`;
@@ -252,7 +252,7 @@ export default function Inventory(props: {
                 ? {
                     product: promotion.selectproduct
                       ? (modifieddata as Array<ProductState>).map((newProd) => {
-                          const existingProd = promotion.products?.find(
+                          const existingProd = promotion.Products?.find(
                             (prod) => prod?.id === newProd.id
                           );
                           return existingProd?.discount
@@ -283,21 +283,22 @@ export default function Inventory(props: {
         setreloaddata(false);
       }
     };
+
     if (reloaddata) {
       fetchdata(promotion.id);
     }
   }, [
     reloaddata,
     promotion.id,
-    filtervalue,
     ty,
     promotion.selectproduct,
     promotion.selectbanner,
-    promotion.products,
+    promotion.Products,
     page,
     show,
     setalldata,
     setitemlength,
+    filtervalue,
   ]);
 
   const handleShowPerPage = useCallback(
@@ -340,7 +341,7 @@ export default function Inventory(props: {
         method: "PUT",
         data: {
           id: promotion.id,
-          products: promotion.products,
+          products: promotion.Products,
           banner_id: promotion.banner_id,
         },
       });
@@ -417,7 +418,7 @@ export default function Inventory(props: {
 
   const handleRemoveDiscount = useCallback(
     (id: number[]) => {
-      if (promotion.selectproduct && !promotion.products) {
+      if (promotion.selectproduct && !promotion.Products) {
         errorToast("No Products Selected");
         return;
       }
@@ -425,7 +426,7 @@ export default function Inventory(props: {
       if (promotion.selectproduct) {
         setpromotion((prev) => ({
           ...prev,
-          products: prev.products?.filter((prod) => !id.includes(prod.id)),
+          products: prev.Products?.filter((prod) => !id.includes(prod.id)),
         }));
         setalldata((prev) => ({
           ...prev,
@@ -437,8 +438,20 @@ export default function Inventory(props: {
         }));
       }
     },
-    [promotion.products, promotion.selectproduct, setalldata, setpromotion]
+    [promotion.Products, promotion.selectproduct, setalldata, setpromotion]
   );
+
+  const handleBackToPromotion = useCallback(() => {
+    setpromotion((prev) => ({ ...prev, id: undefined, view: undefined }));
+
+    const updateparam = new URLSearchParams();
+
+    updateparam.set("ty", "promotion");
+
+    router.push(`?${updateparam}`);
+    settype("promotion");
+    setreloaddata(true);
+  }, [router, setpromotion]);
 
   return (
     <>
@@ -497,6 +510,7 @@ export default function Inventory(props: {
             <div className="w-full flex flex-row items-center overflow-x-auto gap-x-5 scrollbar-hide">
               {!promotion.selectproduct &&
               !promotion.selectbanner &&
+              !promotion.view &&
               !openmodal.managebanner ? (
                 <>
                   <div className="w-fit h-full">
@@ -596,6 +610,17 @@ export default function Inventory(props: {
                   color="#6FCF97"
                 />
               )}
+
+              {promotion.view && (
+                <Button
+                  isLoading={updateLoading}
+                  onPress={() => handleBackToPromotion()}
+                  className="bg_default w-[150px] h-[40px] text-white font-bold"
+                >
+                  Back
+                </Button>
+              )}
+
               {(promotion.selectproduct || promotion.selectbanner) && (
                 <>
                   <Button
@@ -641,6 +666,7 @@ export default function Inventory(props: {
             {type && (
               <TableComponent
                 ty={type}
+                settype={settype}
                 data={allData && (allData[type as string] as never)}
                 onPagination={(ty, val) =>
                   ty === "limit" ? handleShowPerPage(val) : handlePage(val)
@@ -664,3 +690,4 @@ export default function Inventory(props: {
     </>
   );
 }
+//

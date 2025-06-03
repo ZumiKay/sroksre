@@ -39,9 +39,9 @@ export async function POST(request: NextRequest) {
       });
 
       // Process product updates concurrently if products exist
-      if (promodata.products?.length) {
+      if (promodata.Products?.length) {
         await Promise.all(
-          promodata.products.map((prod) =>
+          promodata.Products.map((prod) =>
             tx.products.update({
               where: { id: prod?.id },
               data: {
@@ -168,9 +168,25 @@ export async function PUT(request: NextRequest) {
       }
 
       // Handle product updates
-      if (updatedata.type === "editproduct" && updatedata.products) {
+      if (updatedata.type === "editproduct" && updatedata.Products) {
+        //remove discount from products not in updatedata.Products
+
+        await tx.products.updateMany({
+          where: {
+            AND: [
+              { promotion_id: updatedata.id },
+              {
+                id: {
+                  notIn: updatedata.Products.map((product) => product.id),
+                },
+              },
+            ],
+          },
+          data: { discount: null, promotion_id: null },
+        });
+
         await Promise.all(
-          updatedata.products.map((product) =>
+          updatedata.Products.map((product) =>
             tx.products.updateMany({
               where: { id: product?.id },
               data: {
@@ -386,7 +402,10 @@ export async function GET(request: NextRequest) {
       });
 
       const selectionresult = {
-        data: promotions.map((item) => ({ label: item.name, value: item.id })),
+        data: promotions.map((item) => ({
+          label: item.name,
+          value: item.id.toString(),
+        })),
         hasMore: total > param.limit,
       };
 
@@ -426,6 +445,11 @@ export async function GET(request: NextRequest) {
           description: true,
           expireAt: true,
           banner: { select: { id: true, Image: true } },
+          Products: {
+            select: {
+              id: true,
+            },
+          },
         },
       });
 

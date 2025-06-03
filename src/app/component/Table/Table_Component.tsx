@@ -38,6 +38,7 @@ import { formatDate } from "../EmailTemplate";
 
 interface TableComponentProps {
   ty: InventoryPage;
+  settype?: React.Dispatch<React.SetStateAction<InventoryPage>>;
   data?: Array<ProductState | BannerState | PromotionState | UserState>;
   onAction?: (key: string) => void;
   isLoading?: boolean;
@@ -168,9 +169,15 @@ export default function TableComponent({
   singleselect,
   selectedvalue,
   isAdmin,
+  settype,
 }: TableComponentProps) {
-  const { setopenmodal, setglobalindex, setproduct, setreloaddata } =
-    useGlobalContext();
+  const {
+    setopenmodal,
+    setglobalindex,
+    setproduct,
+    setreloaddata,
+    setpromotion,
+  } = useGlobalContext();
   const [selectedData, setselectedData] = useState<Selection>(
     new Set(selectedvalue ?? [])
   );
@@ -220,13 +227,16 @@ export default function TableComponent({
           if (ty === "ordermanagement") {
             toUpdateIndex = { orderId: id as string };
           } else if (ty === "promotion") {
-            // Move URL manipulation outside state updates
-            const searchParam = new URLSearchParams(searchParams);
-            searchParam.set("ty", "product");
-            searchParam.set("promoids", String(id));
-
-            // Return early after navigation to avoid unnecessary state updates
-            Router.push(`?${searchParam}`);
+            setpromotion((prev) => ({
+              ...prev,
+              view: "product",
+            }));
+            const newParams = new URLSearchParams(searchParams);
+            newParams.set("ty", "product");
+            newParams.set("promoids", id.toString());
+            Router.push(`?${newParams}`);
+            settype?.("product");
+            setreloaddata(true);
             return;
           }
           break;
@@ -266,7 +276,15 @@ export default function TableComponent({
         setopenmodal(toOpenModal);
       }
     },
-    [Router, searchParams, setglobalindex, setopenmodal, ty]
+    [
+      Router,
+      searchParams,
+      setglobalindex,
+      setopenmodal,
+      setpromotion,
+      setreloaddata,
+      ty,
+    ]
   );
 
   const handleAction = useCallback(

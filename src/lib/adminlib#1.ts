@@ -1,6 +1,6 @@
 import Prisma from "./prisma";
 import { Prisma as prisma, Products } from "@prisma/client";
-import { calculateDiscountPrice, IsNumber } from "./utilities";
+import { calculateDiscountPrice } from "./utilities";
 import { ProductState } from "../context/GlobalType.type";
 
 export type GetProductReturnType = {
@@ -24,7 +24,7 @@ type GetProductParamsType = {
   detailcolor?: string;
   detailtext?: string;
   selectpromo?: number;
-  promotionids?: string;
+  promotionids?: Array<string>;
 };
 const LowStockValue = 5;
 
@@ -56,9 +56,9 @@ export const GetAllProduct = async ({
       ...(parent_cate && { parentcategory_id: parent_cate }),
       ...(child_cate && { childcategory_id: child_cate }),
       ...(promotionids && {
-        promotion_id: promotionids.toString().includes(",")
-          ? { in: promotionids.split(",").map((id) => parseInt(id, 10)) }
-          : parseInt(promotionids, 10),
+        promotion_id: {
+          in: promotionids.map((id) => parseInt(id, 10)),
+        },
       }),
       ...(selectpromo === 1 && !promotionids && { promotion_id: null }),
       ...(promotionid &&

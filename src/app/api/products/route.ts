@@ -76,7 +76,9 @@ export async function GET(request: NextRequest) {
           detailcolor: dc,
           detailtext: dt,
           selectpromo: sp,
-          promotionids: pids,
+          promotionids: (typeof pids === "string" || typeof pids === "number"
+            ? [pids]
+            : pids) as string[],
         });
 
         return allProduct.success

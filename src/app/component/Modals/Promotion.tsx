@@ -88,7 +88,7 @@ export const CreatePromotionModal = ({
       console.log("Promotion Submit", promotion);
       const param = new URLSearchParams(searchParams);
       const isNotProduct =
-        !promotion.products || promotion.products.length === 0;
+        !promotion.Products || promotion.Products.length === 0;
       if (isNotProduct || !promotion.expireAt || !promotion.name) {
         errorToast(
           !promotion.expireAt
@@ -212,7 +212,7 @@ export const CreatePromotionModal = ({
       if (globalindex.promotioneditindex !== -1) {
         settableselectitems(
           type === "product"
-            ? promotion.products?.map((i) => i.id)
+            ? promotion.Products?.map((i) => i.id)
             : promotion.banner_id
             ? [promotion.banner_id]
             : undefined
@@ -231,7 +231,7 @@ export const CreatePromotionModal = ({
       setreloaddata,
       setopenmodal,
       settableselectitems,
-      promotion.products,
+      promotion.Products,
       promotion.banner_id,
     ]
   );
@@ -311,9 +311,9 @@ export const CreatePromotionModal = ({
               className="bg_default  font-bold text-white w-full h-[40px]"
               variant="solid"
             >
-              {!promotion.products || promotion.products.length === 0
+              {!promotion.Products || promotion.Products.length === 0
                 ? "Select Product"
-                : "Edti Product"}
+                : "Edit Product"}
             </Button>
           </div>
 
@@ -404,7 +404,7 @@ export const DiscountModals = () => {
 
       setpromotion((prev) => ({
         ...prev,
-        products: [...(prev.products ?? []), ...discountpromoproduct],
+        products: [...(prev.Products ?? []), ...discountpromoproduct],
       }));
       setopenmodal((prev) => ({ ...prev, discount: false }));
     },
