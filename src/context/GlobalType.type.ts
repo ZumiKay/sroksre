@@ -280,7 +280,11 @@ export interface BannerState {
   childcate?: SelectType;
   selectedproduct?: SelectType[];
   selectedpromotion?: SelectType;
+  selecttedproduct_id?: number[];
+  parentcate_id?: number;
+  childcate_id?: number;
   link?: string;
+  promotionId?: number;
 }
 
 export interface UserState {
@@ -576,7 +580,9 @@ export interface BannersType {
 export interface ContainerItemCardType {
   id: number;
   name: string;
-  img: string;
+  image: string;
+  size?: BannerSizeType;
+  type?: BannersType;
 }
 
 export interface ContainerItemType {
@@ -584,7 +590,9 @@ export interface ContainerItemType {
   homecontainerId?: number;
   banner_id?: number;
   product_id?: number;
-  item?: ContainerItemCardType;
+  product?: ProductState;
+  banner?: BannerState;
+  items?: ContainerItemCardType;
 }
 
 export interface Daterangetype {

@@ -163,8 +163,8 @@ export default function AccountMenu({ setProfile }: accountmenuprops) {
         url: "/api/home",
         method: "PUT",
         data: {
-          ty: "idx",
-          edititems: homeItems.map((item, idx) => ({ id: item.id, idx })),
+          ty: "order",
+          orderItems: homeItems.map((item, idx) => ({ id: item.id, idx })),
         },
       });
 
@@ -181,7 +181,7 @@ export default function AccountMenu({ setProfile }: accountmenuprops) {
     } finally {
       setLoading(false);
     }
-  }, [homeItems, isEdit, router]);
+  }, [homeItems, isEdit]);
 
   const handleDelete = useCallback(async () => {
     if (!selected.length) {
@@ -306,34 +306,41 @@ export default function AccountMenu({ setProfile }: accountmenuprops) {
   );
 
   const renderMainMenu = () => (
-    <>
-      <ul className="flex flex-col items-center w-full gap-y-10 mt-[10vh] mb-[10vh]">
-        {filteredMenuItems.map((item, idx) => (
-          <li
-            key={idx}
-            className="w-[80%] h-[50px] text-center font-bold text-lg rounded-md"
-          >
-            <button
-              onClick={() => handleMenuItemClick(item.link)}
-              className="w-full h-full flex flex-row items-center gap-x-5 pl-2 rounded-lg transition hover:bg-gray-200 active:bg-gray-200"
+    <div className="flex flex-col items-center w-full py-10 gap-y-10">
+      <nav className="w-full mb-auto">
+        <ul className="flex flex-col items-center w-full gap-y-4">
+          {filteredMenuItems.map((item) => (
+            <li
+              key={item.name} // Using item.name as key instead of index for better React performance
+              className="w-[80%]"
             >
-              {item.icon}
-              <span className="text-lg font-bold">{item.name}</span>
-            </button>
-          </li>
-        ))}
-      </ul>
+              <button
+                onClick={() => handleMenuItemClick(item.link)}
+                className="w-full h-12 flex items-center gap-x-3 px-4 rounded-lg 
+                         text-left font-medium transition-colors duration-200
+                         hover:bg-gray-200 active:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-300"
+                aria-label={`Navigate to ${item.name}`}
+              >
+                <span className="text-gray-700">{item.icon}</span>
+                <span className="text-lg font-bold">{item.name}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      </nav>
 
-      <PrimaryButton
-        text="Logout"
-        type="button"
-        color="#F08080"
-        width="80%"
-        status={loading ? "loading" : "authenticated"}
-        radius="10px"
-        onClick={handleSignOut}
-      />
-    </>
+      <div className="mt-auto w-[80%]">
+        <PrimaryButton
+          text="Logout"
+          type="button"
+          color="#F08080"
+          width="100%"
+          status={loading ? "loading" : "authenticated"}
+          radius="10px"
+          onClick={handleSignOut}
+        />
+      </div>
+    </div>
   );
 
   return (

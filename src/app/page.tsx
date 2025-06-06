@@ -1,60 +1,57 @@
 "use server";
 
 import { Metadata } from "next";
-import { Orderpricetype } from "../context/OrderContext";
-import { formatContainer } from "./api/home/route";
 import {
   Banner,
   CategoryContainer,
   ScrollableContainer,
   SlideShow,
 } from "./component/HomePage/Component";
-import { fetchContainers } from "./api/home/extendRoute";
+import { GetContainers } from "./action";
+import { Homeitemtype, ProductState } from "../context/GlobalType.type";
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
     title: "SrokSre Online Store. Quality Over Quantity",
-    description: "Small Online Store Base in Phnompenh Cambodia",
+    description: "Small Online Store Base in PhnomPenh Cambodia",
   };
 }
 
-const fetchhomeitems = async () => {
-  const data = await fetchContainers("detail");
-  const res = data.map((i) => formatContainer(i as never));
-
-  return res;
-};
-
 export default async function Home() {
-  const items = await fetchhomeitems();
+  const items = (await GetContainers()) as unknown as Homeitemtype[];
 
   return (
     <main className="Home__Container w-full h-full grid place-content-center gap-y-10 min-h-screen relative">
       <div className="w-[95vw] h-full flex flex-col items-center gap-y-5">
-        {items.map((i, idx) => {
-          if (i.type === "banner") {
-            const banner = i.items[0].item;
+        {items?.map((i, idx) => {
+          if (i.items && i.type === "banner") {
+            const banner = i.items[0].banner;
             return (
               <Banner
                 key={idx}
                 data={{
                   image: {
-                    url: i.items[0].item.image?.url ?? "",
-                    name: i.items[0].item.image?.name ?? "",
+                    url: banner?.Image.url ?? "",
+                    name: banner?.Image.name ?? "",
                   },
                   name: i.name,
-                  link: banner.promotionId
+                  link: banner?.promotionId
                     ? `/product?promoid=${banner.promotionId}`
-                    : banner.parent_id || banner.child_id || banner.product_id
+                    : banner?.parentcate_id ||
+                      banner?.childcate_id ||
+                      banner?.selecttedproduct_id
                     ? `/product${
-                        banner.parent_id || banner.child_id
-                          ? banner.parent_id
-                            ? `?pid=${banner.parent_id}${
-                                banner.child_id ? `&cid=${banner.child_id}` : ""
+                        banner.parentcate_id || banner.childcate_id
+                          ? banner.parentcate_id
+                            ? `?pid=${banner.parentcate_id}${
+                                banner.childcate_id
+                                  ? `&cid=${banner.childcate_id}`
+                                  : ""
                               }`
                             : ""
-                          : banner.product_id
-                          ? `/detail/${banner.product_id}`
+                          : banner.selecttedproduct_id &&
+                            banner?.selecttedproduct_id.length > 0
+                          ? `/detail/${banner.selecttedproduct_id[0]}`
                           : ""
                       }`
                     : undefined,
@@ -65,29 +62,32 @@ export default async function Home() {
             return (
               <SlideShow
                 key={idx}
-                data={i.items.map((data) => ({
-                  img: data.item.image?.url ?? "",
-                  name: data.item.name,
-                  link: data.item.promotionId
-                    ? `/product?promoid=${data.item.promotionId}`
-                    : data.item.parent_id ||
-                      data.item.child_id ||
-                      data.item.product_id
-                    ? `/product${
-                        data.item.parent_id || data.item.child_id
-                          ? data.item.parent_id
-                            ? `?pid=${data.item.parent_id}${
-                                data.item.child_id
-                                  ? `&cid=${data.item.child_id}`
-                                  : ""
-                              }`
+                data={
+                  i.items?.map((data) => ({
+                    img: data.banner?.Image.url ?? "",
+                    name: data.banner?.name,
+                    link: data.banner?.promotionId
+                      ? `/product?promoid=${data.banner.promotionId}`
+                      : data.banner?.parentcate_id ||
+                        data.banner?.childcate_id ||
+                        (data.banner?.selecttedproduct_id &&
+                          data.banner.selecttedproduct_id.length > 0)
+                      ? `/product${
+                          data.banner.parentcate_id || data.banner.childcate_id
+                            ? data.banner.parentcate_id
+                              ? `?pid=${data.banner.parentcate_id}${
+                                  data.banner.childcate_id
+                                    ? `&cid=${data.banner.childcate_id}`
+                                    : ""
+                                }`
+                              : ""
+                            : data.banner.selecttedproduct_id
+                            ? `/detail/${data.banner.selecttedproduct_id[0]}`
                             : ""
-                          : data.item.product_id
-                          ? `/detail/${data.item.product_id}`
-                          : ""
-                      }`
-                    : undefined,
-                }))}
+                        }`
+                      : undefined,
+                  })) as never
+                }
               />
             );
           } else if (i.type === "category") {
@@ -95,27 +95,34 @@ export default async function Home() {
               <CategoryContainer
                 key={idx}
                 name={i.name}
-                data={i.items.map((i) => ({
-                  image: {
-                    url: i.item.image?.url ?? "",
-                    name: i.item.image?.name ?? "",
-                  },
-                  name: i.item.name ?? "",
-                  link:
-                    i.item.parent_id || i.item.child_id || i.item.product_id
-                      ? `/product${
-                          i.item.product_id
-                            ? `/detail/${i.item.product_id}`
-                            : ""
-                        }${
-                          i.item.parent_id
-                            ? `?pid=${i.item.parent_id}${
-                                i.item.child_id ? `&cid=${i.item.child_id}` : ""
-                              }`
-                            : ""
-                        }`
-                      : "",
-                }))}
+                data={
+                  i.items?.map((j) => ({
+                    image: {
+                      url: j.banner?.Image?.url ?? "",
+                      name: j.banner?.Image.name ?? "",
+                    },
+                    name: j.banner?.name ?? "",
+                    link:
+                      j.banner?.parentcate_id ||
+                      j.banner?.childcate_id ||
+                      j.banner?.selecttedproduct_id
+                        ? `/product${
+                            j.banner.selecttedproduct_id &&
+                            j.banner.selecttedproduct_id.length === 1
+                              ? `/detail/${j.banner.selecttedproduct_id[0]}`
+                              : ""
+                          }${
+                            j.banner.parentcate_id
+                              ? `?pid=${j.banner.parentcate_id}${
+                                  j.banner.childcate_id
+                                    ? `&cid=${j.banner.childcate_id}`
+                                    : ""
+                                }`
+                              : ""
+                          }`
+                        : "",
+                  })) as never
+                }
               />
             );
           } else {
@@ -123,17 +130,11 @@ export default async function Home() {
               <ScrollableContainer
                 key={idx}
                 title={i.name}
-                items={i.items
-                  .filter((i) => i.item.id)
-                  .map((prod) => ({
-                    id: prod.item.id ?? 0,
-                    name: prod.item.name ?? "",
-                    img: {
-                      url: prod.item.image?.url ?? "",
-                      name: prod.item.image?.name ?? "",
-                    },
-                    price: prod.item.price as Orderpricetype,
-                  }))}
+                items={
+                  (i.items
+                    ?.filter((i) => i.product?.id)
+                    .map((i) => i.product) ?? []) as unknown as ProductState[]
+                }
               />
             );
           }

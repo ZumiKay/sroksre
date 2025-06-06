@@ -31,7 +31,7 @@ export default function Multiselect({
   const handleSelectionChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const val = new Set(e.target.value.split(","));
     setValues(val);
-   onSelect && onSelect(val);
+    if (onSelect) onSelect(val);
   };
 
   const renderValue = (items: SelectedItems<object>): ReactNode => {

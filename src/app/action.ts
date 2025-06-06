@@ -2,7 +2,10 @@
 
 import { getServerSession } from "next-auth";
 import Prisma from "../lib/prisma";
-import { removeSpaceAndToLowerCase } from "../lib/utilities";
+import {
+  calculateDiscountPrice,
+  removeSpaceAndToLowerCase,
+} from "../lib/utilities";
 import { Usersessiontype } from "../context/GlobalType.type";
 import { authConfig } from "./api/auth/[...nextauth]/route";
 
@@ -74,4 +77,78 @@ export const getUser = async (): Promise<Usersessiontype | null> => {
   const result = user?.user as Usersessiontype | null;
 
   return result;
+};
+
+export const GetContainers = async () => {
+  const result = await Prisma.homecontainer.findMany({
+    select: {
+      id: true,
+      idx: true,
+      name: true,
+      type: true,
+      items: {
+        select: {
+          product: {
+            select: {
+              id: true,
+              parentcategory_id: true,
+              childcategory_id: true,
+              name: true,
+              price: true,
+              discount: true,
+              covers: {
+                take: 1,
+                select: {
+                  url: true,
+                  name: true,
+                },
+              },
+            },
+          },
+          banner: {
+            select: {
+              id: true,
+              promotionId: true,
+              type: true,
+              linktype: true,
+              selectedproduct_id: true,
+              parentcate_id: true,
+              childcate_id: true,
+              Image: {
+                select: {
+                  id: true,
+                  url: true,
+                  name: true,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!result || result.length === 0) {
+    return result;
+  }
+
+  const formatContainerData = result.map((i) => ({
+    ...i,
+    items: i.items.map((item) => ({
+      ...item,
+      ...(item.product && {
+        product: {
+          ...item.product,
+          ...(item.product.discount && {
+            discount: calculateDiscountPrice(
+              item.product.price,
+              item.product.discount
+            ),
+          }),
+        },
+      }),
+    })),
+  }));
+
+  return formatContainerData;
 };

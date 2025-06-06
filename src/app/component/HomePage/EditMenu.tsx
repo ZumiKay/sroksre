@@ -81,13 +81,13 @@ const Homeeditmenu = memo(
             )
           ) : (
             <SortableContext
-              items={items}
+              items={items as never}
               strategy={verticalListSortingStrategy}
             >
               {items.map((item, idx) => (
                 <SortableItem
                   key={item.id}
-                  id={item.id}
+                  id={item.id as never}
                   type={item.type}
                   name={item.name}
                   isEdit={isEdit}

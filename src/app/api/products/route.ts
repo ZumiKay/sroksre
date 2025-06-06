@@ -8,7 +8,7 @@ import {
 import { extractQueryParams } from "../banner/route";
 import Prisma from "@/src/lib/prisma";
 import {
-  ContainerItemCardType,
+  ContainerItemType,
   Stocktype,
   VariantColorValueType,
 } from "@/src/context/GlobalType.type";
@@ -333,12 +333,16 @@ export async function GET(request: NextRequest) {
             name: true,
             covers: {
               take: 1,
+              select: {
+                url: true,
+              },
             },
           },
         });
-        const ItemData: Array<ContainerItemCardType> = result.map((prod) => ({
+        const ItemData: Array<ContainerItemType> = result.map((prod) => ({
           ...prod,
-          img: prod.covers[0],
+          image: prod.covers[0].url,
+          name: prod.name,
           covers: undefined,
         })) as never;
         return Response.json(

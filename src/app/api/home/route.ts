@@ -10,14 +10,10 @@ import {
   ImageDatatype,
 } from "@/src/context/GlobalType.type";
 import { Homecontainer } from "@prisma/client";
-import {
-  fetchContainerById,
-  fetchContainers,
-  HomeDetailUpdate,
-} from "./extendRoute";
+import { fetchContainerById, HomeDetailUpdate } from "./extendRoute";
 
 interface Paramtype {
-  ty?: "short" | "detail";
+  ty?: string;
   id?: string;
 }
 
@@ -94,15 +90,13 @@ export function formatContainer(result: formatContainerType) {
 }
 
 const CheckCreateReq = (data: Homeitemtype) =>
-  !data.name ||
-  !data.type ||
-  !data.idx ||
-  !data.items ||
-  data.items.length === 0;
+  !data.name || !data.type || !data.items || data.items.length === 0;
 
 export async function POST(req: NextRequest) {
   try {
     const createData = (await req.json()) as Homeitemtype;
+
+    console.log(CheckCreateReq(createData));
 
     if (CheckCreateReq(createData)) {
       return Response.json({ error: "Invalid Param" }, { status: 400 });
@@ -130,13 +124,13 @@ export async function GET(request: NextRequest) {
   const url = request.url.toString();
   const { ty, id } = extractQueryParams(url) as Paramtype;
 
-  if (ty && ty !== "detail" && ty !== "short") {
+  if (ty && ty !== "normal" && ty !== "item" && ty !== "short") {
     return Response.json({ message: "Invalid Request" }, { status: 400 });
   }
 
   try {
     if (id) {
-      const result = await fetchContainerById(id);
+      const result = await fetchContainerById(id, ty as never);
 
       if (!result) {
         return Response.json(
@@ -144,13 +138,18 @@ export async function GET(request: NextRequest) {
           { status: 500 }
         );
       }
-      const res = formatContainer(result as never);
-      return Response.json({ data: res }, { status: 200 });
+
+      return Response.json({ data: result }, { status: 200 });
     } else {
-      const results = await fetchContainers(ty as string);
-      const res =
-        ty === "detail" ? results.map(formatContainer as never) : results;
-      return Response.json({ data: res }, { status: 200 });
+      const results = await Prisma.homecontainer.findMany({
+        select: {
+          id: true,
+          name: true,
+          type: true,
+        },
+      });
+
+      return Response.json({ data: results }, { status: 200 });
     }
   } catch (error) {
     console.error("Get container error", error);
@@ -159,16 +158,17 @@ export async function GET(request: NextRequest) {
 }
 
 interface editrequest {
-  ids?: Array<number>;
   ty?: "order" | "info" | "containeritems";
-  edititems?: Array<Homeitemtype>;
+  editItem?: Homeitemtype;
+  orderItems?: Array<Pick<Homeitemtype, "id" | "idx">>;
 }
 
 export async function PUT(req: Request) {
   try {
     const updateData: editrequest = await req.json();
-
-    const toUpdateItems: Partial<Array<Homeitemtype>> = [];
+    if (!updateData.editItem?.id) {
+      return Response.json({ error: "Invalid Request" }, { status: 400 });
+    }
 
     const defaultSelectParam: PrismaType.HomecontainerSelect = {
       id: true,
@@ -182,40 +182,51 @@ export async function PUT(req: Request) {
       }),
     };
 
-    const Items = await Prisma.homecontainer.findMany({
-      where: {
-        id: { in: updateData.ids },
-      },
-      select: defaultSelectParam,
-    });
+    const Items =
+      updateData.ty === "order"
+        ? await Prisma.homecontainer.findMany({
+            select: { id: true, idx: true },
+          })
+        : await Prisma.homecontainer.findUnique({
+            where: {
+              id: updateData.editItem?.id,
+            },
+            select: defaultSelectParam,
+          });
 
-    if (Items.length === 0) {
-      return Response.json({ data: "No Items" }, { status: 404 });
+    if (!Items) {
+      return Response.json({ data: "No Item" }, { status: 404 });
     }
 
     switch (updateData.ty) {
       case "order":
-        if (updateData.edititems) {
-          updateData.edititems.forEach((edititem) => {
-            Items.forEach((item) => {
-              if (item.idx !== edititem.idx) {
-                toUpdateItems.push({ id: item.id, idx: edititem.idx } as never);
-              }
-            });
-          });
+        if (
+          updateData.orderItems?.some((edit) =>
+            (Items as Homeitemtype[]).some((i) => i.idx! == edit.idx)
+          )
+        ) {
+          await Promise.all(
+            updateData.orderItems.map((item) =>
+              Prisma.homecontainer.update({
+                where: { id: item.id },
+                data: { idx: item.idx },
+              })
+            )
+          );
         }
         break;
       case "info":
-        const updateProcess = await HomeDetailUpdate(
-          updateData.edititems as Array<Homeitemtype>,
-          Items as Array<Homeitemtype>,
-          updateData.ty
-        );
-        if (!updateProcess) {
-          return Response.json(
-            { error: "Can't Update Items" },
-            { status: 500 }
+        if (updateData.editItem) {
+          const updateProcess = await HomeDetailUpdate(
+            updateData.editItem,
+            Items as unknown as Homeitemtype
           );
+          if (!updateProcess) {
+            return Response.json(
+              { error: "Can't Update Items" },
+              { status: 500 }
+            );
+          }
         }
 
         break;

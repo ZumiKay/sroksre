@@ -228,7 +228,7 @@ model Banner {
 
 model Homecontainer {
   id             Int              @id @default(autoincrement())
-  idx            Int
+  idx            Int?             @default(autoincrement())
   type           String
   name           String?
   scrollabletype String?

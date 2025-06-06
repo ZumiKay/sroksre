@@ -14,6 +14,7 @@ const ADMIN_ROUTES: ReadonlyMap<string, ReadonlySet<MethodType>> = new Map([
   ["/products", new Set(["POST", "PUT", "DELETE"])],
   ["/products/cover", new Set(["POST", "PUT", "DELETE", "GET"])],
   ["/products/variant/template", new Set(["POST", "PUT", "GET", "DELETE"])],
+  ["/products/select", new Set(["GET"])],
   ["/promotion", new Set(["POST", "PUT", "DELETE", "GET"])],
   ["/policy", new Set(["POST", "PUT", "DELETE", "GET"])],
   ["/users/notification", new Set(["POST", "GET", "DELETE"])],

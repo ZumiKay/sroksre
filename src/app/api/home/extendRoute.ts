@@ -1,118 +1,104 @@
-import {
-  ContainerItemType,
-  Homeitemtype,
-  ProductState,
-} from "@/src/context/GlobalType.type";
+import { Homeitemtype, ProductState } from "@/src/context/GlobalType.type";
 import Prisma from "@/src/lib/prisma";
 import { calculatePopularityScore } from "../categories/route";
 
 export const HomeDetailUpdate = async (
-  editItems: Array<Homeitemtype>,
-  Items: Array<Homeitemtype>,
-  ty: "info" | "containeritems"
+  editItems: Homeitemtype,
+  Item: Homeitemtype
 ) => {
   try {
     // Early return if no items to process
-    if (!editItems || !Items || !editItems.length || !Items.length) {
+    if (!editItems || !Item) {
       return true;
     }
 
-    const toUpdateItem: Array<Partial<Homeitemtype>> = [];
+    const updateData: Record<string, unknown> = { id: editItems.id };
+    let hasChanges = false;
 
-    if (ty === "info") {
-      // Process all items in a single loop
-      for (let idx = 0; idx < editItems.length; idx++) {
-        const edit = editItems[idx];
-        const item = Items[idx];
-        const toBeUpdate: Partial<Homeitemtype> = { id: edit.id };
-        let hasChanges = false;
+    const propertyUpdates = Object.entries(editItems).reduce<
+      Record<string, unknown>
+    >((acc, [key, value]) => {
+      if (key === "items" || key === "id") return acc;
 
-        // Use for-in loop for better performance
-        for (const key in edit) {
-          if (
-            Object.prototype.hasOwnProperty.call(edit, key) &&
-            item[key as never] !== edit[key as never]
-          ) {
-            toBeUpdate[key as never] = edit[key as never];
-            hasChanges = true;
-          }
-        }
+      const current = Item[key as keyof Homeitemtype];
 
-        // Only add to update array if there are actual changes
-        if (hasChanges) {
-          toUpdateItem.push(toBeUpdate);
-        }
+      const changed =
+        typeof value !== "object" || value === null
+          ? current !== value
+          : JSON.stringify(current) !== JSON.stringify(value);
+
+      if (changed) {
+        acc[key] = value;
+        hasChanges = true;
       }
-    } else if (ty === "containeritems") {
-      for (let idx = 0; idx < editItems.length; idx++) {
-        const edit = editItems[idx];
-        const containerItem = Items[idx].items;
+      return acc;
+    }, {});
 
-        if (!containerItem?.length) continue;
+    Object.assign(updateData, propertyUpdates);
 
-        const toBeUpdate: Array<ContainerItemType> = [];
+    const itemsToUpdate = [];
 
-        for (const con of containerItem) {
-          let itemChanged = false;
+    if (editItems.items && Item.items) {
+      const existingItemsMap = new Map(
+        Item.items.map((item) => [item.id, item])
+      );
 
-          for (const key in con) {
-            if (
-              Object.prototype.hasOwnProperty.call(con, key) &&
-              con[key as never] !== con[key as never]
-            ) {
-              itemChanged = true;
-              break;
-            }
-          }
+      for (const editItem of editItems.items) {
+        const existingItem = existingItemsMap.get(editItem.id);
+        if (!existingItem) continue;
 
-          if (itemChanged) {
-            toBeUpdate.push(con);
-          }
-        }
+        const hasItemChanges = Object.entries(editItem).some(
+          ([key, value]) =>
+            existingItem[key as keyof typeof existingItem] !== value
+        );
 
-        if (toBeUpdate.length > 0) {
-          toUpdateItem.push({ id: edit.id, items: toBeUpdate as never });
+        if (hasItemChanges) {
+          itemsToUpdate.push(editItem);
+          hasChanges = true;
         }
       }
     }
 
-    // Skip database transaction if nothing to update
-    if (toUpdateItem.length === 0) {
-      return true;
+    if (itemsToUpdate.length > 0) {
+      updateData.items = itemsToUpdate;
     }
 
-    // Create proper Prisma transactions
-    const transactions = toUpdateItem.map((item) => {
-      // Base update for the parent container
-      const updateData: Record<string, unknown> = { ...item };
+    // Update database if there are any changes
+    if (hasChanges) {
+      return await updateDatabase([updateData]);
+    }
 
-      // Handle nested items update correctly for Prisma
-      if (item.items && Array.isArray(item.items) && item.items.length > 0) {
-        // Remove items from the base data
-        delete updateData.items;
-
-        // Add proper nested update structure for Prisma
-        updateData.items = {
-          updateMany: item.items.map((nestedItem) => ({
-            where: { id: nestedItem.id },
-            data: nestedItem,
-          })),
-        };
-      }
-
-      return Prisma.homecontainer.update({
-        where: { id: item.id },
-        data: updateData,
-      });
-    });
-
-    await Prisma.$transaction(transactions);
     return true;
   } catch (error) {
     console.log("Update Homedetail", error);
     return null;
   }
 };
+
+async function updateDatabase(toUpdateItems: Array<Partial<Homeitemtype>>) {
+  const transactions = toUpdateItems.map((item) => {
+    const updateData: Record<string, unknown> = { ...item };
+
+    if (item.items && Array.isArray(item.items) && item.items.length > 0) {
+      delete updateData.items;
+
+      updateData.items = {
+        updateMany: item.items.map((nestedItem) => ({
+          where: { id: nestedItem.id },
+          data: nestedItem,
+        })),
+      };
+    }
+
+    return Prisma.homecontainer.update({
+      where: { id: item.id },
+      data: updateData,
+    });
+  });
+
+  await Prisma.$transaction(transactions);
+  return true;
+}
 
 export function SortProductByPopularScore(
   product: Array<
@@ -142,7 +128,7 @@ export function SortProductByLatestAddDate(
   return product.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 }
 
-export async function fetchContainerById(id: string) {
+export async function fetchContainerById(id: string, ty?: "item" | "normal") {
   return Prisma.homecontainer.findUnique({
     where: { id: parseInt(id) },
     select: {
@@ -150,99 +136,43 @@ export async function fetchContainerById(id: string) {
       idx: true,
       name: true,
       type: true,
-      scrollabletype: true,
-      amountofitem: true,
-      daterange: true,
-      items: {
-        select: {
-          id: true,
-          product_id: true,
-          banner_id: true,
-          product: {
+      ...(ty &&
+        ty === "normal" && {
+          scrollabletype: true,
+          amountofitem: true,
+          daterange: true,
+        }),
+      ...(ty &&
+        ty === "item" && {
+          items: {
             select: {
               id: true,
-              name: true,
-              covers: {
+              product_id: true,
+              banner_id: true,
+              product: {
                 select: {
+                  id: true,
                   name: true,
-                  url: true,
-                  type: true,
-                },
-              },
-            },
-          },
-          banner: {
-            select: {
-              id: true,
-              name: true,
-              type: true,
-              size: true,
-            },
-          },
-        },
-      },
-    },
-  });
-}
-
-export async function fetchContainers(ty: string) {
-  if (ty === "detail") {
-    return Prisma.homecontainer.findMany({
-      orderBy: { idx: "asc" },
-      select: {
-        id: true,
-        idx: true,
-        name: true,
-        type: true,
-        scrollabletype: true,
-        amountofitem: true,
-        daterange: true,
-        items: {
-          select: {
-            id: true,
-            product_id: true,
-            banner_id: true,
-            product: {
-              select: {
-                id: true,
-                name: true,
-                discount: true,
-                price: true,
-                covers: {
-                  select: {
-                    name: true,
-                    url: true,
+                  covers: {
+                    select: {
+                      name: true,
+                      url: true,
+                      type: true,
+                    },
                   },
                 },
               },
-            },
-            banner: {
-              select: {
-                id: true,
-                name: true,
-                type: true,
-                link: true,
-                parentcate_id: true,
-                childcate_id: true,
-                selectedproduct_id: true,
-                promotionId: true,
+              banner: {
+                select: {
+                  id: true,
+                  name: true,
+                  type: true,
+                  size: true,
+                },
               },
             },
           },
-        },
-      },
-    });
-  } else {
-    return Prisma.homecontainer.findMany({
-      select: {
-        id: true,
-        idx: true,
-        name: true,
-        type: true,
-      },
-      orderBy: {
-        idx: "asc",
-      },
-    });
-  }
+        }),
+    },
+  });
 }

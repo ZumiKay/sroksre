@@ -26,7 +26,12 @@ export const NormalSkeleton = ({
   return (
     <div style={style} className="w-full h-fit flex flex-col gap-3">
       {Array.from({ length: count }).map((_, idx) => (
-        <Skeleton key={idx} className="rounded-lg" style={{ height, width }} />
+        <Skeleton
+          aria-label={`skeleton${idx}`}
+          key={idx}
+          className="rounded-lg"
+          style={{ height, width }}
+        />
       ))}
     </div>
   );
@@ -82,10 +87,8 @@ export const SelectAndSearchProduct = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const optionsContainerRef = useRef<HTMLUListElement>(null);
 
-  // Debounce input value to prevent excessive API calls
   const debouncedInputValue = useDebounce(inputValue, debounceMs);
 
-  // Construct API URL with parameters - memoize to prevent unnecessary recalculations
   const constructUrl = useCallback(
     (searchLimit: number, searchValue: string): string => {
       let finalUrl = apiEndpoint;
@@ -102,7 +105,7 @@ export const SelectAndSearchProduct = ({
       finalUrl += `${connector}limit=${searchLimit}`;
 
       if (searchValue) {
-        finalUrl += `&query=${encodeURIComponent(searchValue)}`;
+        finalUrl += `&search=${encodeURIComponent(searchValue)}`;
       }
 
       return finalUrl;
@@ -110,7 +113,6 @@ export const SelectAndSearchProduct = ({
     [apiEndpoint, searchParam]
   );
 
-  // Fetch data function - memoized with useCallback
   const fetchData = useCallback(
     async (searchLimit: number, searchValue: string) => {
       setLoading(true);
@@ -124,11 +126,11 @@ export const SelectAndSearchProduct = ({
           cache: "no-store",
         });
 
-        if (!response.success) {
+        if (!response.success && !response.data) {
           return null;
         }
 
-        setOptions(response.data as Array<SelectType>);
+        setOptions(response.data as Array<SelectType<string>>);
         setIsLimit(response.isLimit || false);
 
         return true;
@@ -149,7 +151,6 @@ export const SelectAndSearchProduct = ({
     }
   }, [debouncedInputValue, isFocused, limit, fetchData]);
 
-  // Handle option selection - memoized with useCallback
   const handleSelectOption = useCallback(
     (option: SelectType) => {
       setSelectedValues((prev) => {
@@ -169,7 +170,6 @@ export const SelectAndSearchProduct = ({
           newSelected = [...selected, option];
         }
 
-        // Call onSelect outside the state setter for performance
         setTimeout(() => {
           if (onSelect) {
             if (singleSelect) {
@@ -211,7 +211,6 @@ export const SelectAndSearchProduct = ({
         const selected = [...(prev || [])];
         selected.splice(idx, 1);
 
-        // Call onSelect outside the state setter for performance
         setTimeout(() => {
           if (onSelect) {
             if (singleSelect) {
@@ -263,23 +262,23 @@ export const SelectAndSearchProduct = ({
   // Virtual rendering optimization - only render visible options
   const renderOptions = useMemo(() => {
     if (loading) {
-      return <CircularProgress color="default" />;
+      return <CircularProgress aria-label="loading" color="default" />;
     }
 
     // Only render visible options for performance with large datasets
-    return options.map((option) => {
+    return options?.map((option) => {
       const selectedIndex = selectedValues.findIndex(
         (item) => item.value === option.value
       );
       const isSelected = selectedIndex !== -1;
 
       return (
-        <div
+        <ul
           key={`option-${option.value}`}
           className="option w-full h-fit flex flex-row items-center gap-x-5"
           onClick={() => handleSelectOption(option)}
         >
-          <div
+          <li
             style={
               isSelected
                 ? { backgroundColor: "#4688A0" }
@@ -288,11 +287,11 @@ export const SelectAndSearchProduct = ({
             className="selectednumber cursor-pointer w-[30px] h-[30px] p-2 font-medium text-sm text-white rounded-full flex justify-center items-center"
           >
             {!singleSelect && isSelected ? selectedIndex + 1 : ""}
-          </div>
+          </li>
           <li className="w-full h-fit p-2 font-bold bg-gray-200 rounded-lg transition-all hover:bg-white active:bg-white cursor-pointer">
             {option.label}
           </li>
-        </div>
+        </ul>
       );
     });
   }, [options, loading, selectedValues, singleSelect, handleSelectOption]);
@@ -365,6 +364,7 @@ export const SelectAndSearchProduct = ({
         <div className="w-full max-w-[95%] h-fit flex flex-row flex-wrap items-center gap-5 p-1">
           {renderSelectedValues}
           <span
+            title="searchfiel"
             ref={inputRef}
             style={{ fontSize: textsize }}
             className="min-w-[200px] w-full h-full text-sm flex flex-col justify-center cursor-pointer focus:outline-none"
@@ -402,7 +402,7 @@ export const SelectAndSearchProduct = ({
               <p className="text-gray-300 text-medium italic">No Items</p>
             )}
             {renderOptions}
-            {options.length > 0 && !isLimit && !loading && (
+            {options && options.length > 0 && !isLimit && !loading && (
               <PrimaryButton
                 text="Load More"
                 type="button"

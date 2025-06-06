@@ -1,11 +1,10 @@
 "use client";
 import {
-  BannerSize,
   BannerSizeType,
   BannerTypeSelect,
+  ContainerItemCardType,
   ContainerType,
   FullCategoryType,
-  HomeContainerItemType,
 } from "@/src/context/GlobalType.type";
 import { BannerType } from "../../severactions/actions";
 import React, {
@@ -23,6 +22,7 @@ import { ItemCard } from "./Component";
 import { motion } from "framer-motion";
 import { useGlobalContext } from "@/src/context/GlobalContext";
 import { removeSpaceAndToLowerCase } from "@/src/lib/utilities";
+import { Search_Icon } from "../Asset";
 
 type FilterType = {
   search?: string;
@@ -55,11 +55,9 @@ const FetchItem = async (
               }`
             : ""
         }`
-      : `home/banner?${filter?.search ? `q=${filter.search}` : ""}${
-          filter?.bannertype
-            ? `${filter.search ? "&" : ""}ty=${filter.bannertype}`
-            : ""
-        }`
+      : `home/banner?take=${offset}ty=${ty}${
+          filter?.search ? `&q=${removeSpaceAndToLowerCase(filter.search)}` : ""
+        }${filter?.bannertype ? `&bty=${filter.bannertype}` : ""}`
   }`;
 
   const makeReq = await ApiRequest({ method: "GET", url });
@@ -73,7 +71,7 @@ const FetchItem = async (
 
 const ManageContainer = ({ manage }: ManageContainerProps) => {
   // State management
-  const { homeContainer, sethomeContainer } = useGlobalContext();
+  const { homeContainer } = useGlobalContext();
   const [filterValue, setFilterValue] = useState<FilterType | undefined>(
     undefined
   );
@@ -81,6 +79,7 @@ const ManageContainer = ({ manage }: ManageContainerProps) => {
   const [itemsPerPage, setItemsPerPage] = useState(5);
   const [isLoading, setIsLoading] = useState(false);
   const [hasMore, setHasMore] = useState(false);
+  const [temptItems, settempItems] = useState<Array<ContainerItemCardType>>([]);
 
   // Debounced search implementation for better performance
   const [searchTerm, setSearchTerm] = useState("");
@@ -102,9 +101,8 @@ const ManageContainer = ({ manage }: ManageContainerProps) => {
 
   // Fetch data when dependencies change
   useEffect(() => {
-    let isMounted = true;
     const fetchData = async () => {
-      if (!homeContainer?.items) return;
+      if (!homeContainer?.type) return;
       setIsLoading(true);
       try {
         const data = await FetchItem(
@@ -112,29 +110,18 @@ const ManageContainer = ({ manage }: ManageContainerProps) => {
           itemsPerPage,
           filterValue ?? null
         );
-        if (data && isMounted) {
-          console.log("Fetched Data:", data);
-          sethomeContainer(
-            (prev) =>
-              ({
-                ...prev,
-                items: data.data as HomeContainerItemType[],
-              } as never)
-          );
+
+        if (data?.data) {
+          settempItems(data.data as ContainerItemCardType[]);
           setHasMore(data.isLimit ?? false);
         }
       } catch (error) {
         console.error("Error fetching items:", error);
       } finally {
-        if (isMounted) setIsLoading(false);
+        setIsLoading(false);
       }
     };
-
     fetchData();
-
-    return () => {
-      isMounted = false;
-    };
   }, [filterValue, itemsPerPage, homeContainer?.type]);
 
   const handleChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
@@ -150,8 +137,10 @@ const ManageContainer = ({ manage }: ManageContainerProps) => {
         return {
           ...prev,
           categories: {
-            ...(prev?.categories || {}),
-            [name]: value,
+            ...(name === "parent" ? {} : prev?.categories || {}),
+            [name]: {
+              id: value,
+            },
           },
         } as never;
       }
@@ -230,23 +219,10 @@ const ManageContainer = ({ manage }: ManageContainerProps) => {
             name: "bannertype",
             selectedValue:
               homeContainer?.type === "category"
-                ? [homeContainer.type]
+                ? ["Category"]
                 : filterValue?.bannertype
                 ? [filterValue.bannertype]
                 : undefined,
-            onChange: handleChange as never,
-            className: "w-full",
-          }}
-        />
-        <AsyncSelection
-          type="normal"
-          data={() => BannerSize}
-          option={{
-            label: "Banner Size",
-            name: "bannersize",
-            selectedValue: filterValue?.bannersize
-              ? [filterValue.bannersize]
-              : undefined,
             onChange: handleChange as never,
             className: "w-full",
           }}
@@ -255,10 +231,9 @@ const ManageContainer = ({ manage }: ManageContainerProps) => {
     );
   }, [
     homeContainer?.type,
-    filterValue?.categories?.parent?.id,
+    filterValue?.categories?.parent.id,
     filterValue?.categories?.child?.id,
     filterValue?.bannertype,
-    filterValue?.bannersize,
     handleChange,
   ]);
 
@@ -277,7 +252,7 @@ const ManageContainer = ({ manage }: ManageContainerProps) => {
 
   // Memoize the item grid to prevent unnecessary re-renders
   const itemGrid = useMemo(() => {
-    if (!homeContainer?.items || homeContainer.items.length === 0) {
+    if (!temptItems || temptItems.length === 0) {
       return (
         <motion.div
           initial={{ opacity: 0 }}
@@ -293,28 +268,26 @@ const ManageContainer = ({ manage }: ManageContainerProps) => {
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="w-full grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"
+        className="w-full h-fit flex flex-row justify-between flex-wrap gap-y-5"
       >
-        {homeContainer &&
-          homeContainer?.items?.map((item) =>
-            item.item ? (
+        {temptItems?.map(
+          (item) =>
+            item && (
               <ItemCard
                 key={item.id}
-                item={item.item}
+                item={item as never}
                 onSelect={handleSelect}
                 isSelected={
-                  item.item
-                    ? manage?.selectedKey?.includes(item.item.id) ?? false
+                  item
+                    ? manage?.selectedKey?.includes(item.id as number) ?? false
                     : false
                 }
               />
-            ) : (
-              <></>
             )
-          )}
+        )}
       </motion.div>
     );
-  }, [homeContainer, handleSelect, manage?.selectedKey]);
+  }, [temptItems, handleSelect, manage?.selectedKey]);
 
   return (
     <div className="w-full flex flex-col space-y-6 bg-white rounded-xl p-5 shadow-sm">
@@ -325,29 +298,16 @@ const ManageContainer = ({ manage }: ManageContainerProps) => {
           value={searchTerm}
           placeholder="Search items..."
           onChange={handleChange}
-          startContent={
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="16"
-              height="16"
-              fill="currentColor"
-              viewBox="0 0 16 16"
-              className="text-gray-400"
-            >
-              <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z" />
-            </svg>
-          }
+          startContent={<Search_Icon />}
           className="rounded-lg border-gray-300 focus:border-blue-500 transition-all duration-200"
         />
 
-        {homeContainer?.items && homeContainer.items.length > 0 && (
-          <div className="w-full bg-gray-50 p-4 rounded-lg border border-gray-100">
-            {renderFilterSelection}
-          </div>
-        )}
+        <div className="w-full bg-gray-50 p-4 rounded-lg border border-gray-100">
+          {renderFilterSelection}
+        </div>
       </div>
 
-      <div className="w-full min-h-[200px] relative">
+      <div className="w-full min-h-[200px] h-[50vh] overflow-y-auto relative">
         {isLoading ? (
           <div className="absolute inset-0 flex items-center justify-center bg-white/50">
             <CircularProgress color="primary" aria-label="Loading items" />

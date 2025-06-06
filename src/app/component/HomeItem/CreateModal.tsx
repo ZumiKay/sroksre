@@ -3,13 +3,11 @@ import { useGlobalContext } from "@/src/context/GlobalContext";
 import { SecondaryModal } from "../Modals";
 import {
   ChangeEvent,
-  FormEvent,
   JSX,
   memo,
   RefObject,
   useCallback,
   useEffect,
-  useRef,
   useState,
 } from "react";
 import {
@@ -90,6 +88,7 @@ interface FooterContainerPropType {
   type?: ContainerType;
   ref?: RefObject<HTMLFormElement | null>;
   isLoading?: boolean;
+  handleSubmit?: () => void;
 }
 
 const FooterContainer = memo(
@@ -97,7 +96,7 @@ const FooterContainer = memo(
     handleBack,
     handleClose,
     type,
-    ref,
+    handleSubmit,
     isLoading,
   }: FooterContainerPropType) => {
     const handleClick = useCallback(
@@ -109,8 +108,8 @@ const FooterContainer = memo(
       [handleBack, handleClose]
     );
     const handleSubmitForm = useCallback(() => {
-      ref?.current?.submit();
-    }, [ref]);
+      if (handleSubmit) handleSubmit();
+    }, [handleSubmit]);
 
     return (
       <div className="btnSec w-full h-[40px] flex flex-row gap-x-3 justify-end">
@@ -118,6 +117,7 @@ const FooterContainer = memo(
           onPress={() => (type ? handleSubmitForm() : handleClick("close"))}
           size="sm"
           className="text-white font-bold bg_default"
+          type="button"
           isLoading={isLoading}
         >
           {type ? "Confirm" : "Next"}
@@ -174,7 +174,6 @@ const CreateHomeItemModal = () => {
     homeContainer,
     sethomeContainer,
   } = useGlobalContext();
-  const formRef = useRef<HTMLFormElement>(null);
 
   const [manageItem, setmanageItem] = useState(false);
   const [loading, setloading] = useState(false);
@@ -187,7 +186,7 @@ const CreateHomeItemModal = () => {
     async function getData() {
       if (!globalindex.homeeditindex) return;
       const getReq = await ApiRequest({
-        url: `/api/home?id=${globalindex.homeeditindex}`,
+        url: `/api/home?id=${globalindex.homeeditindex}&ty=normal`,
         method: "GET",
       });
       if (!getReq.success) {
@@ -273,28 +272,36 @@ const CreateHomeItemModal = () => {
       : "Item";
   }, [homeContainer?.type]);
 
-  const handleSubmit = useCallback(
-    async (e: FormEvent<HTMLFormElement>) => {
-      e.preventDefault();
-      setloading(true);
-      const creatReq = await ApiRequest({
-        url: "/api/home",
-        method: globalindex.homeeditindex === -1 ? "POST" : "PUT",
-        data: homeContainer,
-      });
-      setloading(false);
-      if (!creatReq.success) {
-        errorToast("Can't Create");
-        return;
-      }
-      successToast(
-        `Item ${globalindex.homeeditindex === -1 ? "Created" : "Updated"}`
-      );
-      sethomeContainer(undefined);
-      e.currentTarget.reset();
-    },
-    [globalindex.homeeditindex, homeContainer, sethomeContainer]
-  );
+  const handleSubmit = useCallback(async () => {
+    if (!homeContainer?.name || !homeContainer.items) {
+      errorToast("Missing Requried Field");
+      return;
+    }
+
+    const isEdit =
+      globalindex.homeeditindex && globalindex.homeeditindex !== -1;
+    setloading(true);
+
+    const creatReq = await ApiRequest({
+      url: "/api/home",
+      method: !isEdit ? "POST" : "PUT",
+      data: isEdit
+        ? {
+            ty: "info",
+            editItem: homeContainer,
+          }
+        : homeContainer,
+    });
+    setloading(false);
+    if (!creatReq.success) {
+      errorToast(creatReq.error ?? "Error Occured");
+      return;
+    }
+    successToast(
+      `Item ${globalindex.homeeditindex === -1 ? "Created" : "Updated"}`
+    );
+    sethomeContainer(undefined);
+  }, [globalindex.homeeditindex, homeContainer, sethomeContainer]);
 
   return (
     <SecondaryModal
@@ -306,7 +313,7 @@ const CreateHomeItemModal = () => {
           type={homeContainer?.type}
           handleBack={handleBack}
           isLoading={loading}
-          ref={formRef}
+          handleSubmit={handleSubmit}
         />
       )}
       closebtn
@@ -322,10 +329,7 @@ const CreateHomeItemModal = () => {
         <ManageContainerType />
       ) : (
         <>
-          <Form
-            onSubmit={handleSubmit}
-            className="DetailForm w-full h-fit flex flex-col items-start gap-3"
-          >
+          <Form className="DetailForm w-full h-fit flex flex-col items-start gap-3">
             <Input
               aria-label="container_name"
               label="Container Name"

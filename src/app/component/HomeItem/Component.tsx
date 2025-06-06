@@ -4,6 +4,7 @@ import {
   ContainerItemCardType,
   ContainerType,
 } from "@/src/context/GlobalType.type";
+import Image from "next/image";
 
 interface ItemTypeCard {
   Img: () => JSX.Element;
@@ -51,24 +52,39 @@ type ItemCardProps = {
 export const ItemCard = ({ item, onSelect, isSelected }: ItemCardProps) => {
   return (
     <div
-      onClick={() => onSelect(item.id)}
-      className="item_card w-[250px] h-[350px] relative"
+      onClick={() => onSelect(item.id as number)}
+      className={`item_card w-[250px] h-[350px] relative rounded-xl shadow-md transition-all duration-300 hover:shadow-lg ${
+        isSelected ? "ring-2 ring-blue-500" : ""
+      }`}
     >
       {isSelected && (
-        <span className="w-fit h-fit absolute top-1 right-0">
+        <span className="absolute top-2 right-2 z-10">
           <CircleCheckMark />
         </span>
       )}
       <div
-        style={isSelected ? { border: "1px solid lightgray" } : {}}
-        className="bg-black w-full h-1/2 rounded-lg"
+        className={`w-full h-1/2 rounded-t-xl bg-gradient-to-br from-gray-800 to-black flex items-center justify-center overflow-hidden ${
+          isSelected ? "border border-blue-500" : ""
+        }`}
       >
-        <p>Cover Banner</p>
+        {!item.name ? (
+          <p className="text-white">Cover</p>
+        ) : (
+          <Image
+            src={item.image}
+            alt={item.name}
+            width={500}
+            height={500}
+            className="w-full h-full object-cover"
+          />
+        )}
       </div>
 
-      <div className="item_detail w-full h-fit flex flex-col gap-3">
-        <p>{item.name}</p>
-        <p>Description</p>
+      <div className="item_detail w-full h-1/2 p-4 flex flex-col gap-3 bg-white rounded-b-xl">
+        <h3 className="text-lg font-semibold text-gray-800 truncate">
+          {item.name}
+        </h3>
+        <p className="text-gray-600 text-sm line-clamp-3">Description</p>
       </div>
     </div>
   );

@@ -3,31 +3,43 @@ import { extractQueryParams } from "../../banner/route";
 import Prisma from "@/src/lib/prisma";
 import { removeSpaceAndToLowerCase } from "@/src/lib/utilities";
 import { ContainerType } from "@/src/context/GlobalType.type";
+import { BannerType } from "@/src/app/severactions/actions";
 
 interface paramsType {
   q?: string;
   ty?: ContainerType;
   take?: string;
+  bty?: BannerType;
 }
 export async function GET(req: NextRequest) {
   try {
     const url = req.url.toString();
     const param = extractQueryParams(url);
-    const { q, ty, take } = param as paramsType;
+    const { q, ty, take, bty } = param as paramsType;
     const takeInt = parseInt(take ?? "5");
     const banner = await Prisma.banner.findMany({
       where: {
-        name: q && {
-          contains: removeSpaceAndToLowerCase(q),
-          mode: "insensitive",
-        },
-
-        size:
-          ty && ty === "category"
-            ? { not: "normal" }
-            : ty === "banner" || ty === "slide"
-            ? { equals: "normal" }
-            : {},
+        AND: [
+          {
+            name: q && {
+              contains: removeSpaceAndToLowerCase(q),
+              mode: "insensitive",
+            },
+          },
+          {
+            size:
+              ty && ty === "category"
+                ? { not: "normal" }
+                : ty === "banner" || ty === "slide"
+                ? { equals: "normal" }
+                : {},
+          },
+          {
+            type: (ty || bty) && {
+              equals: ty === "category" ? ty : bty,
+            },
+          },
+        ],
       },
 
       take: takeInt,
@@ -61,7 +73,7 @@ export async function GET(req: NextRequest) {
       {
         success: true,
         data: responseData,
-        isLimit: banner.length < takeInt,
+        isLimit: banner.length > takeInt,
       },
       { status: 200 }
     );
