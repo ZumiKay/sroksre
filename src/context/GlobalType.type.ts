@@ -468,6 +468,7 @@ export interface SubcategoriesState {
   pid?: number;
   name: string;
   isExpired?: boolean;
+  Parentcategories?: CateogoryState;
 }
 
 export interface LoadingState {
@@ -623,4 +624,14 @@ export interface HomeContainerItemType {
   };
   linktype?: BannerLinkType;
   img?: Array<ImageDatatype>;
+}
+
+export interface ProductListSelectFilterType {
+  color?: string[];
+  size?: string[];
+  other?: string[];
+  promo?: string[];
+  search?: string;
+  pcate?: string[];
+  ccate?: string[];
 }

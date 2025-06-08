@@ -276,15 +276,7 @@ export default function TableComponent({
         setopenmodal(toOpenModal);
       }
     },
-    [
-      Router,
-      searchParams,
-      setglobalindex,
-      setopenmodal,
-      setpromotion,
-      setreloaddata,
-      ty,
-    ]
+    [Router, searchParams, setglobalindex, setopenmodal, setpromotion, setreloaddata, settype, ty]
   );
 
   const handleAction = useCallback(

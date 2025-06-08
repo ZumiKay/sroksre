@@ -18,7 +18,7 @@ import { type PutBlobResult } from "@vercel/blob";
 import { SecondaryModal } from "../Modals";
 import { ImageDatatype } from "@/src/context/GlobalType.type";
 import { v4 as uuidv4 } from "uuid";
-import { handleLocalstorage } from "@/src/lib/utilities";
+import { GetSavedImageLocal, handleLocalstorage } from "@/src/lib/utilities";
 
 interface imageuploadprops {
   limit: number;
@@ -88,16 +88,14 @@ const uploadToVercel = async (
 };
 
 const deleteTempImage = async () => {
-  const ids = localStorage.getItem("tempimageids")
-    ? (JSON.parse(localStorage.getItem("tempimageids") as never) as number[])
-    : [];
+  const ids = GetSavedImageLocal();
 
-  if (ids.length === 0) {
+  if (!ids || ids.length === 0) {
     return true;
   }
 
   await ApiRequest({
-    url: "/api/image/temp",
+    url: "/api/image",
     method: "DELETE",
     data: {
       ids,
@@ -259,7 +257,7 @@ export const ImageUpload = (props: imageuploadprops) => {
       if (props.setreloaddata) props.setreloaddata(true);
       return true;
     },
-    [banner.id, props]
+    [banner.id, product, props]
   );
 
   //Saved to storage

@@ -58,7 +58,7 @@ const FilterMenu = memo(
         if (name === "search" && reloaddata) reloaddata();
 
         const toBeUpdateFilterdValue: Partial<FilterValueType> = {
-          ...filtervalue,
+          ...tempFilter,
         };
 
         if (cate) {
@@ -82,7 +82,7 @@ const FilterMenu = memo(
             : toBeUpdateFilterdValue),
         }));
       },
-      [filtervalue, reloaddata]
+      [reloaddata, tempFilter]
     );
 
     const handleFilter = useCallback(() => {

@@ -6,7 +6,10 @@ import { NormalSkeleton } from "../component/Banner";
 import { useGlobalContext } from "@/src/context/GlobalContext";
 import { filtervaluetype, getFilterValue } from "./action";
 import { ApiRequest } from "@/src/context/CustomHook";
-import { VariantColorValueType } from "@/src/context/GlobalType.type";
+import {
+  ProductListSelectFilterType,
+  VariantColorValueType,
+} from "@/src/context/GlobalType.type";
 import { Input, Spacer } from "@heroui/react";
 import { SecondaryModal } from "../component/Modals";
 import PrimaryButton from "../component/Button";
@@ -26,15 +29,7 @@ export const FilterContainer = ({
 }: {
   pid: string;
   cid?: string;
-  selected?: {
-    color?: string[];
-    size?: string[];
-    other?: string[];
-    promo?: string[];
-    search?: string;
-    pcate?: string[];
-    ccate?: string[];
-  };
+  selected?: ProductListSelectFilterType;
   productcount?: number;
   isPromotion?: string;
   latest?: boolean;

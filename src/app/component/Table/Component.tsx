@@ -174,7 +174,7 @@ const FilteredValueContainer = () => {
                 color={key === "promotiononly" ? "success" : "primary"}
               >
                 {key === "categories" && val
-                  ? `${val.parentcate.label}${
+                  ? `${val?.parentcate?.label}${
                       val?.childcate ? ` / ${val.childcate?.label}` : ""
                     }`
                   : key === "promotiononly"

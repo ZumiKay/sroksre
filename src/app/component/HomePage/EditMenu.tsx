@@ -50,11 +50,19 @@ const Homeeditmenu = memo(
     const handleDragEnd = (event: DragEndEvent) => {
       const { active, over } = event;
 
-      if ((active.id !== over?.id, setItems)) {
+      console.log({ active, over });
+
+      if (active.id !== over?.id && setItems) {
         setItems((items) => {
           const oldIndex = items.findIndex((item) => item.id === active.id);
           const newIndex = items.findIndex((item) => item.id === over?.id);
-          return arrayMove(items, oldIndex, newIndex);
+          const newItems = arrayMove(items, oldIndex, newIndex);
+
+          // Update idx property for each item based on new position
+          return newItems.map((item, index) => ({
+            ...item,
+            idx: index,
+          }));
         });
       }
     };

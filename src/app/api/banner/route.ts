@@ -30,6 +30,7 @@ const BannerStateSchema = z.object({
   selectedproduct: z.array(SelectOptionSchema).optional().nullable(),
   parentcate: SelectOptionSchema.optional().nullable(),
   childcate: SelectOptionSchema.optional().nullable(),
+  linktype: z.string().optional(),
   Image: ImageSchema,
 });
 

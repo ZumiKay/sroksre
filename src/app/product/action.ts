@@ -43,7 +43,7 @@ export const GetListProduct = async (
     promoid: promoid ? parseInt(promoid) : undefined,
   };
 
-  let filterproduct = [];
+  let filterproduct: Array<ProductState> = [];
 
   // Calculate the offset
   const skip = (data.page - 1) * data.show;
@@ -74,10 +74,10 @@ export const GetListProduct = async (
             }
           : data.parentcate_id !== 0 && childcate_id
           ? {
-              AND: {
-                parentcategory_id: data.parentcate_id,
-                childcategory_id: data.childcate_id,
-              },
+              AND: [
+                { parentcategory_id: data.parentcate_id },
+                { childcategory_id: data.childcate_id },
+              ],
             }
           : all && all === "1"
           ? {}
@@ -198,7 +198,7 @@ export const GetListProduct = async (
         products,
         parseInt(page),
         parseInt(show)
-      );
+      ) as never;
     }
 
     if (isFilter) {
@@ -276,7 +276,7 @@ export const GetListProduct = async (
         products,
         parseInt(page),
         parseInt(show)
-      );
+      ) as ProductState[];
     }
 
     const countproduct = totalproduct
@@ -310,7 +310,7 @@ export const GetListProduct = async (
               }
         );
 
-    if (isFilter) products = filterproduct;
+    if (isFilter) products = filterproduct as never;
 
     const result =
       products.length > 0

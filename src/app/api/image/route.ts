@@ -103,9 +103,7 @@ export async function DELETE(req: NextRequest) {
 
       // Fix: Use Promise.all correctly
       await Promise.all([
-        // Delete files from storage
         ...images.map((img) => del(img.url)),
-        // Delete database records
         Prisma.image.deleteMany({ where: { id: { in: data.ids } } }),
       ]);
 

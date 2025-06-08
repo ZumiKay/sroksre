@@ -126,6 +126,9 @@ export const GetContainers = async () => {
         },
       },
     },
+    orderBy: {
+      idx: "asc",
+    },
   });
 
   if (!result || result.length === 0) {

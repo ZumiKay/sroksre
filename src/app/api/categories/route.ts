@@ -8,6 +8,7 @@ import {
   updateCategoryData,
 } from "@/src/lib/adminlib";
 import Prisma from "@/src/lib/prisma";
+import { Prisma as Prismatype } from "@prisma/client";
 import { extractQueryParams } from "../banner/route";
 import dayjs from "dayjs";
 import { categorytype } from "@/src/context/GlobalType.type";
@@ -32,100 +33,114 @@ const CreateAutoCategory = async (data: Categorydata) => {
   if (!data.type) {
     return { success: false };
   }
+
   try {
+    // Convert subcategory pid values from string to integer
+    const subcategoriesData =
+      data.subcategories &&
+      data.subcategories.length > 0 &&
+      data.subcategories.every((i) => i.type === "promo")
+        ? {
+            sub: {
+              createMany: {
+                data: data.subcategories.map((i) => ({
+                  name: i.name,
+                  type: i.type,
+                  // Convert string pid to integer or null
+                  pid: i.pid ? parseInt(i.pid.toString(), 10) : null,
+                })),
+              },
+            },
+          }
+        : {};
+
+    // Create parent category
     const created = await Prisma.parentcategories.create({
       data: {
         name: data.name,
         type: data.type,
         description: data.description,
-        sub:
-          data.subcategories &&
-          data.subcategories.every((i) => i.type === "promo")
-            ? {
-                createMany: {
-                  data: data.subcategories.map((i) => ({
-                    name: i.name,
-                    type: i.type,
-                    pid: i.pid,
-                  })),
-                },
-              }
-            : {},
+        pid: null,
+        ...subcategoriesData,
       },
     });
 
-    //update product categories
-    const product = await Prisma.products.findMany({
-      where:
-        data.type === "sale"
-          ? {
-              promotion_id: { not: null },
-            }
-          : data.type === "popular"
-          ? {
-              amount_incart: { not: null },
-              amount_sold: { not: null },
-              amount_wishlist: { not: null },
-            }
-          : {},
+    // Rest of the optimized function remains the same...
+    const productQueryOptions: Prismatype.ProductsFindManyArgs = {
+      where: {},
       select: {
         id: true,
-        amount_incart: true,
-        amount_sold: true,
-        amount_wishlist: true,
-        createdAt: true,
-        Autocategory: true,
+        ...(data.type === "popular"
+          ? {
+              amount_incart: true,
+              amount_sold: true,
+              amount_wishlist: true,
+            }
+          : {}),
+        ...(data.type === "latest"
+          ? {
+              createdAt: true,
+            }
+          : {}),
       },
-    });
+    };
 
     if (data.type === "sale") {
-      await Promise.all(
-        product.map((prod) =>
-          Prisma.productcategory.create({
-            data: {
-              product_id: prod.id,
-              autocategory_id: created.id,
-            },
-          })
-        )
-      );
+      productQueryOptions.where = { promotion_id: { not: null } };
     } else if (data.type === "popular") {
-      await Promise.all(
-        product.map((prod) => {
-          const popularscore = calculatePopularityScore({
-            amount_incart: prod.amount_incart ?? 0,
-            amount_sold: prod.amount_sold ?? 0,
-            amount_wishlist: prod.amount_sold ?? 0,
-          });
+      productQueryOptions.where = {
+        OR: [
+          { amount_incart: { not: null, gt: 0 } },
+          { amount_sold: { not: null, gt: 0 } },
+          { amount_wishlist: { not: null, gt: 0 } },
+        ],
+      };
+    }
 
-          if (popularscore > 0) {
-            return Prisma.productcategory.create({
-              data: {
-                product_id: prod.id,
-                autocategory_id: created.id,
-              },
-            });
-          }
-        })
-      );
+    if (data.type === "latest") {
+      productQueryOptions.orderBy = { createdAt: "desc" };
+      productQueryOptions.take = 100;
+    }
+
+    const products = await Prisma.products.findMany(productQueryOptions);
+
+    if (data.type === "sale") {
+      await Prisma.productcategory.createMany({
+        data: products.map((prod) => ({
+          product_id: prod.id,
+          autocategory_id: created.id,
+        })),
+      });
+    } else if (data.type === "popular") {
+      const popularProducts = products.filter((prod) => {
+        const popularityScore = calculatePopularityScore({
+          amount_incart: prod.amount_incart ?? 0,
+          amount_sold: prod.amount_sold ?? 0,
+          amount_wishlist: prod.amount_wishlist ?? 0,
+        });
+        return popularityScore > 0;
+      });
+
+      if (popularProducts.length > 0) {
+        await Prisma.productcategory.createMany({
+          data: popularProducts.map((prod) => ({
+            product_id: prod.id,
+            autocategory_id: created.id,
+          })),
+        });
+      }
     } else if (data.type === "latest") {
-      const latestProducts = product.sort(
-        (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
-      );
-      await Promise.all(
-        latestProducts.map((product) => {
-          return Prisma.productcategory.create({
-            data: {
-              autocategory_id: created.id,
-              product_id: product.id,
-            },
-          });
-        })
-      );
+      await Prisma.productcategory.createMany({
+        data: products.map((product) => ({
+          autocategory_id: created.id,
+          product_id: product.id,
+        })),
+      });
     }
 
     return { success: true, id: created.id };
   } catch (error) {
+    console.log("Create Auto Category", error);
     return { success: false };
   }
 };
@@ -225,7 +240,7 @@ export async function GET(req: NextRequest) {
 
     return Response.json({ data: categories }, { status: 200 });
   } catch (error) {
-    console.log("Fetch Categories");
+    console.log("Fetch Categories", error);
     return Response.json({ message: "Error Occured" }, { status: 500 });
   }
 }

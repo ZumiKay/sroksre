@@ -195,23 +195,10 @@ export const SlideShow: React.FC<bannerprops> = (props) => {
       {/* Controls and indicators */}
       <div className="w-full bg-slate-800/90 backdrop-blur-sm border-t border-slate-700">
         <div className="container mx-auto flex flex-col sm:flex-row items-center justify-between px-4 py-3">
-          {props.data[currentSlide].link && (
-            <div className="hidden md:block">
-              <Button
-                className="bg-white hover:bg-gray-200 text-black font-medium rounded-md transition-all duration-300"
-                size="md"
-                onClick={() =>
-                  router.push(props.data[currentSlide].link as string)
-                }
-              >
-                Learn More
-              </Button>
-            </div>
-          )}
-
           <div className="flex items-center justify-center sm:justify-end w-full sm:w-auto py-2 gap-1">
             {props.data.map((data, idx) => (
               <button
+                type="button"
                 key={idx}
                 onClick={() => handleIndicatorClick(idx)}
                 className={`

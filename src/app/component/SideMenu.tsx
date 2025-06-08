@@ -159,11 +159,13 @@ export default function AccountMenu({ setProfile }: accountmenuprops) {
     // Save changes on home items ordering
     setLoading(true);
     try {
+      console.log({ homeItems });
       const response = await ApiRequest({
         url: "/api/home",
         method: "PUT",
         data: {
           ty: "order",
+
           orderItems: homeItems.map((item, idx) => ({ id: item.id, idx })),
         },
       });
@@ -181,7 +183,7 @@ export default function AccountMenu({ setProfile }: accountmenuprops) {
     } finally {
       setLoading(false);
     }
-  }, [homeItems, isEdit]);
+  }, [homeItems, isEdit, router]);
 
   const handleDelete = useCallback(async () => {
     if (!selected.length) {
@@ -252,51 +254,58 @@ export default function AccountMenu({ setProfile }: accountmenuprops) {
   }, [handleDelete, isEdit, setopenmodal]);
 
   const renderHomeEditor = () => (
-    <div className="w-[90%] h-full flex flex-col items-center gap-y-10">
+    <div className="w-[90%] h-full flex flex-col items-center gap-y-8 py-6">
       <button
         onClick={() => setopenmodal((prev) => ({ ...prev, editHome: false }))}
-        className="w-full h-fit text-left text-lg font-bold cursor-pointer transition hover:text-gray-600 pl-2"
+        className="w-full h-fit flex items-center gap-x-2 text-left text-lg font-medium cursor-pointer transition-colors hover:text-blue-600 pl-2"
       >
-        {`< Back`}
+        <span className="text-xl">&larr;</span>
+        <span>Back to Menu</span>
       </button>
 
-      <Homeeditmenu
-        isEdit={isEdit}
-        onEdit={handleSelectItem}
-        items={homeItems}
-        setItems={setHomeItems}
-      />
+      <div className="w-full flex-1 overflow-y-auto px-2">
+        <Homeeditmenu
+          isEdit={isEdit}
+          onEdit={handleSelectItem}
+          items={homeItems}
+          setItems={setHomeItems}
+        />
+      </div>
 
-      <div className="w-full flex flex-row gap-x-5 justify-start">
+      <div className="w-full flex flex-row gap-x-4 justify-between px-2">
         <PrimaryButton
           type="button"
-          text={isEdit ? "Delete" : "Add New"}
-          color={isEdit ? "lightcoral" : "white"}
-          height="50px"
-          width="100%"
-          hoverColor="lightgray"
+          text={isEdit ? "Delete Selected" : "Add New Item"}
+          color={isEdit ? "rgb(255, 107, 107)" : "white"}
+          height="54px"
+          width="48%"
+          hoverColor={isEdit ? "rgb(255, 77, 77)" : "rgb(245, 245, 245)"}
           textcolor={isEdit ? "white" : "black"}
           status={loading ? "loading" : "authenticated"}
           disable={isEdit && selected.length === 0}
-          radius="10px"
-          border="1px solid lightgray"
-          onClick={() => handleToggleHomeItemEdit()}
+          radius="12px"
+          border={isEdit ? "none" : "1px solid rgb(230, 230, 230)"}
+          onClick={handleToggleHomeItemEdit}
           Icon={isEdit ? <Bin_Icon /> : <AddIcon />}
         />
 
         <PrimaryButton
           type="button"
           onClick={handleEdit}
-          text={isEdit ? "Done" : "Edit"}
-          radius="10px"
-          height="50px"
-          hoverColor="lightgray"
-          width="100%"
-          border="1px solid lightgray"
-          color="white"
-          textcolor="black"
+          text={isEdit ? "Save Changes" : "Edit Order"}
+          radius="12px"
+          height="54px"
+          hoverColor={isEdit ? "rgb(72, 187, 120)" : "rgb(245, 245, 245)"}
+          width="48%"
+          border={isEdit ? "none" : "1px solid rgb(230, 230, 230)"}
+          color={isEdit ? "rgb(72, 187, 120)" : "white"}
+          textcolor={isEdit ? "white" : "black"}
           Icon={
-            <div className="w-[30px] h-[30px] bg-white rounded-full">
+            <div
+              className={`w-[24px] h-[24px] ${
+                isEdit ? "text-white" : ""
+              } rounded-full flex items-center justify-center`}
+            >
               <PencilEditIcon />
             </div>
           }
@@ -306,39 +315,55 @@ export default function AccountMenu({ setProfile }: accountmenuprops) {
   );
 
   const renderMainMenu = () => (
-    <div className="flex flex-col items-center w-full py-10 gap-y-10">
-      <nav className="w-full mb-auto">
-        <ul className="flex flex-col items-center w-full gap-y-4">
+    <div className="flex flex-col items-center w-full h-full py-8">
+      <div className="w-full px-6 mb-6">
+        <h2 className="text-2xl font-bold text-gray-800">Account Menu</h2>
+        <p className="text-gray-500 text-sm mt-1">
+          Manage your profile and preferences
+        </p>
+      </div>
+
+      <nav className="w-full flex-1 overflow-y-auto px-6">
+        <ul className="flex flex-col w-full gap-y-2">
           {filteredMenuItems.map((item) => (
-            <li
-              key={item.name} // Using item.name as key instead of index for better React performance
-              className="w-[80%]"
-            >
+            <li key={item.name} className="w-full">
               <button
                 onClick={() => handleMenuItemClick(item.link)}
-                className="w-full h-12 flex items-center gap-x-3 px-4 rounded-lg 
-                         text-left font-medium transition-colors duration-200
-                         hover:bg-gray-200 active:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-300"
+                className="w-full py-3.5 flex items-center gap-x-4 px-5 rounded-xl
+                         text-left transition-all duration-200 bg-white
+                         hover:bg-gray-50 active:bg-gray-100 focus:outline-none
+                         focus:ring-2 focus:ring-blue-200 group"
                 aria-label={`Navigate to ${item.name}`}
               >
-                <span className="text-gray-700">{item.icon}</span>
-                <span className="text-lg font-bold">{item.name}</span>
+                <span className="text-gray-700 group-hover:text-blue-600 transition-colors">
+                  {item.icon}
+                </span>
+                <span className="text-base font-medium text-gray-800 group-hover:text-blue-600 transition-colors">
+                  {item.name}
+                </span>
               </button>
             </li>
           ))}
         </ul>
       </nav>
 
-      <div className="mt-auto w-[80%]">
+      <div className="w-full px-6 mt-4 pt-4 border-t border-gray-100">
         <PrimaryButton
-          text="Logout"
+          text="Sign Out"
           type="button"
-          color="#F08080"
+          color="rgb(255, 107, 107)"
           width="100%"
+          height="54px"
           status={loading ? "loading" : "authenticated"}
-          radius="10px"
+          radius="12px"
+          textcolor="white"
+          hoverColor="rgb(255, 77, 77)"
           onClick={handleSignOut}
         />
+
+        <p className="text-xs text-center mt-4 text-gray-500">
+          &copy; {new Date().getFullYear()} SrokSre. All rights reserved.
+        </p>
       </div>
     </div>
   );
@@ -349,19 +374,26 @@ export default function AccountMenu({ setProfile }: accountmenuprops) {
       initial={{ x: "100%" }}
       animate={{ x: 0 }}
       exit={{ x: "100%" }}
-      transition={{ duration: 0.5, ease: "easeOut" }}
+      transition={{
+        duration: 0.3,
+        type: "spring",
+        stiffness: 300,
+        damping: 30,
+      }}
       onMouseEnter={() => setProfile(true)}
-      className="fixed right-0 top-0 w-[430px] max-small_phone:w-full h-full z-[99] bg-white shadow-lg flex flex-col items-center"
+      className="fixed right-0 top-0 w-[430px] max-small_phone:w-full h-full z-[99] bg-white shadow-xl flex flex-col overflow-hidden"
     >
       {openmodal?.editHome ? renderHomeEditor() : renderMainMenu()}
 
       {isMobile && (
         <button
+          type="button"
           onClick={() => setProfile(false)}
-          className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100"
+          className="absolute top-6 right-6 w-10 h-10 flex items-center justify-center 
+                   rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
           aria-label="Close menu"
         >
-          <CloseVector width="24px" height="24px" />
+          <CloseVector width="16px" height="16px" />
         </button>
       )}
     </motion.aside>

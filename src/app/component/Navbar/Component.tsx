@@ -49,9 +49,19 @@ export const CategoriesContainer = (props: {
   );
 
   const handleSubCateClick = useCallback(
-    ({ type, id, pid }: { type: string; id: number; pid?: number }) => {
+    ({
+      type,
+      id,
+      pid,
+      parentid,
+    }: {
+      type: string;
+      parentid: number;
+      id: number;
+      pid?: number;
+    }) => {
       router.push(
-        `/product?pid=${id}${
+        `/product?pid=${parentid}${
           type === "normal" ? `&cid=${id}` : `&promoid=${pid}`
         }`
       );
@@ -118,6 +128,7 @@ export const CategoriesContainer = (props: {
                             type: sub.type,
                             id: sub.id,
                             pid: sub.pid,
+                            parentid: category.id as number,
                           })
                         }
                         className="py-1 px-2 rounded-sm hover:bg-gray-200 transition-colors duration-200 cursor-pointer"

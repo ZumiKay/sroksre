@@ -406,7 +406,7 @@ export async function GET(request: NextRequest) {
           label: item.name,
           value: item.id.toString(),
         })),
-        hasMore: total > param.limit,
+        hasMore: total <= param.limit,
       };
 
       return Response.json({ ...selectionresult }, { status: 200 });

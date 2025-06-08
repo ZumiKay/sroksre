@@ -96,8 +96,6 @@ export async function POST(req: NextRequest) {
   try {
     const createData = (await req.json()) as Homeitemtype;
 
-    console.log(CheckCreateReq(createData));
-
     if (CheckCreateReq(createData)) {
       return Response.json({ error: "Invalid Param" }, { status: 400 });
     }
@@ -146,6 +144,10 @@ export async function GET(request: NextRequest) {
           id: true,
           name: true,
           type: true,
+          idx: true,
+        },
+        orderBy: {
+          idx: "asc",
         },
       });
 
@@ -166,7 +168,7 @@ interface editrequest {
 export async function PUT(req: Request) {
   try {
     const updateData: editrequest = await req.json();
-    if (!updateData.editItem?.id) {
+    if (updateData.ty !== "order" && !updateData.editItem?.id) {
       return Response.json({ error: "Invalid Request" }, { status: 400 });
     }
 
@@ -200,11 +202,7 @@ export async function PUT(req: Request) {
 
     switch (updateData.ty) {
       case "order":
-        if (
-          updateData.orderItems?.some((edit) =>
-            (Items as Homeitemtype[]).some((i) => i.idx! == edit.idx)
-          )
-        ) {
+        if (updateData.orderItems)
           await Promise.all(
             updateData.orderItems.map((item) =>
               Prisma.homecontainer.update({
@@ -213,7 +211,7 @@ export async function PUT(req: Request) {
               })
             )
           );
-        }
+
         break;
       case "info":
         if (updateData.editItem) {

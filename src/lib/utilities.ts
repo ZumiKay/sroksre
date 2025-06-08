@@ -412,6 +412,14 @@ export const handleLocalstorage = (ids: number[], remove?: boolean) => {
   localStorage.setItem("savedImages", JSON.stringify(savedImages));
 };
 
+export const GetSavedImageLocal = () => {
+  const saved = localStorage.getItem("savedImages");
+
+  if (!saved) return null;
+
+  return JSON.parse(saved) as number[];
+};
+
 //Email Template
 //
 //
