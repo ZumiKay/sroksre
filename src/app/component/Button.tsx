@@ -6,14 +6,6 @@ import "../globals.css";
 import * as React from "react";
 import { styled } from "@mui/material/styles";
 import Button from "@mui/material/Button";
-import InputLabel from "@mui/material/InputLabel";
-import MenuItem from "@mui/material/MenuItem";
-import FormControl from "@mui/material/FormControl";
-import Select, { SelectChangeEvent } from "@mui/material/Select";
-import { Box, Chip, OutlinedInput, ThemeProvider } from "@mui/material";
-import { Allstatus } from "@/src/context/OrderContext";
-import { Mutiselectstatuscolor } from "../dashboard/order/Theme";
-import { useRouter, useSearchParams } from "next/navigation";
 import {
   CateogoryState,
   VariantColorValueType,
@@ -43,14 +35,18 @@ interface buttonpros {
   zI?: string;
   disable?: boolean | null;
   style?: CSSProperties;
+  className?: string;
 }
 export default function PrimaryButton(props: buttonpros) {
   const [hover, sethover] = useState(false);
 
   return (
     <button
-      type={props.type}
-      className="primary__button relative rounded-sm border-0 font-bold p-1"
+      type={props.type ?? "button"}
+      className={
+        props.className ??
+        "primary__button relative rounded-sm border-0 font-bold p-1"
+      }
       onClick={
         props.disable || props.status === "loading" ? () => {} : props.onClick
       }
@@ -151,6 +147,7 @@ export function Selection(props: selectprops) {
         required={props.required}
         value={props.value}
         name={props.name}
+        title={props.name}
       >
         {props.default && (
           <option
@@ -280,85 +277,3 @@ export const SelectContainer = (props: Selectcontainerprops) => {
     </div>
   );
 };
-
-const ITEM_HEIGHT = 50;
-const ITEM_PADDING_TOP = 8;
-const MenuProps = {
-  PaperProps: {
-    style: {
-      maxHeight: ITEM_HEIGHT * 4.5 + ITEM_PADDING_TOP,
-      width: 250,
-    },
-  },
-};
-
-const names = Object.values(Allstatus).map((val) => val);
-
-export function MultipleSelect() {
-  const [selectedData, setselectedData] = useState<string[]>([]);
-  const router = useRouter();
-  const searchParams = useSearchParams();
-
-  React.useEffect(() => {
-    const params = new URLSearchParams(searchParams);
-    if (params.has("status")) {
-      params.delete("status");
-      router.push(`?${params}`);
-    }
-  }, []);
-
-  const handleChange = (event: SelectChangeEvent<typeof selectedData>) => {
-    const {
-      target: { value },
-    } = event;
-
-    const params = new URLSearchParams(searchParams);
-
-    const val = typeof value === "string" ? value.split(",") : value;
-    params.set("status", val.join(","));
-
-    if (val.length === 0) {
-      params.delete("status");
-    }
-    router.push(`?${params}`);
-    setselectedData(val);
-  };
-
-  return (
-    <div className="w-full">
-      <ThemeProvider theme={Mutiselectstatuscolor}>
-        <FormControl sx={{ m: 1, width: "100%" }}>
-          <InputLabel id="demo-multiple-chip-label" filled>
-            Filter By: Status
-          </InputLabel>
-          <Select
-            labelId="demo-multiple-chip-label"
-            id="demo-multiple-chip"
-            multiple
-            value={selectedData}
-            onChange={handleChange}
-            input={<OutlinedInput id="select-multiple-chip" label="Chip" />}
-            renderValue={(selected) => (
-              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
-                {selected.map((value) => (
-                  <Chip
-                    key={value}
-                    label={value}
-                    color={value.toLowerCase() as any}
-                  />
-                ))}
-              </Box>
-            )}
-            MenuProps={MenuProps}
-          >
-            {names.map((name) => (
-              <MenuItem key={name} value={name}>
-                {name}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-      </ThemeProvider>
-    </div>
-  );
-}

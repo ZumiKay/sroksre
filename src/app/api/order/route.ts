@@ -1,8 +1,7 @@
 import { Shippingservice } from "@/src/context/Checkoutcontext";
-import { Orderpricetype, totalpricetype } from "@/src/context/OrderContext";
+import { GenerateInvoicePdf, totalpricetype } from "@/src/context/OrderContext";
 import Prisma from "@/src/lib/prisma";
 import { calculateDiscountProductPrice } from "@/src/lib/utilities";
-import { Address } from "@prisma/client";
 import { NextRequest } from "next/server";
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 
@@ -80,21 +79,6 @@ const getLogo = async () => {
 
   return jpgImageBytes;
 };
-
-interface GenerateInvoicePdf {
-  id: string;
-  product: {
-    id: number;
-    name: string;
-    price: Orderpricetype;
-    selectedVariant: string[];
-    quantity: number;
-    totalprice: number;
-  }[];
-  price: totalpricetype;
-  shipping?: Address;
-  createdAt?: string;
-}
 
 export const generateInvoicePdf = async (Order: GenerateInvoicePdf) => {
   const pdfDoc = await PDFDocument.create();

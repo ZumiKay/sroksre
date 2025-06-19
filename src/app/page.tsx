@@ -50,8 +50,14 @@ export default async function Home() {
                               }`
                             : ""
                           : banner.selecttedproduct_id &&
-                            banner?.selecttedproduct_id.length > 0
+                            banner?.selecttedproduct_id.length === 1
                           ? `/detail/${banner.selecttedproduct_id[0]}`
+                          : banner.selecttedproduct_id?.length
+                          ? 1
+                            ? `/product?selectedid=${banner.selecttedproduct_id?.join(
+                                ","
+                              )}`
+                            : ""
                           : ""
                       }`
                     : undefined,

@@ -1,340 +1,112 @@
 "use server";
 
+import { Allstatus, Ordertype } from "@/src/context/OrderContext";
 import Prisma from "@/src/lib/prisma";
-import {
-  caculateArrayPagination,
-  calculatePagination,
-  OrderReciptEmail,
-  removeSpaceAndToLowerCase,
-} from "@/src/lib/utilities";
-import { revalidatePath } from "next/cache";
-import { Filterdatatype, totalpricetype } from "@/src/context/OrderContext";
+import { z } from "zod";
 import { SendOrderEmail } from "../../checkout/action";
-import dayjs from "dayjs";
-import getCheckoutdata from "@/src/app/checkout/getCheckOutData";
-import { Orderproduct, Orders } from "@prisma/client";
+import { OrderReciptEmail } from "@/src/lib/utilities";
+import { getUser } from "../../action";
+import { revalidateTag } from "next/cache";
 
-const AllorderType = {
-  orderdetail: "orderdetail",
-  orderproduct: "orderproduct",
-  orderaction: "orderaction",
-  orderupdatestatus: "orderupdatestatus",
+type UpdateOrderData = {
+  orderId: string;
+  order?: Ordertype;
+  emailTemplate?: string;
 };
 
-export type AllOrdersReturn = {
-  order: Array<Partial<Orders>>;
-  total: number;
-};
+const SanitizeUpdateStatus = z.object({
+  orderId: z.string().min(1, "Order ID is required"),
+  emailTemplate: z.string().min(1, "Email template is required").optional(),
+  order: z.object({
+    status: z.nativeEnum(Allstatus),
+  }),
+});
 
-export const GetOrder = async (
-  id?: string,
-  type?: string,
-  page?: number,
-  limit?: number,
-  userid?: number
-): Promise<Partial<Orders> | AllOrdersReturn | Orderproduct | unknown> => {
-  if (id && type) {
-    if (type === AllorderType.orderdetail) {
-      const detail = await Prisma.orders.findUnique({
-        where: { id },
-        select: {
-          user: {
-            select: {
-              id: true,
-              firstname: true,
-              lastname: true,
-              email: true,
-              phonenumber: true,
-            },
-          },
-          shipping: true,
-          shippingtype: true,
-          price: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-      });
-      if (!detail) {
-        return null;
-      }
-      return detail;
-    } else if (type === AllorderType.orderproduct) {
-      const orderproduct = await getCheckoutdata(undefined, userid);
-
-      return orderproduct?.Orderproduct;
-    }
-  }
-
-  const total = await Prisma.orders.count({
-    where: userid
-      ? {
-          buyer_id: userid,
-        }
-      : {},
-  });
-  //Get all orders
-  const { startIndex, endIndex } = calculatePagination(
-    total ?? 1,
-    limit ?? 1,
-    page ?? 1
-  );
-
-  const order = await Prisma.orders.findMany({
-    where: userid
-      ? {
-          buyer_id: userid,
-        }
-      : {},
-    select: {
-      id: true,
-      price: true,
-      status: true,
-      shippingtype: true,
-      createdAt: true,
-      updatedAt: true,
-    },
-    orderBy: { id: "asc" },
-    take: endIndex - startIndex + 1,
-    skip: startIndex,
-  });
-
-  if (order.length === 0) {
-    return null;
-  }
-
-  return { order, total };
-};
-
-interface filtertype {
-  page: number;
-  limit: number;
-  status?: Array<string>;
-  search?: string;
-  fromdate?: string;
-  todate?: string;
-  startprice?: number;
-  endprice?: number;
-  userid?: number;
-}
-
-export const getFilterOrder = async ({
-  status,
-  search,
-  fromdate,
-  todate,
-  startprice,
-  endprice,
-  page = 1,
-  limit = 1,
-  userid,
-}: filtertype) => {
+export const UpdateOrderStatus = async ({
+  orderId,
+  order,
+  emailTemplate,
+}: UpdateOrderData) => {
   try {
-    let order = await Prisma.orders.findMany({
-      where: userid
-        ? {
-            buyer_id: userid,
-          }
-        : {},
-      select: {
-        id: true,
-        price: true,
-        status: true,
-        user: {
-          select: {
-            firstname: true,
-            lastname: true,
-            email: true,
-          },
-        },
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
-
-    order = order.filter((data) => {
-      const price = data.price as unknown as totalpricetype;
-
-      const isOrder = search && search === removeSpaceAndToLowerCase(data.id);
-
-      const isBuyer =
-        (search &&
-          removeSpaceAndToLowerCase(
-            data.user.firstname + (data.user?.lastname ?? "")
-          ).includes(search)) ||
-        search === data.user.email;
-      const isStatus = status?.includes(data.status);
-      const isPrice =
-        startprice && endprice
-          ? price.total >= startprice && price.total <= endprice
-          : price.total === startprice || price.total === endprice;
-
-      const isOrderInRange = isInDateRange(data.createdAt, fromdate, todate);
-
-      return isOrder || isBuyer || isStatus || isPrice || isOrderInRange;
-    });
-
-    const data = caculateArrayPagination(order, page, limit) as typeof order;
-
-    return {
-      success: true,
-      data: data.length === 0 ? undefined : data,
-      total: order.length,
-    };
-  } catch (error) {
-    console.log("Filter order", error);
-    return { success: false };
-  }
-};
-
-interface Returntype<t = undefined> {
-  success: boolean;
-  message: string;
-  data?: t;
-}
-
-export const updateOrderStatus = async (
-  status: string,
-  id: string,
-  email: string
-): Promise<Returntype> => {
-  try {
-    // Combine finding and updating the order in one step
-    const updatedOrder = await Prisma.orders.update({
-      where: { id },
-      data: { status },
-      select: {
-        user: {
-          select: {
-            email: true,
-          },
-        },
-      },
-    });
-
-    if (!updatedOrder) {
-      return { success: false, message: "Order not found" };
+    const isUser = await getUser();
+    if (!isUser || isUser?.role !== "ADMIN") {
+      return { success: false, error: "User not authenticated" };
     }
 
-    // Prepare and send the email notification
-    const emailTemplate = OrderReciptEmail(email);
-    const subject = `Order #${id} receipt has been updated to ${status}`;
-    await SendOrderEmail(emailTemplate, updatedOrder.user.email, subject);
+    const parsedData = SanitizeUpdateStatus.parse({
+      orderId,
+      order,
+      emailTemplate,
+    });
 
-    return { success: true, message: "Update Successful" };
-  } catch (error) {
-    console.error("Failed to update order status:", error);
-    return { success: false, message: "Failed to update" };
-  }
-};
-
-export const deleteOrder = async (id: string): Promise<Returntype> => {
-  try {
-    await Prisma.orders.delete({ where: { id } });
-    revalidatePath("dashboard/order");
-    return { success: true, message: "Delete successfully" };
-  } catch (error) {
-    console.log("Error Delete Order", error);
-    return { success: false, message: "Error occured" };
-  }
-};
-
-const isInDateRange = (
-  createdAt: Date,
-  fromdate?: string,
-  todate?: string
-): boolean => {
-  if (fromdate && todate) {
-    return (
-      (dayjs(createdAt).isAfter(dayjs(fromdate)) &&
-        dayjs(createdAt).isBefore(dayjs(todate))) ||
-      dayjs(createdAt).isSame(dayjs(fromdate)) ||
-      dayjs(createdAt).isSame(dayjs(todate))
-    );
-  } else if (fromdate) {
-    // Only fromdate is provided, check if createdAt is after or on the fromdate
-    return (
-      dayjs(createdAt).isAfter(dayjs(fromdate)) ||
-      dayjs(createdAt).isSame(dayjs(fromdate))
-    );
-  } else if (todate) {
-    return (
-      dayjs(createdAt).isBefore(dayjs(todate)) ||
-      dayjs(createdAt).isSame(dayjs(todate))
-    );
-  }
-
-  return false;
-};
-
-export const ExportOrderData = async (filterdata: Filterdatatype) => {
-  try {
-    let orderdata = await Prisma.orders.findMany({
+    const isOrder = await Prisma.orders.findUnique({
+      where: { id: parsedData.orderId },
       select: {
-        id: true,
-        createdAt: true,
         user: {
           select: {
-            id: true,
-            firstname: true,
-            lastname: true,
             email: true,
           },
         },
-        Orderproduct: {
-          select: {
-            quantity: true,
-
-            product: {
-              select: {
-                id: true,
-                name: true,
-                price: true,
-                discount: true,
-              },
-            },
-          },
-        },
-        shippingtype: true,
-        price: true,
       },
     });
 
-    //filter order data
-    orderdata = orderdata.filter((data) => {
-      const price = data.price as unknown as totalpricetype;
+    if (!isOrder) {
+      return { success: false, error: "Order not found" };
+    }
 
-      const isOrder = filterdata.q && data.id === filterdata.q;
+    await Prisma.orders.update({
+      where: { id: orderId },
+      data: { status: parsedData.order.status },
+    });
 
-      const isBuyer =
-        (filterdata.q &&
-          removeSpaceAndToLowerCase(
-            data.user.firstname + (data.user.lastname ?? "")
-          ).includes(removeSpaceAndToLowerCase(filterdata.q))) ||
-        data.user.id.toString() === filterdata.q ||
-        data.user.email === filterdata.q;
+    if (parsedData.emailTemplate) {
+      const subject = `Order #${order?.id} Status Updated: ${parsedData.order.status}`;
 
-      const isPrice =
-        filterdata.startprice && filterdata.endprice
-          ? price.total >= parseFloat(filterdata.startprice as string) &&
-            price.total <= parseFloat(filterdata.endprice as string)
-          : price.total === parseFloat(filterdata.startprice as string) ||
-            price.total === parseFloat(filterdata.endprice as string);
-
-      return (
-        isOrder ||
-        isBuyer ||
-        isPrice ||
-        isInDateRange(
-          data.createdAt,
-          filterdata.fromdate as string,
-          filterdata.todate as string
-        )
+      await SendOrderEmail(
+        OrderReciptEmail(parsedData.emailTemplate),
+        isOrder.user.email,
+        subject
       );
-    });
+    }
 
-    return { success: true, message: "Export Successfully", data: orderdata };
+    // Send email using emailTemplate
+    revalidateTag("orderlist#" + isUser.id);
+    return { success: true, message: "Order Updated" };
   } catch (error) {
-    console.log("Order Export", error);
-    return { success: false, message: "Failed To Export" };
+    console.log("Error updating order status:", error);
+    if (error instanceof z.ZodError) {
+      console.error("Invalid status:", error.errors);
+      return { success: false, error: "Invalid Param" };
+    }
+    return { success: false, error: "Failed to update order status" };
+  }
+};
+
+export const UserCancelOrder = async (orderId: string) => {
+  try {
+    const user = await getUser();
+    if (!user) {
+      return { success: false, error: "User not authenticated" };
+    }
+    await Prisma.orders.updateMany({
+      where: {
+        AND: [
+          {
+            id: orderId,
+          },
+          {
+            OR: [{ status: Allstatus.incart }, { status: Allstatus.unpaid }],
+          },
+        ],
+      },
+      data: {
+        status: Allstatus.cancelled,
+      },
+    });
+    revalidateTag("orderlist#" + user.id);
+    return { success: true, message: "Order cancelled successfully" };
+  } catch (error) {
+    console.log("Error cancelling order:", error);
+    return { success: false, error: "Failed to cancel order" };
   }
 };

@@ -46,7 +46,7 @@ const renderItem = ({
       key={key}
       ref={ref}
       className={cn(className, isActive && "text-white bg-slate-600 font-bold")}
-      onClick={() => setPage(value as any)}
+      onClick={() => setPage(value as never)}
     >
       {value}
     </button>
@@ -67,9 +67,9 @@ export default function PaginationCustom({
   const handlePage = (p: number) => {
     const params = new URLSearchParams(searchParam);
     params.set("p", `${p}`);
-    setpage && setpage(p);
+    if (setpage) setpage(p);
     router.push(`?${params}`);
-    onPageChange && onPageChange();
+    if (onPageChange) onPageChange();
   };
 
   return (
@@ -140,8 +140,8 @@ export const SelectionCustom = ({
       isLoading={!!isLoading}
       onChange={(e) => {
         const { value } = e.target;
-        setvalue && setvalue(value);
-        onChange && onChange(IsNumber(value) ? parseInt(value) : value);
+        if (setvalue) setvalue(value);
+        if (onChange) onChange(IsNumber(value) ? parseInt(value) : value);
       }}
     >
       {data.map((animal) => (

@@ -1,24 +1,25 @@
+import Prisma from "@/src/lib/prisma";
+import { Prisma as PrismaType } from "@prisma/client";
 import {
   Allstatus,
   Productorderdetailtype,
   Productordertype,
-  totalpricetype,
 } from "@/src/context/OrderContext";
-import Prisma from "@/src/lib/prisma";
 import {
   calculateCartTotalPrice,
-  calculateDiscountProductPrice,
+  calculateDiscountPrice,
   getmaxqtybaseStockType,
+  hasPassed24Hours,
 } from "@/src/lib/utilities";
 import { NextRequest } from "next/server";
-import { extractQueryParams } from "../../banner/route";
-import { JsonObject } from "@prisma/client/runtime/library";
 import {
+  get24Hr,
   ProductState,
   VariantColorValueType,
   Varianttype,
 } from "@/src/context/GlobalType.type";
 import { getUser } from "@/src/app/action";
+import { formatDate } from "@/src/app/component/EmailTemplate";
 
 export async function PUT(req: NextRequest) {
   try {
@@ -28,161 +29,124 @@ export async function PUT(req: NextRequest) {
     }
 
     const { id, qty } = await req.json();
-
-    const cartItem = await Prisma.orderproduct.findUnique({
-      where: { id },
-      select: { orderId: true },
-    });
-
-    if (!cartItem) {
-      return Response.json({}, { status: 404 });
+    if (!id || typeof qty !== "number" || qty < 1) {
+      return Response.json({ error: "Invalid input" }, { status: 400 });
     }
 
-    await Prisma.orderproduct.update({
-      where: { id },
-      data: { quantity: qty },
-    });
-
-    //update Order Price
-
-    if (cartItem.orderId) {
-      const orderItems = await Prisma.orders.findUnique({
-        where: { id: cartItem.orderId },
+    // Perform update and fetch updated item in a single transaction
+    await Prisma.$transaction([
+      Prisma.orderproduct.update({
+        where: { id },
+        data: { quantity: qty },
         select: {
-          Orderproduct: {
+          orderId: true,
+          quantity: true,
+          details: true,
+          product: {
             select: {
-              quantity: true,
-              product: {
-                select: {
-                  price: true,
-                  discount: true,
-                },
-              },
+              id: true,
+              price: true,
+              discount: true,
             },
           },
         },
-      });
+      }),
+    ]);
 
-      if (!orderItems) {
-        return Response.json({}, { status: 404 });
-      }
-
-      //Caculate Total Price
-      const totalprice = orderItems.Orderproduct.reduce((total, item) => {
-        const { quantity, product } = item;
-        const { price, discount } = product;
-
-        const productPrice = calculateDiscountProductPrice({
-          price,
-          discount: discount ? discount : undefined,
-        });
-
-        const caculatedPrice = discount
-          ? productPrice.discount?.newprice ?? 0
-          : price;
-        return total + caculatedPrice * quantity;
-      }, 0);
-
-      const orderPrice: totalpricetype = {
-        subtotal: totalprice,
-        total: totalprice,
-      };
-
-      await Prisma.orders.update({
-        where: { id: cartItem.orderId },
-        data: { price: orderPrice as unknown as JsonObject },
-      });
-    }
+    // If no item found, the update would have thrown an error
 
     return Response.json({ message: "Update Successfully" }, { status: 200 });
   } catch (error) {
-    console.log("Edit Cart", error);
-    return Response.json({ message: "Error Occured" }, { status: 500 });
+    console.error("Edit Cart Error:", error);
+    return Response.json({ message: "Error Occurred" }, { status: 500 });
   }
 }
-export async function GET(req: NextRequest) {
+
+export async function GET() {
   try {
-    const url = req.nextUrl.toString();
-    const { count } = extractQueryParams(url);
     const user = await getUser();
 
     if (!user) {
-      return Response.json({}, { status: 200 });
+      return Response.json({ message: "No user found" }, { status: 200 });
     }
 
     // Common where clause to avoid repetition
-    const whereClause = {
-      AND: [{ user_id: user.id }, { status: Allstatus.incart }],
+    const whereClause: PrismaType.OrdersWhereInput = {
+      AND: [
+        { buyer_id: user.id },
+        { status: Allstatus.incart },
+        {
+          OR: [
+            { createdAt: { lte: get24Hr } },
+            { createdAt: { gte: get24Hr } },
+          ],
+        },
+      ],
     };
 
-    // Just return count if that's all that's needed
-    if (count === 1) {
-      const countCartItems = await Prisma.orderproduct.count({
-        where: whereClause,
-      });
-      return Response.json({ data: countCartItems }, { status: 200 });
-    } else if (count) {
-      return Response.json({}, { status: 200 });
-    }
-
     // Get full cart data with optimized query
-    const orderproduct = await Prisma.orderproduct.findMany({
+    const order = await Prisma.orders.findFirst({
       where: whereClause,
       orderBy: { id: "asc" },
       select: {
         id: true,
-        quantity: true,
-        details: true,
-        product: {
+        status: true,
+        createdAt: true,
+        Orderproduct: {
           select: {
-            name: true,
-            covers: true,
-            price: true,
-            discount: true,
-            stocktype: true,
-            stock: true,
-            Stock: {
-              orderBy: { id: "asc" },
+            id: true,
+            quantity: true,
+            details: true,
+            product: {
               select: {
-                id: true,
-                Stockvalue: {
+                name: true,
+                covers: {
+                  take: 1,
                   select: {
-                    variant_val: true,
-                    qty: true,
+                    url: true,
+                    name: true,
                   },
                 },
+                price: true,
+                discount: true,
+                stocktype: true,
+                stock: true,
+                Stock: {
+                  orderBy: { id: "asc" },
+                  select: {
+                    id: true,
+                    Stockvalue: {
+                      select: {
+                        variant_val: true,
+                        qty: true,
+                      },
+                    },
+                  },
+                },
+                Variant: {
+                  orderBy: { id: "asc" },
+                },
               },
-            },
-            Variant: {
-              orderBy: { id: "asc" },
             },
           },
         },
       },
     });
 
-    const cartItems = processCartItems(
-      orderproduct.map((i) => ({
-        ...i,
-        product: {
-          ...i.product,
-          price: calculateDiscountProductPrice({
-            price: i.product.price,
-            discount: i.product.discount ?? undefined,
-          }),
-          variants: i.product.Variant,
-          varaintstock: i.product.Stock,
-          Variant: undefined,
-          Stock: undefined,
-        },
-      })) as unknown as Productordertype[]
-    );
-    const totalPrice = calculateCartTotalPrice(cartItems as never);
+    if (order && order?.createdAt && hasPassed24Hours(order.createdAt)) {
+      await Prisma.orders.delete({ where: { id: order?.id } });
 
-    return Response.json(
-      { data: cartItems, total: totalPrice },
-      { status: 200 }
-    );
+      return Response.json({ message: "No Content" }, { status: 204 });
+    } else {
+      const orderItems = order?.Orderproduct
+        ? processCartItems(order.Orderproduct as unknown as Productordertype[])
+        : [];
+      const totalPrice = calculateCartTotalPrice(orderItems as never);
+      return Response.json(
+        { data: orderItems, total: totalPrice },
+        { status: 200 }
+      );
+    }
   } catch (error) {
     console.log("Get Cart", error);
     return Response.json({ message: "Error Occurred" }, { status: 500 });
@@ -196,27 +160,34 @@ function processCartItems(orderproduct: Productordertype[]) {
     const discount =
       item.product?.price &&
       item.product.discount &&
-      calculateDiscountProductPrice({
-        price: item?.product?.price,
-        discount: item.product.discount as unknown as number,
-      });
+      calculateDiscountPrice(
+        item?.product?.price,
+        item.product.discount as unknown as number
+      );
 
     const detail = item.details as Productorderdetailtype[];
     const selectedvariant =
-      item.product?.variants &&
-      processSelectedVariants(item.product?.variants, detail);
+      item.product?.Variant &&
+      processSelectedVariants(item.product.Variant, detail);
 
     const maxqty = getmaxqtybaseStockType(
       item.product as ProductState,
       detail.map((i) => i.value)
     );
 
+    const prod = item.product;
+
     return {
       id: item.id,
-      price: discount,
       quantity: item.quantity,
       maxqty,
-      product: item.product,
+      product: {
+        id: prod?.id,
+        name: prod?.name,
+        covers: prod?.covers,
+        price: prod?.price,
+        discount,
+      },
       selectedvariant: selectedvariant && selectedvariant.flat(),
     };
   });
@@ -247,42 +218,78 @@ export async function DELETE(req: NextRequest) {
     const user = await getUser();
 
     if (!user) {
-      return Response.json({}, { status: 401 });
+      return Response.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    const order = await Prisma.orderproduct.findUnique({
-      where: {
-        id,
-      },
-      select: {
-        order: { select: { id: true } },
-        details: true,
-        quantity: true,
-        product: {
-          select: {
-            stocktype: true,
-            stock: true,
+    await Prisma.$transaction(
+      async (tx) => {
+        // Get essential order item data in one query
+        const orderItem = await tx.orderproduct.findFirst({
+          where: {
+            AND: [
+              { id },
+              { user_id: user.id }, // Security: ensure the item belongs to the user
+            ],
           },
-        },
+          select: {
+            orderId: true, // Only select what we need
+          },
+        });
+
+        // If order item not found or doesn't belong to user, exit early
+        if (!orderItem) {
+          return;
+        }
+
+        // Count remaining items in the order
+        const remainingItems = await tx.orderproduct.count({
+          where: {
+            AND: [
+              { orderId: orderItem.orderId },
+              { id: { not: id } }, // Exclude the item being deleted
+            ],
+          },
+        });
+
+        // Delete the entire order if this is the last item
+        if (remainingItems === 0 && orderItem.orderId) {
+          await tx.orders.delete({
+            where: {
+              id: orderItem.orderId,
+            },
+          });
+        } else {
+          // Otherwise just delete the order item
+          await tx.orderproduct.delete({
+            where: { id },
+          });
+        }
       },
-    });
-
-    if (order && order.order) {
-      const orderItem = await Prisma.orderproduct.findMany({
-        where: {
-          AND: [{ orderId: order.order.id }, { user_id: user.id }],
-        },
-      });
-      if (orderItem.length === 1) {
-        await Prisma.orders.delete({ where: { id: order.order.id } });
+      {
+        isolationLevel: PrismaType.TransactionIsolationLevel.ReadCommitted, // Less restrictive for better performance
+        maxWait: 2000,
+        timeout: 5000,
       }
-    }
+    );
 
-    await Prisma.orderproduct.delete({ where: { id } });
-
-    return Response.json({ message: "Delete Successfully" }, { status: 200 });
+    return Response.json(
+      {
+        success: true,
+        message: "Item deleted successfully",
+      },
+      { status: 200 }
+    );
   } catch (error) {
-    console.log("Delete Cart", error);
-    return Response.json({ message: "Error Occured" }, { status: 500 });
+    console.error(
+      "Delete Cart Error:",
+      error instanceof Error ? error.message : String(error)
+    );
+    return Response.json(
+      {
+        success: false,
+        message: "Failed to delete item",
+      },
+      { status: 500 }
+    );
   }
 }

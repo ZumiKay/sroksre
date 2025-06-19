@@ -39,10 +39,9 @@ const SENSITIVE_ROUTES = ["/api/auth/r23646"];
 
 const RateLimitRoute = [
   "/api/vfy",
+  "/api/users/vfy",
   "/api/auth/signin",
   "/api/auth/register",
-  "/api/auth/signout",
-  "/api/auth/session",
   "/api/users/logout",
 ];
 

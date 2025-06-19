@@ -9,6 +9,9 @@ import ProfileIcon from "@/public/Image/profile.png";
 import WishListIcon from "@/public/Image/bookmark.png";
 import LockIcon from "@/public/Image/lock.png";
 import { Ordertype } from "./OrderContext";
+import { DateValue, RangeValue } from "@heroui/react";
+
+export const get24Hr = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
 type Role = "ADMIN" | "USER" | "EDITOR";
 export type InventoryPage =
@@ -22,7 +25,8 @@ export type FiltermenuType =
   | "banner"
   | "promotion"
   | "usermanagement"
-  | "listproduct";
+  | "listproduct"
+  | "listorder";
 export type ActionState = "edit" | "delete" | "stock";
 export type RequestMethod = "GET" | "POST" | "PUT" | "DELETE";
 export type RequetDatatype = "JSON" | "FILE";
@@ -202,10 +206,14 @@ export interface ProductState {
   stocktype?: string;
   covers: ImageDatatype[] | [];
   category: FullCategoryType;
+  parentcategory_id?: number;
+  childcategory_id?: number;
   details: ProductInfo[] | [];
   stock?: number;
+  Stock?: Array<Stocktype>;
   variantcount?: number;
   variants?: Array<Varianttype>;
+  Variant?: Array<Varianttype>;
   varaintstock?: Array<Stocktype>;
   lowstock?: boolean;
   incart?: boolean;
@@ -238,6 +246,11 @@ export interface FilterValueType {
   search?: string;
   expired?: string;
   promoids?: string[];
+  price?: {
+    start: number;
+    end?: number;
+  };
+  orderdate?: RangeValue<DateValue>;
 }
 
 export interface Listproductfilter {
@@ -313,7 +326,7 @@ export interface Userdatastate {
   newpassword?: string;
 }
 export interface ItemLength {
-  total: number;
+  total?: number;
   lowstock?: number;
   totalpage: number;
   totalitems?: number;
@@ -517,6 +530,7 @@ export interface ApiRequestHookProps {
   datatype?: RequetDatatype;
   revalidate?: string;
   cache?: RequestCache;
+  customheader?: Record<string, string>;
 }
 
 export interface InfiniteScrollReturnType {

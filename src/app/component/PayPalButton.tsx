@@ -2,7 +2,7 @@
 
 import ReactDomServer from "react-dom/server";
 import { useGlobalContext } from "@/src/context/GlobalContext";
-import { Ordertype, Productordertype } from "@/src/context/OrderContext";
+import { Allstatus, Ordertype } from "@/src/context/OrderContext";
 import { SendNotification, useSocket } from "@/src/context/SocketContext";
 import { useRouter } from "next/navigation";
 import {
@@ -21,21 +21,10 @@ import { ApiRequest } from "@/src/context/CustomHook";
 import { OrderReceiptTemplate } from "./EmailTemplate";
 import { useCallback, memo } from "react";
 
-interface OrderUserType extends Ordertype {
-  user: {
-    id: number;
-    firstname: string;
-    lastname?: string;
-    email: string;
-  };
-  Orderproduct: Productordertype[];
-  createdAt: Date;
-}
-
 interface PaypalButtonProps {
   orderId: string;
   encripyid: string;
-  order: OrderUserType;
+  order: Ordertype;
 }
 
 const PaypalButton = memo(
@@ -84,14 +73,22 @@ const PaypalButton = memo(
             return;
           }
 
-          const orderData = request.data;
+          const orderData = request.data as unknown as {
+            details?: {
+              issue: string;
+              description: string;
+              debug_id: string;
+            }[];
+            purchase_units?: Record<string, unknown>[];
+            debug_id: string;
+          };
           const errorDetail = orderData?.details?.[0];
 
           if (errorDetail?.issue === "INSTRUMENT_DECLINED") {
             return actions.restart();
           } else if (errorDetail) {
             throw new Error(
-              `${errorDetail.description} (${orderData.debug_id})`
+              `${errorDetail.description} (${orderData?.debug_id})`
             );
           } else if (!orderData.purchase_units) {
             throw new Error(JSON.stringify(orderData));
@@ -109,14 +106,14 @@ const PaypalButton = memo(
 
           const htmltemplate = ReactDomServer.renderToString(
             <OrderReceiptTemplate
-              order={{ ...order, status: "Paid" }}
+              order={{ ...order, status: Allstatus.paid }}
               isAdmin={false}
             />
           );
 
           const adminhtmltemplate = ReactDomServer.renderToString(
             <OrderReceiptTemplate
-              order={{ ...order, status: "Paid" }}
+              order={{ ...order, status: Allstatus.paid }}
               isAdmin={true}
             />
           );

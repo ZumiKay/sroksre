@@ -8,6 +8,7 @@ import Card from "../component/Card";
 import { useGlobalContext } from "@/src/context/GlobalContext";
 import { ProductState } from "@/src/context/GlobalType.type";
 import { FilterContainer } from "./filtercomnponent";
+import PaginationCustom from "../component/Pagination_Component";
 
 export const ProductFilterButton = ({
   pid,
@@ -153,5 +154,37 @@ export const PromotionProductListContainer = ({
         ))}
       </div>
     </div>
+  );
+};
+
+export const PaginationSSR = ({
+  productTotal = 0,
+}: {
+  productTotal?: number;
+}) => {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const handleAction = (ty: "page" | "show", val: string) => {
+    const param = new URLSearchParams(searchParams);
+    if (ty === "page") {
+      param.set("p", val);
+    }
+    if (ty === "show") {
+      param.set("show", val);
+      param.set("p", "1");
+    }
+    router.push(`?${param}`);
+    router.refresh();
+  };
+
+  return (
+    <PaginationCustom
+      count={productTotal}
+      page={Number(searchParams.get("p") ?? "1")}
+      setpage={(val) => handleAction("page", val.toString())}
+      setshow={(val) => handleAction("show", val.toString())}
+      show={searchParams.get("show") ?? "1"}
+    />
   );
 };

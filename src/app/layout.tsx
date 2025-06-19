@@ -6,6 +6,7 @@ import { ContainerLoading } from "./component/Loading";
 import Navbar from "./component/Navbar/Navbar";
 import ClientProviders from "@/src/app/component/ClientProvider";
 import "./globals.css";
+import { GetCartCount } from "./action";
 const prompt = Prompt({
   weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
   subsets: ["latin"],
@@ -18,11 +19,12 @@ export const metadata: Metadata = {
     "https://firebasestorage.googleapis.com/v0/b/sroksre-442c0.appspot.com/o/sideImage%2FLogo.svg?alt=media&token=5eb60253-4401-4fc9-a282-e635d132f050",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const cartCount = await GetCartCount();
   return (
     <html lang="en">
       <head>
@@ -43,7 +45,7 @@ export default function RootLayout({
         <Suspense fallback={<ContainerLoading />}>
           <ClientProviders>
             <div id="main" className="w-full h-full relative">
-              <Navbar />
+              <Navbar cartcount={cartCount} />
               {children}
             </div>
           </ClientProviders>

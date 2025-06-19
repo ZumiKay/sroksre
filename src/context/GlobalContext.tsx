@@ -8,7 +8,6 @@ import {
   Allrefstate,
   BannerState,
   CateogoryState,
-  ContainerType,
   filterinventorytype,
   FilterValueType,
   GlobalIndexState,
@@ -103,7 +102,6 @@ export const Productdetailinitialize: Productordertype = {
   id: 0,
   details: [],
   quantity: 0,
-  price: { price: 0 },
 };
 
 //

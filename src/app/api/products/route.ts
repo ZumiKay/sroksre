@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 
 import {
+  calculateDiscountPrice,
   calculateDiscountProductPrice,
   removeSpaceAndToLowerCase,
 } from "@/src/lib/utilities";
@@ -9,6 +10,7 @@ import { extractQueryParams } from "../banner/route";
 import Prisma from "@/src/lib/prisma";
 import {
   ContainerItemType,
+  ProductState,
   Stocktype,
   VariantColorValueType,
 } from "@/src/context/GlobalType.type";
@@ -297,7 +299,7 @@ export async function GET(request: NextRequest) {
           select: {
             id: true,
             name: true,
-            covers: { select: { name: true, url: true } },
+            covers: { select: { id: true, name: true, url: true }, take: 1 },
             parentcategory_id: true,
             childcategory_id: true,
             price: true,
@@ -305,16 +307,11 @@ export async function GET(request: NextRequest) {
           },
         });
 
-        const result = searchproduct.map(
-          ({ covers, price, discount, ...rest }) => ({
-            ...rest,
-            price: calculateDiscountProductPrice({
-              price,
-              discount: discount ?? undefined,
-            }),
-            covers: covers[0],
-          })
-        );
+        const result = searchproduct.map(({ price, discount, ...rest }) => ({
+          ...rest,
+          price,
+          discount: discount && calculateDiscountPrice(price, discount),
+        }));
 
         return Response.json({ data: result }, { status: 200 });
       }

@@ -40,7 +40,7 @@ const USER_ROUTES: ReadonlyMap<string, ReadonlySet<MethodType>> = new Map([
   ["/auth/users/info", new Set(["GET", "DELETE"])],
   ["/policy", new Set(["GET"])],
   ["/order", new Set(["POST", "PUT", "GET", "DELETE"])],
-  ["/order/cart", new Set(["POST", "GET", "DELETE"])],
+  ["/order/cart", new Set(["POST", "GET", "DELETE", "PUT"])],
   ["/users/info", new Set(["GET", "POST", "PUT", "DELETE"])],
 ]) as never;
 

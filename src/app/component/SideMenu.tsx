@@ -403,15 +403,14 @@ export default function AccountMenu({ setProfile }: accountmenuprops) {
 interface cardmenuprops {
   img: string | StaticImageData;
   setcart: (value: SetStateAction<boolean>) => void;
-  setcarttotal: React.Dispatch<React.SetStateAction<number>>;
 }
 
 export function CartMenu(props: cardmenuprops) {
-  const { setreloadcart } = useGlobalContext();
+  const { setreloadcart, reloadcart } = useGlobalContext();
   const router = useRouter();
   const searchparams = useSearchParams();
   const [cartItem, setitem] = useState<Array<Productordertype> | []>([]);
-  const [reloaddata, setreloaddata] = useState(true);
+
   const ref = useClickOutside(() => props.setcart(false));
 
   const [loading, setloading] = useState({
@@ -430,7 +429,7 @@ export function CartMenu(props: cardmenuprops) {
     };
   }, []);
 
-  const fetchcart = async () => {
+  const fetchcart = useCallback(async () => {
     const asyncfetchcart = async () => {
       const response = await ApiRequest({
         url: "/api/order/cart",
@@ -449,27 +448,29 @@ export function CartMenu(props: cardmenuprops) {
       500
     );
 
-    setreloaddata(false);
-  };
+    setreloadcart(false);
+  }, [setreloadcart]);
 
   useEffect(() => {
-    if (reloaddata) fetchcart();
-  }, [reloaddata]);
+    if (reloadcart) fetchcart();
+  }, [fetchcart, reloadcart]);
 
-  const removecart = async (id: number) => {
-    const deletereq = await ApiRequest({
-      url: "/api/order/cart",
-      method: "DELETE",
-      data: { id },
-    });
-    if (!deletereq.success) {
-      errorToast("Can't Delete Cart");
-      return;
-    }
-    props.setcarttotal((prev) => (prev !== 0 ? prev - 1 : prev));
-    setreloadcart(true);
-    setreloaddata(true);
-  };
+  const removecart = useCallback(
+    async (id: number) => {
+      const deletereq = await ApiRequest({
+        url: "/api/order/cart",
+        method: "DELETE",
+        data: { id },
+      });
+      if (!deletereq.success) {
+        errorToast("Can't Delete Cart");
+        return;
+      }
+      router.refresh();
+      setreloadcart(true);
+    },
+    [router, setreloadcart]
+  );
 
   const subprice = totalprice
     ? parseFloat(totalprice.subtotal.toString()).toFixed(2)
@@ -484,10 +485,8 @@ export function CartMenu(props: cardmenuprops) {
     }
 
     if (totalprice && cartItem.length !== 0) {
-      const cartitem_id = cartItem.map((i) => i.id);
       const makereq = Createorder.bind(null, {
         price: totalprice,
-        incartProduct: cartitem_id,
       });
       setloading((prev) => ({ ...prev, checkout: true }));
       const createOrder = await makereq();
@@ -497,7 +496,7 @@ export function CartMenu(props: cardmenuprops) {
         return;
       }
 
-      params.set("orderid", createOrder?.data?.encrypt ?? "");
+      params.set("orderid", createOrder?.data?.orderId ?? "");
       params.set("step", "1");
       router.push(`/checkout?${params.toString()}`);
     }
@@ -542,20 +541,22 @@ export function CartMenu(props: cardmenuprops) {
               }
               name={i.product?.name ?? ""}
               maxqty={i.maxqty}
+              price={{
+                price: i.product?.price ?? 0,
+                discount: i.product?.discount,
+              }}
               selectedqty={i.quantity}
               selecteddetail={i.selectedvariant}
-              price={i.price}
               removecart={() => removecart(i.id)}
               settotal={settotal}
-              setreloadcart={setreloaddata}
             />
           );
         })}
       </div>
       <div className="totalprice w-[90%] text-left font-medium flex flex-col gap-y-3">
-        <h5 className="text-lg text-[15px]">Subtotal: {`$${subprice}`} </h5>
-        <h5 className="textprice text-[15px]">Shipping: </h5>
-        <h3 className="text-xl font-bold">Total: </h3>
+        <h5 className="text-lg text-[20px] font-bold">
+          Cart Total: {`$${subprice}`}{" "}
+        </h5>
       </div>
       <PrimaryButton
         type="button"

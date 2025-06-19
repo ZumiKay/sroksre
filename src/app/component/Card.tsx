@@ -2,19 +2,22 @@
 import Image, { StaticImageData } from "next/image";
 import PrimaryButton from "./Button";
 import "../globals.css";
-import { memo, useCallback, useRef, useState } from "react";
+import { memo, useCallback, useMemo, useRef, useState } from "react";
 import { PrimaryPhoto } from "./PhotoComponent";
 import { errorToast } from "./Loading";
 import { useRouter } from "next/navigation";
-import { Orderpricetype, totalpricetype } from "@/src/context/OrderContext";
+import { totalpricetype } from "@/src/context/OrderContext";
 import { ApiRequest, useScreenSize } from "@/src/context/CustomHook";
-import { SelectionCustom } from "./Pagination_Component";
 import {
   ImageDatatype,
+  ProductState,
   VariantColorValueType,
 } from "@/src/context/GlobalType.type";
 import { useGlobalContext } from "@/src/context/GlobalContext";
 import { Chip, Skeleton } from "@heroui/react";
+import { AnimatePresence, motion } from "framer-motion";
+import { AsyncSelection } from "./AsynSelection";
+import { IsNumber } from "@/src/lib/utilities";
 
 interface cardprops {
   name: string;
@@ -62,7 +65,7 @@ const Card = memo(
     const [hover, setHover] = useState(false);
 
     // Check if this product is in promotion
-    const isPromotedProduct = promotion.products?.some(
+    const isPromotedProduct = promotion.Products?.some(
       (product) => product.id === id
     );
 
@@ -156,7 +159,7 @@ interface SecondayCardprops {
   id: number;
   img: string | StaticImageData;
   name: string;
-  price: Orderpricetype;
+  price: Pick<ProductState, "price" | "discount">;
   selecteddetail?: (string | VariantColorValueType)[];
   selectedqty: number;
   maxqty?: number;
@@ -164,17 +167,13 @@ interface SecondayCardprops {
   action?: boolean;
   removecart: () => Promise<void>;
   settotal: (param?: totalpricetype) => void;
-  setreloadcart: (value: boolean) => void;
 }
 export const Selecteddetailcard = ({
   text,
-  key,
 }: {
   text: string | VariantColorValueType;
-  key: number;
 }) => (
   <Chip
-    key={key}
     variant="bordered"
     size="lg"
     startContent={
@@ -191,133 +190,243 @@ export const Selecteddetailcard = ({
 );
 
 export function SecondayCard(props: SecondayCardprops) {
+  const { setreloadcart } = useGlobalContext();
   const [editqty, seteditqty] = useState(props.selectedqty);
   const [loading, setloading] = useState(false);
-  const price = parseFloat(props.price.price.toString()).toFixed(2);
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  const showprice = () => {
-    const hasdiscount = (
-      <div className="w-fit h-full flex flex-row gap-x-5">
-        <h3 className="text-lg font-medium"> ${price} </h3>
-        <h3 className="text-lg font-bold text-red-500">
-          {" "}
-          {`- ${props.price.discount?.percent}%`}{" "}
-        </h3>
-        <h3 className="text-lg font-bold">
-          {" "}
-          {`$${parseFloat(
-            props.price.discount?.newprice?.toString() ?? `0.00`
-          ).toFixed(2)}`}{" "}
-        </h3>
-      </div>
-    );
+  // Memoize price calculations to prevent unnecessary re-renders
+  const priceData = useMemo(() => {
+    const basePrice = parseFloat(props.price.price.toString()).toFixed(2);
+    const hasDiscount = !!props.price.discount;
+    const discountPercent = props.price.discount?.percent;
+    const newPrice = props.price.discount?.newprice
+      ? parseFloat(props.price.discount.newprice.toString()).toFixed(2)
+      : "0.00";
 
-    return !props.price.discount ? (
-      <h3 className="text-lg font-bold w-full h-full"> ${price} </h3>
-    ) : (
-      hasdiscount
-    );
-  };
+    return { basePrice, hasDiscount, discountPercent, newPrice };
+  }, [props.price]);
 
-  const handleEditQty = async (value: string) => {
-    //update cartitem
-    const val = parseInt(`${value}`);
-    setloading(true);
-    const updatereq = await ApiRequest({
-      url: "/api/order/cart",
-      method: "PUT",
-      data: { id: props.id, qty: val },
-    });
-    setloading(false);
+  // Memoize quantity options to prevent recreation on every render
+  const quantityOptions = useMemo(
+    () =>
+      Array.from({ length: props.maxqty ?? 0 }, (_, idx) => ({
+        label: (idx + 1).toString(),
+        value: (idx + 1).toString(),
+      })),
+    [props.maxqty]
+  );
 
-    if (!updatereq.success) {
-      errorToast("Can't update quantity");
-      return;
+  // Optimized price display component
+  const PriceDisplay = useMemo(() => {
+    if (!priceData.hasDiscount) {
+      return (
+        <div className="price-container">
+          <span className="text-xl font-bold text-gray-900">
+            ${priceData.basePrice}
+          </span>
+        </div>
+      );
     }
-    seteditqty(value !== "" ? val : 0);
-    props.setreloadcart(true);
-  };
 
-  const handleDelete = async () => {
-    setloading(true);
-    await props.removecart();
-    setloading(false);
-  };
-  return (
-    <div className="w-full h-full flex flex-col items-end gap-y-5 p-2">
-      <div
-        style={{ width: props.width }}
-        className="secondarycard__container flex flex-row items-center bg-[#F4FAFF] justify-between w-full gap-x-2 gap-y-3 relative max-small_phone:flex-col "
-      >
-        <Image
-          src={props.img}
-          alt="cover"
-          className="cardimage w-[250px] max-large_phone:w-[200px] h-auto object-contain rounded-lg"
-          width={600}
-          height={600}
-          quality={50}
-          loading="lazy"
-        />
-        <div className="product_detail flex flex-col items-start gap-y-5 w-full">
-          <div className="product_info flex flex-col gap-y-5 w-[90%] break-words">
-            <h3 className="text-lg font-bold w-fit"> {props.name}</h3>
-            {showprice()}
-          </div>
-
-          <div className="selecteddetails flex flex-row items-center flex-wrap gap-3 w-full h-fit max-h-[200px]">
-            {props.selecteddetail?.map((selected, idx) => (
-              <Selecteddetailcard key={idx} text={selected} />
-            ))}
-          </div>
-          <div className="qty flex flex-col gap-y-1 w-[200px] max-large_phone:[10%] h-fit">
-            <label className="text-lg font-bold">Quantity</label>
-            <SelectionCustom
-              label="QTY"
-              placeholder="Select"
-              size="sm"
-              style={{ width: "150px" }}
-              value={editqty.toString()}
-              isLoading={loading}
-              onChange={(value) => handleEditQty(value as string)}
-              data={Array.from({ length: props.maxqty ?? 0 }).map((_, idx) => ({
-                label: (idx + 1).toString(),
-                value: (idx + 1).toString(),
-              }))}
-            />
-          </div>
+    return (
+      <div className="price-container flex items-center gap-3 flex-wrap">
+        <span className="text-lg font-medium text-gray-500 line-through">
+          ${priceData.basePrice}
+        </span>
+        <div className="discount-badge bg-red-100 text-red-600 px-2 py-1 rounded-full text-sm font-semibold">
+          -{priceData.discountPercent}%
         </div>
-        <i
-          onClick={() => handleDelete()}
-          className={`fa-solid fa-trash absolute bottom-2 right-1 transition duration-300 active:text-white ${
-            loading ? "animate-spin" : ""
-          }`}
-        ></i>
+        <span className="text-xl font-bold text-green-600">
+          ${priceData.newPrice}
+        </span>
       </div>
-      {props.action && (
-        <div className="actions w-[75%] flex flex-row items-center justify-start gap-x-5">
-          <PrimaryButton
-            type="button"
-            text="Returns"
-            width="20%"
-            height="30px"
-            radius="5px"
-            color="#0097FA"
-            textcolor="white"
-            hoverColor="black"
-          />
-          <PrimaryButton
-            type="button"
-            text="Delete"
-            width="20%"
-            height="30px"
-            radius="5px"
-            color="#F08080"
-            textcolor="white"
-            hoverColor="black"
-          />
+    );
+  }, [priceData]);
+
+  // Debounced quantity update
+  const handleEditQty = useCallback(
+    async (value: string) => {
+      const val = parseInt(value);
+      if (!IsNumber(value)) return;
+
+      try {
+        setloading(true);
+        const updatereq = await ApiRequest({
+          url: "/api/order/cart",
+          method: "PUT",
+          data: { id: props.id, qty: val },
+        });
+
+        setloading(false);
+
+        if (!updatereq.success) {
+          errorToast("Can't update quantity");
+          return;
+        }
+
+        seteditqty(val);
+        setreloadcart(true);
+      } catch (error) {
+        errorToast("Failed to update quantity");
+        throw error;
+      }
+    },
+    [props.id, setreloadcart]
+  );
+
+  const handleDelete = useCallback(async () => {
+    setIsDeleting(true);
+    try {
+      await props.removecart();
+    } catch (error) {
+      errorToast("Failed to remove item");
+      throw error;
+    } finally {
+      setIsDeleting(false);
+    }
+  }, [props]);
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, x: -100 }}
+        transition={{ duration: 0.3 }}
+        className="w-full"
+      >
+        <div className="product-card bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-300 border border-gray-100 overflow-hidden">
+          {/* Card Header with Delete Button */}
+          <div className="relative p-4">
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={handleDelete}
+              disabled={isDeleting || loading}
+              className="absolute top-3 right-3 z-10 w-8 h-8 bg-red-50 hover:bg-red-100 text-red-500 hover:text-red-600 rounded-full flex items-center justify-center transition-all duration-200 disabled:opacity-50"
+            >
+              {isDeleting ? (
+                <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <i className="fa-solid fa-trash text-sm" />
+              )}
+            </motion.button>
+
+            <div className="flex flex-col lg:flex-row gap-6">
+              {/* Product Image */}
+              <div className="flex-shrink-0">
+                <div className="relative w-48 h-48 lg:w-56 lg:h-56">
+                  <Image
+                    src={props.img}
+                    alt={props.name}
+                    fill
+                    className="object-contain rounded-lg"
+                    quality={75}
+                    loading="lazy"
+                    sizes="(max-width: 768px) 192px, 224px"
+                  />
+                </div>
+              </div>
+
+              {/* Product Details */}
+              <div className="flex-1 space-y-4">
+                {/* Product Name */}
+                <h3 className="text-xl font-bold text-gray-900 line-clamp-2">
+                  {props.name}
+                </h3>
+
+                {/* Price Display */}
+                {PriceDisplay}
+
+                {/* Selected Details */}
+                {props.selecteddetail && props.selecteddetail.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-gray-700">
+                      Selected Options:
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {props.selecteddetail.map((selected, idx) =>
+                        typeof selected === "string" ? (
+                          <span
+                            key={idx}
+                            className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-50 border border-blue-300`}
+                          >
+                            {selected}
+                          </span>
+                        ) : (
+                          <div
+                            className="w-fit max-w-[200px] flex flex-row gap-x-3 items-center p-2 border border-gray-200 rounded-md"
+                            key={idx}
+                          >
+                            <span
+                              style={{ backgroundColor: selected.val }}
+                              className={`w-[17px] h-[17px] rounded-full`}
+                            ></span>
+                            <p>{selected.name}</p>
+                          </div>
+                        )
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Quantity Selector */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Quantity
+                  </label>
+                  <div className="relative w-32">
+                    <AsyncSelection
+                      type="normal"
+                      data={() => quantityOptions}
+                      option={{
+                        size: "sm",
+                        label: "QTY",
+                        defaultSelectedKeys: [editqty.toString()],
+                        selectedValue: [editqty.toString()],
+                        onChange: (val) => handleEditQty(val.target.value),
+                      }}
+                    />
+                    {loading && (
+                      <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
+                        <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          {props.action && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="border-t border-gray-100 p-4 bg-gray-50"
+            >
+              <div className="flex gap-3 justify-end">
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleDelete}
+                  disabled={isDeleting}
+                  className="px-4 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors duration-200 border border-red-200 disabled:opacity-50"
+                >
+                  {isDeleting ? (
+                    <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin mr-2" />
+                  ) : (
+                    <i className="fa-solid fa-trash mr-2" />
+                  )}
+                  Delete Item
+                </motion.button>
+              </div>
+            </motion.div>
+          )}
         </div>
-      )}
-    </div>
+      </motion.div>
+    </AnimatePresence>
   );
 }
 

@@ -3,6 +3,7 @@
 import Prisma from "@/src/lib/prisma";
 import {
   Allstatus,
+  InvoiceProductPdfType,
   Ordertype,
   Productordertype,
   totalpricetype,
@@ -21,7 +22,6 @@ import {
 import {
   calculateDiscountProductPrice,
   encrypt,
-  generateRandomNumber,
   OrderReciptEmail,
 } from "@/src/lib/utilities";
 import { ProductStockType } from "../component/ServerComponents";
@@ -29,8 +29,9 @@ import nodemailer from "nodemailer";
 import { generateInvoicePdf } from "../api/order/route";
 import { formatDate } from "../component/EmailTemplate";
 import getCheckoutdata from "@/src/app/checkout/getCheckOutData";
-import { ProductState } from "@/src/context/GlobalType.type";
 import { getUser } from "../action";
+import { ApiRequest } from "@/src/context/CustomHook";
+import { ActionReturnType } from "@/src/context/GlobalType.type";
 
 interface Returntype<k = string> {
   success: boolean;
@@ -67,15 +68,24 @@ export async function getOrderAddress(orderId: string) {
   return address;
 }
 
+type CreateOrderData = {
+  orderId: string;
+};
+
 export async function Createorder(data: {
   price: totalpricetype;
-  incartProduct: number[];
-}) {
+}): Promise<ActionReturnType<CreateOrderData>> {
   const user = await getUser();
 
   const userid = user?.id;
   let orderId = "";
   try {
+    const secretKey = process.env.KEY || null;
+
+    if (!secretKey) {
+      return { success: true, message: "Error Occured" };
+    }
+
     const checkOrder = await Prisma.orders.findFirst({
       where: {
         AND: [
@@ -83,58 +93,43 @@ export async function Createorder(data: {
             buyer_id: userid,
           },
           {
-            status: Allstatus.unpaid,
+            status: Allstatus.incart,
           },
         ],
+      },
+      select: {
+        id: true,
+        user: {
+          select: {
+            id: true,
+            email: true,
+          },
+        },
       },
     });
 
     if (!checkOrder) {
-      let generateID = "SSC" + generateRandomNumber();
-      let isExist = true;
-      while (isExist) {
-        const isId = await Prisma.orders.findUnique({
-          where: { id: generateID },
-        });
-        if (isId) {
-          isExist = true;
-          generateID = "SSC" + generateRandomNumber();
-        } else {
-          isExist = false;
-        }
-      }
-
-      const create = await Prisma.orders.create({
-        data: {
-          id: generateID,
-          buyer_id: userid as number,
-          status: Allstatus.unpaid,
-          price: data.price as never,
-          shippingtype: Shippingservice[2].value,
-        },
-      });
-      orderId = create.id;
+      return { success: false, message: "No Item Found" };
     } else {
       orderId = checkOrder?.id as string;
     }
 
-    //Update incart product
-
-    await Promise.all(
-      data.incartProduct.map((i) =>
-        Prisma.orderproduct.updateMany({
-          where: { id: i },
-          data: {
-            orderId,
-          },
-        })
-      )
-    );
+    //Update Price of the order
+    await Prisma.orders.update({
+      where: {
+        id: orderId,
+      },
+      data: {
+        price: data.price as never,
+        status: Allstatus.unpaid,
+      },
+    });
 
     const encryptId = encrypt(orderId, process.env.KEY as string);
+
     return {
       success: true,
-      data: { orderId, encrypt: encryptId },
+      data: { orderId: encryptId },
     };
   } catch (error) {
     console.log("Create Order", error);
@@ -170,7 +165,7 @@ export async function getOrderProduct(
   return { success: true, data: getProduct };
 }
 
-export interface OrderUserType extends Ordertype {
+export interface OrderUserType {
   user: {
     id: number;
     firstname: string;
@@ -188,116 +183,156 @@ export async function updateStatus(
   adminhtml: string
 ): Promise<Returntype> {
   try {
-    const order = await getCheckoutdata(orderid);
+    const order = (await getCheckoutdata(orderid)) as unknown as Ordertype;
 
     if (!order) {
-      return { success: false, status: 404 };
+      return { success: false, status: 404, message: "Order not found" };
     }
 
-    // Prepare updates
-    const productUpdates: Array<Promise<ProductState>> = [];
-    const stockUpdates: Array<Promise<unknown>> = [];
+    // Extract product IDs for batch operations
+    const productIds = order.Orderproduct.map((cart) => cart.productId).filter(
+      Boolean
+    ) as number[];
+
+    if (productIds.length === 0) {
+      return { success: false, message: "No products found in order" };
+    }
+
+    // Prepare batch updates
+    const updates: Promise<unknown>[] = [];
+
+    // Group products by stock type for efficient updates
+    const stockProducts: number[] = [];
+    const variantProducts: {
+      productId: number;
+      stockValueIds: number[];
+      quantity: number;
+    }[] = [];
 
     order.Orderproduct.forEach((cart) => {
+      if (!cart.product) return;
+
       const { stocktype, Stock } = cart.product;
 
       if (stocktype === ProductStockType.stock) {
-        productUpdates.push(
-          Prisma.products.updateMany({
-            where: {
-              AND: [
-                {
-                  id: cart.product.id,
-                },
-                {
-                  stock: { not: 0 },
-                },
-              ],
-            },
-            data: { stock: { decrement: cart.quantity } },
-          }) as never
-        );
-      } else {
-        const stockValueIds = Stock.flatMap((sk) =>
-          sk.Stockvalue.map((sv) => sv.id)
-        );
-        stockUpdates.push(
-          Prisma.stockvalue.updateMany({
-            where: {
-              AND: [
-                {
-                  id: { in: stockValueIds },
-                },
-                { qty: { not: 0 } },
-              ],
-            },
-            data: { qty: { decrement: cart.quantity } },
-          })
-        );
+        stockProducts.push(cart.product.id as number);
+      } else if (Stock?.length) {
+        const stockValueIds = Stock.flatMap(
+          (sk) => sk.Stockvalue?.map((sv) => sv.id) || []
+        ).filter(Boolean);
+
+        if (stockValueIds.length > 0) {
+          variantProducts.push({
+            productId: cart.product.id as number,
+            stockValueIds: stockValueIds as number[],
+            quantity: cart.quantity,
+          });
+        }
       }
     });
 
-    // Execute all updates concurrently
-    await Promise.all([
-      ...productUpdates,
-      ...stockUpdates,
+    // Batch update stock products
+    if (stockProducts.length > 0) {
+      updates.push(
+        Prisma.products.updateMany({
+          where: {
+            id: { in: stockProducts },
+            stock: { gt: 0 },
+          },
+          data: { stock: { decrement: 1 } },
+        })
+      );
+    }
+
+    // Batch update variant products
+    variantProducts.forEach(({ stockValueIds, quantity }) => {
+      updates.push(
+        Prisma.stockvalue.updateMany({
+          where: {
+            id: { in: stockValueIds },
+            qty: { gt: 0 },
+          },
+          data: { qty: { decrement: quantity } },
+        })
+      );
+    });
+
+    // Add other updates
+    updates.push(
+      // Update sold amount for all products
       Prisma.products.updateMany({
-        where: {
-          id: { in: order.Orderproduct.map((i) => i.productId) },
-        },
+        where: { id: { in: productIds } },
         data: { amount_sold: { increment: 1 } },
       }),
+      // Update order status
       Prisma.orders.update({
         where: { id: orderid },
         data: { status: Allstatus.paid },
-      }),
-      Prisma.orderproduct.updateMany({
-        where: { orderId: orderid },
-        data: { status: Allstatus.paid },
-      }),
-    ]);
+      })
+    );
 
-    // Prepare email sending concurrently
-    const emailSubject = `Order #${order.id} receipt and processing for shipping`;
-    const htmltemplate = OrderReciptEmail(html);
+    // Execute all database updates concurrently
+    await Promise.all(updates);
 
-    const createInvoice = await generateInvoicePdf({
-      id: order.id,
-      product: order.Orderproduct.map((prob) => ({
-        id: prob.product.id,
-        name: prob.product.name,
-        price: prob.price,
-        selectedVariant: prob.selectedvariant.map((i) =>
-          typeof i === "string" ? i : i?.name ?? ""
-        ),
-        quantity: prob.quantity,
-        totalprice:
-          prob.quantity * (prob.price.discount?.newprice ?? prob.price.price),
-      })),
+    // Prepare invoice data
+    const invoiceProducts = order.Orderproduct.map(
+      (prob) =>
+        prob.product && {
+          id: prob.product.id,
+          name: prob.product.name,
+          price: {
+            price: prob.product.price,
+            discount: (prob.product.discount as never) ?? undefined,
+          },
+          selectedVariant: prob.selectedvariant?.map((variant) =>
+            typeof variant === "string" ? variant : variant?.name ?? ""
+          ),
+          quantity: prob.quantity,
+          totalprice:
+            prob.quantity *
+            (prob.product.discount
+              ? Number(prob.product.discount.newprice)
+              : prob.product.price),
+        }
+    ).filter(Boolean) as Array<InvoiceProductPdfType>;
+
+    // Generate invoice and send emails concurrently
+    const invoice = await generateInvoicePdf({
+      id: order.id as string,
+      product: invoiceProducts,
       price: order.price as unknown as totalpricetype,
       shipping: order.shipping as never,
-      createdAt: formatDate(order.createdAt),
+      createdAt: formatDate(order.createAt as Date),
     });
 
+    const emailSubject = `Order #${order.id} receipt and processing for shipping`;
+    const htmlTemplate = OrderReciptEmail(html);
+
+    // Send emails concurrently
     await Promise.all([
-      SendOrderEmail(
-        htmltemplate,
-        order.user.email,
-        emailSubject,
-        createInvoice
-      ),
+      order.user?.email &&
+        SendOrderEmail(
+          htmlTemplate,
+          order?.user?.email as string,
+          emailSubject,
+          invoice
+        ),
       SendOrderEmail(
         adminhtml,
         process.env.EMAIL as string,
         `Order #${order.id} request`,
-        createInvoice
+        invoice
       ),
     ]);
 
     return { success: true, message: "Payment completed" };
   } catch (error) {
     console.error("Update status error:", error);
-    return { success: false, message: "Error occurred" };
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Error occurred",
+      status: 500,
+    };
   }
 }
 
@@ -567,17 +602,23 @@ export async function CaptureOrder(orderId: string) {
   try {
     const accessToken = await generateAccessToken();
     const url = `${process.env.PAYPAL_BASE}/v2/checkout/orders/${orderId}/capture`;
-    const header = {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${accessToken}`,
-    };
 
-    const request = await fetch(url, {
+    const request = await ApiRequest({
+      url,
       method: "POST",
-      headers: header,
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
     });
-    const jsonResponse = await request.json();
-    return { success: true, data: jsonResponse };
+
+    if (!request.success) {
+      return {
+        success: false,
+        status: request.status,
+        message: request.message,
+      };
+    }
+    return { success: true, data: request };
   } catch (error) {
     console.log("Capture Order", error);
     return { success: false, status: 500 };

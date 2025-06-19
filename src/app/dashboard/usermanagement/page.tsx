@@ -61,7 +61,7 @@ export default function UsermanagementPage(props: {
 
         setitemlength({
           total: user.total ?? 0,
-          totalpage: user.totalpage ?? 0,
+          totalpage: user.totalPages ?? 0,
         });
 
         setalldata({ user: user.data as never });
@@ -141,7 +141,7 @@ export default function UsermanagementPage(props: {
         ty="usermanagement"
         data={allData?.user ?? []}
         pagination={{
-          itemscount: itemlength.total,
+          itemscount: itemlength.total ?? 0,
           show: showperpage,
           page: page,
           setpage,

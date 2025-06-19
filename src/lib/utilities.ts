@@ -1,4 +1,4 @@
-import { Orderpricetype, Productordertype } from "../context/OrderContext";
+import { Productordertype } from "../context/OrderContext";
 import {
   CipherKey,
   createCipheriv,
@@ -29,6 +29,30 @@ export const GetOneWeekAgoDate = () => {
   oneWeekAgo.setDate(today.getDate() - 7);
   return oneWeekAgo;
 };
+export function hasPassed24Hours(date: Date | number | string): boolean {
+  const timestamp =
+    date instanceof Date
+      ? date.getTime()
+      : typeof date === "string"
+      ? new Date(date).getTime()
+      : date;
+
+  // Handle invalid dates
+  if (isNaN(timestamp)) {
+    throw new Error("Invalid date provided");
+  }
+
+  // Get current timestamp
+  const now = Date.now();
+
+  // Calculate difference in milliseconds
+  const differenceMs = now - timestamp;
+
+  // Check if difference is greater than 24 hours (in milliseconds)
+  const hoursPassed = differenceMs / (1000 * 60 * 60);
+
+  return hoursPassed >= 24;
+}
 
 export const removeSpaceAndToLowerCase = (str: string) =>
   str.replace(/\s/g, "").toLowerCase();
@@ -123,11 +147,12 @@ export const calculateCartTotalPrice = (
   cartItems: Array<Productordertype>
 ): number => {
   return cartItems.reduce((total, item) => {
-    const { quantity, price } = item;
+    const { quantity, product } = item;
 
-    const effectivePrice = price.discount
-      ? price.discount.newprice
-      : price.price;
+    const effectivePrice = product?.discount
+      ? Number(product.discount.newprice)
+      : product?.price;
+
     return total + (effectivePrice ?? 0) * quantity;
   }, 0);
 };
@@ -136,27 +161,35 @@ export const getmaxqtybaseStockType = (
   product: ProductState,
   selected_detail: Array<string>
 ) => {
-  const { stocktype, varaintstock, stock } = product;
+  const { stocktype, Stock, stock } = product;
 
-  let qty = 0;
-
+  // Early return for stock type
   if (stocktype === "stock") {
-    qty = stock as number;
-  } else if (stocktype === "variant") {
-    const selectedvalueset = new Set(selected_detail.map((i) => i));
-    varaintstock?.forEach((variant) => {
-      variant.Stockvalue.forEach((stock) => {
-        if (
-          stock.variant_val.length === selectedvalueset.size &&
-          stock.variant_val.every((i) => selectedvalueset.has(i))
-        ) {
-          qty = stock.qty;
-        }
-      });
-    });
+    return stock as number;
   }
 
-  return qty;
+  // Early return if not variant type
+  if (stocktype !== "variant" || !Stock?.length) {
+    return 0;
+  }
+
+  // Create set only once for variant comparison
+  const selectedvalueset = new Set(selected_detail);
+
+  // Use find instead of forEach for early termination
+  for (const variant of Stock) {
+    const matchingStock = variant.Stockvalue.find(
+      (stock) =>
+        stock.variant_val.length === selectedvalueset.size &&
+        stock.variant_val.every((i) => selectedvalueset.has(i))
+    );
+
+    if (matchingStock) {
+      return matchingStock.qty;
+    }
+  }
+
+  return 0;
 };
 
 export const encrypt = (text: string, key: string) => {
@@ -205,25 +238,6 @@ export const calculateDiscountPrice = (price: number, discount: number) => ({
 
 export const isObjectEmpty = (data: Record<string, unknown>) =>
   Object.values(data).every((val) => !val);
-
-export const calculateDiscountProductPrice = (data: {
-  price: number;
-  discount?: number;
-}): Orderpricetype => {
-  if (data.discount) {
-    return {
-      price: data.price,
-      discount: {
-        newprice: parseFloat(
-          (data.price - (data.price * data.discount) / 100).toFixed(2)
-        ),
-        percent: data.discount,
-      },
-    };
-  }
-
-  return { price: data.price };
-};
 
 export const HasPartialOverlap = (
   arr1: string[][],

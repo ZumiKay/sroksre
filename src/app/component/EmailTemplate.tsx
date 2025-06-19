@@ -1,28 +1,22 @@
 /* eslint-disable @next/next/no-img-element */
 import {
-  Orderpricetype,
+  Ordertype,
   Productordertype,
   totalpricetype,
 } from "@/src/context/OrderContext";
-import { OrderUserType } from "../checkout/action";
-import { VariantColorValueType } from "@/src/context/GlobalType.type";
+import {
+  ProductState,
+  VariantColorValueType,
+} from "@/src/context/GlobalType.type";
 import { CredentialEmailType } from "../account/actions";
+import { getStatusColor } from "@/src/lib/additionalutitlites";
 
 interface OerderEmailProps {
-  order: OrderUserType;
+  order: Ordertype;
   isAdmin: boolean;
 }
 
-const AllOrderStatusColor: { [key: string]: string } = {
-  incart: "#495464",
-  unpaid: "#EB5757",
-  paid: "#35C191",
-  preparing: "#0097FA",
-  shipped: "#60513C",
-  arrived: "#35C191",
-};
-
-export function formatDate(date: Date) {
+export function formatDate(date: Date, ios8691?: boolean) {
   // Ensure date is valid
   if (!(date instanceof Date && !isNaN(date as never))) {
     throw new Error("Invalid Date object");
@@ -42,20 +36,22 @@ export function formatDate(date: Date) {
   hours = hours ? hours : 12; // Handle midnight (0 hours)
 
   // Construct formatted date string
-  const formattedDate = `${day}/${month}/${year} - ${hours}:${minutes}:${seconds}${ampm}`;
+  const formattedDate = ios8691
+    ? `${year}-${month}-${day}`
+    : `${day}/${month}/${year} - ${hours}:${minutes}:${seconds}${ampm}`;
 
   return formattedDate;
 }
 
 const ShowCard = ({ orderProduct }: { orderProduct: Productordertype }) => {
-  const price = orderProduct.price;
-  const isDiscount = price.discount;
+  const price = orderProduct.product?.price;
+  const isDiscount = orderProduct.product?.discount;
 
   const Totalprice =
     orderProduct.quantity *
     (!isDiscount
       ? orderProduct.product?.price ?? 0
-      : (price.discount?.newprice as number));
+      : Number(isDiscount?.newprice));
 
   return (
     <OrderProductEmailCard
@@ -64,7 +60,10 @@ const ShowCard = ({ orderProduct }: { orderProduct: Productordertype }) => {
         name: orderProduct.product?.name as string,
         quantity: orderProduct.quantity,
         details: orderProduct.selectedvariant as never,
-        price: price,
+        price: {
+          price: price as number,
+          discount: isDiscount as never,
+        },
         total: Totalprice,
       }}
     />
@@ -115,7 +114,7 @@ export function OrderReceiptTemplate({ order, isAdmin }: OerderEmailProps) {
             <td colSpan={2} height={"100px"} valign="middle">
               <p style={{ fontSize: "20px", fontWeight: "700" }}>
                 {isAdmin
-                  ? `Order for ${order.user.firstname}#${order.user.id}`
+                  ? `Order for ${order.user?.firstname}#${order.user?.id}`
                   : `Thank you for shopping with us`}
               </p>
             </td>
@@ -144,12 +143,12 @@ export function OrderReceiptTemplate({ order, isAdmin }: OerderEmailProps) {
               </p>
               <p style={{ fontWeight: "700" }}>Order #: {order.id}</p>
               <p style={{ fontWeight: "700" }}>
-                Order on {formatDate(order.createdAt)}
+                Order on {formatDate(order?.createAt ?? new Date())}
               </p>
               <p
                 style={{
                   fontWeight: "700",
-                  color: AllOrderStatusColor[order.status.toLowerCase()],
+                  color: getStatusColor(order.status),
                 }}
               >
                 {`Order status: ${order.status.toUpperCase()}`}
@@ -323,7 +322,7 @@ interface ProductEmailCardProps {
   name: string;
   quantity: number;
   details: (string | VariantColorValueType)[];
-  price: Orderpricetype;
+  price: Pick<ProductState, "price" | "discount">;
   total: number;
 }
 const OrderProductEmailCard = ({ data }: { data: ProductEmailCardProps }) => {
@@ -346,9 +345,7 @@ const OrderProductEmailCard = ({ data }: { data: ProductEmailCardProps }) => {
             <span style={{ color: "red", marginRight: "10px" }}>
               -{isDiscount.percent ?? "0.00"}%
             </span>
-            <span style={{ marginRight: "10px" }}>
-              ${isDiscount.newprice?.toFixed(2)}
-            </span>
+            <span style={{ marginRight: "10px" }}>${isDiscount.newprice}</span>
           </>
         )}
 

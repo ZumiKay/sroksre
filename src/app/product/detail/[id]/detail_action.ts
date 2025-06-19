@@ -2,9 +2,9 @@
 
 import { getPolicesByPage } from "@/src/app/api/policy/route";
 import Prisma from "@/src/lib/prisma";
-import { calculateDiscountProductPrice } from "@/src/lib/utilities";
 import { CheckCart, Checkwishlist } from "./action";
 import { ProductState } from "@/src/context/GlobalType.type";
+import { calculateDiscountPrice } from "@/src/lib/utilities";
 
 interface Policytype {
   id: number;
@@ -93,10 +93,7 @@ export async function GetProductDetailById(pid: string) {
       ...product,
       discount: product.promotion_id
         ? product.discount
-          ? calculateDiscountProductPrice({
-              price: product.price,
-              discount: product.discount,
-            }).discount
+          ? calculateDiscountPrice(product.price, product.discount)
           : undefined
         : undefined,
       category: {
@@ -119,7 +116,7 @@ export async function GetProductDetailById(pid: string) {
 
     const ProductResult = result as unknown as ProductState;
 
-    const checkcart = await CheckCart(undefined, ProductResult.id);
+    const checkcart = await CheckCart(undefined);
 
     let isInCart = false;
 

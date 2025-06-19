@@ -4,10 +4,12 @@ import { getServerSession } from "next-auth";
 import Prisma from "../lib/prisma";
 import {
   calculateDiscountPrice,
+  hasPassed24Hours,
   removeSpaceAndToLowerCase,
 } from "../lib/utilities";
 import { Usersessiontype } from "../context/GlobalType.type";
 import { authConfig } from "./api/auth/[...nextauth]/route";
+import { Allstatus } from "../context/OrderContext";
 
 export type Homepagecontype = "banner" | "category" | "scrollcontainer";
 export type Scrollcontainertype = "popular" | "latest" | "custom";
@@ -154,4 +156,30 @@ export const GetContainers = async () => {
   }));
 
   return formatContainerData;
+};
+
+export const GetCartCount = async (): Promise<number> => {
+  const user = await getUser();
+  if (!user) return 0;
+
+  const cartcount = await Prisma.orders.findFirst({
+    where: {
+      AND: [{ buyer_id: user.id }, { status: Allstatus.incart }],
+    },
+    select: {
+      id: true,
+      Orderproduct: {
+        select: {
+          id: true,
+        },
+      },
+      createdAt: true,
+    },
+  });
+
+  if (cartcount?.createdAt && hasPassed24Hours(cartcount.createdAt)) {
+    await Prisma.orders.delete({ where: { id: cartcount.id } });
+  }
+
+  return cartcount?.Orderproduct.length ?? 0;
 };

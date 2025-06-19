@@ -28,7 +28,7 @@ const validatePassword = (password: string) => {
 export type logintype = "login" | "register" | "forget";
 
 export default function AuthenticatePage() {
-  const { setisLoading, isLoading } = useGlobalContext();
+  const { isLoading } = useGlobalContext();
   const [type, settype] = useState<logintype>("login");
   const [loading, setloading] = useState<
     "authenticated" | "loading" | "unauthenticated"
@@ -207,12 +207,14 @@ export default function AuthenticatePage() {
 
   const handleBack = useCallback(async () => {
     if (verify.email) {
+      setloading("loading");
       const deletecid = await ApiRequest({
         url: "/api/users/vfy",
-        setloading: setisLoading,
+
         method: "DELETE",
         data: { type: "email", cid: data.cid },
       });
+      setloading("authenticated");
       if (!deletecid.success) {
         errorToast("Error Occured");
         return;

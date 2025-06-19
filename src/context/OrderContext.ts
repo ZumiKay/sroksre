@@ -1,5 +1,6 @@
 import {
   ProductState,
+  SelectType,
   userdata,
   VariantColorValueType,
 } from "@/src/context/GlobalType.type";
@@ -8,12 +9,13 @@ import { OrderUserType } from "../app/checkout/action";
 import dayjs from "dayjs";
 import { isValidDate } from "../lib/utilities";
 
-export const AllOrderStatusData = [
+export const AllOrderStatusData: SelectType<string>[] = [
   { label: "All", value: "All", color: "lightgray" },
   { label: "Incart", value: "Incart", color: "#495464" },
   { label: "Unpaid", value: "Unpaid", color: "#EB5757" },
   { label: "Paid", value: "Paid", color: "#35C191" },
   { label: "Preparing", value: "Preparing", color: "#0097FA" },
+  { label: "Ready", value: "Ready", color: "#F2C94C" },
   { label: "Shipped", value: "Shipped", color: "#60513C" },
   { label: "Arrived", value: "Arrived", color: "#35C191" },
   { label: "Problem", value: "Problem", color: "red" },
@@ -41,6 +43,7 @@ export enum Allstatus {
   unpaid = "Unpaid",
   paid = "Paid",
   prepareing = "Preparing",
+  ready = "Ready",
   shipped = "Shipped",
   arrived = "Arrived",
   cancelled = "Cancelled",
@@ -57,20 +60,30 @@ export interface Productordertype {
   id: number;
   details?: Array<Productorderdetailtype>;
   quantity: number;
-  price: Orderpricetype;
   productId?: number;
   maxqty?: number;
   product?: ProductState;
   orderId?: string;
   selectedvariant?: (string | VariantColorValueType)[];
+  user_id?: number;
+  user?: userdata;
 }
 
-export interface Orderpricetype {
-  price: number;
-  discount?: {
-    percent?: number;
-    newprice?: number;
-  };
+export interface InvoiceProductPdfType {
+  id: number;
+  name: string;
+  price: Pick<ProductState, "price" | "discount">;
+  selectedVariant: string[];
+  quantity: number;
+  totalprice: number;
+}
+
+export interface GenerateInvoicePdf {
+  id: string;
+  product: InvoiceProductPdfType[];
+  price: totalpricetype;
+  shipping?: Address;
+  createdAt?: string;
 }
 
 export interface totalpricetype {
@@ -82,12 +95,17 @@ export interface totalpricetype {
 
 export interface Ordertype {
   id?: string;
-  buyerId: string;
-  products: Array<Productordertype>;
-  status: Orderstatus;
+  buyer_id: string;
+  Orderproduct: Array<Productordertype>;
+  status: Allstatus;
   price: totalpricetype;
   orderDate?: Date;
   estimate?: Date;
+  createAt?: Date;
+  updateAt?: Date;
+  shipping_id?: string;
+  shipping?: Address;
+  user?: userdata;
 }
 
 export interface OrderDetailType {
@@ -141,6 +159,18 @@ export interface AllorderStatus {
   shippingtype?: string;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface OrderFilterParam<t = string, d = string> {
+  q?: string;
+  startprice?: t;
+  endprice?: t;
+  fromdate?: d;
+  enddate?: d;
+  p?: t;
+  lt?: t;
+  status?: Allstatus;
+  sort?: "asc" | "desc";
 }
 
 export function isValidFilterParam(key: string, value: unknown): boolean {

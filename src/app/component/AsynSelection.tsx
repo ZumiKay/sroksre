@@ -57,15 +57,29 @@ export const AsyncSelection = ({
 
   const [offset, setOffset] = useState(5);
   const [hasMore, setHasMore] = useState(false);
-  const [selectedKey, setSelectedKey] = useState<Selection>(new Set([""]));
+  // Initialize selectedKey with option.selectedValue if available
+  const [selectedKey, setSelectedKey] = useState<Selection>(() => {
+    return option?.selectedValue && option.selectedValue.length > 0
+      ? new Set(option.selectedValue.map(String))
+      : new Set([""]);
+  });
   const initialFetchDone = useRef(false);
   const prevForceRefetch = useRef(forceRefetch);
 
   // Memoize the selectedValues Set for better performance
   const selectedValues = useMemo(
-    () => (option?.selectedValue ? new Set(option.selectedValue) : null),
+    () =>
+      option?.selectedValue ? new Set(option.selectedValue.map(String)) : null,
     [option?.selectedValue]
   );
+
+  // Update selectedKey when selectedValues change
+  useEffect(() => {
+    if (selectedValues && selectedValues.size > 0) {
+      // Convert Set to Array and back to Set to avoid TypeScript issues
+      setSelectedKey(new Set(Array.from(selectedValues)));
+    }
+  }, [selectedValues]);
 
   // Memorize isAsyncType to avoid recalculating
   const isAsyncType = useMemo(() => type === "async", [type]);
@@ -99,18 +113,40 @@ export const AsyncSelection = ({
         const newItems = getdata?.data ?? getdata ?? [];
 
         // Using a function update to guarantee we're working with latest state
-        setItems(newItems);
+        setItems((prevItems) => {
+          // Keep existing items if we're loading more, otherwise use new items
+          const combinedItems =
+            limit > 5 ? [...prevItems, ...newItems] : newItems;
 
-        if (selectedValues && newItems.length) {
+          // If we have selected values, ensure they're in the items list
+          if (selectedValues && selectedValues.size > 0) {
+            const selectedItemExists = combinedItems.some((item) =>
+              selectedValues.has(String(item.value))
+            );
+
+            // If selected item not in list, try to find it in the new data
+            if (!selectedItemExists) {
+              // If the selected item was found in the new data, it would be handled below
+              // Otherwise we keep our combined items as is
+            }
+          }
+
+          return combinedItems;
+        });
+
+        if (selectedValues && selectedValues.size > 0) {
           const matchingItems = newItems.filter((item) =>
             selectedValues.has(String(item.value))
           );
 
-          setSelectedKey(
-            matchingItems.length > 0
-              ? new Set(matchingItems.map((item) => String(item.value)))
-              : new Set([""])
-          );
+          if (matchingItems.length > 0) {
+            setSelectedKey(
+              new Set(matchingItems.map((item) => String(item.value)))
+            );
+          } else if (limit === 5) {
+            // Only set to empty on initial load, not during pagination
+            setSelectedKey(new Set([""]));
+          }
         }
 
         setHasMore(getdata?.hasMore ?? false);
@@ -147,11 +183,9 @@ export const AsyncSelection = ({
     }
   }, [isOpen, reFetch, fetchData]);
 
-  // Add a new effect that runs on component mount to fetch data
-  // if it's async type AND has a selected value
+  // Fetch initial data on mount if we have selectedValue, regardless of isOpen state
   useEffect(() => {
     if (
-      isAsyncType &&
       selectedValues &&
       selectedValues.size > 0 &&
       !initialFetchDone.current
@@ -159,7 +193,7 @@ export const AsyncSelection = ({
       fetchData(5);
       initialFetchDone.current = true;
     }
-  }, [isAsyncType, selectedValues, fetchData]);
+  }, [selectedValues, fetchData]);
 
   const handleLoadMore = useCallback(() => {
     if (isAsyncType && hasMore) {
@@ -220,21 +254,20 @@ export const AsyncSelection = ({
       renderValue={
         customRender
           ? (renderValues) =>
-              renderValues.map((item) => customRender(item.data as SelectType))
+              renderValues.map((item) =>
+                customRender(item.data as SelectType<string>)
+              )
           : undefined
       }
     >
-      {items && items.length === 0 ? (
-        <SelectItem key={"none"}>None</SelectItem>
-      ) : (
-        items?.map((item) => (
-          <SelectItem
-            key={item.value}
-            textValue={customRender ? item.value.toString() : undefined}
-          >
-            {item.label}
-          </SelectItem>
-        ))
+      {(item) => (
+        <SelectItem
+          key={item.value}
+          textValue={String(item.value)}
+          className="w-full h-fit p-2"
+        >
+          {customRender ? customRender(item) : item.label}
+        </SelectItem>
       )}
     </Select>
   );

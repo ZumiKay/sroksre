@@ -15,7 +15,7 @@ import dayjs from "dayjs";
 import { formatDate } from "../EmailTemplate";
 import { AsyncSelection } from "../AsynSelection";
 import { DateTimePicker } from "@mui/x-date-pickers";
-import { Checkbox, Divider } from "@heroui/react";
+import { Checkbox, DateRangePicker, Divider, NumberInput } from "@heroui/react";
 import { FetchCategory } from "../../dashboard/inventory/createproduct/[editId]/action";
 import { FetchPromotionSelection } from "./action";
 
@@ -154,7 +154,11 @@ const FilterMenu = memo(
       if (type === "listproduct") return null;
 
       const placeholder =
-        type === "usermanagement" ? "Search (ID , Email)" : "Search Name";
+        type === "listorder"
+          ? "OrderId | Email | Name"
+          : type === "usermanagement"
+          ? "Search (ID , Email)"
+          : "Search Name";
 
       return (
         <input
@@ -317,6 +321,7 @@ const FilterMenu = memo(
                   target: { name: "promotiononly", value: value as never },
                 } as never);
               }}
+              aria-label="promotion only"
             >
               Only Discount
             </Checkbox>
@@ -351,6 +356,52 @@ const FilterMenu = memo(
       promotion.selectproduct,
       handleChange,
     ]);
+
+    const orderSectionMemo = useMemo(() => {
+      if (type !== "listorder") return null;
+      return (
+        <>
+          <DateRangePicker
+            value={filtervalue?.orderdate}
+            onChange={(val) => {
+              handleChange({
+                target: { name: "orderdate", value: val as never },
+              } as never);
+            }}
+            label={"Order Date Range"}
+            aria-label="order date range"
+          />
+          <div className="priceRange w-full h-fit flex flex-row items-center gap-x-5">
+            <NumberInput
+              label={"Start"}
+              value={filtervalue?.price?.start}
+              aria-label="price start"
+              onValueChange={(val) =>
+                handleChange({
+                  target: {
+                    name: "price",
+                    value: { ...filtervalue?.price, start: val },
+                  },
+                } as never)
+              }
+            />
+            <NumberInput
+              label={"End"}
+              value={filtervalue?.price?.end}
+              aria-label="price end"
+              onValueChange={(val) =>
+                handleChange({
+                  target: {
+                    name: "price",
+                    value: { ...filtervalue?.price, end: val },
+                  },
+                } as never)
+              }
+            />
+          </div>
+        </>
+      );
+    }, [filtervalue?.orderdate, filtervalue?.price, handleChange, type]);
 
     // Memoize footer buttons
     const footerButtonsMemo = useMemo(
@@ -393,6 +444,7 @@ const FilterMenu = memo(
           {searchInputMemo}
           {bannerSectionMemo}
           {promotionSectionMemo}
+          {orderSectionMemo}
           {productSectionMemo}
         </div>
       </SecondaryModal>

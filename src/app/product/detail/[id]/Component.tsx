@@ -8,12 +8,12 @@ import {
   Productorderdetailtype,
   Productordertype,
 } from "@/src/context/OrderContext";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Addtocart, AddWishlist } from "./action";
 import { errorToast, successToast } from "@/src/app/component/Loading";
 import { ApiRequest } from "@/src/context/CustomHook";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Skeleton } from "@heroui/react";
+import { Button, Skeleton } from "@heroui/react";
 import {
   ProductState,
   Stocktype,
@@ -25,7 +25,8 @@ import {
 } from "@/src/context/GlobalContext";
 import { ProductStockType } from "@/src/app/component/ServerComponents";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faHeart } from "@fortawesome/free-solid-svg-icons";
+import { faCartShopping, faHeart } from "@fortawesome/free-solid-svg-icons";
+import { boolean, unknown } from "zod";
 
 export const ShowPrice = ({
   price,
@@ -62,7 +63,6 @@ export const OptionSection = ({
   data,
   isAdmin,
   isInWishlist,
-  isInCart,
 }: {
   data: Pick<
     ProductState,
@@ -70,17 +70,15 @@ export const OptionSection = ({
   >;
   isAdmin: boolean;
   isInWishlist: boolean;
-  isInCart: boolean;
 }) => {
-  const { productorderdetail, setproductorderdetail, setcarttotal } =
-    useGlobalContext();
+  const { productorderdetail, setproductorderdetail } = useGlobalContext();
   const [loading, setloading] = useState(false);
   const [errormess, seterrormess] = useState<errormessType>({
     option: "",
     qty: "",
   });
   const [qty, setqty] = useState(0);
-  const [incart, setincart] = useState(isInCart);
+  const [incart, setincart] = useState(false);
 
   useEffect(() => {
     const InitializeProductOrder = (
@@ -189,12 +187,10 @@ export const OptionSection = ({
       id: prev.id,
     }));
     setincart(true);
-    setcarttotal((prev) => prev + 1);
   };
 
   return (
     <div className="w-full h-fit flex flex-col gap-y-5">
-      {/* {loading && <ContainerLoading />} */}
       <h3 className="error_mess text-lg text-red-500 font-bold w-full h-full">
         {data.stocktype === ProductStockType.stock
           ? errormess?.qty
@@ -214,27 +210,30 @@ export const OptionSection = ({
       </div>
 
       <div className="product_action w-full pt-2 flex flex-col items-center gap-y-2">
-        <PrimaryButton
-          type="submit"
-          text={incart ? "In Cart" : "Add To Cart"}
-          disable={productorderdetail?.quantity === 0 || incart || isAdmin}
-          onClick={() => handleCart()}
-          status={loading ? "loading" : "authenticated"}
-          color="white"
-          textcolor="black"
-          border="1px solid black"
-          radius="10px"
-          width="99%"
-        />
-        <PrimaryButton
+        <Button
           type="button"
-          text={isInWishlist ? "In Wishlist" : "Add To Wishlist"}
-          color="black"
-          radius="10px"
-          width="100%"
-          Icon={<FontAwesomeIcon icon={faHeart} />}
-          onClick={() => !isInWishlist && handleWishlist()}
-        />
+          endContent={
+            <FontAwesomeIcon className="text-md" icon={faCartShopping} />
+          }
+          className="w-[99%] h-[40px] font-bold text-md"
+          variant="bordered"
+          isLoading={loading}
+          isDisabled={productorderdetail.quantity === 0 || incart || isAdmin}
+          onPress={() => handleCart()}
+        >
+          {incart ? "In Cart" : "Add To Cart"}
+        </Button>
+
+        <Button
+          type="button"
+          endContent={<FontAwesomeIcon className="text-md" icon={faHeart} />}
+          className="w-[99%] h-[40px] font-bold text-md"
+          variant="bordered"
+          isLoading={loading}
+          onPress={() => handleWishlist && handleWishlist()}
+        >
+          {isInWishlist ? "In Wishlist" : "Add to Wishlist"}
+        </Button>
       </div>
     </div>
   );
@@ -341,7 +340,8 @@ const inCartCheck = async (
   });
   return {
     success: req.success,
-    incart: (req?.isInCart ?? false) as boolean,
+    incart: ((req?.data as unknown as { incart?: boolean })?.incart ??
+      false) as boolean,
   };
 };
 
@@ -364,75 +364,93 @@ const Variant = (
     .find((i) => i.variant_id === id);
   const selected = detail ? detail.value : undefined;
 
-  const handleSelectVariant = async (idx: number, value: string) => {
-    const Allvariant = [...(prob.variants ?? [])];
-    const variant = Allvariant[idx];
-    const mess = { ...errormess };
+  const handleSelectVariant = useCallback(
+    async (idx: number, value: string) => {
+      const Allvariant = [...(prob.variants ?? [])];
+      const variant = Allvariant[idx];
+      const mess = { ...errormess };
 
-    const orderDetail = { ...productorderdetail } as Productordertype;
-    if (!orderDetail.details) {
-      return;
-    }
-    const isValid = orderDetail.details.filter((i) => i);
-    const isExist =
-      isValid.length !== 0 ? isValid.findIndex((i) => i.id === variant.id) : -1;
-
-    const selectedvariant: Productorderdetailtype = {
-      variant_id: variant.id ?? 0,
-      value: value,
-    };
-
-    const isSelected =
-      isValid.length !== 0
-        ? orderDetail.details[idx]
-          ? orderDetail.details[idx].value === selectedvariant.value
-          : false
-        : false;
-
-    if (isSelected) {
-      orderDetail.details[idx] = {
-        variant_id: 0,
-        value: "",
-      };
-      setincart(false);
-    } else {
-      if (isExist === -1) {
-        orderDetail.details[idx] = selectedvariant;
-      } else if (isExist !== -1) {
-        orderDetail.details[isExist].value = selectedvariant.value;
+      const orderDetail = { ...productorderdetail } as Productordertype;
+      if (!orderDetail.details) {
+        return;
       }
-    }
+      const isValid = orderDetail.details.filter((i) => i);
+      const isExist =
+        isValid.length !== 0
+          ? isValid.findIndex((i) => i.id === variant.id)
+          : -1;
 
-    //update qty
-    const maxqty: number = prob.varaintstock
-      ? getQtyBasedOnOptions(
-          prob.varaintstock,
-          orderDetail.details.filter((i) => i)
-        )
-      : 0;
+      const selectedvariant: Productorderdetailtype = {
+        variant_id: variant.id ?? 0,
+        value: value,
+      };
 
-    if (
-      orderDetail.details.filter((i) => i).every((i) => i.value.length === 0)
-    ) {
-      mess.qty = "";
-    } else {
-      mess.qty = maxqty === 0 ? "Product Unvaliable" : "";
-    }
-    mess.option = "";
+      const isSelected =
+        isValid.length !== 0
+          ? orderDetail.details[idx]
+            ? orderDetail.details[idx].value === selectedvariant.value
+            : false
+          : false;
 
-    if (maxqty && prob.id) {
-      setloading(true);
-      const checkreq = await inCartCheck(
-        orderDetail.details.filter((i) => i && i.value.length !== 0),
-        prob.id
-      );
-      setincart(checkreq.incart);
-      setloading(false);
-    }
-    setmess(mess);
-    setqty(maxqty);
-    setproductorderdetail(orderDetail);
-  };
+      if (isSelected) {
+        orderDetail.details[idx] = {
+          variant_id: 0,
+          value: "",
+        };
+        setincart(false);
+      } else {
+        if (isExist === -1) {
+          orderDetail.details[idx] = selectedvariant;
+        } else if (isExist !== -1) {
+          orderDetail.details[isExist].value = selectedvariant.value;
+        }
+      }
+
+      //update qty
+      const maxqty: number = prob.varaintstock
+        ? getQtyBasedOnOptions(
+            prob.varaintstock,
+            orderDetail.details.filter((i) => i)
+          )
+        : 0;
+
+      if (
+        orderDetail.details.filter((i) => i).every((i) => i.value.length === 0)
+      ) {
+        mess.qty = "";
+      } else {
+        mess.qty = maxqty === 0 ? "Product Unvaliable" : "";
+      }
+      mess.option = "";
+
+      if (maxqty && prob.id) {
+        setloading(true);
+        const checkreq = await inCartCheck(
+          orderDetail.details.filter((i) => i && i.value.length !== 0),
+          prob.id
+        );
+
+        console.log(checkreq);
+        setincart(checkreq.incart);
+        setloading(false);
+      }
+      setmess(mess);
+      setqty(maxqty);
+      setproductorderdetail(orderDetail);
+    },
+    [
+      errormess,
+      prob.id,
+      prob.varaintstock,
+      prob.variants,
+      productorderdetail,
+      setincart,
+      setloading,
+      setmess,
+      setproductorderdetail,
+      setqty,
+    ]
+  );
 
   return (
     <div key={idx} className="w-full h-fit flex flex-col gap-y-5">

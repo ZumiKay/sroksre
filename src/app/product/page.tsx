@@ -9,8 +9,8 @@ import {
 } from "./action";
 import { notFound } from "next/navigation";
 import Card from "../component/Card";
-import { PaginationSSR } from "../dashboard/order/OrderComponent";
 import {
+  PaginationSSR,
   ProductFilterButton,
   PromotionProductListContainer,
 } from "./component";
@@ -339,8 +339,6 @@ export default async function ProductsPage({
     all
   );
 
-  console.dir({ allpromotionData }, { depth: null });
-
   const banner = promotionData?.banner?.image && (
     <Banner
       data={{
@@ -411,12 +409,8 @@ export default async function ProductsPage({
       )}
 
       {/* 10. Conditionally render pagination */}
-      {(!ppid || (allproduct && allproduct.data)) && (
-        <PaginationSSR
-          total={allproduct?.count ?? 0}
-          pages={parseInt(page)}
-          limit={limit}
-        />
+      {allproduct?.data && (allproduct.count * Number(limit)) > 1 && (
+        <PaginationSSR productTotal={allproduct.count} />
       )}
     </div>
   );

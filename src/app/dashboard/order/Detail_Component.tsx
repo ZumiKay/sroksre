@@ -1,279 +1,308 @@
 "use client";
-import { useGlobalContext } from "@/src/context/GlobalContext";
+import { memo, useEffect, useState, useMemo } from "react";
 import {
-  AllorderStatus,
-  OrderDetailType,
-  OrderDetialModalType,
-  Productordertype,
-} from "@/src/context/OrderContext";
-import { memo, useCallback, useMemo, useState } from "react";
-import { SecondaryModal } from "../../component/Modals";
-import { formatDate } from "../../component/EmailTemplate";
-import PrimaryButton from "../../component/Button";
-import { Checkoutproductcard } from "../../component/OrderCard";
+  Table,
+  TableHeader,
+  TableColumn,
+  TableBody,
+  TableRow,
+  TableCell,
+  Card,
+  CardBody,
+  CardHeader,
+  Chip,
+  Spinner,
+  Divider,
+} from "@heroui/react";
+import { ApiRequest } from "@/src/context/CustomHook";
+import { useGlobalContext } from "@/src/context/GlobalContext";
+import { UserState } from "@/src/context/GlobalType.type";
+import { Address } from "@prisma/client";
+import { errorToast } from "../../component/Loading";
 
-const DetailTable = memo(
-  ({ data, type }: { data: OrderDetailType; type: OrderDetialModalType }) => {
-    const userTableContent = useMemo(() => {
-      if (type !== "user" || !data?.user) return null;
+// Types for better type safety
+interface DetailTableProps {
+  ty: "user" | "shipping";
+}
 
-      return (
-        <tbody className="bg-white">
-          <tr className="h-[50px]">
-            <th className="pl-2 rounded-tl-lg">Firstname: </th>
-            <td align="right" className="pr-5 rounded-tr-lg break-all">
-              {data.user.firstname || ""}
-            </td>
-          </tr>
-          <tr className="h-[50px]">
-            <th className="pl-2">Lastname: </th>
-            <td align="right" className="pr-5 break-all">
-              {data.user?.lastname ?? ""}
-            </td>
-          </tr>
-          <tr className="h-[50px]">
-            <th className="pl-2">Email: </th>
-            <td align="right" className="pr-5 break-all">
-              {data.user.email || ""}
-            </td>
-          </tr>
-          <tr className="h-[50px]">
-            <th className="pl-2 rounded-bl-lg">Phone Number: </th>
-            <td align="right" className="pr-5 rounded-br-lg break-all">
-              {data.user.phonenumber || ""}
-            </td>
-          </tr>
-        </tbody>
-      );
-    }, [data.user, type]);
+interface TableRowData {
+  key: string;
+  field: string;
+  value: string | number | Date | null;
+}
 
-    // Create memoized shipping table rows
-    const shippingTableContent = useMemo(() => {
-      if (type !== "shipping" || !data?.shipping) return null;
+// Utility function to format field names
+const formatFieldName = (key: string): string => {
+  return key
+    .replace(/([A-Z])/g, " $1")
+    .replace(/^./, (str) => str.toUpperCase())
+    .replace(/_/g, " ");
+};
 
-      const shipping = data.shipping;
-      const rows = [
-        { label: "Firstname:", value: shipping.firstname },
-        { label: "Lastname:", value: shipping.lastname },
-        { label: "HouseId:", value: shipping.houseId },
-        { label: "District / Khan:", value: shipping.district },
-        { label: "Songkat:", value: shipping.songkhat },
-        { label: "City / Province:", value: shipping.province },
-        { label: "PostalCode:", value: shipping.postalcode },
-      ];
+// Utility function to format values
+const formatValue = (value: unknown): string => {
+  if (value === null || value === undefined) return "N/A";
+  if (typeof value === "boolean") return value ? "Yes" : "No";
+  if (value instanceof Date) return value.toLocaleDateString();
+  if (typeof value === "string" && value.trim() === "") return "N/A";
+  return String(value);
+};
 
-      return (
-        <tbody className="bg-white">
-          {rows.map((row, index) => (
-            <tr key={index} className="h-[50px]">
-              <th className="pl-2">{row.label}</th>
-              <td align="right" className="pr-5 break-all">
-                {row.value || ""}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      );
-    }, [data.shipping, type]);
+export const DetailTable = memo<DetailTableProps>(({ ty }) => {
+  const { globalindex } = useGlobalContext();
+  const [displayData, setDisplayData] = useState<
+    Address | UserState | undefined
+  >();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-    // Only render the relevant table content
-    return (
-      <table align="left" className="text-left" width={"100%"}>
-        {userTableContent}
-        {shippingTableContent}
-      </table>
-    );
-  }
-);
-DetailTable.displayName = "DetailTable";
+  // Fetch data effect
+  useEffect(() => {
+    let isMounted = true;
 
-export const DetailModal = memo(
-  ({
-    close,
-    data,
-    setclose,
-    orderdata,
-    isAdmin,
-  }: {
-    close: string;
-    data: OrderDetailType;
-    orderdata: AllorderStatus;
-    setclose?: () => void;
-    isAdmin: boolean;
-  }) => {
-    const { openmodal } = useGlobalContext();
-    const [type, settype] = useState<OrderDetialModalType>("none");
+    async function fetchData() {
+      if (!globalindex.orderId) {
+        setError("No order ID provided");
+        setLoading(false);
+        return;
+      }
 
-    const handleClick = useCallback(
-      (ty: typeof type) => {
-        if (ty === "close" && setclose) {
-          setclose();
-          return;
+      try {
+        setLoading(true);
+        setError(null);
+
+        const url = `/api/order/list?ty=${ty}&id=${globalindex.orderId}`;
+        const getData = await ApiRequest({ url, method: "GET" });
+
+        if (!isMounted) return;
+
+        if (getData.success && getData.data) {
+          setDisplayData(getData.data as Address | UserState);
+        } else {
+          throw new Error(getData.message || "Failed to fetch data");
         }
+      } catch (error) {
+        if (isMounted) {
+          const errorMessage =
+            error instanceof Error ? error.message : "Can't Get Data";
+          setError(errorMessage);
+          errorToast(errorMessage);
+          console.error("Error fetching data:", error);
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    }
 
-        settype(ty);
-      },
-      [setclose]
-    );
+    fetchData();
 
-    const handleClose = useCallback(() => {
-      if (setclose) setclose();
-    }, [setclose]);
+    return () => {
+      isMounted = false;
+    };
+  }, [globalindex.orderId, ty]);
 
-    return (
-      <SecondaryModal
-        size="3xl"
-        open={openmodal[close] as boolean}
-        onPageChange={() => handleClose()}
-        closebtn
-        style={{ backgroundColor: "#f2f2f2" }}
-      >
-        <div className="w-full h-full relative bg-[#f2f2f2] flex flex-col items-center rounded-lg max-small_phone:p-2 pl-5 pr-5">
-          <h3 className="w-full h-fit text-center text-xl font-bold mt-5 mb-5">
-            Order Detail
-          </h3>
+  // Memoized table data
+  const tableData = useMemo(() => {
+    if (!displayData) return [];
 
-          {type === "none" && (
-            <div className="w-full h-full flex flex-col gap-y-20">
-              <div className="action flex flex-col gap-y-5 w-full h-fit">
-                {isAdmin && (
-                  <PrimaryButton
-                    text="Buyers"
-                    width="100%"
-                    onClick={() => handleClick("user")}
-                    radius="10px"
-                    type="button"
-                    textsize="15px"
-                  />
-                )}
+    if (ty === "user") {
+      const userData = displayData as UserState;
+      return [
+        { key: "email", field: "Email", value: userData.email },
+        { key: "username", field: "Username", value: userData.username },
+        { key: "firstname", field: "First Name", value: userData.firstname },
+        { key: "lastname", field: "Last Name", value: userData.lastname },
+        { key: "phone", field: "Phone", value: userData.phonenumber },
+        { key: "role", field: "Role", value: userData.role },
+        { key: "isActive", field: "Active Status", value: userData.isVerified },
+        { key: "createdAt", field: "Member Since", value: userData.createdAt },
+      ].filter((item) => item.value !== undefined);
+    } else {
+      const addressData = displayData as Address;
+      return [
+        { key: "address", field: "Street Address", value: addressData.street },
+        { key: "sangkat", field: "Sangkat", value: addressData.songkhat },
+        { key: "khan", field: "Khan/District", value: addressData.district },
+        {
+          key: "state",
+          field: "State/Province/City",
+          value: addressData.province,
+        },
+        {
+          key: "postalCode",
+          field: "Postal Code",
+          value: addressData.postalcode,
+        },
+        {
+          key: "name",
+          field: "Name",
+          value: addressData.firstname + " " + addressData.lastname,
+        },
+      ].filter((item) => item.value !== undefined);
+    }
+  }, [displayData, ty]);
 
-                {data?.shipping && orderdata.shippingtype !== "Pickup" && (
-                  <PrimaryButton
-                    text="Shipping"
-                    width="100%"
-                    onClick={() => handleClick("shipping")}
-                    radius="10px"
-                    type="button"
-                    textsize="15px"
-                  />
-                )}
-              </div>
+  // Render value with appropriate styling
+  const renderValue = (item: TableRowData) => {
+    const { key, value } = item;
 
-              <div className="dates w-full p-2 max-small_phone:p-0">
-                <table
-                  width={"100%"}
-                  className="p-2 rounded-lg bg-white"
-                  style={{
-                    boxShadow: "0px 3px 3px 0px inset rgba(0, 0, 0, 0.15)",
-                  }}
-                >
-                  <tbody className="text-left">
-                    <tr className="h-[50px]">
-                      <th className="pl-5">Order On: </th>
-                      <td align="right" className="pr-5">
-                        {formatDate(orderdata.createdAt)}
-                      </td>
-                    </tr>
-                    <tr className="h-[50px]">
-                      <th className="pl-5">Updated At: </th>
-                      <td align="right" className="pr-5">
-                        {formatDate(orderdata.updatedAt)}
-                      </td>
-                    </tr>
-                    <tr className="h-[50px]">
-                      <th className="pl-5">Shipping Type: </th>
-                      <td align="right" className="pr-5">
-                        {orderdata.shippingtype}
-                      </td>
-                    </tr>
-                    <tr className="h-[100px]">
-                      <th className="rounded-bl-lg pl-5">Price: </th>
-                      <td align="right" className="pr-5 rounded-br-lg">
-                        <div className="flex flex-col w-full h-full">
-                          <p className="text-lime-700">{`Subtotal: $${orderdata.price?.subtotal.toFixed(
-                            2
-                          )}`}</p>
-                          <p className="text-amber-600">{`Shipping: $${
-                            orderdata.price?.shipping?.toFixed(2) ?? "0.0"
-                          }`}</p>
-                          <p>{`Total: $${orderdata.price?.total.toFixed(
-                            2
-                          )}`}</p>
-                        </div>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-          {type !== "none" && (
-            <>
-              <div className="w-full p-2">
-                <DetailTable type={type} data={data} />
-              </div>
-              <PrimaryButton
-                onClick={() => settype("none")}
-                type="button"
-                text="Back"
-                radius="10px"
-              />
-            </>
-          )}
-        </div>
-      </SecondaryModal>
-    );
-  }
-);
-DetailModal.displayName = "DetailModal";
+    if (key === "role") {
+      return (
+        <Chip
+          color={value === "ADMIN" ? "primary" : "default"}
+          variant="flat"
+          size="sm"
+        >
+          {formatValue(value)}
+        </Chip>
+      );
+    }
 
-export const OrderProductDetailsModal = memo(
-  ({
-    setclose,
-    close,
-    data,
-  }: {
-    setclose: () => void;
-    close: string;
-    data: Productordertype[];
-  }) => {
-    const { openmodal } = useGlobalContext();
+    if (key === "isActive" || key === "isDefault") {
+      return (
+        <Chip color={value ? "success" : "warning"} variant="flat" size="sm">
+          {formatValue(value)}
+        </Chip>
+      );
+    }
+
+    if (key === "createdAt" && value instanceof Date) {
+      return (
+        <span className="text-default-600">
+          {value.toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          })}
+        </span>
+      );
+    }
 
     return (
-      <SecondaryModal
-        size="5xl"
-        open={openmodal[close] as boolean}
-        onPageChange={() => {
-          setclose();
-        }}
-        closebtn
-      >
-        <div className="w-full h-full relative  p-2 rounded-lg flex flex-col items-center gap-y-10">
-          <h3 className="w-full text-center font-bold text-xl">{`Products (${
-            data ? data.length : 0
-          })`}</h3>
+      <span className={value ? "text-default-900" : "text-default-400"}>
+        {formatValue(value)}
+      </span>
+    );
+  };
 
-          <div className="productlist w-full max-h-[60vh] overflow-y-auto flex flex-col items-center gap-y-5">
-            {data &&
-              data.map((prob) => (
-                <Checkoutproductcard
-                  key={prob.id}
-                  qty={prob.quantity}
-                  cover={prob.product?.covers[0].url as string}
-                  name={prob.product?.name as string}
-                  details={prob.selectedvariant as never}
-                  price={prob.price}
-                  total={
-                    prob.quantity *
-                    (((prob.price.discount?.newprice ??
-                      prob.product?.price) as number) ?? 0)
-                  }
-                />
-              ))}
+  // Get card title
+  const cardTitle = ty === "user" ? "Customer Information" : "Shipping Address";
+  const cardIcon = ty === "user" ? "👤" : "🏠";
+
+  return (
+    <Card className="w-full max-w-4xl mx-auto shadow-lg">
+      <CardHeader className="flex gap-3 pb-4">
+        <div className="flex items-center gap-2">
+          <span className="text-2xl">{cardIcon}</span>
+          <div className="flex flex-col">
+            <h2 className="text-xl font-bold text-default-900">{cardTitle}</h2>
+            <p className="text-small text-default-500">
+              Order ID: {globalindex.orderId}
+            </p>
           </div>
         </div>
-      </SecondaryModal>
+      </CardHeader>
+
+      <Divider />
+
+      <CardBody className="px-6 py-4">
+        {loading && (
+          <div className="flex justify-center items-center py-8">
+            <Spinner size="lg" label="Loading details..." color="primary" />
+          </div>
+        )}
+
+        {error && (
+          <div className="flex justify-center items-center py-8">
+            <div className="text-center">
+              <div className="text-4xl mb-2">⚠️</div>
+              <p className="text-danger font-medium">{error}</p>
+              <p className="text-default-500 text-sm mt-1">
+                Please try refreshing the page
+              </p>
+            </div>
+          </div>
+        )}
+
+        {!loading && !error && tableData.length > 0 && (
+          <Table
+            aria-label={`${cardTitle} table`}
+            className="min-h-[200px]"
+            classNames={{
+              wrapper: "shadow-none border border-divider rounded-lg",
+              th: "bg-default-100 text-default-700 font-semibold",
+              td: "py-3",
+            }}
+          >
+            <TableHeader>
+              <TableColumn className="w-1/3">FIELD</TableColumn>
+              <TableColumn>VALUE</TableColumn>
+            </TableHeader>
+            <TableBody>
+              {tableData.map((item) => (
+                <TableRow key={item.key}>
+                  <TableCell>
+                    <span className="font-medium text-default-700">
+                      {item.field}
+                    </span>
+                  </TableCell>
+                  <TableCell>{renderValue(item as never)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+
+        {!loading && !error && tableData.length === 0 && (
+          <div className="flex justify-center items-center py-8">
+            <div className="text-center">
+              <div className="text-4xl mb-2">📭</div>
+              <p className="text-default-500 font-medium">No data available</p>
+              <p className="text-default-400 text-sm mt-1">
+                {ty === "user"
+                  ? "Customer information not found"
+                  : "Shipping address not found"}
+              </p>
+            </div>
+          </div>
+        )}
+      </CardBody>
+    </Card>
+  );
+});
+
+DetailTable.displayName = "DetailTable";
+
+// Enhanced DetailWrapper component to show both tables
+export const DetailWrapper = memo(() => {
+  const { globalindex } = useGlobalContext();
+
+  if (!globalindex.orderId) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <div className="text-center">
+          <div className="text-4xl mb-2">🔍</div>
+          <p className="text-default-500 font-medium">No order selected</p>
+          <p className="text-default-400 text-sm mt-1">
+            Please select an order to view details
+          </p>
+        </div>
+      </div>
     );
   }
-);
-OrderProductDetailsModal.displayName = "OrderProductDetailModal";
+
+  return (
+    <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <DetailTable ty="user" />
+        <DetailTable ty="shipping" />
+      </div>
+    </div>
+  );
+});
+
+DetailWrapper.displayName = "DetailWrapper";
+
+export default DetailTable;

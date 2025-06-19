@@ -1,3 +1,4 @@
+"use client";
 import {
   Button,
   Selection,
@@ -150,7 +151,7 @@ const OrderColumns: Array<ColumnType> = [
     uid: "user",
   },
   { name: "Status", uid: "status" },
-  { name: "Product", uid: "products" },
+  { name: "Product", uid: "Orderproduct" },
   { name: "Price", uid: "price" },
   { name: "Action", uid: "action" },
 ];
@@ -276,7 +277,16 @@ export default function TableComponent({
         setopenmodal(toOpenModal);
       }
     },
-    [Router, searchParams, setglobalindex, setopenmodal, setpromotion, setreloaddata, settype, ty]
+    [
+      Router,
+      searchParams,
+      setglobalindex,
+      setopenmodal,
+      setpromotion,
+      setreloaddata,
+      settype,
+      ty,
+    ]
   );
 
   const handleAction = useCallback(
@@ -480,6 +490,7 @@ export default function TableComponent({
           aria-label="table container for product promotion and banner"
           className="w-full min-h-[500px] h-full"
           selectionMode={singleselect ? "single" : "multiple"}
+          data-key="row-header-column-4um4qvmg77g"
           showSelectionCheckboxes
           topContent={<TopTableContent />}
         >

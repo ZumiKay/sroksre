@@ -1,14 +1,10 @@
 "use client";
-import {
-  ApiRequest,
-  useCheckSession,
-  useScreenSize,
-} from "@/src/context/CustomHook";
+import { useCheckSession, useScreenSize } from "@/src/context/CustomHook";
 import { useGlobalContext } from "@/src/context/GlobalContext";
 import { useSocket } from "@/src/context/SocketContext";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ContainerLoading, infoToast } from "../Loading";
+import { ContainerLoading } from "../Loading";
 import Image from "next/image";
 import CookieConsent from "react-cookie-consent";
 import Link from "next/link";
@@ -26,14 +22,12 @@ import Profile from "@/public/Image/profile.svg";
 import { CategoriesContainer, NotificationMenu } from "./Component";
 import CreateHomeItemModal from "../HomeItem/CreateModal";
 
-export default function Navbar() {
-  const { cart, setcart, carttotal, setcarttotal, setopenmodal, openmodal } =
-    useGlobalContext();
+export default function Navbar({ cartcount = 0 }: { cartcount?: number }) {
+  const { cart, setcart, setopenmodal, openmodal } = useGlobalContext();
   const { user, status } = useCheckSession();
   const { isMobile } = useScreenSize();
   const socket = useSocket();
   const router = useRouter();
-
   const [categories, setcategories] = useState(false);
   const [profile, setprofile] = useState(false);
   const [opennotification, setnotification] = useState(false);
@@ -44,36 +38,20 @@ export default function Navbar() {
 
   const isAdmin = user?.role === "ADMIN";
 
-  // Fetch cart total on component mount
-  useEffect(() => {
-    const getCartTotal = async () => {
-      const request = await ApiRequest({
-        url: "/api/order/cart?count=1",
-        method: "GET",
-      });
-
-      if (request.success) {
-        setcarttotal(request.data as number);
-      }
-    };
-
-    if (user?.role === "USER") getCartTotal();
-  }, [setcarttotal, user]);
-
   // Admin notification socket listener
-  useEffect(() => {
-    if (isAdmin && socket) {
-      const handleNotification = () => {
-        infoToast("New Notification");
-        setchecknotify(1);
-      };
+  // useEffect(() => {
+  //   if (isAdmin && socket) {
+  //     const handleNotification = () => {
+  //       infoToast("New Notification");
+  //       setchecknotify(1);
+  //     };
 
-      socket.on("receiveNotification", handleNotification);
-      return () => {
-        socket.off("receiveNotification", handleNotification);
-      };
-    }
-  }, [socket, isAdmin]);
+  //     socket.on("receiveNotification", handleNotification);
+  //     return () => {
+  //       socket.off("receiveNotification", handleNotification);
+  //     };
+  //   }
+  // }, [socket, isAdmin]);
 
   // Click outside notification handler
   useEffect(() => {
@@ -157,7 +135,7 @@ export default function Navbar() {
                 onMouseEnter={() => setcart(true)}
               />
               <span className="text-[13px] w-[20px] h-[20px] grid place-content-center absolute -bottom-6 top-0 -right-3 bg-gray-500 text-white rounded-[50%]">
-                {carttotal ?? 0}
+                {cartcount}
               </span>
             </div>
           )}
@@ -196,13 +174,7 @@ export default function Navbar() {
           {openmodal?.searchcon && <SearchContainer isMobile={isMobile} />}
         </AnimatePresence>
 
-        {cart && (
-          <CartMenu
-            img={DefaultImage}
-            setcart={setcart}
-            setcarttotal={setcarttotal}
-          />
-        )}
+        {cart && <CartMenu img={DefaultImage} setcart={setcart} />}
 
         {opennotification && <NotificationMenu close={closeNotification} />}
       </nav>

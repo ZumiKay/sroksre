@@ -9,7 +9,8 @@ import {
   totalpricetype,
 } from "@/src/context/OrderContext";
 import Prisma from "@/src/lib/prisma";
-import { calculateDiscountProductPrice } from "@/src/lib/utilities";
+import { Prisma as PrismaType } from "@prisma/client";
+import { calculateDiscountPrice } from "@/src/lib/utilities";
 
 import { revalidatePath } from "next/cache";
 
@@ -29,6 +30,7 @@ export async function Addtocart(data: Productordertype): Promise<returntype> {
     const { details, quantity, id } = data;
     const user = await getUser();
 
+    // Early validation checks
     if (!user) {
       return {
         success: false,
@@ -37,89 +39,189 @@ export async function Addtocart(data: Productordertype): Promise<returntype> {
       };
     }
 
-    const isProduct = await Prisma.products.findUnique({
+    // Run product check in parallel with transaction
+    const productCheckPromise = Prisma.products.findUnique({
       where: { id },
       select: { id: true },
     });
 
+    // Execute transaction with optimized queries
+    const transactionPromise = Prisma.$transaction(
+      async (tx) => {
+        // Check for recent cart with optimized query
+        const isOrderInCart = await tx.orders.findFirst({
+          where: {
+            AND: [
+              { status: Allstatus.incart },
+              { buyer_id: user.id },
+              {
+                createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+              },
+            ],
+          },
+          select: { id: true },
+        });
+
+        // Prepare cart item data
+        const cartItemData = {
+          productId: id,
+          details,
+          quantity,
+          user_id: user.id,
+        };
+
+        if (isOrderInCart) {
+          // Update existing cart - more efficient update
+          await tx.orderproduct.create({
+            data: {
+              ...cartItemData,
+              orderId: isOrderInCart.id,
+            },
+          });
+
+          return { orderId: isOrderInCart.id };
+        } else {
+          // Generate SSC order ID with numeric suffix
+          let orderId = generateSSCOrderId();
+
+          // Single query validation
+          const existingOrder = await tx.orders.findUnique({
+            where: { id: orderId },
+            select: { id: true },
+          });
+
+          // In the rare case of collision, generate another ID
+          if (existingOrder) {
+            orderId = generateSSCOrderId();
+          }
+
+          // Create new cart with custom ID
+          const order = await tx.orders.create({
+            data: {
+              id: orderId,
+              buyer_id: user.id,
+              status: Allstatus.incart,
+              price: {},
+            },
+            select: { id: true },
+          });
+
+          // Create cart item in separate query for better performance
+          await tx.orderproduct.create({
+            data: {
+              ...cartItemData,
+              orderId: order.id,
+            },
+          });
+
+          return { orderId: order.id };
+        }
+      },
+      {
+        maxWait: 2500, // Reduced wait time
+        timeout: 5000, // Reduced timeout
+        isolationLevel: PrismaType.TransactionIsolationLevel.ReadCommitted, // Less restrictive isolation
+      }
+    );
+
+    // Run product check and transaction in parallel
+    const [isProduct] = await Promise.all([
+      productCheckPromise,
+      transactionPromise,
+    ]);
+
+    // Product validation after transaction (prevents unnecessary transaction aborts)
     if (!isProduct) {
       return { success: false, message: "Product not found" };
     }
 
-    //create in cart product
-
-    await Prisma.orderproduct.create({
-      data: {
-        productId: id,
-        user_id: user.id,
-        quantity: quantity,
-        details: details ?? "",
-        status: Allstatus.incart,
-      },
-    });
+    revalidatePath("/product/detail/" + data.id);
 
     return { success: true, message: "Added to cart" };
   } catch (error) {
-    console.log("Cart", error);
-    return { success: false, message: "Error Occured" };
+    console.error(
+      "Cart error:",
+      error instanceof Error ? error.message : error
+    );
+    return { success: false, message: "Error Occurred" };
   }
 }
 
+/**
+ * Generate unique order ID that:
+ * - Starts with "SSC"
+ * - Followed by only numbers
+ * - Total length exactly 10 characters
+ *
+ * Format: "SSC" + 7 digits (e.g., SSC1234567)
+ */
+function generateSSCOrderId(): string {
+  // Get current timestamp milliseconds
+  const timestamp = Date.now() % 10000000; // Last 7 digits of current timestamp
+
+  // Generate random number between 0-9999999 (7 digits max)
+  const randomNum = Math.floor(Math.random() * 10000000);
+
+  // Combine timestamp and random for better uniqueness
+  // Use modulo to ensure we get exactly 7 digits
+  const combined = (timestamp + randomNum) % 10000000;
+
+  // Pad with zeros to ensure 7 digits
+  const paddedNumber = combined.toString().padStart(7, "0");
+
+  // Prefix with SSC
+  return `SSC${paddedNumber}`;
+}
+
 export async function CheckCart(
-  selectedDetail?: Productorderdetailtype[],
-  product_id?: number
+  selectedDetail?: Productorderdetailtype[]
 ): Promise<returntype> {
   try {
-    let isInCart = false;
     const user = await getUser();
-
     if (!user) {
       return { success: true };
     }
 
-    const orderProducts = await Prisma.orderproduct.findMany({
+    // Improved query with proper OR condition for status
+    const orderProducts = (await Prisma.orderproduct.findMany({
       where: {
-        AND: [
-          {
-            user_id: user.id,
+        user_id: user.id,
+        order: {
+          status: {
+            in: [Allstatus.incart, Allstatus.unpaid],
           },
-          {
-            status: Allstatus.incart || Allstatus.unpaid,
-          },
-        ],
+        },
       },
       select: {
         details: true,
         productId: true,
-        product: {
-          select: {
-            stocktype: true,
-          },
-        },
       },
-    });
+    })) as Productordertype[];
 
     if (orderProducts.length === 0) {
       return { success: true };
     }
 
-    if (selectedDetail && selectedDetail.length > 0) {
-      const cartItems = orderProducts as unknown as Productordertype[];
-      if (cartItems.some((i) => i.details)) {
-        isInCart = cartItems.some((cart) => {
-          const detail = cart.details?.filter((i) => i);
-          return (
-            detail?.length === selectedDetail.length &&
-            detail?.every((obj, index) =>
-              Object.entries(obj).every(
-                ([key, value]) => value === selectedDetail[index][key]
-              )
-            )
-          );
-        });
-      }
-    } else {
-      isInCart = orderProducts.some((cart) => cart.productId === product_id);
+    let isInCart = false;
+
+    // Check if product is in cart based on selected details or product ID
+    if (selectedDetail?.length) {
+      const selectedDetailsJSON = JSON.stringify(
+        selectedDetail.map((detail) => Object.entries(detail).sort())
+      );
+
+      isInCart = orderProducts.some((cart) => {
+        if (!cart.details?.length) return false;
+
+        // Compare details by serializing and comparing JSON
+        const cartDetailsJSON = JSON.stringify(
+          cart.details
+            .filter(Boolean)
+            .map((detail) => Object.entries(detail).sort())
+        );
+
+        return cartDetailsJSON === selectedDetailsJSON;
+      });
     }
 
     return { success: true, incart: isInCart };
@@ -161,18 +263,10 @@ export const getRelatedProduct = async (
 
     const product = result.map((i) => {
       const discount =
-        i.discount &&
-        calculateDiscountProductPrice({
-          price: i.price,
-          discount: i.discount,
-        });
+        i.discount && calculateDiscountPrice(i.price, i.discount);
       return {
         ...i,
-        discount: discount && discount.discount,
-        category: {
-          parent_id: i.parentcategory_id,
-          child_id: i.childcategory_id,
-        },
+        discount,
       };
     }) as unknown as Array<ProductState>;
 
@@ -191,9 +285,9 @@ export const getRelatedProduct = async (
           score = 4;
         } else if (promoid && promoid === i.promotion_id) {
           score = 3;
-        } else if (child_id && i.category?.child?.id === child_id) {
+        } else if (child_id && i.childcategory_id === child_id) {
           score = 2;
-        } else if (i.category.parent.id === parent_id) {
+        } else if (i.parentcategory_id === parent_id) {
           score = 1;
         }
         return { ...i, score };

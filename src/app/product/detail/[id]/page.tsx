@@ -206,7 +206,6 @@ export default async function ProductDetailPage(props: {
               isInWishlist={
                 data.isInWishlist ? data.isInWishlist.isExist : false
               }
-              isInCart={data.incart}
             />
           </div>
 
