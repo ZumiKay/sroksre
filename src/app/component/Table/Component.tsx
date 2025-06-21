@@ -15,7 +15,17 @@ import {
 import { Key, useCallback } from "react";
 import { formatDate } from "../EmailTemplate";
 import { useRouter, useSearchParams } from "next/navigation";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faCalendar,
+  faCircle,
+  faFolder,
+  faSearch,
+  faTag,
+} from "@fortawesome/free-solid-svg-icons";
+import { Allstatus } from "@/src/context/OrderContext";
 
+// Define constant outside of the component to prevent recreation on each render
 const DefaultActionContainer: Array<SelectType> = [
   {
     label: "Edit",
@@ -26,6 +36,8 @@ const DefaultActionContainer: Array<SelectType> = [
     value: "delete",
   },
 ];
+
+// Use memoization for better performance
 export const ActionContainer = ({
   customItems,
   onAction,
@@ -33,6 +45,24 @@ export const ActionContainer = ({
   customItems?: Array<SelectType>;
   onAction: (key: Key) => void;
 }) => {
+  // Memoize the items array to prevent recreation on each render
+  const combinedItems = useCallback(() => {
+    return [...DefaultActionContainer, ...(customItems ?? [])];
+  }, [customItems]);
+
+  // Memoize the item renderer function to prevent recreation on each render
+  const renderItem = useCallback(
+    (item: SelectType) => (
+      <DropdownItem
+        key={item.value}
+        color={item.value === "delete" ? "danger" : "default"}
+      >
+        {item.label}
+      </DropdownItem>
+    ),
+    []
+  );
+
   return (
     <Dropdown className="w-[150px] h-full">
       <DropdownTrigger>
@@ -46,17 +76,10 @@ export const ActionContainer = ({
       </DropdownTrigger>
       <DropdownMenu
         aria-label="Dynamic Actions"
-        items={[...DefaultActionContainer, ...(customItems ?? [])]}
+        items={combinedItems()}
         onAction={onAction}
       >
-        {(item) => (
-          <DropdownItem
-            key={item.value}
-            color={item.value === "delete" ? "danger" : "default"}
-          >
-            {item.label}
-          </DropdownItem>
-        )}
+        {renderItem}
       </DropdownMenu>
     </Dropdown>
   );
@@ -70,7 +93,9 @@ export type tableBottomContentProps = {
   onShowPage: (val: string) => void;
 };
 
+// Memoize array outside component to prevent recreation on each render
 const Showperpageitems = ["1", "5", "10", "20", "50"];
+
 export const TableBottomContent = ({
   show = "5",
   page,
@@ -78,6 +103,14 @@ export const TableBottomContent = ({
   itemscount,
   onShowPage,
 }: tableBottomContentProps) => {
+  // Memoize the change handler to prevent recreation on each render
+  const handleShowChange = useCallback(
+    (val: { target: { value: string } }) => {
+      onShowPage(val.target.value);
+    },
+    [onShowPage]
+  );
+
   return (
     <div className="bottomcontent_container w-full h-full flex flex-row items-center justify-between">
       <div className="showperrow w-[200px] h-full flex flex-row justify-start items-center">
@@ -88,9 +121,7 @@ export const TableBottomContent = ({
           size="sm"
           aria-label="custom selection"
           selectedKeys={[show]}
-          onChange={(val) => {
-            onShowPage(val.target.value);
-          }}
+          onChange={handleShowChange}
         >
           {Showperpageitems.map((item) => (
             <SelectItem key={item}>{item}</SelectItem>
@@ -114,16 +145,30 @@ export const TableBottomContent = ({
 };
 
 const FilteredValueContainer = () => {
-  const { filtervalue, setfiltervalue } = useGlobalContext();
+  const { filtervalue, setfiltervalue, setreloaddata } = useGlobalContext();
   const searchParams = useSearchParams();
   const Router = useRouter();
+
+  // Memoize the display keys to prevent recreation on each render
+  const displayKeys = [
+    "status",
+    "search",
+    "expiredate",
+    "promotiononly",
+    "categories",
+  ];
+
   const handleModifyFilter = useCallback(
     (key: keyof FilterValueType) => {
       const params = new URLSearchParams(searchParams);
 
-      const toUpdateFilterValue = { ...(filtervalue ?? {}) };
+      // Create a shallow copy only of the fields we might modify
+      const toUpdateFilterValue = { ...filtervalue };
+
+      // Remove parameter from URL if present
       if (params.has(key)) params.delete(key);
 
+      // Handle categories specifically
       if (key === "categories" && window.localStorage.getItem(key)) {
         window.localStorage.removeItem(key);
         params.delete("parentcate");
@@ -131,6 +176,7 @@ const FilteredValueContainer = () => {
         toUpdateFilterValue.categories = undefined;
       }
 
+      // Handle search/name specifically
       if (key === "name") {
         toUpdateFilterValue.search = "";
       }
@@ -141,60 +187,120 @@ const FilteredValueContainer = () => {
     [Router, filtervalue, searchParams, setfiltervalue]
   );
 
-  const displayKeys = [
-    "status",
-    "search",
-    "expiredate",
-    "promotiononly",
-    "categories",
-  ];
+  // Precompute the filtered entries to avoid doing this during render
+  const filteredEntries = filtervalue
+    ? Object.entries(filtervalue).filter(
+        ([key, value]) =>
+          displayKeys.includes(key) &&
+          value !== undefined &&
+          !(typeof value === "string" && value.length === 0) &&
+          !(key === "search" && (!value || value === "")) &&
+          !(key === "promotiononly" && !value)
+      )
+    : [];
+
+  const handleClear = useCallback(() => {
+    const params = new URLSearchParams();
+    params.set("p", "1");
+    setfiltervalue((prev) => ({
+      ...prev,
+      ...(filtervalue?.status ? [Allstatus.all] : undefined),
+    }));
+    Router.push(`?${params}`);
+    setreloaddata(true);
+  }, [Router, filtervalue?.status, setfiltervalue, setreloaddata]);
+
+  if (filteredEntries.length === 0) return null;
 
   return (
-    <div className="filteredvalue w-fit h-full flex flex-row gap-x-3 items-center">
-      {filtervalue &&
-        Object.entries(filtervalue)
-          .filter(
-            ([key, value]) =>
-              displayKeys.includes(key) &&
-              value !== undefined &&
-              !(typeof value === "string" && value.length === 0) &&
-              !(key === "search" && (!value || value === ""))
-          )
-          .map(([key, val]) => {
-            if (key === "promotiononly" && !val) {
-              return null;
-            }
+    <div className="w-full h-full px-2 py-3 mb-3 overflow-x-auto">
+      <div className="flex flex-row flex-wrap gap-2 items-center">
+        <span className="text-sm font-medium text-gray-600 mr-1">
+          Active Filters:
+        </span>
+        {filteredEntries.map(([key, val]) => {
+          if (key === "status") return;
+          const isPromotion = key === "promotiononly";
+          const isCategory = key === "categories";
+          const isDate = key === "expiredate";
 
-            return (
-              <Chip
-                key={key}
-                onClose={() => handleModifyFilter(key as keyof FilterValueType)}
-                className={key !== "promotiononly" ? "w-fit h-full" : ""}
-                variant={key !== "promotiononly" ? "bordered" : "solid"}
-                color={key === "promotiononly" ? "success" : "primary"}
-              >
-                {key === "categories" && val
-                  ? `${val?.parentcate?.label}${
-                      val?.childcate ? ` / ${val.childcate?.label}` : ""
-                    }`
-                  : key === "promotiononly"
-                  ? "Promotion Only"
-                  : key === "expiredate"
-                  ? formatDate(new Date(val))
-                  : val}
-              </Chip>
-            );
-          })}
+          // Determine chip color and variant based on filter type
+          const chipColor = isPromotion
+            ? "success"
+            : isCategory
+            ? "warning"
+            : isDate
+            ? "secondary"
+            : "primary";
+
+          // Format display value
+          const displayValue =
+            isCategory && val
+              ? `${val?.parentcate?.label}${
+                  val?.childcate ? ` / ${val.childcate?.label}` : ""
+                }`
+              : isPromotion
+              ? "Promotion Only"
+              : isDate
+              ? formatDate(new Date(val))
+              : val;
+
+          return (
+            <Chip
+              key={key}
+              onClose={() => handleModifyFilter(key as keyof FilterValueType)}
+              className="px-3 py-1 text-sm font-medium shadow-sm transition-all hover:shadow"
+              variant="bordered"
+              color={chipColor}
+              startContent={
+                isCategory ? (
+                  <FontAwesomeIcon icon={faFolder} />
+                ) : isDate ? (
+                  <FontAwesomeIcon icon={faCalendar} />
+                ) : isPromotion ? (
+                  <FontAwesomeIcon icon={faTag} />
+                ) : key === "status" ? (
+                  <FontAwesomeIcon icon={faCircle} />
+                ) : key === "search" ? (
+                  <FontAwesomeIcon icon={faSearch} />
+                ) : null
+              }
+              radius="sm"
+              classNames={{
+                base: "border border-default",
+                content: "font-medium",
+                closeButton: "text-default-500 hover:text-default-700",
+              }}
+            >
+              {displayValue}
+            </Chip>
+          );
+        })}
+        {filteredEntries.length > 0 && (
+          <button
+            type="button"
+            onClick={() => {
+              handleClear();
+            }}
+            className="text-xs ml-2 text-gray-500 hover:text-gray-700 underline transition-colors"
+          >
+            Clear all
+          </button>
+        )}
+      </div>
     </div>
   );
 };
+// Optimized with React.memo to prevent unnecessary re-renders
 export const TopTableContent = () => {
   const { tableselectitems } = useGlobalContext();
+
+  // Pre-compute the selected items count to prevent calculation during render
+  const selectedCount = tableselectitems ? tableselectitems.length : 0;
+
   return (
-    <div className="toptablecontent w-full h-[40px] flex flex-row gap-x-3 items-center">
-      <p className="w-fit">{`Selected Item: ${
-        tableselectitems ? tableselectitems.length : 0
-      }`}</p>
+    <div className="toptablecontent w-full h-full flex flex-row gap-x-3 items-center ">
+      <p className="w-[100px]">{`Selected: ${selectedCount}`}</p>
       <Divider orientation="vertical" />
       <FilteredValueContainer />
     </div>

@@ -8,13 +8,16 @@ import {
   Productorderdetailtype,
   totalpricetype,
 } from "@/src/context/OrderContext";
-import { calculateDiscountProductPrice, decrypt } from "@/src/lib/utilities";
+import { calculateDiscountPrice, decrypt } from "@/src/lib/utilities";
 import { checkOrder } from "./action";
 import { SuccessVector } from "../component/Asset";
 import { getPolicesByPage } from "../api/policy/route";
 import Link from "next/link";
 import { Metadata } from "next";
-import { VariantColorValueType } from "@/src/context/GlobalType.type";
+import {
+  DiscountpriceType,
+  VariantColorValueType,
+} from "@/src/context/GlobalType.type";
 import {
   FormWrapper,
   ShippingForm,
@@ -144,12 +147,14 @@ const getCheckoutdata = async (orderid?: string, userid?: number) => {
       return {
         ...orderProduct,
         selectedvariant: selectedVariantDetails,
-        price: calculateDiscountProductPrice({
-          price: orderProduct.product.price,
-          discount: orderProduct.product.discount ?? undefined,
-        }),
         product: {
           ...orderProduct.product,
+          discount:
+            orderProduct.product.discount &&
+            calculateDiscountPrice(
+              orderProduct.product.price,
+              orderProduct.product.discount
+            ),
         },
       };
     }
@@ -180,16 +185,22 @@ const OrderSummary = async ({ orderId }: { orderId: string }) => {
 
       <div className="productlist w-full h-full flex flex-col gap-y-5 p-2">
         {orderData.Orderproduct.map((order) => {
-          const price = order.price;
+          const prod = order.product;
+          const isDiscount = prod.discount as DiscountpriceType | undefined;
           const total =
-            order.quantity * (price.discount?.newprice ?? price.price);
+            order.quantity *
+            (isDiscount ? Number(isDiscount.newprice) : prod.price);
+
           return (
             <Checkoutproductcard
               key={order.id}
               qty={order.quantity}
               cover={order.product.covers[0].url}
-              price={price}
               total={total}
+              price={{
+                price: order.product.price,
+                discount: isDiscount as never,
+              }}
               name={order.product.name}
               details={order.selectedvariant as never}
             />

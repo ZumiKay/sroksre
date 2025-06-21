@@ -2,7 +2,6 @@ import { NextRequest } from "next/server";
 
 import {
   calculateDiscountPrice,
-  calculateDiscountProductPrice,
   removeSpaceAndToLowerCase,
 } from "@/src/lib/utilities";
 
@@ -10,7 +9,6 @@ import { extractQueryParams } from "../banner/route";
 import Prisma from "@/src/lib/prisma";
 import {
   ContainerItemType,
-  ProductState,
   Stocktype,
   VariantColorValueType,
 } from "@/src/context/GlobalType.type";
@@ -219,10 +217,7 @@ export async function GET(request: NextRequest) {
         // Calculate discount only once if needed
         const calculatedDiscount =
           product.promotion_id && product.discount
-            ? calculateDiscountProductPrice({
-                price: product.price,
-                discount: product.discount,
-              }).discount
+            ? calculateDiscountPrice(product.price, product.discount)
             : undefined;
 
         // Use object destructuring and spread to create the result

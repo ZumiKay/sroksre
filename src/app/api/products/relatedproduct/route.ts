@@ -1,8 +1,8 @@
 import { NextRequest } from "next/server";
 import { extractQueryParams } from "../../banner/route";
-import { calculateDiscountProductPrice } from "@/src/lib/utilities";
 import Prisma from "@/src/lib/prisma";
 import { ProductState } from "@/src/context/GlobalType.type";
+import { calculateDiscountPrice } from "@/src/lib/utilities";
 
 interface GetRelatedProductParamType {
   targetId?: number;
@@ -50,11 +50,10 @@ export async function GET(req: NextRequest) {
 
     const product = result.map((i) => {
       const discount =
-        i.discount &&
-        calculateDiscountProductPrice({ price: i.price, discount: i.discount });
+        i.discount && calculateDiscountPrice(i.price, i.discount);
       return {
         ...i,
-        discount: discount && discount.discount,
+        discount,
         category: {
           parent: i.parentcateogries,
           child: i.childcategories,

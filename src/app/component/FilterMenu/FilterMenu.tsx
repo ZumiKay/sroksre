@@ -1,3 +1,4 @@
+"use client";
 import { useGlobalContext } from "@/src/context/GlobalContext";
 import PrimaryButton from "../Button";
 import { SecondaryModal } from "../Modals";
@@ -9,20 +10,27 @@ import {
   categorytype,
   FiltermenuType,
   FilterValueType,
+  RangeType,
   SelectType,
 } from "@/src/context/GlobalType.type";
 import dayjs from "dayjs";
 import { formatDate } from "../EmailTemplate";
 import { AsyncSelection } from "../AsynSelection";
 import { DateTimePicker } from "@mui/x-date-pickers";
-import { Checkbox, DateRangePicker, Divider, NumberInput } from "@heroui/react";
+import {
+  Checkbox,
+  DateRangePicker,
+  DateValue,
+  Divider,
+  NumberInput,
+  RangeValue,
+} from "@heroui/react";
 import { FetchCategory } from "../../dashboard/inventory/createproduct/[editId]/action";
 import { FetchPromotionSelection } from "./action";
 
 const FilterMenu = memo(
   ({
     type,
-    reloaddata,
     isLoading,
   }: {
     type?: FiltermenuType;
@@ -41,7 +49,7 @@ const FilterMenu = memo(
     // All hooks must be at the top level - never inside conditionals or memoized components
     const [tempFilter, settempFilter] = useState<FilterValueType>({
       ...filtervalue,
-      search: "",
+      search: filtervalue?.search ?? "",
     });
     const isFilter = useMemo(() => {
       return tempFilter && Object.values(tempFilter).some((i) => i);
@@ -54,8 +62,6 @@ const FilterMenu = memo(
     const handleChange = useCallback(
       (e: ChangeEvent<HTMLInputElement>, cate?: SelectType) => {
         const { name, value } = e.target;
-
-        if (name === "search" && reloaddata) reloaddata();
 
         const toBeUpdateFilterdValue: Partial<FilterValueType> = {
           ...tempFilter,
@@ -82,7 +88,7 @@ const FilterMenu = memo(
             : toBeUpdateFilterdValue),
         }));
       },
-      [reloaddata, tempFilter]
+      [tempFilter]
     );
 
     const handleFilter = useCallback(() => {
@@ -92,32 +98,38 @@ const FilterMenu = memo(
       const filtervalues = Object.entries(tempFilter);
 
       filtervalues.map(([key, value]) => {
-        if (value === "none" || value === undefined || value === "") {
+        if (
+          value === "none" ||
+          value === undefined ||
+          value === "" ||
+          value === 0 ||
+          value === null
+        ) {
           params.delete(key);
-        }
-
-        if (key === "expiredate" && value) {
+        } else if (key === "expiredate" && value) {
           const val = dayjs(value as string);
           params.set(key, formatDate(val.toDate()));
-        }
-        if (key === "promoids" && value) {
+        } else if (key === "promoids" && value) {
           const val = value as string[];
-
           params.set("promoids", val.filter((i) => i.length > 0).join(","));
-        }
-
-        if (key === "categories" && value) {
+        } else if (key === "categories" && value) {
           localStorage.setItem(key, JSON.stringify(value));
-        }
+        } else if (key === "price" && value) {
+          const price: RangeType<number> = value as never;
+          if (price.start) params.set("pricestart", price.start.toString());
+          if (price.end) params.set("priceend", price.end.toString());
+        } else if (key === "orderdate" && value) {
+          const dateVal = value as RangeValue<DateValue>;
 
-        if (key !== "p" && key !== "categories" && value && value !== "none") {
-          params.set(key, value as string);
+          if (dateVal.start) params.set("fromdate", dateVal.start.toString());
+          if (dateVal.end) params.set("todate", dateVal.end.toString());
+        } else {
+          params.set(key, `${value}`);
         }
       });
 
       params.set("p", "1");
       router.push(`?${params}`);
-
       setfiltervalue(tempFilter);
       setopenmodal((prev) => ({ ...prev, filteroption: false }));
     }, [router, searchParams, setfiltervalue, setopenmodal, tempFilter]);
@@ -362,7 +374,7 @@ const FilterMenu = memo(
       return (
         <>
           <DateRangePicker
-            value={filtervalue?.orderdate}
+            value={tempFilter?.orderdate}
             onChange={(val) => {
               handleChange({
                 target: { name: "orderdate", value: val as never },
@@ -374,26 +386,26 @@ const FilterMenu = memo(
           <div className="priceRange w-full h-fit flex flex-row items-center gap-x-5">
             <NumberInput
               label={"Start"}
-              value={filtervalue?.price?.start}
+              value={tempFilter?.startprice}
               aria-label="price start"
               onValueChange={(val) =>
                 handleChange({
                   target: {
-                    name: "price",
-                    value: { ...filtervalue?.price, start: val },
+                    name: "startprice",
+                    value: val,
                   },
                 } as never)
               }
             />
             <NumberInput
               label={"End"}
-              value={filtervalue?.price?.end}
+              value={tempFilter?.endprice}
               aria-label="price end"
               onValueChange={(val) =>
                 handleChange({
                   target: {
                     name: "price",
-                    value: { ...filtervalue?.price, end: val },
+                    value: val,
                   },
                 } as never)
               }
@@ -401,7 +413,13 @@ const FilterMenu = memo(
           </div>
         </>
       );
-    }, [filtervalue?.orderdate, filtervalue?.price, handleChange, type]);
+    }, [
+      handleChange,
+      tempFilter?.endprice,
+      tempFilter?.orderdate,
+      tempFilter?.startprice,
+      type,
+    ]);
 
     // Memoize footer buttons
     const footerButtonsMemo = useMemo(

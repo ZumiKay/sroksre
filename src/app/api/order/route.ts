@@ -1,7 +1,7 @@
 import { Shippingservice } from "@/src/context/Checkoutcontext";
 import { GenerateInvoicePdf, totalpricetype } from "@/src/context/OrderContext";
 import Prisma from "@/src/lib/prisma";
-import { calculateDiscountProductPrice } from "@/src/lib/utilities";
+import { calculateDiscountPrice } from "@/src/lib/utilities";
 import { NextRequest } from "next/server";
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 
@@ -39,14 +39,12 @@ export async function PUT(req: NextRequest) {
       const updatedTotalPrice = order.Orderproduct.reduce((total, item) => {
         const { price, discount } = item.product;
 
-        const calculatedPrice = calculateDiscountProductPrice({
-          price,
-          discount: discount ? discount : undefined,
-        });
+        const calculatedPrice =
+          discount && calculateDiscountPrice(price, discount);
 
-        const estimatedprice = calculatedPrice.discount
-          ? calculatedPrice.discount.newprice
-          : calculatedPrice.price;
+        const estimatedprice = calculatedPrice
+          ? Number(calculatedPrice.newprice)
+          : price;
 
         return total + (estimatedprice ?? 0) * item.quantity;
       }, 0);

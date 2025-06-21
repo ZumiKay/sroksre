@@ -2,7 +2,7 @@ import Prisma from "@/src/lib/prisma";
 import { NextRequest } from "next/server";
 import { extractQueryParams } from "../../banner/route";
 import {
-  calculateDiscountProductPrice,
+  calculateDiscountPrice,
   generateRandomNumber,
 } from "@/src/lib/utilities";
 import { ProductState, UserState } from "@/src/context/GlobalType.type";
@@ -97,15 +97,12 @@ export async function GET(request: NextRequest) {
 
         result = productwishlist.map(({ product }) => {
           const discount = product.discount
-            ? calculateDiscountProductPrice({
-                price: product.price,
-                discount: product.discount,
-              })
+            ? calculateDiscountPrice(product.price, product.discount)
             : null;
 
           return {
             ...product,
-            discount: discount?.discount || null,
+            discount,
           };
         }) as unknown as ProductState[];
         break;

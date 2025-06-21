@@ -1,6 +1,6 @@
+"use client";
 import { useGlobalContext } from "@/src/context/GlobalContext";
-import { usePathname, useSearchParams } from "next/navigation";
-import { useRouter } from "next/router";
+import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import PrimaryButton from "../Button";
 import Link from "next/link";
 

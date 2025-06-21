@@ -2,14 +2,13 @@
 
 import { ApiRequest, useCheckSession } from "@/src/context/CustomHook";
 import { useGlobalContext } from "@/src/context/GlobalContext";
-import { redirect, useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { errorToast, successToast } from "../../component/Loading";
 import { AsyncSelection } from "../../component/AsynSelection";
 import {
   AllOrderStatusData,
   Allstatus,
-  Orderstatus,
   Ordertype,
 } from "@/src/context/OrderContext";
 import { Button, Chip } from "@heroui/react";
@@ -21,8 +20,6 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faFilter } from "@fortawesome/free-solid-svg-icons";
 import FilterMenu from "../../component/FilterMenu/FilterMenu";
 import { parseDate } from "@internationalized/date";
-import { formatDate } from "../../component/EmailTemplate";
-import { revalidateTag } from "next/cache";
 import ActionModal from "./OrderComponent";
 const TableComponent = dynamic(
   () => import("../../component/Table/Table_Component"),
@@ -54,7 +51,7 @@ const useOrderParams = () => {
     const p = searchParams.get("p");
     const show = searchParams.get("lt");
     const status = searchParams.get("status");
-    const q = searchParams.get("q");
+    const search = searchParams.get("search");
     const fromdate = searchParams.get("fromdate");
     const todate = searchParams.get("todate");
     const startprice = searchParams.get("startprice");
@@ -74,7 +71,7 @@ const useOrderParams = () => {
       page: parseInt(p || "1", 10),
       limit: parseInt(show || "5", 10),
       status: selectedStatus,
-      search: q || undefined,
+      search: search || undefined,
       startprice: startprice ? parseFloat(startprice) : 0,
       endprice: endprice ? parseFloat(endprice) : 0,
       fromdate: fromdate || undefined,
@@ -91,6 +88,7 @@ const OrderPage = () => {
     setreloaddata,
     openmodal,
     setopenmodal,
+    filtervalue,
     setfiltervalue,
     setitemlength,
     globalindex,
@@ -99,7 +97,6 @@ const OrderPage = () => {
   const searchParam = useSearchParams();
   const router = useRouter();
   const Params = useOrderParams();
-  const [fitlerstatus, setfitlerstatus] = useState<Orderstatus[]>(["All"]);
   const [page, setpage] = useState(1);
   const [show, setshow] = useState(5);
   const [loading, setloading] = useState(false);
@@ -109,24 +106,37 @@ const OrderPage = () => {
   // Data fetching effect
 
   useEffect(() => {
-    if (Params?.status && !Params) {
-      redirect("/notfound");
-    }
+    //Verify Status Param
+    let toUpdateStatus: Array<Allstatus> | undefined = undefined;
+    if (Params?.status) {
+      const param = new URLSearchParams(searchParam);
+      if (Params.status.some((i) => i.length === 0 || i === "")) {
+        param.delete("status");
+      }
 
+      toUpdateStatus = (
+        Params.status.length > 1
+          ? Params.status.filter((i) => i !== Allstatus.all)
+          : Params.status
+      ) as Allstatus[];
+
+      param.set("status", toUpdateStatus.join(","));
+      router.push(`?${param}`);
+    } else {
+      toUpdateStatus = [Allstatus.all];
+    }
     //Initialize filter value
     setfiltervalue({
-      status: Params?.status ? Params.status.join(",") : undefined,
+      status: toUpdateStatus,
       search: Params?.search || "",
-      price: {
-        start: Params?.startprice ?? 0,
-        end: Params?.endprice ?? 0,
-      },
+      startprice: Params?.startprice ?? 0,
+      endprice: Params?.endprice ?? 0,
       orderdate: {
-        start: parseDate(Params?.fromdate ?? formatDate(new Date(), true)),
-        end: parseDate(Params?.todate ?? formatDate(new Date(), true)),
-      },
+        start: Params?.fromdate ? parseDate(Params?.fromdate) : undefined,
+        end: Params?.todate ? parseDate(Params?.todate) : undefined,
+      } as never,
     });
-  }, [Params]);
+  }, [Params, router, searchParam, setfiltervalue]);
 
   //Fetch Order Data
   useEffect(() => {
@@ -140,10 +150,12 @@ const OrderPage = () => {
           : `/api/order/list?ty=filter${
               Params.status ? `&status=${Params.status.join(",")}` : ""
             }${Params.startprice ? `&startprice=${Params.startprice}` : ""}${
-              Params.fromdate ? `&fromdate=${Params.fromdate}` : ""
-            }${Params.todate ? `&todate=${Params.todate}` : ""}${
-              Params.search ? `&q=${Params.search}` : ""
-            }&p=${Params.page}&lt=${Params.limit}`;
+              Params.endprice ? `&endprice=${Params.endprice}` : ""
+            }${Params.fromdate ? `&fromdate=${Params.fromdate}` : ""}${
+              Params.todate ? `&todate=${Params.todate}` : ""
+            }${Params.search ? `&q=${Params.search}` : ""}&p=${
+              Params.page
+            }&lt=${Params.limit}`;
         const response = await ApiRequest({
           url,
           method: "GET",
@@ -176,7 +188,16 @@ const OrderPage = () => {
     };
 
     if (reloaddata) GetOrder();
-  }, [Params, page, reloaddata, show, user?.id]);
+  }, [
+    Params,
+    page,
+    reloaddata,
+    setalldata,
+    setitemlength,
+    setreloaddata,
+    show,
+    user?.id,
+  ]);
 
   const handleShowPerPage = useCallback(
     (value: number | string) => {
@@ -226,24 +247,56 @@ const OrderPage = () => {
   }, [user?.role, user?.username]);
 
   const handleFilterStatus = useCallback(
-    (val: Orderstatus[]) => {
+    (val: Allstatus[]) => {
       const param = new URLSearchParams(searchParam);
       param.set("p", "1");
-      param.set("status", val.join(","));
 
-      if (val.length === 0 || (val.length === 1 && val[0] === "All")) {
+      // Define reset function outside of conditionals to avoid recreation
+      const resetStatus = () => {
         param.delete("status");
-        setfitlerstatus(["All"]);
-      } else {
-        setfitlerstatus(val);
+        setfiltervalue((prev) => ({
+          ...prev,
+          status: [Allstatus.all],
+        }));
+      };
+
+      // Early exit for empty status values
+      if (val.some((i) => !i)) {
+        resetStatus();
+        router.push(`?${param.toString()}`, { scroll: false });
+        setreloaddata(true);
+        return;
       }
+
+      // Compute these values once to avoid repeated calculations
+      const isAll = val.includes(Allstatus.all); // Using includes is slightly faster than some
+      const specificStatuses = val.filter(
+        (status) => status !== Allstatus.all && status
+      );
+
+      // First condition - handle specific statuses
+      if (val[0] === Allstatus.all || (specificStatuses.length > 0 && !isAll)) {
+        param.set("status", specificStatuses.join(","));
+        setfiltervalue((prev) => ({
+          ...prev,
+          status: specificStatuses as Allstatus[],
+        }));
+      }
+
+      // Second condition - reset to "All"
+      if (
+        val[0] !== Allstatus.all &&
+        ((isAll && specificStatuses.length > 0) ||
+          (!isAll && specificStatuses.length === 0))
+      ) {
+        resetStatus();
+      }
+
       router.push(`?${param.toString()}`, { scroll: false });
       setreloaddata(true);
-      setfitlerstatus(val);
     },
-    [router, searchParam, setreloaddata]
+    [router, searchParam, setfiltervalue, setreloaddata]
   );
-
   const handleSelectDelete = useCallback(async () => {
     if (!selected?.length) return;
 
@@ -272,7 +325,6 @@ const OrderPage = () => {
         }`
       );
       setloading(false);
-      revalidateTag("orderlist#" + user?.id);
       setreloaddata(true);
       setselected([]);
     } catch (error) {
@@ -280,7 +332,7 @@ const OrderPage = () => {
       errorToast("Error deleting orders");
       console.error(error);
     }
-  }, [selected, setreloaddata, user?.id]);
+  }, [selected, setreloaddata]);
 
   const renderActionModal = useMemo(() => {
     const status = allData?.orders?.find(
@@ -328,17 +380,20 @@ const OrderPage = () => {
               data={() => AllOrderStatusData}
               type="normal"
               customRender={(item) =>
-                fitlerstatus.length > 0
+                filtervalue?.status && filtervalue?.status.length > 0
                   ? CustomSelectRender({ status: item })
                   : undefined
               }
               option={{
                 name: "orderstatus",
-                selectedValue: fitlerstatus,
-                onChange: (e) =>
-                  handleFilterStatus(
-                    e.target.value.split(",") as unknown as Orderstatus[]
-                  ),
+                selectedValue: filtervalue?.status
+                  ? (filtervalue.status as Allstatus[])
+                  : undefined,
+                onChange: (e) => {
+                  const val = e.target.value.split(",");
+
+                  handleFilterStatus(val as Allstatus[]);
+                },
                 className:
                   "w-full h-[40px] bg-white border border-gray-200 rounded-md shadow-sm",
                 color: "default",

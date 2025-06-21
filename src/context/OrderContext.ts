@@ -169,7 +169,7 @@ export interface OrderFilterParam<t = string, d = string> {
   enddate?: d;
   p?: t;
   lt?: t;
-  status?: Allstatus;
+  status?: Allstatus[];
   sort?: "asc" | "desc";
 }
 

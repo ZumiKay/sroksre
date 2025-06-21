@@ -8,7 +8,7 @@ import { StaticImageData } from "next/image";
 import ProfileIcon from "@/public/Image/profile.png";
 import WishListIcon from "@/public/Image/bookmark.png";
 import LockIcon from "@/public/Image/lock.png";
-import { Ordertype } from "./OrderContext";
+import { Allstatus, Ordertype } from "./OrderContext";
 import { DateValue, RangeValue } from "@heroui/react";
 
 export const get24Hr = new Date(Date.now() + 24 * 60 * 60 * 1000);
@@ -233,7 +233,7 @@ export interface FilterValueType {
     parentcate: ProductCategoriesType;
     childcate?: ProductCategoriesType;
   };
-  status?: string;
+  status?: Allstatus[] | string;
   name?: string;
   firstname?: string;
   lastname?: string;
@@ -246,11 +246,9 @@ export interface FilterValueType {
   search?: string;
   expired?: string;
   promoids?: string[];
-  price?: {
-    start: number;
-    end?: number;
-  };
-  orderdate?: RangeValue<DateValue>;
+  startprice?: number;
+  endprice?: number;
+  orderdate?: RangeValue<DateValue> | null;
 }
 
 export interface Listproductfilter {
@@ -461,9 +459,9 @@ export interface GlobalIndexState {
   selectedpromoid?: number;
 }
 
-export type RangeType = {
-  start: string;
-  end: string;
+export type RangeType<t = string> = {
+  start: t;
+  end?: t;
 };
 
 export interface CateogoryState {

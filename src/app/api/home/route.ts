@@ -2,8 +2,6 @@ import Prisma from "@/src/lib/prisma";
 import { NextRequest } from "next/server";
 import { extractQueryParams } from "../banner/route";
 import { Prisma as PrismaType } from "@prisma/client";
-
-import { calculateDiscountProductPrice } from "@/src/lib/utilities";
 import {
   ContainerType,
   Homeitemtype,
@@ -11,6 +9,7 @@ import {
 } from "@/src/context/GlobalType.type";
 import { Homecontainer } from "@prisma/client";
 import { fetchContainerById, HomeDetailUpdate } from "./extendRoute";
+import { calculateDiscountPrice } from "@/src/lib/utilities";
 
 interface Paramtype {
   ty?: string;
@@ -79,10 +78,9 @@ export function formatContainer(result: formatContainerType) {
               id: i.product?.id,
               name: i.product?.name,
               image: i.product?.covers[0],
-              price: calculateDiscountProductPrice({
-                price: i.product?.price ?? 0,
-                discount: i.product?.discount ?? 0,
-              }),
+              price:
+                i.product?.price &&
+                calculateDiscountPrice(i.product?.price, i.product?.discount),
             },
           }
     ),

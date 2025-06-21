@@ -8,7 +8,7 @@ import {
 import Prisma from "@/src/lib/prisma";
 import {
   caculateArrayPagination,
-  calculateDiscountProductPrice,
+  calculateDiscountPrice,
   GetOneWeekAgoDate,
   removeSpaceAndToLowerCase,
 } from "@/src/lib/utilities";
@@ -316,13 +316,9 @@ export const GetListProduct = async (
       products.length > 0
         ? (products.map((prod) => {
             if (prod.discount) {
-              const discount = calculateDiscountProductPrice({
-                price: prod.price,
-                discount: prod.discount,
-              });
               return {
                 ...prod,
-                discount: discount.discount,
+                discount: calculateDiscountPrice(prod.price, prod.discount),
               };
             }
             return { ...prod };

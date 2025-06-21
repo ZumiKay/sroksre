@@ -9,6 +9,7 @@ import {
 import Prisma from "@/src/lib/prisma";
 import { Prisma as PrismaType } from "@prisma/client";
 import { getUser } from "@/src/app/action";
+import { IsNumber } from "@/src/lib/utilities";
 
 interface GetOrderParam extends OrderFilterParam<number, Date> {
   id?: string;
@@ -25,8 +26,8 @@ const verifyOrderParam = (url: GetOrderParam): boolean => {
     if (
       (url.startprice && isNaN(Number(url.startprice))) ||
       (url.endprice && isNaN(Number(url.endprice))) ||
-      (url.p && isNaN(Number(url.p))) ||
-      (url.lt && isNaN(Number(url.lt)))
+      !(url.p && IsNumber(url.p.toString())) ||
+      !(url.lt && IsNumber(url.lt.toString()))
     ) {
       return false;
     }
@@ -39,7 +40,13 @@ const verifyOrderParam = (url: GetOrderParam): boolean => {
     return false;
   }
 
-  if (url.status && !Object.values(Allstatus).includes(url.status)) {
+  if (
+    url.status &&
+    url.status.length > 0 &&
+    (typeof url.status !== "string"
+      ? !url.status.some((status) => Object.values(Allstatus).includes(status))
+      : !Object.values(Allstatus).includes(url.status))
+  ) {
     return false;
   }
 
@@ -50,15 +57,19 @@ export async function GET(req: NextRequest) {
   try {
     // Extract all query parameters at once and destructure
     const url = req.nextUrl;
+    const params = extractQueryParams(url.toString()) as GetOrderParam;
 
-    if (!verifyOrderParam(url.toString() as GetOrderParam)) {
+    if (!verifyOrderParam(params)) {
       return Response.json(
         { message: "Invalid Query Parameters" },
         { status: 400 }
       );
     }
 
-    const params: GetOrderParam = extractQueryParams(url.toString());
+    //Convert Status to array
+    if (params.status) {
+      if (typeof params.status === "string") params.status = [params.status];
+    }
 
     const {
       ty,
@@ -127,7 +138,13 @@ export async function GET(req: NextRequest) {
             },
           }),
         },
-        { ...(status && { status }) },
+        {
+          ...(status && {
+            status: {
+              in: status,
+            },
+          }),
+        },
       ],
     };
     const commonSelect: PrismaType.OrdersSelect = {
@@ -172,6 +189,8 @@ export async function GET(req: NextRequest) {
           take: lt,
           skip: (p - 1) * lt,
         })) as never;
+        break;
+
       case "product":
         const categorySelect = {
           id: true,

@@ -18,9 +18,8 @@ import {
   PurcahseUnitType,
   Shippingservice,
 } from "@/src/context/Checkoutcontext";
-
 import {
-  calculateDiscountProductPrice,
+  calculateDiscountPrice,
   encrypt,
   OrderReciptEmail,
 } from "@/src/lib/utilities";
@@ -532,10 +531,7 @@ export async function Createpaypalorder(orderId: string) {
 
     const orderItems: Paypalitemtype[] = order.Orderproduct.map((i) => {
       const price = i.product.discount
-        ? calculateDiscountProductPrice({
-            price: i.product.price,
-            discount: i.product.discount,
-          }).discount?.newprice?.toFixed(2) ?? "0.00"
+        ? calculateDiscountPrice(i.product.price, i.product.discount).newprice
         : parseFloat(i.product.price.toString()).toFixed(2);
       return {
         name: i.product.name,
