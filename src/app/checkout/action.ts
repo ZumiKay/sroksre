@@ -82,7 +82,7 @@ export async function Createorder(data: {
     const secretKey = process.env.KEY || null;
 
     if (!secretKey) {
-      return { success: true, message: "Error Occured" };
+      return { success: false, message: "Error Occured" };
     }
 
     const checkOrder = await Prisma.orders.findFirst({
@@ -92,12 +92,15 @@ export async function Createorder(data: {
             buyer_id: userid,
           },
           {
-            status: Allstatus.incart,
+            status: {
+              in: [Allstatus.incart, Allstatus.unpaid],
+            },
           },
         ],
       },
       select: {
         id: true,
+        status: true,
         user: {
           select: {
             id: true,
@@ -120,7 +123,9 @@ export async function Createorder(data: {
       },
       data: {
         price: data.price as never,
-        status: Allstatus.unpaid,
+        ...(checkOrder.status === Allstatus.incart
+          ? { status: Allstatus.unpaid }
+          : {}),
       },
     });
 
@@ -139,7 +144,7 @@ export async function Createorder(data: {
 export async function checkOrder(id: string) {
   const isOrder = await Prisma.orders.findUnique({
     where: { id },
-    select: { id: true, status: true },
+    select: { id: true, status: true, shipping_id: true },
   });
 
   return isOrder;
@@ -343,40 +348,47 @@ export async function handleShippingAdddress(
 ): Promise<Returntype> {
   try {
     let shipId = selected;
-    const user = await getUser();
 
-    if (!shipId && shippingdata && user && isSave) {
-      //create shipping addresss
-      const create = await Prisma.address.create({
-        data: {
-          userId: isSave === "1" ? user.id : undefined,
-          firstname: shippingdata.firstname,
-          lastname: shippingdata.lastname,
-          houseId: shippingdata.houseId.toString(),
-          district: shippingdata.district,
-          songkhat: shippingdata.songkhat,
-          province: shippingdata.province,
-          postalcode: shippingdata.postalcode,
-          street: shippingdata.street,
-        },
-      });
+    // Only get user if needed (when saving address or creating new one)
+    const shouldGetUser = (!shipId && shippingdata) || isSave === "1";
+    const user = shouldGetUser ? await getUser() : null;
+
+    // Create new address if needed
+    if (!shipId && shippingdata) {
+      // Extract only the needed fields to avoid unnecessary object spread
+      const addressData = {
+        userId: isSave === "1" ? user?.id : undefined,
+        firstname: shippingdata.firstname,
+        lastname: shippingdata.lastname,
+        houseId: shippingdata.houseId.toString(),
+        district: shippingdata.district,
+        songkhat: shippingdata.songkhat,
+        province: shippingdata.province,
+        postalcode: shippingdata.postalcode,
+        street: shippingdata.street,
+      };
+
+      const create = await Prisma.address.create({ data: addressData });
       shipId = create.id;
     }
 
-    if (isSave) {
+    // Update existing address with user ID if needed
+    else if (shipId && isSave === "1" && user?.id) {
+      // Only fetch and update if we need to save the address for the user
       const address = await Prisma.address.findUnique({
         where: { id: shipId },
+        select: { userId: true }, // Only select the field we need
       });
 
-      if (address && !address.userId && isSave === "1") {
+      if (address && !address.userId) {
         await Prisma.address.update({
           where: { id: shipId },
-          data: { userId: user?.id },
+          data: { userId: user.id },
         });
       }
     }
 
-    //Update order
+    // Update order with shipId
     await Prisma.orders.update({
       where: { id: orderId },
       data: {
@@ -384,10 +396,14 @@ export async function handleShippingAdddress(
         status: Allstatus.unpaid,
       },
     });
+
     return { success: true };
   } catch (error) {
-    console.log("Shipping Address", error);
-    return { success: false, message: "Error Occured" };
+    console.error("Shipping Address Error:", error);
+    return {
+      success: false,
+      message: "Error occurred while updating shipping information",
+    };
   }
 }
 
@@ -504,6 +520,14 @@ export async function Createpaypalorder(orderId: string) {
                 name: true,
                 price: true,
                 discount: true,
+                stocktype: true,
+                stock: true,
+                Variant: true,
+                Stock: {
+                  select: {
+                    Stockvalue: true,
+                  },
+                },
               },
             },
           },

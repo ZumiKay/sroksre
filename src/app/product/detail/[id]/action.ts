@@ -4,7 +4,6 @@ import { getUser } from "@/src/app/action";
 import { ProductState } from "@/src/context/GlobalType.type";
 import {
   Allstatus,
-  Productorderdetailtype,
   Productordertype,
   totalpricetype,
 } from "@/src/context/OrderContext";
@@ -63,21 +62,31 @@ export async function Addtocart(data: Productordertype): Promise<returntype> {
         });
 
         // Prepare cart item data
-        const cartItemData = {
-          productId: id,
-          details,
-          quantity,
-          user_id: user.id,
-        };
 
         if (isOrderInCart) {
           // Update existing cart - more efficient update
-          await tx.orderproduct.create({
+          const orderproduct = await tx.orderproduct.create({
             data: {
-              ...cartItemData,
               orderId: isOrderInCart.id,
+              productId: id,
+              user_id: user.id,
+              quantity,
             },
           });
+
+          if (details) {
+            await Promise.all(
+              details.map((selectedDetail) =>
+                tx.orderproductVariant.create({
+                  data: {
+                    variantId: selectedDetail.variantId,
+                    variantIdx: selectedDetail.variantIdx,
+                    orderproductId: orderproduct.id,
+                  },
+                })
+              )
+            );
+          }
 
           return { orderId: isOrderInCart.id };
         } else {
@@ -107,12 +116,28 @@ export async function Addtocart(data: Productordertype): Promise<returntype> {
           });
 
           // Create cart item in separate query for better performance
-          await tx.orderproduct.create({
+          const orderproduct = await tx.orderproduct.create({
             data: {
-              ...cartItemData,
               orderId: order.id,
+              productId: id,
+              user_id: user.id,
+              quantity,
             },
           });
+
+          if (details) {
+            await Promise.all(
+              details.map((selectedDetail) =>
+                tx.orderproductVariant.create({
+                  data: {
+                    variantId: selectedDetail.variantId,
+                    variantIdx: selectedDetail.variantIdx,
+                    orderproductId: orderproduct.id,
+                  },
+                })
+              )
+            );
+          }
 
           return { orderId: order.id };
         }
@@ -173,58 +198,28 @@ function generateSSCOrderId(): string {
   return `SSC${paddedNumber}`;
 }
 
-export async function CheckCart(
-  selectedDetail?: Productorderdetailtype[]
-): Promise<returntype> {
+export async function CheckCart(pid: number): Promise<returntype> {
   try {
-    const user = await getUser();
-    if (!user) {
-      return { success: true };
-    }
-
     // Improved query with proper OR condition for status
-    const orderProducts = (await Prisma.orderproduct.findMany({
+    const orderProducts = await Prisma.orderproduct.count({
       where: {
-        user_id: user.id,
-        order: {
-          status: {
-            in: [Allstatus.incart, Allstatus.unpaid],
+        AND: [
+          {
+            order: {
+              status: {
+                in: [Allstatus.incart, Allstatus.unpaid],
+              },
+            },
           },
-        },
+
+          {
+            productId: pid,
+          },
+        ],
       },
-      select: {
-        details: true,
-        productId: true,
-      },
-    })) as Productordertype[];
+    });
 
-    if (orderProducts.length === 0) {
-      return { success: true };
-    }
-
-    let isInCart = false;
-
-    // Check if product is in cart based on selected details or product ID
-    if (selectedDetail?.length) {
-      const selectedDetailsJSON = JSON.stringify(
-        selectedDetail.map((detail) => Object.entries(detail).sort())
-      );
-
-      isInCart = orderProducts.some((cart) => {
-        if (!cart.details?.length) return false;
-
-        // Compare details by serializing and comparing JSON
-        const cartDetailsJSON = JSON.stringify(
-          cart.details
-            .filter(Boolean)
-            .map((detail) => Object.entries(detail).sort())
-        );
-
-        return cartDetailsJSON === selectedDetailsJSON;
-      });
-    }
-
-    return { success: true, incart: isInCart };
+    return { success: true, incart: orderProducts !== 0 };
   } catch (error) {
     console.error("Check cart", error);
     return { success: false, message: "Network error" };

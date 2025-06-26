@@ -8,8 +8,11 @@ import { styled } from "@mui/material/styles";
 import Button from "@mui/material/Button";
 import {
   CateogoryState,
+  SelectTypeVariant,
   VariantColorValueType,
+  VariantOptionEnum,
 } from "@/src/context/GlobalType.type";
+import { Productorderdetailtype } from "@/src/context/OrderContext";
 
 interface buttonpros {
   type: "submit" | "reset" | "button" | undefined;
@@ -221,59 +224,114 @@ export const UploadInput = React.forwardRef(
 UploadInput.displayName = "UploadInput";
 
 interface Selectcontainerprops {
-  data: Array<string | VariantColorValueType>;
+  data: SelectTypeVariant;
   type: "TEXT" | "COLOR";
-  onSelect: (value: string) => void;
-  isSelected?: string;
+  onSelect: (id: number, idx: number) => void;
+  isSelected?: Productorderdetailtype[];
 }
+
+// Define styles outside component to prevent recreation on each render
 const isSelectedStyle: CSSProperties = {
   outline: "2px solid black",
   outlineOffset: "2px",
   color: "black",
 };
 
-export const SelectContainer = (props: Selectcontainerprops) => {
-  return (
-    <div className="w-fit max-w-[80%]  min-h-[50px] h-fit p-2 flex flex-row flex-wrap items-center gap-x-3 rounded-lg outline-1 outline outline-gray-400 outline-offset-2">
-      {props.data.map((i, idx) => (
-        <div key={idx} className="w-fit h-fit">
-          {typeof i === "string" ? (
+const colorItemBaseClass =
+  "w-fit h-fit flex flex-row gap-x-3 p-2 items-center rounded-lg cursor-pointer justify-center hover:outline-2 hover:outline hover:outline-gray-500 hover:outline-offset-2 active:outline-1 active:outline active:outline-gray-300 active:outline-offset-2";
+const textItemBaseClass =
+  "select_item cursor-pointer w-fit h-fit p-2 max-w-[200px] break-words rounded-lg transition-all duration-30 hover:bg-black hover:text-white";
+const colorCircleStyle = { width: "30px", height: "30px" };
+
+export const SelectContainer = React.memo((props: Selectcontainerprops) => {
+  // Create a map of selected items for O(1) lookups
+  const variant = React.useMemo(() => props.data, [props.data]);
+  const selectedMap = React.useMemo(() => {
+    if (!props.isSelected || props.isSelected.length === 0) return new Map();
+
+    // Avoid unnecessary else block
+    return new Map(
+      props.isSelected.map((item) => [
+        `${item.variantId}-${item.variantIdx}`,
+        true,
+      ])
+    );
+  }, [props.isSelected]);
+
+  // Optimize callback to depend only on onSelect
+  const handleItemClick = React.useCallback(
+    (value: number, idx: number) => () => props.onSelect(value, idx),
+    [props]
+  );
+
+  // Flatten the nested array structure for better render performance
+  const renderData = React.useMemo(() => {
+    const elements: React.JSX.Element[] = [];
+
+    props.data.label.forEach((item, itemIndex) => {
+      const isTextType = variant.type === VariantOptionEnum.text;
+
+      const key = `${variant.value}-${itemIndex}`;
+      const isSelected = selectedMap.has(key);
+      const uniqueKey = `${itemIndex}-${key}`;
+
+      if (isTextType) {
+        // Text variant
+        elements.push(
+          <div key={uniqueKey} className="w-fit h-fit">
             <div
-              key={idx}
-              onClick={() => {
-                props.onSelect(i);
-              }}
-              style={props.isSelected === i ? isSelectedStyle : {}}
-              className={`select_item cursor-pointer w-fit h-fit p-2 max-w-[200px] break-words rounded-lg transition-all duration-30 hover:bg-black hover:text-white`}
+              onClick={handleItemClick(variant.value, itemIndex)}
+              style={isSelected ? isSelectedStyle : undefined}
+              className={textItemBaseClass}
             >
-              {props.type === "TEXT" && (i as string)}
+              {item as string}
             </div>
-          ) : (
+          </div>
+        );
+      } else {
+        // Color variant
+        const colorItem = item as VariantColorValueType;
+        elements.push(
+          <div key={uniqueKey} className="w-fit h-fit">
             <div
-              style={{
-                ...(props.isSelected === i.val ? isSelectedStyle : {}),
-              }}
-              onClick={() => {
-                props.onSelect(i.val);
-              }}
-              className="w-fit h-fit flex flex-row gap-x-3 p-2 items-center rounded-lg cursor-pointer justify-center hover:outline-2 hover:outline  hover:outline-gray-500 hover:outline-offset-2 active:outline-1 active:outline  active:outline-gray-300 active:outline-offset-2  "
+              style={isSelected ? isSelectedStyle : undefined}
+              onClick={handleItemClick(variant.value, itemIndex)}
+              className={colorItemBaseClass}
             >
               <div
                 className="rounded-full"
                 style={{
-                  backgroundColor: i.val,
-                  width: "30px",
-                  height: "30px",
+                  backgroundColor: colorItem.val,
+                  ...colorCircleStyle,
                 }}
-              ></div>
-
-              {i.name && (
-                <div className="w-fit h-fit text-lg font-bold"> {i.name}</div>
+              />
+              {colorItem.name && (
+                <div className="w-fit h-fit text-lg font-bold">
+                  {colorItem.name}
+                </div>
               )}
             </div>
-          )}
-        </div>
-      ))}
+          </div>
+        );
+      }
+    });
+
+    return elements;
+  }, [
+    props.data.label,
+    variant.type,
+    variant.value,
+    selectedMap,
+    handleItemClick,
+  ]);
+
+  // Use a Fragment to avoid unnecessary div nesting if not needed
+  return (
+    <div className="w-fit max-w-[80%] min-h-[50px] h-fit p-2 flex flex-row flex-wrap items-center gap-x-3 rounded-lg outline-1 outline outline-gray-400 outline-offset-2">
+      {renderData}
     </div>
   );
-};
+});
+
+// Add display name for better debugging
+SelectContainer.displayName = "SelectContainer";

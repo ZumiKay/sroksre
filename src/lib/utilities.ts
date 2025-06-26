@@ -460,7 +460,7 @@ export const OrderReciptEmail = (body: string) => `
           <o:AllowPNG/>
           <o:PixelsPerInch>96</o:PixelsPerInch>
         </o:OfficeDocumentSettings>
-        </xml>
+      </xml>
     </noscript>
   <![endif]-->
   <!--[if lte mso 11]>

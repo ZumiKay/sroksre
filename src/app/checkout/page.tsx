@@ -5,7 +5,6 @@ import Prisma from "@/src/lib/prisma";
 import {
   Allstatus,
   Ordertype,
-  Productorderdetailtype,
   totalpricetype,
 } from "@/src/context/OrderContext";
 import { calculateDiscountPrice, decrypt } from "@/src/lib/utilities";
@@ -58,11 +57,14 @@ export default async function Checkoutpage(props: {
     return redirect("/");
   }
 
+  const isNotSuccess = step === 4 && order.status !== Allstatus.paid;
+  if (isNotSuccess) redirect("/checkout?" + `orderid=${orderid_param}&step=3`);
+
   const ShowBody = () => {
     return step === 1 ? (
       <OrderSummary orderId={orderid} />
     ) : step === 2 ? (
-      <ShippingForm orderid={orderid} />
+      <ShippingForm order={order as never} />
     ) : step === 3 ? (
       <PaymentDetail orderId={orderid} encryptedId={orderid_param as string} />
     ) : (
@@ -94,23 +96,39 @@ export default async function Checkoutpage(props: {
 //Component
 
 const getCheckoutdata = async (orderid?: string, userid?: number) => {
+  // Early return if required parameters are missing
+  if (!orderid) return null;
+
+  // Build where clause conditionally to avoid unnecessary AND
+  const whereClause = userid
+    ? { id: orderid, buyer_id: userid }
+    : { id: orderid };
+
+  // Only select fields we actually need
   const result = await Prisma.orders.findFirst({
-    where: userid ? { user: { id: userid } } : { id: orderid },
+    where: whereClause,
     include: {
       user: {
         select: { id: true, firstname: true, lastname: true, email: true },
       },
       shipping: true,
       Orderproduct: {
-        include: {
+        select: {
+          id: true,
+          quantity: true,
+          details: true,
           product: {
             select: {
               id: true,
-              covers: true,
+              covers: {
+                select: { url: true, name: true },
+                take: 1,
+              },
               discount: true,
               name: true,
               price: true,
               stocktype: true,
+              stock: true,
               Stock: { select: { Stockvalue: true } },
               Variant: {
                 orderBy: { id: "asc" },
@@ -125,40 +143,62 @@ const getCheckoutdata = async (orderid?: string, userid?: number) => {
 
   if (!result) return null;
 
-  const updatedOrderProducts = result.Orderproduct.map((orderProduct) => {
-    {
-      const detail = orderProduct.details as Productorderdetailtype[];
-      const selectedVariantDetails = orderProduct.product.Variant.map(
-        (variant, idx) => {
-          const detailValue = detail[idx].value;
-          const optionValues = variant.option_value as (
-            | string
-            | VariantColorValueType
-          )[];
+  // Create variant lookup maps once to avoid repeated searches
+  const variantMaps = result.Orderproduct.map((product) => {
+    const detailMap = new Map();
+    for (const detail of product.details) {
+      if (detail.variantId !== undefined) {
+        detailMap.set(detail.variantId, detail);
+      }
+    }
+    return detailMap;
+  });
 
-          return optionValues.find((val) =>
-            typeof val === "string"
-              ? val === detailValue
-              : val.val === detailValue
-          );
+  // Process order products with optimized lookups
+  const updatedOrderProducts = result.Orderproduct.map(
+    (orderProduct, index) => {
+      const detailMap = variantMaps[index];
+
+      // Process variant details more efficiently
+      const selectedVariantDetails = [];
+      for (const variant of orderProduct.product.Variant) {
+        const detail = detailMap.get(variant.id);
+
+        if (detail) {
+          const optionVal = variant.option_value as Array<
+            string | VariantColorValueType
+          >;
+          const variantValue =
+            detail.variantIdx !== undefined
+              ? optionVal[detail.variantIdx]
+              : null;
+
+          if (variantValue) {
+            selectedVariantDetails.push(variantValue);
+          }
         }
-      ).filter(Boolean);
+      }
 
+      // Calculate discount price only when needed
+      let discountPrice;
+      if (orderProduct.product.discount) {
+        discountPrice = calculateDiscountPrice(
+          orderProduct.product.price,
+          orderProduct.product.discount
+        );
+      }
+
+      // Return optimized product data
       return {
         ...orderProduct,
         selectedvariant: selectedVariantDetails,
         product: {
           ...orderProduct.product,
-          discount:
-            orderProduct.product.discount &&
-            calculateDiscountPrice(
-              orderProduct.product.price,
-              orderProduct.product.discount
-            ),
+          discount: discountPrice || orderProduct.product.discount,
         },
       };
     }
-  });
+  );
 
   return {
     ...result,
@@ -394,7 +434,7 @@ const SuccessPage = async ({ orderid }: { orderid: string }) => {
                 >
                   <path
                     fillRule="evenodd"
-                    d="M18 13V5a2 2 0 00-2-2H4a2 2 0 00-2 2v8a2 2 0 002 2h3l3 3 3-3h3a2 2 0 002-2zM5 7a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1zm1 3a1 1 0 100 2h3a1 1 0 100-2H6z"
+                    d="M18 13V5a2 2 0 00-2-2H4a2 2 0 00-2 2v8a2 2 0 002 2h3l3 3 3-3h3a2 2 0 002-2V8.118zM5 7a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1zm1 3a1 1 0 100 2h3a1 1 0 100-2H6z"
                     clipRule="evenodd"
                   />
                 </svg>

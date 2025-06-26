@@ -19,7 +19,7 @@ export const getQtyBasedOnOptions = (
   let id = 0;
 
   const orderdetailValuesSet = new Set(
-    orderdetail.map((i) => i.option_value).filter(Boolean)
+    orderdetail.map((i) => i.variant?.option_value as string[]).filter(Boolean)
   );
 
   for (const stock of variantstock) {

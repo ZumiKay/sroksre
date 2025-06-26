@@ -3,8 +3,14 @@
 import { getPolicesByPage } from "@/src/app/api/policy/route";
 import Prisma from "@/src/lib/prisma";
 import { CheckCart, Checkwishlist } from "./action";
-import { ProductState } from "@/src/context/GlobalType.type";
+import {
+  ActionReturnType,
+  ProductState,
+  Stocktype,
+  Varianttype,
+} from "@/src/context/GlobalType.type";
 import { calculateDiscountPrice } from "@/src/lib/utilities";
+import { Allstatus, Productorderdetailtype } from "@/src/context/OrderContext";
 
 interface Policytype {
   id: number;
@@ -116,7 +122,7 @@ export async function GetProductDetailById(pid: string) {
 
     const ProductResult = result as unknown as ProductState;
 
-    const checkcart = await CheckCart(undefined);
+    const checkcart = await CheckCart(id);
 
     let isInCart = false;
 
@@ -133,3 +139,172 @@ export async function GetProductDetailById(pid: string) {
     return { success: false };
   }
 }
+
+type IsInCartProps = {
+  selected_var: Productorderdetailtype[];
+  pid: number;
+};
+export const IsInCartAndGetStock = async ({
+  selected_var,
+  pid,
+}: IsInCartProps): Promise<
+  ActionReturnType<{ qty?: number; stockId?: number; incart?: boolean }>
+> => {
+  try {
+    if (!pid || !selected_var || selected_var.length === 0) {
+      return { success: true };
+    }
+
+    // Prepare a map for efficient variant lookup
+    const variantMap = new Map();
+    for (const item of selected_var) {
+      if (item.variantId && item.variantIdx !== undefined) {
+        const key = `${item.variantId}-${item.variantIdx}`;
+        variantMap.set(key, true);
+      }
+    }
+
+    // Exit early if no valid variants
+    if (variantMap.size === 0) {
+      return { success: true };
+    }
+    let isincart = false;
+    // Query only the needed data with more specific filter
+    const order = await Prisma.orders.findFirst({
+      where: {
+        status: { in: [Allstatus.incart, Allstatus.unpaid] },
+      },
+      select: {
+        Orderproduct: {
+          select: {
+            details: {
+              select: {
+                variantId: true,
+                variantIdx: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    // If no order found or no products, return not in cart
+    if (!order || !order.Orderproduct || order.Orderproduct.length === 0) {
+      isincart = false;
+    }
+
+    // Check if any product in the cart matches the selected variants
+
+    if (order?.Orderproduct)
+      for (const product of order.Orderproduct) {
+        for (const detail of product.details) {
+          if (
+            detail.variantId &&
+            detail.variantIdx &&
+            variantMap.has(`${detail.variantId}-${detail.variantIdx}`)
+          ) {
+            isincart = true;
+          }
+        }
+      }
+
+    //Get QTY Of The Selected Var
+    const prod = await Prisma.products.findUnique({
+      where: { id: pid },
+      select: {
+        Variant: true,
+        Stock: {
+          select: {
+            Stockvalue: true,
+          },
+        },
+      },
+    });
+
+    if (!prod)
+      return {
+        success: false,
+      };
+
+    const selectedVariant: Array<string> = (
+      prod.Variant as Varianttype[]
+    ).reduce<string[]>((acc, variant) => {
+      const matchingVar = selected_var.find((i) => i.variantId === variant.id);
+
+      if (matchingVar && matchingVar.variantIdx !== undefined) {
+        // Extract the specific option value using variantIdx
+        const optionValue =
+          variant.option_value[matchingVar.variantIdx as never];
+
+        if (optionValue) {
+          // Handle both string and object types
+          const value =
+            typeof optionValue === "string" ? optionValue : optionValue.val; // Assuming object has a 'val' property
+
+          if (value) {
+            acc.push(value);
+          }
+        }
+      }
+
+      return acc;
+    }, []);
+
+    const { id, qty } = getQtyBaseOnSelectionVar(
+      selectedVariant,
+      prod.Stock as unknown as Stocktype[]
+    );
+
+    return {
+      success: true,
+      data: {
+        incart: isincart,
+        qty,
+        stockId: id,
+      },
+    };
+  } catch (error) {
+    console.error("IsInCart error:", error);
+    return { success: false, error: "Error occurred while checking cart" };
+  }
+};
+
+const getQtyBaseOnSelectionVar = (variant: string[], stockval: Stocktype[]) => {
+  // Early return if inputs are invalid
+  if (!variant?.length || !stockval?.length) {
+    return { qty: 0, id: 0 };
+  }
+
+  // Convert variant array to Set for O(1) lookup
+  const variantSet = new Set(variant);
+  const variantLength = variant.length;
+
+  // Iterate through each stock item in the array
+  for (const stock of stockval) {
+    // Check if Stockvalue exists and has items
+    if (!stock.Stockvalue || !stock.Stockvalue.length) {
+      continue;
+    }
+
+    // Check each stock value
+    for (const stockValue of stock.Stockvalue) {
+      if (
+        !stockValue.variant_val ||
+        stockValue.variant_val.length !== variantLength
+      ) {
+        continue;
+      }
+
+      if (stockValue.variant_val.every((val) => variantSet.has(val))) {
+        // Return immediately on first match (early exit)
+        return {
+          qty: stockValue.qty,
+          id: stockValue.id ?? 0,
+        };
+      }
+    }
+  }
+
+  // Return default if no match found
+  return { qty: 0, id: 0 };
+};

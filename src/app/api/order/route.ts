@@ -4,8 +4,62 @@ import Prisma from "@/src/lib/prisma";
 import { calculateDiscountPrice } from "@/src/lib/utilities";
 import { NextRequest } from "next/server";
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
+import { extractQueryParams } from "../banner/route";
+import { getUser } from "../../action";
 
 //Edit Created Order Information
+
+interface GetOrderType {
+  ty: "addressselect" | "addressbyid";
+  aid?: number;
+}
+
+export async function GET(req: NextRequest) {
+  try {
+    const { ty, aid } = extractQueryParams(
+      req.nextUrl.toString()
+    ) as unknown as GetOrderType;
+    const user = await getUser();
+
+    switch (ty) {
+      case "addressselect":
+        const Useradresses = await Prisma.address.findMany({
+          where: {
+            userId: user?.id,
+          },
+          select: {
+            id: true,
+          },
+          orderBy: {
+            id: "asc",
+          },
+        });
+        return Response.json(
+          {
+            data: Useradresses.map((i, idx) => ({
+              label: `Address ${idx + 1}`,
+              value: i.id,
+            })),
+          },
+          { status: 200 }
+        );
+      case "addressbyid":
+        const selectedAddress = await Prisma.address.findUnique({
+          where: {
+            id: aid,
+          },
+        });
+        return Response.json({ data: selectedAddress }, { status: 200 });
+
+      default:
+        return Response.json({ error: "Invalid Param" }, { status: 400 });
+    }
+  } catch (error) {
+    console.log("Get OrderData", error);
+    return Response.json({ error: "Error Occured" }, { status: 500 });
+  }
+}
+
 export async function PUT(req: NextRequest) {
   try {
     const { id, ty } = await req.json();
@@ -17,6 +71,7 @@ export async function PUT(req: NextRequest) {
       where: { id },
       select: {
         price: true,
+        shipping_id: true,
         Orderproduct: {
           select: {
             quantity: true,

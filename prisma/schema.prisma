@@ -195,15 +195,28 @@ model Orders {
 }
 
 model Orderproduct {
-  id        Int      @id @default(autoincrement())
-  productId Int
-  user_id   Int
-  quantity  Int
-  details   Json?
-  orderId   String?
-  user      User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  order     Orders?  @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product   Products @relation(fields: [productId], references: [id], onDelete: Cascade)
+  id                Int                   @id @default(autoincrement())
+  productId         Int
+  user_id           Int
+  quantity          Int
+  orderId           String?
+  stock_selected_id Int?
+  stockvar          Stockvalue?           @relation(fields: [stock_selected_id], references: [id])
+  details           OrderproductVariant[]
+  user              User                  @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  order             Orders?               @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product           Products              @relation(fields: [productId], references: [id], onDelete: Cascade)
+  Variant           Variant?              @relation(fields: [variantId], references: [id])
+  variantId         Int?
+}
+
+model OrderproductVariant {
+  id             Int           @id @default(autoincrement())
+  variant        Variant       @relation(fields: [variantId], references: [id])
+  variantId      Int
+  variantIdx     Int
+  Orderproduct   Orderproduct? @relation(fields: [orderproductId], references: [id], onDelete: Cascade)
+  orderproductId Int?
 }
 
 model Banner {
@@ -295,13 +308,15 @@ model Info {
 }
 
 model Variant {
-  id              Int               @id @default(autoincrement())
-  product_id      Int?
-  product         Products?         @relation(fields: [product_id], references: [id], onDelete: Cascade)
-  option_title    String
-  option_type     String
-  option_value    Json
-  Varianttemplate Varianttemplate[]
+  id                  Int                   @id @default(autoincrement())
+  product_id          Int?
+  product             Products?             @relation(fields: [product_id], references: [id], onDelete: Cascade)
+  option_title        String
+  option_type         String
+  option_value        Json
+  Varianttemplate     Varianttemplate[]
+  Orderproduct        Orderproduct[]
+  OrderproductVariant OrderproductVariant[]
 
   @@map("variant")
 }
@@ -322,13 +337,14 @@ model Stock {
 }
 
 model Stockvalue {
-  id          Int      @id @default(autoincrement())
-  qty         Int
-  variant_val Json
-  stockId     Int
-  stock       Stock    @relation(fields: [stockId], references: [id], onDelete: Cascade)
-  createdAt   DateTime @default(now())
-  updateAt    DateTime @updatedAt
+  id           Int            @id @default(autoincrement())
+  qty          Int
+  variant_val  Json
+  stockId      Int
+  stock        Stock          @relation(fields: [stockId], references: [id], onDelete: Cascade)
+  createdAt    DateTime       @default(now())
+  updateAt     DateTime       @updatedAt
+  Orderproduct Orderproduct[]
 }
 
 model Question {

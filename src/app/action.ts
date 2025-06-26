@@ -164,7 +164,14 @@ export const GetCartCount = async (): Promise<number> => {
 
   const cartcount = await Prisma.orders.findFirst({
     where: {
-      AND: [{ buyer_id: user.id }, { status: Allstatus.incart }],
+      AND: [
+        { buyer_id: user.id },
+        {
+          status: {
+            in: [Allstatus.incart, Allstatus.unpaid],
+          },
+        },
+      ],
     },
     select: {
       id: true,

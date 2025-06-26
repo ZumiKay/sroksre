@@ -8,7 +8,7 @@ import { StaticImageData } from "next/image";
 import ProfileIcon from "@/public/Image/profile.png";
 import WishListIcon from "@/public/Image/bookmark.png";
 import LockIcon from "@/public/Image/lock.png";
-import { Allstatus, Ordertype } from "./OrderContext";
+import { Allstatus, Ordertype, Productorderdetailtype } from "./OrderContext";
 import { DateValue, RangeValue } from "@heroui/react";
 
 export const get24Hr = new Date(Date.now() + 24 * 60 * 60 * 1000);
@@ -97,6 +97,12 @@ export interface SelectType<t = string> {
   value: number | t;
   color?: string;
 }
+
+export interface SelectTypeVariant {
+  label: Array<string | VariantColorValueType>;
+  type: VariantOptionEnum;
+  value: number;
+}
 export interface userdata {
   id?: number;
   email?: string;
@@ -153,6 +159,12 @@ export type VariantColorValueType = {
   val: string;
   name?: string;
 };
+
+export enum VariantOptionEnum {
+  color = "COLOR",
+  text = "TEXT",
+}
+
 export interface Varianttype {
   id?: number;
   option_title: string;

@@ -45,7 +45,6 @@ export interface Paypalamounttype {
 
 export interface PaypalshippingType {
   type: "SHIPPING" | "NO_SHIPPING";
-
   address?: {
     address_line_1: string;
     address_line_2?: string;

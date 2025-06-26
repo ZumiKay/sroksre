@@ -1,6 +1,13 @@
 "use client";
 
-import { memo, useCallback, useEffect, useMemo, useState } from "react";
+import {
+  ChangeEvent,
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -14,12 +21,14 @@ import {
   Button,
   Spinner,
   Divider,
+  InputProps,
 } from "@heroui/react";
-import { STEPS_INITIAL } from "@/src/context/GlobalType.type";
-import { getAddress, handleShippingAdddress } from "../../checkout/action";
+import { SelectType, STEPS_INITIAL } from "@/src/context/GlobalType.type";
+import { handleShippingAdddress } from "../../checkout/action";
 import { Address } from "@prisma/client";
 import { ApiRequest } from "@/src/context/CustomHook";
-import { errorToast, successToast } from "../Loading";
+import { errorToast } from "../Loading";
+import { Ordertype } from "@/src/context/OrderContext";
 
 // Types and interfaces
 interface Addresstype {
@@ -42,7 +51,7 @@ interface FormWrapperProps {
 }
 
 interface ShippingFormProps {
-  orderid: string;
+  order: Ordertype;
 }
 
 // Constants
@@ -66,7 +75,7 @@ const styles = {
     max-lg:flex-col max-lg:gap-4 max-lg:p-4
   `,
   shippingCard: `
-    w-full max-w-2xl bg-gradient-to-br from-white to-gray-50 
+    w-full  bg-gradient-to-br from-white to-gray-50 
     shadow-xl border border-gray-200
   `,
   cardHeader: "pb-6",
@@ -109,7 +118,14 @@ const formAnimations = {
 } as const;
 
 // Form field configuration
-const FORM_FIELDS = [
+const FORM_FIELDS: Array<{
+  name: string;
+  placeholder: string;
+  label: string;
+  required: boolean;
+  type: string;
+  fullWidth?: boolean;
+}> = [
   {
     name: "firstname",
     placeholder: "First Name",
@@ -121,7 +137,7 @@ const FORM_FIELDS = [
     name: "lastname",
     placeholder: "Last Name",
     label: "Last Name",
-    required: true,
+    required: false,
     type: "text",
   },
   {
@@ -157,7 +173,7 @@ const FORM_FIELDS = [
   {
     name: "songkhat",
     placeholder: "Commune/Ward",
-    label: "Commune/Ward",
+    label: "Songkat/Commune/Ward",
     required: true,
     type: "text",
     fullWidth: true,
@@ -189,7 +205,6 @@ export const FormWrapper = memo<FormWrapperProps>(
     const handleProceed = useCallback(() => {
       const getStep = STEPS_INITIAL.find((i) => i.step === step);
       if (!getStep) return;
-
       const nextStep = step < 4 ? step + 1 : step;
       const current = new URLSearchParams(searchParams);
       current.set("step", nextStep.toString());
@@ -238,12 +253,15 @@ export const FormWrapper = memo<FormWrapperProps>(
                 return;
               }
 
-              const request = await handleShippingAdddress(
+              const shippingReq = handleShippingAdddress.bind(
+                null,
                 order_id,
                 undefined,
                 addressData as unknown as Address,
                 isSaved ? "1" : "0"
               );
+
+              const request = await shippingReq();
 
               if (!request.success) {
                 errorToast(request.message ?? "Failed to save address");
@@ -252,7 +270,6 @@ export const FormWrapper = memo<FormWrapperProps>(
             }
           }
 
-          successToast("Address saved successfully!");
           handleProceed();
         } catch (error) {
           console.error("Form submission error:", error);
@@ -340,44 +357,54 @@ export const SelectionSSR = memo<{
 SelectionSSR.displayName = "SelectionSSR";
 
 // Enhanced ShippingForm Component
-export const ShippingForm = memo<ShippingFormProps>(({ orderid }) => {
-  const [addresses, setAddresses] = useState<Addresstype[]>([]);
+export const ShippingForm = memo<ShippingFormProps>(({ order }) => {
+  const [addressOptions, setAddressOptions] = useState<Array<SelectType>>();
   const [loading, setLoading] = useState(false);
   const [selectedAddress, setSelectedAddress] =
     useState<Addresstype>(SHIPPING_INITIAL);
-  const [selectedId, setSelectedId] = useState(0);
+  const [selectedId, setSelectedId] = useState(order.shipping_id ?? 0);
   const [saveForFuture, setSaveForFuture] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Fetch addresses on mount
   useEffect(() => {
     const fetchData = async () => {
-      try {
-        setLoading(true);
-        const result = await getAddress(orderid);
-
-        if (result.selectedaddress?.shipping) {
-          const shipping = result.selectedaddress.shipping as Addresstype;
-          setSelectedId(shipping.id ?? 0);
-          setSelectedAddress(shipping);
-        }
-
-        setAddresses((result.address as Addresstype[]) || []);
-      } catch (error) {
-        console.error("Error fetching addresses:", error);
-        errorToast("Failed to load addresses");
-      } finally {
-        setLoading(false);
+      setLoading(true);
+      const result = await ApiRequest({
+        url: "/api/order?ty=addressselect",
+        method: "GET",
+      });
+      setLoading(false);
+      if (result.success && result.data) {
+        setAddressOptions(result.data as Array<SelectType>);
       }
     };
 
     fetchData();
-  }, [orderid]);
+  }, [order.id]);
+
+  //fetch selected Address
+  useEffect(() => {
+    async function FetchSelectedAddr() {
+      if (order.shipping_id) {
+        const AddrReq = await ApiRequest({
+          url: `/api/order?ty=addressbyid&aid=${order.shipping_id}`,
+        });
+
+        if (AddrReq.success && AddrReq.data) {
+          setSelectedAddress(AddrReq.data as Addresstype);
+          setSelectedId(order.shipping_id);
+        }
+      }
+    }
+    FetchSelectedAddr();
+  }, [order.shipping_id]);
 
   // Handle input changes with validation
   const handleChange = useCallback(
-    (name: string, value: string) => {
-      setSelectedAddress((prev) => ({ ...prev, id: -1, [name]: value }));
+    (e: ChangeEvent<HTMLInputElement>) => {
+      const { name, value } = e.target;
+      setSelectedAddress((prev) => ({ ...prev, [name]: value }));
 
       // Clear error when user starts typing
       if (errors[name]) {
@@ -393,97 +420,60 @@ export const ShippingForm = memo<ShippingFormProps>(({ orderid }) => {
       setSelectedId(value);
       setErrors({}); // Clear errors when switching addresses
 
-      if (value === 0) {
+      if (order.shipping_id && value === order.shipping_id) {
         setSelectedAddress(SHIPPING_INITIAL);
-        try {
+        if (order.shipping_id) {
           setLoading(true);
           const updateResult = await ApiRequest({
             url: "/api/order",
             method: "PUT",
-            data: { id: orderid, ty: "removeAddress" },
+            data: { id: order.id, ty: "removeAddress" },
           });
+          setLoading(false);
 
           if (!updateResult.success) {
             errorToast("Failed to update address");
           }
-        } catch (error) {
-          console.error("Error removing address:", error);
-          errorToast("Failed to update address");
-        } finally {
-          setLoading(false);
         }
         return;
-      }
-
-      if (value === -1) {
+      } else if (value === 0) {
+        setSelectedAddress(SHIPPING_INITIAL);
+      } else if (value === -1) {
         setSelectedAddress({ ...SHIPPING_INITIAL, id: -1 });
         return;
-      }
+      } else if (value !== 0 && value !== -1) {
+        //get selected address
+        const getReq = await ApiRequest({
+          url: `/api/order?ty=addressbyid&aid=${value}`,
+          method: "GET",
+        });
 
-      const found = addresses.find((addr) => addr.id === value);
-      if (found) {
-        setSelectedAddress(found);
+        if (!getReq.success) {
+          errorToast(getReq.error ?? "Error Occured");
+          return;
+        }
+        setSelectedAddress(getReq.data as Addresstype);
       }
     },
-    [addresses, orderid]
+    [order.id, order.shipping_id]
   );
 
   // Address selection options
-  const addressOptions = useMemo(
+  const addressSelectOptions = useMemo(
     () => [
       { label: "No Address", value: 0 },
-      ...addresses.map((addr) => ({
-        label: `${addr.firstname} ${addr.lastname} - ${addr.street}`,
-        value: addr.id,
-      })),
+      ...(addressOptions?.map((i) => i) ?? []),
       { label: "Enter New Address", value: -1 },
     ],
-    [addresses]
+    [addressOptions]
   );
-
-  // Render form fields
-  const renderFormFields = useMemo(() => {
-    if (selectedId === 0) return null;
-
-    return FORM_FIELDS.map((field) => {
-      const isFullWidth = field;
-      const value = selectedAddress?.[field.name as keyof Addresstype] || "";
-
-      return (
-        <motion.div
-          key={field.name}
-          variants={formAnimations.item}
-          className={isFullWidth ? styles.inputFull : ""}
-        >
-          <Input
-            name={field.name}
-            label={field.label}
-            placeholder={field.placeholder}
-            value={String(value)}
-            onValueChange={(val) => handleChange(field.name, val)}
-            isRequired={field.required}
-            variant="bordered"
-            size="lg"
-            type={field.type}
-            errorMessage={errors[field.name]}
-            isInvalid={!!errors[field.name]}
-            className="w-full"
-            classNames={{
-              input: "text-sm",
-              label: "text-sm font-medium",
-            }}
-          />
-        </motion.div>
-      );
-    });
-  }, [selectedId, selectedAddress, errors, handleChange]);
 
   return (
     <motion.div
       variants={formAnimations.container}
       className="w-full max-w-4xl mx-auto"
     >
-      <Card className={styles.shippingCard}>
+      <Card fullWidth className={styles.shippingCard}>
         <CardHeader className={styles.cardHeader}>
           <div className={styles.cardTitle}>
             <span className="text-3xl">🏠</span>
@@ -525,7 +515,7 @@ export const ShippingForm = memo<ShippingFormProps>(({ orderid }) => {
               startContent={<span className="text-lg">📍</span>}
               className="w-full"
             >
-              {addressOptions.map((item) => (
+              {addressSelectOptions.map((item) => (
                 <SelectItem
                   key={item.value.toString()}
                   startContent={
@@ -548,31 +538,25 @@ export const ShippingForm = memo<ShippingFormProps>(({ orderid }) => {
                 transition={{ duration: 0.3 }}
                 className={styles.formGrid}
               >
-                <div className={styles.inputRow}>
-                  {renderFormFields?.slice(0, 2)}
-                </div>
+                <h3 className="text-lg font-semibold mb-4 text-gray-800">
+                  {selectedId === -1 ? "Add New Address" : "Edit Address"}
+                </h3>
 
-                <div className={styles.inputFull}>
-                  {renderFormFields?.slice(2, 4)}
-                </div>
-
-                <div className={styles.inputRow}>
-                  {renderFormFields?.slice(4, 6)}
-                </div>
-
-                <div className={styles.inputFull}>
-                  {renderFormFields?.slice(6, 7)}
-                </div>
-
-                <div className={styles.inputRow}>
-                  {renderFormFields?.slice(7)}
+                <div className="w-full h-fit flex flex-col items-center gap-y-5">
+                  {FORM_FIELDS.map((field, idx) => {
+                    return (
+                      <Input
+                        key={idx}
+                        {...(field as unknown as InputProps)}
+                        onChange={handleChange as never}
+                        value={selectedAddress[field.name as never]}
+                      />
+                    );
+                  })}
                 </div>
 
                 {/* Save for future checkbox */}
-                <motion.div
-                  variants={formAnimations.item}
-                  className={styles.saveCheckbox}
-                >
+                <motion.div className={"w-full h-fit"}>
                   <Checkbox
                     isSelected={saveForFuture}
                     onValueChange={setSaveForFuture}
@@ -589,7 +573,7 @@ export const ShippingForm = memo<ShippingFormProps>(({ orderid }) => {
                 {selectedId === -1 && selectedAddress.firstname && (
                   <motion.div
                     variants={formAnimations.item}
-                    className="p-4 bg-blue-50 rounded-lg border border-blue-200"
+                    className="p-4 bg-blue-50 rounded-lg border border-blue-200 mt-4"
                   >
                     <h4 className="font-medium text-blue-900 mb-2">
                       Address Preview:

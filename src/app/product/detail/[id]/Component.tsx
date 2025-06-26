@@ -4,20 +4,17 @@ import PrimaryButton, {
   SelectContainer,
   Selection,
 } from "@/src/app/component/Button";
-import {
-  Productorderdetailtype,
-  Productordertype,
-} from "@/src/context/OrderContext";
-import React, { useCallback, useEffect, useState } from "react";
+import { Productordertype } from "@/src/context/OrderContext";
+import React, { useCallback, useEffect, useMemo, useState, memo } from "react";
 import { Addtocart, AddWishlist } from "./action";
 import { errorToast, successToast } from "@/src/app/component/Loading";
-import { ApiRequest } from "@/src/context/CustomHook";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button, Skeleton } from "@heroui/react";
 import {
   ProductState,
-  Stocktype,
+  SelectTypeVariant,
   VariantColorValueType,
+  VariantOptionEnum,
 } from "@/src/context/GlobalType.type";
 import {
   Productdetailinitialize,
@@ -26,508 +23,571 @@ import {
 import { ProductStockType } from "@/src/app/component/ServerComponents";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faCartShopping, faHeart } from "@fortawesome/free-solid-svg-icons";
-import { boolean, unknown } from "zod";
-
-export const ShowPrice = ({
-  price,
-  discount,
-}: Pick<ProductState, "price" | "discount">) => {
-  const priceString = price.toFixed(2);
-  const isDiscount = discount && (
-    <div className="discount_section text-lg flex flex-row items-center justify-start gap-x-5 font-semibold">
-      <h3 className="oldprice line-through w-fit font-normal">
-        {`$ ${priceString}`}
-      </h3>
-      <h3 className="w-fit text-red-400">{`-${discount.percent}%`}</h3>
-      <h3 className="w-fit">{`$ ${parseFloat(discount.newprice).toFixed(
-        2
-      )}`}</h3>
-    </div>
-  );
-  const normalprice = (
-    <h3 className="text-lg font-bold w-full">{`$${priceString}`}</h3>
-  );
-
-  return isDiscount ? isDiscount : normalprice;
-};
+import { IsInCartAndGetStock } from "./detail_action";
 
 interface errormessType {
   qty?: string;
   option?: string;
 }
 
-const InitializeDetail = (size: number) =>
-  Array.from({ length: size }).fill(null);
+const EMPTY_ERROR_STATE = { option: "", qty: "" };
 
-export const OptionSection = ({
-  data,
-  isAdmin,
-  isInWishlist,
-}: {
-  data: Pick<
-    ProductState,
-    "id" | "stocktype" | "stock" | "variants" | "varaintstock"
-  >;
-  isAdmin: boolean;
-  isInWishlist: boolean;
-}) => {
-  const { productorderdetail, setproductorderdetail } = useGlobalContext();
-  const [loading, setloading] = useState(false);
-  const [errormess, seterrormess] = useState<errormessType>({
-    option: "",
-    qty: "",
-  });
-  const [qty, setqty] = useState(0);
-  const [incart, setincart] = useState(false);
+export const ShowPrice = memo(
+  ({ price, discount }: Pick<ProductState, "price" | "discount">) => {
+    const priceString = useMemo(() => price.toFixed(2), [price]);
 
-  useEffect(() => {
-    const InitializeProductOrder = (
-      data: Pick<
-        ProductState,
-        "id" | "stocktype" | "stock" | "variants" | "varaintstock"
-      >
-    ) => {
-      const type = data.stocktype;
+    if (!discount) {
+      return <h3 className="text-lg font-bold w-full">{`$${priceString}`}</h3>;
+    }
 
-      if (type !== ProductStockType.stock) {
-        const arr = InitializeDetail(
-          type === "size" ? 1 : data.variants ? data.variants?.length : 0
-        ) as never[];
+    return (
+      <div className="discount_section text-lg flex flex-row items-center justify-start gap-x-5 font-semibold">
+        <h3 className="oldprice line-through w-fit font-normal">
+          {`$ ${priceString}`}
+        </h3>
+        <h3 className="w-fit text-red-400">{`-${discount.percent}%`}</h3>
+        <h3 className="w-fit">{`$ ${parseFloat(discount.newprice).toFixed(
+          2
+        )}`}</h3>
+      </div>
+    );
+  }
+);
+
+ShowPrice.displayName = "ShowPrice";
+
+const Stock = memo(
+  ({
+    max,
+    errormess,
+    setmess,
+    incart,
+    isStock,
+    isloading,
+  }: {
+    max: number;
+    errormess: errormessType;
+    setmess: React.Dispatch<React.SetStateAction<errormessType>>;
+    incart?: boolean;
+    isStock?: boolean;
+    isloading?: boolean;
+  }) => {
+    const { setproductorderdetail, productorderdetail } = useGlobalContext();
+
+    const showLowStock = useMemo(() => max > 0 && max <= 5, [max]);
+
+    const quantityOptions = useMemo(
+      () =>
+        Array.from({ length: max }, (_, idx) => ({
+          label: idx + 1,
+          value: idx + 1,
+        })),
+      [max]
+    );
+
+    const handleChange = useCallback(
+      (e: React.ChangeEvent<HTMLSelectElement>, isStock?: boolean) => {
+        setmess(EMPTY_ERROR_STATE);
+        const { value, name } = e.target;
+        const val = value !== "QTY" ? parseInt(value) : 0;
 
         setproductorderdetail(
           (prev) =>
             ({
               ...prev,
-              id: data.id as number,
-              details: arr,
+              ...(isStock ? { details: [] } : {}),
+              [name]: val,
             } as Productordertype)
         );
-      } else {
-        setproductorderdetail(
-          (prev) => ({ ...prev, id: data.id as number } as Productordertype)
-        );
-      }
-    };
-
-    InitializeProductOrder(data);
-    seterrormess({
-      ...(data.stocktype === ProductStockType.stock
-        ? { qty: "Please Select Quantity" }
-        : { option: "Please Select Option" }),
-    });
-  }, []);
-
-  const handleWishlist = async () => {
-    const makereq = AddWishlist.bind(null, data.id ?? 0);
-
-    const added = await makereq();
-    if (!added.success) {
-      errorToast(added.message);
-      return;
-    }
-
-    successToast(added.message);
-  };
-
-  const checkallrequireddetail = () => {
-    const { stocktype } = data;
-    const { details, quantity } = productorderdetail ?? {};
-
-    const ishaveQty = quantity !== 0;
-    if (stocktype === "stock") {
-      if (!ishaveQty) {
-        seterrormess(
-          !ishaveQty
-            ? { qty: "Please Select the quantity", option: "" }
-            : { option: "", qty: "" }
-        );
-        return false;
-      }
-    } else {
-      const isSelectedDetails =
-        details &&
-        details.filter((i) => i).length !== 0 &&
-        details.filter((i) => i).some((i) => i.value.length !== 0);
-
-      const isValid = isSelectedDetails && ishaveQty;
-
-      if (!isValid) {
-        seterrormess(
-          !isSelectedDetails
-            ? { option: "Please Select one of the option", qty: "" }
-            : !ishaveQty
-            ? { qty: "Please Select the quantity", option: "" }
-            : { option: "", qty: "" }
-        );
-
-        return false;
-      }
-    }
-    return true;
-  };
-
-  const handleCart = async () => {
-    const checked = checkallrequireddetail();
-
-    if (!checked || !productorderdetail) {
-      return;
-    }
-
-    const addtocart = Addtocart.bind(null, productorderdetail);
-    const makerequest = await addtocart();
-
-    if (!makerequest.success) {
-      errorToast(makerequest.message ?? "Error Occured");
-      return;
-    }
-
-    successToast("Added to cart");
-    setproductorderdetail((prev) => ({
-      ...Productdetailinitialize,
-      id: prev.id,
-    }));
-    setincart(true);
-  };
-
-  return (
-    <div className="w-full h-fit flex flex-col gap-y-5">
-      <h3 className="error_mess text-lg text-red-500 font-bold w-full h-full">
-        {data.stocktype === ProductStockType.stock
-          ? errormess?.qty
-          : errormess?.option}
-      </h3>
-      <div className="w-full h-fit overflow-x-hidden overflow-y-auto flex flex-col gap-y-5 pl-2">
-        <ShowOptionandStock
-          prob={data}
-          qty={qty}
-          setqty={setqty}
-          errormess={errormess}
-          setmess={seterrormess}
-          setloading={setloading}
-          setincart={setincart}
-          isloading={loading}
-        />
-      </div>
-
-      <div className="product_action w-full pt-2 flex flex-col items-center gap-y-2">
-        <Button
-          type="button"
-          endContent={
-            <FontAwesomeIcon className="text-md" icon={faCartShopping} />
-          }
-          className="w-[99%] h-[40px] font-bold text-md"
-          variant="bordered"
-          isLoading={loading}
-          isDisabled={productorderdetail.quantity === 0 || incart || isAdmin}
-          onPress={() => handleCart()}
-        >
-          {incart ? "In Cart" : "Add To Cart"}
-        </Button>
-
-        <Button
-          type="button"
-          endContent={<FontAwesomeIcon className="text-md" icon={faHeart} />}
-          className="w-[99%] h-[40px] font-bold text-md"
-          variant="bordered"
-          isLoading={loading}
-          onPress={() => handleWishlist && handleWishlist()}
-        >
-          {isInWishlist ? "In Wishlist" : "Add to Wishlist"}
-        </Button>
-      </div>
-    </div>
-  );
-};
-
-const Stock = (
-  max: number,
-  errormess: errormessType,
-  setmess: React.Dispatch<React.SetStateAction<errormessType>>,
-  incart?: boolean,
-  isStock?: boolean,
-  isloading?: boolean
-) => {
-  const { setproductorderdetail, productorderdetail } = useGlobalContext();
-  const showLowStock = max ? max <= 5 : false;
-
-  const handleChange = (
-    e: React.ChangeEvent<HTMLSelectElement>,
-    isStock?: boolean
-  ) => {
-    setmess({ qty: "", option: "" });
-    const { value, name } = e.target;
-    let val = 0;
-
-    if (name === "quantity") {
-      val = value !== "QTY" ? parseInt(value) : 0;
-    }
-
-    setproductorderdetail(
-      (prev) =>
-        ({
-          ...prev,
-          ...(isStock ? { details: [] } : {}),
-          [e.target.name]: val,
-        } as Productordertype)
+      },
+      [setmess, setproductorderdetail]
     );
-  };
 
-  return (
-    <div className="flex flex-col gap-y-3">
-      <label htmlFor="qty" className="text-lg font-bold">
-        Quantity
-      </label>
-      {isloading ? (
-        <Skeleton className="w-[90%] h-[40px] rounded-lg" />
-      ) : (
+    const errorMessage = useMemo(() => {
+      if (max === 0) return errormess.qty ?? "";
+      return showLowStock ? "Low on stock" : "";
+    }, [max, errormess.qty, showLowStock]);
+
+    if (isloading) {
+      return (
+        <div className="flex flex-col gap-y-3">
+          <label htmlFor="qty" className="text-lg font-bold">
+            Quantity
+          </label>
+          <Skeleton className="w-[90%] h-[40px] rounded-lg" />
+          <h3 className="text-lg text-red-500 w-full text-left font-bold">
+            {`  ${errorMessage}`}
+          </h3>
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex flex-col gap-y-3">
+        <label htmlFor="qty" className="text-lg font-bold">
+          Quantity
+        </label>
         <Selection
           default="QTY"
-          data={Array.from({ length: max }).map((_, idx) => ({
-            label: idx + 1,
-            value: idx + 1,
-          }))}
+          data={quantityOptions}
           style={{ height: "50px", width: "200px", maxWidth: "250px" }}
           onChange={(e) => handleChange(e, isStock)}
           disable={max === 0 || incart}
           value={productorderdetail?.quantity}
           name="quantity"
         />
-      )}
-      <h3 className="text-lg text-red-500 w-full text-left font-bold">
-        {`  ${
-          max === 0 ? errormess.qty ?? "" : showLowStock ? "Low on stock" : ""
-        }`}
-      </h3>
-    </div>
-  );
-};
-
-const getQtyBasedOnOptions = (
-  variantstock: Stocktype[],
-  orderdetail: Productorderdetailtype[]
-): number => {
-  // Create a Set of order detail values for faster lookup
-  const orderdetailValuesSet = new Set(
-    orderdetail.map((i) => i.value).filter(Boolean)
-  );
-
-  for (const stock of variantstock) {
-    for (const variant of stock.Stockvalue) {
-      const filteredVariant = variant.variant_val.filter(
-        (val) => val !== "null"
-      );
-
-      if (
-        filteredVariant.length === orderdetailValuesSet.size &&
-        filteredVariant.every((val) => orderdetailValuesSet.has(val))
-      ) {
-        return variant.qty; // Early return on first match
-      }
-    }
+        <h3 className="text-lg text-red-500 w-full text-left font-bold">
+          {`  ${errorMessage}`}
+        </h3>
+      </div>
+    );
   }
+);
 
-  return 0;
-};
+Stock.displayName = "Stock";
 
-const inCartCheck = async (
-  selecteddetail: Productorderdetailtype[],
-  pid: number
-) => {
-  const req = await ApiRequest({
-    url: "/api/order/cart/check",
-    method: "POST",
-    data: { selecteddetail, pid },
-  });
-  return {
-    success: req.success,
-    incart: ((req?.data as unknown as { incart?: boolean })?.incart ??
-      false) as boolean,
-  };
-};
+const Variant = memo(
+  ({
+    variant_id,
+    variant_name,
+    variant_type,
+    variant_val,
+    prob,
+    setmess,
+    setqty,
+    setloading,
+    setincart,
+  }: {
+    variant_id: number;
+    variant_name: string;
+    variant_type: VariantOptionEnum;
+    variant_val: Array<VariantColorValueType | string>;
+    prob: Pick<ProductState, "id" | "varaintstock" | "variants">;
+    setmess: React.Dispatch<React.SetStateAction<errormessType>>;
+    setqty: React.Dispatch<React.SetStateAction<number>>;
+    setloading: React.Dispatch<React.SetStateAction<boolean>>;
+    setincart: React.Dispatch<React.SetStateAction<boolean>>;
+  }) => {
+    const { productorderdetail, setproductorderdetail } = useGlobalContext();
 
-const Variant = (
-  id: number,
-  name: string,
-  type: "COLOR" | "TEXT",
-  idx: number,
-  data: (string | VariantColorValueType)[],
-  prob: Pick<ProductState, "id" | "varaintstock" | "variants">,
-  errormess: errormessType,
-  setmess: React.Dispatch<React.SetStateAction<errormessType>>,
-  setqty: React.Dispatch<React.SetStateAction<number>>,
-  setloading: React.Dispatch<React.SetStateAction<boolean>>,
-  setincart: React.Dispatch<React.SetStateAction<boolean>>
-) => {
-  const { productorderdetail, setproductorderdetail } = useGlobalContext();
-  const detail = productorderdetail?.details
-    ?.filter((i) => i)
-    .find((i) => i.variant_id === id);
-  const selected = detail ? detail.value : undefined;
+    const SelectTypeVariant = useMemo(
+      () => ({
+        label: variant_val,
+        type: variant_type,
+        value: variant_id,
+      }),
+      [variant_id, variant_type, variant_val]
+    ) as unknown as SelectTypeVariant;
 
-  const handleSelectVariant = useCallback(
-    async (idx: number, value: string) => {
-      const Allvariant = [...(prob.variants ?? [])];
-      const variant = Allvariant[idx];
-      const mess = { ...errormess };
-
-      const orderDetail = { ...productorderdetail } as Productordertype;
-      if (!orderDetail.details) {
-        return;
-      }
-      const isValid = orderDetail.details.filter((i) => i);
-      const isExist =
-        isValid.length !== 0
-          ? isValid.findIndex((i) => i.id === variant.id)
-          : -1;
-
-      const selectedvariant: Productorderdetailtype = {
-        variant_id: variant.id ?? 0,
-        value: value,
-      };
-
-      const isSelected =
-        isValid.length !== 0
-          ? orderDetail.details[idx]
-            ? orderDetail.details[idx].value === selectedvariant.value
-            : false
-          : false;
-
-      if (isSelected) {
-        orderDetail.details[idx] = {
-          variant_id: 0,
-          value: "",
-        };
-        setincart(false);
-      } else {
-        if (isExist === -1) {
-          orderDetail.details[idx] = selectedvariant;
-        } else if (isExist !== -1) {
-          orderDetail.details[isExist].value = selectedvariant.value;
+    const handleSelectVariant = useCallback(
+      async (variantId: number, variantIdx: number) => {
+        if (!prob.varaintstock) {
+          setmess({ option: "No Stock Available", qty: "" });
+          return;
         }
-      }
 
-      //update qty
-      const maxqty: number = prob.varaintstock
-        ? getQtyBasedOnOptions(
-            prob.varaintstock,
-            orderDetail.details.filter((i) => i)
-          )
-        : 0;
-
-      if (
-        orderDetail.details.filter((i) => i).every((i) => i.value.length === 0)
-      ) {
-        mess.qty = "";
-      } else {
-        mess.qty = maxqty === 0 ? "Product Unvaliable" : "";
-      }
-      mess.option = "";
-
-      if (maxqty && prob.id) {
-        setloading(true);
-        const checkreq = await inCartCheck(
-          orderDetail.details.filter((i) => i && i.value.length !== 0),
-          prob.id
+        const selectedVar = [
+          ...(productorderdetail.details?.filter(Boolean) ?? []),
+        ];
+        const isSelected = selectedVar.findIndex(
+          (i) => i.variantId === variantId
         );
 
-        console.log(checkreq);
-        setincart(checkreq.incart);
-        setloading(false);
-      }
-      setmess(mess);
-      setqty(maxqty);
-      setproductorderdetail(orderDetail);
-    },
-    [
-      errormess,
-      prob.id,
-      prob.varaintstock,
+        if (isSelected !== -1) {
+          const isTheSameIdx = selectedVar.findIndex(
+            (i) => i.variantIdx === variantIdx
+          );
+          if (isTheSameIdx !== -1) {
+            selectedVar.splice(isSelected, 1);
+            setqty(0);
+          } else {
+            selectedVar[isSelected] = { variantId, variantIdx };
+          }
+        } else {
+          selectedVar.push({ variantId, variantIdx });
+        }
+
+        if (selectedVar.length > 0 && prob.id) {
+          setloading(true);
+          try {
+            const checkreq = await IsInCartAndGetStock({
+              selected_var: selectedVar,
+              pid: prob.id,
+            });
+
+            if (!checkreq.success) {
+              errorToast(checkreq.error ?? "Error Occurred");
+              return;
+            }
+
+            setincart(checkreq.data?.incart ?? false);
+            setqty(checkreq.data?.qty ?? 0);
+
+            if (!checkreq.data?.qty || checkreq.data.qty === 0) {
+              setmess({ qty: "Product Unavailable", option: "" });
+            }
+          } finally {
+            setloading(false);
+          }
+        }
+
+        setproductorderdetail((prev) => ({
+          ...prev,
+          details: selectedVar,
+        }));
+      },
+      [
+        prob,
+        productorderdetail.details,
+        setincart,
+        setloading,
+        setmess,
+        setproductorderdetail,
+        setqty,
+      ]
+    );
+
+    return (
+      <div className="w-full h-fit flex flex-col gap-y-5">
+        <label htmlFor={variant_name} className="text-lg font-bold w-fit h-fit">
+          {variant_name}
+        </label>
+        <SelectContainer
+          type={variant_type}
+          data={SelectTypeVariant}
+          onSelect={handleSelectVariant}
+          isSelected={productorderdetail.details?.filter(Boolean)}
+        />
+      </div>
+    );
+  }
+);
+
+Variant.displayName = "Variant";
+
+const ShowOptionandStock = memo(
+  ({
+    prob,
+    qty,
+    errormess,
+    setmess,
+    setqty,
+    setloading,
+    setincart,
+    isloading,
+  }: {
+    prob: Pick<
+      ProductState,
+      "id" | "stocktype" | "stock" | "variants" | "varaintstock"
+    >;
+    qty: number;
+    errormess: errormessType;
+    setmess: React.Dispatch<React.SetStateAction<errormessType>>;
+    setqty: React.Dispatch<React.SetStateAction<number>>;
+    setloading: React.Dispatch<React.SetStateAction<boolean>>;
+    setincart: React.Dispatch<React.SetStateAction<boolean>>;
+    isloading?: boolean;
+  }) => {
+    const ProductUnavailable = useMemo(
+      () => (
+        <h3 className="text-lg text-gray-400 font-medium">
+          Product Unavailable
+        </h3>
+      ),
+      []
+    );
+
+    const renderedVariants = useMemo(() => {
+      if (!prob.variants) return null;
+
+      return prob.variants.map((variant, idx) => {
+        const varaintstock = prob.varaintstock?.filter((stock) =>
+          stock.Stockvalue.some((stockValue) =>
+            stockValue.variant_val.some((stockval) =>
+              variant.option_value.some((variantVal) =>
+                typeof variantVal === "string"
+                  ? variantVal === stockval
+                  : variantVal.val === stockval
+              )
+            )
+          )
+        );
+
+        const variantData = {
+          id: prob.id,
+          variants: variant,
+          varaintstock,
+        };
+
+        return (
+          <Variant
+            key={variant.id ?? idx}
+            prob={variantData as never}
+            setmess={setmess}
+            setqty={setqty}
+            setincart={setincart}
+            setloading={setloading}
+            variant_id={variant.id ?? 0}
+            variant_name={variant.option_title}
+            variant_type={variant.option_type as never}
+            variant_val={variant.option_value}
+          />
+        );
+      });
+    }, [
       prob.variants,
-      productorderdetail,
+      prob.varaintstock,
+      prob.id,
+      setmess,
+      setqty,
       setincart,
       setloading,
-      setmess,
-      setproductorderdetail,
-      setqty,
-    ]
-  );
+    ]);
 
-  return (
-    <div key={idx} className="w-full h-fit flex flex-col gap-y-5">
-      <label htmlFor={name} className="text-lg font-bold w-fit h-fit">
-        {name}
-      </label>
-      <SelectContainer
-        type={type}
-        data={data}
-        onSelect={(val) => handleSelectVariant(idx, val)}
-        isSelected={selected}
-      />
-    </div>
-  );
-};
+    if (prob.stocktype === "stock") {
+      return prob.stock && prob.stock > 0 ? (
+        <Stock
+          max={prob.stock}
+          errormess={errormess}
+          setmess={setmess}
+          isStock
+        />
+      ) : (
+        ProductUnavailable
+      );
+    }
 
-const ShowOptionandStock = ({
-  prob,
-  qty,
-  errormess,
-  setmess,
-  setqty,
-  setloading,
-  setincart,
-  isloading,
-}: {
-  prob: Pick<ProductState, "stocktype" | "stock" | "variants" | "varaintstock">;
-  qty: number;
-  errormess: errormessType;
-  setmess: React.Dispatch<React.SetStateAction<errormessType>>;
-  setqty: React.Dispatch<React.SetStateAction<number>>;
-  setloading: React.Dispatch<React.SetStateAction<boolean>>;
-  setincart: React.Dispatch<React.SetStateAction<boolean>>;
-  isloading?: boolean;
-}) => {
-  const type = prob.stocktype;
-  const Productunvaliable = (
-    <h3 className="text-lg text-gray-400 font-medium"> Product Unavaliable </h3>
-  );
+    if (!prob.variants) return null;
 
-  return type === "stock" ? (
-    prob.stock && prob.stock > 0 ? (
-      Stock(prob.stock, errormess, setmess, undefined, true)
-    ) : (
-      Productunvaliable
-    )
-  ) : prob.variants ? (
-    <>
-      {prob.variants.map((i, idx) =>
-        Variant(
-          i.id ?? 0,
-          i.option_title,
-          i.option_type as never,
-          idx,
-          i.option_value,
-          prob,
-          errormess,
-          setmess,
-          setqty,
-          setloading,
-          setincart
-        )
-      )}
-      {prob.varaintstock && prob.varaintstock.length !== 0
-        ? Stock(qty, errormess, setmess, undefined, undefined, isloading)
-        : qty === 0
-        ? Productunvaliable
-        : ""}
-    </>
-  ) : (
-    <></>
-  );
-};
+    return (
+      <>
+        {renderedVariants}
+        {prob.varaintstock && prob.varaintstock.length > 0 ? (
+          <Stock
+            max={qty}
+            errormess={errormess}
+            setmess={setmess}
+            isloading={isloading}
+          />
+        ) : qty === 0 ? (
+          ProductUnavailable
+        ) : null}
+      </>
+    );
+  }
+);
 
-export const ButtonForSimilarProd = ({ lt }: { lt: number }) => {
+ShowOptionandStock.displayName = "ShowOptionandStock";
+
+export const OptionSection = memo(
+  ({
+    data,
+    isAdmin,
+    isInWishlist,
+  }: {
+    data: Pick<
+      ProductState,
+      "id" | "stocktype" | "stock" | "variants" | "varaintstock"
+    >;
+    isAdmin: boolean;
+    isInWishlist: boolean;
+  }) => {
+    const { productorderdetail, setproductorderdetail } = useGlobalContext();
+    const [loading, setloading] = useState(false);
+    const [errormess, seterrormess] =
+      useState<errormessType>(EMPTY_ERROR_STATE);
+    const [qty, setqty] = useState(0);
+    const [incart, setincart] = useState(false);
+
+    const InitializeProductOrder = useCallback(
+      (
+        data: Pick<
+          ProductState,
+          "id" | "stocktype" | "stock" | "variants" | "varaintstock"
+        >
+      ) => {
+        const type = data.stocktype;
+
+        if (type !== ProductStockType.stock) {
+          const length = type === "size" ? 1 : data.variants?.length ?? 0;
+          const arr = new Array(length).fill(null);
+
+          setproductorderdetail(
+            (prev) =>
+              ({
+                ...prev,
+                id: data.id as number,
+                details: arr,
+              } as Productordertype)
+          );
+        } else {
+          setproductorderdetail(
+            (prev) =>
+              ({
+                ...prev,
+                id: data.id as number,
+              } as Productordertype)
+          );
+        }
+      },
+      [setproductorderdetail]
+    );
+
+    useEffect(() => {
+      InitializeProductOrder(data);
+    }, [InitializeProductOrder, data]);
+
+    const calculatedErrorMess = useMemo(() => {
+      if (data.stocktype === ProductStockType.stock) {
+        return { qty: "Please Select Quantity" };
+      }
+
+      const hasValidDetails =
+        productorderdetail.details &&
+        productorderdetail.details?.filter(Boolean)?.length > 0;
+      return hasValidDetails ? {} : { option: "Please Select Option" };
+    }, [data.stocktype, productorderdetail.details]);
+
+    useEffect(() => {
+      seterrormess(calculatedErrorMess);
+    }, [calculatedErrorMess]);
+
+    const handleWishlist = useCallback(async () => {
+      try {
+        const added = await AddWishlist(data.id ?? 0);
+        if (!added.success) {
+          errorToast(added.message);
+          return;
+        }
+        successToast(added.message);
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      } catch (error) {
+        errorToast("Error adding to wishlist");
+      }
+    }, [data.id]);
+
+    const checkallrequireddetail = useCallback(() => {
+      const { stocktype } = data;
+      const { details, quantity } = productorderdetail ?? {};
+      const hasQuantity = quantity !== 0;
+
+      if (stocktype === "stock") {
+        if (!hasQuantity) {
+          seterrormess({ qty: "Please Select the quantity", option: "" });
+          return false;
+        }
+      } else {
+        const hasValidDetails = details?.filter(Boolean);
+        if (!hasValidDetails || !hasQuantity || hasValidDetails.length === 0) {
+          seterrormess(
+            !hasValidDetails
+              ? { option: "Please Select one of the option", qty: "" }
+              : { qty: "Please Select the quantity", option: "" }
+          );
+          return false;
+        }
+      }
+      return true;
+    }, [data, productorderdetail]);
+
+    const handleCart = useCallback(async () => {
+      if (!checkallrequireddetail() || !productorderdetail) return;
+
+      try {
+        const makerequest = await Addtocart(productorderdetail);
+
+        if (!makerequest.success) {
+          errorToast(makerequest.message ?? "Error Occurred");
+          return;
+        }
+
+        successToast("Added to cart");
+        setproductorderdetail((prev) => ({
+          ...Productdetailinitialize,
+          id: prev.id,
+        }));
+        setincart(true);
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      } catch (error) {
+        errorToast("Error adding to cart");
+      }
+    }, [checkallrequireddetail, productorderdetail, setproductorderdetail]);
+
+    const cartButtonDisabled = useMemo(
+      () => productorderdetail.quantity === 0 || incart || isAdmin,
+      [productorderdetail.quantity, incart, isAdmin]
+    );
+
+    const displayedErrorMessage = useMemo(
+      () =>
+        data.stocktype === ProductStockType.stock
+          ? errormess?.qty
+          : errormess?.option,
+      [data.stocktype, errormess?.qty, errormess?.option]
+    );
+
+    return (
+      <div className="w-full h-fit flex flex-col gap-y-5">
+        <h3 className="error_mess text-lg text-red-500 font-bold w-full h-full">
+          {displayedErrorMessage}
+        </h3>
+
+        <div className="w-full h-fit overflow-x-hidden overflow-y-auto flex flex-col gap-y-5 pl-2">
+          <ShowOptionandStock
+            prob={data}
+            qty={qty}
+            setqty={setqty}
+            errormess={errormess}
+            setmess={seterrormess}
+            setloading={setloading}
+            setincart={setincart}
+            isloading={loading}
+          />
+        </div>
+
+        <div className="product_action w-full pt-2 flex flex-col items-center gap-y-2">
+          <Button
+            type="button"
+            endContent={
+              <FontAwesomeIcon className="text-md" icon={faCartShopping} />
+            }
+            className="w-[99%] h-[40px] font-bold text-md"
+            variant="bordered"
+            isLoading={loading}
+            isDisabled={cartButtonDisabled}
+            onPress={handleCart}
+          >
+            {incart ? "In Cart" : "Add To Cart"}
+          </Button>
+
+          <Button
+            type="button"
+            endContent={<FontAwesomeIcon className="text-md" icon={faHeart} />}
+            className="w-[99%] h-[40px] font-bold text-md"
+            variant="bordered"
+            isLoading={loading}
+            onPress={handleWishlist}
+          >
+            {isInWishlist ? "In Wishlist" : "Add to Wishlist"}
+          </Button>
+        </div>
+      </div>
+    );
+  }
+);
+
+OptionSection.displayName = "OptionSection";
+
+export const ButtonForSimilarProd = memo(({ lt }: { lt: number }) => {
   const router = useRouter();
   const searchParam = useSearchParams();
+
+  const handleLoadMore = useCallback(() => {
+    const param = new URLSearchParams(searchParam);
+    param.set("lt", `${lt + 3}`);
+    router.push(`?${param}`, { scroll: false });
+    router.refresh();
+  }, [router, searchParam, lt]);
 
   return (
     <div className="w-full h-fit flex justify-center">
@@ -538,13 +598,10 @@ export const ButtonForSimilarProd = ({ lt }: { lt: number }) => {
         width="20%"
         height="40px"
         style={{ marginTop: "100px" }}
-        onClick={() => {
-          const param = new URLSearchParams(searchParam);
-          param.set("lt", `${lt + 3}`);
-          router.push(`?${param}`, { scroll: false });
-          router.refresh();
-        }}
+        onClick={handleLoadMore}
       />
     </div>
   );
-};
+});
+
+ButtonForSimilarProd.displayName = "ButtonForSimilarProd";

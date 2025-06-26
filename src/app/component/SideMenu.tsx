@@ -491,8 +491,10 @@ export function CartMenu(props: cardmenuprops) {
       setloading((prev) => ({ ...prev, checkout: true }));
       const createOrder = await makereq();
       setloading((prev) => ({ ...prev, checkout: false }));
+
       if (!createOrder.success) {
-        errorToast("Error Occured");
+        console.log({ createOrder });
+        errorToast(createOrder.message ?? "Error Occured");
         return;
       }
 
@@ -521,7 +523,7 @@ export function CartMenu(props: cardmenuprops) {
         Shopping Cart <span>( {cartItem?.length} item )</span>
       </h1>
       <div className="card_container flex flex-col w-[95%] gap-y-5 h-full max-h-[70vh] overflow-y-auto">
-        {(!cartItem || cartItem.length === 0) && (
+        {!loading && (!cartItem || cartItem.length === 0) && (
           <h3 className="text-xl font-bold text-red-500 w-full h-fit text-center">
             No items
           </h3>

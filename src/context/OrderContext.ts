@@ -1,8 +1,10 @@
 import {
   ProductState,
   SelectType,
+  Stocktype,
   userdata,
   VariantColorValueType,
+  Varianttype,
 } from "@/src/context/GlobalType.type";
 import { Address } from "@prisma/client";
 import { OrderUserType } from "../app/checkout/action";
@@ -51,9 +53,12 @@ export enum Allstatus {
 }
 
 export interface Productorderdetailtype {
-  variant_id: number;
-  value: string;
-  [key: string]: string | number | VariantColorValueType | undefined;
+  id?: number;
+  variantId: number;
+  variantIdx: number;
+  variant?: Varianttype;
+  orderProductId?: number;
+  Orderproduct?: Productordertype;
 }
 
 export interface Productordertype {
@@ -61,12 +66,15 @@ export interface Productordertype {
   details?: Array<Productorderdetailtype>;
   quantity: number;
   productId?: number;
-  maxqty?: number;
   product?: ProductState;
   orderId?: string;
   selectedvariant?: (string | VariantColorValueType)[];
   user_id?: number;
   user?: userdata;
+  variantId?: number;
+  stock_selected_id?: number;
+  stockvar?: Stocktype;
+  maxqty?: number;
 }
 
 export interface InvoiceProductPdfType {
@@ -103,7 +111,7 @@ export interface Ordertype {
   estimate?: Date;
   createAt?: Date;
   updateAt?: Date;
-  shipping_id?: string;
+  shipping_id?: number;
   shipping?: Address;
   user?: userdata;
 }

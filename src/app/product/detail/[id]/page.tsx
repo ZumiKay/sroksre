@@ -4,7 +4,6 @@ import { notFound } from "next/navigation";
 import { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-
 import { GetProductDetailById } from "./detail_action";
 import { ButtonForSimilarProd, OptionSection, ShowPrice } from "./Component";
 import ToggleMenu from "@/src/app/component/ToggleMenu";
@@ -12,7 +11,6 @@ import Card from "@/src/app/component/Card";
 import { getRelatedProduct } from "./action";
 import { getUser } from "@/src/app/action";
 import Prisma from "@/src/lib/prisma";
-
 import { Props } from "../../page";
 import { Relatedproducttype } from "@/src/context/GlobalType.type";
 
@@ -201,7 +199,13 @@ export default async function ProductDetailPage(props: {
           {/* Product options */}
           <div className="w-full h-fit flex flex-col gap-y-5">
             <OptionSection
-              data={productData}
+              data={{
+                id: productData.id,
+                stocktype: productData.stocktype,
+                stock: productData.stock,
+                variants: productData.variants,
+                varaintstock: productData.varaintstock,
+              }}
               isAdmin={user?.role === "ADMIN"}
               isInWishlist={
                 data.isInWishlist ? data.isInWishlist.isExist : false

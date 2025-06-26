@@ -16,10 +16,8 @@ import {
   get24Hr,
   ProductState,
   VariantColorValueType,
-  Varianttype,
 } from "@/src/context/GlobalType.type";
 import { getUser } from "@/src/app/action";
-import { formatDate } from "@/src/app/component/EmailTemplate";
 
 export async function PUT(req: NextRequest) {
   try {
@@ -74,7 +72,7 @@ export async function GET() {
     const whereClause: PrismaType.OrdersWhereInput = {
       AND: [
         { buyer_id: user.id },
-        { status: Allstatus.incart },
+        { status: { in: [Allstatus.incart, Allstatus.unpaid] } },
         {
           OR: [
             { createdAt: { lte: get24Hr } },
@@ -83,7 +81,6 @@ export async function GET() {
         },
       ],
     };
-
     // Get full cart data with optimized query
     const order = await Prisma.orders.findFirst({
       where: whereClause,
@@ -166,13 +163,19 @@ function processCartItems(orderproduct: Productordertype[]) {
       );
 
     const detail = item.details as Productorderdetailtype[];
-    const selectedvariant =
-      item.product?.Variant &&
-      processSelectedVariants(item.product.Variant, detail);
+    const selectedVar: Array<string | VariantColorValueType> = [];
+
+    detail.forEach((selected) => {
+      selected.variant?.option_value.forEach((i, idx) => {
+        if (idx === selected.variantIdx) {
+          selectedVar.push(i);
+        }
+      });
+    });
 
     const maxqty = getmaxqtybaseStockType(
       item.product as ProductState,
-      detail.map((i) => i.value)
+      selectedVar.map((i) => (typeof i === "string" ? i : i.val))
     );
 
     const prod = item.product;
@@ -188,28 +191,9 @@ function processCartItems(orderproduct: Productordertype[]) {
         price: prod?.price,
         discount,
       },
-      selectedvariant: selectedvariant && selectedvariant.flat(),
+      selectedvariant: selectedVar,
     };
   });
-}
-
-// Further breakdown complex operations
-function processSelectedVariants(
-  variants: Varianttype[],
-  details: Productorderdetailtype[]
-) {
-  if (!variants) return [];
-
-  return variants
-    .filter((variant, idx) => variant.id === details[idx]?.variant_id)
-    .map((selected, idx) => {
-      const val = selected.option_value as (string | VariantColorValueType)[];
-      return val.filter((j) =>
-        typeof j === "string"
-          ? details[idx].value === j
-          : details[idx].value === j.val
-      );
-    });
 }
 
 export async function DELETE(req: NextRequest) {
