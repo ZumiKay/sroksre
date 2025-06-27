@@ -294,7 +294,9 @@ const PaymentDetail = async ({
             <Shippingservicecard
               key={idx}
               orderId={orderId}
-              isSelected={shipping ? shipping.shippingtype === i.value : false}
+              isSelected={
+                order?.shipping ? shipping.shippingtype === i.value : false
+              }
               {...i}
             />
           ))}

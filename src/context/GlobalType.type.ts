@@ -8,12 +8,13 @@ import { StaticImageData } from "next/image";
 import ProfileIcon from "@/public/Image/profile.png";
 import WishListIcon from "@/public/Image/bookmark.png";
 import LockIcon from "@/public/Image/lock.png";
-import { Allstatus, Ordertype, Productorderdetailtype } from "./OrderContext";
+import { Allstatus, Ordertype } from "./OrderContext";
 import { DateValue, RangeValue } from "@heroui/react";
 
 export const get24Hr = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
 type Role = "ADMIN" | "USER" | "EDITOR";
+
 export type InventoryPage =
   | "product"
   | "banner"
@@ -27,7 +28,7 @@ export type FiltermenuType =
   | "usermanagement"
   | "listproduct"
   | "listorder";
-export type ActionState = "edit" | "delete" | "stock";
+export type ActionState = "edit" | "delete" | "stock" | "status" | "cancel";
 export type RequestMethod = "GET" | "POST" | "PUT" | "DELETE";
 export type RequetDatatype = "JSON" | "FILE";
 export type Variantcontainertype =

@@ -96,7 +96,7 @@ const PaypalButton = memo(
 
           // Get policy and generate email templates
           const getPolicy = await ApiRequest({
-            url: `/api/policy?type=email`,
+            url: `/api/policy?type=type&ty=email`,
             method: "GET",
           });
 

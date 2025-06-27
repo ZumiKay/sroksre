@@ -207,6 +207,7 @@ const Variant = memo(
           selectedVar.push({ variantId, variantIdx });
         }
 
+        let stockId = 0;
         if (selectedVar.length > 0 && prob.id) {
           setloading(true);
           try {
@@ -222,6 +223,7 @@ const Variant = memo(
 
             setincart(checkreq.data?.incart ?? false);
             setqty(checkreq.data?.qty ?? 0);
+            stockId = checkreq.data?.stockId ?? 0;
 
             if (!checkreq.data?.qty || checkreq.data.qty === 0) {
               setmess({ qty: "Product Unavailable", option: "" });
@@ -233,7 +235,11 @@ const Variant = memo(
 
         setproductorderdetail((prev) => ({
           ...prev,
-          details: selectedVar,
+          details: selectedVar.map((val) =>
+            val.variantId === variantId
+              ? { ...val, stock_selected_id: stockId }
+              : val
+          ),
         }));
       },
       [
@@ -270,6 +276,7 @@ const ShowOptionandStock = memo(
     prob,
     qty,
     errormess,
+    isincart,
     setmess,
     setqty,
     setloading,
@@ -282,6 +289,7 @@ const ShowOptionandStock = memo(
     >;
     qty: number;
     errormess: errormessType;
+    isincart: boolean;
     setmess: React.Dispatch<React.SetStateAction<errormessType>>;
     setqty: React.Dispatch<React.SetStateAction<number>>;
     setloading: React.Dispatch<React.SetStateAction<boolean>>;
@@ -362,7 +370,7 @@ const ShowOptionandStock = memo(
     return (
       <>
         {renderedVariants}
-        {prob.varaintstock && prob.varaintstock.length > 0 ? (
+        {!isincart && prob.varaintstock && prob.varaintstock.length > 0 ? (
           <Stock
             max={qty}
             errormess={errormess}
@@ -536,6 +544,7 @@ export const OptionSection = memo(
           <ShowOptionandStock
             prob={data}
             qty={qty}
+            isincart={incart}
             setqty={setqty}
             errormess={errormess}
             setmess={seterrormess}

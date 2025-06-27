@@ -206,7 +206,7 @@ const ShowPrice = memo<{
 
   const displayPrice = useMemo(() => {
     return isDiscount && discount?.newprice
-      ? discount.newprice.toFixed(2)
+      ? discount.newprice
       : price.price.toFixed(2);
   }, [isDiscount, discount?.newprice, price.price]);
 

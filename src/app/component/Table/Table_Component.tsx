@@ -153,7 +153,6 @@ const OrderColumns: Array<ColumnType> = [
   { name: "Status", uid: "status" },
   { name: "Product", uid: "Orderproduct" },
   { name: "Price", uid: "price" },
-  { name: "Action", uid: "action" },
 ];
 
 interface Stock {
@@ -326,7 +325,8 @@ export default function TableComponent({
           Router.push(`/dashboard/usermanagement/${id}`);
         } else modalState[createKey] = true;
         indexState[indexKey] = id as never;
-      } else if (key === "delete") {
+      }
+      if (key === "delete") {
         modalState.confirmmodal = {
           index: id,
           type: type === "usermanagement" ? "user" : type,

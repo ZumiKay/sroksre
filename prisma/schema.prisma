@@ -206,8 +206,6 @@ model Orderproduct {
   user              User                  @relation(fields: [user_id], references: [id], onDelete: Cascade)
   order             Orders?               @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product           Products              @relation(fields: [productId], references: [id], onDelete: Cascade)
-  Variant           Variant?              @relation(fields: [variantId], references: [id])
-  variantId         Int?
 }
 
 model OrderproductVariant {
@@ -315,7 +313,6 @@ model Variant {
   option_type         String
   option_value        Json
   Varianttemplate     Varianttemplate[]
-  Orderproduct        Orderproduct[]
   OrderproductVariant OrderproductVariant[]
 
   @@map("variant")

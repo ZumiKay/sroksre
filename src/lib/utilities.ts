@@ -1,11 +1,14 @@
-import { Productordertype } from "../context/OrderContext";
+import { Stocktype, Varianttype } from "../context/GlobalType.type";
+import {
+  Productorderdetailtype,
+  Productordertype,
+} from "../context/OrderContext";
 import {
   CipherKey,
   createCipheriv,
   createDecipheriv,
   randomBytes,
 } from "crypto";
-import { ProductState } from "../context/GlobalType.type";
 
 export const AllorderType = {
   orderdetail: "orderdetail",
@@ -155,41 +158,6 @@ export const calculateCartTotalPrice = (
 
     return total + (effectivePrice ?? 0) * quantity;
   }, 0);
-};
-
-export const getmaxqtybaseStockType = (
-  product: ProductState,
-  selected_detail: Array<string>
-) => {
-  const { stocktype, Stock, stock } = product;
-
-  // Early return for stock type
-  if (stocktype === "stock") {
-    return stock as number;
-  }
-
-  // Early return if not variant type
-  if (stocktype !== "variant" || !Stock?.length) {
-    return 0;
-  }
-
-  // Create set only once for variant comparison
-  const selectedvalueset = new Set(selected_detail);
-
-  // Use find instead of forEach for early termination
-  for (const variant of Stock) {
-    const matchingStock = variant.Stockvalue.find(
-      (stock) =>
-        stock.variant_val.length === selectedvalueset.size &&
-        stock.variant_val.every((i) => selectedvalueset.has(i))
-    );
-
-    if (matchingStock) {
-      return matchingStock.qty;
-    }
-  }
-
-  return 0;
 };
 
 export const encrypt = (text: string, key: string) => {
@@ -432,6 +400,68 @@ export const GetSavedImageLocal = () => {
   if (!saved) return null;
 
   return JSON.parse(saved) as number[];
+};
+
+export const getQtyBaseOnSelectionVar = (
+  variants: Array<Varianttype>,
+  stockval: Stocktype[],
+  selected_var: Array<Productorderdetailtype>
+) => {
+  if (!variants?.length || !stockval?.length) {
+    return { qty: 0, id: 0 };
+  }
+
+  const variant: Array<string> = (variants as Varianttype[]).reduce<string[]>(
+    (acc, variant) => {
+      const matchingVar = selected_var.find((i) => i.variantId === variant.id);
+
+      if (matchingVar && matchingVar.variantIdx !== undefined) {
+        const optionValue =
+          variant.option_value[matchingVar.variantIdx as never];
+
+        if (optionValue) {
+          const value =
+            typeof optionValue === "string" ? optionValue : optionValue.val; // Assuming object has a 'val' property
+
+          if (value) {
+            acc.push(value);
+          }
+        }
+      }
+
+      return acc;
+    },
+    []
+  );
+
+  const variantSet = new Set(variant);
+  const variantLength = variant.length;
+
+  for (const stock of stockval) {
+    // Check if Stockvalue exists and has items
+    if (!stock.Stockvalue || !stock.Stockvalue.length) {
+      continue;
+    }
+
+    // Check each stock value
+    for (const stockValue of stock.Stockvalue) {
+      if (
+        !stockValue.variant_val ||
+        stockValue.variant_val.length !== variantLength
+      ) {
+        continue;
+      }
+
+      if (stockValue.variant_val.every((val) => variantSet.has(val))) {
+        return {
+          qty: stockValue.qty,
+          id: stockValue.id ?? 0,
+        };
+      }
+    }
+  }
+
+  return { qty: 0, id: 0 };
 };
 
 //Email Template

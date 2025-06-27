@@ -8,14 +8,15 @@ import {
 import {
   calculateCartTotalPrice,
   calculateDiscountPrice,
-  getmaxqtybaseStockType,
+  getQtyBaseOnSelectionVar,
   hasPassed24Hours,
 } from "@/src/lib/utilities";
 import { NextRequest } from "next/server";
 import {
   get24Hr,
-  ProductState,
+  Stocktype,
   VariantColorValueType,
+  Varianttype,
 } from "@/src/context/GlobalType.type";
 import { getUser } from "@/src/app/action";
 
@@ -93,7 +94,13 @@ export async function GET() {
           select: {
             id: true,
             quantity: true,
-            details: true,
+            details: {
+              select: {
+                variantId: true,
+                variantIdx: true,
+                variant: true,
+              },
+            },
             product: {
               select: {
                 name: true,
@@ -119,9 +126,6 @@ export async function GET() {
                       },
                     },
                   },
-                },
-                Variant: {
-                  orderBy: { id: "asc" },
                 },
               },
             },
@@ -162,28 +166,33 @@ function processCartItems(orderproduct: Productordertype[]) {
         item.product.discount as unknown as number
       );
 
-    const detail = item.details as Productorderdetailtype[];
+    let qty = 0;
     const selectedVar: Array<string | VariantColorValueType> = [];
+    if (item.details) {
+      const detail = item.details as Productorderdetailtype[];
 
-    detail.forEach((selected) => {
-      selected.variant?.option_value.forEach((i, idx) => {
-        if (idx === selected.variantIdx) {
-          selectedVar.push(i);
-        }
+      detail.forEach((selected) => {
+        selected.variant?.option_value.forEach((i, idx) => {
+          if (idx === selected.variantIdx) {
+            selectedVar.push(i);
+          }
+        });
       });
-    });
-
-    const maxqty = getmaxqtybaseStockType(
-      item.product as ProductState,
-      selectedVar.map((i) => (typeof i === "string" ? i : i.val))
-    );
+      qty = getQtyBaseOnSelectionVar(
+        item.details?.map((i) => i.variant) as Array<Varianttype>,
+        item.product?.Stock as Array<Stocktype>,
+        item.details as Array<Productorderdetailtype>
+      ).qty;
+    } else if (item.product?.stock) {
+      qty = item.product.stock;
+    }
 
     const prod = item.product;
 
     return {
       id: item.id,
       quantity: item.quantity,
-      maxqty,
+      maxqty: qty,
       product: {
         id: prod?.id,
         name: prod?.name,

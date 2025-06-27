@@ -16,8 +16,6 @@ export const ConfirmModal = () => {
   const {
     openmodal,
     setopenmodal,
-    isLoading,
-    setisLoading,
     product,
     setproduct,
     banner,
@@ -29,6 +27,7 @@ export const ConfirmModal = () => {
 
   const router = useRouter();
   const searchParam = useSearchParams();
+  const [loading, setloading] = useState(false);
 
   // Memoize common modal closing logic
   const resetConfirmModal = useCallback(() => {
@@ -74,12 +73,13 @@ export const ConfirmModal = () => {
       // Handle image deletion if needed
       if (isNewProduct && product.covers.length > 0) {
         const images = product.covers.map((i) => i.id);
+        setloading(true);
         const deleteimage = await ApiRequest({
           url: URL,
-          setloading: setisLoading,
           method: "DELETE",
           data: { ids: images, type: "normal" },
         });
+        setloading(false);
 
         if (!deleteimage.success) {
           errorToast("Error Occured Reload Required");
@@ -88,7 +88,6 @@ export const ConfirmModal = () => {
       } else if (isNewBanner && banner.Image.name.length > 0) {
         const deleteImage = await ApiRequest({
           url: URL,
-          setloading: setisLoading,
           method: "DELETE",
           data: { name: banner.Image.name },
         });
@@ -120,7 +119,6 @@ export const ConfirmModal = () => {
       globalindex.bannereditindex,
       product.covers,
       banner.Image,
-      setisLoading,
       setproduct,
       setglobalindex,
       setopenmodal,
@@ -160,12 +158,14 @@ export const ConfirmModal = () => {
           type === "userinfo" ||
           type === "ordermanagement"
         ) {
+          setloading(true);
           const deleteRequest = await ApiRequest({
             url: getApiUrl,
-            setloading: setisLoading,
+
             method: "DELETE",
             data: type !== "userinfo" ? { id: index } : {},
           });
+          setloading(false);
 
           if (!deleteRequest.success) {
             errorToast("Failed To Delete");
@@ -199,7 +199,6 @@ export const ConfirmModal = () => {
       setinventoryfilter,
       setglobalindex,
       setopenmodal,
-      setisLoading,
       getApiUrl,
       router,
       searchParam,
@@ -234,7 +233,7 @@ export const ConfirmModal = () => {
             type="button"
             text="Yes"
             radius="10px"
-            status={isLoading.DELETE ? "loading" : "authenticated"}
+            status={loading ? "loading" : "authenticated"}
             onClick={() => handleAction(true)}
             color="#35C191"
           />
@@ -243,7 +242,7 @@ export const ConfirmModal = () => {
             text="No"
             onClick={() => handleAction(false)}
             radius="10px"
-            disable={isLoading.DELETE}
+            disable={loading}
             color="#F08080"
           />
         </div>

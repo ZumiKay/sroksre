@@ -59,6 +59,8 @@ export interface Productorderdetailtype {
   variant?: Varianttype;
   orderProductId?: number;
   Orderproduct?: Productordertype;
+  stock_selected_id?: number;
+  stockvar?: Stocktype;
 }
 
 export interface Productordertype {

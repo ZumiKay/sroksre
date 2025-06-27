@@ -132,45 +132,105 @@ export const getPolicesByPage = async (page: showtype) =>
 
 interface PolicyParamType {
   id?: number;
-  type?: "all" | "id" | "faq";
+  type?: "all" | "id" | "faq" | "type";
+  ty?: showtype;
 }
+
 export async function GET(req: NextRequest) {
   try {
     const url = req.url.toString();
-    const { id, type } = extractQueryParams(url) as unknown as PolicyParamType;
+    const { id, type, ty } = extractQueryParams(
+      url
+    ) as unknown as PolicyParamType;
 
-    if (!type || !["all", "faq", "id"].includes(type)) {
+    if (!type) {
       return NextResponse.json(
         { error: "Invalid type parameter" },
         { status: 400 }
       );
     }
 
-    if (type === "id" && !id) {
-      return NextResponse.json({ error: "Invalid Data" }, { status: 400 });
-    }
-
-    let result: Policy | Array<Policy> | Array<Question> | null;
+    let result: Policy | Array<Policy> | Array<Question> | null = null;
 
     switch (type) {
       case "all":
-        result = (
-          await Prisma.policy.findMany({
-            select: { id: true, title: true },
-          })
-        ).filter((i) => i.title.length > 0) as never;
+        result = (await Prisma.policy.findMany({
+          select: {
+            id: true,
+            title: true,
+          },
+          where: {
+            title: {
+              not: "",
+            },
+          },
+        })) as never;
         break;
-      case "faq":
-        result = await Prisma.question.findMany();
-        break;
-      case "id":
-        result =
-          (await Prisma.policy.findUnique({
-            where: { id },
-            include: { Paragraph: true },
-          })) ?? ({} as Policy);
 
+      case "faq":
+        result = (await Prisma.question.findMany({
+          select: {
+            id: true,
+            question: true,
+            answer: true,
+          },
+        })) as never;
         break;
+
+      case "id":
+        if (!id) {
+          return NextResponse.json({ error: "Invalid Data" }, { status: 400 });
+        }
+
+        result = (await Prisma.policy.findUnique({
+          where: { id },
+          select: {
+            id: true,
+            title: true,
+            showtype: true,
+            Paragraph: {
+              select: {
+                id: true,
+                title: true,
+                content: true,
+              },
+            },
+          },
+        })) as never;
+
+        if (!result) {
+          return NextResponse.json(
+            { error: "Policy not found" },
+            { status: 404 }
+          );
+        }
+        break;
+
+      case "type":
+        if (!ty) {
+          return NextResponse.json(
+            { error: "Missing showtype parameter" },
+            { status: 400 }
+          );
+        }
+
+        result = (await Prisma.policy.findMany({
+          where: { showtype: ty },
+          select: {
+            id: true,
+            title: true,
+            showtype: true,
+            Paragraph: {
+              select: {
+                id: true,
+                title: true,
+                content: true,
+              },
+            },
+          },
+        })) as never;
+        break;
+
       default:
         return NextResponse.json(
           { error: "Invalid type parameter" },

@@ -422,6 +422,7 @@ export function CartMenu(props: cardmenuprops) {
     undefined
   );
 
+  // Prevent background scrolling when menu is open
   useEffect(() => {
     document.body.style.overflowY = "hidden";
     return () => {
@@ -472,11 +473,13 @@ export function CartMenu(props: cardmenuprops) {
     [router, setreloadcart]
   );
 
-  const subprice = totalprice
-    ? parseFloat(totalprice.subtotal.toString()).toFixed(2)
-    : `0.00`;
+  const subprice = useMemo(() => {
+    return totalprice
+      ? parseFloat(totalprice.subtotal.toString()).toFixed(2)
+      : "0.00";
+  }, [totalprice]);
 
-  const handleCheckout = async () => {
+  const handleCheckout = useCallback(async () => {
     const params = new URLSearchParams(searchparams);
 
     if (!cartItem || cartItem.length === 0) {
@@ -494,7 +497,7 @@ export function CartMenu(props: cardmenuprops) {
 
       if (!createOrder.success) {
         console.log({ createOrder });
-        errorToast(createOrder.message ?? "Error Occured");
+        errorToast(createOrder.message ?? "Error Occurred");
         return;
       }
 
@@ -502,75 +505,123 @@ export function CartMenu(props: cardmenuprops) {
       params.set("step", "1");
       router.push(`/checkout?${params.toString()}`);
     }
-  };
-  return (
-    <aside
-      ref={ref}
-      onMouseEnter={() => (document.body.style.overflow = "hidden")}
-      onMouseLeave={() => {
-        document.body.style.overflow = "auto";
-        props.setcart(false);
-      }}
-      className="Cart__Sidemenu fixed h-full w-[700px] max-large_tablet:w-[550px] max-large_phone:w-[100vw] right-0 bg-white z-40 flex flex-col items-center gap-y-5 transition-all"
-    >
-      <div
-        onClick={() => props.setcart(false)}
-        className="w-fit h-fit absolute top-1 right-1"
-      >
-        <CloseVector width="30px" height="30px" />
-      </div>
-      <h1 className="heading text-xl font-bold text-center w-full">
-        Shopping Cart <span>( {cartItem?.length} item )</span>
-      </h1>
-      <div className="card_container flex flex-col w-[95%] gap-y-5 h-full max-h-[70vh] overflow-y-auto">
-        {!loading && (!cartItem || cartItem.length === 0) && (
-          <h3 className="text-xl font-bold text-red-500 w-full h-fit text-center">
-            No items
-          </h3>
-        )}
-        {loading.fetch &&
-          Array.from({ length: 3 }).map((_, idx) => <CardSkeleton key={idx} />)}
+  }, [cartItem, totalprice, searchparams, router]);
 
-        {cartItem?.map((i, idx) => {
-          return (
-            <SecondayCard
-              key={idx}
-              id={i.id}
-              img={
-                i.product?.covers.length !== 0
-                  ? (i.product?.covers[0].url as string)
-                  : props.img
-              }
-              name={i.product?.name ?? ""}
-              maxqty={i.maxqty}
-              price={{
-                price: i.product?.price ?? 0,
-                discount: i.product?.discount,
-              }}
-              selectedqty={i.quantity}
-              selecteddetail={i.selectedvariant}
-              removecart={() => removecart(i.id)}
-              settotal={settotal}
-            />
-          );
-        })}
+  const isEmpty = !cartItem || cartItem.length === 0;
+
+  return (
+    <motion.aside
+      ref={ref}
+      initial={{ x: "100%" }}
+      animate={{ x: 0 }}
+      exit={{ x: "100%" }}
+      transition={{
+        duration: 0.3,
+        type: "spring",
+        stiffness: 300,
+        damping: 30,
+      }}
+      onMouseEnter={() => props.setcart(true)}
+      className="fixed right-0 top-0 w-[700px] max-large_tablet:w-[550px] max-large_phone:w-full 
+                 h-full z-40 bg-white shadow-xl flex flex-col overflow-hidden"
+    >
+      {/* Header */}
+      <div className="flex items-center justify-between p-6 border-b border-gray-100">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800">Shopping Cart</h1>
+          <p className="text-gray-500 text-sm mt-1">
+            {cartItem?.length || 0} {cartItem?.length === 1 ? "item" : "items"}
+          </p>
+        </div>
+        <button
+          onClick={() => props.setcart(false)}
+          className="w-10 h-10 flex items-center justify-center rounded-full 
+                     bg-gray-100 hover:bg-gray-200 transition-colors"
+          aria-label="Close cart"
+        >
+          <CloseVector width="16px" height="16px" />
+        </button>
       </div>
-      <div className="totalprice w-[90%] text-left font-medium flex flex-col gap-y-3">
-        <h5 className="text-lg text-[20px] font-bold">
-          Cart Total: {`$${subprice}`}{" "}
-        </h5>
+
+      {/* Cart Items */}
+      <div className="flex-1 overflow-y-auto px-6 py-4">
+        {!loading.fetch && isEmpty && (
+          <div className="flex flex-col items-center justify-center h-full text-center">
+            <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+              <i className="fa-solid fa-shopping-cart text-3xl text-gray-400"></i>
+            </div>
+            <h3 className="text-xl font-semibold text-gray-600 mb-2">
+              Your cart is empty
+            </h3>
+            <p className="text-gray-500">Add some items to get started</p>
+          </div>
+        )}
+
+        {loading.fetch && (
+          <div className="space-y-4">
+            {Array.from({ length: 3 }).map((_, idx) => (
+              <CardSkeleton key={idx} />
+            ))}
+          </div>
+        )}
+
+        {!loading.fetch && !isEmpty && (
+          <div className="space-y-4">
+            {cartItem.map((item, idx) => (
+              <SecondayCard
+                key={item.id || idx}
+                id={item.id}
+                img={
+                  item.product?.covers.length !== 0
+                    ? (item.product?.covers[0].url as string)
+                    : props.img
+                }
+                name={item.product?.name ?? ""}
+                maxqty={item.maxqty}
+                price={{
+                  price: item.product?.price ?? 0,
+                  discount: item.product?.discount,
+                }}
+                selectedqty={item.quantity}
+                selecteddetail={item.selectedvariant}
+                removecart={() => removecart(item.id)}
+                settotal={settotal}
+              />
+            ))}
+          </div>
+        )}
       </div>
-      <PrimaryButton
-        type="button"
-        text="Check Out"
-        onClick={() => handleCheckout()}
-        disable={cartItem?.length === 0}
-        width="90%"
-        height="50px"
-        radius="10px"
-        status={loading.checkout ? "loading" : "authenticated"}
-      />
-    </aside>
+
+      {/* Footer */}
+      {!isEmpty && (
+        <div className="border-t border-gray-100 p-6 bg-gray-50">
+          <div className="mb-4">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-lg font-medium text-gray-700">
+                Subtotal
+              </span>
+              <span className="text-2xl font-bold text-gray-900">
+                ${subprice}
+              </span>
+            </div>
+            <p className="text-sm text-gray-500">
+              Shipping and taxes calculated at checkout
+            </p>
+          </div>
+
+          <PrimaryButton
+            type="button"
+            text="Proceed to Checkout"
+            onClick={handleCheckout}
+            disable={isEmpty}
+            width="100%"
+            height="54px"
+            radius="12px"
+            status={loading.checkout ? "loading" : "authenticated"}
+          />
+        </div>
+      )}
+    </motion.aside>
   );
 }
 

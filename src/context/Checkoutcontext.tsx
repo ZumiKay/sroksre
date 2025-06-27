@@ -45,6 +45,7 @@ export interface Paypalamounttype {
 
 export interface PaypalshippingType {
   type: "SHIPPING" | "NO_SHIPPING";
+  name: Record<string, string>;
   address?: {
     address_line_1: string;
     address_line_2?: string;

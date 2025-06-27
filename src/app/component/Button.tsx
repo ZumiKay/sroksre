@@ -222,7 +222,6 @@ export const UploadInput = React.forwardRef(
   }
 );
 UploadInput.displayName = "UploadInput";
-
 interface Selectcontainerprops {
   data: SelectTypeVariant;
   type: "TEXT" | "COLOR";
@@ -230,18 +229,26 @@ interface Selectcontainerprops {
   isSelected?: Productorderdetailtype[];
 }
 
-// Define styles outside component to prevent recreation on each render
 const isSelectedStyle: CSSProperties = {
-  outline: "2px solid black",
+  outline: "3px solid #3b82f6",
   outlineOffset: "2px",
-  color: "black",
+  backgroundColor: "#eff6ff",
+  transform: "scale(1.02)",
+  transition: "all 0.2s ease-in-out",
 };
 
 const colorItemBaseClass =
-  "w-fit h-fit flex flex-row gap-x-3 p-2 items-center rounded-lg cursor-pointer justify-center hover:outline-2 hover:outline hover:outline-gray-500 hover:outline-offset-2 active:outline-1 active:outline active:outline-gray-300 active:outline-offset-2";
+  "w-fit h-fit flex flex-row gap-x-3 p-3 items-center rounded-xl cursor-pointer justify-center transition-all duration-200 ease-in-out hover:shadow-md hover:scale-105 hover:bg-gray-50 active:scale-95 border border-gray-200";
+
 const textItemBaseClass =
-  "select_item cursor-pointer w-fit h-fit p-2 max-w-[200px] break-words rounded-lg transition-all duration-30 hover:bg-black hover:text-white";
-const colorCircleStyle = { width: "30px", height: "30px" };
+  "select_item cursor-pointer w-fit h-fit px-4 py-2 max-w-[200px] break-words rounded-xl transition-all duration-200 ease-in-out hover:bg-gradient-to-r hover:from-gray-800 hover:to-gray-900 hover:text-white hover:shadow-lg hover:scale-105 active:scale-95 border border-gray-200 bg-white text-gray-700 font-medium";
+
+const colorCircleStyle: CSSProperties = {
+  width: "32px",
+  height: "32px",
+  border: "2px solid rgba(255, 255, 255, 0.8)",
+  boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
+};
 
 export const SelectContainer = React.memo((props: Selectcontainerprops) => {
   // Create a map of selected items for O(1) lookups
@@ -249,7 +256,6 @@ export const SelectContainer = React.memo((props: Selectcontainerprops) => {
   const selectedMap = React.useMemo(() => {
     if (!props.isSelected || props.isSelected.length === 0) return new Map();
 
-    // Avoid unnecessary else block
     return new Map(
       props.isSelected.map((item) => [
         `${item.variantId}-${item.variantIdx}`,
@@ -258,13 +264,11 @@ export const SelectContainer = React.memo((props: Selectcontainerprops) => {
     );
   }, [props.isSelected]);
 
-  // Optimize callback to depend only on onSelect
   const handleItemClick = React.useCallback(
     (value: number, idx: number) => () => props.onSelect(value, idx),
     [props]
   );
 
-  // Flatten the nested array structure for better render performance
   const renderData = React.useMemo(() => {
     const elements: React.JSX.Element[] = [];
 
@@ -306,7 +310,7 @@ export const SelectContainer = React.memo((props: Selectcontainerprops) => {
                 }}
               />
               {colorItem.name && (
-                <div className="w-fit h-fit text-lg font-bold">
+                <div className="w-fit h-fit text-sm font-semibold text-gray-700">
                   {colorItem.name}
                 </div>
               )}
@@ -325,13 +329,11 @@ export const SelectContainer = React.memo((props: Selectcontainerprops) => {
     handleItemClick,
   ]);
 
-  // Use a Fragment to avoid unnecessary div nesting if not needed
   return (
-    <div className="w-fit max-w-[80%] min-h-[50px] h-fit p-2 flex flex-row flex-wrap items-center gap-x-3 rounded-lg outline-1 outline outline-gray-400 outline-offset-2">
+    <div className="w-fit max-w-[80%] min-h-[60px] h-fit p-4 flex flex-row flex-wrap items-center gap-3 rounded-2xl bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200 shadow-sm">
       {renderData}
     </div>
   );
 });
 
-// Add display name for better debugging
 SelectContainer.displayName = "SelectContainer";

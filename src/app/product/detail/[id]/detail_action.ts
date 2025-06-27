@@ -9,7 +9,10 @@ import {
   Stocktype,
   Varianttype,
 } from "@/src/context/GlobalType.type";
-import { calculateDiscountPrice } from "@/src/lib/utilities";
+import {
+  calculateDiscountPrice,
+  getQtyBaseOnSelectionVar,
+} from "@/src/lib/utilities";
 import { Allstatus, Productorderdetailtype } from "@/src/context/OrderContext";
 
 interface Policytype {
@@ -195,19 +198,19 @@ export const IsInCartAndGetStock = async ({
 
     // Check if any product in the cart matches the selected variants
 
-    if (order?.Orderproduct)
+    if (order?.Orderproduct) {
       for (const product of order.Orderproduct) {
         for (const detail of product.details) {
           if (
             detail.variantId &&
-            detail.variantIdx &&
+            detail.variantIdx !== undefined &&
             variantMap.has(`${detail.variantId}-${detail.variantIdx}`)
           ) {
             isincart = true;
           }
         }
       }
-
+    }
     //Get QTY Of The Selected Var
     const prod = await Prisma.products.findUnique({
       where: { id: pid },
@@ -226,33 +229,10 @@ export const IsInCartAndGetStock = async ({
         success: false,
       };
 
-    const selectedVariant: Array<string> = (
-      prod.Variant as Varianttype[]
-    ).reduce<string[]>((acc, variant) => {
-      const matchingVar = selected_var.find((i) => i.variantId === variant.id);
-
-      if (matchingVar && matchingVar.variantIdx !== undefined) {
-        // Extract the specific option value using variantIdx
-        const optionValue =
-          variant.option_value[matchingVar.variantIdx as never];
-
-        if (optionValue) {
-          // Handle both string and object types
-          const value =
-            typeof optionValue === "string" ? optionValue : optionValue.val; // Assuming object has a 'val' property
-
-          if (value) {
-            acc.push(value);
-          }
-        }
-      }
-
-      return acc;
-    }, []);
-
     const { id, qty } = getQtyBaseOnSelectionVar(
-      selectedVariant,
-      prod.Stock as unknown as Stocktype[]
+      prod.Variant as Array<Varianttype>,
+      prod.Stock as unknown as Stocktype[],
+      selected_var
     );
 
     return {
@@ -267,44 +247,4 @@ export const IsInCartAndGetStock = async ({
     console.error("IsInCart error:", error);
     return { success: false, error: "Error occurred while checking cart" };
   }
-};
-
-const getQtyBaseOnSelectionVar = (variant: string[], stockval: Stocktype[]) => {
-  // Early return if inputs are invalid
-  if (!variant?.length || !stockval?.length) {
-    return { qty: 0, id: 0 };
-  }
-
-  // Convert variant array to Set for O(1) lookup
-  const variantSet = new Set(variant);
-  const variantLength = variant.length;
-
-  // Iterate through each stock item in the array
-  for (const stock of stockval) {
-    // Check if Stockvalue exists and has items
-    if (!stock.Stockvalue || !stock.Stockvalue.length) {
-      continue;
-    }
-
-    // Check each stock value
-    for (const stockValue of stock.Stockvalue) {
-      if (
-        !stockValue.variant_val ||
-        stockValue.variant_val.length !== variantLength
-      ) {
-        continue;
-      }
-
-      if (stockValue.variant_val.every((val) => variantSet.has(val))) {
-        // Return immediately on first match (early exit)
-        return {
-          qty: stockValue.qty,
-          id: stockValue.id ?? 0,
-        };
-      }
-    }
-  }
-
-  // Return default if no match found
-  return { qty: 0, id: 0 };
 };

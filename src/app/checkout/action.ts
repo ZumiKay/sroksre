@@ -29,7 +29,6 @@ import { generateInvoicePdf } from "../api/order/route";
 import { formatDate } from "../component/EmailTemplate";
 import getCheckoutdata from "@/src/app/checkout/getCheckOutData";
 import { getUser } from "../action";
-import { ApiRequest } from "@/src/context/CustomHook";
 import { ActionReturnType } from "@/src/context/GlobalType.type";
 
 interface Returntype<k = string> {
@@ -221,9 +220,8 @@ export async function updateStatus(
       if (stocktype === ProductStockType.stock) {
         stockProducts.push(cart.product.id as number);
       } else if (Stock?.length) {
-        const stockValueIds = Stock.flatMap(
-          (sk) => sk.Stockvalue?.map((sv) => sv.id) || []
-        ).filter(Boolean);
+        const stockValueIds =
+          cart.details?.map((i) => i.Orderproduct?.stock_selected_id) ?? [];
 
         if (stockValueIds.length > 0) {
           variantProducts.push({
@@ -582,6 +580,11 @@ export async function Createpaypalorder(orderId: string) {
 
     const orderShipping: PaypalshippingType = {
       type: shippingtype?.value !== "Pickup" ? "SHIPPING" : "NO_SHIPPING",
+      name: {
+        full_name: `${order.shipping?.firstname || order.user.firstname} ${
+          order.shipping?.lastname || order.user.lastname || ""
+        }`.trim(),
+      },
       ...(order.shipping && {
         address: {
           address_line_1: `${order.shipping?.street}`,
@@ -623,22 +626,24 @@ export async function CaptureOrder(orderId: string) {
     const accessToken = await generateAccessToken();
     const url = `${process.env.PAYPAL_BASE}/v2/checkout/orders/${orderId}/capture`;
 
-    const request = await ApiRequest({
-      url,
+    const response = await fetch(url, {
       method: "POST",
       headers: {
+        "Content-Type": "application/json",
         Authorization: `Bearer ${accessToken}`,
       },
     });
 
-    if (!request.success) {
+    if (!response.ok) {
       return {
         success: false,
-        status: request.status,
-        message: request.message,
+        status: response.status,
+        message: response.statusText,
       };
     }
-    return { success: true, data: request };
+
+    const data = await response.json();
+    return { success: true, data };
   } catch (error) {
     console.log("Capture Order", error);
     return { success: false, status: 500 };

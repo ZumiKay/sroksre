@@ -47,7 +47,7 @@ export const ActionContainer = ({
 }) => {
   // Memoize the items array to prevent recreation on each render
   const combinedItems = useCallback(() => {
-    return [...DefaultActionContainer, ...(customItems ?? [])];
+    return customItems ?? DefaultActionContainer;
   }, [customItems]);
 
   // Memoize the item renderer function to prevent recreation on each render
