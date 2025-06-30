@@ -1,147 +1,243 @@
 import { useGlobalContext } from "@/src/context/GlobalContext";
 import { SecondaryModal } from "../Modals";
-import { ChangeEvent, useCallback, useEffect, useState } from "react";
+import {
+  ChangeEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  memo,
+} from "react";
 import { ApiRequest } from "@/src/context/CustomHook";
-import { ProductState } from "@/src/context/GlobalType.type";
-import { CircularProgress, Input } from "@heroui/react";
+import { Chip, CircularProgress, Input } from "@heroui/react";
 import { PrimaryPhoto } from "../PhotoComponent";
 import { debounce } from "lodash";
 import { removeSpaceAndToLowerCase } from "@/src/lib/utilities";
+import { Productordertype } from "@/src/context/OrderContext";
 
-const FetchPreviewProduct = async (offet: number, q?: string) => {
-  const getReq = await ApiRequest({
-    url: `/api/order/list?lt=${offet}${
-      q ? `&q=${removeSpaceAndToLowerCase(q)}` : ""
-    }`,
-    method: "GET",
-  });
+const fetchPreviewProduct = async (
+  offset: number,
+  orderId: string,
+  query?: string
+) => {
+  try {
+    const response = await ApiRequest({
+      url: `/api/order/list?ty=product&lt=${offset}&id=${orderId}${
+        query ? `&q=${removeSpaceAndToLowerCase(query)}` : ""
+      }`,
+      method: "GET",
+    });
 
-  if (!getReq.success) {
+    return response.success ? response.data : null;
+  } catch (error) {
+    console.error("Error fetching preview products:", error);
     return null;
   }
-
-  return getReq.data;
 };
 
-const PreviewProductCard = ({ product }: { product: ProductState }) => {
-  const displayPrice = useCallback(() => {
-    return product.discount ? (
-      <p className="w-full h-fit flex flex-row items-center gap-x-3 font-normal">
-        <span className="text-gray-300 decoration-red-400 line-through ">
-          {product.price.toFixed(2)}
+const PreviewProductCard = memo(
+  ({ orderproduct }: { orderproduct: Productordertype }) => {
+    const { product, quantity, details, total } = orderproduct;
+
+    const displayPrice = useMemo(() => {
+      if (!product) return null;
+
+      return product.discount ? (
+        <div className="flex items-center gap-3 font-normal">
+          <span className="text-gray-400 line-through">
+            ${product.price.toFixed(2)}
+          </span>
+          <span className="text-red-500 text-sm">
+            -{product.discount.percent}%
+          </span>
+          <span className="text-gray-900 font-medium">
+            ${product.discount.newprice}
+          </span>
+        </div>
+      ) : (
+        <span className="text-lg font-medium text-gray-900">
+          ${product.price.toFixed(2)}
         </span>
-        <span className="text-red-400">-{product.discount.percent}</span>
-        <span className="text-black">{product.discount.newprice}</span>
-      </p>
-    ) : (
-      <p className="text-lg font-normal">{product.price.toFixed(2)}</p>
-    );
-  }, [product.discount, product.price]);
-  return (
-    <div className="previewProductCard w-[300px] h-[220px]">
-      <div className="w-full h-[150px[">
-        <PrimaryPhoto data={product.covers} hover={true} showcount={false} />
-      </div>
+      );
+    }, [product]);
 
-      <div className="productInfo w-full h-full">
-        <p>{product.name}</p>
-        {displayPrice()}
+    const selectedOptions = useMemo(() => {
+      if (!details?.length) return null;
+
+      return (
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-gray-700">Selected Options:</p>
+          <div className="flex flex-wrap gap-2">
+            {details.map((selected) => {
+              const selectedValue =
+                selected.variant?.option_value[selected.variantIdx];
+
+              if (!selectedValue) return null;
+
+              return typeof selectedValue === "string" ? (
+                <Chip
+                  key={selected.variantId}
+                  size="sm"
+                  variant="flat"
+                  color="primary"
+                >
+                  {selectedValue}
+                </Chip>
+              ) : (
+                <div
+                  key={selected.variantId}
+                  className="flex items-center gap-2 px-3 py-1 border border-gray-200 rounded-md"
+                >
+                  <span
+                    className="w-4 h-4 rounded-full border border-gray-300"
+                    style={{ backgroundColor: selectedValue.val }}
+                  />
+                  <span className="text-sm text-gray-700">
+                    {selectedValue.name}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      );
+    }, [details]);
+
+    return (
+      <div className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+        {product && (
+          <div className="w-full h-32 mb-3 overflow-hidden rounded-md">
+            <PrimaryPhoto
+              data={product.covers}
+              hover={true}
+              showcount={false}
+            />
+          </div>
+        )}
+
+        <div className="space-y-3">
+          <h3 className="font-medium text-gray-900 line-clamp-2">
+            {product?.name}
+          </h3>
+
+          {selectedOptions}
+
+          <div className="flex items-center justify-between">
+            {displayPrice}
+          </div>
+
+          <div className="flex gap-2 pt-2 border-t border-gray-100">
+            <Chip size="lg" variant="solid">
+              Qty: {quantity}
+            </Chip>
+            <Chip size="lg" variant="solid" className="bg-black text-white">
+              Total: ${(total ?? 0).toFixed(2)}
+            </Chip>
+          </div>
+        </div>
       </div>
-    </div>
-  );
-};
+    );
+  }
+);
+
+PreviewProductCard.displayName = "PreviewProductCard";
 
 const ProductPreviewModal = () => {
-  const { openmodal, setopenmodal } = useGlobalContext();
+  const { openmodal, setopenmodal, globalindex } = useGlobalContext();
   const [loading, setLoading] = useState(false);
   const [offset, setOffset] = useState(5);
-  const [products, setProducts] = useState<Array<ProductState>>([]);
-  const [search, setSearch] = useState<string>("");
+  const [products, setProducts] = useState<Productordertype[]>([]);
+  const [query, setQuery] = useState("");
 
-  // Fetch products based on offset
-  useEffect(() => {
-    async function fetchData() {
+  // Single debounced search function
+  const debouncedSearch = useCallback(
+    debounce((newQuery: string) => {
+      setQuery(newQuery);
+      setOffset(5); // Reset pagination
+    }, 300),
+    []
+  );
+
+  const fetchProducts = useCallback(
+    async (currentOffset: number, searchQuery?: string) => {
+      const orderId = globalindex.orderId;
+      if (!orderId) return;
+
       setLoading(true);
       try {
-        const getReq = await FetchPreviewProduct(offset);
-        if (getReq) {
-          setProducts(getReq as Array<ProductState>);
+        const data = (await fetchPreviewProduct(
+          currentOffset,
+          orderId,
+          searchQuery
+        )) as Productordertype[];
+        if (data) {
+          setProducts((prev) =>
+            currentOffset === 5 ? data : [...prev, ...data]
+          );
         }
       } catch (error) {
         console.error("Error fetching products:", error);
       } finally {
         setLoading(false);
       }
-    }
-    fetchData();
-  }, [offset]);
+    },
+    [globalindex.orderId]
+  );
 
-  // Debounced search effect
+  // Combined effect for fetch
   useEffect(() => {
-    async function searchProducts() {
-      if (search.trim() === "") return;
-
-      setLoading(true);
-      try {
-        // Assuming you have a search API function
-        const searchResults = await FetchPreviewProduct(offset, search);
-        if (searchResults) {
-          setProducts(searchResults as Array<ProductState>);
-        }
-      } catch (error) {
-        console.error("Error searching products:", error);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    // Only search if there's actually a search term
-    if (search.trim() !== "") {
-      const handler = setTimeout(() => {
-        searchProducts();
-      }, 500); // 500ms debounce delay
-
-      return () => clearTimeout(handler);
-    }
-  }, [search, offset]);
+    fetchProducts(offset, query);
+  }, [fetchProducts, offset, query]);
 
   const handleClose = useCallback(() => {
     setopenmodal({});
+    // Cleanup on close
+    setProducts([]);
+    setQuery("");
+    setOffset(5);
   }, [setopenmodal]);
 
-  // Debounced search handler
-  const debouncedSearch = useCallback(
-    debounce((value: string) => {
-      setSearch(value);
-    }, 500),
-    []
-  );
-
-  const handleSearch = useCallback(
+  const handleSearchChange = useCallback(
     (e: ChangeEvent<HTMLInputElement>) => {
       debouncedSearch(e.target.value);
     },
     [debouncedSearch]
   );
 
+  const clearSearch = useCallback(() => {
+    debouncedSearch("");
+  }, [debouncedSearch]);
+
   const loadMore = useCallback(() => {
     setOffset((prev) => prev + 5);
   }, []);
 
+  // Cleanup
+  useEffect(() => {
+    return () => {
+      debouncedSearch.cancel();
+    };
+  }, [debouncedSearch]);
+
+  const hasProducts = products.length > 0;
+  const showLoadMore = hasProducts && !query && !loading;
+
   return (
     <SecondaryModal
-      open={openmodal?.showproducts ?? false}
+      open={!!openmodal.showproduct}
       onPageChange={handleClose}
       size="2xl"
     >
-      <div className="flex flex-col w-full h-full bg-white p-4 gap-4">
-        <div className="flex items-center justify-between mb-2">
-          <h2 className="text-lg font-semibold text-gray-800">
+      <div className="flex flex-col h-full bg-white min-h-[50vh]">
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+          <h2 className="text-xl font-semibold text-gray-900">
             Product Preview
           </h2>
           <button
+            type="button"
             onClick={handleClose}
-            className="p-1 rounded-full hover:bg-gray-100 transition-colors"
+            className="p-2 rounded-full hover:bg-gray-100 transition-colors"
             aria-label="Close modal"
           >
             <svg
@@ -149,7 +245,6 @@ const ProductPreviewModal = () => {
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
             >
               <path
                 strokeLinecap="round"
@@ -161,82 +256,96 @@ const ProductPreviewModal = () => {
           </button>
         </div>
 
-        <div className="relative w-full mb-4">
+        {/* Search */}
+        <div className="p-6 border-b border-gray-200">
           <Input
             type="text"
-            placeholder="Search by name or category..."
+            placeholder="Search products..."
             label="Search"
-            size="sm"
+            size="md"
             className="w-full"
-            onChange={handleSearch}
+            onChange={handleSearchChange}
+            endContent={
+              query && (
+                <button
+                  type="button"
+                  onClick={clearSearch}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                  aria-label="Clear search"
+                >
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M6 18L18 6M6 6l12 12"
+                    />
+                  </svg>
+                </button>
+              )
+            }
           />
-          {search && (
-            <button
-              onClick={() => setSearch("")}
-              className="absolute right-10 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-              aria-label="Clear search"
-            >
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 p-6 overflow-hidden">
+          {loading && offset === 5 ? (
+            <div className="flex justify-center items-center h-32">
+              <CircularProgress size="lg" />
+            </div>
+          ) : hasProducts ? (
+            <div className="h-full flex flex-col">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 overflow-y-auto flex-1">
+                {products.map((orderproduct, idx) => (
+                  <PreviewProductCard key={idx} orderproduct={orderproduct} />
+                ))}
+              </div>
+
+              {showLoadMore && (
+                <div className="flex justify-center mt-6 pt-4 border-t border-gray-200">
+                  <button
+                    type="button"
+                    onClick={loadMore}
+                    disabled={loading}
+                    className="px-6 py-2 bg-primary-50 text-primary-600 rounded-lg hover:bg-primary-100 transition-colors font-medium disabled:opacity-50"
+                  >
+                    {loading ? "Loading..." : "Load More"}
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-full text-gray-500">
               <svg
-                className="w-4 h-4"
+                className="w-16 h-16 mb-4 text-gray-300"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
-                xmlns="http://www.w3.org/2000/svg"
               >
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
+                  strokeWidth={1}
+                  d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
                 />
               </svg>
-            </button>
+              <h3 className="text-lg font-medium text-gray-900 mb-1">
+                No products found
+              </h3>
+              <p className="text-sm text-gray-500">
+                Try adjusting your search criteria
+              </p>
+            </div>
           )}
         </div>
-
-        {loading ? (
-          <div className="flex justify-center items-center py-8">
-            <CircularProgress className="w-10 h-10 text-blue-500" />
-          </div>
-        ) : products.length > 0 ? (
-          <>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 overflow-y-auto max-h-96 p-1">
-              {products.map((prod) => (
-                <PreviewProductCard key={prod.id} product={prod} />
-              ))}
-            </div>
-
-            <div className="flex justify-center mt-4">
-              <button
-                onClick={loadMore}
-                className="px-4 py-2 bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100 transition-colors font-medium text-sm"
-              >
-                Load More
-              </button>
-            </div>
-          </>
-        ) : (
-          <div className="flex flex-col items-center justify-center py-12 text-gray-500">
-            <svg
-              className="w-16 h-16 mb-4 text-gray-300"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1}
-                d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-              />
-            </svg>
-            <p className="text-lg font-medium">No products found</p>
-            <p className="text-sm">Try adjusting your search criteria</p>
-          </div>
-        )}
       </div>
     </SecondaryModal>
   );
 };
+
 export default ProductPreviewModal;

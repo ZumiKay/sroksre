@@ -116,6 +116,7 @@ export const GetContainers = async () => {
               selectedproduct_id: true,
               parentcate_id: true,
               childcate_id: true,
+              name: true,
               Image: {
                 select: {
                   id: true,

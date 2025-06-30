@@ -414,7 +414,7 @@ export function CartMenu(props: cardmenuprops) {
   const ref = useClickOutside(() => props.setcart(false));
 
   const [loading, setloading] = useState({
-    fetch: true,
+    fetch: false,
     checkout: false,
   });
 
@@ -430,6 +430,10 @@ export function CartMenu(props: cardmenuprops) {
     };
   }, []);
 
+  useEffect(() => {
+    if (!reloadcart) setreloadcart(true);
+  }, []);
+
   const fetchcart = useCallback(async () => {
     const asyncfetchcart = async () => {
       const response = await ApiRequest({
@@ -442,10 +446,9 @@ export function CartMenu(props: cardmenuprops) {
         settotal({ subtotal: response.total ?? 0, total: response.total ?? 0 });
       }
     };
-
     await Delayloading(
       asyncfetchcart,
-      (value) => setloading((prev) => ({ ...prev, fetch: value })),
+      (val) => setloading((prev) => ({ ...prev, fetch: val })),
       500
     );
 
@@ -495,13 +498,18 @@ export function CartMenu(props: cardmenuprops) {
       const createOrder = await makereq();
       setloading((prev) => ({ ...prev, checkout: false }));
 
-      if (!createOrder.success) {
-        console.log({ createOrder });
+      if (
+        !createOrder.success ||
+        !createOrder.data ||
+        !createOrder.data.orderId ||
+        !createOrder.data.sessionId
+      ) {
         errorToast(createOrder.message ?? "Error Occurred");
         return;
       }
 
-      params.set("orderid", createOrder?.data?.orderId ?? "");
+      params.set("orderid", createOrder.data.orderId);
+      params.set("sid", createOrder.data.sessionId);
       params.set("step", "1");
       router.push(`/checkout?${params.toString()}`);
     }

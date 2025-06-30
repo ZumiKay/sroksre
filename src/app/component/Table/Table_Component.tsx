@@ -1,6 +1,7 @@
 "use client";
 import {
   Button,
+  Chip,
   Selection,
   Table,
   TableBody,
@@ -36,6 +37,13 @@ import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Spinner } from "@heroui/spinner";
 import { formatDate } from "../EmailTemplate";
+import {
+  Allstatus,
+  Ordertype,
+  totalpricetype,
+} from "@/src/context/OrderContext";
+import { getStatusColor } from "@/src/lib/additionalutitlites";
+import { ShippingOptionTypes } from "@/src/context/Checkoutcontext";
 
 interface TableComponentProps {
   ty: InventoryPage;
@@ -151,8 +159,10 @@ const OrderColumns: Array<ColumnType> = [
     uid: "user",
   },
   { name: "Status", uid: "status" },
-  { name: "Product", uid: "Orderproduct" },
+
   { name: "Price", uid: "price" },
+  { name: "Product", uid: "products" },
+  { name: "Shipping", uid: "shippingtype" },
 ];
 
 interface Stock {
@@ -253,13 +263,17 @@ export default function TableComponent({
           break;
 
         case "other":
-          toOpenModal = { other: true };
-
+        case "user":
           if (ty === "usermanagement") {
             toOpenModal.userdetail = true;
           }
+          if (ty === "ordermanagement" && uid === "other") {
+            toOpenModal.orderdetail = true;
+          } else toOpenModal = { other: true };
 
-          toUpdateIndex = { useredit: id as number };
+          if (ty === "ordermanagement") {
+            toUpdateIndex.orderId = id as string;
+          } else toUpdateIndex = { useredit: id as number };
           break;
 
         default:
@@ -401,16 +415,28 @@ export default function TableComponent({
           );
 
         case "price": {
-          const { discount, price } = celldata as unknown as ProductState;
-          return discount ? (
-            <div className="price_container w-full h-fit flex flex-col items-start">
-              <p className="font-bold">{`Discounted price: ${discount.newprice} USD`}</p>
-              <p className="text-red-500">{`Discount: %${discount.percent}`}</p>
-              <p>{`Price: ${price} USD`}</p>
-            </div>
-          ) : (
-            `${celldata[key]} (USD)`
-          );
+          if (ty === "product") {
+            const { discount, price } = celldata as unknown as ProductState;
+            return discount ? (
+              <div className="price_container w-full h-fit flex flex-col items-start">
+                <p className="font-bold">{`Discounted price: ${discount.newprice} USD`}</p>
+                <p className="text-red-500">{`Discount: %${discount.percent}`}</p>
+                <p>{`Price: ${price} USD`}</p>
+              </div>
+            ) : (
+              `${celldata[key]} (USD)`
+            );
+          } else if (ty === "ordermanagement") {
+            const orderpice = (celldata as unknown as Ordertype)
+              ?.price as unknown as totalpricetype;
+            return (
+              <ul className="pricelist flex flex-col gap-y-3">
+                {Object.entries(orderpice).map(([key, val], idx) => (
+                  <li key={idx}>{`${key.toUpperCase()} : ${val} (USD)`}</li>
+                ))}
+              </ul>
+            );
+          }
         }
 
         case "category":
@@ -444,6 +470,7 @@ export default function TableComponent({
 
         case "products":
         case "other":
+        case "user":
           return (
             <Button
               onPress={() => celldata.id && handleView(key, celldata.id)}
@@ -453,6 +480,20 @@ export default function TableComponent({
             >
               VIEW
             </Button>
+          );
+        case "shippingtype":
+          const data = celldata[key];
+          return data !== ShippingOptionTypes.pickup ? (
+            <Button
+              onPress={() => celldata.id && handleView(key, celldata.id)}
+              variant="solid"
+              color="primary"
+              className="font-bold"
+            >
+              VIEW
+            </Button>
+          ) : (
+            data
           );
 
         case "action":
@@ -473,6 +514,9 @@ export default function TableComponent({
             ? formatDate(new Date(celldata[key]))
             : "none";
 
+        case "status":
+          const status = celldata[key.toString()] as Allstatus;
+          return <Chip className={getStatusColor(status)}>{status}</Chip>;
         default:
           return celldata[key.toString()] ?? "none";
       }

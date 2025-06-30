@@ -19,6 +19,7 @@ import { useGlobalContext } from "@/src/context/GlobalContext";
 import { UserState } from "@/src/context/GlobalType.type";
 import { Address } from "@prisma/client";
 import { errorToast } from "../../component/Loading";
+import { Ordertype } from "@/src/context/OrderContext";
 
 // Types for better type safety
 interface DetailTableProps {
@@ -77,7 +78,9 @@ export const DetailTable = memo<DetailTableProps>(({ ty }) => {
         if (!isMounted) return;
 
         if (getData.success && getData.data) {
-          setDisplayData(getData.data as Address | UserState);
+          const reqData = getData.data as Ordertype;
+          if (ty === "shipping") setDisplayData(reqData.shipping);
+          else setDisplayData(reqData.user as never);
         } else {
           throw new Error(getData.message || "Failed to fetch data");
         }

@@ -190,8 +190,9 @@ model Orders {
   shipping     Address?       @relation(fields: [shipping_id], references: [id])
   user         User           @relation(fields: [buyer_id], references: [id], onDelete: Cascade)
   Orderproduct Orderproduct[]
+  sessionId    String?
 
-  @@index([id, status, createdAt])
+  @@index([id, status, createdAt, sessionId])
 }
 
 model Orderproduct {

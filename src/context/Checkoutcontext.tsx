@@ -1,3 +1,8 @@
+export enum ShippingOptionTypes {
+  normal = "Normal",
+  express = "Express",
+  pickup = "Pickup",
+}
 export const Shippingservice = [
   {
     type: "Standard",
@@ -44,7 +49,7 @@ export interface Paypalamounttype {
 }
 
 export interface PaypalshippingType {
-  type: "SHIPPING" | "NO_SHIPPING";
+  type: "SHIPPING" | "NO_SHIPPING" | "";
   name: Record<string, string>;
   address?: {
     address_line_1: string;

@@ -167,6 +167,7 @@ interface SecondayCardprops {
   action?: boolean;
   removecart: () => Promise<void>;
   settotal: (param?: totalpricetype) => void;
+  isViewOnly?: boolean;
 }
 export const Selecteddetailcard = ({
   text,

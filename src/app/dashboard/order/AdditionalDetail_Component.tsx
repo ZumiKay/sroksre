@@ -12,8 +12,8 @@ export const AdditionalDetailModal = ({ type }: AdditionalDetailModalProps) => {
 
   return (
     <SecondaryModal
-      open={openmodal.orderdetail ?? false}
-      onPageChange={() => setopenmodal({ orderdetail: false })}
+      open={(openmodal.orderdetail ?? openmodal?.other ?? false) as boolean}
+      onPageChange={() => setopenmodal({})}
       size="lg"
     >
       <div className="flex flex-col gap-2">

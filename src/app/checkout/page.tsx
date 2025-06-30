@@ -32,6 +32,7 @@ import {
   Proceedbutton,
 } from "../component/Checkout/Button";
 import { Paypalbutton } from "../component/PayPalButton";
+import CountDown from "../component/Checkout/CountDown";
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
@@ -45,13 +46,13 @@ export default async function Checkoutpage(props: {
   const searchParams = await props.searchParams;
   const step = searchParams?.step ? parseInt(searchParams?.step as string) : 0;
   const orderid_param = searchParams?.orderid;
-  if (!step || !orderid_param || orderid_param.length === 0) {
+  const session_id = searchParams?.sid;
+  if (!step || !orderid_param || orderid_param.length === 0 || !session_id) {
     return redirect("/");
   }
 
   const orderid = decrypt(orderid_param as string, process.env.KEY as string);
-
-  const order = await checkOrder(orderid);
+  const order = await checkOrder(orderid, session_id as string);
 
   if (!order) {
     return redirect("/");
@@ -77,6 +78,7 @@ export default async function Checkoutpage(props: {
       {step !== 4 && order.status !== Allstatus.paid ? (
         <>
           <StepIndicator step={step} />
+          <CountDown oid={orderid} sid={session_id as string} />
           <FormWrapper step={step} order_id={orderid}>
             <BackAndEdit step={step} />
             <ShowBody />

@@ -143,7 +143,7 @@ export function OrderReceiptTemplate({ order, isAdmin }: OerderEmailProps) {
               </p>
               <p style={{ fontWeight: "700" }}>Order #: {order.id}</p>
               <p style={{ fontWeight: "700" }}>
-                Order on {formatDate(order?.createAt ?? new Date())}
+                Order on {formatDate(order?.createdAt ?? new Date())}
               </p>
               <p
                 style={{

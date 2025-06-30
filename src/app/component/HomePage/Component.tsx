@@ -7,7 +7,7 @@ import {
   useTransform,
 } from "framer-motion";
 
-import { CSSProperties, useEffect, useRef, useState } from "react";
+import React, { CSSProperties, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import PrimaryButton from "../Button";
@@ -255,34 +255,123 @@ interface Categorycardprops {
     link?: string;
   };
 }
-const CategoryCard = (props: Categorycardprops) => {
+
+const CategoryCard = React.memo((props: Categorycardprops) => {
   const router = useRouter();
+  const [imageLoaded, setImageLoaded] = useState(false);
+
+  const handleClick = () => {
+    if (props.data.link) {
+      router.push(props.data.link);
+    }
+  };
+
+  const cardVariants = {
+    hidden: {
+      opacity: 0,
+      x: -20,
+      scale: 0.95,
+    },
+    visible: {
+      opacity: 1,
+      x: 0,
+      scale: 1,
+      transition: {
+        duration: 0.6,
+        ease: "easeOut",
+      },
+    },
+  };
+
+  const imageVariants = {
+    hover: {
+      scale: 1.05,
+      transition: {
+        duration: 0.3,
+        ease: "easeInOut",
+      },
+    },
+  };
+
   return (
-    <div
-      key={props.data.name}
-      className="cate_card w-[500px] h-[700px]  max-smallest_tablet:w-full"
+    <motion.div
+      variants={cardVariants}
+      initial="hidden"
+      whileInView="visible"
+      viewport={{ once: true, margin: "-50px" }}
+      className="group relative w-full max-w-[450px] h-auto cursor-pointer overflow-hidden rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 bg-white"
+      onClick={handleClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          handleClick();
+        }
+      }}
+      aria-label={`Navigate to ${props.data.name}`}
     >
-      <motion.img
-        initial={{ left: "-20px" }}
-        whileInView={{ left: 0 }}
-        transition={{ duration: 1, ease: "easeIn" }}
-        className="w-full h-[600px] object-cover 
-        relative transition-transform hover:scale-110
-       
-        "
-        src={props.data.image.url}
-        alt={props.data.image.name}
-        width={"auto"}
-        height={"auto"}
-        loading="lazy"
-        onClick={() => props.data.link && router.push(props.data.link)}
-      />
-      <div className="name text-[32px] grid place-content-center font-bold text-white w-full min-h-[50px] h-fit bg-[#495464] p-2 text-center">
-        {props.data.name}
+      {/* Image Container */}
+      <div className="relative w-full h-[500px] overflow-hidden bg-gradient-to-br from-gray-100 to-gray-200">
+        {/* Loading placeholder */}
+        {!imageLoaded && (
+          <div className="absolute inset-0 flex items-center justify-center bg-gray-200 animate-pulse">
+            <div className="w-16 h-16 border-4 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
+          </div>
+        )}
+
+        <motion.img
+          variants={imageVariants}
+          whileHover="hover"
+          className={`w-full h-full object-cover transition-opacity duration-300 ${
+            imageLoaded ? "opacity-100" : "opacity-0"
+          }`}
+          src={props.data.image.url}
+          alt={props.data.image.name}
+          width={450}
+          height={500}
+          loading="lazy"
+          onLoad={() => setImageLoaded(true)}
+          onError={() => setImageLoaded(true)}
+        />
+
+        {/* Overlay gradient */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+        {/* Link indicator */}
+        {props.data.link && (
+          <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm rounded-full p-2 opacity-0 group-hover:opacity-100 transition-all duration-300 transform group-hover:scale-110">
+            <svg
+              className="w-4 h-4 text-gray-700"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+              />
+            </svg>
+          </div>
+        )}
       </div>
-    </div>
+
+      {/* Content */}
+      <div className="relative bg-gradient-to-r from-[#495464] to-[#3a424f] p-4">
+        <h3 className="text-white font-bold text-xl md:text-2xl text-center leading-tight group-hover:text-gray-100 transition-colors duration-300">
+          {props.data.name}
+        </h3>
+
+        {/* Decorative element */}
+        <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-0 h-0.5 bg-white/70 group-hover:w-16 transition-all duration-300" />
+      </div>
+    </motion.div>
   );
-};
+});
+
+CategoryCard.displayName = "CategoryCard";
 
 interface CategoryContainerProps {
   name?: string;
@@ -296,39 +385,88 @@ interface CategoryContainerProps {
   }[];
 }
 
-export const CategoryContainer = ({ name, data }: CategoryContainerProps) => {
-  const router = useRouter();
+export const CategoryContainer = React.memo(
+  ({ name, data }: CategoryContainerProps) => {
+    const containerVariants = {
+      hidden: { opacity: 0 },
+      visible: {
+        opacity: 1,
+        transition: {
+          staggerChildren: 0.1,
+          delayChildren: 0.2,
+        },
+      },
+    };
 
-  return (
-    <div key={name} className="w-full h-fit">
-      <h3 className="title w-full h-fit text-3xl text-left text-black font-bold">
-        {name}
-      </h3>
+    const titleVariants = {
+      hidden: {
+        opacity: 0,
+        y: -20,
+      },
+      visible: {
+        opacity: 1,
+        y: 0,
+        transition: {
+          duration: 0.6,
+          ease: "easeOut",
+        },
+      },
+    };
 
-      <div className="categories mt-5 w-full h-fit flex flex-row flex-wrap justify-center gap-20">
-        {data.map((cate, idx) => (
-          <div
-            key={idx}
-            onClick={() => {
-              if (cate.link) {
-                router.push(cate.link);
-              }
-            }}
-            className="w-fit h-fit"
-          >
-            <CategoryCard
-              key={idx}
-              data={{
-                image: cate.image,
-                name: cate.name,
+    return (
+      <motion.section
+        variants={containerVariants}
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, margin: "-100px" }}
+        className="w-full py-8 md:py-12"
+        aria-labelledby={name ? `category-title-${name}` : undefined}
+      >
+        {name && (
+          <motion.div variants={titleVariants} className="mb-8 md:mb-12">
+            <h2
+              id={`category-title-${name}`}
+              className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 text-center md:text-left relative"
+            >
+              {name}
+              <div className="absolute -bottom-2 left-0 md:left-0 w-20 h-1 bg-gradient-to-r from-[#495464] to-[#3a424f] rounded-full mx-auto md:mx-0" />
+            </h2>
+          </motion.div>
+        )}
+
+        <motion.div
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 md:gap-8 lg:gap-10 justify-items-center"
+          variants={containerVariants}
+        >
+          {data.map((cate, idx) => (
+            <motion.div
+              key={`${cate.name}-${idx}`}
+              className="w-full max-w-[450px]"
+              variants={{
+                hidden: { opacity: 0, y: 20 },
+                visible: {
+                  opacity: 1,
+                  y: 0,
+                  transition: { duration: 0.5 },
+                },
               }}
-            />
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
+            >
+              <CategoryCard
+                data={{
+                  image: cate.image,
+                  name: cate.name,
+                  link: cate.link,
+                }}
+              />
+            </motion.div>
+          ))}
+        </motion.div>
+      </motion.section>
+    );
+  }
+);
+
+CategoryContainer.displayName = "CategoryContainer";
 
 interface BannerProps {
   data: {

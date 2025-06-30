@@ -5,49 +5,58 @@ import {
   OrderFilterParam,
   OrderGetReqType,
   Ordertype,
+  Productordertype,
 } from "@/src/context/OrderContext";
 import Prisma from "@/src/lib/prisma";
 import { Prisma as PrismaType } from "@prisma/client";
 import { getUser } from "@/src/app/action";
-import { IsNumber } from "@/src/lib/utilities";
+import {
+  calculateDiscountPrice,
+  IsNumber,
+  removeSpaceAndToLowerCase,
+} from "@/src/lib/utilities";
 
 interface GetOrderParam extends OrderFilterParam<number, Date> {
   id?: string;
   ty?: OrderGetReqType;
 }
 
-const verifyOrderParam = (url: GetOrderParam): boolean => {
-  //Check
-  if (!url.ty) {
-    return false;
-  }
+const verifyOrderParam = (params: GetOrderParam): boolean => {
+  if (!params.ty) return false;
 
-  if (url.startprice || url.endprice || url.p || url.lt) {
+  // Validate numeric parameters
+  const numericFields = ["startprice", "endprice", "p", "lt"] as const;
+  for (const field of numericFields) {
+    const value = params[field];
     if (
-      (url.startprice && isNaN(Number(url.startprice))) ||
-      (url.endprice && isNaN(Number(url.endprice))) ||
-      !(url.p && IsNumber(url.p.toString())) ||
-      !(url.lt && IsNumber(url.lt.toString()))
+      value &&
+      (field === "p" || field === "lt"
+        ? !IsNumber(value.toString())
+        : isNaN(Number(value)))
     ) {
       return false;
     }
   }
 
-  if (
-    (url.fromdate && isNaN(new Date(url.fromdate).getTime())) ||
-    (url.enddate && isNaN(new Date(url.enddate).getTime()))
-  ) {
-    return false;
+  // Validate date parameters
+  const dateFields = ["fromdate", "enddate"] as const;
+  for (const field of dateFields) {
+    const value = params[field];
+    if (value && isNaN(new Date(value).getTime())) {
+      return false;
+    }
   }
 
-  if (
-    url.status &&
-    url.status.length > 0 &&
-    (typeof url.status !== "string"
-      ? !url.status.some((status) => Object.values(Allstatus).includes(status))
-      : !Object.values(Allstatus).includes(url.status))
-  ) {
-    return false;
+  // Validate status parameter
+  if (params.status) {
+    const statusArray = Array.isArray(params.status)
+      ? params.status
+      : [params.status];
+    if (
+      !statusArray.every((status) => Object.values(Allstatus).includes(status))
+    ) {
+      return false;
+    }
   }
 
   return true;
@@ -55,9 +64,7 @@ const verifyOrderParam = (url: GetOrderParam): boolean => {
 
 export async function GET(req: NextRequest) {
   try {
-    // Extract all query parameters at once and destructure
-    const url = req.nextUrl;
-    const params = extractQueryParams(url.toString()) as GetOrderParam;
+    const params = extractQueryParams(req.nextUrl.toString()) as GetOrderParam;
 
     if (!verifyOrderParam(params)) {
       return Response.json(
@@ -66,9 +73,9 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    //Convert Status to array
-    if (params.status) {
-      if (typeof params.status === "string") params.status = [params.status];
+    // Normalize status to array
+    if (params.status && typeof params.status === "string") {
+      params.status = [params.status];
     }
 
     const {
@@ -81,82 +88,51 @@ export async function GET(req: NextRequest) {
       p = 1,
       lt = 5,
       status,
+      id,
     } = params;
-
-    let orderData: Array<Ordertype> | Ordertype | null = null;
-    let totalCount = 0;
-    let totalfilter: number | undefined = undefined;
     const isAdmin = await getUser();
 
     const whereCondition: PrismaType.OrdersWhereInput = {
       AND: [
-        { ...(isAdmin?.role === "ADMIN" ? {} : { buyer_id: isAdmin?.id }) },
-        {
-          ...(q && {
-            OR: [
-              { id: { contains: q, mode: "insensitive" } },
-              {
-                user: {
-                  OR: [
-                    { email: { contains: q, mode: "insensitive" } },
-                    { firstname: { contains: q, mode: "insensitive" } },
-                    { lastname: { contains: q, mode: "insensitive" } },
-                    { username: { contains: q, mode: "insensitive" } },
-                  ],
+        isAdmin?.role === "ADMIN" ? {} : { buyer_id: isAdmin?.id },
+        q
+          ? {
+              OR: [
+                { id: { contains: q, mode: "insensitive" } },
+                {
+                  user: {
+                    OR: [
+                      { email: { contains: q, mode: "insensitive" } },
+                      { firstname: { contains: q, mode: "insensitive" } },
+                      { lastname: { contains: q, mode: "insensitive" } },
+                      { username: { contains: q, mode: "insensitive" } },
+                    ],
+                  },
                 },
-              },
-            ],
-          }),
-        },
-        {
-          ...(fromdate && {
-            createdAt: {
-              gte: new Date(fromdate),
-            },
-          }),
-        },
-        {
-          ...(enddate && {
-            createdAt: {
-              lte: new Date(enddate),
-            },
-          }),
-        },
-        {
-          ...(startprice && {
-            price: {
-              path: ["total"],
-              gte: startprice,
-            },
-          }),
-        },
-        {
-          ...(endprice && {
-            price: {
-              path: ["total"],
-              lte: endprice,
-            },
-          }),
-        },
-        {
-          ...(status && {
-            status: {
-              in: status,
-            },
-          }),
-        },
+              ],
+            }
+          : {},
+        fromdate ? { createdAt: { gte: new Date(fromdate) } } : {},
+        enddate ? { createdAt: { lte: new Date(enddate) } } : {},
+        startprice ? { price: { path: ["total"], gte: startprice } } : {},
+        endprice ? { price: { path: ["total"], lte: endprice } } : {},
+        status ? { status: { in: status } } : {},
       ],
     };
+
     const commonSelect: PrismaType.OrdersSelect = {
       id: true,
-      user: isAdmin?.role === "ADMIN" && {
-        select: {
-          email: true,
-          firstname: true,
-          lastname: true,
-          username: true,
-        },
-      },
+      user:
+        isAdmin?.role === "ADMIN"
+          ? {
+              select: {
+                email: true,
+                firstname: true,
+                lastname: true,
+                username: true,
+              },
+            }
+          : false,
       status: true,
       Orderproduct: {
         select: {
@@ -166,39 +142,54 @@ export async function GET(req: NextRequest) {
         },
       },
       price: true,
+      shippingtype: true,
     };
+
+    let orderData: unknown | null = null;
+    let totalCount = 0;
+    let totalfilter: number | undefined = undefined;
 
     switch (ty) {
       case "all":
-        totalCount = await Prisma.orders.count({
-          where: whereCondition,
-        });
-        orderData = (await Prisma.orders.findMany({
-          where: whereCondition,
-          take: lt,
-          skip: (p - 1) * lt,
-          select: commonSelect,
-        })) as never;
-
+        [totalCount, orderData] = await Promise.all([
+          Prisma.orders.count({ where: whereCondition }),
+          Prisma.orders.findMany({
+            where: whereCondition,
+            take: lt,
+            skip: (p - 1) * lt,
+            select: commonSelect,
+          }),
+        ]);
         break;
+
       case "filter":
-        totalfilter = await Prisma.orders.count({ where: whereCondition });
-        orderData = (await Prisma.orders.findMany({
-          where: whereCondition,
-          select: commonSelect,
-          take: lt,
-          skip: (p - 1) * lt,
-        })) as never;
+        [totalfilter, orderData] = await Promise.all([
+          Prisma.orders.count({ where: whereCondition }),
+          Prisma.orders.findMany({
+            where: whereCondition,
+            select: commonSelect,
+            take: lt,
+            skip: (p - 1) * lt,
+          }),
+        ]);
         break;
 
       case "product":
-        const categorySelect = {
-          id: true,
-          name: true,
-        };
-        orderData = (await Prisma.orderproduct.findFirst({
+        const orderProducts = await Prisma.orderproduct.findMany({
           where: {
-            orderId: params.id,
+            AND: [
+              { orderId: id },
+              q
+                ? {
+                    product: {
+                      name: {
+                        contains: removeSpaceAndToLowerCase(q),
+                        mode: "insensitive",
+                      },
+                    },
+                  }
+                : {},
+            ],
           },
           select: {
             quantity: true,
@@ -206,50 +197,95 @@ export async function GET(req: NextRequest) {
               select: {
                 id: true,
                 name: true,
-                parentcateogries: {
-                  select: categorySelect,
-                },
-                childcategories: {
-                  select: categorySelect,
-                },
+                covers: { take: 1 },
+                parentcateogries: { select: { id: true, name: true } },
+                childcategories: { select: { id: true, name: true } },
                 price: true,
                 discount: true,
               },
             },
-            details: true,
+            details: {
+              select: {
+                variant: true,
+                variantIdx: true,
+                variantId: true,
+              },
+            },
           },
-        })) as never;
-        break;
-      case "export":
-        totalfilter = await Prisma.orders.count({
-          where: whereCondition,
         });
-        orderData = (await Prisma.orders.findMany({
-          where: whereCondition,
-          select: {
-            id: true,
-            user: isAdmin?.role === "ADMIN" && {
-              select: {
-                email: true,
-                firstname: true,
-                lastname: true,
-                username: true,
-              },
-            },
-            status: true,
-            Orderproduct: {
-              select: {
-                id: true,
-                productId: true,
-                quantity: true,
-                details: true,
-              },
-            },
-            price: true,
-            createdAt: true,
-          },
-        })) as never;
 
+        orderData = orderProducts.map((data) => {
+          const orderproduct = data as unknown as Productordertype;
+          const calculatedPrice = orderproduct?.product?.discount
+            ? Number(
+                calculateDiscountPrice(
+                  orderproduct.product.price,
+                  orderproduct.product.discount as unknown as number
+                ).newprice
+              )
+            : orderproduct?.product?.price;
+
+          return {
+            ...orderproduct,
+            total: orderproduct.quantity * (calculatedPrice ?? 0),
+            product: {
+              ...orderproduct.product,
+              discount: orderproduct?.product?.discount
+                ? calculateDiscountPrice(
+                    orderproduct.product.price,
+                    orderproduct.product.discount as unknown as number
+                  )
+                : null,
+            },
+          };
+        }) as never;
+        break;
+
+      case "export":
+        [totalfilter, orderData] = await Promise.all([
+          Prisma.orders.count({ where: whereCondition }),
+          Prisma.orders.findMany({
+            where: whereCondition,
+            select: {
+              id: true,
+              user:
+                isAdmin?.role === "ADMIN"
+                  ? {
+                      select: {
+                        email: true,
+                        firstname: true,
+                        lastname: true,
+                        username: true,
+                      },
+                    }
+                  : false,
+              status: true,
+              Orderproduct: {
+                select: {
+                  id: true,
+                  productId: true,
+                  quantity: true,
+                  details: true,
+                },
+              },
+              price: true,
+              createdAt: true,
+            },
+          }),
+        ]);
+        break;
+
+      case "shipping":
+      case "user":
+        const selectFields =
+          ty === "shipping"
+            ? { shipping: true, shippingtype: true }
+            : { user: true };
+
+        orderData = (await Prisma.orders.findUnique({
+          where: { id },
+          select: selectFields,
+        })) as unknown as Ordertype;
         break;
 
       default:

@@ -168,7 +168,7 @@ function processCartItems(orderproduct: Productordertype[]) {
 
     let qty = 0;
     const selectedVar: Array<string | VariantColorValueType> = [];
-    if (item.details) {
+    if (item.details && item.details.filter(Boolean).length > 0) {
       const detail = item.details as Productorderdetailtype[];
 
       detail.forEach((selected) => {
@@ -185,6 +185,7 @@ function processCartItems(orderproduct: Productordertype[]) {
       ).qty;
     } else if (item.product?.stock) {
       qty = item.product.stock;
+      console.log(qty);
     }
 
     const prod = item.product;

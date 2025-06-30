@@ -10,6 +10,7 @@ import { Address } from "@prisma/client";
 import { OrderUserType } from "../app/checkout/action";
 import dayjs from "dayjs";
 import { isValidDate } from "../lib/utilities";
+import { ShippingOptionTypes } from "./Checkoutcontext";
 
 export const AllOrderStatusData: SelectType<string>[] = [
   { label: "All", value: "All", color: "lightgray" },
@@ -26,7 +27,13 @@ export const AllOrderStatusData: SelectType<string>[] = [
 
 export type OrderDetialModalType = "user" | "shipping" | "close" | "none";
 
-export type OrderGetReqType = "product" | "all" | "user" | "export" | "filter";
+export type OrderGetReqType =
+  | "product"
+  | "all"
+  | "user"
+  | "export"
+  | "filter"
+  | "shipping";
 
 export type Orderstatus =
   | "All"
@@ -77,6 +84,7 @@ export interface Productordertype {
   stock_selected_id?: number;
   stockvar?: Stocktype;
   maxqty?: number;
+  total?: number;
 }
 
 export interface InvoiceProductPdfType {
@@ -111,11 +119,13 @@ export interface Ordertype {
   price: totalpricetype;
   orderDate?: Date;
   estimate?: Date;
-  createAt?: Date;
-  updateAt?: Date;
+  createdAt?: Date;
+  updatedAt?: Date;
   shipping_id?: number;
   shipping?: Address;
+  shippingtype?: ShippingOptionTypes;
   user?: userdata;
+  sessionId?: string;
 }
 
 export interface OrderDetailType {

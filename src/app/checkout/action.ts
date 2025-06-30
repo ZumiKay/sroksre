@@ -16,20 +16,28 @@ import {
   Paypalitemtype,
   PaypalshippingType,
   PurcahseUnitType,
+  ShippingOptionTypes,
   Shippingservice,
 } from "@/src/context/Checkoutcontext";
 import {
   calculateDiscountPrice,
+  decrypt,
   encrypt,
   OrderReciptEmail,
 } from "@/src/lib/utilities";
-import { ProductStockType } from "../component/ServerComponents";
 import nodemailer from "nodemailer";
 import { generateInvoicePdf } from "../api/order/route";
 import { formatDate } from "../component/EmailTemplate";
 import getCheckoutdata from "@/src/app/checkout/getCheckOutData";
 import { getUser } from "../action";
 import { ActionReturnType } from "@/src/context/GlobalType.type";
+import { StockType } from "../dashboard/inventory/inventory.type";
+import {
+  CheckOrderProduct,
+  generateSessionId,
+  getDateFromSessionId,
+  isTimePassedByMinutes,
+} from "./helper";
 
 interface Returntype<k = string> {
   success: boolean;
@@ -68,42 +76,41 @@ export async function getOrderAddress(orderId: string) {
 
 type CreateOrderData = {
   orderId: string;
+  sessionId: string;
 };
 
 export async function Createorder(data: {
   price: totalpricetype;
 }): Promise<ActionReturnType<CreateOrderData>> {
-  const user = await getUser();
-
-  const userid = user?.id;
-  let orderId = "";
   try {
-    const secretKey = process.env.KEY || null;
+    const [user, secretKey, sessionKey] = await Promise.all([
+      getUser(),
+      Promise.resolve(process.env.KEY),
+      Promise.resolve(process.env.SESSION_KEY),
+    ]);
 
-    if (!secretKey) {
-      return { success: false, message: "Error Occured" };
+    if (!secretKey || !sessionKey) {
+      return { success: false, message: "Error Occurred" };
     }
 
     const checkOrder = await Prisma.orders.findFirst({
       where: {
-        AND: [
-          {
-            buyer_id: userid,
-          },
-          {
-            status: {
-              in: [Allstatus.incart, Allstatus.unpaid],
-            },
-          },
-        ],
+        buyer_id: user?.id,
+        status: { in: [Allstatus.incart, Allstatus.unpaid] },
       },
       select: {
         id: true,
         status: true,
-        user: {
+        Orderproduct: {
           select: {
-            id: true,
-            email: true,
+            quantity: true,
+            stockvar: true,
+            product: {
+              select: {
+                stock: true,
+                stocktype: true,
+              },
+            },
           },
         },
       },
@@ -111,42 +118,86 @@ export async function Createorder(data: {
 
     if (!checkOrder) {
       return { success: false, message: "No Item Found" };
-    } else {
-      orderId = checkOrder?.id as string;
     }
 
-    //Update Price of the order
+    const isOutOfStock = CheckOrderProduct({
+      orderProduct: checkOrder.Orderproduct as unknown as Productordertype[],
+    });
+
+    if (isOutOfStock.length > 0) {
+      return { success: false, error: isOutOfStock };
+    }
+
+    // Generate unique session ID with timestamp
+
+    let uniqueSessionId = generateSessionId();
+
+    // Check for uniqueness (very unlikely collision with timestamp + random)
+    const existingSession = await Prisma.orders.findFirst({
+      where: { sessionId: uniqueSessionId },
+      select: { id: true },
+    });
+
+    if (existingSession) {
+      uniqueSessionId = generateSessionId();
+    }
+
+    // Update order
     await Prisma.orders.update({
-      where: {
-        id: orderId,
-      },
+      where: { id: checkOrder.id },
       data: {
+        sessionId: uniqueSessionId,
         price: data.price as never,
-        ...(checkOrder.status === Allstatus.incart
-          ? { status: Allstatus.unpaid }
-          : {}),
+        ...(checkOrder.status === Allstatus.incart && {
+          status: Allstatus.unpaid,
+        }),
       },
     });
 
-    const encryptId = encrypt(orderId, process.env.KEY as string);
+    // Encrypt IDs concurrently
+    const [encryptId, encryptSessionId] = await Promise.all([
+      Promise.resolve(encrypt(checkOrder.id, secretKey)),
+      Promise.resolve(encrypt(uniqueSessionId, sessionKey)),
+    ]);
 
     return {
       success: true,
-      data: { orderId: encryptId },
+      data: { orderId: encryptId, sessionId: encryptSessionId },
     };
   } catch (error) {
-    console.log("Create Order", error);
-    return { success: false, message: "Error Occured" };
+    console.error("Create Order Error:", error);
+    return { success: false, message: "Error Occurred" };
   }
 }
 
-export async function checkOrder(id: string) {
-  const isOrder = await Prisma.orders.findUnique({
-    where: { id },
-    select: { id: true, status: true, shipping_id: true },
-  });
+export async function checkOrder(id: string, sessionId: string) {
+  try {
+    const sessionKey = process.env.SESSION_KEY;
+    if (!sessionKey) {
+      return null;
+    }
 
-  return isOrder;
+    const [order, decryptedSessionId] = await Promise.all([
+      Prisma.orders.findUnique({
+        where: { id },
+        select: { id: true, status: true, shipping_id: true, sessionId: true },
+      }),
+      Promise.resolve(decrypt(sessionId, sessionKey)),
+    ]);
+
+    if (!order?.sessionId || order.sessionId !== decryptedSessionId) {
+      return null;
+    }
+
+    // Extract timestamp and verify expiration
+    const timestamp = getDateFromSessionId(sessionId);
+
+    if (!timestamp) return null;
+    return isTimePassedByMinutes(timestamp.toISOString()) ? order : null;
+  } catch (error) {
+    console.error("Check order error:", error);
+    return null;
+  }
 }
 
 export async function getOrderProduct(
@@ -193,9 +244,9 @@ export async function updateStatus(
     }
 
     // Extract product IDs for batch operations
-    const productIds = order.Orderproduct.map((cart) => cart.productId).filter(
-      Boolean
-    ) as number[];
+    const productIds = order.Orderproduct.map(
+      (cart) => cart.product?.id
+    ).filter(Boolean) as number[];
 
     if (productIds.length === 0) {
       return { success: false, message: "No products found in order" };
@@ -215,11 +266,11 @@ export async function updateStatus(
     order.Orderproduct.forEach((cart) => {
       if (!cart.product) return;
 
-      const { stocktype, Stock } = cart.product;
+      const { stocktype } = cart.product;
 
-      if (stocktype === ProductStockType.stock) {
+      if (stocktype === StockType.Stock) {
         stockProducts.push(cart.product.id as number);
-      } else if (Stock?.length) {
+      } else if (stocktype === StockType.Variant) {
         const stockValueIds =
           cart.details?.map((i) => i.Orderproduct?.stock_selected_id) ?? [];
 
@@ -269,7 +320,7 @@ export async function updateStatus(
       // Update order status
       Prisma.orders.update({
         where: { id: orderid },
-        data: { status: Allstatus.paid },
+        data: { status: Allstatus.paid, sessionId: null },
       })
     );
 
@@ -304,7 +355,7 @@ export async function updateStatus(
       product: invoiceProducts,
       price: order.price as unknown as totalpricetype,
       shipping: order.shipping as never,
-      createdAt: formatDate(order.createAt as Date),
+      createdAt: formatDate(order.createdAt as Date),
     });
 
     const emailSubject = `Order #${order.id} receipt and processing for shipping`;
@@ -506,6 +557,7 @@ export async function Createpaypalorder(orderId: string) {
             id: true,
             details: true,
             quantity: true,
+            stockvar: true,
             product: {
               select: {
                 id: true,
@@ -537,14 +589,23 @@ export async function Createpaypalorder(orderId: string) {
       return { success: false, message: "Invalid Order", status: 404 };
     }
 
+    // Check for product stock availability
+    const isOutOfStock = CheckOrderProduct({
+      orderProduct: order.Orderproduct as unknown as Productordertype[],
+    });
+
+    if (isOutOfStock.length > 0) {
+      return {
+        success: true,
+        error: isOutOfStock,
+      };
+    }
+
     if (!accessToken) {
       return { success: false, message: "Invalid Token" };
     }
     const currency_code = "USD";
     const orderPrice = order.price as unknown as totalpricetype;
-    const shippingtype = Shippingservice.find(
-      (i) => i.value === order.shippingtype
-    );
     const url = `${process.env.PAYPAL_BASE}/v2/checkout/orders`;
     const header = {
       "Content-Type": "application/json",
@@ -579,28 +640,32 @@ export async function Createpaypalorder(orderId: string) {
     };
 
     const orderShipping: PaypalshippingType = {
-      type: shippingtype?.value !== "Pickup" ? "SHIPPING" : "NO_SHIPPING",
+      type: "SHIPPING",
       name: {
         full_name: `${order.shipping?.firstname || order.user.firstname} ${
           order.shipping?.lastname || order.user.lastname || ""
         }`.trim(),
       },
-      ...(order.shipping && {
-        address: {
-          address_line_1: `${order.shipping?.street}`,
-          address_line_2: `${order.shipping?.houseId} ${order.shipping?.songkhat} ${order.shipping?.district}`,
-          admin_area_2: order.shipping?.province,
-          postal_code: order.shipping?.postalcode ?? "",
-          country_code: CountryCode.cambodia,
-        },
-      }),
+      ...(order.shipping
+        ? {
+            address: {
+              address_line_1: `${order.shipping?.street}`,
+              address_line_2: `${order.shipping?.houseId} ${order.shipping?.songkhat} ${order.shipping?.district}`,
+              admin_area_2: order.shipping?.province,
+              postal_code: order.shipping?.postalcode ?? "",
+              country_code: CountryCode.cambodia,
+            },
+          }
+        : {}),
     };
 
-    const purchase_units: PurcahseUnitType = {
-      amount: orderAmount,
-      items: orderItems,
-      shipping: orderShipping,
-    };
+    const purchase_units: PurcahseUnitType =
+      order.shippingtype !== ShippingOptionTypes.pickup
+        ? {
+            amount: orderAmount,
+            items: orderItems,
+          }
+        : { amount: orderAmount, items: orderItems, shipping: orderShipping };
     const payload = {
       intent: "CAPTURE",
       purchase_units: [purchase_units],

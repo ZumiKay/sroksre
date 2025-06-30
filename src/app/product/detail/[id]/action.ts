@@ -1,7 +1,6 @@
 "use server";
 
 import { getUser } from "@/src/app/action";
-import { ProductState } from "@/src/context/GlobalType.type";
 import {
   Allstatus,
   Productordertype,
@@ -71,6 +70,7 @@ export async function Addtocart(data: Productordertype): Promise<returntype> {
               productId: id,
               user_id: user.id,
               quantity,
+              stock_selected_id: data.stock_selected_id,
             },
           });
 
@@ -235,69 +235,180 @@ export const getRelatedProduct = async (
 ) => {
   try {
     let maxprod = false;
+
+    // Build optimized query with proper filters and includes
+    const whereClause: PrismaType.ProductsWhereInput = {
+      id: { not: targetId },
+      // Pre-filter to only get products that might be related
+      OR: [
+        { parentcategory_id: parent_id },
+        ...(child_id ? [{ childcategory_id: child_id }] : []),
+        ...(promoid ? [{ promotion_id: promoid }] : []),
+      ],
+    };
+
     const result = await Prisma.products.findMany({
-      where: {
-        id: { not: targetId },
-      },
+      where: whereClause,
       select: {
         id: true,
         name: true,
         price: true,
         discount: true,
         parentcategory_id: true,
-        promotion_id: true,
         childcategory_id: true,
+        promotion_id: true,
+        stock: true,
+        // Include category relations for proper access
+        parentcateogries: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        childcategories: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        promotion: {
+          select: {
+            id: true,
+            name: true,
+            expireAt: true,
+          },
+        },
         covers: {
+          take: 1, // Only get the first cover for performance
           select: {
             name: true,
             url: true,
           },
         },
       },
+      // Add initial ordering to improve performance
+      orderBy: [{ parentcategory_id: "asc" }, { createdAt: "desc" }],
+
+      // Fetch more than needed for better scoring, but limit database load
+      take: Math.min(limit * 3, 50),
     });
 
-    const product = result.map((i) => {
-      const discount =
-        i.discount && calculateDiscountPrice(i.price, i.discount);
-      return {
-        ...i,
-        discount,
-      };
-    }) as unknown as Array<ProductState>;
-
-    //Finding The most similar product
-    let relatedProducts = product
-      .map((i) => {
+    // Enhanced scoring algorithm
+    const now = new Date();
+    const scoredProducts = result
+      .map((product) => {
         let score = 0;
+        const reasons: string[] = [];
+
+        // Perfect match: same parent, child category, and promotion
         if (
           parent_id &&
           child_id &&
           promoid &&
-          i.category.parent?.id === parent_id &&
-          i.category?.child?.id === child_id &&
-          i.promotion_id === promoid
+          product.parentcategory_id === parent_id &&
+          product.childcategory_id === child_id &&
+          product.promotion_id === promoid &&
+          product.promotion?.expireAt &&
+          product.promotion.expireAt >= now
         ) {
-          score = 4;
-        } else if (promoid && promoid === i.promotion_id) {
-          score = 3;
-        } else if (child_id && i.childcategory_id === child_id) {
-          score = 2;
-        } else if (i.parentcategory_id === parent_id) {
-          score = 1;
+          score = 100;
+          reasons.push("Perfect match");
         }
-        return { ...i, score };
+        // High relevance: same promotion (active)
+        else if (
+          promoid &&
+          product.promotion_id === promoid &&
+          product.promotion?.expireAt &&
+          product.promotion.expireAt >= now
+        ) {
+          score = 80;
+          reasons.push("Same active promotion");
+        }
+        // Good relevance: same child category and parent category
+        else if (
+          child_id &&
+          parent_id &&
+          product.childcategory_id === child_id &&
+          product.parentcategory_id === parent_id
+        ) {
+          score = 60;
+          reasons.push("Same subcategory");
+        }
+        // Medium relevance: same child category only
+        else if (child_id && product.childcategory_id === child_id) {
+          score = 40;
+          reasons.push("Same category");
+        }
+        // Low relevance: same parent category only
+        else if (parent_id && product.parentcategory_id === parent_id) {
+          score = 20;
+          reasons.push("Same parent category");
+        }
+
+        // Bonus points for additional factors
+        if (product.discount && product.discount > 0) {
+          score += 5;
+          reasons.push("Has discount");
+        }
+
+        if (product.stock && product.stock > 0) {
+          score += 3;
+          reasons.push("In stock");
+        }
+
+        // Calculate discounted price if applicable
+        const discountInfo = product.discount
+          ? calculateDiscountPrice(product.price, product.discount)
+          : null;
+
+        return {
+          id: product.id,
+          name: product.name,
+          price: product.price,
+          discount: discountInfo,
+          parentcategory_id: product.parentcategory_id,
+          childcategory_id: product.childcategory_id,
+          promotion_id: product.promotion_id,
+          stock: product.stock,
+          covers: product.covers,
+          // Include category information properly
+          category: {
+            parent: product.parentcateogries,
+            child: product.childcategories,
+          },
+          promotion: product.promotion,
+          score,
+          reasons, // For debugging
+        };
       })
-      .sort((a, b) => b.score - a.score);
+      // Filter out products with no relevance
+      .filter((product) => product.score > 0)
+      // Sort by score (highest first), then by stock status, then by discount
+      .sort((a, b) => {
+        if (b.score !== a.score) return b.score - a.score;
+        if (b.stock !== a.stock) return (b.stock || 0) - (a.stock || 0);
+        return (b.discount?.percent || 0) - (a.discount?.percent || 0);
+      });
 
-    relatedProducts = relatedProducts.filter((i) => i.score > 0);
+    // Check if we have enough products
+    maxprod = scoredProducts.length <= limit;
 
-    if (relatedProducts.length <= limit) {
-      maxprod = true;
-    }
+    // Get final selection
+    const relatedProducts = scoredProducts.slice(0, limit);
 
-    relatedProducts = relatedProducts.slice(0, limit);
-
-    console.log(relatedProducts);
+    // Enhanced logging for debugging
+    console.log(`Related products for ${targetId}:`, {
+      totalFound: result.length,
+      afterScoring: scoredProducts.length,
+      returned: relatedProducts.length,
+      maxprod,
+      topScores: relatedProducts.slice(0, 3).map((p) => ({
+        id: p.id,
+        name: p.name,
+        score: p.score,
+        reasons: p.reasons,
+      })),
+    });
 
     return {
       success: true,
@@ -305,8 +416,14 @@ export const getRelatedProduct = async (
       maxprod,
     };
   } catch (error) {
-    console.log("Related product", error);
-    return { success: false };
+    console.error("Related product error:", error);
+    return {
+      success: false,
+      message:
+        error instanceof Error
+          ? error.message
+          : "Failed to fetch related products",
+    };
   }
 };
 

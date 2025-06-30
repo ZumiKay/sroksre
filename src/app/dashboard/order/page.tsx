@@ -21,6 +21,8 @@ import { faFilter } from "@fortawesome/free-solid-svg-icons";
 import FilterMenu from "../../component/FilterMenu/FilterMenu";
 import { parseDate } from "@internationalized/date";
 import ActionModal from "./OrderComponent";
+import ProductPreviewModal from "../../component/Modals/ProductPreview";
+import { AdditionalDetailModal } from "./AdditionalDetail_Component";
 const TableComponent = dynamic(
   () => import("../../component/Table/Table_Component"),
   { ssr: false }
@@ -341,7 +343,7 @@ const OrderPage = () => {
     if (!openmodal.orderactionmodal || !status) return null;
     return (
       openmodal.orderactionmodal &&
-      globalindex &&
+      globalindex.orderId &&
       allData?.orders?.find((i) => i.id === globalindex.orderId)?.status && (
         <ActionModal status={status} />
       )
@@ -354,6 +356,12 @@ const OrderPage = () => {
         <FilterMenu type="listorder" reloaddata={() => setreloaddata(true)} />
       )}
       {renderActionModal}
+      {openmodal.showproduct && <ProductPreviewModal />}
+      {(openmodal.orderdetail || openmodal?.other) && (
+        <AdditionalDetailModal
+          type={openmodal.orderdetail ? "shipping" : "user"}
+        />
+      )}
 
       <div className="w-full h-full flex flex-col items-start px-4 py-6 md:px-6 lg:px-8 gap-y-6 bg-gray-50 rounded-lg shadow-sm">
         {/* Page Header */}

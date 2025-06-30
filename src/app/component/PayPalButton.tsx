@@ -17,7 +17,6 @@ import {
   PayPalButtons,
   PayPalScriptProvider,
 } from "@paypal/react-paypal-js";
-import { ApiRequest } from "@/src/context/CustomHook";
 import { OrderReceiptTemplate } from "./EmailTemplate";
 import { useCallback, memo } from "react";
 
@@ -66,7 +65,9 @@ const PaypalButton = memo(
         actions: OnApproveBraintreeActions
       ) => {
         try {
-          const request = await CaptureOrder(data.orderID);
+          const capReq = CaptureOrder.bind(null, data.orderID);
+
+          const request = await capReq();
 
           if (!request.success) {
             errorToast("Server error");
@@ -94,16 +95,6 @@ const PaypalButton = memo(
             throw new Error(JSON.stringify(orderData));
           }
 
-          // Get policy and generate email templates
-          const getPolicy = await ApiRequest({
-            url: `/api/policy?type=type&ty=email`,
-            method: "GET",
-          });
-
-          if (!getPolicy.success) {
-            throw Error("Failed to retrieve policy information");
-          }
-
           const htmltemplate = ReactDomServer.renderToString(
             <OrderReceiptTemplate
               order={{ ...order, status: Allstatus.paid }}
@@ -119,11 +110,13 @@ const PaypalButton = memo(
           );
 
           // Update order status
-          const makeReq = await updateStatus(
+          const updateReq = updateStatus.bind(
+            null,
             orderId,
             htmltemplate,
             adminhtmltemplate
           );
+          const makeReq = await updateReq();
 
           if (!makeReq.success) {
             errorToast(makeReq.message ?? "Failed to update order status");
