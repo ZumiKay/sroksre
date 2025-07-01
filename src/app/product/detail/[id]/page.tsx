@@ -116,7 +116,7 @@ const SimilarProductSection = async ({
             price={prod.price.toFixed(2)}
             img={prod.covers}
             index={idx}
-            discount={prod.discount}
+            discount={prod.discount ?? undefined}
             id={prod.id}
           />
         ))}

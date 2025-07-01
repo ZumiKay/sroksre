@@ -63,6 +63,7 @@ type ColumnType = {
   name: string;
   uid: string;
   view?: boolean;
+  isAdmin?: boolean;
 };
 
 const UsermanagementColumns: Array<ColumnType> = [
@@ -157,6 +158,7 @@ const OrderColumns: Array<ColumnType> = [
   {
     name: "Buyer",
     uid: "user",
+    isAdmin: true,
   },
   { name: "Status", uid: "status" },
 
@@ -194,15 +196,17 @@ export default function TableComponent({
   const Router = useRouter();
   const searchParams = useSearchParams();
   const renderColumn = useCallback(() => {
-    return ty === InventoryType.Product
-      ? ProductColumns
-      : ty === InventoryType.Banner
-      ? BannerColumns
-      : ty === "usermanagement"
-      ? UsermanagementColumns
-      : ty === "ordermanagement"
-      ? OrderColumns.filter((i) => (!isAdmin ? i.uid !== "buyer" : true))
-      : PromotionColumns;
+    return (
+      ty === InventoryType.Product
+        ? ProductColumns
+        : ty === InventoryType.Banner
+        ? BannerColumns
+        : ty === "usermanagement"
+        ? UsermanagementColumns
+        : ty === "ordermanagement"
+        ? OrderColumns.filter((i) => (!isAdmin ? i.uid !== "buyer" : true))
+        : PromotionColumns
+    ).filter((col) => (col.isAdmin ? isAdmin : true));
   }, [isAdmin, ty]);
 
   useEffect(() => {
@@ -264,6 +268,10 @@ export default function TableComponent({
 
         case "other":
         case "user":
+          if (ty === "ordermanagement" && uid === "user" && !isAdmin) {
+            return;
+          }
+
           if (ty === "usermanagement") {
             toOpenModal.userdetail = true;
           }
@@ -292,6 +300,7 @@ export default function TableComponent({
     },
     [
       Router,
+      isAdmin,
       searchParams,
       setglobalindex,
       setopenmodal,

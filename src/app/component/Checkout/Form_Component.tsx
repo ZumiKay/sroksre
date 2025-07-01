@@ -32,7 +32,7 @@ import { Ordertype } from "@/src/context/OrderContext";
 
 // Types and interfaces
 interface Addresstype {
-  id: number;
+  id?: number;
   firstname: string;
   lastname: string;
   street: string;
@@ -362,7 +362,7 @@ export const ShippingForm = memo<ShippingFormProps>(({ order }) => {
   const [loading, setLoading] = useState(false);
   const [selectedAddress, setSelectedAddress] =
     useState<Addresstype>(SHIPPING_INITIAL);
-  const [selectedId, setSelectedId] = useState(order.shipping_id ?? 0);
+  const [selectedId, setSelectedId] = useState(order.shipping_id ?? -1);
   const [saveForFuture, setSaveForFuture] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -556,18 +556,20 @@ export const ShippingForm = memo<ShippingFormProps>(({ order }) => {
                 </div>
 
                 {/* Save for future checkbox */}
-                <motion.div className={"w-full h-fit"}>
-                  <Checkbox
-                    isSelected={saveForFuture}
-                    onValueChange={setSaveForFuture}
-                    color="primary"
-                    size="lg"
-                  >
-                    <span className="text-sm font-medium text-gray-700">
-                      Save this address for future orders
-                    </span>
-                  </Checkbox>
-                </motion.div>
+                {selectedId === -1 && (
+                  <motion.div className={"w-full h-fit"}>
+                    <Checkbox
+                      isSelected={saveForFuture}
+                      onValueChange={setSaveForFuture}
+                      color="primary"
+                      size="lg"
+                    >
+                      <span className="text-sm font-medium text-gray-700">
+                        Save this address for future orders
+                      </span>
+                    </Checkbox>
+                  </motion.div>
+                )}
 
                 {/* Address preview */}
                 {selectedId === -1 && selectedAddress.firstname && (

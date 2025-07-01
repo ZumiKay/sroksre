@@ -47,11 +47,22 @@ export default async function Checkoutpage(props: {
   const step = searchParams?.step ? parseInt(searchParams?.step as string) : 0;
   const orderid_param = searchParams?.orderid;
   const session_id = searchParams?.sid;
-  if (!step || !orderid_param || orderid_param.length === 0 || !session_id) {
+  if (
+    !step ||
+    !orderid_param ||
+    orderid_param.length === 0 ||
+    !session_id ||
+    !process.env.KEY ||
+    !process.env.SESSION_KEY
+  ) {
     return redirect("/");
   }
 
   const orderid = decrypt(orderid_param as string, process.env.KEY as string);
+  const sessionId = decrypt(
+    session_id as string,
+    process.env.SESSION_KEY as string
+  );
   const order = await checkOrder(orderid, session_id as string);
 
   if (!order) {
@@ -67,7 +78,11 @@ export default async function Checkoutpage(props: {
     ) : step === 2 ? (
       <ShippingForm order={order as never} />
     ) : step === 3 ? (
-      <PaymentDetail orderId={orderid} encryptedId={orderid_param as string} />
+      <PaymentDetail
+        orderId={orderid}
+        encryptedId={orderid_param as string}
+        sessionId={sessionId}
+      />
     ) : (
       <></>
     );
@@ -78,7 +93,7 @@ export default async function Checkoutpage(props: {
       {step !== 4 && order.status !== Allstatus.paid ? (
         <>
           <StepIndicator step={step} />
-          <CountDown oid={orderid} sid={session_id as string} />
+          <CountDown oid={orderid} sid={sessionId} />
           <FormWrapper step={step} order_id={orderid}>
             <BackAndEdit step={step} />
             <ShowBody />
@@ -265,9 +280,11 @@ const getShippingtype = async (orderId: string) => {
 const PaymentDetail = async ({
   orderId,
   encryptedId,
+  sessionId,
 }: {
   orderId: string;
   encryptedId: string;
+  sessionId: string;
 }) => {
   const shipping = await getShippingtype(orderId);
   const order = await getCheckoutdata(orderId);
@@ -313,6 +330,7 @@ const PaymentDetail = async ({
               encripyid={encryptedId}
               order={order as unknown as Ordertype}
               orderId={orderId}
+              sessionId={sessionId}
             />
           </div>
         </div>
@@ -356,8 +374,15 @@ async function Totalprice({ orderID }: { orderID: string }) {
   );
 }
 
+const removeCheckoutSession = async (oid: string) => {
+  await Prisma.orders.update({
+    where: { id: oid },
+    data: { sessionId: null },
+  });
+};
 const SuccessPage = async ({ orderid }: { orderid: string }) => {
   const policy = await getPolicesByPage("checkout");
+  await removeCheckoutSession(orderid);
 
   return (
     <div className="success_page w-full min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex flex-col items-center justify-center px-4 py-8">

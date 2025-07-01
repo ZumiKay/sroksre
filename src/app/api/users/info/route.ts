@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
       return Response.json({ message: "User not found" }, { status: 401 });
     }
 
-    const { ty, vc, uid } = extractQueryParams(request.url.toString());
+    const { ty, vc, uid, id } = extractQueryParams(request.url.toString());
 
     if (vc) {
       return await handleVfyEmailByLink(user.id, vc as string);
@@ -105,6 +105,13 @@ export async function GET(request: NextRequest) {
             discount,
           };
         }) as unknown as ProductState[];
+        break;
+      case "address":
+        if (!id)
+          return Response.json({ message: "Invalid Param" }, { status: 400 });
+        result = await Prisma.address.findUnique({
+          where: { id: id as number },
+        });
         break;
 
       default:

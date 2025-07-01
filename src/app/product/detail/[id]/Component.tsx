@@ -235,11 +235,8 @@ const Variant = memo(
 
         setproductorderdetail((prev) => ({
           ...prev,
-          details: selectedVar.map((val) =>
-            val.variantId === variantId
-              ? { ...val, stock_selected_id: stockId }
-              : val
-          ),
+          details: selectedVar,
+          stock_selected_id: stockId,
         }));
       },
       [

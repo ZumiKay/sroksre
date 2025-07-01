@@ -104,34 +104,27 @@ const AddressForm = ({
     setaddress((prev) => ({ ...prev, [name]: value }));
   }, []);
 
-  const handleSubmit = useCallback(
-    async (e: FormEvent<HTMLFormElement>) => {
-      e.preventDefault();
-      if (setloading) setloading(true);
-      const makeRequest = await ApiRequest({
-        url: "/api/users/info/address",
-        method: editdata ? "PUT" : "POST",
-        data: address,
-      });
-      if (setloading) setloading(false);
-      if (!makeRequest.success) {
-        errorToast(makeRequest.error ?? "Error Occured");
-        return;
-      }
-      successToast(editdata ? "Address Updated" : "Address Created");
-      setaddress(undefined);
-    },
-    [address, editdata, setloading]
-  );
+  const handleSubmit = useCallback(async () => {
+    if (setloading) setloading(true);
+    const makeRequest = await ApiRequest({
+      url: "/api/users/info/address",
+      method: editdata ? "PUT" : "POST",
+      data: address,
+    });
+    if (setloading) setloading(false);
+    if (!makeRequest.success) {
+      errorToast(makeRequest.error ?? "Error Occured");
+      return;
+    }
+    successToast(editdata ? "Address Updated" : "Address Created");
+    setaddress(undefined);
+  }, [address, editdata, setloading]);
 
   const handleCancel = useCallback(() => {
     if (close) close();
   }, [close]);
   return (
-    <Form
-      onSubmit={handleSubmit}
-      className="adressform w-full h-fit flex flex-col items-center gap-y-5"
-    >
+    <div className="adressform w-full h-fit flex flex-col items-center gap-y-5">
       {loading && <CircularProgress />}
       <div className="name w-full h-fit flex flex-row items-center gap-5">
         <Input
@@ -227,7 +220,7 @@ const AddressForm = ({
       <div className="btn flex flex-row items-end gap-x-3">
         <Button
           isLoading={loading}
-          type="submit"
+          onPress={handleSubmit}
           size="md"
           className=" bg-incart font-bold text-white"
         >
@@ -242,7 +235,7 @@ const AddressForm = ({
           Cancel
         </Button>
       </div>
-    </Form>
+    </div>
   );
 };
 
@@ -343,8 +336,6 @@ export const ProfileTab = () => {
             email: user?.email,
           },
         });
-
-        console.log(vfyReq.data);
 
         if (!vfyReq.success) {
           setloading(false);

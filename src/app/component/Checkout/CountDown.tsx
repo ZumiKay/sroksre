@@ -1,8 +1,15 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+"use client";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  useRef,
+} from "react";
 import { CancelOrder, RenewSessionId } from "../../checkout/cancelaction";
 import { ContainerLoading, errorToast } from "../Loading";
 import { useRouter, useSearchParams } from "next/navigation";
-import { getDateFromSessionId } from "../../checkout/helper";
+import { getTimeRemainingForSession } from "../../checkout/helper";
 
 const AsyncCancelOrder = async (
   oid: string,
@@ -23,17 +30,25 @@ const AsyncCancelOrder = async (
 };
 
 const CountDown = React.memo(({ oid, sid }: { oid: string; sid: string }) => {
-  const [timeLeft, setTimeLeft] = useState<number | undefined>(
-    getDateFromSessionId(sid)?.getMilliseconds
-  );
+  const [timeLeft, setTimeLeft] = useState<number | undefined>(undefined);
   const [isExpired, setIsExpired] = useState(false);
   const [loading, setloading] = useState(false);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
   const searchParam = useSearchParams();
   const router = useRouter();
 
-  const setLoadingCallback = useCallback((val: boolean) => setloading(val), []);
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, []);
 
   const handleRenew = useCallback(async () => {
+    if (loading) return; // Prevent multiple calls
+
     const renew = RenewSessionId.bind(null, oid);
     setloading(true);
     try {
@@ -53,31 +68,61 @@ const CountDown = React.memo(({ oid, sid }: { oid: string; sid: string }) => {
     } finally {
       setloading(false);
     }
-  }, [oid, searchParam, router]);
+  }, [oid, searchParam, router, loading]);
 
+  // Initialize time remaining
   useEffect(() => {
-    if (!timeLeft) {
-      AsyncCancelOrder(oid, setLoadingCallback);
-      return;
-    }
+    const timeremain = getTimeRemainingForSession(sid);
 
-    if (timeLeft <= 0) {
+    if (timeremain === 0) {
+      AsyncCancelOrder(oid, setloading);
       setIsExpired(true);
       return;
     }
 
-    const timer = setInterval(() => {
+    if (!timeremain) {
+      return;
+    }
+
+    setTimeLeft(timeremain);
+    setIsExpired(false);
+  }, [oid, sid]);
+
+  // Handle countdown timer
+  useEffect(() => {
+    // Clear existing timer
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+
+    if (timeLeft === undefined || timeLeft <= 0) {
+      if (timeLeft === 0) {
+        setIsExpired(true);
+      }
+      return;
+    }
+
+    timerRef.current = setInterval(() => {
       setTimeLeft((prev) => {
-        const current = prev ?? 0;
-        return current > 0 ? current - 1 : 0;
+        if (prev === undefined || prev <= 1) {
+          setIsExpired(true);
+          return 0;
+        }
+        return prev - 1;
       });
     }, 1000);
 
-    return () => clearInterval(timer);
-  }, [oid, timeLeft, setLoadingCallback]);
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+  }, [timeLeft]);
 
   const formattedTime = useMemo(() => {
-    if (!timeLeft) return "00:00";
+    if (timeLeft === undefined || timeLeft <= 0) return "00:00";
     const minutes = Math.floor(timeLeft / 60);
     const remainingSeconds = timeLeft % 60;
     return `${minutes.toString().padStart(2, "0")}:${remainingSeconds
@@ -85,8 +130,9 @@ const CountDown = React.memo(({ oid, sid }: { oid: string; sid: string }) => {
       .padStart(2, "0")}`;
   }, [timeLeft]);
 
-  if (isExpired) {
-    return (
+  // Memoize the expired component to prevent re-renders
+  const expiredComponent = useMemo(
+    () => (
       <div className="flex flex-col items-center justify-center p-6 bg-red-50 border-2 border-red-200 rounded-lg">
         <div className="text-red-600 text-xl font-bold mb-4">
           ⏰ Session Expired
@@ -94,12 +140,18 @@ const CountDown = React.memo(({ oid, sid }: { oid: string; sid: string }) => {
         <button
           type="button"
           onClick={handleRenew}
-          className="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors duration-200 shadow-md hover:shadow-lg"
+          disabled={loading}
+          className="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors duration-200 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Renew Session
+          {loading ? "Renewing..." : "Renew Session"}
         </button>
       </div>
-    );
+    ),
+    [handleRenew, loading]
+  );
+
+  if (isExpired) {
+    return expiredComponent;
   }
 
   return (

@@ -11,6 +11,7 @@ import { Prisma as PrismaType } from "@prisma/client";
 import { calculateDiscountPrice } from "@/src/lib/utilities";
 
 import { revalidatePath } from "next/cache";
+import { ShippingOptionTypes } from "@/src/context/Checkoutcontext";
 
 interface returntype {
   success: boolean;
@@ -25,7 +26,7 @@ interface returntype {
 
 export async function Addtocart(data: Productordertype): Promise<returntype> {
   try {
-    const { details, quantity, id } = data;
+    const { details, quantity, id, stock_selected_id } = data;
     const user = await getUser();
 
     // Early validation checks
@@ -70,7 +71,7 @@ export async function Addtocart(data: Productordertype): Promise<returntype> {
               productId: id,
               user_id: user.id,
               quantity,
-              stock_selected_id: data.stock_selected_id,
+              stock_selected_id: stock_selected_id,
             },
           });
 
@@ -111,6 +112,7 @@ export async function Addtocart(data: Productordertype): Promise<returntype> {
               buyer_id: user.id,
               status: Allstatus.incart,
               price: {},
+              shippingtype: ShippingOptionTypes.pickup,
             },
             select: { id: true },
           });
@@ -397,18 +399,18 @@ export const getRelatedProduct = async (
     const relatedProducts = scoredProducts.slice(0, limit);
 
     // Enhanced logging for debugging
-    console.log(`Related products for ${targetId}:`, {
-      totalFound: result.length,
-      afterScoring: scoredProducts.length,
-      returned: relatedProducts.length,
-      maxprod,
-      topScores: relatedProducts.slice(0, 3).map((p) => ({
-        id: p.id,
-        name: p.name,
-        score: p.score,
-        reasons: p.reasons,
-      })),
-    });
+    // console.log(`Related products for ${targetId}:`, {
+    //   totalFound: result.length,
+    //   afterScoring: scoredProducts.length,
+    //   returned: relatedProducts.length,
+    //   maxprod,
+    //   topScores: relatedProducts.slice(0, 3).map((p) => ({
+    //     id: p.id,
+    //     name: p.name,
+    //     score: p.score,
+    //     reasons: p.reasons,
+    //   })),
+    // });
 
     return {
       success: true,

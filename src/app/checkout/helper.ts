@@ -23,7 +23,9 @@ export const CheckOrderProduct = ({
     }
   });
 
-  return result.join(",") + " " + "is out of stock";
+  return result.length > 0
+    ? result.join(",") + " " + "is out of stock"
+    : result;
 };
 export const isTimePassedByMinutes = (
   isoString: string,
@@ -51,6 +53,25 @@ export function getDateFromSessionId(sessionId: string): Date | null {
   } catch (error) {
     console.error("Error extracting date from sessionId:", error);
     return null;
+  }
+}
+
+export function getTimeRemainingForSession(sessionId: string): number {
+  try {
+    const sessionDate = getDateFromSessionId(sessionId);
+    if (!sessionDate) {
+      return 0;
+    }
+    const currentTime = new Date();
+    const elapsedSeconds =
+      (currentTime.getTime() - sessionDate.getTime()) / 1000;
+    const totalSessionSeconds = 11 * 60; // 11 minutes in seconds
+    const remainingSeconds = totalSessionSeconds - elapsedSeconds;
+
+    return Math.max(0, Math.floor(remainingSeconds));
+  } catch (error) {
+    console.error("Error calculating remaining time for session:", error);
+    return 0;
   }
 }
 

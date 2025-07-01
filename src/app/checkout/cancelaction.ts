@@ -54,30 +54,40 @@ export const RenewSessionId = async (
 
 export const CancelOrder = async (oid: string): Promise<ActionReturnType> => {
   try {
+    if (!oid) {
+      return { success: false, error: "Order ID is required" };
+    }
+
     const order = await Prisma.orders.findUnique({
       where: { id: oid },
       select: { sessionId: true },
     });
 
-    if (!order || !order.sessionId) {
-      return { success: false, error: "Can't Find Order" };
+    if (!order?.sessionId) {
+      return { success: false, error: "Order not found or session expired" };
     }
 
     const sessionDate = getDateFromSessionId(order.sessionId);
-
-    if (!sessionDate) return { success: false };
-
-    const isValid = isTimePassedByMinutes(sessionDate.toISOString());
-    if (isValid) {
-      await Prisma.orders.update({
-        where: { id: oid },
-        data: { status: Allstatus.cancelled, sessionId: null },
-      });
+    if (!sessionDate) {
+      return { success: false, error: "Invalid session" };
     }
+
+    const isSessionExpired = isTimePassedByMinutes(sessionDate.toISOString());
+    if (!isSessionExpired) {
+      return { success: false };
+    }
+
+    await Prisma.orders.update({
+      where: { id: oid },
+      data: {
+        status: Allstatus.cancelled,
+        sessionId: null,
+      },
+    });
 
     return { success: true };
   } catch (error) {
-    console.log("Cancel Order", error);
-    return { success: false };
+    console.error("Cancel Order:", error);
+    return { success: false, error: "Failed to cancel order" };
   }
 };

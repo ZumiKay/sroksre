@@ -104,6 +104,7 @@ export async function Createorder(data: {
         Orderproduct: {
           select: {
             quantity: true,
+            stock_selected_id: true,
             stockvar: true,
             product: {
               select: {
@@ -125,7 +126,7 @@ export async function Createorder(data: {
     });
 
     if (isOutOfStock.length > 0) {
-      return { success: false, error: isOutOfStock };
+      return { success: false, message: isOutOfStock as string };
     }
 
     // Generate unique session ID with timestamp
@@ -178,8 +179,13 @@ export async function checkOrder(id: string, sessionId: string) {
     }
 
     const [order, decryptedSessionId] = await Promise.all([
-      Prisma.orders.findUnique({
-        where: { id },
+      Prisma.orders.findFirst({
+        where: {
+          AND: [
+            { id: id as string },
+            { status: { in: [Allstatus.unpaid, Allstatus.paid] } },
+          ],
+        },
         select: { id: true, status: true, shipping_id: true, sessionId: true },
       }),
       Promise.resolve(decrypt(sessionId, sessionKey)),
@@ -243,133 +249,128 @@ export async function updateStatus(
       return { success: false, status: 404, message: "Order not found" };
     }
 
-    // Extract product IDs for batch operations
-    const productIds = order.Orderproduct.map(
-      (cart) => cart.product?.id
-    ).filter(Boolean) as number[];
+    const { stockProducts, variantProducts, productIds } =
+      order.Orderproduct.reduce(
+        (acc, cart) => {
+          if (!cart.product) return acc;
+
+          acc.productIds.push(cart.product.id as number);
+
+          if (cart.product.stocktype === StockType.Stock) {
+            acc.stockProducts.push(cart.product.id as number);
+          } else if (
+            cart.product.stocktype === StockType.Variant &&
+            cart.stock_selected_id
+          ) {
+            acc.variantProducts.push({
+              stockValueId: cart.stock_selected_id,
+              quantity: cart.quantity,
+            });
+          }
+
+          return acc;
+        },
+        {
+          stockProducts: [] as number[],
+          variantProducts: [] as { stockValueId: number; quantity: number }[],
+          productIds: [] as number[],
+        }
+      );
 
     if (productIds.length === 0) {
       return { success: false, message: "No products found in order" };
     }
 
-    // Prepare batch updates
-    const updates: Promise<unknown>[] = [];
+    // Prepare invoice data before transaction
+    const invoiceProducts = order.Orderproduct.filter(
+      (prob) => prob.product
+    ).map((prob) => {
+      const product = prob.product!;
+      return {
+        id: product.id,
+        name: product.name,
+        price: {
+          price: product.price,
+          discount: (product.discount as never) ?? undefined,
+        },
+        selectedVariant: prob.selectedvariant?.map((variant) =>
+          typeof variant === "string" ? variant : variant?.name ?? ""
+        ),
+        quantity: prob.quantity,
+        totalprice:
+          prob.quantity *
+          (product.discount
+            ? Number(product.discount.newprice)
+            : product.price),
+      };
+    }) as Array<InvoiceProductPdfType>;
 
-    // Group products by stock type for efficient updates
-    const stockProducts: number[] = [];
-    const variantProducts: {
-      productId: number;
-      stockValueIds: number[];
-      quantity: number;
-    }[] = [];
+    // Execute database transaction and generate invoice concurrently
+    const [, invoice] = await Promise.all([
+      Prisma.$transaction(async (tx) => {
+        const operations = [
+          // Update order status first (fastest operation)
+          tx.orders.update({
+            where: { id: orderid },
+            data: { status: Allstatus.paid },
+          }),
 
-    order.Orderproduct.forEach((cart) => {
-      if (!cart.product) return;
+          // Update sold amount for all products
+          tx.products.updateMany({
+            where: { id: { in: productIds } },
+            data: { amount_sold: { increment: 1 } },
+          }),
+        ];
 
-      const { stocktype } = cart.product;
-
-      if (stocktype === StockType.Stock) {
-        stockProducts.push(cart.product.id as number);
-      } else if (stocktype === StockType.Variant) {
-        const stockValueIds =
-          cart.details?.map((i) => i.Orderproduct?.stock_selected_id) ?? [];
-
-        if (stockValueIds.length > 0) {
-          variantProducts.push({
-            productId: cart.product.id as number,
-            stockValueIds: stockValueIds as number[],
-            quantity: cart.quantity,
-          });
+        // Add stock operations if needed
+        if (stockProducts.length > 0) {
+          operations.push(
+            tx.products.updateMany({
+              where: {
+                id: { in: stockProducts },
+                stock: { gt: 0 },
+              },
+              data: { stock: { decrement: 1 } },
+            })
+          );
         }
-      }
-    });
 
-    // Batch update stock products
-    if (stockProducts.length > 0) {
-      updates.push(
-        Prisma.products.updateMany({
-          where: {
-            id: { in: stockProducts },
-            stock: { gt: 0 },
-          },
-          data: { stock: { decrement: 1 } },
-        })
-      );
-    }
+        // Execute main operations
+        await Promise.all(operations);
 
-    // Batch update variant products
-    variantProducts.forEach(({ stockValueIds, quantity }) => {
-      updates.push(
-        Prisma.stockvalue.updateMany({
-          where: {
-            id: { in: stockValueIds },
-            qty: { gt: 0 },
-          },
-          data: { qty: { decrement: quantity } },
-        })
-      );
-    });
-
-    // Add other updates
-    updates.push(
-      // Update sold amount for all products
-      Prisma.products.updateMany({
-        where: { id: { in: productIds } },
-        data: { amount_sold: { increment: 1 } },
+        // Handle variant products sequentially (due to individual stock values)
+        if (variantProducts.length > 0) {
+          await Promise.all(
+            variantProducts.map(({ stockValueId, quantity }) =>
+              tx.stockvalue.update({
+                where: {
+                  id: stockValueId,
+                  qty: { gt: 0 },
+                },
+                data: { qty: { decrement: quantity } },
+              })
+            )
+          );
+        }
       }),
-      // Update order status
-      Prisma.orders.update({
-        where: { id: orderid },
-        data: { status: Allstatus.paid, sessionId: null },
-      })
-    );
 
-    // Execute all database updates concurrently
-    await Promise.all(updates);
+      // Generate invoice concurrently with database operations
+      generateInvoicePdf({
+        id: order.id as string,
+        product: invoiceProducts,
+        price: order.price as unknown as totalpricetype,
+        shipping: order.shipping as never,
+        createdAt: formatDate(order.createdAt as Date),
+      }),
+    ]);
 
-    // Prepare invoice data
-    const invoiceProducts = order.Orderproduct.map(
-      (prob) =>
-        prob.product && {
-          id: prob.product.id,
-          name: prob.product.name,
-          price: {
-            price: prob.product.price,
-            discount: (prob.product.discount as never) ?? undefined,
-          },
-          selectedVariant: prob.selectedvariant?.map((variant) =>
-            typeof variant === "string" ? variant : variant?.name ?? ""
-          ),
-          quantity: prob.quantity,
-          totalprice:
-            prob.quantity *
-            (prob.product.discount
-              ? Number(prob.product.discount.newprice)
-              : prob.product.price),
-        }
-    ).filter(Boolean) as Array<InvoiceProductPdfType>;
-
-    // Generate invoice and send emails concurrently
-    const invoice = await generateInvoicePdf({
-      id: order.id as string,
-      product: invoiceProducts,
-      price: order.price as unknown as totalpricetype,
-      shipping: order.shipping as never,
-      createdAt: formatDate(order.createdAt as Date),
-    });
-
+    // Send emails concurrently
     const emailSubject = `Order #${order.id} receipt and processing for shipping`;
     const htmlTemplate = OrderReciptEmail(html);
 
-    // Send emails concurrently
     await Promise.all([
       order.user?.email &&
-        SendOrderEmail(
-          htmlTemplate,
-          order?.user?.email as string,
-          emailSubject,
-          invoice
-        ),
+        SendOrderEmail(htmlTemplate, order.user.email, emailSubject, invoice),
       SendOrderEmail(
         adminhtml,
         process.env.EMAIL as string,

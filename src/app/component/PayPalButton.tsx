@@ -18,19 +18,39 @@ import {
   PayPalScriptProvider,
 } from "@paypal/react-paypal-js";
 import { OrderReceiptTemplate } from "./EmailTemplate";
-import { useCallback, memo } from "react";
+import { useCallback, memo, useMemo } from "react";
 
 interface PaypalButtonProps {
   orderId: string;
   encripyid: string;
   order: Ordertype;
+  sessionId: string;
 }
 
 const PaypalButton = memo(
-  ({ orderId, order, encripyid }: PaypalButtonProps) => {
+  ({ orderId, order, encripyid, sessionId }: PaypalButtonProps) => {
     const router = useRouter();
     const socket = useSocket();
     const { setcarttotal } = useGlobalContext();
+
+    // Memoize PayPal script options
+    const scriptOptions = useMemo(
+      () => ({
+        clientId: process.env.NEXT_PUBLIC_PAYPAL_ID as string,
+        components: "buttons",
+        currency: "USD",
+      }),
+      []
+    );
+
+    // Memoize button styles
+    const buttonStyles = useMemo(() => ({ disableMaxWidth: true }), []);
+
+    // Memoize order data for templates
+    const paidOrder = useMemo(
+      () => ({ ...order, status: Allstatus.paid }),
+      [order]
+    );
 
     const createOrder = useCallback(async () => {
       try {
@@ -65,9 +85,7 @@ const PaypalButton = memo(
         actions: OnApproveBraintreeActions
       ) => {
         try {
-          const capReq = CaptureOrder.bind(null, data.orderID);
-
-          const request = await capReq();
+          const request = await CaptureOrder(data.orderID);
 
           if (!request.success) {
             errorToast("Server error");
@@ -83,6 +101,7 @@ const PaypalButton = memo(
             purchase_units?: Record<string, unknown>[];
             debug_id: string;
           };
+
           const errorDetail = orderData?.details?.[0];
 
           if (errorDetail?.issue === "INSTRUMENT_DECLINED") {
@@ -95,28 +114,21 @@ const PaypalButton = memo(
             throw new Error(JSON.stringify(orderData));
           }
 
+          // Generate templates
           const htmltemplate = ReactDomServer.renderToString(
-            <OrderReceiptTemplate
-              order={{ ...order, status: Allstatus.paid }}
-              isAdmin={false}
-            />
+            <OrderReceiptTemplate order={paidOrder} isAdmin={false} />
           );
 
           const adminhtmltemplate = ReactDomServer.renderToString(
-            <OrderReceiptTemplate
-              order={{ ...order, status: Allstatus.paid }}
-              isAdmin={true}
-            />
+            <OrderReceiptTemplate order={paidOrder} isAdmin={true} />
           );
 
           // Update order status
-          const updateReq = updateStatus.bind(
-            null,
+          const makeReq = await updateStatus(
             orderId,
             htmltemplate,
             adminhtmltemplate
           );
-          const makeReq = await updateReq();
 
           if (!makeReq.success) {
             errorToast(makeReq.message ?? "Failed to update order status");
@@ -137,32 +149,26 @@ const PaypalButton = memo(
           }
 
           // Complete checkout process
-          successToast(`Purchase Complete`);
+          successToast("Purchase Complete");
           setcarttotal(0);
-          router.replace(`/checkout?orderid=${encripyid}&step=4`);
+          router.replace(
+            `/checkout?orderid=${encripyid}&sid=${sessionId}&step=4`
+          );
           router.refresh();
         } catch (error) {
           console.error("Payment error", error);
           errorToast("Payment failed, please try again!");
         }
       },
-      [orderId, order, encripyid, socket, router, setcarttotal]
+      [paidOrder, orderId, socket, setcarttotal, router, encripyid, sessionId]
     );
 
     return (
-      <PayPalScriptProvider
-        options={{
-          clientId: process.env.NEXT_PUBLIC_PAYPAL_ID as string,
-          components: "buttons",
-          currency: "USD",
-        }}
-      >
+      <PayPalScriptProvider options={scriptOptions}>
         <PayPalButtons
           createOrder={createOrder}
-          onApprove={(data, actions) =>
-            handleApprove(data as never, actions as never)
-          }
-          style={{ disableMaxWidth: true }}
+          onApprove={handleApprove as never}
+          style={buttonStyles}
         />
       </PayPalScriptProvider>
     );

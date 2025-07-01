@@ -182,7 +182,7 @@ model Orders {
   status       String
   estimate     DateTime?
   price        Json
-  shippingtype String         @default("Normal")
+  shippingtype String         @default("Pickup")
   orderDate    DateTime?
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt

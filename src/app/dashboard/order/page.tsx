@@ -23,6 +23,7 @@ import { parseDate } from "@internationalized/date";
 import ActionModal from "./OrderComponent";
 import ProductPreviewModal from "../../component/Modals/ProductPreview";
 import { AdditionalDetailModal } from "./AdditionalDetail_Component";
+import { Role } from "@/src/lib/userlib";
 const TableComponent = dynamic(
   () => import("../../component/Table/Table_Component"),
   { ssr: false }
@@ -457,6 +458,7 @@ const OrderPage = () => {
             }
             onSelection={(val) => setselected(val as Array<string>)}
             selectedvalue={selected}
+            isAdmin={user?.role === Role.ADMIN}
           />
         </section>
       </div>

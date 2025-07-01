@@ -19,6 +19,8 @@ const getCheckoutdata = async (orderid?: string, userid?: number) => {
         select: {
           id: true,
           quantity: true,
+          stock_selected_id: true,
+          stockvar: true,
           details: {
             select: {
               variant: true,
@@ -26,8 +28,7 @@ const getCheckoutdata = async (orderid?: string, userid?: number) => {
               variantIdx: true,
             },
           },
-          stock_selected_id: true,
-          stockvar: true,
+
           product: {
             select: {
               id: true,
