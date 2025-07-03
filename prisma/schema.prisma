@@ -191,8 +191,9 @@ model Orders {
   user         User           @relation(fields: [buyer_id], references: [id], onDelete: Cascade)
   Orderproduct Orderproduct[]
   sessionId    String?
+  achieve      Boolean?
 
-  @@index([id, status, createdAt, sessionId])
+  @@index([id, status, createdAt, sessionId, achieve])
 }
 
 model Orderproduct {

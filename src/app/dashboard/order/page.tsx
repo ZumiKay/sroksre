@@ -184,7 +184,7 @@ const OrderPage = () => {
       } catch (error) {
         setloading(false);
         errorToast("Error fetching orders");
-        console.error(error);
+        throw error;
       } finally {
         setreloaddata(false);
       }
@@ -421,14 +421,20 @@ const OrderPage = () => {
                   ...prev,
                   confirmmodal: {
                     open: true,
+                    type: "ordermanagement",
+                    Warn: "Achieve" + ` ${selected.length} items ?`,
                     onAsyncDelete: handleSelectDelete,
                   },
                 }))
               }
-              className="bg-red-500 text-white hover:bg-red-600 px-4 py-2 rounded-md shadow-sm flex items-center gap-2 transform transition hover:scale-105 active:scale-95"
+              className="px-4 py-2 rounded-md shadow-sm flex items-center gap-2 transform transition hover:scale-105 active:scale-95"
               startContent={<DeleteIcon />}
+              variant="bordered"
+              color="danger"
             >
-              Delete {selected?.length}
+              {`${user?.role === Role.ADMIN ? "Delete" : "Achieve"} ${
+                selected.length
+              }`}
             </Button>
           )}
           <Button

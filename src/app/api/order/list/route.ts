@@ -15,6 +15,7 @@ import {
   IsNumber,
   removeSpaceAndToLowerCase,
 } from "@/src/lib/utilities";
+import { Role } from "@/src/lib/userlib";
 
 interface GetOrderParam extends OrderFilterParam<number, Date> {
   id?: string;
@@ -116,7 +117,9 @@ export async function GET(req: NextRequest) {
         enddate ? { createdAt: { lte: new Date(enddate) } } : {},
         startprice ? { price: { path: ["total"], gte: startprice } } : {},
         endprice ? { price: { path: ["total"], lte: endprice } } : {},
-        status ? { status: { in: status } } : {},
+        status
+          ? { status: { in: status } }
+          : { status: { not: Allstatus.achieve } },
       ],
     };
 
@@ -158,6 +161,9 @@ export async function GET(req: NextRequest) {
             take: lt,
             skip: (p - 1) * lt,
             select: commonSelect,
+            orderBy: {
+              id: "asc",
+            },
           }),
         ]);
         break;
@@ -170,6 +176,9 @@ export async function GET(req: NextRequest) {
             select: commonSelect,
             take: lt,
             skip: (p - 1) * lt,
+            orderBy: {
+              id: "asc",
+            },
           }),
         ]);
         break;
@@ -275,6 +284,15 @@ export async function GET(req: NextRequest) {
         ]);
         break;
 
+      case "status":
+        orderData = await Prisma.orders.findUnique({
+          where: { id },
+          select: {
+            status: true,
+          },
+        });
+        break;
+
       case "shipping":
       case "user":
         const selectFields =
@@ -302,15 +320,96 @@ export async function GET(req: NextRequest) {
   }
 }
 
+type OrderDeleteType = {
+  ty: "multi" | "single";
+  id: string | string[];
+};
+
 export async function DELETE(req: NextRequest) {
   try {
-    const { id } = await req.json();
+    const user = await getUser();
+    if (!user) {
+      return Response.json({ message: "Unauthorized" }, { status: 401 });
+    }
 
-    await Prisma.orders.delete({ where: { id } });
+    const body = await req.json();
+    const { id, ty } = body as OrderDeleteType;
 
-    return Response.json({ message: "Order Deleted" }, { status: 200 });
+    if (!id || !ty) {
+      return Response.json(
+        { message: "Missing required parameters" },
+        { status: 400 }
+      );
+    }
+
+    switch (ty) {
+      case "multi":
+        if (!Array.isArray(id) || id.length === 0) {
+          return Response.json(
+            { message: "Invalid order IDs" },
+            { status: 400 }
+          );
+        }
+
+        const multiWhere: PrismaType.OrdersWhereInput = {
+          id: { in: id },
+        };
+
+        if (user.role === Role.ADMIN) {
+          await Prisma.orders.deleteMany({ where: multiWhere });
+        } else {
+          await Prisma.orders.updateMany({
+            where: {
+              AND: [multiWhere, { buyer_id: user.id }],
+            },
+            data: {
+              status: Allstatus.achieve,
+            },
+          });
+        }
+        break;
+
+      case "single":
+        if (typeof id !== "string") {
+          return Response.json(
+            { message: "Invalid order ID" },
+            { status: 400 }
+          );
+        }
+
+        if (user.role === Role.ADMIN) {
+          await Prisma.orders.delete({
+            where: { id },
+          });
+        } else {
+          await Prisma.orders.updateMany({
+            where: {
+              id,
+              buyer_id: user.id,
+            },
+            data: {
+              status: Allstatus.achieve,
+            },
+          });
+        }
+        break;
+
+      default:
+        return Response.json(
+          { message: "Invalid operation type" },
+          { status: 400 }
+        );
+    }
+
+    return Response.json(
+      { message: "Order processed successfully" },
+      { status: 200 }
+    );
   } catch (error) {
-    console.log("Delete Order", error);
-    return Response.json({ message: "Error Occured" }, { status: 500 });
+    console.error("Delete Order:", error);
+    return Response.json(
+      { message: "An error occurred while processing your request" },
+      { status: 500 }
+    );
   }
 }

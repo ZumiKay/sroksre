@@ -9,66 +9,119 @@ import {
   useState,
   useMemo,
 } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import PrimaryButton, { Selection } from "../../component/Button";
+import { Selection } from "../../component/Button";
 import { SecondaryModal } from "../../component/Modals";
 import { SecondaryConfirmModal } from "../../component/Modals/Alert_Modal";
 import { OrderReceiptTemplate } from "../../component/EmailTemplate";
 import { useGlobalContext } from "@/src/context/GlobalContext";
-import { ApiRequest } from "@/src/context/CustomHook";
-import {
-  Allstatus,
-  OrderDetialModalType,
-  Ordertype,
-} from "@/src/context/OrderContext";
+import { ApiRequest, useCheckSession } from "@/src/context/CustomHook";
+import { Allstatus, OrderAction, Ordertype } from "@/src/context/OrderContext";
 import { errorToast, successToast } from "../../component/Loading";
 import { getStatusColor } from "@/src/lib/additionalutitlites";
 import { UpdateOrderStatus } from "./action";
-import { Button } from "@heroui/react";
+import { Button, ButtonProps, Chip, Divider } from "@heroui/react";
+import { Role } from "@/src/lib/userlib";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faCancel,
+  faFileArchive,
+  faTimeline,
+  faTrash,
+  faArrowLeft,
+} from "@fortawesome/free-solid-svg-icons";
+import { CancelOrder } from "../../checkout/cancelaction";
 
 // Types
-
 interface UpdateStatusProps {
-  setactiontype: (val: OrderDetialModalType) => void;
+  setactiontype: (val: OrderAction) => void;
   status?: Allstatus;
 }
 
-// Styles
+// Enhanced styles with better organization and modern design
 const styles = {
-  container: "w-full h-full flex flex-col gap-y-6 p-6",
-  header: "text-center text-xl font-bold text-gray-800 mb-4",
-  actionContainer: "flex flex-col items-center gap-y-4 w-full",
-  buttonGroup: "flex gap-x-4 w-full justify-center",
-  formGroup: "flex flex-col gap-y-3",
-  label: "text-lg font-semibold text-gray-700",
-  loadingSpinner:
-    "animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600",
+  container:
+    "w-full h-full flex flex-col gap-6 p-6 bg-gradient-to-br from-gray-50 to-white",
+  header: "text-2xl font-bold text-gray-900 mb-2",
+  subheader: "text-gray-600 text-sm mb-6",
+  actionContainer: "flex flex-col items-center gap-4 w-full",
+  buttonGrid: "grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-2xl",
+  formGroup: "flex flex-col gap-3",
+  label: "text-sm font-semibold text-gray-700 uppercase tracking-wide",
+  buttonGroup: "flex flex-col sm:flex-row gap-3 w-full justify-center mt-6",
+  statusPreview:
+    "mt-4 p-4 bg-blue-50 rounded-xl border border-blue-200 shadow-sm",
+  statusBadge:
+    "inline-flex items-center px-3 py-1 rounded-full text-sm font-medium",
+  backButton:
+    "self-start mb-4 text-gray-600 hover:text-gray-900 transition-colors",
 } as const;
 
-// Action buttons configuration
-const ACTION_BUTTONS = [
+// Enhanced action buttons with better styling
+const ACTION_BUTTONS: Array<ButtonProps & { description?: string }> = [
   {
-    id: "status",
-    text: "Update Status",
-    color: "#3B82F6",
-    icon: "📝",
+    id: OrderAction.updatestatus,
+    content: "Update Status",
+    color: "primary",
+    variant: "solid",
+    startContent: <FontAwesomeIcon icon={faTimeline} />,
+    description: "Change the current order status",
+    className:
+      "h-16 text-left justify-start shadow-lg hover:shadow-xl transition-all",
   },
   {
-    id: "delete",
-    text: "Delete Order",
-    color: "#EF4444",
-    icon: "🗑️",
+    id: OrderAction.delete,
+    content: "Delete Order",
+    color: "danger",
+    variant: "solid",
+    startContent: <FontAwesomeIcon icon={faTrash} />,
+    description: "Permanently remove this order",
+    className:
+      "h-16 text-left justify-start shadow-lg hover:shadow-xl transition-all",
+  },
+  {
+    id: OrderAction.achieve,
+    content: "Archive Order",
+    variant: "bordered",
+    startContent: <FontAwesomeIcon icon={faFileArchive} />,
+    description: "Move order to archive",
+    className:
+      "h-16 text-left justify-start border-orange-300 text-orange-600 hover:bg-orange-50 shadow-lg hover:shadow-xl transition-all",
   },
 ] as const;
 
-// Main ActionModal Component
+const ACTION_BUTTON_USER: Array<ButtonProps & { description?: string }> = [
+  {
+    id: OrderAction.achieve,
+    content: "Archive Order",
+    variant: "bordered",
+    startContent: <FontAwesomeIcon icon={faFileArchive} />,
+    description: "Move order to archive",
+    className:
+      "h-16 text-left justify-start border-orange-300 text-orange-600 hover:bg-orange-50 shadow-lg hover:shadow-xl transition-all",
+  },
+  {
+    id: OrderAction.cancel,
+    content: "Cancel Order",
+    color: "danger",
+    variant: "bordered",
+    startContent: <FontAwesomeIcon icon={faCancel} />,
+    description: "Cancel this order",
+    className:
+      "h-16 text-left justify-start shadow-lg hover:shadow-xl transition-all",
+  },
+];
+
+// Enhanced ActionModal Component
 export const ActionModal = memo(({ status }: { status: Allstatus }) => {
   const { openmodal, setopenmodal, globalindex } = useGlobalContext();
-  const [actiontype, setactiontype] = useState<string>("none");
-  const router = useRouter();
-  const searchParams = useSearchParams();
+  const [actiontype, setactiontype] = useState<OrderAction>(OrderAction.none);
+  const { user } = useCheckSession();
+  const [isClient, setIsClient] = useState(false);
 
-  // Memoized handlers
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
   const handleDelete = useCallback(async (orderId: string) => {
     try {
       const response = await ApiRequest({
@@ -88,8 +141,27 @@ export const ActionModal = memo(({ status }: { status: Allstatus }) => {
     }
   }, []);
 
+  const handleCancel = useCallback(async () => {
+    if (
+      !globalindex.orderId ||
+      (status !== Allstatus.unpaid && status !== Allstatus.incart)
+    ) {
+      return;
+    }
+
+    const cancelReq = CancelOrder.bind(null, globalindex.orderId);
+    const makeReq = await cancelReq();
+
+    if (!makeReq.success) {
+      errorToast("Can't Cancel Order");
+      return;
+    }
+
+    successToast("Order cancelled");
+  }, [globalindex.orderId, status]);
+
   const handleActionClick = useCallback(
-    (type: string) => {
+    (type: OrderAction) => {
       if (type === "delete" && globalindex.orderId) {
         setopenmodal({
           confirmmodal: {
@@ -100,63 +172,114 @@ export const ActionModal = memo(({ status }: { status: Allstatus }) => {
         });
         return;
       }
+      if (type === OrderAction.cancel) {
+        setopenmodal({
+          confirmmodal: {
+            open: true,
+            onAsyncDelete: () => handleCancel(),
+            Warn: `Are you sure you want to cancel order #${globalindex.orderId}? This action cannot be undone.`,
+          },
+        });
+        return;
+      }
+
       setactiontype(type);
     },
-    [handleDelete, globalindex.orderId, setopenmodal]
+    [globalindex.orderId, setopenmodal, handleDelete, handleCancel]
   );
 
   const handleClose = useCallback(() => {
-    const url = new URLSearchParams(searchParams);
-    url.delete("id");
-    url.delete("ty");
-    router.push(`?${url}`, { scroll: false });
-  }, [router, searchParams]);
+    setopenmodal({});
+  }, [setopenmodal]);
 
-  // Render action buttons
-  const renderActionButtons = useMemo(
-    () => (
+  const handleBack = useCallback(() => {
+    setactiontype(OrderAction.none);
+  }, []);
+
+  // Enhanced action buttons rendering
+  const renderActionButtons = useMemo(() => {
+    const buttons =
+      user?.role !== Role.ADMIN
+        ? ACTION_BUTTON_USER.filter((i) =>
+            status !== Allstatus.unpaid && status !== Allstatus.incart
+              ? i.id !== "cancel"
+              : i
+          )
+        : ACTION_BUTTONS;
+
+    return (
       <div className={styles.actionContainer}>
-        <div className="grid grid-cols-1 gap-4 w-full max-w-md">
-          {ACTION_BUTTONS.map((button) => (
-            <PrimaryButton
-              key={button.id}
-              type="button"
-              text={button.text}
-              Icon={button.icon}
-              onClick={() => handleActionClick(button.id)}
-              radius="12px"
-              width="100%"
-              color={button.color}
-              className="transform transition-all duration-200 hover:scale-105 active:scale-95 shadow-lg hover:shadow-xl"
-            />
+        <div className={styles.buttonGrid}>
+          {buttons.map((button) => (
+            <div key={button.id} className="flex flex-col">
+              <Button
+                {...button}
+                startContent={undefined}
+                onPress={() => handleActionClick(button.id as OrderAction)}
+                className={`${button.className} group`}
+              >
+                <div className="flex flex-col items-start gap-1 w-full">
+                  <div className="flex items-center gap-2">
+                    {button.startContent}
+                    <span className="font-semibold">{button.content}</span>
+                  </div>
+                  {button.description && (
+                    <span className="text-xs opacity-70 group-hover:opacity-100 transition-opacity">
+                      {button.description}
+                    </span>
+                  )}
+                </div>
+              </Button>
+            </div>
           ))}
         </div>
       </div>
-    ),
-    [handleActionClick]
-  );
+    );
+  }, [handleActionClick, status, user?.role]);
+
+  if (!isClient) {
+    return null;
+  }
 
   return (
     <SecondaryModal
-      size="lg"
+      size="2xl"
       open={openmodal.orderactionmodal ?? false}
       onPageChange={handleClose}
       closebtn
     >
       <div className={styles.container}>
+        {actiontype !== "none" && (
+          <Button
+            variant="light"
+            startContent={<FontAwesomeIcon icon={faArrowLeft} />}
+            onPress={handleBack}
+            className={styles.backButton}
+          >
+            Back to Actions
+          </Button>
+        )}
+
         {actiontype === "none" && (
           <>
-            <h3 className={styles.header}>Order Actions</h3>
-            <p className="text-center text-gray-600 mb-6">
-              Choose an action for order #{globalindex.orderId || "N/A"}
-            </p>
+            <div className="text-center">
+              <h3 className={styles.header}>Order Management</h3>
+              <span className={styles.subheader}>
+                Managing Order{" "}
+                <Chip color="primary" variant="flat" size="sm">
+                  #{globalindex.orderId || "N/A"}
+                </Chip>
+              </span>
+            </div>
+            <Divider />
             {renderActionButtons}
           </>
         )}
 
-        {actiontype === "status" && (
-          <UpdateStatus status={status} setactiontype={setactiontype} />
-        )}
+        {user?.role === Role.ADMIN &&
+          actiontype === OrderAction.updatestatus && (
+            <UpdateStatus status={status} setactiontype={setactiontype} />
+          )}
 
         {actiontype === "delete" && <SecondaryConfirmModal />}
       </div>
@@ -166,7 +289,7 @@ export const ActionModal = memo(({ status }: { status: Allstatus }) => {
 
 ActionModal.displayName = "ActionModal";
 
-// UpdateStatus Component
+// Enhanced UpdateStatus Component
 const UpdateStatus = memo<UpdateStatusProps>(({ setactiontype }) => {
   const { globalindex } = useGlobalContext();
   const [status, setStatus] = useState<Allstatus>(Allstatus.unpaid);
@@ -176,7 +299,7 @@ const UpdateStatus = memo<UpdateStatusProps>(({ setactiontype }) => {
   useEffect(() => {
     const getOrderData = async () => {
       const getReq = await ApiRequest({
-        url: `/api/order/list?ty=filter&id=${globalindex.orderId}`,
+        url: `/api/order/list?ty=status&id=${globalindex.orderId}`,
       });
       if (!getReq.success) {
         errorToast(getReq.message || "Failed to fetch order data");
@@ -187,19 +310,17 @@ const UpdateStatus = memo<UpdateStatusProps>(({ setactiontype }) => {
     getOrderData();
   }, [globalindex.orderId]);
 
-  // Memoized status options
   const statusOptions = useMemo(
     () => Object.values(Allstatus).filter((val) => val !== "All"),
     []
   );
 
-  // Handlers
   const handleSelect = useCallback((e: ChangeEvent<HTMLSelectElement>) => {
     setStatus(e.target.value as Allstatus);
   }, []);
 
   const handleCancel = useCallback(() => {
-    setactiontype("none");
+    setactiontype(OrderAction.none);
     setStatus(Allstatus.unpaid);
   }, [setactiontype]);
 
@@ -212,7 +333,6 @@ const UpdateStatus = memo<UpdateStatusProps>(({ setactiontype }) => {
     setLoading(true);
 
     try {
-      // Generate email template
       const emailTemplate = ReactDOMServer.renderToStaticMarkup(
         <OrderReceiptTemplate order={order} isAdmin={false} />
       );
@@ -231,8 +351,6 @@ const UpdateStatus = memo<UpdateStatusProps>(({ setactiontype }) => {
       }
 
       successToast("Order status updated successfully");
-
-      // Update request
     } catch (error) {
       console.error("Update status error:", error);
       errorToast("An error occurred while updating the status");
@@ -241,12 +359,10 @@ const UpdateStatus = memo<UpdateStatusProps>(({ setactiontype }) => {
     }
   }, [globalindex.orderId, order, status]);
 
-  // Reset status when order changes
   useEffect(() => {
     setStatus(order?.status || Allstatus.unpaid);
   }, [order?.status]);
 
-  // Check if update is possible
   const canUpdate = useMemo(
     () => status && status !== order?.status && !loading,
     [status, order?.status, loading]
@@ -254,28 +370,43 @@ const UpdateStatus = memo<UpdateStatusProps>(({ setactiontype }) => {
 
   return (
     <div className={styles.container}>
-      <div className="text-center mb-6">
+      <div className="text-center mb-8">
         <h3 className={styles.header}>Update Order Status</h3>
-        <p className="text-gray-600">
-          Current status:
-          <span
-            className={`ml-2 px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(
-              order?.status as Allstatus
-            )}`}
-          >
+        <div className="flex items-center justify-center gap-2 mt-4">
+          <span className="text-gray-600 text-sm">Current status:</span>
+          <Chip variant="flat" className={getStatusColor(order?.status)}>
             {order?.status}
-          </span>
-        </p>
+          </Chip>
+        </div>
       </div>
 
-      <div className={styles.formGroup}>
-        <label className={styles.label}>New Status</label>
-        <Selection
-          default="Select new status"
-          value={status}
-          data={statusOptions}
-          onChange={handleSelect}
-        />
+      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+        <div className={styles.formGroup}>
+          <label className={styles.label}>Select New Status</label>
+          <Selection
+            default="Choose status..."
+            value={status}
+            data={statusOptions}
+            onChange={handleSelect}
+          />
+        </div>
+
+        {status !== order?.status && (
+          <div className={styles.statusPreview}>
+            <div className="flex items-center justify-center gap-4 text-sm">
+              <Chip color="default" variant="flat">
+                {order?.status}
+              </Chip>
+              <span className="text-gray-400">→</span>
+              <Chip color="primary" variant="flat">
+                {status}
+              </Chip>
+            </div>
+            <p className="text-blue-700 text-center mt-2 text-sm">
+              Status will be updated and notification email will be sent
+            </p>
+          </div>
+        )}
       </div>
 
       <div className={styles.buttonGroup}>
@@ -283,31 +414,23 @@ const UpdateStatus = memo<UpdateStatusProps>(({ setactiontype }) => {
           isLoading={loading}
           isDisabled={!canUpdate}
           onPress={handleUpdate}
-          className="max-w-[200px] font-bold text-white bg-incart"
+          color="primary"
+          variant="solid"
+          size="lg"
+          className="font-semibold shadow-lg"
         >
-          Update
+          {loading ? "Updating..." : "Update Status"}
         </Button>
         <Button
           isDisabled={loading}
           onPress={handleCancel}
-          className="max-w-[200px] font-bold text-gray-700 bg-gray-200 hover:bg-gray-300"
-          variant="light"
+          variant="bordered"
+          size="lg"
+          className="font-semibold"
         >
           Cancel
         </Button>
       </div>
-
-      {/* Status Change Preview */}
-      {status !== order?.status && (
-        <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-          <p className="text-sm text-blue-800">
-            Status will change from
-            <span className="font-semibold mx-1">{order?.status}</span>
-            to
-            <span className="font-semibold mx-1">{status}</span>
-          </p>
-        </div>
-      )}
     </div>
   );
 });

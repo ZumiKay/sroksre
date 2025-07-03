@@ -23,7 +23,7 @@ const ADMIN_ROUTES: ReadonlyMap<string, ReadonlySet<MethodType>> = new Map([
   ["/home/banner", new Set(["GET"])],
   ["/home", new Set(["POST", "PUT", "DELETE", "GET"])],
   ["/users/logout", new Set(["DELETE"])],
-  ["/order/list", new Set(["GET"])],
+  ["/order/list", new Set(["GET", "DELETE"])],
 ]) as never;
 
 const PUBLIC_ROUTES: ReadonlyMap<string, ReadonlySet<MethodType>> = new Map([
@@ -43,7 +43,7 @@ const USER_ROUTES: ReadonlyMap<string, ReadonlySet<MethodType>> = new Map([
   ["/order", new Set(["POST", "PUT", "GET", "DELETE"])],
   ["/order/cart", new Set(["POST", "GET", "DELETE", "PUT"])],
   ["/users/info", new Set(["GET", "POST", "PUT", "DELETE"])],
-  ["/order/list", new Set(["GET"])],
+  ["/order/list", new Set(["GET", "DELETE"])],
 ]) as never;
 
 /**

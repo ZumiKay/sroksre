@@ -12,17 +12,32 @@ import dayjs from "dayjs";
 import { isValidDate } from "../lib/utilities";
 import { ShippingOptionTypes } from "./Checkoutcontext";
 
+export enum Allstatus {
+  all = "All",
+  incart = "Incart",
+  unpaid = "Unpaid",
+  paid = "Paid",
+  prepareing = "Preparing",
+  ready = "Ready",
+  shipped = "Shipped",
+  arrived = "Arrived",
+  cancelled = "Cancelled",
+  problem = "Problem",
+  achieve = "Achieve",
+}
+
 export const AllOrderStatusData: SelectType<string>[] = [
-  { label: "All", value: "All", color: "lightgray" },
-  { label: "Incart", value: "Incart", color: "#495464" },
-  { label: "Unpaid", value: "Unpaid", color: "#EB5757" },
-  { label: "Paid", value: "Paid", color: "#35C191" },
-  { label: "Preparing", value: "Preparing", color: "#0097FA" },
-  { label: "Ready", value: "Ready", color: "#F2C94C" },
-  { label: "Shipped", value: "Shipped", color: "#60513C" },
-  { label: "Arrived", value: "Arrived", color: "#35C191" },
-  { label: "Problem", value: "Problem", color: "red" },
-  { label: "Cancelled", value: "Cancelled", color: "#EB5757" },
+  { label: "All", value: Allstatus.all, color: "lightgray" },
+  { label: "Incart", value: Allstatus.incart, color: "#495464" },
+  { label: "Unpaid", value: Allstatus.unpaid, color: "#EB5757" },
+  { label: "Paid", value: Allstatus.paid, color: "#35C191" },
+  { label: "Preparing", value: Allstatus.prepareing, color: "#0097FA" },
+  { label: "Ready", value: Allstatus.ready, color: "#F2C94C" },
+  { label: "Shipped", value: Allstatus.shipped, color: "#60513C" },
+  { label: "Arrived", value: Allstatus.arrived, color: "#35C191" },
+  { label: "Problem", value: Allstatus.problem, color: "red" },
+  { label: "Cancelled", value: Allstatus.cancelled, color: "#EB5757" },
+  { label: "Achieved", value: Allstatus.achieve, color: "lightgray" },
 ];
 
 export type OrderDetialModalType = "user" | "shipping" | "close" | "none";
@@ -33,7 +48,8 @@ export type OrderGetReqType =
   | "user"
   | "export"
   | "filter"
-  | "shipping";
+  | "shipping"
+  | "status";
 
 export type Orderstatus =
   | "All"
@@ -46,17 +62,12 @@ export type Orderstatus =
   | "Problem"
   | "Cancelled";
 
-export enum Allstatus {
-  all = "All",
-  incart = "Incart",
-  unpaid = "Unpaid",
-  paid = "Paid",
-  prepareing = "Preparing",
-  ready = "Ready",
-  shipped = "Shipped",
-  arrived = "Arrived",
-  cancelled = "Cancelled",
-  problem = "Problem",
+export enum OrderAction {
+  delete = "delete",
+  updatestatus = "updatestatus",
+  cancel = "cancel",
+  achieve = "achieve",
+  none = "none",
 }
 
 export interface Productorderdetailtype {

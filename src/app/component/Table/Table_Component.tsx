@@ -165,6 +165,7 @@ const OrderColumns: Array<ColumnType> = [
   { name: "Price", uid: "price" },
   { name: "Product", uid: "products" },
   { name: "Shipping", uid: "shippingtype" },
+  { name: "Action", uid: "action" },
 ];
 
 interface Stock {
@@ -211,7 +212,7 @@ export default function TableComponent({
 
   useEffect(() => {
     if (onSelection) {
-      const convertedToNumber = Array.from(selectedData).map((i) => Number(i));
+      const convertedToNumber = Array.from(selectedData).map((i) => i);
       onSelection(convertedToNumber);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -225,29 +226,32 @@ export default function TableComponent({
 
   const handleView = useCallback(
     (uid: string, id: number | string) => {
-      // Create new objects only when needed instead of always
-      let toOpenModal: Partial<OpenModalState> = {};
-      let toUpdateIndex: Partial<GlobalIndexState> = {};
+      // Early return if no valid id
+      if (!id) return;
+
+      // Use single object to collect all state updates
+      const stateUpdates: {
+        modal?: Partial<OpenModalState>;
+        index?: Partial<GlobalIndexState>;
+      } = {};
 
       switch (uid) {
         case "stock":
-          toOpenModal = { editvariantstock: true };
-          toUpdateIndex = { producteditindex: id as number };
+          stateUpdates.modal = { editvariantstock: true };
+          stateUpdates.index = { producteditindex: id as number };
           break;
 
         case "products":
-          toOpenModal = { showproduct: true };
+          stateUpdates.modal = { showproduct: true };
 
           if (ty === "ordermanagement") {
-            toUpdateIndex = { orderId: id as string };
+            stateUpdates.index = { orderId: id as string };
           } else if (ty === "promotion") {
-            setpromotion((prev) => ({
-              ...prev,
-              view: "product",
-            }));
+            // Handle promotion navigation without state updates
+            setpromotion((prev) => ({ ...prev, view: "product" }));
             const newParams = new URLSearchParams(searchParams);
             newParams.set("ty", "product");
-            newParams.set("promoids", id.toString());
+            newParams.set("promoids", String(id));
             Router.push(`?${newParams}`);
             settype?.("product");
             setreloaddata(true);
@@ -256,46 +260,45 @@ export default function TableComponent({
           break;
 
         case "Image":
-          // Create keys dynamically only when needed
-          toOpenModal = { [`showbanner${id}`]: true };
-          toUpdateIndex = { bannereditindex: id as number };
+          stateUpdates.modal = { [`showbanner${id}`]: true };
+          stateUpdates.index = { bannereditindex: id as number };
           break;
 
         case "covers":
-          toOpenModal = { [`cover${id}`]: true };
-          toUpdateIndex = { producteditindex: id as number };
+          stateUpdates.modal = { [`cover${id}`]: true };
+          stateUpdates.index = { producteditindex: id as number };
           break;
 
         case "other":
         case "user":
-          if (ty === "ordermanagement" && uid === "user" && !isAdmin) {
-            return;
-          }
-
-          if (ty === "usermanagement") {
-            toOpenModal.userdetail = true;
-          }
-          if (ty === "ordermanagement" && uid === "other") {
-            toOpenModal.orderdetail = true;
-          } else toOpenModal = { other: true };
+        case "shippingtype":
+          // Early return for unauthorized admin actions
+          if (ty === "ordermanagement" && uid === "user" && !isAdmin) return;
 
           if (ty === "ordermanagement") {
-            toUpdateIndex.orderId = id as string;
-          } else toUpdateIndex = { useredit: id as number };
+            if (uid === "shippingtype") {
+              stateUpdates.modal = { orderdetail: true };
+            }
+            stateUpdates.index = { orderId: id as string };
+          } else if (ty === "usermanagement") {
+            stateUpdates.modal = { userdetail: true };
+            stateUpdates.index = { useredit: id as number };
+          } else {
+            stateUpdates.modal = { other: true };
+            stateUpdates.index = { useredit: id as number };
+          }
           break;
 
         default:
-          // Return early if no matching case to avoid unnecessary state updates
           return;
       }
 
-      // Only update state if we have changes
-      if (Object.keys(toUpdateIndex).length > 0) {
-        setglobalindex((prev) => ({ ...prev, ...toUpdateIndex }));
+      // Batch state updates
+      if (stateUpdates.index) {
+        setglobalindex((prev) => ({ ...prev, ...stateUpdates.index }));
       }
-
-      if (Object.keys(toOpenModal).length > 0) {
-        setopenmodal(toOpenModal);
+      if (stateUpdates.modal) {
+        setopenmodal(stateUpdates.modal);
       }
     },
     [
@@ -502,11 +505,24 @@ export default function TableComponent({
               VIEW
             </Button>
           ) : (
-            data
+            <Chip color="primary" variant="bordered">
+              {data}
+            </Chip>
           );
 
         case "action":
-          return (
+          return ty === "ordermanagement" ? (
+            <Button
+              onPress={() => {
+                setopenmodal({ orderactionmodal: true });
+                setglobalindex({ orderId: celldata.id } as never);
+              }}
+              variant="solid"
+              className="font-bold"
+            >
+              Action
+            </Button>
+          ) : (
             <ActionContainer
               onAction={(val) =>
                 handleAction(
@@ -530,7 +546,15 @@ export default function TableComponent({
           return celldata[key.toString()] ?? "none";
       }
     },
-    [memoizedTy, handleClick, handleView, handleAction, ty]
+    [
+      memoizedTy,
+      handleClick,
+      ty,
+      handleView,
+      setopenmodal,
+      setglobalindex,
+      handleAction,
+    ]
   );
   return (
     <>

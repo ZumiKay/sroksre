@@ -48,7 +48,6 @@ export const ConfirmModal = () => {
     if (type === "banner") return "/api/banner";
     if (type === "promotion") return "/api/promotion";
     if (type === "user") return "/api/users";
-    if (type === "ordermanagement") return "/api/order/list";
     return "/api/users/info";
   }, [openmodal.confirmmodal]);
 
@@ -155,8 +154,7 @@ export const ConfirmModal = () => {
           type === "product" ||
           type === "promotion" ||
           type === "user" ||
-          type === "userinfo" ||
-          type === "ordermanagement"
+          type === "userinfo"
         ) {
           setloading(true);
           const deleteRequest = await ApiRequest({
