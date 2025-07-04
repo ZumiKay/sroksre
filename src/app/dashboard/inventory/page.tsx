@@ -244,7 +244,7 @@ export default function Inventory(props: {
             const modifieddata = allfetchdata.data;
 
             if (ty === "product") {
-              setlowstock(allfetchdata.lowstock as number);
+              setlowstock(allfetchdata.lowStock as number);
             }
 
             setalldata(
@@ -263,12 +263,12 @@ export default function Inventory(props: {
                   }
                 : { [ty as string]: modifieddata }) as never
             );
-            setpromoexpire(allfetchdata?.expirecount ?? 0);
+            setpromoexpire(allfetchdata?.expireCount ?? 0);
             setitemlength({
               total: allfetchdata.total ?? 0,
-              lowstock: allfetchdata.lowstock ?? 0,
-              totalpage: allfetchdata.totalpage ?? 0,
-              totalitems: allfetchdata.totalfilter,
+              lowstock: allfetchdata.lowStock ?? 0,
+              totalpage: allfetchdata.totalPages ?? 0,
+              totalitems: allfetchdata.totalFiltered ?? 0,
             });
           }
         };

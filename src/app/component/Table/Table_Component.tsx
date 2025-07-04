@@ -1,6 +1,7 @@
 "use client";
 import {
   Button,
+  ButtonProps,
   Chip,
   Selection,
   Table,
@@ -14,10 +15,11 @@ import {
   InventoryType,
   StockType,
 } from "../../dashboard/inventory/inventory.type";
-import { Key, useCallback, useEffect, useMemo, useState } from "react";
+import { Key, useCallback, useMemo, useState, memo } from "react";
 import {
   ActionState,
   BannerState,
+  FullCategoryType,
   GlobalIndexState,
   ImageDatatype,
   InventoryPage,
@@ -66,114 +68,183 @@ type ColumnType = {
   isAdmin?: boolean;
 };
 
-const UsermanagementColumns: Array<ColumnType> = [
-  {
-    name: "Id",
-    uid: "id",
-  },
-  { name: "Name", uid: "name" },
-  { name: "Email", uid: "email" },
-  {
-    name: "Role",
-    uid: "role",
-  },
-  { name: "Other", uid: "other" },
-  { name: "Action", uid: "action" },
-];
-
-const ProductColumns: Array<ColumnType> = [
-  {
-    name: "Id",
-    uid: "id",
-  },
-
-  { name: "Cover", uid: "covers" },
-  { name: "Name", uid: "name" },
-  {
-    name: "Price",
-    uid: "price",
-  },
-  {
-    name: "Category",
-    uid: "category",
-  },
-  {
-    name: "Stock",
-    uid: "stock",
-  },
-  {
-    name: "Action",
-    uid: "action",
-  },
-];
-
-const BannerColumns: Array<ColumnType> = [
-  {
-    name: "Id",
-    uid: "id",
-  },
-  { name: "Image", uid: "Image" },
-  {
-    name: "Name",
-    uid: "name",
-  },
-  {
-    name: "Size",
-    uid: "size",
-  },
-  {
-    name: "Link Type",
-    uid: "linktype",
-  },
-  {
-    name: "Action",
-    uid: "action",
-  },
-];
-
-const PromotionColumns: Array<ColumnType> = [
-  {
-    name: "Id",
-    uid: "id",
-  },
-  {
-    name: "Name",
-    uid: "name",
-  },
-  { name: "Banner", uid: "banner" },
-  {
-    name: "Product",
-    uid: "products",
-  },
-
-  { name: "Expire At", uid: "expireAt" },
-  {
-    name: "Action",
-    uid: "action",
-  },
-];
-
-const OrderColumns: Array<ColumnType> = [
-  { name: "Id", uid: "id" },
-  {
-    name: "Buyer",
-    uid: "user",
-    isAdmin: true,
-  },
-  { name: "Status", uid: "status" },
-
-  { name: "Price", uid: "price" },
-  { name: "Product", uid: "products" },
-  { name: "Shipping", uid: "shippingtype" },
-  { name: "Action", uid: "action" },
-];
+// Memoize static column definitions
+const COLUMNS_CONFIG: Readonly<Record<InventoryPage, Array<ColumnType>>> = {
+  usermanagement: [
+    { name: "Id", uid: "id" },
+    { name: "Name", uid: "name" },
+    { name: "Email", uid: "email" },
+    { name: "Role", uid: "role" },
+    { name: "Other", uid: "other" },
+    { name: "Action", uid: "action" },
+  ],
+  product: [
+    { name: "Id", uid: "id" },
+    { name: "Cover", uid: "covers" },
+    { name: "Name", uid: "name" },
+    { name: "Price", uid: "price" },
+    { name: "Category", uid: "category" },
+    { name: "Stock", uid: "stock" },
+    { name: "Action", uid: "action" },
+  ],
+  banner: [
+    { name: "Id", uid: "id" },
+    { name: "Image", uid: "Image" },
+    { name: "Name", uid: "name" },
+    { name: "Size", uid: "size" },
+    { name: "Link Type", uid: "linktype" },
+    { name: "Action", uid: "action" },
+  ],
+  promotion: [
+    { name: "Id", uid: "id" },
+    { name: "Name", uid: "name" },
+    { name: "Banner", uid: "banner" },
+    { name: "Product", uid: "products" },
+    { name: "Expire At", uid: "expireAt" },
+    { name: "Action", uid: "action" },
+  ],
+  ordermanagement: [
+    { name: "Id", uid: "id" },
+    { name: "Buyer", uid: "user", isAdmin: true },
+    { name: "Status", uid: "status" },
+    { name: "Price", uid: "price" },
+    { name: "Product", uid: "products" },
+    { name: "Shipping", uid: "shippingtype" },
+    { name: "Action", uid: "action" },
+  ],
+} as const;
 
 interface Stock {
   type: string;
   value: number;
 }
 
-export default function TableComponent({
+// Memoized cell components
+const MemoizedImage = memo(
+  ({
+    data,
+    onClick,
+    alt,
+  }: {
+    data: ImageDatatype;
+    onClick: () => void;
+    alt: string;
+  }) => (
+    <Image
+      className="w-[100px] h-[100px] object-contain rounded-sm bg-white cursor-pointer"
+      onClick={onClick}
+      width={100}
+      height={100}
+      loading="lazy"
+      alt={alt}
+      src={data.url}
+    />
+  )
+);
+MemoizedImage.displayName = "MemoizedImage";
+
+const MemoizedProductName = memo(
+  ({
+    celldata,
+    handleClick,
+  }: {
+    celldata: Record<string, string>;
+    handleClick: () => void;
+  }) => (
+    <div
+      className="name w-full h-fit hover:text-gray-300 active:text-gray-300 cursor-pointer"
+      onClick={handleClick}
+    >
+      {celldata.name}
+      {celldata?.lowstock && (
+        <span className="text-red-500 text-sm pl-2">{"(Low Stock)"}</span>
+      )}
+    </div>
+  )
+);
+MemoizedProductName.displayName = "MemoizedProductName";
+
+const MemoizedUserName = memo(
+  ({ celldata }: { celldata: Record<string, string> }) => (
+    <div className="username">
+      <p>{`Username: ${celldata.username ?? ""}`}</p>
+      <p>{`Firstname: ${celldata.firstname}`}</p>
+      {celldata?.lastname && <p>{`Lastname: ${celldata.lastname}`}</p>}
+    </div>
+  )
+);
+MemoizedUserName.displayName = "MemoizedUserName";
+
+const MemoizedPrice = memo(
+  ({
+    celldata,
+    ty,
+  }: {
+    celldata: Record<string, string>;
+    ty: InventoryPage;
+  }) => {
+    if (ty === "product") {
+      const { discount, price } = celldata as unknown as ProductState;
+      return discount ? (
+        <div className="price_container w-full h-fit flex flex-col items-start">
+          <p className="font-bold">{`Discounted price: ${discount.newprice} USD`}</p>
+          <p className="text-red-500">{`Discount: %${discount.percent}`}</p>
+          <p>{`Price: ${price} USD`}</p>
+        </div>
+      ) : (
+        `${price} (USD)`
+      );
+    } else if (ty === "ordermanagement") {
+      const orderpice = (celldata as unknown as Ordertype)
+        ?.price as totalpricetype;
+      return (
+        <ul className="pricelist flex flex-col gap-y-3">
+          {Object.entries(orderpice).map(([key, val], idx) => (
+            <li key={idx}>{`${key.toUpperCase()} : ${val} (USD)`}</li>
+          ))}
+        </ul>
+      );
+    }
+    return null;
+  }
+);
+MemoizedPrice.displayName = "MemoizedPrice";
+
+const MemoizedCategory = memo(
+  ({ category }: { category: FullCategoryType }) => (
+    <div className="category_container w-full h-fit inline-flex gap-x-3">
+      <p>{category.parent.name}</p>
+      {category.child && (
+        <>
+          <span>{` / `}</span>
+          <p>{category?.child?.name}</p>
+        </>
+      )}
+    </div>
+  )
+);
+MemoizedCategory.displayName = "MemoizedCategory";
+
+const MemoizedActionButton = memo(
+  ({
+    onPress,
+    children,
+    variant = "solid",
+    color = "primary",
+  }: ButtonProps) => (
+    <Button
+      onPress={onPress}
+      variant={variant}
+      color={color}
+      className="font-bold"
+    >
+      {children}
+    </Button>
+  )
+);
+MemoizedActionButton.displayName = "MemoizedActionButton";
+
+function TableComponent({
   ty,
   data,
   isLoading,
@@ -191,45 +262,29 @@ export default function TableComponent({
     setreloaddata,
     setpromotion,
   } = useGlobalContext();
+
   const [selectedData, setselectedData] = useState<Selection>(
-    new Set(selectedvalue ?? [])
+    () => new Set(selectedvalue ?? [])
   );
-  const Router = useRouter();
+
+  const router = useRouter();
   const searchParams = useSearchParams();
-  const renderColumn = useCallback(() => {
-    return (
-      ty === InventoryType.Product
-        ? ProductColumns
-        : ty === InventoryType.Banner
-        ? BannerColumns
-        : ty === "usermanagement"
-        ? UsermanagementColumns
-        : ty === "ordermanagement"
-        ? OrderColumns.filter((i) => (!isAdmin ? i.uid !== "buyer" : true))
-        : PromotionColumns
-    ).filter((col) => (col.isAdmin ? isAdmin : true));
-  }, [isAdmin, ty]);
 
-  useEffect(() => {
-    if (onSelection) {
-      const convertedToNumber = Array.from(selectedData).map((i) => i);
-      onSelection(convertedToNumber);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedData]);
+  // Memoize columns based on type and admin status
+  const columns = useMemo(() => {
+    const baseColumns = COLUMNS_CONFIG[ty] || COLUMNS_CONFIG.product;
+    return baseColumns.filter((col) => (col.isAdmin ? isAdmin : true));
+  }, [ty, isAdmin]);
 
-  const memoizedTy = useMemo(() => ty, [ty]);
-
+  // Memoize handlers to prevent unnecessary re-renders
   const handleClick = useCallback(() => {
     alert("Open Detail with photo and title");
   }, []);
 
   const handleView = useCallback(
     (uid: string, id: number | string) => {
-      // Early return if no valid id
       if (!id) return;
 
-      // Use single object to collect all state updates
       const stateUpdates: {
         modal?: Partial<OpenModalState>;
         index?: Partial<GlobalIndexState>;
@@ -243,16 +298,14 @@ export default function TableComponent({
 
         case "products":
           stateUpdates.modal = { showproduct: true };
-
           if (ty === "ordermanagement") {
             stateUpdates.index = { orderId: id as string };
           } else if (ty === "promotion") {
-            // Handle promotion navigation without state updates
             setpromotion((prev) => ({ ...prev, view: "product" }));
             const newParams = new URLSearchParams(searchParams);
             newParams.set("ty", "product");
             newParams.set("promoids", String(id));
-            Router.push(`?${newParams}`);
+            router.push(`?${newParams}`);
             settype?.("product");
             setreloaddata(true);
             return;
@@ -272,7 +325,6 @@ export default function TableComponent({
         case "other":
         case "user":
         case "shippingtype":
-          // Early return for unauthorized admin actions
           if (ty === "ordermanagement" && uid === "user" && !isAdmin) return;
 
           if (ty === "ordermanagement") {
@@ -293,7 +345,6 @@ export default function TableComponent({
           return;
       }
 
-      // Batch state updates
       if (stateUpdates.index) {
         setglobalindex((prev) => ({ ...prev, ...stateUpdates.index }));
       }
@@ -302,7 +353,7 @@ export default function TableComponent({
       }
     },
     [
-      Router,
+      router,
       isAdmin,
       searchParams,
       setglobalindex,
@@ -321,38 +372,29 @@ export default function TableComponent({
       const modalState: Partial<OpenModalState> = {};
       const indexState: Partial<GlobalIndexState> = {};
 
-      // Configuration for each type
-      const config: Record<
-        InventoryPage,
-        { createKey: keyof OpenModalState; indexKey: keyof GlobalIndexState }
-      > = {
+      const config = {
         product: { createKey: "createProduct", indexKey: "producteditindex" },
         banner: { createKey: "createBanner", indexKey: "bannereditindex" },
         promotion: {
           createKey: "createPromotion",
           indexKey: "promotioneditindex",
         },
-        usermanagement: {
-          createKey: "createUser",
-          indexKey: "useredit",
-        },
-        ordermanagement: {
-          createKey: "updateStatus",
-          indexKey: "orderId",
-        },
-      };
+        usermanagement: { createKey: "createUser", indexKey: "useredit" },
+        ordermanagement: { createKey: "updateStatus", indexKey: "orderId" },
+      } as const;
 
-      const { createKey, indexKey } = config[type as InventoryPage];
+      const { createKey, indexKey } = config[type];
 
       if (key === "edit") {
         if (createKey === "createProduct") {
-          Router.push(`/dashboard/inventory/createproduct/${id}`);
+          router.push(`/dashboard/inventory/createproduct/${id}`);
         } else if (createKey === "createUser") {
-          Router.push(`/dashboard/usermanagement/${id}`);
-        } else modalState[createKey] = true;
+          router.push(`/dashboard/usermanagement/${id}`);
+        } else {
+          modalState[createKey] = true;
+        }
         indexState[indexKey] = id as never;
-      }
-      if (key === "delete") {
+      } else if (key === "delete") {
         modalState.confirmmodal = {
           index: id,
           type: type === "usermanagement" ? "user" : type,
@@ -369,159 +411,105 @@ export default function TableComponent({
       setopenmodal((prev) => ({ ...prev, ...modalState } as never));
       setglobalindex((prev) => ({ ...prev, ...indexState }));
     },
-    [Router, setglobalindex, setopenmodal, setproduct, setreloaddata]
+    [router, setglobalindex, setopenmodal, setproduct, setreloaddata]
   );
 
   const renderCell = useCallback(
     (key: Key, celldata: { [x: string]: never }) => {
       if (!celldata) return null;
+      const keyString = key.toString();
 
       switch (key) {
         case "Image":
         case "covers":
         case "banner": {
-          const data =
-            ((celldata[key] &&
-              (celldata[key][0]
-                ? celldata[key][0]
-                : key === "banner"
-                ? (celldata[key] as BannerState).Image
-                : celldata[key])) as ImageDatatype) || undefined;
+          const data = (celldata[keyString] &&
+            (celldata[keyString][0] ||
+              (keyString === "banner"
+                ? (celldata[keyString] as BannerState).Image
+                : celldata[keyString]))) as ImageDatatype;
+
           if (!data) return null;
+
           return (
-            <Image
-              className="w-[100px] h-[100px] object-contain rounded-sm bg-white"
-              onClick={() => handleView(key, celldata.id)}
-              width={100}
-              height={100}
-              loading="lazy"
+            <MemoizedImage
+              data={data}
+              onClick={() => handleView(keyString, celldata.id)}
               alt={`cover${data.url}`}
-              src={data.url}
             />
           );
         }
+
         case "name":
-          return memoizedTy === InventoryType.Product ? (
-            <div
-              className="name w-full h-fit hover:text-gray-300 active:text-gray-300"
-              onClick={handleClick}
-            >
-              {celldata.name}
-
-              {celldata?.lowstock ? (
-                <span className="text-red-500 text-sm pl-2">
-                  {"(Low Stock)"}
-                </span>
-              ) : (
-                <></>
-              )}
-            </div>
-          ) : memoizedTy === "usermanagement" ? (
-            <div className="username">
-              <p>{`Username: ${celldata.username ?? ""}`}</p>
-              <p>{`Firstname: ${celldata.firstname}`}</p>
-              {celldata?.lastname && <p>{`Lastname: ${celldata.lastname}`}</p>}
-            </div>
-          ) : (
-            celldata[key]
-          );
-
-        case "price": {
-          if (ty === "product") {
-            const { discount, price } = celldata as unknown as ProductState;
-            return discount ? (
-              <div className="price_container w-full h-fit flex flex-col items-start">
-                <p className="font-bold">{`Discounted price: ${discount.newprice} USD`}</p>
-                <p className="text-red-500">{`Discount: %${discount.percent}`}</p>
-                <p>{`Price: ${price} USD`}</p>
-              </div>
-            ) : (
-              `${celldata[key]} (USD)`
-            );
-          } else if (ty === "ordermanagement") {
-            const orderpice = (celldata as unknown as Ordertype)
-              ?.price as unknown as totalpricetype;
+          if (ty === InventoryType.Product) {
             return (
-              <ul className="pricelist flex flex-col gap-y-3">
-                {Object.entries(orderpice).map(([key, val], idx) => (
-                  <li key={idx}>{`${key.toUpperCase()} : ${val} (USD)`}</li>
-                ))}
-              </ul>
+              <MemoizedProductName
+                celldata={celldata}
+                handleClick={handleClick}
+              />
             );
+          } else if (ty === "usermanagement") {
+            return <MemoizedUserName celldata={celldata} />;
           }
-        }
+          return celldata[keyString];
+
+        case "price":
+          return <MemoizedPrice celldata={celldata} ty={ty} />;
 
         case "category":
-          const { category } = celldata as unknown as ProductState;
           return (
-            <div className="category_container w-full h-fit inline-flex gap-x-3">
-              <p>{category.parent.name}</p>
-              {category.child && (
-                <>
-                  <span>{` / `}</span>
-                  <p>{category?.child?.name}</p>
-                </>
-              )}
-            </div>
+            <MemoizedCategory
+              category={(celldata as unknown as ProductState).category}
+            />
           );
 
         case "stock":
           const { stocktype, id } = celldata as unknown as ProductState;
           return stocktype === StockType.Stock ? (
-            celldata[key]
+            celldata[keyString]
           ) : (
-            <Button
-              onPress={() => id && handleView(key, id)}
-              variant="solid"
-              color="primary"
-              className="font-bold"
+            <MemoizedActionButton
+              onPress={() => id && handleView(keyString, id)}
             >
               VIEW
-            </Button>
+            </MemoizedActionButton>
           );
 
         case "products":
         case "other":
         case "user":
           return (
-            <Button
-              onPress={() => celldata.id && handleView(key, celldata.id)}
-              variant="solid"
-              color="primary"
-              className="font-bold"
+            <MemoizedActionButton
+              onPress={() => celldata.id && handleView(keyString, celldata.id)}
             >
               VIEW
-            </Button>
+            </MemoizedActionButton>
           );
+
         case "shippingtype":
-          const data = celldata[key];
-          return data !== ShippingOptionTypes.pickup ? (
-            <Button
-              onPress={() => celldata.id && handleView(key, celldata.id)}
-              variant="solid"
-              color="primary"
-              className="font-bold"
+          const shippingData = celldata[keyString];
+          return shippingData !== ShippingOptionTypes.pickup ? (
+            <MemoizedActionButton
+              onPress={() => celldata.id && handleView(keyString, celldata.id)}
             >
               VIEW
-            </Button>
+            </MemoizedActionButton>
           ) : (
             <Chip color="primary" variant="bordered">
-              {data ?? "None"}
+              {shippingData ?? "None"}
             </Chip>
           );
 
         case "action":
           return ty === "ordermanagement" ? (
-            <Button
+            <MemoizedActionButton
               onPress={() => {
                 setopenmodal({ orderactionmodal: true });
                 setglobalindex({ orderId: celldata.id } as never);
               }}
-              variant="solid"
-              className="font-bold"
             >
               Action
-            </Button>
+            </MemoizedActionButton>
           ) : (
             <ActionContainer
               onAction={(val) =>
@@ -535,79 +523,81 @@ export default function TableComponent({
           );
 
         case "expireAt":
-          return new Date(celldata[key])
-            ? formatDate(new Date(celldata[key]))
+          return celldata[keyString]
+            ? formatDate(new Date(celldata[keyString]))
             : "none";
 
         case "status":
-          const status = celldata[key.toString()] as Allstatus;
+          const status = celldata[keyString] as Allstatus;
           return <Chip className={getStatusColor(status)}>{status}</Chip>;
+
         default:
-          return celldata[key.toString()] ?? "none";
+          return celldata[keyString] ?? "none";
       }
     },
-    [
-      memoizedTy,
-      handleClick,
-      ty,
-      handleView,
-      setopenmodal,
-      setglobalindex,
-      handleAction,
-    ]
+    [ty, handleClick, handleView, setopenmodal, setglobalindex, handleAction]
   );
-  return (
-    <>
-      <div className="table_container w-full p-2 h-full min-w-[900px]">
-        <Table
-          isHeaderSticky
-          removeWrapper
-          selectedKeys={selectedData}
-          onSelectionChange={setselectedData}
-          aria-label="table container for product promotion and banner"
-          className="w-full min-h-[500px] h-full"
-          selectionMode={singleselect ? "single" : "multiple"}
-          data-key="row-header-column-4um4qvmg77g"
-          showSelectionCheckboxes
-          topContent={<TopTableContent />}
-        >
-          <TableHeader
-            columns={renderColumn()}
-            className="bg_default text-white"
-          >
-            {(column) => (
-              <TableColumn
-                className="text-black text-lg"
-                key={column.uid}
-                align={column.uid === "action" ? "center" : "start"}
-              >
-                {column.name}
-              </TableColumn>
-            )}
-          </TableHeader>
-          <TableBody
-            isLoading={isLoading}
-            loadingContent={<Spinner />}
-            items={data ?? []}
-            emptyContent={"Click on Create Button To Create New Items"}
-          >
-            {(item) => (
-              <TableRow key={item.id}>
-                {(columnKey) => (
-                  <TableCell
-                    className="border-b-1 border-gray-300 relative"
-                    key={columnKey}
-                  >
-                    {renderCell(columnKey, item as never)}
-                  </TableCell>
-                )}
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
 
-        <TableBottomContent {...pagination} />
-      </div>
-    </>
+  // Effect for selection changes
+
+  const handleSelectionKey = useCallback(
+    (val: Selection) => {
+      if (onSelection) {
+        const convertedToNumber = Array.from(val);
+        onSelection(convertedToNumber);
+      }
+      setselectedData(val);
+    },
+    [onSelection]
+  );
+
+  return (
+    <div className="table_container w-full p-2 h-full min-w-[900px]">
+      <Table
+        isHeaderSticky
+        removeWrapper
+        selectedKeys={selectedData}
+        onSelectionChange={handleSelectionKey}
+        aria-label="table container for product promotion and banner"
+        className="w-full min-h-[500px] h-full"
+        selectionMode={singleselect ? "single" : "multiple"}
+        showSelectionCheckboxes
+        topContent={<TopTableContent />}
+      >
+        <TableHeader columns={columns} className="bg_default text-white">
+          {(column) => (
+            <TableColumn
+              className="text-black text-lg"
+              key={column.uid}
+              align={column.uid === "action" ? "center" : "start"}
+            >
+              {column.name}
+            </TableColumn>
+          )}
+        </TableHeader>
+        <TableBody
+          isLoading={isLoading}
+          loadingContent={<Spinner />}
+          items={data ?? []}
+          emptyContent={"Click on Create Button To Create New Items"}
+        >
+          {(item) => (
+            <TableRow key={item.id}>
+              {(columnKey) => (
+                <TableCell
+                  className="border-b-1 border-gray-300 relative"
+                  key={columnKey}
+                >
+                  {renderCell(columnKey, item as never)}
+                </TableCell>
+              )}
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
+      <TableBottomContent {...pagination} />
+    </div>
   );
 }
+
+export default memo(TableComponent);
