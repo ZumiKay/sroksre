@@ -202,6 +202,8 @@ export async function GET(req: NextRequest) {
           },
           select: {
             quantity: true,
+            price: true,
+            discount: true,
             product: {
               select: {
                 id: true,
@@ -209,8 +211,6 @@ export async function GET(req: NextRequest) {
                 covers: { take: 1 },
                 parentcateogries: { select: { id: true, name: true } },
                 childcategories: { select: { id: true, name: true } },
-                price: true,
-                discount: true,
               },
             },
             details: {
@@ -225,27 +225,20 @@ export async function GET(req: NextRequest) {
 
         orderData = orderProducts.map((data) => {
           const orderproduct = data as unknown as Productordertype;
-          const calculatedPrice = orderproduct?.product?.discount
-            ? Number(
-                calculateDiscountPrice(
-                  orderproduct.product.price,
-                  orderproduct.product.discount as unknown as number
-                ).newprice
-              )
-            : orderproduct?.product?.price;
+          const isDiscount =
+            data.discount &&
+            calculateDiscountPrice(
+              orderproduct.price,
+              orderproduct.discount as unknown as number
+            );
+          const calculatedPrice = isDiscount
+            ? Number(isDiscount.newprice)
+            : orderproduct?.price;
 
           return {
             ...orderproduct,
             total: orderproduct.quantity * (calculatedPrice ?? 0),
-            product: {
-              ...orderproduct.product,
-              discount: orderproduct?.product?.discount
-                ? calculateDiscountPrice(
-                    orderproduct.product.price,
-                    orderproduct.product.discount as unknown as number
-                  )
-                : null,
-            },
+            discount: isDiscount,
           };
         }) as never;
         break;

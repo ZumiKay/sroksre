@@ -38,12 +38,13 @@ const PUBLIC_ROUTES: ReadonlyMap<string, ReadonlySet<MethodType>> = new Map([
 
 const USER_ROUTES: ReadonlyMap<string, ReadonlySet<MethodType>> = new Map([
   ["/users/logout", new Set(["DELETE"])],
-  ["/auth/users/info", new Set(["GET", "DELETE"])],
+  ["/auth/users/info", new Set(["GET", "PUT", "DELETE"])],
   ["/policy", new Set(["GET"])],
   ["/order", new Set(["POST", "PUT", "GET", "DELETE"])],
   ["/order/cart", new Set(["POST", "GET", "DELETE", "PUT"])],
   ["/users/info", new Set(["GET", "POST", "PUT", "DELETE"])],
   ["/order/list", new Set(["GET", "DELETE"])],
+  ["/users/info/address", new Set(["POST", "PUT", "DELETE", "GET"])],
 ]) as never;
 
 /**

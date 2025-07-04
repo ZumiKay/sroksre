@@ -8,7 +8,7 @@ import {
   Productordertype,
   totalpricetype,
 } from "@/src/context/OrderContext";
-import { Address, Orderproduct } from "@prisma/client";
+import { Address } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import {
   CountryCode,
@@ -204,25 +204,6 @@ export async function checkOrder(id: string, sessionId: string) {
     console.error("Check order error:", error);
     return null;
   }
-}
-
-export async function getOrderProduct(
-  orderId: string
-): Promise<Returntype<Array<Orderproduct>>> {
-  const getProduct = await Prisma.orderproduct.findMany({
-    where: { orderId },
-    include: {
-      product: {
-        select: {
-          id: true,
-          covers: true,
-          price: true,
-          discount: true,
-        },
-      },
-    },
-  });
-  return { success: true, data: getProduct };
 }
 
 export interface OrderUserType {

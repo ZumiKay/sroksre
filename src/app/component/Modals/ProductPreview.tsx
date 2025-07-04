@@ -37,29 +37,27 @@ const fetchPreviewProduct = async (
 
 const PreviewProductCard = memo(
   ({ orderproduct }: { orderproduct: Productordertype }) => {
-    const { product, quantity, details, total } = orderproduct;
+    const { product, quantity, details, total, price, discount } = orderproduct;
 
     const displayPrice = useMemo(() => {
       if (!product) return null;
 
-      return product.discount ? (
+      return discount ? (
         <div className="flex items-center gap-3 font-normal">
           <span className="text-gray-400 line-through">
-            ${product.price.toFixed(2)}
+            ${price.toFixed(2)}
           </span>
-          <span className="text-red-500 text-sm">
-            -{product.discount.percent}%
-          </span>
+          <span className="text-red-500 text-sm">-{discount.percent}%</span>
           <span className="text-gray-900 font-medium">
-            ${product.discount.newprice}
+            ${discount.newprice}
           </span>
         </div>
       ) : (
         <span className="text-lg font-medium text-gray-900">
-          ${product.price.toFixed(2)}
+          ${price.toFixed(2)}
         </span>
       );
-    }, [product]);
+    }, [discount, price, product]);
 
     const selectedOptions = useMemo(() => {
       if (!details?.length) return null;

@@ -506,7 +506,7 @@ export default function TableComponent({
             </Button>
           ) : (
             <Chip color="primary" variant="bordered">
-              {data}
+              {data ?? "None"}
             </Chip>
           );
 

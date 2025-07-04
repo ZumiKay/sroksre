@@ -182,7 +182,7 @@ model Orders {
   status       String
   estimate     DateTime?
   price        Json
-  shippingtype String         @default("Pickup")
+  shippingtype String?
   orderDate    DateTime?
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
@@ -204,6 +204,8 @@ model Orderproduct {
   orderId           String?
   stock_selected_id Int?
   stockvar          Stockvalue?           @relation(fields: [stock_selected_id], references: [id])
+  price             Int
+  discount          Decimal?
   details           OrderproductVariant[]
   user              User                  @relation(fields: [user_id], references: [id], onDelete: Cascade)
   order             Orders?               @relation(fields: [orderId], references: [id], onDelete: Cascade)

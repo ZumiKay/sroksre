@@ -1,4 +1,5 @@
 import {
+  DiscountpriceType,
   ProductState,
   SelectType,
   Stocktype,
@@ -86,6 +87,8 @@ export interface Productordertype {
   details?: Array<Productorderdetailtype>;
   quantity: number;
   productId?: number;
+  price: number;
+  discount?: DiscountpriceType;
   product?: ProductState;
   orderId?: string;
   selectedvariant?: (string | VariantColorValueType)[];

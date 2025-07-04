@@ -13,10 +13,7 @@ import { SuccessVector } from "../component/Asset";
 import { getPolicesByPage } from "../api/policy/route";
 import Link from "next/link";
 import { Metadata } from "next";
-import {
-  DiscountpriceType,
-  VariantColorValueType,
-} from "@/src/context/GlobalType.type";
+import { VariantColorValueType } from "@/src/context/GlobalType.type";
 import {
   FormWrapper,
   ShippingForm,
@@ -134,6 +131,8 @@ const getCheckoutdata = async (orderid?: string, userid?: number) => {
           id: true,
           quantity: true,
           details: true,
+          price: true,
+          discount: true,
           product: {
             select: {
               id: true,
@@ -141,9 +140,7 @@ const getCheckoutdata = async (orderid?: string, userid?: number) => {
                 select: { url: true, name: true },
                 take: 1,
               },
-              discount: true,
               name: true,
-              price: true,
               stocktype: true,
               stock: true,
               Stock: { select: { Stockvalue: true } },
@@ -197,11 +194,11 @@ const getCheckoutdata = async (orderid?: string, userid?: number) => {
       }
 
       // Calculate discount price only when needed
-      let discountPrice;
-      if (orderProduct.product.discount) {
+      let discountPrice = undefined;
+      if (orderProduct.discount) {
         discountPrice = calculateDiscountPrice(
-          orderProduct.product.price,
-          orderProduct.product.discount
+          orderProduct.price,
+          orderProduct.discount as unknown as number
         );
       }
 
@@ -209,10 +206,7 @@ const getCheckoutdata = async (orderid?: string, userid?: number) => {
       return {
         ...orderProduct,
         selectedvariant: selectedVariantDetails,
-        product: {
-          ...orderProduct.product,
-          discount: discountPrice || orderProduct.product.discount,
-        },
+        discount: discountPrice,
       };
     }
   );
@@ -242,8 +236,8 @@ const OrderSummary = async ({ orderId }: { orderId: string }) => {
 
       <div className="productlist w-full h-full flex flex-col gap-y-5 p-2">
         {orderData.Orderproduct.map((order) => {
-          const prod = order.product;
-          const isDiscount = prod.discount as DiscountpriceType | undefined;
+          const prod = order;
+          const isDiscount = prod?.discount;
           const total =
             order.quantity *
             (isDiscount ? Number(isDiscount.newprice) : prod.price);
@@ -255,7 +249,7 @@ const OrderSummary = async ({ orderId }: { orderId: string }) => {
               cover={order.product.covers[0].url}
               total={total}
               price={{
-                price: order.product.price,
+                price: order.price,
                 discount: isDiscount as never,
               }}
               name={order.product.name}

@@ -104,7 +104,7 @@ const Stock = memo(
     );
 
     const errorMessage = useMemo(() => {
-      if (max === 0) return errormess.qty ?? "";
+      if (max === 0) return errormess.qty ?? "Product Unavaliable";
       return showLowStock ? "Low on stock" : "";
     }, [max, errormess.qty, showLowStock]);
 

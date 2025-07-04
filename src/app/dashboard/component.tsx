@@ -472,47 +472,49 @@ export const ProfileTab = () => {
             onSubmit={handleSubmit}
             className="profile w-full h-fit flex flex-col items-center gap-y-10"
           >
-            <div className="w-full h-fit flex flex-row items-center gap-3">
-              <Button
-                type={actionty === "Done" ? "submit" : "button"}
-                onPress={() =>
-                  setactionty((prev) =>
-                    prev === "Readonly"
-                      ? "EditInfo"
-                      : prev === "EditInfo"
-                      ? "Done"
-                      : "Readonly"
-                  )
-                }
-                style={
-                  actionty === "EditInfo"
-                    ? {}
-                    : { backgroundColor: "lightcoral" }
-                }
-                size="sm"
-                className="text-white font-bold bg-incart self-start"
-                isLoading={actionty === "Done" && loading}
-              >
-                {actionty === "EditInfo" ? "Done" : "Edit Info"}
-              </Button>
-              {JSON.stringify(temp) !== JSON.stringify(user) && (
+            <div className="w-full h-fit flex flex-row items-center gap-x-5">
+              <div className="w-[100px] h-fit">
+                <p className="w-full text-left text-lg font-bold">User Info</p>
+              </div>
+              <div className="w-full h-fit flex flex-row items-center gap-3">
                 <Button
+                  type={actionty === "Done" ? "submit" : "button"}
+                  onPress={() =>
+                    setactionty((prev) =>
+                      prev === "Readonly"
+                        ? "EditInfo"
+                        : prev === "EditInfo"
+                        ? "Done"
+                        : "Readonly"
+                    )
+                  }
+                  style={
+                    actionty === "EditInfo"
+                      ? {}
+                      : { backgroundColor: "lightcoral" }
+                  }
                   size="sm"
-                  color="success"
-                  variant="solid"
-                  className="font-bold"
-                  isDisabled={actionty === "Readonly"}
-                  onPress={() => handleResetUser()}
+                  className="text-white font-bold bg-incart self-start"
+                  isLoading={actionty === "Done" && loading}
                 >
-                  Reset
+                  {actionty === "EditInfo" ? "Done" : "Edit Info"}
                 </Button>
-              )}
+                {JSON.stringify(temp) !== JSON.stringify(user) && (
+                  <Button
+                    size="sm"
+                    color="success"
+                    variant="solid"
+                    className="font-bold"
+                    isDisabled={actionty === "Readonly"}
+                    onPress={() => handleResetUser()}
+                  >
+                    Reset
+                  </Button>
+                )}
+              </div>
             </div>
+            <Divider className="-mt-7" />
 
-            <div className="w-full h-fit">
-              <p className="w-full text-left text-lg font-bold">User Info</p>
-              <Divider />
-            </div>
             <Input
               name="username"
               value={user?.username}
@@ -693,6 +695,7 @@ export const SecurityTab = () => {
     },
     [setuser]
   );
+
   const handleSubmit = useCallback(
     async (e: FormEvent<HTMLFormElement>) => {
       e.preventDefault();
@@ -708,9 +711,20 @@ export const SecurityTab = () => {
         return;
       }
       successToast("Password Updated");
+      // Clear password fields after successful update
+      setuser(
+        (prev) =>
+          ({
+            ...prev,
+            password: "",
+            newpassword: "",
+            confirmpassword: "",
+          } as never)
+      );
     },
-    [user]
+    [user, setuser]
   );
+
   const asyncDeleteAcc = useCallback(async () => {
     setloading(true);
     const deleteRequest = await ApiRequest({
@@ -735,72 +749,147 @@ export const SecurityTab = () => {
     });
   }, [asyncDeleteAcc, setopenmodal]);
 
+  const isPasswordValid = user?.newpassword && user?.newpassword.length >= 8;
+  const isPasswordMatch = user?.newpassword === user?.confirmpassword;
+  const isFormValid = user?.password && isPasswordValid && isPasswordMatch;
+
   return (
-    <div className="security_tab w-full h-fit flex flex-col items-center gap-y-5">
-      <h1 className="w-full text-left">Security</h1>
-
-      <div className="w-full h-fit">
-        <p className="text-lg font-bold">Password</p>
-        <Divider />
+    <div className="security_tab w-full h-fit flex flex-col gap-y-8 p-6">
+      <div className="header">
+        <h1 className="text-2xl font-bold text-gray-800 mb-2">
+          Security Settings
+        </h1>
+        <p className="text-gray-600">
+          Manage your account security and privacy
+        </p>
       </div>
-      <Form
-        onSubmit={handleSubmit}
-        className="w-full h-fit flex flex-col items-center gap-y-5"
-      >
-        <Input
-          type="password"
-          label="Current Password"
-          fullWidth
-          size="md"
-          value={user?.password}
-          name="password"
-          onChange={handleChange}
-        />
-        <Input
-          fullWidth
-          size="md"
-          type="password"
-          name="newpassword"
-          label="New Password"
-          value={user?.newpassword}
-          onChange={handleChange}
-        />
-        <Input
-          fullWidth
-          size="md"
-          type="password"
-          label="Confirm Password"
-          name="confirmpassword"
-          value={user?.confirmpassword}
-          onChange={handleChange}
-        />
-        <Button
-          isLoading={loading}
-          type="submit"
-          size="md"
-          isDisabled={
-            !user?.password || !user.newpassword || !user.confirmpassword
-          }
-          className="font-bold text-white self-end bg-incart"
-        >
-          Change Password
-        </Button>
-      </Form>
 
-      <div className="w-full">
-        <h3 className="w-full text-left text-red-500">Danger</h3>
-        <Divider />
-      </div>
-      <div className="w-full h-fit flex flex-col gap-y-5">
-        <Button
-          onPress={() => handleDeleteAcc()}
-          isLoading={loading}
-          fullWidth
-          size="md"
-          className="font-bold text-white bg-red-400"
+      {/* Password Section */}
+      <div className="password_section bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
+        <div className="section_header mb-6">
+          <h2 className="text-lg font-semibold text-gray-800 mb-1">
+            Change Password
+          </h2>
+          <p className="text-sm text-gray-600">
+            Update your password to keep your account secure
+          </p>
+          <Divider className="mt-3" />
+        </div>
+
+        <Form
+          onSubmit={handleSubmit}
+          className="w-full h-fit flex flex-col gap-y-4"
         >
-          Delete Account
-        </Button>
+          <Input
+            type="password"
+            label="Current Password"
+            labelPlacement="outside"
+            placeholder="Enter your current password"
+            fullWidth
+            size="lg"
+            value={user?.password}
+            name="password"
+            onChange={handleChange}
+            variant="bordered"
+            classNames={{
+              input: "text-sm",
+              label: "text-sm font-medium text-gray-700",
+            }}
+          />
+
+          <Input
+            fullWidth
+            size="lg"
+            type="password"
+            name="newpassword"
+            label="New Password"
+            labelPlacement="outside"
+            placeholder="Enter your new password (min 8 characters)"
+            value={user?.newpassword}
+            onChange={handleChange}
+            variant="bordered"
+            color={user?.newpassword && !isPasswordValid ? "danger" : "default"}
+            errorMessage={
+              user?.newpassword && !isPasswordValid
+                ? "Password must be at least 8 characters"
+                : ""
+            }
+            classNames={{
+              input: "text-sm",
+              label: "text-sm font-medium text-gray-700",
+            }}
+          />
+
+          <Input
+            fullWidth
+            size="lg"
+            type="password"
+            label="Confirm New Password"
+            labelPlacement="outside"
+            placeholder="Confirm your new password"
+            name="confirmpassword"
+            value={user?.confirmpassword}
+            onChange={handleChange}
+            variant="bordered"
+            color={
+              user?.confirmpassword && !isPasswordMatch ? "danger" : "default"
+            }
+            errorMessage={
+              user?.confirmpassword && !isPasswordMatch
+                ? "Passwords do not match"
+                : ""
+            }
+            classNames={{
+              input: "text-sm",
+              label: "text-sm font-medium text-gray-700",
+            }}
+          />
+
+          <div className="flex justify-end mt-4">
+            <Button
+              isLoading={loading}
+              type="submit"
+              size="lg"
+              isDisabled={!isFormValid}
+              className="font-semibold text-white bg-incart hover:bg-incart/90 disabled:bg-gray-300 px-8"
+            >
+              Update Password
+            </Button>
+          </div>
+        </Form>
+      </div>
+
+      {/* Danger Zone */}
+      <div className="danger_section bg-red-50 rounded-lg border border-red-200 p-6">
+        <div className="section_header mb-6">
+          <h2 className="text-lg font-semibold text-red-700 mb-1">
+            Danger Zone
+          </h2>
+          <p className="text-sm text-red-600">
+            Irreversible and destructive actions
+          </p>
+          <Divider className="mt-3 bg-red-200" />
+        </div>
+
+        <div className="delete_account_container bg-white rounded-lg border border-red-200 p-4">
+          <div className="mb-4">
+            <h3 className="font-semibold text-gray-800 mb-2">Delete Account</h3>
+            <p className="text-sm text-gray-600">
+              Once you delete your account, there is no going back. Please be
+              certain.
+            </p>
+          </div>
+
+          <Button
+            onPress={handleDeleteAcc}
+            isLoading={loading}
+            size="lg"
+            className="font-semibold text-white bg-red-500 hover:bg-red-600 border-red-500"
+            variant="solid"
+          >
+            Delete My Account
+          </Button>
+        </div>
       </div>
     </div>
   );

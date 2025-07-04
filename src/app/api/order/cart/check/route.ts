@@ -62,7 +62,8 @@ export async function POST(req: NextRequest) {
             detail?.length === selecteddetail.length &&
             detail?.every((obj, index) =>
               Object.entries(obj).every(
-                ([key, value]) => value === selecteddetail[index][key]
+                ([key, value]) =>
+                  value === selecteddetail[index as never][key as never]
               )
             );
           return areArraysEqual;

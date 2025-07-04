@@ -113,7 +113,8 @@ const ACTION_BUTTON_USER: Array<ButtonProps & { description?: string }> = [
 
 // Enhanced ActionModal Component
 export const ActionModal = memo(({ status }: { status: Allstatus }) => {
-  const { openmodal, setopenmodal, globalindex } = useGlobalContext();
+  const { openmodal, setopenmodal, globalindex, setreloaddata } =
+    useGlobalContext();
   const [actiontype, setactiontype] = useState<OrderAction>(OrderAction.none);
   const { user } = useCheckSession();
   const [isClient, setIsClient] = useState(false);
@@ -122,24 +123,28 @@ export const ActionModal = memo(({ status }: { status: Allstatus }) => {
     setIsClient(true);
   }, []);
 
-  const handleDelete = useCallback(async (orderId: string) => {
-    try {
-      const response = await ApiRequest({
-        url: "/api/order/list",
-        method: "DELETE",
-        data: { id: orderId, ty: "single" },
-      });
+  const handleDelete = useCallback(
+    async (orderId: string) => {
+      try {
+        const response = await ApiRequest({
+          url: "/api/order/list",
+          method: "DELETE",
+          data: { id: orderId, ty: "single" },
+        });
 
-      if (response.success) {
-        successToast("Order deleted successfully");
-      } else {
-        errorToast(response.message || "Failed to delete order");
+        if (response.success) {
+          setreloaddata(true);
+          successToast("Order deleted successfully");
+        } else {
+          errorToast(response.message || "Failed to delete order");
+        }
+      } catch (error) {
+        console.error("Delete order error:", error);
+        errorToast("An error occurred while deleting the order");
       }
-    } catch (error) {
-      console.error("Delete order error:", error);
-      errorToast("An error occurred while deleting the order");
-    }
-  }, []);
+    },
+    [setreloaddata]
+  );
 
   const handleCancel = useCallback(async () => {
     if (
@@ -158,7 +163,8 @@ export const ActionModal = memo(({ status }: { status: Allstatus }) => {
     }
 
     successToast("Order cancelled");
-  }, [globalindex.orderId, status]);
+    setreloaddata(true);
+  }, [globalindex.orderId, setreloaddata, status]);
 
   const handleActionClick = useCallback(
     (type: OrderAction) => {
@@ -166,6 +172,7 @@ export const ActionModal = memo(({ status }: { status: Allstatus }) => {
         setopenmodal({
           confirmmodal: {
             open: true,
+            type: "ordermanagement",
             onAsyncDelete: () => handleDelete(globalindex.orderId as string),
             Warn: `Are you sure you want to delete order #${globalindex.orderId}? This action cannot be undone.`,
           },
@@ -175,6 +182,7 @@ export const ActionModal = memo(({ status }: { status: Allstatus }) => {
       if (type === OrderAction.cancel) {
         setopenmodal({
           confirmmodal: {
+            type: "ordermanagement",
             open: true,
             onAsyncDelete: () => handleCancel(),
             Warn: `Are you sure you want to cancel order #${globalindex.orderId}? This action cannot be undone.`,

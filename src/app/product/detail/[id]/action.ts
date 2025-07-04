@@ -7,7 +7,7 @@ import {
   totalpricetype,
 } from "@/src/context/OrderContext";
 import Prisma from "@/src/lib/prisma";
-import { Prisma as PrismaType } from "@prisma/client";
+import { Prisma as PrismaType, Products } from "@prisma/client";
 import { calculateDiscountPrice } from "@/src/lib/utilities";
 
 import { revalidatePath } from "next/cache";
@@ -41,8 +41,8 @@ export async function Addtocart(data: Productordertype): Promise<returntype> {
     // Run product check in parallel with transaction
     const productCheckPromise = Prisma.products.findUnique({
       where: { id },
-      select: { id: true },
-    });
+      select: { id: true, price: true, discount: true },
+    }) as unknown as Products;
 
     // Execute transaction with optimized queries
     const transactionPromise = Prisma.$transaction(
@@ -72,6 +72,8 @@ export async function Addtocart(data: Productordertype): Promise<returntype> {
               user_id: user.id,
               quantity,
               stock_selected_id: stock_selected_id,
+              price: productCheckPromise.price,
+              discount: productCheckPromise.discount,
             },
           });
 
@@ -124,6 +126,8 @@ export async function Addtocart(data: Productordertype): Promise<returntype> {
               productId: id,
               user_id: user.id,
               quantity,
+              price: productCheckPromise.price,
+              discount: productCheckPromise.discount,
             },
           });
 

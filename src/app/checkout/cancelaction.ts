@@ -2,12 +2,9 @@
 import { ActionReturnType } from "@/src/context/GlobalType.type";
 import Prisma from "@/src/lib/prisma";
 import { encrypt } from "@/src/lib/utilities";
-import {
-  generateSessionId,
-  getDateFromSessionId,
-  isTimePassedByMinutes,
-} from "./helper";
+import { generateSessionId } from "./helper";
 import { Allstatus } from "@/src/context/OrderContext";
+import { revalidateTag } from "next/cache";
 
 export const RenewSessionId = async (
   orderId: string
@@ -60,21 +57,11 @@ export const CancelOrder = async (oid: string): Promise<ActionReturnType> => {
 
     const order = await Prisma.orders.findUnique({
       where: { id: oid },
-      select: { sessionId: true },
+      select: { user: { select: { id: true } } },
     });
 
     if (!order?.sessionId) {
       return { success: false, error: "Order not found or session expired" };
-    }
-
-    const sessionDate = getDateFromSessionId(order.sessionId);
-    if (!sessionDate) {
-      return { success: false, error: "Invalid session" };
-    }
-
-    const isSessionExpired = isTimePassedByMinutes(sessionDate.toISOString());
-    if (!isSessionExpired) {
-      return { success: false };
     }
 
     await Prisma.orders.update({
@@ -85,6 +72,7 @@ export const CancelOrder = async (oid: string): Promise<ActionReturnType> => {
       },
     });
 
+    revalidateTag(`orderlist#${order.user.id}`);
     return { success: true };
   } catch (error) {
     console.error("Cancel Order:", error);
