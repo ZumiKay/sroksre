@@ -180,7 +180,11 @@ const getAllPromotion = async () => {
       if (prod.discount) {
         return {
           ...prod,
-          discount: calculateDiscountPrice(prod.price, prod.discount),
+          discount: calculateDiscountPrice({
+            price: prod.price,
+            discount: prod.discount,
+            promoExpiry: promotion.expireAt,
+          }),
         };
       }
       return prod;
@@ -409,7 +413,7 @@ export default async function ProductsPage({
       )}
 
       {/* 10. Conditionally render pagination */}
-      {allproduct?.data && (allproduct.count * Number(limit)) > 1 && (
+      {allproduct?.data && allproduct.count * Number(limit) > 1 && (
         <PaginationSSR productTotal={allproduct.count} />
       )}
     </div>

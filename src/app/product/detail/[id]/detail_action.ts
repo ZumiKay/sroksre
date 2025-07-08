@@ -24,64 +24,82 @@ interface Policytype {
     content: string;
   }[];
 }
-
 export async function GetProductDetailById(pid: string) {
   const id = parseInt(pid, 10);
 
   try {
-    const product = await Prisma.products.findUnique({
-      where: { id },
-      select: {
-        id: true,
-        name: true,
-        price: true,
-        discount: true,
-        stock: true,
-        stocktype: true,
-        Variant: {
-          orderBy: { id: "asc" },
-        },
-        Stock: {
-          select: {
-            id: true,
-            Stockvalue: {
-              select: {
-                id: true,
-                qty: true,
-                variant_val: true,
+    // Use Promise.all to run independent queries in parallel
+    const [product, policy] = await Promise.all([
+      Prisma.products.findUnique({
+        where: { id },
+        select: {
+          id: true,
+          name: true,
+          price: true,
+          discount: true,
+          stock: true,
+          stocktype: true,
+          Variant: {
+            orderBy: { id: "asc" },
+          },
+          Stock: {
+            select: {
+              id: true,
+              Stockvalue: {
+                select: {
+                  id: true,
+                  qty: true,
+                  variant_val: true,
+                },
               },
             },
           },
-        },
-        description: true,
-        parentcategory_id: true,
-        childcategory_id: true,
-        relatedproductId: true,
-        promotion_id: true,
-        details: true,
-        relatedproduct: {
-          select: {
-            id: true,
-            productId: true,
+          description: true,
+          parentcategory_id: true,
+          childcategory_id: true,
+          relatedproductId: true,
+          promotion_id: true,
+          promotion: {
+            select: {
+              expireAt: true,
+            },
+          },
+          details: true,
+          relatedproduct: {
+            select: {
+              id: true,
+              productId: true,
+            },
+          },
+          covers: {
+            select: {
+              id: true,
+              url: true,
+              type: true,
+            },
           },
         },
-        covers: {
-          select: {
-            id: true,
-            url: true,
-            type: true,
-          },
-        },
-      },
-    });
+      }),
+      getPolicesByPage("productdetail") as Promise<Policytype[]>,
+    ]);
 
     if (!product) {
       return { success: false };
     }
 
-    const otherProduct =
+    // Process discount calculation
+    const isDiscount =
+      product.discount &&
+      product.promotion &&
+      calculateDiscountPrice({
+        price: product.price,
+        discount: product.discount,
+        promoExpiry: product.promotion.expireAt,
+      });
+
+    const [otherProduct, isInWishlist, checkcart] = await Promise.all([
       product.relatedproductId && product.relatedproduct
-        ? await Prisma.products.findMany({
+        ? Prisma.products.findMany({
             where: { id: { in: product.relatedproduct.productId as number[] } },
             select: {
               id: true,
@@ -96,13 +114,16 @@ export async function GetProductDetailById(pid: string) {
               },
             },
           })
-        : [];
+        : Promise.resolve([]),
+      Checkwishlist(id),
+      CheckCart(id),
+    ]);
 
     const result = {
       ...product,
       discount: product.promotion_id
         ? product.discount
-          ? calculateDiscountPrice(product.price, product.discount)
+          ? isDiscount
           : undefined
         : undefined,
       category: {
@@ -119,19 +140,8 @@ export async function GetProductDetailById(pid: string) {
       Stock: undefined,
     };
 
-    const policy = (await getPolicesByPage("productdetail")) as Policytype[];
-
-    const isInWishlist = await Checkwishlist(id);
-
     const ProductResult = result as unknown as ProductState;
-
-    const checkcart = await CheckCart(id);
-
-    let isInCart = false;
-
-    if (checkcart.success) {
-      isInCart = checkcart.incart ?? false;
-    }
+    const isInCart = checkcart.success ? checkcart.incart ?? false : false;
 
     return {
       success: true,

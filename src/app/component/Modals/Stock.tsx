@@ -28,12 +28,14 @@ export const UpdateStockModal = ({ closename }: { closename: string }) => {
   const router = useRouter();
 
   const handleUpdate = async () => {
+    setisLoading((prev) => ({ ...prev, PUT: true }));
     const update = await ApiRequest({
       url: "/api/products/crud",
-      setloading: setisLoading,
       method: "PUT",
       data: { stock: product.stock, id: product.id, type: "editstock" },
     });
+    setisLoading((prev) => ({ ...prev, PUT: false }));
+
     if (!update.success) {
       errorToast("Failed To Update Stock");
       return;
@@ -153,7 +155,7 @@ export function StockSelect({
                       data.type === "COLOR"
                         ? (
                             data.value.find(
-                              (i: any) => i.val === value
+                              (i) => (i as VariantColorValueType).val === value
                             ) as VariantColorValueType
                           )?.name ?? ""
                         : value
@@ -190,7 +192,7 @@ export function StockSelect({
                   value={item.val}
                   style={getStyles(
                     item.val,
-                    data.value.map((i: any) => i.val),
+                    data.value.map((i) => (i as VariantColorValueType).val),
                     theme
                   )}
                 >

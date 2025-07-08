@@ -238,21 +238,24 @@ export async function DELETE(request: NextRequest) {
   try {
     const { id } = await request.json();
 
+    // Handle both single id and array of ids
+    const ids = Array.isArray(id) ? id : [id];
+
     await Prisma.$transaction(async (tx) => {
-      // Fetch the promotion
-      const promo = await tx.promotion.findUnique({
-        where: { id },
+      // Fetch the promotions
+      const promos = await tx.promotion.findMany({
+        where: { id: { in: ids } },
         include: { banner: true },
       });
 
-      if (!promo) {
-        throw new Error("Promotion not found");
+      if (promos.length === 0) {
+        throw new Error("No promotions found");
       }
 
-      // Remove promotion references in products
+      // Remove promotion references in products for all promotions
       await tx.products.updateMany({
         where: {
-          promotion_id: promo.id,
+          promotion_id: { in: ids },
         },
         data: {
           promotion_id: null,
@@ -260,11 +263,15 @@ export async function DELETE(request: NextRequest) {
         },
       });
 
-      // Remove associated banner link if exists
-      if (promo.banner) {
-        await tx.banner.update({
+      // Remove associated banner links if they exist
+      const bannerIds = promos
+        .filter((promo) => promo.banner)
+        .map((promo) => promo.banner!.id);
+
+      if (bannerIds.length > 0) {
+        await tx.banner.updateMany({
           where: {
-            id: promo.banner.id as number,
+            id: { in: bannerIds },
           },
           data: { link: null, promotionId: null },
         });
@@ -272,11 +279,13 @@ export async function DELETE(request: NextRequest) {
 
       // Delete associated categories
       await tx.childcategories.deleteMany({
-        where: { pid: promo.id },
+        where: { pid: { in: ids } },
       });
 
-      // Delete the promotion
-      await tx.promotion.delete({ where: { id } });
+      // Delete the promotions
+      await tx.promotion.deleteMany({
+        where: { id: { in: ids } },
+      });
     });
 
     return Response.json({ message: "Delete Success" }, { status: 200 });

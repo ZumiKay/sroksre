@@ -23,7 +23,7 @@ export async function PUT(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  const data: { id: number } = await req.json();
+  const data: { id: Array<number> } = await req.json();
   try {
     await DeleteProduct(data.id);
 

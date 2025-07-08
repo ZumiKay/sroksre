@@ -159,6 +159,9 @@ const MemoizedProductName = memo(
       {celldata?.lowstock && (
         <span className="text-red-500 text-sm pl-2">{"(Low Stock)"}</span>
       )}
+      {celldata?.isExpired && (
+        <span className="text-red-500 text-sm pl-2">{"(Expired)"}</span>
+      )}
     </div>
   )
 );
@@ -441,7 +444,7 @@ function TableComponent({
         }
 
         case "name":
-          if (ty === InventoryType.Product) {
+          if (ty === InventoryType.Product || ty === InventoryType.Promotion) {
             return (
               <MemoizedProductName
                 celldata={celldata}

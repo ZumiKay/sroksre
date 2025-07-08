@@ -1,7 +1,13 @@
+"use server";
+
 import Prisma from "./prisma";
-import { Prisma as prisma, Products } from "@prisma/client";
+import { Prisma as prisma } from "@prisma/client";
 import { calculateDiscountPrice } from "./utilities";
-import { ProductState } from "../context/GlobalType.type";
+import {
+  ProductCategoriesType,
+  ProductState,
+  Stocktype,
+} from "../context/GlobalType.type";
 
 export type GetProductReturnType = {
   success: boolean;
@@ -26,6 +32,7 @@ type GetProductParamsType = {
   selectpromo?: number;
   promotionids?: Array<string>;
 };
+
 const LowStockValue = 5;
 
 export const GetAllProduct = async ({
@@ -45,8 +52,7 @@ export const GetAllProduct = async ({
 }: GetProductParamsType): Promise<GetProductReturnType> => {
   try {
     // Base where clause
-
-    const where: prisma.ProductsWhereInput | prisma.ProductsWhereUniqueInput = {
+    const where: prisma.ProductsWhereInput = {
       ...(query && {
         name: {
           contains: query,
@@ -67,72 +73,20 @@ export const GetAllProduct = async ({
         }),
     };
 
-    // Common select clause
-    const select: prisma.ProductsSelect = {
-      id: true,
-      name: true,
-      price: true,
-      discount: true,
-      stock: true,
-      stocktype: true,
-      promotion_id: true,
-      covers: {
-        orderBy: { id: "asc" },
-        select: { id: true, url: true, name: true },
-      }, // Adjust fields as needed
-      parentcateogries: { select: { id: true, name: true } },
-      childcategories: { select: { id: true, name: true } },
-      Stock: {
-        select: { id: true, Stockvalue: { select: { id: true, qty: true } } },
-      },
-    };
-
-    let totalproduct = 0;
-    let allproduct: Array<Partial<Products | ProductState>> = [];
-    let lowstock = 0;
-
-    if (ty === "filter" || ty === "all") {
-      // Add low stock filter
-      if (sk === "Low") {
-        where.OR = [
-          {
-            Stock: { some: { Stockvalue: { some: { qty: { lte: 5 } } } } },
-            stock: { lte: 5 },
-          },
-        ];
-      }
-
-      const products = await Prisma.products.findMany({
-        where,
-        select: {
-          ...select,
+    // Add low stock filter early
+    if (ty === "filter" && sk === "Low") {
+      where.OR = [
+        {
           Stock: {
-            select: {
-              id: true,
-              Stockvalue: { select: { id: true, qty: true } },
-            },
+            some: { Stockvalue: { some: { qty: { lte: LowStockValue } } } },
           },
+          stock: { lte: LowStockValue },
         },
-        orderBy: { price: priceorder === 1 ? "asc" : "desc" },
-        skip: (page - 1) * limit,
-        take: limit,
-      });
+      ];
+    }
 
-      totalproduct = await Prisma.products.count({ where });
-      allproduct = products.map((prod) => ({
-        ...prod,
-        category: {
-          parent: prod.parentcateogries,
-          child: prod.childcategories,
-        },
-        lowstock:
-          prod.Stock.some((stock) =>
-            stock.Stockvalue.some((val) => val.qty <= LowStockValue)
-          ) ||
-          (prod.stock && prod.stock <= LowStockValue),
-      })) as unknown as Array<ProductState>;
-      lowstock = allproduct.filter((p) => (p as ProductState)?.lowstock).length;
-    } else if (ty === "detail") {
+    // Detail type variant filter
+    if (ty === "detail") {
       const colors = detailcolor?.split(",");
       const texts = detailtext?.split(",");
       where.Variant = {
@@ -152,50 +106,117 @@ export const GetAllProduct = async ({
           ],
         },
       } as never;
-
-      const products = await Prisma.products.findMany({
-        where,
-        select: {
-          ...select,
-          Variant: true,
-          details: true,
-        },
-        skip: (page - 1) * limit,
-        take: limit,
-      });
-
-      totalproduct = await Prisma.products.count({ where });
-      allproduct = products as never;
-    } else {
-      // Default case for promotionid handling
-      const products = await Prisma.products.findMany({
-        where,
-        select: {
-          id: true,
-          discount: true,
-          price: true,
-          name: true,
-          covers: select.covers,
-          promotion_id: true,
-        },
-        orderBy: { id: "asc" },
-        skip: (page - 1) * limit,
-        take: limit,
-      });
-
-      totalproduct = await Prisma.products.count({ where });
-      allproduct = products as unknown as ProductState[];
     }
 
-    // Transform results
-    const result: ProductState[] = allproduct.map((product) => {
-      const prod = product as Products;
-      return {
-        ...product,
-        ...(prod.discount && {
-          discount: calculateDiscountPrice(prod.price, prod.discount),
-        }),
-      } as ProductState;
+    // Optimize select based on type
+    const getSelectForType = (type: string): prisma.ProductsSelect => {
+      const baseSelect: prisma.ProductsSelect = {
+        id: true,
+        name: true,
+        price: true,
+        discount: true,
+        promotion_id: true,
+        promotion: {
+          select: { expireAt: true },
+        },
+        covers: {
+          orderBy: { id: "asc" },
+          select: { id: true, url: true, name: true },
+        },
+      };
+
+      if (type === "filter" || type === "all") {
+        return {
+          ...baseSelect,
+          stock: true,
+          stocktype: true,
+          parentcateogries: { select: { id: true, name: true } },
+          childcategories: { select: { id: true, name: true } },
+          Stock: {
+            select: {
+              id: true,
+              Stockvalue: { select: { id: true, qty: true } },
+            },
+          },
+        };
+      }
+
+      if (type === "detail") {
+        return {
+          ...baseSelect,
+          stock: true,
+          stocktype: true,
+          parentcateogries: { select: { id: true, name: true } },
+          childcategories: { select: { id: true, name: true } },
+          Stock: {
+            select: {
+              id: true,
+              Stockvalue: { select: { id: true, qty: true } },
+            },
+          },
+          Variant: true,
+          details: true,
+        };
+      }
+
+      return baseSelect;
+    };
+
+    const select = getSelectForType(ty);
+
+    // Execute both queries in parallel
+    const [products, totalproduct] = await Promise.all([
+      Prisma.products.findMany({
+        where,
+        select,
+        orderBy: priceorder
+          ? { price: priceorder === 1 ? "asc" : "desc" }
+          : { id: "asc" },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      Prisma.products.count({ where }),
+    ]);
+
+    let lowstock = 0;
+    const result: ProductState[] = products.map((prod) => {
+      const transformedProduct: Partial<ProductState> = {
+        ...(prod as unknown as ProductState),
+      };
+
+      // Add category structure for filter/all/detail types
+      if (ty === "filter" || ty === "all" || ty === "detail") {
+        transformedProduct.category = {
+          parent: prod.parentcateogries as ProductCategoriesType,
+          child: prod.childcategories as ProductCategoriesType,
+        };
+
+        // Calculate low stock
+        const isLowStock =
+          (prod.Stock as unknown as Stocktype[])?.some((stock) =>
+            stock.Stockvalue.some((val) => val.qty <= LowStockValue)
+          ) ||
+          (prod.stock && prod.stock <= LowStockValue);
+
+        transformedProduct.lowstock = (isLowStock ?? false) as boolean;
+        if (isLowStock) lowstock++;
+      }
+
+      // Handle discount calculation
+
+      if (prod.discount && prod.promotion) {
+        const discountResult = calculateDiscountPrice({
+          price: prod.price as number,
+          discount: prod.discount as unknown as number,
+          promoExpiry: prod.promotion.expireAt as unknown as Date,
+        });
+
+        if (discountResult && discountResult.newprice) {
+          transformedProduct.discount = discountResult;
+        }
+      }
+
+      return transformedProduct as ProductState;
     });
 
     return {

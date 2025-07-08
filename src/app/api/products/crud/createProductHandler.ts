@@ -151,13 +151,14 @@ export const CreateProduct = async (
   }
 };
 
-export const DeleteProduct = async (id: number): Promise<boolean> => {
+export const DeleteProduct = async (ids: Array<number>): Promise<boolean> => {
   try {
     return await Prisma.$transaction(
       async (tx) => {
-        const product = await tx.products.findUnique({
-          where: { id },
+        const products = await tx.products.findMany({
+          where: { id: { in: ids } },
           select: {
+            id: true,
             covers: { select: { url: true } },
             Variant: { select: { id: true } },
             Stock: { select: { id: true } },
@@ -166,56 +167,63 @@ export const DeleteProduct = async (id: number): Promise<boolean> => {
           },
         });
 
-        if (!product) return false;
+        if (products.length === 0) return false;
 
-        const imageUrls = product.covers.map((cover) => cover.url);
+        const allImageUrls = products.flatMap((product) =>
+          product.covers.map((cover) => cover.url)
+        );
 
         await Promise.all([
-          // Delete related records
-          tx.image.deleteMany({ where: { productId: id } }),
-          tx.variant.deleteMany({ where: { product_id: id } }),
-          tx.info.deleteMany({ where: { product_id: id } }),
-          tx.orderproduct.deleteMany({ where: { productId: id } }),
-          tx.containeritems.deleteMany({ where: { product_id: id } }),
+          // Delete related records for all products
+          tx.image.deleteMany({ where: { productId: { in: ids } } }),
+          tx.variant.deleteMany({ where: { product_id: { in: ids } } }),
+          tx.info.deleteMany({ where: { product_id: { in: ids } } }),
+          tx.orderproduct.deleteMany({ where: { productId: { in: ids } } }),
+          tx.containeritems.deleteMany({ where: { product_id: { in: ids } } }),
 
-          // Handle stock deletion (requires two steps)
+          // Handle stock deletion for all products
           (async () => {
-            if (product.Stock.length > 0) {
-              const stockIds = product.Stock.map((s) => s.id);
+            const allStockIds = products.flatMap((product) =>
+              product.Stock.map((s) => s.id)
+            );
+
+            if (allStockIds.length > 0) {
               await tx.stockvalue.deleteMany({
-                where: { stockId: { in: stockIds } },
+                where: { stockId: { in: allStockIds } },
               });
-              await tx.stock.deleteMany({ where: { product_id: id } });
+              await tx.stock.deleteMany({ where: { product_id: { in: ids } } });
             }
           })(),
 
-          // Handle related product references
+          // Handle related product references for all products
           (async () => {
-            if (product.relatedproductId && product.relatedproduct) {
-              const currentIds = (
-                product.relatedproduct.productId as number[]
-              ).filter((productId) => productId !== id);
+            for (const product of products) {
+              if (product.relatedproductId && product.relatedproduct) {
+                const currentIds = (
+                  product.relatedproduct.productId as number[]
+                ).filter((productId) => !ids.includes(productId));
 
-              if (currentIds.length > 0) {
-                await tx.producttype.update({
-                  where: { id: product.relatedproductId },
-                  data: { productId: currentIds },
-                });
-              } else {
-                await tx.producttype.delete({
-                  where: { id: product.relatedproductId },
-                });
+                if (currentIds.length > 0) {
+                  await tx.producttype.update({
+                    where: { id: product.relatedproductId },
+                    data: { productId: currentIds },
+                  });
+                } else {
+                  await tx.producttype.delete({
+                    where: { id: product.relatedproductId },
+                  });
+                }
               }
             }
           })(),
         ]);
 
-        // Finally delete the product itself
-        await tx.products.delete({ where: { id } });
+        // Finally delete all products
+        await tx.products.deleteMany({ where: { id: { in: ids } } });
 
         // After all DB operations succeed, delete the images from storage
-        if (imageUrls.length > 0) {
-          await del(imageUrls);
+        if (allImageUrls.length > 0) {
+          await del(allImageUrls);
         }
 
         return true;
@@ -227,7 +235,7 @@ export const DeleteProduct = async (id: number): Promise<boolean> => {
   } catch (error) {
     console.error("Delete Product Error:", error);
     throw new Error(
-      `Failed to delete product ${id}: ${
+      `Failed to delete products ${ids.join(", ")}: ${
         error instanceof Error ? error.message : "Unknown error"
       }`
     );

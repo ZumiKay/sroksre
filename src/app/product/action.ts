@@ -14,6 +14,7 @@ import {
 } from "@/src/lib/utilities";
 import { Childcategories, Parentcategories } from "@prisma/client";
 import { cache } from "react";
+import { updateProductPromotion } from "../api/products/helper";
 
 export const GetListProduct = async (
   page: string,
@@ -43,292 +44,238 @@ export const GetListProduct = async (
     promoid: promoid ? parseInt(promoid) : undefined,
   };
 
-  let filterproduct: Array<ProductState> = [];
-
-  // Calculate the offset
   const skip = (data.page - 1) * data.show;
-
-  const isFilter =
+  const isFilter = Boolean(
     filtervalue?.color ||
-    filtervalue?.other ||
-    filtervalue?.selectpids ||
-    filtervalue?.promo ||
-    filtervalue?.search ||
-    filtervalue?.parent_id ||
-    filtervalue?.child_id;
+      filtervalue?.other ||
+      filtervalue?.selectpids ||
+      filtervalue?.promo ||
+      filtervalue?.search ||
+      filtervalue?.parent_id ||
+      filtervalue?.child_id
+  );
 
   try {
-    let totalproduct = 0;
+    // Build where clause once
+    const getWhereClause = () => {
+      if (promoid) return { promotion_id: data.promoid };
+      if (latestcate) return { createdAt: { gte: GetOneWeekAgoDate() } };
+      if (all === "1") return {};
 
-    let products = await Prisma.products.findMany({
-      where: promoid
-        ? { promotion_id: data.promoid }
-        : !latestcate
-        ? !data.parentcate_id && data.childcate_id
-          ? {
-              childcategory_id: data.childcate_id,
-            }
-          : data.parentcate_id !== 0 && !childcate_id
-          ? {
-              parentcategory_id: data.parentcate_id,
-            }
-          : data.parentcate_id !== 0 && childcate_id
-          ? {
-              AND: [
-                { parentcategory_id: data.parentcate_id },
-                { childcategory_id: data.childcate_id },
-              ],
-            }
-          : all && all === "1"
-          ? {}
-          : {}
-        : {
-            createdAt: { gte: GetOneWeekAgoDate() },
-          },
+      if (data.parentcate_id && data.childcate_id) {
+        return {
+          AND: [
+            { parentcategory_id: data.parentcate_id },
+            { childcategory_id: data.childcate_id },
+          ],
+        };
+      }
 
-      orderBy: {
-        price: sort ? (sort === 1 ? "asc" : "desc") : "asc",
-      },
-      select: {
-        id: true,
-        name: true,
-        parentcategory_id: true,
-        childcategory_id: true,
-        discount: true,
-        price: true,
-        stock: true,
-        stocktype: true,
-        promotion: {
-          select: {
-            id: true,
-            name: true,
-            banner: true,
-          },
-        },
-        Variant: {
-          select: {
-            option_type: true,
-            option_value: true,
-          },
-        },
-        details: {
-          select: {
-            info_type: true,
-            info_value: true,
-          },
-        },
-        covers: {
-          select: {
-            id: true,
-            name: true,
-            url: true,
-            type: true,
-          },
+      if (data.parentcate_id !== 0 && !childcate_id) {
+        return { parentcategory_id: data.parentcate_id };
+      }
+
+      if (!data.parentcate_id && data.childcate_id) {
+        return { childcategory_id: data.childcate_id };
+      }
+
+      return {};
+    };
+
+    const whereClause = getWhereClause();
+    const orderBy = { price: sort === 1 ? "asc" : "desc" } as const;
+
+    // Optimized select clause - only get what we need
+    const selectClause = {
+      id: true,
+      name: true,
+      parentcategory_id: true,
+      childcategory_id: true,
+      discount: true,
+      price: true,
+      stock: true,
+      stocktype: true,
+      promotion: {
+        select: {
+          id: true,
+          name: true,
+          banner: true,
+          expireAt: true,
         },
       },
-      ...(!isFilter
-        ? {
-            skip: skip,
-            take: data.show,
-          }
-        : {}),
-    });
-
-    if (products.length === 0) {
-      const product = await Prisma.parentcategories.findFirst({
-        where: {
-          id: data.parentcate_id,
+      Variant: {
+        select: {
+          option_type: true,
+          option_value: true,
         },
+      },
+      details: {
+        select: {
+          info_type: true,
+          info_value: true,
+        },
+      },
+      covers: {
+        select: {
+          id: true,
+          name: true,
+          url: true,
+          type: true,
+        },
+      },
+    };
 
+    // Use Promise.all for parallel queries when possible
+    const [products, totalCount] = await Promise.all([
+      Prisma.products.findMany({
+        where: whereClause,
+        orderBy,
+        select: selectClause,
+        ...(!isFilter && { skip, take: data.show }),
+      }),
+      !isFilter
+        ? Prisma.products.count({ where: whereClause })
+        : Promise.resolve(0),
+    ]);
+
+    let result = products;
+    let countproduct = totalCount;
+
+    // Handle autocategories fallback
+    if (products.length === 0 && data.parentcate_id) {
+      const autoProduct = await Prisma.parentcategories.findFirst({
+        where: { id: data.parentcate_id },
         select: {
           autocategories: {
-            orderBy: {
-              product: {
-                price: sort === 1 ? "asc" : "desc",
-              },
-            },
-            select: {
-              product: {
-                select: {
-                  id: true,
-                  name: true,
-                  parentcategory_id: true,
-                  childcategory_id: true,
-                  discount: true,
-                  price: true,
-                  stock: true,
-                  stocktype: true,
-                  promotion_id: true,
-                  promotion: {
-                    select: {
-                      id: true,
-                      name: true,
-                    },
-                  },
-                  Variant: {
-                    select: {
-                      option_type: true,
-                      option_value: true,
-                    },
-                  },
-                  details: {
-                    select: {
-                      info_type: true,
-                      info_value: true,
-                    },
-                  },
-                  covers: {
-                    select: {
-                      id: true,
-                      name: true,
-                      url: true,
-                      type: true,
-                    },
-                  },
-                },
-              },
-            },
+            orderBy: { product: { price: sort === 1 ? "asc" : "desc" } },
+            select: { product: { select: selectClause } },
           },
         },
       });
 
-      products = (product?.autocategories.map((i) => i.product) as never) ?? [];
-      totalproduct = products.length;
-      products = caculateArrayPagination(
-        products,
-        parseInt(page),
-        parseInt(show)
-      ) as never;
+      if (autoProduct?.autocategories) {
+        const autoProducts = autoProduct.autocategories.map((i) => i.product);
+        countproduct = autoProducts.length;
+        result = isFilter
+          ? autoProducts
+          : (caculateArrayPagination(
+              autoProducts,
+              data.page,
+              data.show
+            ) as never);
+      }
     }
 
-    if (isFilter) {
-      //filter base on color & size & other (custom variants)
+    // Apply filters if needed
+    if (isFilter && result.length > 0) {
+      if (!filtervalue) return;
+      // Pre-compile search term for better performance
+      const searchTerm = filtervalue.search
+        ? removeSpaceAndToLowerCase(filtervalue.search)
+        : null;
+      const promoNamesLower =
+        filtervalue.promo?.map(removeSpaceAndToLowerCase) || [];
+      const parentIds = new Set(
+        filtervalue.parent_id?.map((id) => parseInt(id)) || []
+      );
+      const childIds = new Set(
+        filtervalue.child_id?.map((id) => parseInt(id)) || []
+      );
+      const selectPids = new Set(filtervalue.selectpids || []);
 
-      products = products.filter((prod) => {
-        const matchesVariant = (type: string, values?: string[]) => {
-          if (!values) return false;
-
-          return prod.Variant.some((variant) => {
-            if (variant.option_type !== type) return false;
-
-            if (type === "COLOR") {
-              const val = variant.option_value as VariantColorValueType[];
-              return val.some((value) => values.includes(value.val));
-            } else {
-              const val = variant.option_value as string[];
-              return val.some((v) => values.includes(v));
-            }
-          });
-        };
-
-        const isParent =
+      result = result.filter((prod) => {
+        // Early returns for performance
+        if (
+          searchTerm &&
+          !removeSpaceAndToLowerCase(prod.name).includes(searchTerm)
+        )
+          return false;
+        if (filtervalue.selectpids && !selectPids.has(prod.id.toString()))
+          return false;
+        if (
           filtervalue.parent_id &&
-          filtervalue.parent_id.some(
-            (i) => prod.parentcategory_id === parseInt(i)
-          );
-        const isChild =
+          prod.parentcategory_id &&
+          !parentIds.has(prod.parentcategory_id)
+        )
+          return false;
+        if (
           filtervalue.child_id &&
-          filtervalue.child_id.some(
-            (i) => prod.childcategory_id === parseInt(i)
-          );
-        const isColor = filtervalue.color
-          ? matchesVariant("COLOR", filtervalue.color)
-          : false;
-        const isText = filtervalue.other
-          ? matchesVariant("TEXT", filtervalue.other)
-          : false;
+          prod.childcategory_id &&
+          !childIds.has(prod.childcategory_id)
+        )
+          return false;
 
-        const isPromo = filtervalue.promo
-          ? prod.promotion &&
-            filtervalue.promo.some(
-              (i) =>
-                prod.promotion?.name &&
-                removeSpaceAndToLowerCase(i) ===
-                  removeSpaceAndToLowerCase(prod.promotion?.name)
+        // Check promotion
+        if (filtervalue.promo) {
+          if (!prod.promotion?.name) return false;
+          if (
+            !promoNamesLower.includes(
+              removeSpaceAndToLowerCase(prod.promotion.name)
             )
-          : false;
+          )
+            return false;
+        }
 
-        const isName = filtervalue.search
-          ? removeSpaceAndToLowerCase(prod.name).includes(
-              removeSpaceAndToLowerCase(filtervalue.search)
-            )
-          : false;
+        // Check variants
+        if (filtervalue.color || filtervalue.other) {
+          const hasMatchingVariant = prod.Variant.some((variant) => {
+            if (filtervalue.color && variant.option_type === "COLOR") {
+              const colorValues =
+                variant.option_value as VariantColorValueType[];
+              return colorValues.some((value) =>
+                filtervalue.color!.includes(value.val)
+              );
+            }
+            if (filtervalue.other && variant.option_type === "TEXT") {
+              const textValues = variant.option_value as string[];
+              return textValues.some((value) =>
+                filtervalue.other!.includes(value)
+              );
+            }
+            return false;
+          });
+          if (!hasMatchingVariant) return false;
+        }
 
-        const isProduct = filtervalue.selectpids
-          ? filtervalue.selectpids.includes(prod.id.toString())
-          : false;
-
-        const conditions = [
-          isColor,
-          isText,
-          isPromo,
-          isName,
-          isProduct,
-          isParent,
-          isChild,
-        ];
-
-        // Check if at least one condition is true
-        return conditions.some((condition) => condition);
+        return true;
       });
 
-      filterproduct = caculateArrayPagination(
-        products,
-        parseInt(page),
-        parseInt(show)
-      ) as ProductState[];
+      countproduct = result.length;
+      result = caculateArrayPagination(result, data.page, data.show) as never;
     }
 
-    const countproduct = totalproduct
-      ? totalproduct
-      : isFilter
-      ? products.length
-      : await Prisma.products.count(
-          all
-            ? { where: {} }
-            : {
-                where: promoid
-                  ? { promotion_id: data.promoid }
-                  : !latestcate
-                  ? parentcate_id && !childcate_id
-                    ? {
-                        parentcategory_id: data.parentcate_id,
-                      }
-                    : parentcate_id && childcate_id
-                    ? {
-                        AND: {
-                          parentcategory_id: data.parentcate_id,
-                          childcategory_id: data.childcate_id,
-                        },
-                      }
-                    : {}
-                  : {
-                      createdAt: {
-                        gte: GetOneWeekAgoDate(),
-                      },
-                    },
-              }
-        );
+    // Handle promotions with batch processing
+    const inValidPromoProdIds: number[] = [];
+    const processedResult = result.map((prod) => {
+      if (prod.discount && prod.promotion?.expireAt) {
+        const discountResult = calculateDiscountPrice({
+          price: prod.price,
+          discount: prod.discount,
+          promoExpiry: prod.promotion.expireAt,
+          id: prod.id,
+        });
 
-    if (isFilter) products = filterproduct as never;
+        if (discountResult?.id) {
+          inValidPromoProdIds.push(discountResult.id);
+        }
 
-    const result =
-      products.length > 0
-        ? (products.map((prod) => {
-            if (prod.discount) {
-              return {
-                ...prod,
-                discount: calculateDiscountPrice(prod.price, prod.discount),
-              };
-            }
-            return { ...prod };
-          }) as unknown as ProductState[])
-        : [];
+        return {
+          ...prod,
+          discount: discountResult?.newprice ? discountResult : prod.discount,
+        };
+      }
+      return prod;
+    });
+
+    // Batch update invalid promotions
+    if (inValidPromoProdIds.length > 0) {
+      await updateProductPromotion(inValidPromoProdIds);
+    }
 
     return {
       success: true,
-      data: result,
-      count: Math.ceil(countproduct / parseInt(show)),
+      data: processedResult as unknown as ProductState[],
+      count: Math.ceil(countproduct / data.show),
     };
   } catch (error) {
     console.error("Error fetching products:", error);

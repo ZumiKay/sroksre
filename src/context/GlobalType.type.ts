@@ -231,6 +231,7 @@ export interface ProductState {
   lowstock?: boolean;
   incart?: boolean;
   promotion_id?: number;
+  promotion?: PromotionState;
   discount?: DiscountpriceType;
   relatedproductid?: Array<number>;
   relatedproduct?: Array<Relatedproducttype>;

@@ -202,23 +202,53 @@ export async function PUT(request: NextRequest) {
 }
 export async function DELETE(request: NextRequest) {
   try {
-    const { id } = await request.json();
+    const { id }: { id: Array<number> } = await request.json();
 
-    const isBanner = await Prisma.banner.findUnique({
-      where: { id },
+    if (!Array.isArray(id) || id.length === 0) {
+      return Response.json(
+        { message: "Invalid or empty ID array" },
+        { status: 400 }
+      );
+    }
+
+    // Find all banners with their images
+    const banners = await Prisma.banner.findMany({
+      where: {
+        id: { in: id },
+      },
       select: {
         id: true,
         Image: CommonSelectBannerProps.Image,
       },
     });
-    if (!isBanner) {
-      return Response.json({ messasge: "Banner Not Found" }, { status: 500 });
+
+    if (banners.length === 0) {
+      return Response.json({ message: "No banners found" }, { status: 404 });
     }
 
-    if (isBanner.Image) await del(isBanner.Image?.url);
-    await Prisma.banner.delete({ where: { id } });
+    // Delete images from blob storage
+    const imageUrls = banners
+      .map((banner) => banner.Image?.url)
+      .filter((url) => url)
+      .filter(Boolean);
 
-    return Response.json({ message: "Banner Deleted" }, { status: 200 });
+    if (imageUrls.length > 0) {
+      await Promise.all(imageUrls.map((url) => del(url as string)));
+    }
+
+    // Delete banners from database
+    await Prisma.banner.deleteMany({
+      where: {
+        id: { in: id },
+      },
+    });
+
+    return Response.json(
+      {
+        message: `${banners.length} banner(s) deleted successfully`,
+      },
+      { status: 200 }
+    );
   } catch (error) {
     console.log("Delete Banner", error);
     return Response.json({ message: "Failed to Delete" }, { status: 500 });

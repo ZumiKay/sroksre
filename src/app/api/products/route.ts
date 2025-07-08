@@ -1,10 +1,10 @@
-import { NextRequest } from "next/server";
+"use server";
 
+import { NextRequest } from "next/server";
 import {
   calculateDiscountPrice,
   removeSpaceAndToLowerCase,
 } from "@/src/lib/utilities";
-
 import { extractQueryParams } from "../banner/route";
 import Prisma from "@/src/lib/prisma";
 import {
@@ -34,21 +34,22 @@ interface paramsType {
   sp?: number;
 }
 
+// Cache the lowstock value
+const LOWSTOCK_THRESHOLD = parseInt(process.env.NEXT_PUBLIC_LOWSTOCK ?? "3");
+
 const convertStockData = (stock: Stocktype[]) => {
-  const lowstock = parseInt(process.env.NEXT_PUBLIC_LOWSTOCK ?? "3");
-
-  const Stock = stock.map((i) => {
-    const isLowStock = i.Stockvalue.some((sub) => sub.qty <= lowstock);
-
+  return stock.map((i) => {
+    const isLowStock = i.Stockvalue.some(
+      (sub) => sub.qty <= LOWSTOCK_THRESHOLD
+    );
     return {
       id: i.id,
       Stockvalue: i.Stockvalue,
       isLowStock,
     };
   });
-
-  return Stock;
 };
+
 export async function GET(request: NextRequest) {
   try {
     const url = request.nextUrl.toString();
@@ -101,41 +102,43 @@ export async function GET(request: NextRequest) {
             childcategory_id: cc,
           },
           select: {
-            Variant: true,
+            Variant: {
+              select: {
+                option_type: true,
+                option_value: true,
+              },
+            },
           },
         });
 
-        // Using Map instead of Set for better performance with large data
-        const allval = {
-          size: new Set<string>(),
-          color: new Set<string>(),
-          text: new Set<string>(),
-        };
+        const colorSet = new Set<string>();
+        const textSet = new Set<string>();
 
-        // Process variants in a single loop
-        for (const filval of allfilter) {
-          for (const variant of filval.Variant) {
+        // Single loop optimization
+        for (const { Variant } of allfilter) {
+          for (const variant of Variant) {
             if (variant.option_type === "COLOR") {
               const opt_val = variant.option_value as VariantColorValueType[];
               for (const item of opt_val) {
-                if (item.val) allval.color.add(item.val);
+                if (item.val) colorSet.add(item.val);
               }
             } else if (variant.option_type === "TEXT") {
               const opt_val = variant.option_value as string[];
-              for (const item of opt_val) {
-                allval.text.add(item);
-              }
+              opt_val.map((i) => textSet.add(i));
             }
           }
         }
 
-        const allvalarr = {
-          text: Array.from(allval.text),
-          size: Array.from(allval.size),
-          color: Array.from(allval.color).filter(Boolean),
-        };
-
-        return Response.json({ data: allvalarr }, { status: 200 });
+        return Response.json(
+          {
+            data: {
+              text: Array.from(textSet),
+              size: [],
+              color: Array.from(colorSet).filter(Boolean),
+            },
+          },
+          { status: 200 }
+        );
       }
 
       case "info": {
@@ -148,6 +151,12 @@ export async function GET(request: NextRequest) {
             discount: true,
             stock: true,
             stocktype: true,
+            description: true,
+            parentcategory_id: true,
+            childcategory_id: true,
+            relatedproductId: true,
+            promotion_id: true,
+            details: true,
             Variant: {
               orderBy: { id: "asc" },
             },
@@ -164,15 +173,13 @@ export async function GET(request: NextRequest) {
                 },
               },
             },
-            description: true,
-            parentcategory_id: true,
-            childcategory_id: true,
-            relatedproductId: true,
-            promotion_id: true,
-            details: true,
+            promotion: {
+              select: {
+                expireAt: true,
+              },
+            },
             relatedproduct: {
               select: {
-                id: true,
                 productId: true,
               },
             },
@@ -190,13 +197,12 @@ export async function GET(request: NextRequest) {
           return new Response(null, { status: 404 });
         }
 
-        // Only fetch related products if needed
-        const otherProduct =
+        const [otherProduct, calculatedDiscount] = await Promise.all([
+          // Only fetch related products if needed
           product.relatedproductId && product.relatedproduct
-            ? await Prisma.products.findMany({
+            ? Prisma.products.findMany({
                 where: {
                   id: { in: product.relatedproduct.productId as number[] },
-                  // Exclude the current product
                   NOT: { id: product.id },
                 },
                 select: {
@@ -209,24 +215,34 @@ export async function GET(request: NextRequest) {
                       id: true,
                       url: true,
                     },
+                    take: 1,
                   },
                 },
               })
-            : [];
+            : Promise.resolve([]),
 
-        // Calculate discount only once if needed
-        const calculatedDiscount =
-          product.promotion_id && product.discount
-            ? calculateDiscountPrice(product.price, product.discount)
-            : undefined;
+          product.promotion_id &&
+          product.discount &&
+          product.promotion?.expireAt
+            ? Promise.resolve(
+                calculateDiscountPrice({
+                  price: product.price,
+                  discount: product.discount,
+                  promoExpiry: product.promotion?.expireAt,
+                })
+              )
+            : Promise.resolve(undefined),
+        ]);
 
-        // Use object destructuring and spread to create the result
+        // Destructure once and build result object
         const { parentcategory_id, childcategory_id, Variant, Stock, ...rest } =
           product;
 
         const result = {
           ...rest,
-          discount: calculatedDiscount,
+          discount: calculatedDiscount?.newprice
+            ? calculatedDiscount
+            : undefined,
           category: {
             parent: { id: parentcategory_id },
             child: { id: childcategory_id },
@@ -240,7 +256,6 @@ export async function GET(request: NextRequest) {
       }
 
       case "stock": {
-        // Execute both queries in parallel
         const [variant, stock] = await Promise.all([
           Prisma.variant.findMany({
             where: { product_id: id },
@@ -294,29 +309,53 @@ export async function GET(request: NextRequest) {
           select: {
             id: true,
             name: true,
-            covers: { select: { id: true, name: true, url: true }, take: 1 },
             parentcategory_id: true,
             childcategory_id: true,
             price: true,
             discount: true,
+            covers: {
+              select: { id: true, name: true, url: true },
+              take: 1,
+            },
+            promotion: {
+              select: {
+                expireAt: true,
+              },
+            },
           },
+          take: 50, // Add reasonable limit
         });
 
-        const result = searchproduct.map(({ price, discount, ...rest }) => ({
-          ...rest,
-          price,
-          discount: discount && calculateDiscountPrice(price, discount),
-        }));
+        const result = searchproduct.map(
+          ({ price, discount, promotion, ...rest }) => {
+            const isDiscount =
+              discount &&
+              promotion?.expireAt &&
+              calculateDiscountPrice({
+                price,
+                discount,
+
+                promoExpiry: promotion?.expireAt,
+              });
+
+            return {
+              ...rest,
+              price,
+              discount: isDiscount,
+            };
+          }
+        );
 
         return Response.json({ data: result }, { status: 200 });
       }
+
       case "homecontainer": {
         const result = await Prisma.products.findMany({
           where: {
             AND: [
-              { ...(q ? { name: { contains: q, mode: "insensitive" } } : {}) },
-              { ...(pc && { parentcategory_id: pc }) },
-              { ...(cc && { childcategory_id: cc }) },
+              q ? { name: { contains: q, mode: "insensitive" } } : {},
+              ...(pc ? [{ parentcategory_id: pc }] : []),
+              ...(cc ? [{ childcategory_id: cc }] : []),
             ],
           },
           take: limit,
@@ -331,16 +370,17 @@ export async function GET(request: NextRequest) {
             },
           },
         });
-        const ItemData: Array<ContainerItemType> = result.map((prod) => ({
-          ...prod,
-          image: prod.covers[0].url,
+
+        const ItemData: ContainerItemType[] = result.map((prod) => ({
+          id: prod.id,
           name: prod.name,
-          covers: undefined,
-        })) as never;
+          image: prod.covers[0]?.url || "",
+        }));
+
         return Response.json(
           {
             data: ItemData,
-            isLimit: ItemData.length > limit,
+            isLimit: ItemData.length >= limit,
           },
           { status: 200 }
         );

@@ -199,10 +199,29 @@ export const decrypt = (text: string, key: string) => {
   return decrypted.toString("utf-8");
 };
 
-export const calculateDiscountPrice = (price: number, discount: number) => ({
-  percent: discount,
-  newprice: (price - (price * discount) / 100).toFixed(2),
-});
+export const calculateDiscountPrice = ({
+  price,
+  discount,
+  promoExpiry,
+}: {
+  price: number;
+  discount: number;
+  promoExpiry: Date;
+}) => {
+  const now = new Date();
+
+  // Check if the promo has expired
+  if (now > promoExpiry) {
+    return;
+  }
+
+  const discountedPrice = price - (price * discount) / 100;
+
+  return {
+    percent: discount,
+    newprice: discountedPrice.toFixed(2),
+  };
+};
 
 export const isObjectEmpty = (data: Record<string, unknown>) =>
   Object.values(data).every((val) => !val);

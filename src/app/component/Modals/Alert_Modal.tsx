@@ -23,6 +23,7 @@ export const ConfirmModal = () => {
     setinventoryfilter,
     globalindex,
     setglobalindex,
+    setalldata,
   } = useGlobalContext();
 
   const router = useRouter();
@@ -150,18 +151,18 @@ export const ConfirmModal = () => {
         }
 
         if (
-          type === "banner" ||
-          type === "product" ||
-          type === "promotion" ||
-          type === "user" ||
-          type === "userinfo"
+          (type === "banner" ||
+            type === "product" ||
+            type === "promotion" ||
+            type === "user" ||
+            type === "userinfo") &&
+          !onAsyncDelete
         ) {
           setloading(true);
           const deleteRequest = await ApiRequest({
             url: getApiUrl,
-
             method: "DELETE",
-            data: type !== "userinfo" ? { id: index } : {},
+            data: type !== "userinfo" ? { id: [index] } : {},
           });
           setloading(false);
 
@@ -173,7 +174,6 @@ export const ConfirmModal = () => {
           if (type === "user") {
             setglobalindex((prev) => ({ ...prev, useredit: -1 }));
             setopenmodal((prev) => ({ ...prev, createUser: false }));
-
             const param = new URLSearchParams(searchParam);
             param.set("p", "1");
             router.push(`?${param}`, { scroll: false });
@@ -185,6 +185,15 @@ export const ConfirmModal = () => {
       }
 
       // Reset confirm modal state
+      setalldata(
+        (prev) =>
+          prev && {
+            [type as never]: (
+              prev[type as never] as Array<{ id: number }>
+            ).filter((i) => i?.id !== index),
+          }
+      );
+
       setopenmodal((prev) => ({
         ...prev,
         [type === "promotion" ? "createPromotion" : ""]: false,
@@ -193,14 +202,15 @@ export const ConfirmModal = () => {
     },
     [
       openmodal.confirmmodal,
+      setalldata,
+      setopenmodal,
+      resetConfirmModal,
       setpromotion,
       setinventoryfilter,
       setglobalindex,
-      setopenmodal,
       getApiUrl,
-      router,
       searchParam,
-      resetConfirmModal,
+      router,
     ]
   );
 

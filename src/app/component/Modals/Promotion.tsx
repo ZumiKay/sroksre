@@ -37,302 +37,381 @@ interface InventoryParamType {
   pid?: string;
   promoselect?: "banner" | "product";
 }
-export const CreatePromotionModal = ({
-  searchparams,
-  settype,
-  setreloaddata,
-}: {
+
+interface CreatePromotionModalProps {
   searchparams: InventoryParamType;
   settype: (type: InventoryPage) => void;
   setreloaddata: React.Dispatch<React.SetStateAction<boolean>>;
-}) => {
-  const {
-    openmodal,
-    setopenmodal,
-    promotion,
-    setpromotion,
-    setisLoading,
-    isLoading,
-    globalindex,
-    setglobalindex,
-    settableselectitems,
-  } = useGlobalContext();
-  const [loading, setloading] = useState(false);
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const [isPickDate, setisPickDate] = useState(false);
-  useEffect(() => {
-    const fetchdata = async (id: number) => {
-      setloading(true);
-      const request = await ApiRequest({
-        url: `/api/promotion?ty=edit&p=${id}`,
-        method: "GET",
-      });
-      setloading(false);
-      if (!request.success) {
-        errorToast("Error Occured");
-        return;
+}
+
+export const CreatePromotionModal = React.memo(
+  ({ searchparams, settype, setreloaddata }: CreatePromotionModalProps) => {
+    const {
+      openmodal,
+      setopenmodal,
+      promotion,
+      setpromotion,
+      globalindex,
+      setglobalindex,
+      settableselectitems,
+    } = useGlobalContext();
+
+    const [loading, setloading] = useState(false);
+    const [isPickDate, setisPickDate] = useState(false);
+    const router = useRouter();
+    const searchParams = useSearchParams();
+
+    // Memoized values
+    const isEditing = useMemo(
+      () => globalindex.promotioneditindex !== -1,
+      [globalindex.promotioneditindex]
+    );
+
+    const isModalOpen = useMemo(
+      () => openmodal.createPromotion ?? false,
+      [openmodal.createPromotion]
+    );
+
+    const hasProducts = useMemo(
+      () => promotion.Products && promotion.Products.length > 0,
+      [promotion.Products]
+    );
+
+    const hasBanner = useMemo(
+      () => promotion.banner?.id || promotion.banner_id,
+      [promotion.banner?.id, promotion.banner_id]
+    );
+
+    // Fetch promotion data for editing
+    useEffect(() => {
+      const fetchdata = async (id: number) => {
+        setloading(true);
+        try {
+          const request = await ApiRequest({
+            url: `/api/promotion?ty=edit&p=${id}`,
+            method: "GET",
+          });
+
+          if (!request.success) {
+            errorToast("Error Occurred");
+            return;
+          }
+
+          setpromotion(request.data as PromotionState);
+        } catch (error) {
+          errorToast("Failed to fetch promotion data");
+          throw error;
+        } finally {
+          setloading(false);
+        }
+      };
+
+      if (isEditing) {
+        fetchdata(globalindex.promotioneditindex);
       }
-      setpromotion(request.data as PromotionState);
-    };
+    }, [isEditing, globalindex.promotioneditindex, setpromotion]);
 
-    if (globalindex.promotioneditindex !== -1) {
-      fetchdata(globalindex.promotioneditindex);
-      return;
-    }
-  }, [globalindex.promotioneditindex]);
+    const handleSubmit = useCallback(
+      async (e: FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
 
-  const handleSubmit = useCallback(
-    async (e: FormEvent<HTMLFormElement>) => {
-      e.preventDefault();
-      console.log("Promotion Submit", promotion);
+        // Validation
+        if (!promotion.expireAt) {
+          errorToast("Please Fill Expire Date");
+          return;
+        }
+
+        if (!hasProducts) {
+          errorToast("Please Select Product");
+          return;
+        }
+
+        if (!promotion.name?.trim()) {
+          errorToast("Please Fill All Required Fields");
+          return;
+        }
+
+        const method = isEditing ? "PUT" : "POST";
+        const param = new URLSearchParams(searchParams);
+
+        setloading(true);
+        try {
+          const createpromo = await ApiRequest({
+            url: "/api/promotion",
+            method,
+            data: method === "PUT" ? { ...promotion, type: "edit" } : promotion,
+          });
+
+          if (!createpromo.success) {
+            errorToast(createpromo.error ?? "Error Occurred");
+            return;
+          }
+
+          // Reset and navigate
+          setpromotion(PromotionInitialize);
+          successToast(`Promotion ${isEditing ? "Updated" : "Created"}`);
+
+          // Clean up URL parameters
+          Object.keys(searchparams).forEach((key) => {
+            if (key === "ty") {
+              param.set("ty", "promotion");
+              settype("promotion");
+            } else {
+              param.delete(key);
+            }
+          });
+
+          router.push(`?${param}`);
+          setglobalindex((prev) => ({ ...prev, promotioneditindex: -1 }));
+          setopenmodal((prev) => ({ ...prev, createPromotion: false }));
+          setreloaddata(true);
+        } catch (error) {
+          errorToast("Failed to save promotion");
+          throw error;
+        } finally {
+          setloading(false);
+        }
+      },
+      [
+        promotion,
+        hasProducts,
+        isEditing,
+        searchParams,
+        searchparams,
+        router,
+        setpromotion,
+        setglobalindex,
+        setopenmodal,
+        setreloaddata,
+        settype,
+      ]
+    );
+
+    const handleChange = useCallback(
+      (e: ChangeEvent<HTMLInputElement>) => {
+        const { name, value } = e.target;
+        setpromotion((prev) => ({ ...prev, [name]: value }));
+      },
+      [setpromotion]
+    );
+
+    const handleCancel = useCallback(() => {
       const param = new URLSearchParams(searchParams);
-      const isNotProduct =
-        !promotion.Products || promotion.Products.length === 0;
-      if (isNotProduct || !promotion.expireAt || !promotion.name) {
-        errorToast(
-          !promotion.expireAt
-            ? "Please Fill Expire Date"
-            : isNotProduct
-            ? "Please Select Product"
-            : "Please Fill All Required Fields"
-        );
-        return;
-      }
 
-      const method = globalindex.promotioneditindex !== -1 ? "PUT" : "POST";
-
-      const createpromo = await ApiRequest({
-        url: "/api/promotion",
-        setloading: setisLoading,
-        method,
-        data: method === "PUT" ? { ...promotion, type: "edit" } : promotion,
-      });
-      if (!createpromo.success) {
-        errorToast(createpromo.error ?? "Error Occured");
-        return;
-      }
-
-      setpromotion(PromotionInitialize);
-
-      successToast(
-        `Promotion ${
-          globalindex.promotioneditindex === -1 ? "Created" : "Updated"
-        }`
-      );
+      // Clean up URL parameters
       Object.keys(searchparams).forEach((key) => {
         if (key === "ty") {
-          const type = "promotion";
-          param.set("ty", type);
-          settype(type);
+          param.set("ty", "promotion");
+          settype("promotion");
         } else {
           param.delete(key);
         }
       });
 
-      router.push(`?${param}`);
-      setglobalindex((prev) => ({ ...prev, promotioneditindex: -1 }));
+      setpromotion(PromotionInitialize);
+
+      if (isEditing) {
+        setglobalindex((prev) => ({ ...prev, promotioneditindex: -1 }));
+      }
+
       setopenmodal((prev) => ({ ...prev, createPromotion: false }));
-      setreloaddata(true);
-    },
-    [
+      router.push(`?${param}`);
+    }, [
       searchParams,
-      promotion,
-      globalindex.promotioneditindex,
-      setisLoading,
-      setpromotion,
       searchparams,
-      router,
+      setpromotion,
+      isEditing,
       setglobalindex,
       setopenmodal,
-      setreloaddata,
-      settype,
-    ]
-  );
-  const handleChange = useCallback(
-    (e: ChangeEvent<HTMLInputElement>) => {
-      setpromotion((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-    },
-    [setpromotion]
-  );
-  const handleCancel = useCallback(() => {
-    const param = new URLSearchParams(searchParams);
-
-    Object.keys(searchParams).forEach((key) => {
-      if (key === "ty") {
-        const type = "promotion";
-        param.set("ty", type);
-        settype(type);
-      } else {
-        param.delete(key);
-      }
-    });
-    setpromotion(PromotionInitialize);
-    if (globalindex.promotioneditindex !== -1)
-      setglobalindex((prev) => ({ ...prev, promotioneditindex: -1 }));
-    setopenmodal((prev) => ({ ...prev, createPromotion: false }));
-    router.push(`?${param}`);
-  }, [
-    searchParams,
-    setpromotion,
-    globalindex.promotioneditindex,
-    setglobalindex,
-    setopenmodal,
-    router,
-    settype,
-  ]);
-  const handleSelectProductAndBanner = useCallback(
-    (type: "product" | "banner") => {
-      const param = new URLSearchParams(searchParams);
-
-      setpromotion((prev) => ({
-        ...prev,
-        selectbanner: type === "banner",
-        selectproduct: type === "product",
-      }));
-
-      infoToast(`Start selection for ${type}`);
-
-      // Remove all parameters except 'ty'
-      param.forEach((_, key) => {
-        if (key !== "ty") {
-          param.delete(key);
-        }
-      });
-
-      param.set("ty", type);
-      param.set("p", "1");
-      param.set("limit", "1");
-      settype(type);
-
-      router.push(`?${param}`, { scroll: false });
-
-      //Set select product and banne
-
-      if (globalindex.promotioneditindex !== -1) {
-        settableselectitems(
-          type === "product"
-            ? promotion.Products?.map((i) => i.id)
-            : promotion.banner_id
-            ? [promotion.banner_id]
-            : undefined
-        );
-      }
-
-      setreloaddata(true);
-      setopenmodal((prev) => ({ ...prev, createPromotion: false }));
-    },
-    [
-      searchParams,
-      setpromotion,
-      settype,
       router,
-      globalindex.promotioneditindex,
-      setreloaddata,
-      setopenmodal,
-      settableselectitems,
-      promotion.Products,
-      promotion.banner_id,
-    ]
-  );
+      settype,
+    ]);
 
-  return (
-    <SecondaryModal
-      onPageChange={() => !isPickDate && handleCancel()}
-      open={openmodal.createPromotion ?? false}
-      size="xl"
-      placement="top"
-      closebtn
-    >
-      {loading && <BlurLoading />}
-      <div className="createPromotion__container relative rounded-lg w-full h-full bg-white p-3 flex flex-col items-center">
-        <Form
-          onSubmit={handleSubmit}
-          className="promotionform w-full h-full flex flex-col justify-start items-center gap-y-5"
+    const handleSelectProductAndBanner = useCallback(
+      (type: "product" | "banner") => {
+        const param = new URLSearchParams(searchParams);
+
+        setpromotion((prev) => ({
+          ...prev,
+          selectbanner: type === "banner",
+          selectproduct: type === "product",
+        }));
+
+        infoToast(`Start selection for ${type}`);
+
+        // Clean URL parameters
+        param.forEach((_, key) => {
+          if (key !== "ty") {
+            param.delete(key);
+          }
+        });
+
+        param.set("ty", type);
+        param.set("p", "1");
+        param.set("limit", "1");
+        settype(type);
+
+        router.push(`?${param}`, { scroll: false });
+
+        // Set selected items for editing
+        if (isEditing) {
+          const selectedItems =
+            type === "product"
+              ? promotion.Products?.map((i) => i.id)
+              : promotion.banner_id
+              ? [promotion.banner_id]
+              : undefined;
+
+          settableselectitems(selectedItems);
+        }
+
+        setreloaddata(true);
+        setopenmodal((prev) => ({ ...prev, createPromotion: false }));
+      },
+      [
+        searchParams,
+        setpromotion,
+        settype,
+        router,
+        isEditing,
+        promotion.Products,
+        promotion.banner_id,
+        settableselectitems,
+        setreloaddata,
+        setopenmodal,
+      ]
+    );
+
+    const handleDateChange = useCallback(
+      (date: dayjs.Dayjs | null) => {
+        if (date) {
+          handleChange({
+            target: { name: "expireAt", value: date.toISOString() },
+          } as ChangeEvent<HTMLInputElement>);
+        }
+      },
+      [handleChange]
+    );
+
+    const handleAutoCateChange = useCallback(
+      (val: boolean) => {
+        setpromotion((prev) => ({ ...prev, autocate: val }));
+      },
+      [setpromotion]
+    );
+
+    return (
+      <SecondaryModal
+        onPageChange={() => !isPickDate && handleCancel()}
+        open={isModalOpen}
+        size="xl"
+        placement="top"
+        closebtn
+      >
+        {loading && <BlurLoading />}
+
+        <motion.div
+          {...fadeAnimation}
+          className="relative rounded-lg w-full h-full bg-white p-6 flex flex-col"
         >
-          <Input
-            type="text"
-            name="name"
-            label={"Name"}
-            placeholder="Name"
-            value={promotion.name}
-            className="w-full h-[50px] text-lg font-bold"
-            onChange={handleChange}
-            isRequired
-          />
-          <Input
-            type="text"
-            name="description"
-            label={"Description"}
-            value={promotion.description}
-            onChange={handleChange}
-            placeholder="Description"
-            className="w-full h-[50px] text-lg font-bold"
-          />
-          <label className="w-full text-lg font-bold text-left">
-            Expire Date*
-          </label>
-          <DateTimePicker
-            disablePast
-            value={promotion.expireAt ? dayjs(promotion.expireAt) : null}
-            onOpen={() => setisPickDate(true)}
-            onClose={() => setisPickDate(false)}
-            onChange={(e) => {
-              if (e) {
-                handleChange({
-                  target: { name: "expireAt", value: e.toISOString() },
-                } as never);
-              }
-            }}
-            sx={{ width: "100%", height: "50px" }}
-          />
-          <div className="w-full flex justify-start">
-            <Switch
-              isSelected={promotion.autocate}
-              onValueChange={(val) => {
-                setpromotion((prev) => ({ ...prev, autocate: val }));
-              }}
-            >
-              Auto List at Sale Category
-            </Switch>
-          </div>
-          <div className="w-full h-full flex flex-row items-center gap-5">
-            <Button
-              className="bg-[#3D788E] font-bold text-white w-full h-[40px]"
-              variant="solid"
-              onPress={() => handleSelectProductAndBanner("banner")}
-            >
-              {promotion.banner?.id || promotion.banner_id
-                ? "Edit Banner"
-                : "Select Banner"}
-            </Button>
-            <Button
-              onPress={() => handleSelectProductAndBanner("product")}
-              className="bg_default  font-bold text-white w-full h-[40px]"
-              variant="solid"
-            >
-              {!promotion.Products || promotion.Products.length === 0
-                ? "Select Product"
-                : "Edit Product"}
-            </Button>
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold text-gray-800 text-center">
+              {isEditing ? "Edit Promotion" : "Create Promotion"}
+            </h2>
           </div>
 
-          <PrimaryButton
-            color="#44C3A0"
-            text={globalindex.promotioneditindex === -1 ? "Create" : "Update"}
-            type="submit"
-            status={
-              isLoading.POST || isLoading.PUT ? "loading" : "authenticated"
-            }
-            radius="10px"
-            width="100%"
-            height="50px"
-          />
-        </Form>
-      </div>
-    </SecondaryModal>
-  );
-};
+          <Form onSubmit={handleSubmit} className="flex-1 flex flex-col gap-6">
+            <div className="space-y-4">
+              <Input
+                type="text"
+                name="name"
+                label="Promotion Name"
+                placeholder="Enter promotion name"
+                value={promotion.name || ""}
+                className="w-full"
+                onChange={handleChange}
+                isRequired
+                size="lg"
+              />
+
+              <Input
+                type="text"
+                name="description"
+                label="Description"
+                value={promotion.description || ""}
+                onChange={handleChange}
+                placeholder="Enter description"
+                className="w-full"
+                size="lg"
+              />
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">
+                  Expire Date *
+                </label>
+                <DateTimePicker
+                  disablePast
+                  value={promotion.expireAt ? dayjs(promotion.expireAt) : null}
+                  onOpen={() => setisPickDate(true)}
+                  onClose={() => setisPickDate(false)}
+                  onChange={handleDateChange}
+                  sx={{
+                    width: "100%",
+                    "& .MuiOutlinedInput-root": {
+                      height: "56px",
+                    },
+                  }}
+                />
+              </div>
+
+              <div className="flex items-center">
+                <Switch
+                  isSelected={promotion.autocate || false}
+                  onValueChange={handleAutoCateChange}
+                  size="lg"
+                >
+                  Auto List at Sale Category
+                </Switch>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Button
+                className="bg-[#3D788E] hover:bg-[#2D5A6B] font-semibold text-white h-12 transition-colors"
+                variant="solid"
+                onPress={() => handleSelectProductAndBanner("banner")}
+              >
+                {hasBanner ? "Edit Banner" : "Select Banner"}
+              </Button>
+
+              <Button
+                onPress={() => handleSelectProductAndBanner("product")}
+                className="bg_default hover:opacity-90 font-semibold text-white h-12 transition-opacity"
+                variant="solid"
+              >
+                {hasProducts ? "Edit Products" : "Select Products"}
+              </Button>
+            </div>
+
+            <div className="mt-auto pt-6">
+              <PrimaryButton
+                color="#44C3A0"
+                text={isEditing ? "Update Promotion" : "Create Promotion"}
+                type="submit"
+                status={loading ? "loading" : "authenticated"}
+                radius="10px"
+                width="100%"
+                height="50px"
+              />
+            </div>
+          </Form>
+        </motion.div>
+      </SecondaryModal>
+    );
+  }
+);
+
+CreatePromotionModal.displayName = "CreatePromotionModal";
 
 const fadeAnimation = {
   initial: { opacity: 0 },
@@ -349,6 +428,7 @@ export const DiscountModals = () => {
     openmodal,
     setopenmodal,
     tableselectitems,
+    promotion,
   } = useGlobalContext();
 
   const [discount, setdiscount] = useState<number>(0);
@@ -375,22 +455,39 @@ export const DiscountModals = () => {
 
   const handleDiscount = useCallback(
     (e: FormEvent<HTMLFormElement>) => {
+      if (!promotion) {
+        errorToast("No Selected Promotion");
+        return;
+      }
       e.preventDefault();
 
       const discountpromoproduct: Array<PromotionProductState> = [];
+
+      const isExpire =
+        promotion.expireAt && new Date(promotion.expireAt) < new Date();
+      if (isExpire) {
+        errorToast("Promotion is expired");
+        return;
+      }
 
       setalldata((prev) => ({
         ...prev,
         product: prev?.product?.map((prod) => {
           if (prod.id && tableselectitems?.includes(prod.id)) {
-            const calculatedDiscount = calculateDiscountPrice(
-              prod.price,
-              discount
-            );
+            const calculatedDiscount = calculateDiscountPrice({
+              price: prod.price,
+              discount,
+              id: prod.id,
+              promoExpiry: new Date(promotion.expireAt as string),
+            });
+
+            if (calculatedDiscount.id) {
+              return;
+            }
 
             discountpromoproduct.push({
               id: prod.id,
-              discount: calculatedDiscount,
+              discount: calculatedDiscount as never,
             });
 
             return {
@@ -399,7 +496,7 @@ export const DiscountModals = () => {
             };
           }
           return prod;
-        }),
+        }) as never,
       }));
 
       setpromotion((prev) => ({
@@ -408,7 +505,14 @@ export const DiscountModals = () => {
       }));
       setopenmodal((prev) => ({ ...prev, discount: false }));
     },
-    [setalldata, setpromotion, setopenmodal, tableselectitems, discount]
+    [
+      promotion,
+      setalldata,
+      setpromotion,
+      setopenmodal,
+      tableselectitems,
+      discount,
+    ]
   );
 
   // Memoize the modal open state

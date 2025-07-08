@@ -2,7 +2,7 @@
 import PrimaryButton from "../../component/Button";
 import { useCallback, useEffect, useMemo, useRef, useState, use } from "react";
 import { ApiRequest, Delayloading } from "@/src/context/CustomHook";
-import { errorToast } from "../../component/Loading";
+import { errorToast, successToast } from "../../component/Loading";
 import dayjs from "dayjs";
 import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
@@ -410,11 +410,62 @@ export default function Inventory(props: {
       settableselectitems,
     ]
   );
+  const handleSelectDelete = useCallback(async () => {
+    if (!tableselectitems?.length) return;
 
-  const handleSelectDelete = async () => {
-    //TODO Delete Multiple Inventory Items
-    alert("Delete Selected Items");
-  };
+    setloaded(true);
+
+    try {
+      const delReq = await ApiRequest({
+        url: `/api/${ty}`,
+        method: "DELETE",
+        data: {
+          ids: tableselectitems,
+        },
+      });
+
+      if (!delReq.success) {
+        errorToast("Error Occured");
+        return;
+      }
+
+      successToast("Items Deleted");
+
+      // Optimized state update with type safety
+      setalldata((prev) => {
+        if (!prev?.[ty]) return prev;
+
+        const itemsToDelete = new Set(tableselectitems);
+        return {
+          ...prev,
+          [ty]: (prev[ty] as Array<{ id: number }>).filter(
+            ({ id }) => !itemsToDelete.has(id)
+          ),
+        } as never;
+      });
+
+      // Clear selection after successful deletion
+      settableselectitems([]);
+    } catch (error) {
+      console.error("Delete operation failed:", error);
+      errorToast("Error Occured");
+    } finally {
+      setloaded(false);
+    }
+  }, [ty, tableselectitems, setalldata, settableselectitems]);
+
+  const MultipleDeleteConfirmation = useCallback(() => {
+    setopenmodal({
+      confirmmodal: {
+        type: ty as never,
+        open: true,
+        onAsyncDelete: () => handleSelectDelete(),
+        onDelete() {
+          setreloaddata(true);
+        },
+      },
+    });
+  }, [handleSelectDelete, setopenmodal, ty]);
 
   const handleRemoveDiscount = useCallback(
     (id: number[]) => {
@@ -656,7 +707,7 @@ export default function Inventory(props: {
                     style={{ minWidth: "150px" }}
                     type="button"
                     text={`Delete ${tableselectitems.length}`}
-                    onClick={() => handleSelectDelete()}
+                    onClick={() => MultipleDeleteConfirmation()}
                   />
                 )}
             </div>
