@@ -11,6 +11,8 @@ const addressSchema = z.object({
   postalcode: z.string().min(1, "Postal code is required"),
   songkhat: z.string().min(1, "Sangkat is required"),
   province: z.string().min(1, "Province / City is requried"),
+  firstname: z.string().optional(),
+  lastname: z.string().optional(),
   // Add any other fields that are part of your Address model
 });
 

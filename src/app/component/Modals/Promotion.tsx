@@ -17,7 +17,6 @@ import { SecondaryModal } from "../Modals";
 import { motion } from "framer-motion";
 import { DateTimePicker } from "@mui/x-date-pickers";
 import dayjs from "dayjs";
-import PrimaryButton from "../Button";
 import { Form, NumberInput, Switch, Input, Button } from "@heroui/react";
 import {
   InventoryPage,
@@ -312,99 +311,239 @@ export const CreatePromotionModal = React.memo(
 
         <motion.div
           {...fadeAnimation}
-          className="relative rounded-lg w-full h-full bg-white p-6 flex flex-col"
+          className="relative rounded-xl w-full h-full bg-gradient-to-br from-white to-gray-50"
         >
-          <div className="mb-6">
-            <h2 className="text-2xl font-bold text-gray-800 text-center">
-              {isEditing ? "Edit Promotion" : "Create Promotion"}
-            </h2>
-          </div>
-
-          <Form onSubmit={handleSubmit} className="flex-1 flex flex-col gap-6">
-            <div className="space-y-4">
-              <Input
-                type="text"
-                name="name"
-                label="Promotion Name"
-                placeholder="Enter promotion name"
-                value={promotion.name || ""}
-                className="w-full"
-                onChange={handleChange}
-                isRequired
-                size="lg"
-              />
-
-              <Input
-                type="text"
-                name="description"
-                label="Description"
-                value={promotion.description || ""}
-                onChange={handleChange}
-                placeholder="Enter description"
-                className="w-full"
-                size="lg"
-              />
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">
-                  Expire Date *
-                </label>
-                <DateTimePicker
-                  disablePast
-                  value={promotion.expireAt ? dayjs(promotion.expireAt) : null}
-                  onOpen={() => setisPickDate(true)}
-                  onClose={() => setisPickDate(false)}
-                  onChange={handleDateChange}
-                  sx={{
-                    width: "100%",
-                    "& .MuiOutlinedInput-root": {
-                      height: "56px",
-                    },
-                  }}
-                />
-              </div>
-
-              <div className="flex items-center">
-                <Switch
-                  isSelected={promotion.autocate || false}
-                  onValueChange={handleAutoCateChange}
-                  size="lg"
+          <div className="p-8">
+            <div className="mb-8 text-center">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-black to-incart rounded-full mb-4">
+                <svg
+                  className="w-8 h-8 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
                 >
-                  Auto List at Sale Category
-                </Switch>
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
               </div>
+              <h2 className="text-3xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
+                {isEditing ? "Edit Promotion" : "Create Promotion"}
+              </h2>
+              <p className="text-gray-500 mt-2">
+                {isEditing
+                  ? "Update your existing promotion details"
+                  : "Set up a new promotional campaign"}
+              </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Button
-                className="bg-[#3D788E] hover:bg-[#2D5A6B] font-semibold text-white h-12 transition-colors"
-                variant="solid"
-                onPress={() => handleSelectProductAndBanner("banner")}
-              >
-                {hasBanner ? "Edit Banner" : "Select Banner"}
-              </Button>
+            <Form
+              onSubmit={handleSubmit}
+              className="w-full flex flex-col gap-8"
+            >
+              <div className="space-y-6">
+                <div className="group">
+                  <Input
+                    type="text"
+                    name="name"
+                    label="Promotion Name"
+                    placeholder="Enter a catchy promotion name"
+                    value={promotion.name || ""}
+                    className="w-full transition-all duration-200 group-hover:scale-[1.02]"
+                    onChange={handleChange}
+                    isRequired
+                    size="lg"
+                    variant="bordered"
+                    classNames={{
+                      input: "text-lg",
+                      inputWrapper:
+                        "border-2 hover:border-blue-400 focus-within:border-blue-500 shadow-sm hover:shadow-md transition-all duration-200",
+                      label: "text-gray-700 font-semibold",
+                    }}
+                  />
+                </div>
 
-              <Button
-                onPress={() => handleSelectProductAndBanner("product")}
-                className="bg_default hover:opacity-90 font-semibold text-white h-12 transition-opacity"
-                variant="solid"
-              >
-                {hasProducts ? "Edit Products" : "Select Products"}
-              </Button>
-            </div>
+                <div className="group">
+                  <Input
+                    type="text"
+                    name="description"
+                    label="Description"
+                    value={promotion.description || ""}
+                    onChange={handleChange}
+                    placeholder="Describe your promotion (optional)"
+                    className="w-full transition-all duration-200 group-hover:scale-[1.02]"
+                    size="lg"
+                    variant="bordered"
+                    classNames={{
+                      input: "text-lg",
+                      inputWrapper:
+                        "border-2 hover:border-blue-400 focus-within:border-blue-500 shadow-sm hover:shadow-md transition-all duration-200",
+                      label: "text-gray-700 font-semibold",
+                    }}
+                  />
+                </div>
 
-            <div className="mt-auto pt-6">
-              <PrimaryButton
-                color="#44C3A0"
-                text={isEditing ? "Update Promotion" : "Create Promotion"}
-                type="submit"
-                status={loading ? "loading" : "authenticated"}
-                radius="10px"
-                width="100%"
-                height="50px"
-              />
-            </div>
-          </Form>
+                <div className="space-y-3">
+                  <label className="text-lg font-semibold text-gray-700 flex items-center gap-2">
+                    <svg
+                      className="w-5 h-5 text-blue-500"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                      />
+                    </svg>
+                    Expire Date *
+                  </label>
+                  <div className="relative">
+                    <DateTimePicker
+                      disablePast
+                      value={
+                        promotion.expireAt ? dayjs(promotion.expireAt) : null
+                      }
+                      onOpen={() => setisPickDate(true)}
+                      onClose={() => setisPickDate(false)}
+                      onChange={handleDateChange}
+                      sx={{
+                        width: "100%",
+                        "& .MuiOutlinedInput-root": {
+                          height: "64px",
+                          borderRadius: "12px",
+                          borderWidth: "2px",
+                          fontSize: "16px",
+                          boxShadow: "0 2px 4px rgba(0,0,0,0.05)",
+                          transition: "all 0.2s ease",
+                          "&:hover": {
+                            borderColor: "#60A5FA",
+                            boxShadow: "0 4px 8px rgba(0,0,0,0.1)",
+                          },
+                          "&.Mui-focused": {
+                            borderColor: "#3B82F6",
+                            boxShadow: "0 0 0 3px rgba(59,130,246,0.1)",
+                          },
+                        },
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div className="bg-gradient-to-r from-blue-50 to-purple-50 p-6 rounded-xl border border-blue-200">
+                  <Switch
+                    isSelected={promotion.autocate || false}
+                    onValueChange={handleAutoCateChange}
+                    size="lg"
+                    classNames={{
+                      wrapper:
+                        "group-data-[selected=true]:bg-gradient-to-r group-data-[selected=true]:from-blue-500 group-data-[selected=true]:to-purple-600",
+                      thumb: "group-data-[selected=true]:bg-white shadow-lg",
+                    }}
+                  >
+                    <div className="flex flex-col">
+                      <span className="text-lg font-semibold text-gray-800">
+                        Auto List at Sale Category
+                      </span>
+                      <span className="text-sm text-gray-600 mt-1">
+                        Automatically add promoted products to sale category
+                      </span>
+                    </div>
+                  </Switch>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Button
+                  className="group relative overflow-hidden bg-gradient-to-r from-teal-500 to-cyan-600 hover:from-teal-600 hover:to-cyan-700 font-bold text-white h-16 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
+                  variant="solid"
+                  onPress={() => handleSelectProductAndBanner("banner")}
+                  radius="lg"
+                >
+                  <div className="flex items-center justify-center gap-3">
+                    <svg
+                      className="w-6 h-6"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                      />
+                    </svg>
+                    <span className="text-lg">
+                      {hasBanner ? "Edit Banner" : "Select Banner"}
+                    </span>
+                  </div>
+                  <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
+                </Button>
+
+                <Button
+                  onPress={() => handleSelectProductAndBanner("product")}
+                  className="group relative overflow-hidden bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 font-bold text-white h-16 transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
+                  variant="solid"
+                  radius="lg"
+                >
+                  <div className="flex items-center justify-center gap-3">
+                    <svg
+                      className="w-6 h-6"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                      />
+                    </svg>
+                    <span className="text-lg">
+                      {hasProducts ? "Edit Products" : "Select Products"}
+                    </span>
+                  </div>
+                  <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-300"></div>
+                </Button>
+              </div>
+
+              <div className="mt-8 pt-6 border-t border-gray-200">
+                <Button
+                  type="submit"
+                  isLoading={loading}
+                  startContent={
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M5 13l4 4L19 7"
+                      />
+                    </svg>
+                  }
+                  className="w-full h-[60px] shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] bg-[#44C3A0]"
+                >
+                  <div className="flex items-center justify-center gap-3">
+                    <span className="text-lg font-bold">
+                      {isEditing ? "Update Promotion" : "Create Promotion"}
+                    </span>
+                  </div>
+                </Button>
+              </div>
+            </Form>
+          </div>
         </motion.div>
       </SecondaryModal>
     );
@@ -477,11 +616,10 @@ export const DiscountModals = () => {
             const calculatedDiscount = calculateDiscountPrice({
               price: prod.price,
               discount,
-              id: prod.id,
               promoExpiry: new Date(promotion.expireAt as string),
             });
 
-            if (calculatedDiscount.id) {
+            if (!calculatedDiscount) {
               return;
             }
 

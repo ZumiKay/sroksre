@@ -51,7 +51,7 @@ const UserDashboard = () => {
       <h1
         hidden={isMobile}
         className="w-full text-left p-3 max-small_phone:text-xl"
-      >{`Zumi's Dashboard`}</h1>
+      >{`Dashboard`}</h1>
       <div
         className="Userdashboard_container w-full h-fit flex flex-row justify-start items-start gap-3
       max-smallest_tablet:flex-col

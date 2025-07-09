@@ -10,6 +10,8 @@ import LoadingIcon, { errorToast } from "../Loading";
 import Link from "next/link";
 import { CircularProgress } from "@heroui/react";
 import { CloseVector } from "../Asset";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faTrash } from "@fortawesome/free-solid-svg-icons";
 
 export const CategoriesContainer = (props: {
   setopen: (val: boolean) => void;
@@ -369,12 +371,11 @@ export const NotificationMenu = ({
                   <p className="text-[12px]">{notification.createdAt}</p>
                 </div>
               </Link>
-              <i
+              <FontAwesomeIcon
+                icon={faTrash}
                 onClick={() => handleDelete(notification.id as number)}
-                className={`fa-solid fa-trash relative w-full left-[90%] transition duration-300 active:text-white ${
-                  loading ? "animate-spin" : ""
-                }`}
-              ></i>
+                className={`${loading ? "animate-spin" : ""}`}
+              />
             </div>
           ))
         )}

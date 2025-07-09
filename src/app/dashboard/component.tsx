@@ -78,7 +78,7 @@ const AddressForm = ({
   editdata?: number;
   close?: () => void;
 }) => {
-  const { user } = useGlobalContext();
+  const { user, setreloaddata } = useGlobalContext();
   const [loading, setloading] = useState(false);
   const [address, setaddress] = useState<Partial<Address> | undefined>({
     firstname: user?.firstname,
@@ -117,8 +117,8 @@ const AddressForm = ({
       return;
     }
     successToast(editdata ? "Address Updated" : "Address Created");
-    setaddress(undefined);
-  }, [address, editdata, setloading]);
+    setreloaddata(true);
+  }, [address, editdata, setreloaddata]);
 
   const handleCancel = useCallback(() => {
     if (close) close();
@@ -138,7 +138,7 @@ const AddressForm = ({
           onChange={handleChange}
         />
         <Input
-          value={address?.lastname}
+          value={address?.lastname ?? undefined}
           label="Lastname"
           labelPlacement="outside"
           placeholder="Lastname"
@@ -248,7 +248,7 @@ type profileactiontype =
   | "Readonly"
   | "Done";
 export const ProfileTab = () => {
-  const { user, setuser } = useGlobalContext();
+  const { user, setuser, reloaddata, setreloaddata } = useGlobalContext();
   const [loading, setloading] = useState(false);
   const [actionty, setactionty] = useState<profileactiontype>("Readonly");
   const [editaddress, seteditaddress] = useState<number | undefined>(undefined);
@@ -261,14 +261,16 @@ export const ProfileTab = () => {
         "/api/users/info?ty=userinfo"
       );
       setloading(false);
+
       if (!makeRequest) {
         return;
       }
       setuser(makeRequest as UserState);
       settemp(makeRequest as UserState);
+      setreloaddata(false);
     }
-    fetchUser();
-  }, []);
+    if (reloaddata) fetchUser();
+  }, [reloaddata]);
 
   const handleSubmit = useCallback(
     async (e: FormEvent<HTMLFormElement>) => {
@@ -286,6 +288,7 @@ export const ProfileTab = () => {
         return;
       }
       setactionty("Readonly");
+      settemp(undefined);
       successToast("User Updated");
     },
     [user]
@@ -540,7 +543,7 @@ export const ProfileTab = () => {
                 name="lastname"
                 label="Lastname"
                 labelPlacement="outside"
-                value={user?.lastname}
+                value={user?.lastname ?? undefined}
                 onChange={handleChange}
                 size="lg"
                 isReadOnly={actionty === "Readonly"}

@@ -390,7 +390,8 @@ const CreateHomeItemModal = () => {
                       aria-label="date picker"
                       size="sm"
                       value={
-                        homeContainer.daterange
+                        homeContainer.daterange?.start &&
+                        homeContainer.daterange.end
                           ? {
                               start: parseDate(homeContainer.daterange.start),
                               end: parseDate(homeContainer.daterange.end),

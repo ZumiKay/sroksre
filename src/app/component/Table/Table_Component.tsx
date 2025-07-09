@@ -264,6 +264,7 @@ function TableComponent({
     setproduct,
     setreloaddata,
     setpromotion,
+    promotion,
   } = useGlobalContext();
 
   const [selectedData, setselectedData] = useState<Selection>(
@@ -504,25 +505,29 @@ function TableComponent({
           );
 
         case "action":
-          return ty === "ordermanagement" ? (
-            <MemoizedActionButton
-              onPress={() => {
-                setopenmodal({ orderactionmodal: true });
-                setglobalindex({ orderId: celldata.id } as never);
-              }}
-            >
-              Action
-            </MemoizedActionButton>
+          return !promotion.selectproduct && !promotion.selectbanner ? (
+            ty === "ordermanagement" ? (
+              <MemoizedActionButton
+                onPress={() => {
+                  setopenmodal({ orderactionmodal: true });
+                  setglobalindex({ orderId: celldata.id } as never);
+                }}
+              >
+                Action
+              </MemoizedActionButton>
+            ) : (
+              <ActionContainer
+                onAction={(val) =>
+                  handleAction(
+                    val as ActionState,
+                    celldata.id,
+                    ty as InventoryPage
+                  )
+                }
+              />
+            )
           ) : (
-            <ActionContainer
-              onAction={(val) =>
-                handleAction(
-                  val as ActionState,
-                  celldata.id,
-                  ty as InventoryPage
-                )
-              }
-            />
+            <></>
           );
 
         case "expireAt":
@@ -538,7 +543,16 @@ function TableComponent({
           return celldata[keyString] ?? "none";
       }
     },
-    [ty, handleClick, handleView, setopenmodal, setglobalindex, handleAction]
+    [
+      ty,
+      promotion.selectproduct,
+      promotion.selectbanner,
+      handleView,
+      handleClick,
+      setopenmodal,
+      setglobalindex,
+      handleAction,
+    ]
   );
 
   // Effect for selection changes

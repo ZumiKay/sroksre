@@ -226,6 +226,7 @@ export const handleCheckandRegisterUser = async ({
   try {
     const existingUser = await Prisma.user.findFirst({
       where: { email: data.email },
+      select: { id: true, email: true }, // Only select needed fields
     });
 
     if (existingUser) {
@@ -233,31 +234,36 @@ export const handleCheckandRegisterUser = async ({
         success: true,
         data: {
           id: existingUser.id,
-          role: "USER",
+          role: Role.USER,
           email: existingUser.email,
         },
       };
     }
 
+    // Hash password only if user doesn't exist
     const hashedPassword = hashedpassword(data.password);
-    data.password = hashedPassword;
 
     const createdUser = await Prisma.user.create({
       data: {
-        ...data,
+        email: data.email,
+        firstname: data.firstname,
+        lastname: data.lastname ?? null,
+        password: hashedPassword,
+        username: data.firstname,
+        role: data.role ?? Role.USER,
+        phonenumber: data.phonenumber ?? null,
+        oauthId: data.oauthId ?? null,
+        isVerified: true,
       },
+      select: { id: true, email: true }, // Only select needed fields
     });
-
-    if (!createdUser) {
-      return { success: false, message: "Failed to create user" };
-    }
 
     return {
       success: true,
       message: "User created successfully",
       data: {
         id: createdUser.id,
-        role: "USER",
+        role: Role.USER,
         email: createdUser.email,
       },
     };

@@ -8,6 +8,8 @@ import { Userinitialize } from "@/src/context/GlobalContext";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useCallback } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faGoogle, faDiscord } from "@fortawesome/free-brands-svg-icons";
 
 interface UserInputComponentProps {
   data?: userdata;
@@ -199,7 +201,24 @@ export const LoginComponent = ({
             <label className="text-lg font-bold text-white w-full text-left">
               Sign with:{" "}
             </label>
-            <div className="signinWith__container w-full flex flex-row items-center gap-x-2 gap-y-5 max-large_phone:flex-col"></div>
+            <div className="signinWith__container w-full flex flex-row items-center gap-x-2 gap-y-5 max-large_phone:flex-col">
+              <Button
+                className="w-full bg-red-500 text-white font-medium"
+                size="md"
+                onPress={() => servicesSignIn("google")}
+                startContent={<FontAwesomeIcon icon={faGoogle} />}
+              >
+                Google
+              </Button>
+              <Button
+                className="w-full bg-indigo-600 text-white font-medium"
+                size="md"
+                onPress={() => servicesSignIn("discord")}
+                startContent={<FontAwesomeIcon icon={faDiscord} />}
+              >
+                Discord
+              </Button>
+            </div>
           </div>
         </>
       )}

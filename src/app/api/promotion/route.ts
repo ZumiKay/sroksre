@@ -5,14 +5,10 @@ import {
   calculatePagination,
   removeSpaceAndToLowerCase,
 } from "@/src/lib/utilities";
-import dayjs from "dayjs";
 import Prisma from "@/src/lib/prisma";
 import { Prisma as prisma } from "@prisma/client";
-import {
-  categorytype,
-  PromotionState,
-  SelectType,
-} from "@/src/context/GlobalType.type";
+import { categorytype, PromotionState } from "@/src/context/GlobalType.type";
+import { SendNotification } from "@/src/context/SocketContext";
 
 export async function POST(request: NextRequest) {
   try {
@@ -295,7 +291,7 @@ export async function DELETE(request: NextRequest) {
   }
 }
 
-type tyType = "selection" | "edit" | "all" | "filter" | "byid";
+type tyType = "selection" | "edit" | "all" | "filter" | "byid" | "check";
 interface customparamPromotion {
   lt?: number;
   sk?: number;
@@ -317,52 +313,127 @@ export async function GET(request: NextRequest) {
       return Response.json({}, { status: 400 });
     }
 
-    let modified = {};
-    let expirecount = 0;
-    const now = dayjs(new Date());
+    const now = new Date();
 
-    // Count expired promotions
-    const countexpiredPromo = await Prisma.promotion.findMany({
-      select: { expireAt: true },
-    });
-
-    expirecount = countexpiredPromo.filter(
-      (i) => dayjs(i.expireAt).isBefore(now) || dayjs(i.expireAt).isSame(now)
-    ).length;
-
-    // Base query condition
-    const baseCondition: prisma.PromotionWhereInput = {
-      name: param.q
-        ? {
-            contains: removeSpaceAndToLowerCase(param.q),
-            mode: "insensitive",
-          }
-        : {},
-      expireAt: param.exp
-        ? {
-            lt: new Date(param.exp as string),
-          }
-        : param.expired
-        ? {
+    if (param.ty === "check") {
+      const expiredPromotions = await Prisma.promotion.findMany({
+        where: {
+          expireAt: {
             lte: new Date(),
-          }
-        : {},
-    };
+          },
+        },
+        select: { id: true },
+      });
 
-    const total = await Prisma.promotion.count({
-      where:
-        param.ty === "selection"
-          ? {}
-          : param.q || param.exp || param.expired
-          ? baseCondition
-          : {},
-    });
+      return Response.json(
+        { expiredCount: expiredPromotions.map((i) => i.id) },
+        { status: 200 }
+      );
+    }
+
+    // Build base condition once
+    const baseCondition: prisma.PromotionWhereInput = {};
+
+    if (param.q) {
+      baseCondition.name = {
+        contains: removeSpaceAndToLowerCase(param.q),
+        mode: "insensitive",
+      };
+    }
+
+    if (param.exp) {
+      baseCondition.expireAt = { lt: new Date(param.exp) };
+    } else if (param.expired) {
+      baseCondition.expireAt = { lte: now };
+    }
+
+    // Handle specific types first to avoid unnecessary queries
+    if (param.ty === "byid") {
+      if (!param.ids) {
+        return Response.json({}, { status: 400 });
+      }
+
+      const promotion = await Prisma.promotion.findMany({
+        where: {
+          id: param.ids.includes(",")
+            ? { in: param.ids.split(",").map(Number) }
+            : { equals: parseInt(param.ids) },
+        },
+        select: { id: true, name: true },
+      });
+
+      return Response.json(
+        {
+          data: promotion.map((i) => ({
+            label: i.name,
+            value: i.id,
+          })),
+        },
+        { status: 200 }
+      );
+    }
+
+    if (param.ty === "edit") {
+      const promotion = await Prisma.promotion.findUnique({
+        where: { id: param.p },
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          expireAt: true,
+          banner: { select: { id: true, Image: true } },
+          Products: { select: { id: true } },
+        },
+      });
+
+      return Response.json({ data: promotion }, { status: 200 });
+    }
+
+    // For selection type with limit
+    if (param.ty === "selection" && param.limit) {
+      const promotions = await Prisma.promotion.findMany({
+        where: {
+          ...baseCondition,
+          expireAt: { gt: now }, // Only get non-expired
+        },
+        select: { id: true, name: true },
+        take: param.limit,
+      });
+
+      return Response.json(
+        {
+          data: promotions.map((item) => ({
+            label: item.name,
+            value: item.id.toString(),
+          })),
+          hasMore: promotions.length === param.limit,
+        },
+        { status: 200 }
+      );
+    }
+
+    // Parallel queries for count and expired count
+    const [total, expiredCount] = await Promise.all([
+      Prisma.promotion.count({
+        where:
+          param.ty === "selection"
+            ? {}
+            : param.q || param.exp || param.expired
+            ? baseCondition
+            : {},
+      }),
+      Prisma.promotion.count({
+        where: { expireAt: { lte: now } },
+      }),
+    ]);
 
     const { startIndex, endIndex } = calculatePagination(
       total,
       param.lt as number,
       param.p as number
     );
+
+    let modified = {};
 
     if (param.ty === "all" || param.ty === "filter") {
       const promotions = await Prisma.promotion.findMany({
@@ -389,8 +460,7 @@ export async function GET(request: NextRequest) {
 
       modified = promotions.map((i) => ({
         ...i,
-        isExpired:
-          dayjs(i.expireAt).isBefore(now) || dayjs(i.expireAt).isSame(now),
+        isExpired: i.expireAt <= now,
       }));
 
       if (param.ty === "filter") {
@@ -400,79 +470,16 @@ export async function GET(request: NextRequest) {
           param.lt ?? 1
         );
       }
-    } else if (param.ty === "selection" && param.limit) {
-      const promotions = await Prisma.promotion.findMany({
-        where: baseCondition,
-        select: {
-          id: true,
-          name: true,
-        },
-        take: param.limit,
-      });
+    }
 
-      const selectionresult = {
-        data: promotions.map((item) => ({
-          label: item.name,
-          value: item.id.toString(),
-        })),
-        hasMore: total <= param.limit,
-      };
-
-      return Response.json({ ...selectionresult }, { status: 200 });
-    } else if (param.ty === "byid") {
-      //For Multiselect and Search Value
-      if (!param.ids) {
-        return Response.json({}, { status: 400 });
-      }
-      const promotion = await Prisma.promotion.findMany({
-        where: {
-          id:
-            param.ids.length > 1
-              ? {
-                  in: param.ids.split(",").map((i) => parseInt(i, 10)),
-                }
-              : { equals: parseInt(param.ids) },
-        },
-        select: { id: true, name: true },
-      });
-
-      const value: Array<SelectType> = promotion.map((i) => ({
-        label: i.name,
-        value: i.id,
-      }));
-
-      return Response.json({ data: value }, { status: 200 });
-    } else if (param.ty === "edit") {
-      const promotion = await Prisma.promotion.findUnique({
-        where: {
-          id: param.p,
-        },
-
-        select: {
-          id: true,
-          name: true,
-          description: true,
-          expireAt: true,
-          banner: { select: { id: true, Image: true } },
-          Products: {
-            select: {
-              id: true,
-            },
-          },
-        },
-      });
-
-      return Response.json({ data: promotion }, { status: 200 });
-    } else return Response.json({}, { status: 400 });
-
-    const totalpromo = param.lt ? Math.ceil(total / param.lt) : undefined;
+    const totalPages = param.lt ? Math.ceil(total / param.lt) : undefined;
 
     return Response.json(
       {
         data: modified,
-        expirecount,
+        expirecount: expiredCount,
         total,
-        totalpage: totalpromo,
+        totalpage: totalPages,
       },
       { status: 200 }
     );

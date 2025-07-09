@@ -306,7 +306,7 @@ export const Category = () => {
               {category?.type === "popular" && (
                 <DateRangePicker
                   value={
-                    category.daterange
+                    category.daterange?.start && category.daterange.end
                       ? {
                           start: parseDate(category.daterange.start),
                           end: parseDate(category.daterange.end),
@@ -663,6 +663,7 @@ const EditCategory = ({
                       </button>
 
                       <button
+                        type="button"
                         onClick={() => handleMarkForDeletion(idx, obj)}
                         className="p-3 text-red-500 font-medium hover:bg-red-500 hover:text-white transition-colors duration-200"
                         aria-label="Delete category"
@@ -738,7 +739,7 @@ const EditCategory = ({
             {category?.type === "popular" && (
               <DateRangePicker
                 value={
-                  category.daterange
+                  category.daterange?.start && category.daterange.end
                     ? {
                         start: parseDate(category.daterange.start),
                         end: parseDate(category.daterange.end),

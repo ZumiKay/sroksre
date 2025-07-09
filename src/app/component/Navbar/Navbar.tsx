@@ -1,10 +1,14 @@
 "use client";
-import { useCheckSession, useScreenSize } from "@/src/context/CustomHook";
+import {
+  ApiRequest,
+  useCheckSession,
+  useScreenSize,
+} from "@/src/context/CustomHook";
 import { useGlobalContext } from "@/src/context/GlobalContext";
-import { useSocket } from "@/src/context/SocketContext";
+import { SendNotification, useSocket } from "@/src/context/SocketContext";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ContainerLoading } from "../Loading";
+import { ContainerLoading, errorToast, infoToast } from "../Loading";
 import Image from "next/image";
 import CookieConsent from "react-cookie-consent";
 import Link from "next/link";
@@ -21,6 +25,34 @@ import ActiveBell from "@/public/Image/whitebell.svg";
 import Profile from "@/public/Image/profile.svg";
 import { CategoriesContainer, NotificationMenu } from "./Component";
 import CreateHomeItemModal from "../HomeItem/CreateModal";
+import { Role } from "@/src/lib/userlib";
+import { Socket } from "socket.io-client";
+
+async function CheckPromo(socket: Socket) {
+  const { success, data } = await ApiRequest({
+    url: "/api/promotion?ty=check",
+  });
+  if (success && data) {
+    const reqData = data as Array<number>;
+
+    if (reqData.length === 0) {
+      return;
+    }
+    const warnMess = `${reqData.length} promotions is expired`;
+
+    errorToast(warnMess);
+
+    await SendNotification(
+      {
+        type: "promo",
+        content: warnMess,
+        link: `/dashboard/inventory?ty=promotion&expired=true`,
+        checked: false,
+      },
+      socket
+    );
+  }
+}
 
 export default function Navbar({ cartcount = 0 }: { cartcount?: number }) {
   const { cart, setcart, setopenmodal, openmodal } = useGlobalContext();
@@ -32,10 +64,8 @@ export default function Navbar({ cartcount = 0 }: { cartcount?: number }) {
   const [profile, setprofile] = useState(false);
   const [opennotification, setnotification] = useState(false);
   const [checkNotification, setchecknotify] = useState(0);
-
   const navref = useRef<HTMLImageElement>(null);
   const notiref = useRef<HTMLDivElement>(null);
-
   const isAdmin = user?.role === "ADMIN";
 
   // Admin notification socket listener
@@ -69,6 +99,13 @@ export default function Navbar({ cartcount = 0 }: { cartcount?: number }) {
     window.addEventListener("click", handleEventClick, { passive: false });
     return () => window.removeEventListener("click", handleEventClick);
   }, []);
+
+  //Check Validation of the promotion for admin
+  useEffect(() => {
+    if (user?.role === Role.ADMIN && socket) {
+      CheckPromo(socket);
+    }
+  }, [socket, user?.role]);
 
   const handleClickProfile = useCallback(() => {
     if (!user) {

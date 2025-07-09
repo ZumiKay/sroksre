@@ -183,6 +183,7 @@ export async function GET(req: NextRequest) {
   try {
     const url = req.url.toString();
     const { ty } = extractQueryParams(url);
+
     const allcat = await Prisma.parentcategories.findMany({
       where: ty === "create" ? { type: categorytype.normal } : {},
       select: {
@@ -223,11 +224,12 @@ export async function GET(req: NextRequest) {
           obj.type !== "sale"
             ? obj.sub
             : await Promise.all(
-                obj.sub.map(async (i) => ({
+                obj.sub.map((i) => ({
                   ...i,
-                  isExpired: i.pid ? await checkpromotion(i.pid) : undefined,
+                  isExpired: i.pid ? checkpromotion(i.pid) : undefined,
                 }))
               );
+
         return {
           id: obj.id,
           name: obj.name,

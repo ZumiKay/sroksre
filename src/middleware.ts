@@ -91,34 +91,6 @@ export default async function middleware(req: NextRequest) {
     }
   }
 
-  // Special handling for sensitive endpoints (additional rate limiting)
-  // if (SENSITIVE_ROUTES.some((route) => url.startsWith(route))) {
-  //   const rateLimitResult = await rateLimit({
-  //     ip,
-  //     path: url,
-  //     maxRequests: MAX_API_REQUESTS / 2, // More strict for sensitive routes
-  //     windowMs: RATE_LIMIT_WINDOW,
-  //   });
-
-  //   if (!rateLimitResult.success) {
-  //     return new NextResponse(
-  //       JSON.stringify({
-  //         error: "Rate limit exceeded for sensitive operation",
-  //       }),
-  //       {
-  //         status: 429,
-  //         headers: {
-  //           ...Object.fromEntries(secureHeaders),
-  //           "Content-Type": "application/json",
-  //           "Retry-After": String(
-  //             Math.ceil(rateLimitResult.timeRemaining / 1000)
-  //           ),
-  //         },
-  //       }
-  //     );
-  //   }
-  // }
-
   // Get token in a more secure way
   const token = await getToken({
     req,
