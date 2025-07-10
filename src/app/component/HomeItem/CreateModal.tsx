@@ -165,7 +165,7 @@ const ManageContainerType = () => {
   );
 };
 
-const CreateHomeItemModal = () => {
+const CreateHomeItemModal = ({ onClose }: { onClose?: () => void }) => {
   const {
     openmodal,
     setopenmodal,
@@ -180,7 +180,8 @@ const CreateHomeItemModal = () => {
 
   const handleCloseModal = useCallback(() => {
     setopenmodal({ mangageHomeItem: false });
-  }, [setopenmodal]);
+    if (onClose) onClose();
+  }, [onClose, setopenmodal]);
 
   useEffect(() => {
     async function getData() {

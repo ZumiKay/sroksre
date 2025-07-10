@@ -50,8 +50,6 @@ const Homeeditmenu = memo(
     const handleDragEnd = (event: DragEndEvent) => {
       const { active, over } = event;
 
-      console.log({ active, over });
-
       if (active.id !== over?.id && setItems) {
         setItems((items) => {
           const oldIndex = items.findIndex((item) => item.id === active.id);

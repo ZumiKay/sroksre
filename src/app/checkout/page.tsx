@@ -144,6 +144,11 @@ const getCheckoutdata = async (orderid?: string, userid?: number) => {
               stocktype: true,
               stock: true,
               Stock: { select: { Stockvalue: true } },
+              promotion: {
+                select: {
+                  expireAt: true,
+                },
+              },
               Variant: {
                 orderBy: { id: "asc" },
                 select: { id: true, option_value: true },
@@ -167,6 +172,9 @@ const getCheckoutdata = async (orderid?: string, userid?: number) => {
     }
     return detailMap;
   });
+
+  const toUpdateOrderProductIds: Array<number> = [];
+  let subtotal = 0;
 
   // Process order products with optimized lookups
   const updatedOrderProducts = result.Orderproduct.map(
@@ -195,12 +203,25 @@ const getCheckoutdata = async (orderid?: string, userid?: number) => {
 
       // Calculate discount price only when needed
       let discountPrice = undefined;
-      if (orderProduct.discount) {
-        discountPrice = calculateDiscountPrice(
-          orderProduct.price,
-          orderProduct.discount as unknown as number
-        );
+      let finalPrice = orderProduct.price;
+
+      if (orderProduct.discount && orderProduct.product.promotion) {
+        discountPrice = calculateDiscountPrice({
+          price: orderProduct.price,
+          discount: orderProduct.discount as unknown as number,
+          promoExpiry: orderProduct.product.promotion.expireAt,
+        });
+
+        if (!discountPrice) {
+          toUpdateOrderProductIds.push(orderProduct.id);
+        } else {
+          finalPrice = Number(discountPrice.newprice);
+        }
       }
+
+      // Calculate line total
+      const lineTotal = finalPrice * orderProduct.quantity;
+      subtotal += lineTotal;
 
       // Return optimized product data
       return {
@@ -211,9 +232,49 @@ const getCheckoutdata = async (orderid?: string, userid?: number) => {
     }
   );
 
+  // Calculate total price with shipping
+  const shippingFee = result.price as unknown as totalpricetype;
+  const total = subtotal + (shippingFee.shipping ?? 0);
+
+  // Update order products with expired discounts and recalculate order total
+  const promises = [];
+
+  if (toUpdateOrderProductIds.length > 0) {
+    promises.push(
+      Prisma.orderproduct.updateMany({
+        where: { id: { in: toUpdateOrderProductIds } },
+        data: { discount: null },
+      })
+    );
+  }
+
+  // Update order total price
+  promises.push(
+    Prisma.orders.update({
+      where: { id: orderid },
+      data: {
+        price: {
+          subtotal,
+          shipping: shippingFee,
+          total,
+        } as never,
+      },
+    })
+  );
+
+  // Execute all updates in parallel
+  if (promises.length > 0) {
+    await Promise.all(promises);
+  }
+
   return {
     ...result,
     Orderproduct: updatedOrderProducts,
+    price: {
+      subtotal,
+      shipping: shippingFee,
+      total,
+    },
   };
 };
 
@@ -233,7 +294,6 @@ const OrderSummary = async ({ orderId }: { orderId: string }) => {
     >
       <input type="hidden" name="summary" value={"summary"} />
       <h3 className="title text-2xl font-bold pb-5">Order Summary</h3>
-
       <div className="productlist w-full h-full flex flex-col gap-y-5 p-2">
         {orderData.Orderproduct.map((order) => {
           const prod = order;

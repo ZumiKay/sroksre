@@ -6,9 +6,9 @@ import {
   removeSpaceAndToLowerCase,
 } from "@/src/lib/utilities";
 import Prisma from "@/src/lib/prisma";
-import { Prisma as prisma } from "@prisma/client";
+import { Prisma as prisma, Promotion } from "@prisma/client";
 import { categorytype, PromotionState } from "@/src/context/GlobalType.type";
-import { SendNotification } from "@/src/context/SocketContext";
+import { Allstatus } from "@/src/context/OrderContext";
 
 export async function POST(request: NextRequest) {
   try {
@@ -101,132 +101,211 @@ export async function POST(request: NextRequest) {
 interface extendedPromotionState extends PromotionState {
   pid?: number;
 }
+
 export async function PUT(request: NextRequest) {
   try {
     const updatedata: extendedPromotionState = await request.json();
 
-    // Start a transaction
     await Prisma.$transaction(async (tx) => {
-      // Fetch existing promotion if an ID is provided
-      const existingPromotion =
-        updatedata.id &&
-        (await tx.promotion.findUnique({
+      let existingPromotion = null;
+
+      // Only fetch existing promotion when needed
+      if (updatedata.id && updatedata.type !== "product") {
+        existingPromotion = await tx.promotion.findUnique({
           where: { id: updatedata.id },
-          include: { banner: true },
-        }));
-
-      if (
-        !existingPromotion &&
-        updatedata.type !== "product" &&
-        updatedata.type !== "banner"
-      ) {
-        throw new Error("Promotion not found");
-      }
-
-      const hasChanges = () => {
-        return (
-          existingPromotion &&
-          (existingPromotion.name !== updatedata.name ||
-            existingPromotion.description !== updatedata.description ||
-            (updatedata.expireAt &&
-              existingPromotion.expireAt !==
-                new Date(updatedata.expireAt.toString())))
-        );
-      };
-
-      // Handle promotion editing
-      if (updatedata.type === "edit" && hasChanges()) {
-        await tx.promotion.update({
-          where: { id: updatedata.id },
-          data: {
-            name: updatedata.name,
-            description: updatedata.description,
-            expireAt: updatedata.expireAt as unknown as Date,
+          include: {
+            banner: { select: { id: true } }, // Only select what we need
           },
         });
-      }
 
-      // Handle banner update
-      if (updatedata.type === "banner" && existingPromotion) {
-        if (existingPromotion.banner?.id !== updatedata.banner_id) {
-          await tx.banner.update({
-            where: { id: updatedata.banner_id },
-            data: { promotionId: existingPromotion.id },
-          });
-
-          //update remove banner
-          if (existingPromotion.banner)
-            await tx.banner.update({
-              where: { id: existingPromotion.banner.id },
-              data: { promotionId: null },
-            });
+        if (!existingPromotion) {
+          throw new Error("Promotion not found");
         }
       }
 
-      // Handle product updates
-      if (updatedata.type === "editproduct" && updatedata.Products) {
-        //remove discount from products not in updatedata.Products
+      // Handle promotion editing with optimized change detection
+      if (updatedata.type === "edit" && existingPromotion) {
+        const updateFields: Partial<Promotion> = {};
 
-        await tx.products.updateMany({
-          where: {
-            AND: [
-              { promotion_id: updatedata.id },
-              {
-                id: {
-                  notIn: updatedata.Products.map((product) => product.id),
-                },
-              },
-            ],
-          },
-          data: { discount: null, promotion_id: null },
-        });
+        if (existingPromotion.name !== updatedata.name) {
+          updateFields.name = updatedata.name;
+        }
+        if (existingPromotion.description !== updatedata.description) {
+          updateFields.description = updatedata.description;
+        }
+        if (updatedata.expireAt) {
+          const newExpireDate = new Date(updatedata.expireAt.toString());
+          if (
+            existingPromotion.expireAt.getTime() !== newExpireDate.getTime()
+          ) {
+            updateFields.expireAt = newExpireDate;
+          }
+        }
 
-        await Promise.all(
-          updatedata.Products.map((product) =>
-            tx.products.updateMany({
-              where: { id: product?.id },
-              data: {
-                promotion_id: product?.discount ? updatedata.id : null,
-                discount: product?.discount?.percent ?? null,
-              },
-            })
-          )
-        );
+        // Only update if there are actual changes
+        if (Object.keys(updateFields).length > 0) {
+          await tx.promotion.update({
+            where: { id: updatedata.id },
+            data: updateFields,
+          });
+        }
       }
 
-      // Handle automatic category updates
-      if (updatedata.autocate && existingPromotion) {
-        const isAdded = await tx.childcategories.findFirst({
-          where: { name: existingPromotion.name },
-        });
+      // Handle banner update
+      if (
+        updatedata.type === "banner" &&
+        existingPromotion &&
+        updatedata.banner_id
+      ) {
+        const currentBannerId = existingPromotion.banner?.id;
 
-        if (!isAdded) {
-          const salecategory = await tx.parentcategories.findFirst({
+        if (currentBannerId !== updatedata.banner_id) {
+          const bannerUpdates = [];
+
+          // Add new banner
+          bannerUpdates.push(
+            tx.banner.update({
+              where: { id: updatedata.banner_id },
+              data: { promotionId: existingPromotion.id },
+            })
+          );
+
+          // Remove old banner if exists
+          if (currentBannerId) {
+            bannerUpdates.push(
+              tx.banner.update({
+                where: { id: currentBannerId },
+                data: { promotionId: null },
+              })
+            );
+          }
+
+          await Promise.all(bannerUpdates);
+        }
+      }
+
+      // Handle product updates with batch operations
+      if (updatedata.type === "editproduct" && updatedata.Products?.length) {
+        const productIds = updatedata.Products.map((p) => p.id);
+        const productsWithDiscount = updatedata.Products.filter(
+          (p) => p.discount
+        );
+        const productsWithoutDiscount = updatedata.Products.filter(
+          (p) => !p.discount
+        );
+
+        // Batch operations for better performance
+        const operations = [
+          // Remove promotion from products not in the list
+          tx.products.updateMany({
             where: {
+              promotion_id: updatedata.id,
+              id: { notIn: productIds },
+            },
+            data: { discount: null, promotion_id: null },
+          }),
+        ];
+
+        // Add products with discount
+        if (productsWithDiscount.length > 0) {
+          operations.push(
+            tx.products.updateMany({
+              where: { id: { in: productsWithDiscount.map((p) => p.id) } },
+              data: {
+                promotion_id: updatedata.id,
+                discount: null, // Will be updated individually below
+              },
+            })
+          );
+        }
+
+        // Remove promotion from products without discount
+        if (productsWithoutDiscount.length > 0) {
+          operations.push(
+            tx.products.updateMany({
+              where: { id: { in: productsWithoutDiscount.map((p) => p.id) } },
+              data: { promotion_id: null, discount: null },
+            })
+          );
+        }
+
+        await Promise.all(operations);
+
+        // Update individual discounts for products that have them
+        if (productsWithDiscount.length > 0) {
+          const discountUpdates = productsWithDiscount.map((product) =>
+            tx.products.update({
+              where: { id: product.id },
+              data: { discount: product.discount!.percent },
+            })
+          );
+
+          const orderUpdates = productsWithDiscount.map((product) =>
+            tx.orderproduct.updateMany({
+              where: {
+                productId: product.id,
+                order: {
+                  status: { in: [Allstatus.unpaid, Allstatus.incart] },
+                },
+              },
+              data: { discount: product.discount!.percent },
+            })
+          );
+
+          await Promise.all([...discountUpdates, ...orderUpdates]);
+        }
+
+        // Clear discounts for orders of products without discount
+        if (productsWithoutDiscount.length > 0) {
+          await tx.orderproduct.updateMany({
+            where: {
+              productId: { in: productsWithoutDiscount.map((p) => p.id) },
+              order: {
+                status: { in: [Allstatus.unpaid, Allstatus.incart] },
+              },
+            },
+            data: { discount: null },
+          });
+        }
+      }
+
+      // Handle automatic category with single query check
+      if (updatedata.autocate && existingPromotion) {
+        const [existingCategory, saleCategory] = await Promise.all([
+          tx.childcategories.findFirst({
+            where: { name: existingPromotion.name },
+            select: { id: true },
+          }),
+          tx.parentcategories.findFirst({
+            where: { type: categorytype.sale },
+            select: { id: true },
+          }),
+        ]);
+
+        if (!existingCategory && saleCategory) {
+          await tx.childcategories.create({
+            data: {
+              parentcategoriesId: saleCategory.id,
+              pid: existingPromotion.id,
+              name: existingPromotion.name,
               type: categorytype.sale,
             },
           });
-
-          if (!salecategory) {
-            throw new Error("No Sale Category Found");
-          }
-
-          await tx.childcategories.create({
-            data: {
-              parentcategoriesId: salecategory.id,
-              pid: existingPromotion.id,
-              name: existingPromotion.name,
-            },
-          });
+        } else if (!saleCategory) {
+          throw new Error("No Sale Category Found");
         }
       }
     });
 
-    // Return success response
     return Response.json({ message: "Update Successfully" }, { status: 200 });
   } catch (error) {
     console.error("Edit Promotion", error);
-    return Response.json({ message: "Editing Failed" }, { status: 500 });
+
+    const errorMessage =
+      error instanceof Error ? error.message : "Editing Failed";
+    const statusCode = errorMessage === "Promotion not found" ? 404 : 500;
+
+    return Response.json({ message: errorMessage }, { status: statusCode });
   }
 }
 

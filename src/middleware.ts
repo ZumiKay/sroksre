@@ -2,37 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { Role } from "@prisma/client";
 import { MethodType, verifyApiRoute } from "./lib/middlewareaction";
-import {
-  apiRateLimiter,
-  authRateLimiter,
-  getRateLimitKey,
-  globalRateLimiter,
-} from "./lib/rateLimiter";
 import { getCsrfToken } from "next-auth/react";
-
-function createRateLimitResponse(result: {
-  limit: number;
-  remaining: number;
-  retryAfter?: number;
-  reset: number;
-}) {
-  return new NextResponse(
-    JSON.stringify({
-      error: "Too many requests, please try again later",
-      retryAfter: result.retryAfter || 60,
-    }),
-    {
-      status: 429,
-      headers: {
-        "Content-Type": "application/json",
-        "Retry-After": String(result.retryAfter || 60),
-        "X-RateLimit-Limit": String(result.limit),
-        "X-RateLimit-Remaining": String(result.remaining),
-        "X-RateLimit-Reset": String(result.reset),
-      },
-    }
-  );
-}
+import { apiRateLimiter, getRateLimitKey } from "./lib/rateLimiter";
 
 // Define sensitive routes that need extra protection
 const SENSITIVE_ROUTES = ["/api/auth/r23646"];
@@ -65,16 +36,10 @@ export default async function middleware(req: NextRequest) {
     "camera=(), microphone=(), geolocation=()"
   );
 
-  const globalKey = getRateLimitKey(ip, "global");
-  const globalResult = globalRateLimiter.try(globalKey);
-
-  if (!globalResult.success) {
-    return createRateLimitResponse(globalResult);
-  }
-
   // Apply rate limiting for authentication endpoints
   if (RateLimitRoute.includes(url)) {
-    const rateLimitResult = authRateLimiter.try(ip);
+    const apiLimitKey = getRateLimitKey(ip, url);
+    const rateLimitResult = apiRateLimiter.try(apiLimitKey);
 
     if (!rateLimitResult.success) {
       return new NextResponse(

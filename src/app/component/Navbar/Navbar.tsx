@@ -115,6 +115,11 @@ export default function Navbar({ cartcount = 0 }: { cartcount?: number }) {
     }
   }, [router, user]);
 
+  const handleManageHomeItemsClose = useCallback(() => {
+    setprofile(true);
+    setopenmodal({ editHome: true });
+  }, [setopenmodal]);
+
   const toggleCategories = () => setcategories(!categories);
   const toggleNotification = () => setnotification(!opennotification);
   const openSearch = () =>
@@ -125,7 +130,9 @@ export default function Navbar({ cartcount = 0 }: { cartcount?: number }) {
   return (
     <>
       {status === "loading" && <ContainerLoading />}
-      {openmodal.mangageHomeItem && <CreateHomeItemModal />}
+      {openmodal.mangageHomeItem && (
+        <CreateHomeItemModal onClose={handleManageHomeItemsClose} />
+      )}
       <nav className="navbar__container sticky top-0 z-50 w-full h-[60px] bg-[#F3F3F3] flex flex-row justify-between item-center">
         {categories && <CategoriesContainer setopen={setcategories} />}
 

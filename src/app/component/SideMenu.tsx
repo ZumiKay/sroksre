@@ -159,7 +159,6 @@ export default function AccountMenu({ setProfile }: accountmenuprops) {
     // Save changes on home items ordering
     setLoading(true);
     try {
-      console.log({ homeItems });
       const response = await ApiRequest({
         url: "/api/home",
         method: "PUT",
@@ -215,7 +214,7 @@ export default function AccountMenu({ setProfile }: accountmenuprops) {
         successToast("Items deleted successfully");
       } catch (error) {
         errorToast("Failed to delete items");
-        console.error(error);
+        throw error;
       }
     };
 
@@ -250,12 +249,13 @@ export default function AccountMenu({ setProfile }: accountmenuprops) {
 
   const handleToggleHomeItemEdit = useCallback(() => {
     if (isEdit) handleDelete();
-    else setopenmodal({ mangageHomeItem: true });
+    else setopenmodal((prev) => ({ ...prev, mangageHomeItem: true }));
   }, [handleDelete, isEdit, setopenmodal]);
 
   const renderHomeEditor = () => (
     <div className="w-[90%] h-full flex flex-col items-center gap-y-8 py-6">
       <button
+        type="button"
         onClick={() => setopenmodal((prev) => ({ ...prev, editHome: false }))}
         className="w-full h-fit flex items-center gap-x-2 text-left text-lg font-medium cursor-pointer transition-colors hover:text-blue-600 pl-2"
       >

@@ -451,10 +451,12 @@ export interface OpenModalState {
   exportoption?: boolean;
   policymodal?: boolean;
   policyshowtype?: boolean;
+  editHome?: boolean;
   mangageHomeItem?: boolean;
   userdetail?: boolean;
   showproducts?: boolean;
   showbanner?: boolean;
+
   [key: string]: boolean | confirmmodaltype | alerttype | undefined;
 }
 

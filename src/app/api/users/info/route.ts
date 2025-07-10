@@ -83,6 +83,11 @@ export async function GET(request: NextRequest) {
                 price: true,
                 discount: true,
                 parentcategory_id: true,
+                promotion: {
+                  select: {
+                    expireAt: true,
+                  },
+                },
                 childcategory_id: true,
                 covers: {
                   select: {
@@ -96,9 +101,14 @@ export async function GET(request: NextRequest) {
         });
 
         result = productwishlist.map(({ product }) => {
-          const discount = product.discount
-            ? calculateDiscountPrice(product.price, product.discount)
-            : null;
+          const discount =
+            product.discount && product.promotion
+              ? calculateDiscountPrice({
+                  price: product.price,
+                  discount: product.discount,
+                  promoExpiry: product.promotion?.expireAt,
+                })
+              : null;
 
           return {
             ...product,

@@ -1,6 +1,5 @@
 "use client";
 import { motion, AnimatePresence } from "framer-motion";
-import PrimaryButton from "../component/Button";
 import { useGlobalContext } from "@/src/context/GlobalContext";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { Addquestiontype } from "./action";
@@ -17,7 +16,6 @@ import MenuIcon from "@mui/icons-material/Menu";
 import CancelIcon from "@mui/icons-material/Cancel";
 import { AddPolicyModal } from "../component/Modals/CreatePolicyModal";
 import { Typeofpolicy } from "@/src/context/GlobalType.type";
-
 interface sidebarContentType {
   id: number;
   title: string;
@@ -60,11 +58,11 @@ export const SidePolicyBar = memo(
       return {
         open: {
           x: 0,
-          boxShadow: "0 4px 12px rgba(0, 0, 0, 0.15)",
+          boxShadow: "0 10px 25px rgba(0, 0, 0, 0.2)",
           transition: {
             type: "spring",
-            stiffness: 300,
-            damping: 30,
+            stiffness: 350,
+            damping: 25,
             duration: 0.3,
           },
         },
@@ -73,13 +71,14 @@ export const SidePolicyBar = memo(
           boxShadow: "none",
           transition: {
             type: "spring",
-            stiffness: 300,
-            damping: 30,
+            stiffness: 350,
+            damping: 25,
             duration: 0.3,
           },
         },
       };
     }, []);
+
     const overlayVariants = useMemo(() => {
       return {
         open: {
@@ -95,37 +94,37 @@ export const SidePolicyBar = memo(
       };
     }, []);
 
-    // Overlay variants
-
     // Make sure we have data to render
     if (!data || data.length === 0) {
       return (
-        <div className="p-4 text-gray-500 border rounded-lg">
-          No policy items available
+        <div className="p-6 text-gray-500 border border-gray-200 rounded-xl bg-gray-50 dark:bg-gray-800 dark:border-gray-700 text-center">
+          <p className="text-sm font-medium">No policy items available</p>
         </div>
       );
     }
 
     return (
       <>
-        {/* Hamburger button - visible only on mobile/tablet */}
+        {/* Hamburger button - enhanced for better UX */}
         {!isDesktop && (
           <button
+            type="button"
             onClick={toggleSidebar}
-            className="fixed bottom-[5%] right-1 z-50 p-2 bg-white dark:bg-gray-800 shadow-lg rounded-full w-10 h-10 flex items-center justify-center transition-all hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            aria-label={isOpen ? "Close Menu" : "Open Menu"}
+            className="fixed bottom-6 right-4 z-50 p-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-xl rounded-full w-12 h-12 flex items-center justify-center transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-300 dark:focus:ring-blue-800"
+            aria-label={
+              isOpen ? "Close navigation menu" : "Open navigation menu"
+            }
           >
-            {isOpen ? (
-              <CancelIcon
-                fontSize="small"
-                className="text-gray-700 dark:text-gray-200"
-              />
-            ) : (
-              <MenuIcon
-                fontSize="small"
-                className="text-gray-700 dark:text-gray-200"
-              />
-            )}
+            <motion.div
+              animate={{ rotate: isOpen ? 180 : 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              {isOpen ? (
+                <CancelIcon fontSize="small" className="text-white" />
+              ) : (
+                <MenuIcon fontSize="small" className="text-white" />
+              )}
+            </motion.div>
           </button>
         )}
 
@@ -136,8 +135,9 @@ export const SidePolicyBar = memo(
               animate="open"
               exit="closed"
               variants={overlayVariants}
-              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
               onClick={() => setIsOpen(false)}
+              aria-hidden="true"
             />
           )}
         </AnimatePresence>
@@ -148,57 +148,87 @@ export const SidePolicyBar = memo(
           animate={isDesktop || isOpen ? "open" : "closed"}
           variants={!isDesktop ? sidebarVariants : undefined}
           className={`
-          h-fit w-[300px] bg-incart 
-          flex flex-col 
-          ${!isDesktop ? "fixed left-0 top-0 bottom-0 z-50" : ""}
-          ${isDesktop ? "" : ""}
-          border-r border-gray-100 dark:border-gray-700 lg:border-none
-        `}
+            h-fit w-[320px] bg-gradient-to-b from-white to-gray-50 dark:from-gray-900 dark:to-gray-800
+            flex flex-col 
+            ${!isDesktop ? "fixed left-0 top-0 bottom-0 z-50" : ""}
+            border-r border-gray-200 dark:border-gray-700
+            ${isDesktop ? "sticky top-0" : ""}
+          `}
+          role="navigation"
+          aria-label="Policy navigation"
         >
-          <div className="px-4 py-6 lg:py-4 border-b border-gray-100 dark:border-gray-700">
-            <h2 className="text-xl font-bold text-gray-800 dark:text-white">
+          {/* Enhanced header with better typography */}
+          <header className="px-6 py-6 lg:py-5 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white tracking-tight">
               Policies
             </h2>
-          </div>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 font-medium">
+              Browse our policies and guidelines
+            </p>
+          </header>
 
-          <div className="flex-grow overflow-y-auto px-3 py-4">
-            <div className="space-y-1">
+          {/* Enhanced scrollable content area */}
+          <nav
+            className="flex-grow overflow-y-auto px-4 py-6 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent"
+            role="menu"
+          >
+            <ul className="space-y-2" role="menuitem">
               {data.map((item, idx) => (
-                <div
-                  key={idx}
-                  onClick={() => handleNavigate && handleNavigate(item.id)}
-                  className={`
-                  py-2.5 px-4 rounded-lg text-base font-medium
-                  transition-all duration-200 select-none 
-                  hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer
-                  ${
-                    page?.toString() === item.id.toString()
-                      ? "bg-white text-black font-semibold"
-                      : "text-white"
-                  }
-                `}
-                >
-                  {item.title}
-                </div>
+                <li key={item.id ?? idx} role="none">
+                  <button
+                    type="button"
+                    onClick={() => handleNavigate && handleNavigate(item.id)}
+                    className={`
+                      w-full py-3 px-4 rounded-xl text-left text-base font-medium
+                      transition-all duration-200 select-none group
+                      focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
+                      dark:focus:ring-offset-gray-900
+                      ${
+                        page?.toString() === item.id.toString()
+                          ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg transform scale-[1.02] font-semibold"
+                          : "text-gray-700 dark:text-gray-300 hover:bg-gradient-to-r hover:from-blue-50 hover:to-blue-100 dark:hover:from-gray-800 dark:hover:to-gray-700 hover:text-blue-700 dark:hover:text-blue-300"
+                      }
+                    `}
+                    aria-current={
+                      page?.toString() === item.id.toString()
+                        ? "page"
+                        : undefined
+                    }
+                    role="button"
+                  >
+                    <span className="flex items-center justify-between">
+                      <span className="truncate">{item.title}</span>
+                      {page?.toString() === item.id.toString() && (
+                        <span className="ml-2 w-2 h-2 bg-white rounded-full animate-pulse" />
+                      )}
+                    </span>
+                  </button>
+                </li>
               ))}
-            </div>
-          </div>
+            </ul>
+          </nav>
 
+          {/* Enhanced admin section */}
           {user?.role === "ADMIN" && (
-            <div className="mt-auto p-4 border-t border-gray-100">
+            <footer className="mt-auto p-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
               <Button
                 onPress={() =>
                   setopenmodal((prev) => ({ ...prev, addpolicy: true }))
                 }
                 type="button"
                 style={{ width: "100%" }}
-                size="md"
-                className="flex items-center justify-center gap-2 font-medium shadow-sm hover:shadow bg-white"
-                startContent={<span className="text-lg">+</span>}
+                size="lg"
+                className="flex items-center justify-center gap-3 font-semibold shadow-lg hover:shadow-xl bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white border-0 transition-all duration-300 transform hover:scale-105 focus:ring-4 focus:ring-green-300 dark:focus:ring-green-800"
+                startContent={
+                  <span className="text-xl font-bold bg-white text-green-600 w-6 h-6 rounded-full flex items-center justify-center">
+                    +
+                  </span>
+                }
+                aria-label="Add new policy"
               >
                 Add New Policy
               </Button>
-            </div>
+            </footer>
           )}
         </motion.aside>
       </>
@@ -223,10 +253,20 @@ const deleteRequest = async (id: number, type: Typeofpolicy) => {
 //Question card animation
 const questioncardAnimation = {
   open: {
-    height: "100%",
+    height: "auto",
+    opacity: 1,
+    transition: {
+      height: { duration: 0.3, ease: "easeInOut" },
+      opacity: { duration: 0.25, delay: 0.1 },
+    },
   },
   closed: {
-    height: "100%",
+    height: "auto",
+    opacity: 1,
+    transition: {
+      height: { duration: 0.3, ease: "easeInOut" },
+      opacity: { duration: 0.2 },
+    },
   },
 };
 
@@ -255,56 +295,139 @@ export const QuestionCard = memo(
       });
     }, [data.id, setopenmodal]);
 
+    const toggleAccordion = useCallback(() => {
+      setopen(!open);
+    }, [open]);
+
+    // Generate structured data for SEO
+    const structuredData = useMemo(() => {
+      return {
+        "@type": "Question",
+        name: data.question,
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: data.answer,
+        },
+      };
+    }, [data.question, data.answer]);
+
     return (
       <>
-        <motion.div
+        {/* JSON-LD structured data for SEO */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(structuredData),
+          }}
+        />
+
+        <motion.article
           variants={questioncardAnimation}
           initial="closed"
           animate={open ? "open" : "closed"}
-          className="questioncard w-full  p-3 border-t-2 border-gray-300 flex flex-col items-start gap-y-5"
+          className="bg-white dark:bg-gray-800 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-300 border border-gray-200 dark:border-gray-700 overflow-hidden"
+          itemScope
+          itemType="https://schema.org/Question"
         >
-          <div className="w-full h-fit flex flex-row justify-between items-center">
-            <label className="text-lg font-medium w-full">
-              {data.question}
-            </label>
-            <div className="w-[50px] " onClick={() => setopen(!open)}>
-              <TabArrow width="30" height="30" type={open ? "up" : "down"} />
-            </div>
-          </div>
+          {/* Question Header */}
+          <header className="w-full">
+            <button
+              type="button"
+              onClick={toggleAccordion}
+              className="w-full p-4 lg:p-6 flex flex-row justify-between items-center hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset"
+              aria-controls={`answer-${idx}`}
+              id={`question-${idx}`}
+            >
+              <h3
+                className="text-lg lg:text-xl font-semibold text-gray-900 dark:text-white text-left leading-relaxed pr-4"
+                itemProp="name"
+              >
+                {data.question}
+              </h3>
+
+              <div
+                className="flex-shrink-0 w-8 h-8 flex items-center justify-center"
+                aria-hidden="true"
+              >
+                <motion.div
+                  animate={{ rotate: open ? 180 : 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <TabArrow width="24" height="24" type="down" />
+                </motion.div>
+              </div>
+            </button>
+          </header>
+
+          {/* Answer Content */}
           <AnimatePresence>
             {open && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="answer w-full"
+              <motion.section
+                id={`answer-${idx}`}
+                role="region"
+                aria-labelledby={`question-${idx}`}
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{
+                  duration: 0.3,
+                  ease: "easeInOut",
+                  opacity: { duration: 0.25 },
+                }}
+                className="border-t border-gray-100 dark:border-gray-700"
+                itemScope
+                itemType="https://schema.org/Answer"
               >
-                {data.answer}
-              </motion.div>
+                <div className="p-4 lg:p-6">
+                  <div
+                    className="text-gray-700 dark:text-gray-300 leading-relaxed prose prose-sm max-w-none"
+                    itemProp="text"
+                    dangerouslySetInnerHTML={{
+                      __html: data.answer,
+                    }}
+                  />
+                </div>
+
+                {/* Admin Controls */}
+                {isAdmin && isEdit && (
+                  <footer className="px-4 lg:px-6 pb-4 lg:pb-6 pt-2 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-750">
+                    <div className="flex flex-row items-center gap-3">
+                      <Button
+                        size="sm"
+                        variant="flat"
+                        color="primary"
+                        onPress={() =>
+                          setopenmodal((prev) => ({
+                            ...prev,
+                            [openstate]: true,
+                          }))
+                        }
+                        className="font-medium"
+                        startContent={<span className="text-sm">✏️</span>}
+                        aria-label={`Edit question: ${data.question}`}
+                      >
+                        Edit
+                      </Button>
+
+                      <Button
+                        size="sm"
+                        variant="flat"
+                        color="danger"
+                        onPress={handleConfirmDelete}
+                        className="font-medium"
+                        startContent={<span className="text-sm">🗑️</span>}
+                        aria-label={`Delete question: ${data.question}`}
+                      >
+                        Delete
+                      </Button>
+                    </div>
+                  </footer>
+                )}
+              </motion.section>
             )}
           </AnimatePresence>
+        </motion.article>
 
-          {isAdmin && isEdit && (
-            <div className="btn_con flex flex-row items-center gap-x-5">
-              <PrimaryButton
-                text="Edit"
-                type="button"
-                radius="10px"
-                color="#4688A0"
-                onClick={() =>
-                  setopenmodal((prev) => ({ ...prev, [openstate]: true }))
-                }
-              />
-              <PrimaryButton
-                text="Delete"
-                type="button"
-                radius="10px"
-                onClick={() => handleConfirmDelete()}
-                color="lightcoral"
-              />
-            </div>
-          )}
-        </motion.div>
         {openmodal[openstate] && (
           <AddPolicyModal qa={[data]} edit={true} openstate={openstate} />
         )}

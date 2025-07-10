@@ -1,5 +1,3 @@
-"use client";
-import { QuestionCard, SidePolicyBar } from "./component";
 import { Addpolicytype, Addquestiontype } from "./action";
 import { use, useCallback, useEffect, useMemo, useState } from "react";
 import { ApiRequest, useCheckSession } from "@/src/context/CustomHook";
@@ -16,6 +14,7 @@ import { Showtypemodal } from "./secondcomponent";
 import { ConfirmModal } from "../component/Modals/Alert_Modal";
 import { Typeofpolicy } from "@/src/context/GlobalType.type";
 import { Button } from "@heroui/react";
+import { QuestionCard, SidePolicyBar } from "./component";
 
 type PageParamType = {
   p?: string;
