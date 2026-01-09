@@ -7,6 +7,7 @@ import { errorToast, successToast } from "../Loading";
 import Modal from "../Modals";
 import { ApiRequest } from "@/src/context/CustomHook";
 import PrimaryButton from "../Button";
+import { motion } from "framer-motion";
 import {
   Box,
   Chip,
@@ -55,46 +56,90 @@ export const UpdateStockModal = ({
   };
   return (
     <Modal closestate={closename}>
-      <div className="updatestock w-[100%] h-[100%] rounded-lg flex flex-col items-center justify-center gap-y-5 bg-white p-1">
-        <label className="text-lg font-bold">Update Stock </label>
-        <input
-          type="number"
-          placeholder="Stock"
-          name="stock"
-          min={0}
-          max={1000}
-          onChange={(e) => {
-            const { value } = e.target;
-            const val = parseInt(value);
-            setproduct((prev) => ({ ...prev, stock: val }));
-          }}
-          value={product.stock}
-          required
-          className="w-[80%] h-[50px] text-lg pl-1 font-bold bg-[#D9D9D9] rounded-md "
-        />
-        <PrimaryButton
-          color="#44C3A0"
-          text="Update"
-          type="button"
-          onClick={() => handleUpdate()}
-          radius="10px"
-          status={isLoading.PUT ? "loading" : "authenticated"}
-          width="80%"
-          height="50px"
-        />{" "}
-        <PrimaryButton
-          color="#F08080"
-          text="Cancel"
-          type="button"
-          radius="10px"
-          width="80%"
-          height="50px"
-          disable={isLoading.PUT}
-          onClick={() => {
-            setopenmodal((prev) => ({ ...prev, [closename]: false }));
-          }}
-        />
-      </div>
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.3 }}
+        className="updatestock w-full h-full rounded-2xl flex flex-col gap-y-6 bg-gradient-to-br from-white to-blue-50 p-6 shadow-xl border-2 border-blue-200"
+      >
+        <div className="w-full space-y-2 pb-4 border-b-2 border-blue-200">
+          <h4 className="text-2xl font-bold text-gray-800 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center">
+              <i className="fa-solid fa-boxes-stacked text-white"></i>
+            </div>
+            Update Stock
+          </h4>
+          <p className="text-sm text-gray-500 ml-13">
+            Adjust the inventory quantity for this product
+          </p>
+        </div>
+
+        <div className="w-full bg-white rounded-xl p-5 border-2 border-gray-200 shadow-sm space-y-3">
+          <div className="flex items-center gap-2">
+            <i className="fa-solid fa-warehouse text-lg text-blue-500"></i>
+            <h5 className="font-bold text-gray-800">Stock Quantity</h5>
+          </div>
+          <input
+            type="number"
+            placeholder="Enter stock quantity"
+            name="stock"
+            min={0}
+            max={1000}
+            onChange={(e) => {
+              const { value } = e.target;
+              const val = parseInt(value);
+              setproduct((prev) => ({ ...prev, stock: val }));
+            }}
+            value={product.stock}
+            required
+            className="w-full h-14 text-lg px-4 font-bold rounded-xl border-2 border-gray-300 focus:border-blue-500 focus:outline-none transition-colors"
+          />
+          <p className="text-xs text-gray-500 flex items-center gap-1">
+            <i className="fa-solid fa-info-circle"></i>
+            Maximum allowed: 1000 units
+          </p>
+        </div>
+
+        <div className="w-full flex flex-row gap-4">
+          <button
+            type="button"
+            onClick={() => handleUpdate()}
+            disabled={isLoading.PUT}
+            className={`w-full h-14 rounded-xl font-bold text-base transition-all duration-300 shadow-lg flex items-center justify-center gap-2 ${
+              isLoading.PUT
+                ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                : "bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:from-green-600 hover:to-emerald-700 hover:shadow-xl hover:scale-[1.02]"
+            }`}
+          >
+            {isLoading.PUT ? (
+              <>
+                <i className="fa-solid fa-spinner fa-spin"></i>
+                <span>Updating...</span>
+              </>
+            ) : (
+              <>
+                <i className="fa-solid fa-check"></i>
+                <span>Update Stock</span>
+              </>
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setopenmodal((prev) => ({ ...prev, [closename]: false }));
+            }}
+            disabled={isLoading.PUT}
+            className={`w-full h-14 rounded-xl font-bold text-base transition-all duration-300 shadow-lg flex items-center justify-center gap-2 ${
+              isLoading.PUT
+                ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                : "bg-gradient-to-r from-pink-500 to-red-600 text-white hover:from-pink-600 hover:to-red-700 hover:shadow-xl hover:scale-[1.02]"
+            }`}
+          >
+            <i className="fa-solid fa-times"></i>
+            <span>Cancel</span>
+          </button>
+        </div>
+      </motion.div>
     </Modal>
   );
 };

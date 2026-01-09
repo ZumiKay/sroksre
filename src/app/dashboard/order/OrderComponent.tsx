@@ -26,6 +26,7 @@ import * as XLSX from "xlsx";
 import { AllorderType, isObjectEmpty } from "@/src/lib/utilities";
 import { shippingtype } from "../../component/Modals/User";
 import PaginationCustom from "../../component/Pagination_Component";
+import { PaginationServer } from "../../component/PaginationServer";
 import { Input } from "@nextui-org/react";
 import { useScreenSize } from "@/src/context/CustomHook";
 import React from "react";
@@ -284,18 +285,8 @@ export interface ModalDataType {
   action?: OrderUserType;
 }
 
-export const ButtonSsr = ({
-  width,
-  height,
-  name,
-  color,
-  type,
-  idx,
-  id,
-  data,
-  orderdata,
-  isAdmin,
-}: {
+// Enhanced ButtonSsr with improved performance and modern styling
+interface ButtonSsrProps {
   id: string;
   idx: number;
   width: string;
@@ -306,78 +297,140 @@ export const ButtonSsr = ({
   type: string;
   data?: ModalDataType;
   isAdmin: boolean;
-}) => {
-  const { openmodal, setopenmodal } = useGlobalContext();
-  const router = useRouter();
-  const searchParams = useSearchParams();
+}
 
-  const clickedtype = `${type}${idx}`;
-  const handleClick = () => {
-    const param = new URLSearchParams(searchParams);
-    param.set("id", id);
-    param.set("ty", type);
+export const ButtonSsr = React.memo(
+  ({
+    width,
+    height,
+    name,
+    color,
+    type,
+    idx,
+    id,
+    data,
+    orderdata,
+    isAdmin,
+  }: ButtonSsrProps) => {
+    const { openmodal, setopenmodal } = useGlobalContext();
+    const router = useRouter();
+    const searchParams = useSearchParams();
 
-    const newurl = `?${param}`;
-    setopenmodal((prev) => ({ ...prev, [clickedtype]: true }));
+    const clickedtype = React.useMemo(() => `${type}${idx}`, [type, idx]);
 
-    router.push(newurl);
-  };
+    const handleClick = React.useCallback(() => {
+      const param = new URLSearchParams(searchParams);
+      param.set("id", id);
+      param.set("ty", type);
 
-  const handleClose = () => {
-    const url = new URL(window.location.href);
-    url.searchParams.delete("id");
-    url.searchParams.delete("ty");
-    setopenmodal((prev) => ({ ...prev, [clickedtype]: false }));
-    router.replace(url.pathname + url.search);
-  };
+      setopenmodal((prev) => ({ ...prev, [clickedtype]: true }));
+      router.push(`?${param.toString()}`);
+    }, [searchParams, id, type, clickedtype, setopenmodal, router]);
 
-  return (
-    <>
-      <PrimaryButton
-        type="button"
-        radius="10px"
-        text={name}
-        color={color}
-        height={height}
-        width={width}
-        style={{ minWidth: "100px" }}
-        onClick={() => handleClick()}
-      />
-      {openmodal[clickedtype] && (
-        <>
-          {type.startsWith(AllorderType.orderdetail) ? (
-            <DetailModal
-              key={idx}
-              close={clickedtype}
-              data={data?.detail as OrderDetailType}
-              orderdata={orderdata as AllorderStatus}
-              setclose={handleClose}
-              isAdmin={isAdmin}
-            />
-          ) : type.startsWith(AllorderType.orderproduct) ? (
-            <OrderProductDetailsModal
-              key={idx}
-              close={clickedtype}
-              setclose={handleClose}
-              data={data?.product as Productordertype[]}
-            />
-          ) : type.startsWith(AllorderType.orderaction) ? (
-            <ActionModal
-              key={idx}
-              close={clickedtype}
-              types="none"
-              oid={id}
-              setclose={handleClose}
-              order={data?.action as unknown as OrderUserType}
-            />
-          ) : (
-            <></>
-          )}
-        </>
-      )}
-    </>
-  );
-};
+    const handleClose = React.useCallback(() => {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("id");
+      url.searchParams.delete("ty");
+      setopenmodal((prev) => ({ ...prev, [clickedtype]: false }));
+      router.replace(url.pathname + url.search);
+    }, [clickedtype, setopenmodal, router]);
+
+    const isModalOpen = openmodal[clickedtype];
+
+    // Determine modal type and render appropriate modal
+    const renderModal = React.useMemo(() => {
+      if (!isModalOpen) return null;
+
+      if (type.startsWith(AllorderType.orderdetail)) {
+        return (
+          <DetailModal
+            key={idx}
+            close={clickedtype}
+            data={data?.detail as OrderDetailType}
+            orderdata={orderdata as AllorderStatus}
+            setclose={handleClose}
+            isAdmin={isAdmin}
+          />
+        );
+      }
+
+      if (type.startsWith(AllorderType.orderproduct)) {
+        return (
+          <OrderProductDetailsModal
+            key={idx}
+            close={clickedtype}
+            setclose={handleClose}
+            data={data?.product as Productordertype[]}
+          />
+        );
+      }
+
+      if (type.startsWith(AllorderType.orderaction)) {
+        return (
+          <ActionModal
+            key={idx}
+            close={clickedtype}
+            types="none"
+            oid={id}
+            setclose={handleClose}
+            order={data?.action as unknown as OrderUserType}
+          />
+        );
+      }
+
+      return null;
+    }, [
+      isModalOpen,
+      type,
+      idx,
+      clickedtype,
+      data,
+      orderdata,
+      isAdmin,
+      id,
+      handleClose,
+    ]);
+
+    return (
+      <>
+        <button
+          type="button"
+          onClick={handleClick}
+          className="relative min-w-[100px] px-4 py-2 rounded-xl font-medium text-white 
+                   bg-gradient-to-r from-blue-600 to-purple-600 
+                   hover:from-blue-700 hover:to-purple-700 
+                   active:scale-95 
+                   shadow-md hover:shadow-lg 
+                   transition-all duration-200 ease-in-out
+                   focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2
+                   disabled:opacity-50 disabled:cursor-not-allowed"
+          style={{
+            width: width === "auto" ? undefined : width,
+            height: height === "auto" ? undefined : height,
+            ...(color && { background: color }),
+          }}
+        >
+          <span className="relative z-10">{name}</span>
+          <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-blue-400 to-purple-400 opacity-0 hover:opacity-20 transition-opacity duration-200" />
+        </button>
+        {renderModal}
+      </>
+    );
+  },
+  (prevProps, nextProps) => {
+    // Custom comparison for memo - only re-render if critical props change
+    return (
+      prevProps.id === nextProps.id &&
+      prevProps.name === nextProps.name &&
+      prevProps.type === nextProps.type &&
+      prevProps.idx === nextProps.idx &&
+      prevProps.isAdmin === nextProps.isAdmin &&
+      prevProps.color === nextProps.color
+    );
+  }
+);
+
+ButtonSsr.displayName = "ButtonSsr";
 
 export interface Filterdatatype {
   q?: string;

@@ -2,9 +2,8 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { VerifyApiRoute, methodtype } from "./lib/middlewareaction";
-
 import { getToken } from "next-auth/jwt";
-import { Role } from "@prisma/client";
+import { Role } from "@/prisma/generated/prisma/enums";
 
 export default async function middleware(req: NextRequest) {
   const requestURL = (path: string) => req.nextUrl.pathname.endsWith(path);

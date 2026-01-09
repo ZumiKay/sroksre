@@ -143,7 +143,7 @@ export const getmaxqtybaseStockType = (
   product: ProductState,
   selected_detail: Array<string>
 ) => {
-  const { stocktype, varaintstock, stock } = product;
+  const { stocktype, stock, Stock } = product;
 
   let qty = 0;
 
@@ -151,7 +151,7 @@ export const getmaxqtybaseStockType = (
     qty = stock as number;
   } else if (stocktype === "variant") {
     const selectedvalueset = new Set(selected_detail.map((i) => i));
-    varaintstock?.forEach((variant) => {
+    Stock?.forEach((variant) => {
       variant.Stockvalue.forEach((stock) => {
         if (
           stock.variant_val.length === selectedvalueset.size &&

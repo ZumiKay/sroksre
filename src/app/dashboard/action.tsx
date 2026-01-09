@@ -5,7 +5,7 @@ import { hashedpassword } from "@/src/lib/userlib";
 import { compareSync } from "bcryptjs";
 import { generateRandomNumber } from "@/src/lib/utilities";
 import { revalidateTag } from "next/cache";
-import { getUser } from "@/src/context/OrderContext";
+import { getUser } from "@/src/lib/session";
 import { handleEmail } from "../checkout/action";
 
 interface returntype {

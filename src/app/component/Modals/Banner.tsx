@@ -230,14 +230,18 @@ export const BannerModal = ({
       placement="center"
       footer={() => {
         return (
-          <div className="actions_con w-full h-fit flex flex-row gap-x-10">
+          <div className="actions_con w-full h-fit flex flex-row gap-4 p-4 bg-gradient-to-r from-gray-50 to-white border-t-2 border-gray-200">
             <PrimaryButton
               onClick={() => handleCreate()}
-              text={globalindex.bannereditindex !== -1 ? "Edit" : "Create"}
+              text={
+                globalindex.bannereditindex !== -1
+                  ? "Update Banner"
+                  : "Create Banner"
+              }
               width="100%"
               type="button"
               status={loading ? "loading" : "authenticated"}
-              radius="10px"
+              radius="12px"
             />
             <PrimaryButton
               text="Cancel"
@@ -246,20 +250,28 @@ export const BannerModal = ({
               color="lightcoral"
               type="button"
               width="100%"
-              radius="10px"
+              radius="12px"
             />
           </div>
         );
       }}
     >
-      <div className="bannermodal_content bg-white p-3 relative max-small_phone:rounded-none rounded-lg w-full h-full max-small_phone:min-h-screen overflow-x-hidden  flex flex-col gap-y-5 items-center">
+      <div className="bannermodal_content bg-gradient-to-br from-gray-50 via-white to-blue-50/30 p-6 relative max-small_phone:rounded-none rounded-2xl w-full h-full max-small_phone:min-h-screen overflow-x-hidden flex flex-col gap-y-6 items-center">
         <div
           style={banner.size === "normal" ? { width: "100%" } : {}}
-          className="image_container flex flex-col w-fit items-center justify-center h-fit"
+          className="image_container flex flex-col w-fit items-center justify-center h-fit group"
         >
+          <div className="mb-3 text-center">
+            <h3 className="text-lg font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              Banner Preview
+            </h3>
+            <p className="text-sm text-gray-500 mt-1">
+              This is how your banner will appear
+            </p>
+          </div>
           <div
             style={banner.size === "normal" ? { width: "100%" } : {}}
-            className="flex flex-col w-full max-w-[80%] max-large_phone:max-w-full max-h-[80vh] min-h-[250px]"
+            className="flex flex-col w-full max-w-[80%] max-large_phone:max-w-full max-h-[80vh] min-h-[250px] rounded-2xl overflow-hidden border-4 border-gray-200 shadow-2xl hover:shadow-blue-200 transition-all duration-300 bg-white"
           >
             <img
               src={banner.image.url}
@@ -272,56 +284,72 @@ export const BannerModal = ({
                     }
                   : { width: "100%", height: isMobile ? "200px" : "auto" }
               }
-              className="w-full min-h-[250px] mt-2 object-cover"
+              className="w-full min-h-[250px] object-cover transition-transform duration-300 group-hover:scale-105"
               loading="lazy"
             />
           </div>
         </div>
 
-        <div className="bannerform flex flex-col gap-y-5 justify-start items-center w-full h-full">
-          <div className="w-full h-fit flex flex-col gap-y-5">
+        <div className="bannerform flex flex-col gap-y-6 justify-start items-center w-full h-full">
+          <div className="w-full h-fit flex flex-col gap-y-6 bg-white rounded-2xl p-6 shadow-lg border-2 border-gray-200">
+            <div className="space-y-2">
+              <h4 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+                <i className="fa-solid fa-flag text-blue-500"></i>
+                Banner Details
+              </h4>
+              <p className="text-sm text-gray-500">
+                Configure your banner settings
+              </p>
+            </div>
+
             <Input
               size="lg"
               name="name"
-              label="Name"
+              label="Banner Name"
               labelPlacement="outside"
-              placeholder="Name"
+              placeholder="Enter banner name"
               type="text"
               value={banner.name}
               className="w-full font-bold"
               onChange={handleChange}
+              classNames={{
+                label: "text-gray-700 font-semibold",
+                input: "bg-gray-50",
+              }}
             />
-            <div
-              className="w-1/2 h-fit flex flex-col gap-y-5
-            max-small_phone:w-full
-            "
-            >
-              <label className="font-bold text-lg">Banner Type</label>
-              <Selection
-                data={BannerType}
-                value={banner.type}
-                name="type"
-                onChange={handleChange}
-              />
-            </div>
-            <div
-              className="w-1/2 h-fit flex flex-col gap-y-5 
-            max-small_phone:w-full
-            "
-            >
-              <label className="font-bold text-lg">Banner Size</label>
-              <Selection
-                data={BannerSize}
-                value={banner.size}
-                name="size"
-                onChange={handleChange}
-              />
+
+            <div className="grid grid-cols-2 gap-4 max-small_phone:grid-cols-1">
+              <div className="h-fit flex flex-col gap-y-3">
+                <label className="font-semibold text-base text-gray-700 flex items-center gap-2">
+                  <i className="fa-solid fa-layer-group text-purple-500"></i>
+                  Banner Type
+                </label>
+                <Selection
+                  data={BannerType}
+                  value={banner.type}
+                  name="type"
+                  onChange={handleChange}
+                />
+              </div>
+              <div className="h-fit flex flex-col gap-y-3">
+                <label className="font-semibold text-base text-gray-700 flex items-center gap-2">
+                  <i className="fa-solid fa-expand text-green-500"></i>
+                  Banner Size
+                </label>
+                <Selection
+                  data={BannerSize}
+                  value={banner.size}
+                  name="size"
+                  onChange={handleChange}
+                />
+              </div>
             </div>
           </div>
           <div className="w-full h-fit flex flex-row items-start gap-5 flex-wrap">
             {banner.linktype === "product" && (
-              <div className="w-full h-fit flex flex-col gap-y-5">
-                <label className="w-full h-fit text-lg font-bold">
+              <div className="w-full h-fit flex flex-col gap-y-4 bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl p-6 shadow-md border-2 border-blue-200">
+                <label className="w-full h-fit text-lg font-bold text-gray-800 flex items-center gap-2">
+                  <i className="fa-solid fa-box text-blue-500"></i>
                   Select Products
                 </label>
                 <SelectAndSearchProduct
@@ -334,8 +362,11 @@ export const BannerModal = ({
               </div>
             )}
             {banner.type !== "normal" && (
-              <div className="w-full h-fit flex flex-col gap-y-5">
-                <label className="font-bold text-lg">Link Type</label>
+              <div className="w-full h-fit flex flex-col gap-y-4 bg-gradient-to-br from-orange-50 to-yellow-50 rounded-2xl p-6 shadow-md border-2 border-orange-200">
+                <label className="font-bold text-lg text-gray-800 flex items-center gap-2">
+                  <i className="fa-solid fa-link text-orange-500"></i>
+                  Link Type
+                </label>
                 <Selection
                   data={Linktype.filter((i) => {
                     if (banner.type === "product") {
@@ -353,8 +384,9 @@ export const BannerModal = ({
           </div>
 
           {banner.linktype === "parent" && (
-            <div className="w-full h-fit flex flex-col gap-y-5">
-              <label className="w-full h-fit text-lg font-bold">
+            <div className="w-full h-fit flex flex-col gap-y-4 bg-gradient-to-br from-green-50 to-teal-50 rounded-2xl p-6 shadow-md border-2 border-green-200">
+              <label className="w-full h-fit text-lg font-bold text-gray-800 flex items-center gap-2">
+                <i className="fa-solid fa-folder-tree text-green-500"></i>
                 Parent Category
               </label>
               <SelectAndSearchProduct
@@ -367,9 +399,10 @@ export const BannerModal = ({
             </div>
           )}
           {banner.linktype === "sub" && (
-            <div className="w-full h-fit flex flex-row items-start flex-wrap gap-5">
-              <div className="w-full h-fit flex flex-col gap-y-5">
-                <label className="w-full h-fit text-lg font-bold">
+            <div className="w-full h-fit flex flex-col gap-5 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl p-6 shadow-md border-2 border-indigo-200">
+              <div className="w-full h-fit flex flex-col gap-y-4">
+                <label className="w-full h-fit text-lg font-bold text-gray-800 flex items-center gap-2">
+                  <i className="fa-solid fa-folder text-indigo-500"></i>
                   Parent Category
                 </label>
                 <SelectAndSearchProduct
@@ -381,8 +414,9 @@ export const BannerModal = ({
                 />
               </div>
               {banner.parentcate && (
-                <div className="w-full h-fit flex flex-col gap-y-5">
-                  <label className="w-full h-fit text-lg font-bold">
+                <div className="w-full h-fit flex flex-col gap-y-4 animate-fadeIn">
+                  <label className="w-full h-fit text-lg font-bold text-gray-800 flex items-center gap-2">
+                    <i className="fa-solid fa-folder-open text-purple-500"></i>
                     Child Category
                   </label>
                   <SelectAndSearchProduct
@@ -404,18 +438,18 @@ export const BannerModal = ({
               )}
             </div>
           )}
-          <PrimaryButton
-            text={banner.image?.url.length > 0 ? "EditImage" : "UploadImage"}
-            width="100%"
+          <button
             type="button"
-            color="lightblue"
-            textcolor="black"
-            hoverColor="black"
-            hoverTextColor="white"
             onClick={() => setopenmodal({ ...openmodal, imageupload: true })}
-            Icon={<i className="fa-regular fa-image text-lg text-white"></i>}
-            radius="10px"
-          />
+            className="w-full h-16 rounded-2xl font-bold text-lg transition-all duration-300 shadow-lg hover:shadow-2xl bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700 flex items-center justify-center gap-3 group"
+          >
+            <i className="fa-regular fa-image text-2xl group-hover:scale-110 transition-transform duration-300"></i>
+            <span>
+              {banner.image?.url.length > 0
+                ? "Change Banner Image"
+                : "Upload Banner Image"}
+            </span>
+          </button>
         </div>
       </div>
 

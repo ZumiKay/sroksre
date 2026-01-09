@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Prisma from "@/src/lib/prisma";
 import { handleUpload, HandleUploadBody } from "@vercel/blob/client";
-import { getUser } from "@/src/context/OrderContext";
+import { getUser } from "@/src/lib/session";
 import { del } from "@vercel/blob";
 
 interface DataCoverType {
@@ -25,8 +25,6 @@ export async function POST(request: Request) {
         /* clientPayload */
       ) => {
         // Generate a client token for the browser to upload the file
-        // ⚠️ Authenticate and authorize users before generating the token.
-        // Otherwise, you're allowing anonymous uploads.
 
         const user = await getUser();
 
@@ -54,19 +52,6 @@ export async function POST(request: Request) {
             pathname,
           }),
         };
-      },
-      onUploadCompleted: async ({ blob, tokenPayload }) => {
-        // Get notified of client upload completion
-        // ⚠️ This will not work on `localhost` websites,
-        // Use ngrok or similar to get the full upload flow
-
-        console.log("blob upload completed", blob, tokenPayload);
-
-        try {
-          console.log("Save Url To Database");
-        } catch (error) {
-          throw new Error("Could not update user");
-        }
       },
     });
 

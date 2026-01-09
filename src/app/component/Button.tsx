@@ -46,55 +46,64 @@ interface buttonpros {
 }
 export default function PrimaryButton(props: buttonpros) {
   const [hover, sethover] = useState(false);
+  const [active, setactive] = useState(false);
 
   return (
     <button
       type={props.type}
-      className="primary__button relative rounded-sm border-0 font-bold p-1"
+      className="primary__button relative font-semibold transition-all duration-300 ease-in-out 
+        shadow-sm hover:shadow-md active:shadow-inner
+        transform hover:-translate-y-0.5 active:translate-y-0"
       onClick={
         props.disable || props.status === "loading" ? () => {} : props.onClick
       }
       onMouseEnter={() => sethover(true)}
       onMouseLeave={() => sethover(false)}
+      onMouseDown={() => setactive(true)}
+      onMouseUp={() => setactive(false)}
       style={{
         textAlign: props.textalign ?? "center",
         width: props.width ?? "150px",
         height: props.height ?? "40px",
         fontSize: props.textsize ?? "15px",
-        opacity: props.disable ? (props.disable ? 0.3 : 1) : 1,
-        backgroundColor: hover
-          ? props.hoverColor ?? "white"
-          : props.color
+        opacity: props.disable ? 0.5 : 1,
+        backgroundColor: active
           ? props.color
-          : "",
-        borderRadius: props.radius ?? "0px",
-        border: props.border ?? "0px",
+            ? `${props.color}dd`
+            : "#00000088"
+          : hover
+          ? props.hoverColor ?? (props.color ? `${props.color}ee` : "#000000cc")
+          : props.color ?? "#000000",
+        borderRadius: props.radius ?? "8px",
+        border: props.border ?? "none",
         color: hover
-          ? props.hoverTextColor ?? "black"
-          : props.textcolor
-          ? props.textcolor
-          : "white",
+          ? props.hoverTextColor ?? "white"
+          : props.textcolor ?? "white",
         position: props.postion,
         top: props.top,
         left: props.left,
         right: props.right,
         bottom: props.bottom,
         zIndex: props.zI,
-        cursor: props.disable
-          ? props.disable
-            ? "not-allowed"
-            : "pointer"
-          : "pointer",
+        cursor: props.disable ? "not-allowed" : "pointer",
+        padding: "0.5rem 1rem",
+        outline: "none",
+        userSelect: "none",
+        WebkitTapHighlightColor: "transparent",
         ...props.style,
       }}
     >
       {props.status === "loading" ? (
-        <h3 className="loading-text font-bold w-full h-fit"> Loading...</h3>
+        <div className="flex items-center justify-center gap-2">
+          <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+          <span className="font-medium">Loading...</span>
+        </div>
       ) : (
-        <div className="w-full h-full flex flex-row items-center justify-center gap-5 ">
-          {" "}
-          {props.Icon && props.Icon}
-          <p>{props.text}</p>{" "}
+        <div className="w-full h-full flex flex-row items-center justify-center gap-2">
+          {props.Icon && (
+            <span className="flex items-center">{props.Icon}</span>
+          )}
+          <span className="whitespace-nowrap">{props.text}</span>
         </div>
       )}
     </button>

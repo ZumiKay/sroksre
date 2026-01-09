@@ -24,6 +24,7 @@ interface JwtType {
 }
 
 export const authOptions: NextAuthOptions = {
+  secret: process.env.NEXTAUTH_SECRET,
   pages: {
     signIn: "../../../account/page.tsx",
     error: "/error.tsx",
@@ -88,39 +89,56 @@ export const authOptions: NextAuthOptions = {
     },
 
     async jwt(params): Promise<any> {
-      if (params.token) {
-        let user = params?.user as any;
-        const jwt = params.token as unknown as JwtType;
-        let token = {
-          email: user?.email ?? jwt.email,
-          session_id: user?.sessionid ?? jwt.session_id,
-          role: user?.role ?? jwt.role,
-          id: user?.id ?? jwt.id,
+      const { token, user, account } = params;
+
+      // Initial sign in - user object is available
+      if (user) {
+        const userData = user as any;
+        let tokenData = {
+          email: userData.email,
+          session_id: userData.sessionid,
+          role: userData.role,
+          id: userData.id,
+          name: userData.name,
         };
 
-        if (
-          params.account?.provider &&
-          params.account.provider !== "credentials"
-        ) {
-          const oauthUser = await getOAuthInfo(user.id, user.email);
-
-          token = {
-            ...token,
+        // Handle OAuth providers
+        if (account?.provider && account.provider !== "credentials") {
+          const oauthUser = await getOAuthInfo(userData.id, userData.email);
+          tokenData = {
+            ...tokenData,
             id: oauthUser?.id,
             role: oauthUser?.role,
             session_id: oauthUser.session_id,
           };
         }
 
-        return token;
+        return { ...token, ...tokenData };
       }
-      return null;
+
+      // Subsequent requests - return existing token
+      return token;
     },
     async session(params): Promise<any> {
-      //checksesstion
+      let { session, token } = params;
 
-      let session = { ...params.session };
-      session.user = { ...params.token };
+      // Ensure user data from token is added to session
+      if (token && token.email && token.id) {
+        (session.user as any) = {
+          email: token.email,
+          name: token.name,
+          session_id: token.session_id || "",
+          role: token.role || "USER",
+          id: token.id,
+          sub: token.id,
+        };
+      } else {
+        console.warn("Session callback: Invalid or incomplete token", {
+          hasToken: !!token,
+          hasEmail: !!token?.email,
+          hasId: !!token?.id,
+        });
+      }
 
       return session;
     },

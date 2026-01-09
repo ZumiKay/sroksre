@@ -1,4 +1,4 @@
-import { getUser } from "@/src/context/OrderContext";
+import { getUser } from "@/src/lib/session";
 import Prisma from "@/src/lib/prisma";
 import { NextRequest } from "next/server";
 import { extractQueryParams } from "../../banner/route";

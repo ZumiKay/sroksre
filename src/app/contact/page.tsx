@@ -7,7 +7,7 @@ import { ContactForm } from "./component";
 import { Suspense } from "react";
 import LoadingIcon from "../component/Loading";
 import Image from "next/image";
-import { getUser } from "@/src/context/OrderContext";
+import { getUser } from "@/src/lib/session";
 import Prisma from "@/src/lib/prisma";
 import { Metadata } from "next";
 export function generateMetadata(): Metadata {

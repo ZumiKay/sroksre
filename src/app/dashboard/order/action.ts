@@ -13,6 +13,7 @@ import { SendOrderEmail } from "../../checkout/action";
 import { Filterdatatype } from "./OrderComponent";
 import dayjs from "dayjs";
 import { getCheckoutdata } from "../../checkout/page";
+import { Orderproduct, Orders } from "@prisma/client";
 
 const AllorderType = {
   orderdetail: "orderdetail",
@@ -27,7 +28,7 @@ export const GetOrder = async (
   page?: number,
   limit?: number,
   userid?: number
-) => {
+): Promise<{ data: Orders | Array<Orderproduct>; total?: number } | null> => {
   if (id && type) {
     if (type === AllorderType.orderdetail) {
       const detail = await Prisma.orders.findUnique({
@@ -52,46 +53,40 @@ export const GetOrder = async (
       if (!detail) {
         return null;
       }
-      return detail;
+      return { data: detail as unknown as Orders };
     } else if (type === AllorderType.orderproduct) {
       const orderproduct = await getCheckoutdata(undefined, userid);
 
-      return orderproduct?.Orderproduct;
+      return { data: orderproduct?.Orderproduct as never };
     }
   }
 
-  const total = await Prisma.orders.count({
-    where: userid
-      ? {
-          buyer_id: userid,
-        }
-      : {},
-  });
-  //Get all orders
-  const { startIndex, endIndex } = calculatePagination(
-    total ?? 1,
-    limit ?? 1,
-    page ?? 1
-  );
+  // Build where clause once
+  const whereClause = userid ? { buyer_id: userid } : {};
 
-  const order = await Prisma.orders.findMany({
-    where: userid
-      ? {
-          buyer_id: userid,
-        }
-      : {},
-    select: {
-      id: true,
-      price: true,
-      status: true,
-      shippingtype: true,
-      createdAt: true,
-      updatedAt: true,
-    },
-    orderBy: { id: "asc" },
-    take: endIndex - startIndex + 1,
-    skip: startIndex,
-  });
+  // Calculate pagination params first
+  const pageNum = page ?? 1;
+  const limitNum = limit ?? 10;
+  const skip = (pageNum - 1) * limitNum;
+
+  // Execute count and findMany in parallel for better performance
+  const [total, order] = await Promise.all([
+    Prisma.orders.count({ where: whereClause }),
+    Prisma.orders.findMany({
+      where: whereClause,
+      select: {
+        id: true,
+        price: true,
+        status: true,
+        shippingtype: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+      orderBy: { createdAt: "desc" }, // More common to show recent orders first
+      take: limitNum,
+      skip: skip,
+    }),
+  ]);
 
   if (order.length === 0) {
     return null;
@@ -120,60 +115,91 @@ export const getFilterOrder = async ({
   startprice,
   endprice,
   page = 1,
-  limit = 1,
+  limit = 10,
   userid,
 }: filtertype) => {
   try {
-    let order = await Prisma.orders.findMany({
-      where: userid
-        ? {
-            buyer_id: userid,
-          }
-        : {},
-      select: {
-        id: true,
-        price: true,
-        status: true,
-        user: {
-          select: {
-            firstname: true,
-            lastname: true,
-            email: true,
+    // Build where clause with database-level filtering
+    const whereClause: any = {};
+
+    if (userid) {
+      whereClause.buyer_id = userid;
+    }
+
+    // Status filter
+    if (status && status.length > 0) {
+      whereClause.status = { in: status };
+    }
+
+    // Date range filter
+    if (fromdate || todate) {
+      whereClause.createdAt = {};
+      if (fromdate) {
+        whereClause.createdAt.gte = new Date(fromdate);
+      }
+      if (todate) {
+        whereClause.createdAt.lte = new Date(todate);
+      }
+    }
+
+    // Search filter (ID or user details)
+    if (search) {
+      const searchLower = removeSpaceAndToLowerCase(search);
+      whereClause.OR = [
+        { id: { contains: search, mode: "insensitive" } },
+        { user: { email: { contains: search, mode: "insensitive" } } },
+        { user: { firstname: { contains: search, mode: "insensitive" } } },
+        { user: { lastname: { contains: search, mode: "insensitive" } } },
+      ];
+    }
+
+    const skip = (page - 1) * limit;
+
+    // Execute count and query in parallel
+    const [total, orders] = await Promise.all([
+      Prisma.orders.count({ where: whereClause }),
+      Prisma.orders.findMany({
+        where: whereClause,
+        select: {
+          id: true,
+          price: true,
+          status: true,
+          user: {
+            select: {
+              firstname: true,
+              lastname: true,
+              email: true,
+            },
           },
+          createdAt: true,
+          updatedAt: true,
         },
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: limit,
+      }),
+    ]);
 
-    order = order.filter((data) => {
-      const price = data.price as unknown as totalpricetype;
-
-      const isOrder = search && search === removeSpaceAndToLowerCase(data.id);
-
-      const isBuyer =
-        (search &&
-          removeSpaceAndToLowerCase(
-            data.user.firstname + (data.user?.lastname ?? "")
-          ).includes(search)) ||
-        search === data.user.email;
-      const isStatus = status?.includes(data.status);
-      const isPrice =
-        startprice && endprice
-          ? price.total >= startprice && price.total <= endprice
-          : price.total === startprice || price.total === endprice;
-
-      const isOrderInRange = isInDateRange(data.createdAt, fromdate, todate);
-
-      return isOrder || isBuyer || isStatus || isPrice || isOrderInRange;
-    });
-
-    const data = caculateArrayPagination(order, page, limit) as typeof order;
+    // Post-process for price filtering (if needed, as JSON filtering is limited in Prisma)
+    let filteredOrders = orders;
+    if (startprice !== undefined || endprice !== undefined) {
+      filteredOrders = orders.filter((data) => {
+        const price = data.price as unknown as totalpricetype;
+        if (startprice && endprice) {
+          return price.total >= startprice && price.total <= endprice;
+        } else if (startprice) {
+          return price.total >= startprice;
+        } else if (endprice) {
+          return price.total <= endprice;
+        }
+        return true;
+      });
+    }
 
     return {
       success: true,
-      data: data.length === 0 ? undefined : data,
-      total: order.length,
+      data: filteredOrders.length === 0 ? undefined : filteredOrders,
+      total: filteredOrders.length, // Use filtered count if price filter applied
     };
   } catch (error) {
     console.log("Filter order", error);
@@ -264,7 +290,40 @@ const isInDateRange = (
 
 export const ExportOrderData = async (filterdata: Filterdatatype) => {
   try {
+    // Build where clause for database-level filtering
+    const whereClause: any = {};
+
+    // Date range filter
+    if (filterdata.fromdate || filterdata.todate) {
+      whereClause.createdAt = {};
+      if (filterdata.fromdate) {
+        whereClause.createdAt.gte = new Date(filterdata.fromdate as string);
+      }
+      if (filterdata.todate) {
+        whereClause.createdAt.lte = new Date(filterdata.todate as string);
+      }
+    }
+
+    // Search filter (order ID, user ID, name, or email)
+    if (filterdata.q) {
+      const searchQuery = filterdata.q;
+      const searchLower = removeSpaceAndToLowerCase(searchQuery);
+      whereClause.OR = [
+        { id: { equals: searchQuery } },
+        { user: { email: { contains: searchQuery, mode: "insensitive" } } },
+        { user: { firstname: { contains: searchQuery, mode: "insensitive" } } },
+        { user: { lastname: { contains: searchQuery, mode: "insensitive" } } },
+      ];
+
+      // Try to parse as user ID if it's a number
+      const userId = parseInt(searchQuery);
+      if (!isNaN(userId)) {
+        whereClause.OR.push({ buyer_id: userId });
+      }
+    }
+
     let orderdata = await Prisma.orders.findMany({
+      where: whereClause,
       select: {
         id: true,
         createdAt: true,
@@ -279,7 +338,6 @@ export const ExportOrderData = async (filterdata: Filterdatatype) => {
         Orderproduct: {
           select: {
             quantity: true,
-
             product: {
               select: {
                 id: true,
@@ -293,43 +351,34 @@ export const ExportOrderData = async (filterdata: Filterdatatype) => {
         shippingtype: true,
         price: true,
       },
+      orderBy: { createdAt: "desc" },
     });
 
-    //filter order data
-    orderdata = orderdata.filter((data) => {
-      const price = data.price as unknown as totalpricetype;
+    // Post-filter for price (since JSON field filtering is limited)
+    if (filterdata.startprice || filterdata.endprice) {
+      const startPrice = filterdata.startprice
+        ? parseFloat(filterdata.startprice as string)
+        : undefined;
+      const endPrice = filterdata.endprice
+        ? parseFloat(filterdata.endprice as string)
+        : undefined;
 
-      const isOrder = filterdata.q && data.id === filterdata.q;
-
-      const isBuyer =
-        (filterdata.q &&
-          removeSpaceAndToLowerCase(
-            data.user.firstname + (data.user.lastname ?? "")
-          ).includes(removeSpaceAndToLowerCase(filterdata.q))) ||
-        data.user.id.toString() === filterdata.q ||
-        data.user.email === filterdata.q;
-
-      const isPrice =
-        filterdata.startprice && filterdata.endprice
-          ? price.total >= parseFloat(filterdata.startprice as string) &&
-            price.total <= parseFloat(filterdata.endprice as string)
-          : price.total === parseFloat(filterdata.startprice as string) ||
-            price.total === parseFloat(filterdata.endprice as string);
-
-      return (
-        isOrder ||
-        isBuyer ||
-        isPrice ||
-        isInDateRange(
-          data.createdAt,
-          filterdata.fromdate as string,
-          filterdata.todate as string
-        )
-      );
-    });
+      orderdata = orderdata.filter((data) => {
+        const price = data.price as unknown as totalpricetype;
+        if (startPrice !== undefined && endPrice !== undefined) {
+          return price.total >= startPrice && price.total <= endPrice;
+        } else if (startPrice !== undefined) {
+          return price.total >= startPrice;
+        } else if (endPrice !== undefined) {
+          return price.total <= endPrice;
+        }
+        return true;
+      });
+    }
 
     return { success: true, message: "Export Successfully", data: orderdata };
   } catch (error) {
+    console.error("Export Order Error:", error);
     return { success: false, message: "Failed To Export" };
   }
 };

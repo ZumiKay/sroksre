@@ -255,7 +255,7 @@ const PaymentDetail = async ({
           <div className="paypal_button w-[80%] h-fit relative">
             <Paypalbutton
               encripyid={encryptedId}
-              order={order as unknown as OrderUserType}
+              order={order}
               orderId={orderId}
             />
           </div>

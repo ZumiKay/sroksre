@@ -9,6 +9,7 @@ import {
   VariantColorValueType,
 } from "@/src/context/GlobalContext";
 import {
+  Allstatus,
   Orderpricetype,
   Ordertype,
   Productordertype,
@@ -845,17 +846,6 @@ export function ShippingForm({ orderid }: { orderid: string }) {
 
 //Paypal Button
 
-interface OrderUserType extends Ordertype {
-  user: {
-    id: number;
-    firstname: string;
-    lastname?: string;
-    email: string;
-  };
-  Orderproduct: Productordertype[];
-  createdAt: Date;
-}
-
 export function Paypalbutton({
   orderId,
   order,
@@ -863,7 +853,7 @@ export function Paypalbutton({
 }: {
   orderId: string;
   encripyid: string;
-  order: OrderUserType;
+  order: Ordertype;
 }) {
   const router = useRouter();
   const socket = useSocket();
@@ -932,13 +922,13 @@ export function Paypalbutton({
 
               const htmltemplate = ReactDOMServer.renderToString(
                 <OrderReceiptTemplate
-                  order={{ ...order, status: "Paid" }}
+                  order={{ ...order, status: Allstatus.paid }}
                   isAdmin={false}
                 />
               );
               const adminhtmltemplate = ReactDOMServer.renderToString(
                 <OrderReceiptTemplate
-                  order={{ ...order, status: "Paid" }}
+                  order={{ ...order, status: Allstatus.paid }}
                   isAdmin={true}
                 />
               );

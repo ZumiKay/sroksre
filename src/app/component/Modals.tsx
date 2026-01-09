@@ -19,6 +19,8 @@ export default function Modal({
   customZIndex,
   customwidth,
   customheight,
+  minheight,
+  minwidth,
   closestate,
   bgblur,
   action,
@@ -27,6 +29,8 @@ export default function Modal({
   customZIndex?: number;
   customwidth?: string;
   customheight?: string;
+  minwidth?: string;
+  minheight?: string;
   bgblur?: boolean;
   action?: () => void;
   closestate:
@@ -83,7 +87,12 @@ export default function Modal({
     >
       <div
         ref={ref}
-        style={{ width: customwidth, height: customheight }}
+        style={{
+          width: customwidth,
+          height: customheight,
+          minHeight: minheight,
+          minWidth: minwidth,
+        }}
         className="w-1/2 h-1/2 max-small_phone:h-screen flex flex-col justify-center items-center"
       >
         {children}

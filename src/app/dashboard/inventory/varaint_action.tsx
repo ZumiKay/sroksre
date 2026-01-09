@@ -1,7 +1,7 @@
 "use server";
 
 import { FilterValue, Varianttype } from "@/src/context/GlobalContext";
-import { getUser } from "@/src/context/OrderContext";
+import { getUser } from "@/src/lib/session";
 import Prisma from "@/src/lib/prisma";
 import {
   DeleteImageFromStorage,

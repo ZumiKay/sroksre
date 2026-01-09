@@ -3,11 +3,11 @@
 import { ProductState } from "@/src/context/GlobalContext";
 import {
   Allstatus,
-  getUser,
   Productorderdetailtype,
   Productordertype,
   totalpricetype,
 } from "@/src/context/OrderContext";
+import { getUser } from "@/src/lib/session";
 import Prisma from "@/src/lib/prisma";
 import { calculateDiscountProductPrice } from "@/src/lib/utilities";
 

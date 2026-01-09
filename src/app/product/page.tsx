@@ -16,6 +16,7 @@ import NotFound from "../not-found";
 import type { Metadata } from "next";
 import { categorytype } from "../api/categories/route";
 
+//Product params query
 interface ProductParam {
   p?: string;
   show?: string;
@@ -74,8 +75,6 @@ export async function generateMetadata({
     }
     title = `${parent} ${child}`;
   }
-
-  // optionally access and extend (rather than replace) parent metadata
 
   return {
     title: title + ` | SrokSre`,

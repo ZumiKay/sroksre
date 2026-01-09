@@ -1,10 +1,10 @@
 import {
   Allstatus,
-  getUser,
   Productorderdetailtype,
   Productordertype,
   totalpricetype,
 } from "@/src/context/OrderContext";
+import { getUser } from "@/src/lib/session";
 import Prisma from "@/src/lib/prisma";
 import {
   calculateCartTotalPrice,
@@ -17,7 +17,7 @@ import {
   ProductState,
   VariantColorValueType,
 } from "@/src/context/GlobalContext";
-import { JsonObject } from "@prisma/client/runtime/library";
+import { JsonObject } from "@/prisma/generated/prisma/internal/prismaNamespace";
 
 export async function PUT(req: NextRequest) {
   try {
@@ -176,7 +176,7 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    const cartItems: Productordertype[] = orderproduct.map((item) => {
+    const cartItems = orderproduct.map((item) => {
       const discount = calculateDiscountProductPrice({
         price: item.product.price,
         discount: item.product.discount ? item.product.discount : undefined,
@@ -193,16 +193,8 @@ export async function GET(req: NextRequest) {
         );
       });
 
-      const product = {
-        ...item.product,
-        variants: item.product.Variant as any,
-        varaintstock: item.product.Stock as any,
-        Variant: undefined,
-        Stock: undefined,
-      } as unknown as ProductState;
-
       const maxqty = getmaxqtybaseStockType(
-        product,
+        item.product as unknown as ProductState,
         detail.map((i) => i.value)
       );
       return {
@@ -210,12 +202,14 @@ export async function GET(req: NextRequest) {
         price: discount,
         quantity: item.quantity,
         maxqty,
-        product,
+        product: item.product,
         selectedvariant: selectedvariant.flat(),
       };
     });
 
-    const totalPrice = calculateCartTotalPrice(cartItems);
+    const totalPrice = calculateCartTotalPrice(
+      cartItems as unknown as Productordertype[]
+    );
 
     return Response.json(
       { data: cartItems, total: totalPrice },

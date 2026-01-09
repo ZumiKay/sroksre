@@ -17,35 +17,48 @@ import {
   Productorderdetailtype,
   Productordertype,
 } from "@/src/context/OrderContext";
-import React, { useState } from "react";
+import React, {
+  useEffect,
+  useState,
+  useCallback,
+  useMemo,
+  useTransition,
+} from "react";
 import { Addtocart, AddWishlist } from "./action";
 import { errorToast, successToast } from "@/src/app/component/Loading";
-import { ApiRequest, useEffectOnce } from "@/src/context/CustomHook";
+import { ApiRequest } from "@/src/context/CustomHook";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Skeleton } from "@nextui-org/react";
 
-export const ShowPrice = ({
-  price,
-  discount,
-}: Pick<ProductState, "price" | "discount">) => {
-  const priceString = price.toFixed(2);
-  const isDiscount = discount && (
-    <div className="discount_section text-lg flex flex-row items-center justify-start gap-x-5 font-semibold">
-      <h3 className="oldprice line-through w-fit font-normal">
-        {`$ ${priceString}`}
-      </h3>
-      <h3 className="w-fit text-red-400">{`-${discount.percent}%`}</h3>
-      <h3 className="w-fit">{`$ ${parseFloat(discount.newprice).toFixed(
-        2
-      )}`}</h3>
-    </div>
-  );
-  const normalprice = (
-    <h3 className="text-lg font-bold w-full">{`$${priceString}`}</h3>
-  );
+export const ShowPrice = React.memo(
+  ({ price, discount }: Pick<ProductState, "price" | "discount">) => {
+    const priceString = useMemo(() => price.toFixed(2), [price]);
+    const isDiscount = typeof discount !== "number" && discount?.discount;
+    const discountPrice = useMemo(
+      () =>
+        isDiscount && isDiscount.newprice
+          ? isDiscount.newprice.toFixed(2)
+          : null,
+      [discount]
+    );
 
-  return isDiscount ? isDiscount : normalprice;
-};
+    if (isDiscount) {
+      return (
+        <div className="discount_section text-lg flex flex-row items-center justify-start gap-x-5 font-semibold">
+          <h3 className="oldprice line-through w-fit font-normal">
+            {`$ ${priceString}`}
+          </h3>
+          <h3 className="w-fit text-red-400">{`-${isDiscount.percent}%`}</h3>
+          <h3 className="w-fit">{`$ ${discountPrice}`}</h3>
+        </div>
+      );
+    }
+
+    return <h3 className="text-lg font-bold w-full">{`$${priceString}`}</h3>;
+  }
+);
+
+ShowPrice.displayName = "ShowPrice";
 
 interface errormessType {
   qty?: string;
@@ -61,10 +74,7 @@ export const OptionSection = ({
   isInWishlist,
   isInCart,
 }: {
-  data: Pick<
-    ProductState,
-    "id" | "stocktype" | "stock" | "variants" | "varaintstock"
-  >;
+  data: Pick<ProductState, "id" | "stocktype" | "stock" | "Variant" | "Stock">;
   isAdmin: boolean;
   isInWishlist: boolean;
   isInCart: boolean;
@@ -79,18 +89,19 @@ export const OptionSection = ({
   const [qty, setqty] = useState(0);
   const [incart, setincart] = useState(isInCart);
 
-  useEffectOnce(() => {
+  //Initialize product detail options
+  useEffect(() => {
     const InitializeProductOrder = (
       data: Pick<
         ProductState,
-        "id" | "stocktype" | "stock" | "variants" | "varaintstock"
+        "id" | "stocktype" | "stock" | "Variant" | "Stock"
       >
     ) => {
       let type = data.stocktype;
 
       if (type !== ProductStockType.stock) {
         const arr = InitializeDetail(
-          type === "size" ? 1 : data.variants ? data.variants?.length : 0
+          type === "size" ? 1 : data.Variant ? data.Variant?.length : 0
         ) as any[];
 
         setproductorderdetail(
@@ -114,19 +125,24 @@ export const OptionSection = ({
         ? { qty: "Please Select Quantity" }
         : { option: "Please Select Option" }),
     });
-  });
+  }, [data.id, data.stocktype, data.Variant]);
 
-  const handleWishlist = async () => {
-    const makereq = AddWishlist.bind(null, data.id ?? 0);
+  const handleWishlist = useCallback(async () => {
+    setloading(true);
+    try {
+      const makereq = AddWishlist.bind(null, data.id ?? 0);
+      const added = await makereq();
 
-    const added = await makereq();
-    if (!added.success) {
-      errorToast(added.message);
-      return;
+      if (!added.success) {
+        errorToast(added.message);
+        return;
+      }
+
+      successToast(added.message);
+    } finally {
+      setloading(false);
     }
-
-    successToast(added.message);
-  };
+  }, [data.id]);
 
   const checkallrequireddetail = () => {
     const { stocktype } = data;
@@ -165,34 +181,46 @@ export const OptionSection = ({
     return true;
   };
 
-  const handleCart = async () => {
+  const handleCart = useCallback(async () => {
     const checked = checkallrequireddetail();
 
     if (!checked || !productorderdetail) {
       return;
     }
 
-    const addtocart = Addtocart.bind(null, productorderdetail);
-    const makerequest = await addtocart();
+    setloading(true);
+    try {
+      const addtocart = Addtocart.bind(null, productorderdetail);
+      const makerequest = await addtocart();
 
-    if (!makerequest.success) {
-      errorToast(makerequest.message ?? "Error Occured");
-      return;
+      if (!makerequest.success) {
+        errorToast(makerequest.message ?? "Error Occured");
+        return;
+      }
+
+      successToast("Added to cart");
+      setproductorderdetail((prev) => ({
+        ...Productdetailinitialize,
+        id: prev.id,
+      }));
+      setincart(true);
+      setcarttotal((prev) => prev + 1);
+    } finally {
+      setloading(false);
     }
-
-    successToast("Added to cart");
-    setproductorderdetail((prev) => ({
-      ...Productdetailinitialize,
-      id: prev.id,
-    }));
-    setincart(true);
-    setcarttotal((prev) => prev + 1);
-  };
+  }, [
+    productorderdetail,
+    checkallrequireddetail,
+    setproductorderdetail,
+    setcarttotal,
+  ]);
 
   return (
     <div className="w-full h-fit flex flex-col gap-y-5">
-      {/* {loading && <ContainerLoading />} */}
-      <h3 className="error_mess text-lg text-red-500 font-bold w-full h-full">
+      {loading && (
+        <div className="w-full h-1 bg-blue-500 animate-pulse rounded-full"></div>
+      )}
+      <h3 className="error_mess text-lg text-red-500 font-bold w-full h-full transition-opacity duration-200">
         {data.stocktype === ProductStockType.stock
           ? errormess?.qty
           : errormess?.option}
@@ -214,8 +242,10 @@ export const OptionSection = ({
         <PrimaryButton
           type="submit"
           text={incart ? "In Cart" : "Add To Cart"}
-          disable={productorderdetail?.quantity === 0 || incart || isAdmin}
-          onClick={() => handleCart()}
+          disable={
+            productorderdetail?.quantity === 0 || incart || isAdmin || loading
+          }
+          onClick={handleCart}
           status={loading ? "loading" : "authenticated"}
           color="white"
           textcolor="black"
@@ -229,6 +259,7 @@ export const OptionSection = ({
           color="black"
           radius="10px"
           width="100%"
+          disable={loading}
           Icon={<i className="fa-regular fa-heart text-lg"></i>}
           onClick={() => !isInWishlist && handleWishlist()}
         />
@@ -304,7 +335,6 @@ const getQtyBasedOnOptions = (
   variantstock: Stocktype[],
   orderdetail: Productorderdetailtype[]
 ): number => {
-  // Create a Set of order detail values for faster lookup
   const orderdetailValuesSet = new Set(
     orderdetail.map((i) => i.value).filter(Boolean)
   );
@@ -327,21 +357,37 @@ const getQtyBasedOnOptions = (
   return 0;
 };
 
+let cartCheckTimeout: NodeJS.Timeout | null = null;
+
 const inCartCheck = async (
   selecteddetail: Productorderdetailtype[],
   pid: number
-) => {
-  const req = await ApiRequest(
-    "/api/order/cart/check",
-    undefined,
-    "POST",
-    "JSON",
-    { selecteddetail, pid }
-  );
-  return {
-    success: req.success,
-    incart: (req.data?.incart ?? false) as boolean,
-  };
+): Promise<{ success: boolean; incart: boolean }> => {
+  // Clear previous timeout
+  if (cartCheckTimeout) {
+    clearTimeout(cartCheckTimeout);
+  }
+
+  return new Promise((resolve) => {
+    cartCheckTimeout = setTimeout(async () => {
+      try {
+        const req = await ApiRequest(
+          "/api/order/cart/check",
+          undefined,
+          "POST",
+          "JSON",
+          { selecteddetail, pid }
+        );
+        resolve({
+          success: req.success,
+          incart: (req.data?.incart ?? false) as boolean,
+        });
+      } catch (error) {
+        console.error("Cart check failed:", error);
+        resolve({ success: false, incart: false });
+      }
+    }, 300); // 300ms debounce
+  });
 };
 
 const Variant = (
@@ -350,7 +396,7 @@ const Variant = (
   type: "COLOR" | "TEXT",
   idx: number,
   data: (string | VariantColorValueType)[],
-  prob: Pick<ProductState, "id" | "varaintstock" | "variants">,
+  prob: Pick<ProductState, "id" | "Stock" | "Variant">,
   errormess: errormessType,
   setmess: React.Dispatch<React.SetStateAction<errormessType>>,
   setqty: React.Dispatch<React.SetStateAction<number>>,
@@ -364,7 +410,7 @@ const Variant = (
   const selected = detail ? detail.value : undefined;
 
   const handleSelectVariant = async (idx: number, value: string) => {
-    const Allvariant = [...(prob.variants ?? [])];
+    const Allvariant = [...(prob.Variant ?? [])];
     const variant = Allvariant[idx];
     let mess = { ...errormess };
 
@@ -403,9 +449,9 @@ const Variant = (
     }
 
     //update qty
-    const maxqty: number = prob.varaintstock
+    const maxqty: number = prob.Stock
       ? getQtyBasedOnOptions(
-          prob.varaintstock,
+          prob.Stock,
           orderDetail.details.filter((i) => i)
         )
       : 0;
@@ -458,7 +504,7 @@ const ShowOptionandStock = ({
   setincart,
   isloading,
 }: {
-  prob: Pick<ProductState, "stocktype" | "stock" | "variants" | "varaintstock">;
+  prob: Pick<ProductState, "stocktype" | "stock" | "Variant" | "Stock">;
   qty: number;
   errormess: errormessType;
   setmess: React.Dispatch<React.SetStateAction<errormessType>>;
@@ -478,9 +524,9 @@ const ShowOptionandStock = ({
     ) : (
       Productunvaliable
     )
-  ) : prob.variants ? (
+  ) : prob.Variant ? (
     <>
-      {prob.variants.map((i, idx) =>
+      {prob.Variant.map((i, idx) =>
         Variant(
           i.id ?? 0,
           i.option_title,
@@ -495,7 +541,7 @@ const ShowOptionandStock = ({
           setincart
         )
       )}
-      {prob.varaintstock && prob.varaintstock.length !== 0
+      {prob.Stock && prob.Stock.length !== 0
         ? stock(qty, errormess, setmess, undefined, undefined, isloading)
         : qty === 0
         ? Productunvaliable
@@ -506,26 +552,35 @@ const ShowOptionandStock = ({
   );
 };
 
-export const ButtonForSimilarProd = ({ lt }: { lt: number }) => {
+export const ButtonForSimilarProd = React.memo(({ lt }: { lt: number }) => {
   const router = useRouter();
   const searchParam = useSearchParams();
+  const [isPending, startTransition] = useTransition();
+
+  const handleLoadMore = useCallback(() => {
+    startTransition(() => {
+      const param = new URLSearchParams(searchParam);
+      param.set("lt", `${lt + 3}`);
+      router.push(`?${param}`, { scroll: false });
+      router.refresh();
+    });
+  }, [lt, searchParam, router]);
 
   return (
     <div className="w-full h-fit flex justify-center">
       <PrimaryButton
         type="button"
-        text="Load more"
+        text={isPending ? "Loading..." : "Load more"}
         radius="10px"
         width="20%"
         height="40px"
+        disable={isPending}
         style={{ marginTop: "100px" }}
-        onClick={() => {
-          const param = new URLSearchParams(searchParam);
-          param.set("lt", `${lt + 3}`);
-          router.push(`?${param}`, { scroll: false });
-          router.refresh();
-        }}
+        onClick={handleLoadMore}
+        status={isPending ? "loading" : "authenticated"}
       />
     </div>
   );
-};
+});
+
+ButtonForSimilarProd.displayName = "ButtonForSimilarProd";

@@ -17,6 +17,7 @@ import {
 
 import Prisma from "./prisma";
 import { Categorytype } from "../app/api/categories/route";
+import { DeleteImageTempForCurrentUser } from "../app/api/products/cover/helper/Cleanup";
 
 //
 //
@@ -235,6 +236,16 @@ export const deleteCategory = async (data: Deletecategorydata) => {
 export const CreateProduct = async (
   data: ProductState
 ): Promise<ReturnType> => {
+  //Data verification
+  if (
+    !data.name ||
+    !data.category.parent_id ||
+    !data.stocktype ||
+    !data.description ||
+    data.covers.length === 0
+  ) {
+    return { success: false, error: "Missing Information" };
+  }
   try {
     const isProduct = await Prisma.products.findFirst({
       where: {
@@ -242,111 +253,113 @@ export const CreateProduct = async (
       },
     });
     if (!isProduct) {
-      let relatedproduct = null;
-      if (data.relatedproductid) {
-        relatedproduct = await Prisma.producttype.create({
-          data: {
-            productId: data.relatedproductid as any,
-          },
-        });
-      }
-      const created = await Prisma.products.create({
-        data: {
-          name: data.name,
-          description: data.description,
-          price: parseFloat(data.price.toString()),
-          stock: parseInt(`${data.stock}`),
-          stocktype: data.stocktype,
-          parentcategory_id: data.category.parent_id,
-          childcategory_id: data.category?.child_id,
-          covers: {
-            createMany: {
-              data: data.covers.map((i) => ({
-                url: i.url,
-                name: i.name,
-                type: i.type,
-              })),
+      // Use Prisma transaction for atomic operations
+      const result = await Prisma.$transaction(async (tx) => {
+        let relatedproduct = null;
+        if (data.relatedproductid) {
+          relatedproduct = await tx.producttype.create({
+            data: {
+              productId: data.relatedproductid as any,
             },
-          },
-          details: {
-            createMany: {
-              data: data.details as any,
-            },
-          },
-          relatedproductId: relatedproduct?.id,
-        },
-        include: {
-          relatedproduct: true,
-        },
-      });
-
-      if (data.relatedproductid) {
-        await Prisma.producttype.update({
-          where: { id: relatedproduct?.id },
-          data: { productId: [created.id, ...data.relatedproductid] },
-        });
-        //update all related product
-        await Prisma.products.updateMany({
-          where: {
-            id: { in: data.relatedproductid },
-          },
+          });
+        }
+        const created = await tx.products.create({
           data: {
+            name: data.name,
+            description: data.description,
+            price: parseFloat(data.price.toString()),
+            stock: parseInt(`${data.stock}`),
+            stocktype: data.stocktype,
+            parentcategory_id: data.category.parent_id,
+            childcategory_id: data.category?.child_id,
+            covers: {
+              createMany: {
+                data: data.covers.map((i) => ({
+                  url: i.url,
+                  name: i.name,
+                  type: i.type,
+                })),
+              },
+            },
+            details: {
+              createMany: {
+                data: data.details as any,
+              },
+            },
             relatedproductId: relatedproduct?.id,
           },
+          include: {
+            relatedproduct: true,
+          },
         });
-      }
 
-      if (!created) {
-        return { success: false, error: "Failed To Create Product" };
-      }
+        if (data.relatedproductid) {
+          await tx.producttype.update({
+            where: { id: relatedproduct?.id },
+            data: { productId: [created.id, ...data.relatedproductid] },
+          });
+          //update all related product
+          await tx.products.updateMany({
+            where: {
+              id: { in: data.relatedproductid },
+            },
+            data: {
+              relatedproductId: relatedproduct?.id,
+            },
+          });
+        }
 
-      //remove Image temp
+        if (!created) {
+          throw new Error("Failed To Create Product");
+        }
 
-      await Promise.all(
-        data.covers.map((i) =>
-          Prisma.tempimage.deleteMany({ where: { name: i.name } })
-        )
-      );
+        //create product variant
+        if (data.Variant && data.Variant?.length > 0) {
+          await Promise.all(
+            data.Variant.map((i) =>
+              tx.variant.create({
+                data: {
+                  product_id: created.id,
+                  option_title: i.option_title,
+                  option_type: i.option_type,
+                  option_value: i.option_value,
+                },
+              })
+            )
+          );
+        }
 
-      //create product variant
-
-      if (data.variants && data.variants?.length > 0) {
-        await Promise.all(
-          data.variants.map((i) =>
-            Prisma.variant.create({
-              data: {
-                product_id: created.id,
-                option_title: i.option_title,
-                option_type: i.option_type,
-                option_value: i.option_value,
-              },
-            })
-          )
-        );
-      }
-
-      //created product stock
-      if (data.varaintstock && data.varaintstock.length > 0) {
-        await Promise.all(
-          data.varaintstock.map((i) =>
-            Prisma.stock.create({
-              data: {
-                product_id: created.id,
-                Stockvalue: {
-                  createMany: {
-                    data: i.Stockvalue.map((i) => ({
-                      qty: i.qty ?? 0,
-                      variant_val: i.variant_val,
-                    })),
+        //created product stock
+        if (data.Stock && data.Stock.length > 0) {
+          await Promise.all(
+            data.Stock.map((i) =>
+              tx.stock.create({
+                data: {
+                  product_id: created.id,
+                  Stockvalue: {
+                    createMany: {
+                      data: i.Stockvalue.map((i) => ({
+                        qty: i.qty ?? 0,
+                        variant_val: i.variant_val,
+                      })),
+                    },
                   },
                 },
-              },
-            })
-          )
-        );
+              })
+            )
+          );
+        }
+
+        return created;
+      });
+
+      // Cleanup temp images after successful transaction
+      const isDel = await DeleteImageTempForCurrentUser();
+      if (!isDel?.success) {
+        throw new Error(isDel?.error);
       }
 
-      return { success: true, error: "", id: created.id };
+      return { success: true, error: "", id: result.id };
     } else {
       return { success: false, error: "Product Already Exist" };
     }
@@ -578,8 +591,8 @@ export const EditProduct = async (
       category,
       covers,
       details,
-      variants,
-      varaintstock,
+      Variant: variants,
+      Stock: varaintstock,
       stocktype,
       type,
       relatedproductid,
@@ -683,35 +696,36 @@ export const EditProduct = async (
 
     // Update existing covers
     if (covers && covers.length !== 0) {
-      const existingCovers = covers.filter((i) => i.id);
-      await Promise.all(
-        existingCovers.map((i) =>
-          Prisma.productcover.update({
-            where: { id: i.id },
-            data: { url: i.url, name: i.name, type: i.type },
-          })
-        )
-      );
+      // Use transaction for cover updates
+      await Prisma.$transaction(async (tx) => {
+        const existingCovers = covers.filter((i) => i.id);
+        await Promise.all(
+          existingCovers.map((i) =>
+            tx.productcover.update({
+              where: { id: i.id },
+              data: { url: i.url, name: i.name, type: i.type },
+            })
+          )
+        );
 
-      // Create new covers
-      const newCovers = covers.filter((i) => !i.id);
-      await Promise.all(
-        newCovers.map((i) =>
-          Prisma.productcover.create({
-            data: {
-              productId: id,
-              name: i.name,
-              type: i.type,
-              url: i.url,
-            },
-          })
-        )
-      );
-      await Promise.all(
-        data.covers.map((i) =>
-          Prisma.tempimage.deleteMany({ where: { name: i.name } })
-        )
-      );
+        // Create new covers
+        const newCovers = covers.filter((i) => !i.id);
+        await Promise.all(
+          newCovers.map((i) =>
+            tx.productcover.create({
+              data: {
+                productId: id,
+                name: i.name,
+                type: i.type,
+                url: i.url,
+              },
+            })
+          )
+        );
+      });
+
+      // Cleanup temp images after successful cover operations
+      await DeleteImageTempForCurrentUser();
     }
 
     //update details

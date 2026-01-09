@@ -6,76 +6,49 @@ import {
   VariantColorValueType,
 } from "@/src/context/GlobalContext";
 import { errorToast } from "../Loading";
-import { FormEvent, useEffect, useState } from "react";
-import { RGBColor } from "react-color";
+import { FormEvent, useEffect, useState, useCallback } from "react";
 import { ApiRequest, Delayloading } from "@/src/context/CustomHook";
 import tinycolor from "tinycolor2";
 import Modal, { SecondaryModal } from "../Modals";
 import { motion } from "framer-motion";
 import PrimaryButton, { Selection } from "../Button";
-import Image from "next/image";
 import Variantimg from "../../../../public/Image/Variant.png";
 import Variantstockimg from "../../../../public/Image/Stock.png";
 import {
   ColorSelectModal,
   ManageStockContainer,
-  MapSelectedValuesToVariant,
 } from "./VariantModalComponent";
 import { Badge, Button, Input } from "@nextui-org/react";
 import TemplateContainer, {
   AddTemplateModal,
 } from "./Variantcomponent/TemplateContainer";
-import { VariantTemplateType } from "./Variantcomponent/Action";
-import { HasPartialOverlap } from "@/src/lib/utilities";
 import { NormalSkeleton } from "../Banner";
 import React from "react";
 
-interface variantdatatype {
-  id?: number;
-  type: "COLOR" | "TEXT";
-  name: string;
-  value: Array<string | VariantColorValueType>;
-}
+// Import types and utilities
+import {
+  VariantDataType,
+  Colortype,
+  Colorinitalize,
+  Variantcontainertype,
+  ModalOpenState,
+} from "./types";
+import { useVariantManager } from "./Variantcomponent/hooks/useVariantManager";
+import { useStockManager } from "./Variantcomponent/hooks/useStockManager";
+import { useTemplateManager } from "./Variantcomponent/hooks/useTemplateManager";
+import { VariantList } from "./Variantcomponent/VariantList";
+import { EmptyState } from "./Variantcomponent/EmptyState";
+import { SelectionCard } from "./Variantcomponent/SelectionCards";
+import {
+  ArraysAreEqualSets,
+  checkVariantExists,
+  checkColorTypeExists,
+  updateStockOnVariantEdit,
+  cleanEmptyStock,
+} from "./Variantcomponent/utils";
 
-export interface Colortype {
-  hex: string;
-  rgb: RGBColor;
-}
-export const Colorinitalize: Colortype = {
-  hex: "#f5f5f5",
-  rgb: {
-    r: 245,
-    g: 245,
-    b: 245,
-    a: 1,
-  },
-};
-
-export const ArraysAreEqualSets = (
-  array1: string[],
-  array2: string[]
-): boolean => {
-  if (array1.length !== array2.length) return false;
-
-  const set1 = new Set(array1);
-  const set2 = new Set(array2);
-
-  if (set1.size !== set2.size) return false;
-
-  const set1Array = Array.from(set1);
-  for (let i = 0; i < set1Array.length; i++) {
-    if (!set2.has(set1Array[i])) return false;
-  }
-
-  return true;
-};
-export type Variantcontainertype =
-  | "variant"
-  | "stock"
-  | "type"
-  | "info"
-  | "stockinfo"
-  | "none";
+export { Colorinitalize, ArraysAreEqualSets };
+export type { Colortype, Variantcontainertype };
 
 export const Variantcontainer = ({
   type,
@@ -87,508 +60,318 @@ export const Variantcontainer = ({
   closename?: string;
 }) => {
   const { openmodal, setopenmodal, product, setproduct } = useGlobalContext();
-  const [temp, settemp] = useState<variantdatatype>();
-  const [reloadtemp, setreloadtemp] = useState(true);
 
-  const [colordata, setcolordata] = useState({
-    color: Colorinitalize,
-    name: "",
-  });
-  const [open, setopen] = useState({
+  // Use custom hooks
+  const variantManager = useVariantManager();
+  const stockManager = useStockManager();
+  const templateManager = useTemplateManager();
+
+  // Local state
+  const [open, setOpen] = useState<ModalOpenState>({
     addcolor: false,
     addoption: false,
     addtemplate: false,
   });
-  const [newadd, setnew] = useState<Variantcontainertype>(type ?? "none");
-  const [option, setoption] = useState("");
-  const [added, setadded] = useState(-1);
-  const [edit, setedit] = useState(-1);
+  const [newadd, setNew] = useState<Variantcontainertype>(type ?? "none");
   const [addstock, setaddstock] = useState(-1);
-  const [name, setname] = useState("");
-  const [stock, setstock] = useState("");
-  const [templates, settemplates] = useState<VariantTemplateType[] | []>([]);
-  const [editsubstockidx, seteditsubstockidx] = useState(-1);
   const [reloaddata, setreloaddata] = useState(true);
-  const [addNewSubStock, setaddNewSubStock] = useState(false);
-  const [edittemplate, setedittemplate] = useState<
-    VariantTemplateType | undefined
-  >(undefined);
-  const [selectedvalues, setselectedvalues] = useState<
-    | {
-        [key: string]: string[];
-      }
-    | undefined
-  >(undefined);
-  const [isEditTemp, setisEditTemp] = useState(false);
-  const [loading, setloading] = useState(false);
+  const [mainLoading, setMainLoading] = useState(false);
 
-  //Fetch Variant Template
-  const FetchTemplate = async () => {
-    async function asyncfetch() {
-      const res = await ApiRequest(
-        "/api/products/variant/template?ty=short",
-        undefined,
-        "GET"
-      );
-      setreloadtemp(false);
-      if (res.success) {
-        settemplates(res.data);
-      }
-    }
-    if (reloadtemp) {
-      await Delayloading(asyncfetch, setloading, 1000);
-    }
-  };
+  // Fetch variant stock
+  const fetchstock = useCallback(
+    async (index: number) => {
+      const asyncfetchdata = async () => {
+        const URL = `/api/products?ty=${type}&pid=${index}`;
+        const response = await ApiRequest(URL, undefined, "GET");
 
-  //Fetch variant stock
-  const fetchstock = async (index: number) => {
-    const asyncfetchdata = async () => {
-      const URL = `/api/products?ty=${type}&pid=${index}`;
-      const response = await ApiRequest(URL, undefined, "GET");
+        if (!response.success) {
+          errorToast("Error Connection");
+          return;
+        }
 
-      if (!response.success) {
-        errorToast("Error Connection");
-        return;
-      }
-
-      const { varaintstock, variants } = response.data;
-
-      setproduct((prev) => ({ ...prev, varaintstock, variants }));
-      setreloaddata(false);
-    };
-    await Delayloading(asyncfetchdata, setloading, 500);
-  };
+        const { varaintstock, variants } = response.data;
+        setproduct((prev) => ({
+          ...prev,
+          Stock: varaintstock,
+          Variant: variants,
+        }));
+        setreloaddata(false);
+      };
+      await Delayloading(asyncfetchdata, setMainLoading, 500);
+    },
+    [type, setproduct]
+  );
 
   useEffect(() => {
-    editindex &&
-      type &&
-      type === ProductStockType.stock &&
-      reloaddata &&
+    if (editindex && type && type === ProductStockType.stock && reloaddata) {
       fetchstock(editindex);
-  }, [reloaddata]);
+    }
+  }, [reloaddata, editindex, type, fetchstock]);
 
   useEffect(() => {
-    FetchTemplate();
-  }, [reloadtemp]);
+    templateManager.fetchTemplates();
+  }, [templateManager.reloadTemp]);
 
-  const handleCreate = () => {
-    let update = product.variants ? [...product.variants] : undefined;
+  // Handler functions
+  const handleCreate = useCallback(() => {
+    let update = product.Variant ? [...product.Variant] : undefined;
 
-    const isExist =
-      added === -1 && update && update.some((i) => i.option_title === name);
-
-    if (isExist) {
+    if (
+      variantManager.added === -1 &&
+      checkVariantExists(update, variantManager.name)
+    ) {
       errorToast("Variant name exist");
       return;
     }
 
-    // Check if a variant with type COLOR already exists
-    const isColorTypeExist =
-      added === -1 && update && update.some((i) => i.option_type === "COLOR");
-
-    if (isColorTypeExist && temp?.type === "COLOR") {
+    if (
+      checkColorTypeExists(update) &&
+      variantManager.added === -1 &&
+      variantManager.temp?.type === "COLOR"
+    ) {
       errorToast("Variant of type color can only have one");
       return;
     }
 
+    const variantData = {
+      option_title: variantManager.name,
+      option_type: variantManager.temp?.type as "COLOR" | "TEXT",
+      option_value: variantManager.temp?.value ?? [],
+    };
+
     if (!update) {
-      update = [
-        {
-          option_title: name,
-          option_type: temp?.type as "COLOR" | "TEXT",
-          option_value: temp?.value as string[],
-        },
-      ];
+      update = [variantData];
     } else {
-      if (added !== -1) {
-        update[added] = {
-          option_title: name,
-          option_type: temp?.type as "COLOR" | "TEXT",
-          option_value: temp?.value as string[],
-        };
+      if (variantManager.added !== -1) {
+        update[variantManager.added] = variantData;
 
-        if (product.varaintstock) {
-          const updatestock = product.varaintstock?.map((stockItem) => ({
-            ...stockItem,
-            Stockvalue: stockItem.Stockvalue.map((stockValue) => ({
-              ...stockValue,
-              variant_val: stockValue.variant_val.map((val) =>
-                update?.some((vars) =>
-                  vars.option_type === "COLOR"
-                    ? (vars.option_value as VariantColorValueType[]).some(
-                        (color) => color.val === val
-                      )
-                    : vars.option_value.includes(val)
-                )
-                  ? val
-                  : ""
-              ),
-            })).filter((stockValue) =>
-              stockValue.variant_val.some((val) => val !== "")
-            ),
-          }));
-
-          setproduct((prev) => ({ ...prev, varaintstock: updatestock }));
+        if (product.Stock) {
+          const updatestock = updateStockOnVariantEdit(product.Stock, update);
+          setproduct((prev) => ({ ...prev, Stock: updatestock }));
         }
       } else {
-        update.push({
-          option_title: name,
-          option_type: temp?.type as "COLOR" | "TEXT",
-          option_value: temp?.value ?? [],
-        });
+        update.push(variantData);
       }
     }
 
-    setproduct((prev) => ({ ...prev, variants: update }));
+    setproduct((prev) => ({ ...prev, Variant: update }));
+    variantManager.setAdded(-1);
+    variantManager.setName("");
+    setNew("variant");
+  }, [product.Variant, product.Stock, variantManager, setproduct]);
 
-    setadded(-1);
-    setname("");
-    setnew("variant");
-  };
+  const handleColorSelect = useCallback(
+    (idx: number, selectType: "color" | "text") => {
+      if (selectType === "color") {
+        const data = variantManager.temp?.value[idx] as VariantColorValueType;
+        const rgb = tinycolor(data.val).toRgb();
+        variantManager.setEdit(idx);
+        variantManager.setColorData({
+          name: data.name ?? "",
+          color: { hex: data.val as string, rgb: rgb },
+        });
+        setOpen((prev) => ({ ...prev, addcolor: true }));
+      } else {
+        const data = variantManager.temp?.value[idx] as string;
+        variantManager.setEdit(idx);
+        variantManager.setOption(data);
+        setOpen((prev) => ({ ...prev, addoption: true }));
+      }
+    },
+    [variantManager]
+  );
 
-  const handleAddColor = () => {
-    const { color, name } = colordata;
-    if (color?.hex === "" || !name) {
-      errorToast(color.hex === "" ? "Please Select Color" : "Name is Required");
-      return;
-    }
-    const update = { ...temp };
-    if (edit === -1) {
-      update.value?.push({
-        val: color.hex,
-        name,
-      });
-    } else if (update.value && edit !== -1) {
-      update.value[edit] = {
-        val: color.hex,
-        name,
-      };
-    }
-    settemp(update as variantdatatype);
-    setcolordata((prev) => ({ ...prev, color: Colorinitalize, name: "" }));
-    setedit(-1);
-  };
+  const handleUpdateVariantOption = useCallback(
+    (e: FormEvent<HTMLFormElement>) => {
+      e.preventDefault();
+      const existingTextOptions =
+        product.Variant?.filter((v) => v.option_type === "TEXT").flatMap(
+          (v) => v.option_value as string[]
+        ) ?? [];
 
-  const handleColorSelect = (idx: number, type: "color" | "text") => {
-    if (type === "color") {
-      const data = temp?.value[idx] as VariantColorValueType;
-      const rgb = tinycolor(data.val).toRgb();
-      setedit(idx);
-      setcolordata({
-        name: data.name ?? "",
-        color: { hex: data.val as string, rgb: rgb },
-      });
-      setopen((prev) => ({ ...prev, addcolor: true }));
-    } else {
-      const data = temp?.value[idx] as string;
-      setedit(idx);
-      setoption(data as string);
-      setopen((prev) => ({ ...prev, addoption: true }));
-    }
-  };
+      if (variantManager.addTextOption(existingTextOptions)) {
+        setOpen((prev) => ({ ...prev, addoption: false }));
+      }
+    },
+    [product.Variant, variantManager]
+  );
 
-  const handleUpdateVariantOption = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const update = { ...temp };
-    const variant = [...(product.variants ?? [])];
+  const handleVariantEdit = useCallback(
+    (idx: number) => {
+      if (!product.Variant) return;
 
-    const isExist =
-      variant &&
-      variant
-        .filter((fil) => fil.option_type === "TEXT")
-        .some((i) => i.option_value.includes(option));
-
-    if (isExist) {
-      errorToast("Option Exist");
-      return;
-    }
-    if (edit === -1) {
-      update.value?.push(option);
-    } else if (update.value) {
-      update.value[edit] = option;
-      setedit(-1);
-    }
-
-    setopen((prev) => ({ ...prev, addoption: false }));
-  };
-  const handleVariantEdit = (idx: number) => {
-    if (product.variants) {
-      const variantToEdit = product.variants[idx];
+      const variantToEdit = product.Variant[idx];
       if (variantToEdit) {
-        setname(variantToEdit.option_title);
-        settemp({
+        variantManager.setName(variantToEdit.option_title);
+        variantManager.setTemp({
           name: variantToEdit.option_title,
           value: [...variantToEdit.option_value],
           type: variantToEdit.option_type as "COLOR" | "TEXT",
         });
-
-        setadded(idx);
-        setnew("info");
-
-        if (product.varaintstock) {
-          let updatedStock = [...product.varaintstock];
-          updatedStock = updatedStock.map((stock) => {
-            const updatedVariantValues = stock.Stockvalue.map((val, valIdx) => {
-              const currentVariant =
-                product.variants && product.variants[valIdx];
-              if (!currentVariant) return val;
-
-              const variantValue = currentVariant.option_value;
-              return val.variant_val.map((v, vIdx) => {
-                const newValue = variantValue[vIdx];
-                return newValue
-                  ? typeof newValue === "string"
-                    ? newValue
-                    : newValue.val
-                  : v;
-              }) as string[];
-            });
-
-            return {
-              ...stock,
-              variant_val: updatedVariantValues,
-            };
-          });
-
-          setproduct((prev) => ({
-            ...prev,
-            varaintstock: updatedStock,
-          }));
-        }
+        variantManager.setAdded(idx);
+        setNew("info");
       }
-    }
-  };
-  const handleVariantDelete = async (idx: number) => {
-    const { variants, varaintstock } = product;
-    if (!variants || idx < 0 || idx >= variants.length) return;
+    },
+    [product.Variant, variantManager]
+  );
 
-    const updatedVariants = variants.filter((_, i) => i !== idx);
+  const handleVariantDelete = useCallback(
+    async (idx: number) => {
+      const { Variant: variants, Stock: varaintstock } = product;
+      if (!variants || idx < 0 || idx >= variants.length) return;
 
-    if (varaintstock) {
-      let updatedStock = [...varaintstock];
+      const updatedVariants = variants.filter((_, i) => i !== idx);
 
-      updatedStock = updatedStock.filter((stock) => {
-        const match = stock.Stockvalue.every((val, valIdx) => {
-          const currentVariant = updatedVariants[valIdx];
-          if (!currentVariant) return false;
+      setproduct((prev) => ({
+        ...prev,
+        Variant: updatedVariants,
+        Stock: varaintstock
+          ? varaintstock.filter((stock) =>
+              stock.Stockvalue.some((val) => {
+                return updatedVariants.some((currentVariant) =>
+                  currentVariant.option_value.some((v) => {
+                    const variantVal = typeof v === "string" ? v : v.val;
+                    return val.variant_val.includes(variantVal);
+                  })
+                );
+              })
+            )
+          : undefined,
+      }));
 
-          const variantValue = currentVariant.option_value;
-          return variantValue.some(
-            (v) =>
-              (typeof v === "string" ? val.variant_val : v.val) ===
-              val.variant_val
-          );
+      setNew("variant");
+    },
+    [product, setproduct]
+  );
+
+  const handleSelectTemplate = useCallback(
+    (id: number) => {
+      const selectedTemp = templateManager.templates.find((i) => i.id === id);
+      if (!selectedTemp) return;
+
+      if (templateManager.isEditTemp) {
+        templateManager.setEditTemplate(selectedTemp);
+        setOpen((prev) => ({ ...prev, addtemplate: true }));
+      } else {
+        variantManager.setName(selectedTemp.variant?.option_title ?? "");
+        variantManager.setTemp({
+          name: selectedTemp.variant?.option_title ?? "",
+          type: selectedTemp.variant?.option_type as any,
+          value: selectedTemp.variant?.option_value as any,
         });
-
-        return !match;
-      });
-
-      setproduct((prev) => ({
-        ...prev,
-        variants: updatedVariants,
-        varaintstock: updatedStock,
-      }));
-    } else {
-      setproduct((prev) => ({
-        ...prev,
-        variants: updatedVariants,
-      }));
-    }
-
-    setnew("variant");
-  };
-
-  const handleDeleteVaraint = (idx: number) => {
-    let update = { ...temp };
-    update?.value?.splice(idx, 1);
-    settemp(update as variantdatatype);
-  };
-
-  const handleSelectTemplate = (id: number) => {
-    const selectedtemp = { ...templates.find((i) => i.id === id) };
-
-    if (!selectedtemp) {
-      return;
-    }
-
-    if (isEditTemp) {
-      setedittemplate(selectedtemp as any);
-      setopen((prev) => ({ ...prev, addtemplate: true }));
-    } else {
-      setname(selectedtemp.variant?.option_title as string);
-      settemp({
-        name: selectedtemp.variant?.option_title as string,
-        type: selectedtemp.variant?.option_type as any,
-        value: selectedtemp.variant?.option_value as any,
-      });
-      setnew("info");
-    }
-  };
-
-  const handleDeleteTemplate = async (id: number) => {
-    setloading(true);
-    const request = await ApiRequest(
-      "/api/products/variant/template",
-      undefined,
-      "DELETE",
-      "JSON",
-      { id }
-    );
-    setloading(false);
-    if (!request.success) {
-      errorToast("Error Occured");
-      return;
-    }
-    setreloadtemp(true);
-  };
+        setNew("info");
+      }
+    },
+    [templateManager, variantManager]
+  );
 
   const handleBack = async () => {
-    if (newadd == "none") {
+    if (newadd === "none") {
       setopenmodal((prev) => ({ ...prev, addproductvariant: false }));
       return;
-    } else {
-      if (newadd === "stockinfo") {
-        handleCreateAndUpdateVariantStock();
-        return;
-      }
-
-      if (newadd === "stock" && editindex !== -1) {
-        if (closename)
-          setopenmodal((prev) => ({ ...prev, [closename as string]: false }));
-        else setopenmodal((prev) => ({ ...prev, addproductvariant: false }));
-        return;
-      }
-      if (newadd === "type") {
-        setnew("variant");
-        return;
-      }
-      setnew("none");
     }
-  };
 
-  const handleCreateAndUpdateVariantStock = async (addnew?: boolean) => {
-    const stockArray = product.varaintstock ? [...product.varaintstock] : [];
-    const isStockEmpty = product.varaintstock?.findIndex(
-      (i) => i.Stockvalue.length === 0
-    );
-    if (isStockEmpty !== -1) {
-      setproduct((prev) => ({
-        ...prev,
-        varaintstock: stockArray.filter((_, idx) => idx !== isStockEmpty),
-      }));
-    }
-    if (
-      !selectedvalues ||
-      !stock ||
-      Object.values(selectedvalues).some((v) => v.length === 0)
-    ) {
-      if (edit !== -1 && !addnew) setedit(-1);
-      if (selectedvalues) setselectedvalues(undefined);
-      if (stock) setstock("");
+    if (newadd === "stockinfo") {
+      console.log("Back-BTN", stockManager.selectedValues);
 
-      if (!addnew) setnew("stock");
-
-      if (added === -1 && edit === -1 && closename) {
-        setopenmodal((prev) => ({ ...prev, [closename]: false }));
-      }
-      setadded(-1);
+      handleCreateAndUpdateVariantStock();
       return;
     }
 
-    const stockValues = MapSelectedValuesToVariant(
-      selectedvalues,
-      product.variants?.map((i) => i.option_title) ?? []
-    );
+    if (newadd === "stock" && editindex) {
+      if (closename) {
+        setopenmodal((prev) => ({ ...prev, [closename]: false }));
+      } else {
+        setopenmodal((prev) => ({ ...prev, addproductvariant: false }));
+      }
+      return;
+    }
 
-    const parsedQty = parseInt(stock, 10);
+    if (newadd === "type") {
+      setNew("variant");
+      return;
+    }
 
-    const newStock: Stocktype = {
-      qty: parsedQty,
-      Stockvalue: stockValues.map((i) => ({
-        qty: parsedQty,
-        variant_val: i,
-      })),
-    };
-    if (edit === -1 || newadd) {
-      const isOverlap = stockArray.some((item) =>
-        HasPartialOverlap(
-          item.Stockvalue.map((i) => i.variant_val),
-          stockValues
-        )
+    setNew("none");
+  };
+
+  const handleCreateAndUpdateVariantStock = useCallback(
+    async (addnew?: boolean) => {
+      const cleanedStock = cleanEmptyStock(product.Stock);
+
+      const result = stockManager.createOrUpdateStock(
+        cleanedStock,
+        product.Variant?.map((i) => i.option_title) ?? [],
+        addnew
       );
 
-      if (isOverlap) {
-        errorToast("Stock Existed");
-        setstock("");
+      if (!result) {
+        if (stockManager.editStockIdx !== -1 && !addnew) {
+          stockManager.setEditStockIdx(-1);
+        }
+        stockManager.resetStockState();
 
+        if (!addnew) setNew("stock");
+
+        if (
+          variantManager.added === -1 &&
+          stockManager.editStockIdx === -1 &&
+          closename
+        ) {
+          setopenmodal((prev) => ({ ...prev, [closename]: false }));
+        }
+        variantManager.setAdded(-1);
         return;
       }
-    }
 
-    if (edit === -1) {
-      stockArray.push(newStock);
-    } else {
-      const existingStock = stockArray[edit];
-      const updatedStockValue = existingStock.Stockvalue.map((i) => {
-        const isMatch = stockValues.some((val) =>
-          ArraysAreEqualSets(val, i.variant_val)
-        );
-        return isMatch ? { ...i, qty: parsedQty } : i;
-      });
+      setproduct((prev) => ({ ...prev, Stock: result }));
 
-      if (addnew) {
-        stockValues.forEach((i) => {
-          updatedStockValue.push({ qty: parsedQty, variant_val: i });
-        });
+      if (editindex) {
+        await handleSaveUpdateSubStock(result);
       }
 
-      stockArray[edit].Stockvalue = updatedStockValue;
-      if (!addnew) setedit(-1);
-    }
+      stockManager.resetStockState();
+      if (!addnew) setNew("stock");
+    },
+    [
+      product.Stock,
+      product.Variant,
+      stockManager,
+      variantManager,
+      editindex,
+      closename,
+      setproduct,
+      setopenmodal,
+    ]
+  );
 
-    //update Stock When In Product Edit Mode
+  const handleSaveUpdateSubStock = useCallback(
+    async (Stock: Stocktype[]) => {
+      setMainLoading(true);
+      const res = await ApiRequest(
+        "/api/products/crud",
+        undefined,
+        "PUT",
+        "JSON",
+        {
+          id: editindex,
+          Stock,
+          type: "editvariantstock",
+        }
+      );
+      setMainLoading(false);
 
-    setproduct((prev) => ({
-      ...prev,
-      varaintstock: stockArray.filter((stock) => stock.Stockvalue.length > 0),
-    }));
-
-    if (editindex) await handleSaveUpdateSubStock(stockArray);
-
-    setselectedvalues(undefined);
-    setstock("");
-    if (!addnew) setnew("stock");
-  };
-
-  const handleDeleteColor = (idx: number) => {
-    const update = { ...temp };
-    update.value?.splice(idx, 1);
-    settemp(update as any);
-  };
-
-  const handleSaveUpdateSubStock = async (varaintstock: Stocktype[]) => {
-    setloading(true);
-    const res = await ApiRequest(
-      "/api/products/crud",
-      undefined,
-      "PUT",
-      "JSON",
-      {
-        id: editindex,
-        varaintstock,
-        type: "editvariantstock",
+      if (!res.success) {
+        errorToast("Error occurred");
+        return;
       }
-    );
-    setloading(false);
-    if (!res.success) {
-      errorToast("Error occured");
-      return;
-    }
-    setedit(-1);
-    setselectedvalues(undefined);
-    setstock("");
-    setnew("stock");
-  };
+
+      stockManager.setEditStockIdx(-1);
+      stockManager.resetStockState();
+      setNew("stock");
+    },
+    [editindex, stockManager]
+  );
 
   return (
     <SecondaryModal
@@ -602,8 +385,8 @@ export const Variantcontainer = ({
         setopenmodal((prev) => ({ ...prev, [closename as string]: false }))
       }
     >
-      <div className="relative productvariant_creation rounded-t-md w-full h-full bg-white flex flex-col items-center justify-start pt-5 gap-y-5">
-        <h3 className="title text-2xl font-bold text-left w-full h-[50px] pl-2 border-b-1 border-black ">
+      <div className="relative productvariant_creation rounded-t-md w-full h-full bg-gradient-to-b from-gray-50 to-white flex flex-col items-center justify-start pt-6 gap-y-6">
+        <h3 className="title text-2xl font-bold text-left w-full h-fit px-6 pb-4 border-b-2 border-gray-200 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
           {newadd === "variant" || newadd === "type" || newadd === "info"
             ? "Variant"
             : newadd === "stock" || newadd === "stockinfo"
@@ -614,93 +397,46 @@ export const Variantcontainer = ({
         {newadd === "variant" ? (
           <>
             <div className="w-full flex flex-col items-center gap-y-5">
-              {(product.variants?.length === 0 || !product.variants) && (
-                <h3 className="text-lg text-gray-500 w-[90%] rounded-lg outline outline-1 outline-gray-500 p-2">
-                  No Variant
-                </h3>
+              {(!product.Variant || product.Variant.length === 0) && (
+                <EmptyState
+                  title="No Variants Yet"
+                  description="Create your first variant to get started"
+                />
               )}
-              {loading ? (
+              {mainLoading || templateManager.loading ? (
                 <NormalSkeleton count={3} width="90%" height="fit-content" />
               ) : (
-                product.variants &&
-                product.variants.map((obj, idx) => (
-                  <motion.div
-                    initial={{ x: "-120%" }}
-                    animate={{ x: 0 }}
-                    transition={{
-                      duration: 0.2,
-                    }}
-                    key={idx}
-                    className="relative varaint_container w-[90%] max-small_phone:w-[100%] h-fit border border-black rounded-lg p-2"
-                  >
-                    <h3 className="variant_name font-medium text-lg w-fit h-fit">
-                      {obj.option_title === "" ? "No Name" : obj.option_title}
-                    </h3>
-                    <motion.div className="varaints flex flex-row flex-wrap gap-3 w-full items-center">
-                      {obj.option_type === "TEXT" &&
-                        obj.option_value.map((item, idx) => (
-                          <div
-                            key={idx}
-                            className="min-w-[40px] h-fit max-w-full break-words font-normal text-lg"
-                          >
-                            {item.toString()}
-                          </div>
-                        ))}
-                      {obj.option_type === "COLOR" &&
-                        obj.option_value.map((item, idx) => {
-                          const data = item as VariantColorValueType;
-                          return (
-                            <div
-                              key={idx}
-                              style={{ backgroundColor: data.val }}
-                              className="w-[30px] h-[30px] rounded-3xl"
-                            ></div>
-                          );
-                        })}
-                      <div className="action flex flex-row items-start w-full h-fit gap-x-5">
-                        <div
-                          onClick={() => handleVariantEdit(idx)}
-                          className="edit text-sm cursor-pointer text-blue-500 hover:text-white active:text-white transition duration-500"
-                        >
-                          Edit
-                        </div>
-                        <div
-                          onClick={() => handleVariantDelete(idx)}
-                          className="edit text-sm cursor-pointer text-red-500 hover:text-white active:text-white transition duration-500"
-                        >
-                          Delete
-                        </div>
-                      </div>
-                    </motion.div>
-                  </motion.div>
-                ))
+                product.Variant && (
+                  <VariantList
+                    variants={product.Variant}
+                    onEdit={handleVariantEdit}
+                    onDelete={handleVariantDelete}
+                  />
+                )
               )}
             </div>
           </>
         ) : (
-          // stock__container
-          //
-          //
           (newadd === "stock" || newadd === "stockinfo") && (
             <ManageStockContainer
               setreloaddata={setreloaddata}
-              isloading={loading}
+              isloading={mainLoading}
               editindex={editindex}
               newadd={newadd}
-              setedit={setedit}
-              edit={edit}
-              stock={stock}
-              setstock={setstock}
+              setedit={stockManager.setEditStockIdx}
+              edit={stockManager.editStockIdx}
+              stock={stockManager.stock}
+              setstock={stockManager.setStock}
               addstock={addstock}
-              setnew={setnew}
+              setnew={setNew}
               setaddstock={setaddstock}
-              selectedstock={selectedvalues ?? {}}
-              setselectedstock={setselectedvalues}
-              editsubidx={editsubstockidx}
-              seteditsubidx={seteditsubstockidx}
-              setadded={setadded}
-              isAddNew={addNewSubStock}
-              setisAddNew={setaddNewSubStock}
+              selectedstock={stockManager.selectedValues ?? {}}
+              setselectedstock={stockManager.setSelectedValues}
+              editsubidx={stockManager.editSubStockIdx}
+              seteditsubidx={stockManager.setEditSubStockIdx}
+              setadded={variantManager.setAdded}
+              isAddNew={stockManager.addNewSubStock}
+              setisAddNew={stockManager.setAddNewSubStock}
               handleUpdateStock={(isAddnew) =>
                 handleCreateAndUpdateVariantStock(isAddnew)
               }
@@ -711,49 +447,67 @@ export const Variantcontainer = ({
         {/* Chose type for Variant */}
         {newadd === "type" && (
           <>
-            <Selection
-              default="Chose Type"
-              style={{ width: "90%" }}
-              onChange={(e) => {
-                settemp({
-                  name: "",
-                  value: [],
-                  type: e.target.value as any,
-                });
-                setnew("info");
-              }}
-              data={[
-                {
-                  label: "Color",
-                  value: "COLOR",
-                },
-                { label: "Text", value: "TEXT" },
-              ]}
-            />
-            <div className="templatecontainer w-[90%] h-fit flex flex-col gap-y-5">
-              <div className="w-full h-fit text-lg font-bold flex flex-row gap-x-3 items-center">
-                <p>Template</p>
-
-                <span
-                  onClick={() => setisEditTemp(!isEditTemp)}
-                  className="text-sm text-blue-400 cursor-pointer transition-colors hover:text-gray-300 active:text-gray-300"
+            <div className="w-[90%]">
+              <Selection
+                default="Choose Variant Type"
+                style={{ width: "100%" }}
+                onChange={(e) => {
+                  variantManager.setTemp({
+                    name: "",
+                    value: [],
+                    type: e.target.value as any,
+                  });
+                  setNew("info");
+                }}
+                data={[
+                  {
+                    label: "Color",
+                    value: "COLOR",
+                  },
+                  { label: "Text", value: "TEXT" },
+                ]}
+              />
+            </div>
+            <div className="templatecontainer w-[90%] h-fit flex flex-col gap-y-5 bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+              <div className="w-full h-fit flex flex-row justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <svg
+                    className="w-5 h-5 text-purple-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
+                  </svg>
+                  <p className="text-lg font-bold text-gray-800">Templates</p>
+                </div>
+                <button
+                  onClick={() =>
+                    templateManager.setIsEditTemp(!templateManager.isEditTemp)
+                  }
+                  className="text-sm font-medium px-3 py-1.5 rounded-lg transition-all duration-200 bg-blue-100 text-blue-600 hover:bg-blue-200"
                 >
-                  {isEditTemp ? "Done" : "Edit"}
-                </span>
+                  {templateManager.isEditTemp ? "✓ Done" : "✏️ Edit"}
+                </button>
               </div>
-              <div className="w-full h-fit p-3 max-h-[200px] overflow-y-auto overflow-x-hidden">
-                {loading ? (
+              <div className="w-full h-fit p-3 max-h-[200px] overflow-y-auto overflow-x-hidden rounded-lg bg-gray-50">
+                {templateManager.loading ? (
                   <NormalSkeleton width="100%" height="50px" count={3} />
                 ) : (
                   <TemplateContainer
-                    data={templates.map((item) => ({
+                    data={templateManager.templates.map((item) => ({
                       id: item.id,
                       val: item.variant?.option_title ?? "",
                       type: item.variant?.option_type ?? "",
                     }))}
-                    edit={!isEditTemp}
+                    edit={!templateManager.isEditTemp}
                     onItemsClick={handleSelectTemplate}
-                    onItemsDelete={handleDeleteTemplate}
+                    onItemsDelete={templateManager.deleteTemplate}
                     group={true}
                   />
                 )}
@@ -764,7 +518,7 @@ export const Variantcontainer = ({
                 variant="bordered"
                 style={{ height: "40px" }}
                 onClick={() =>
-                  setopen((prev) => ({ ...prev, addtemplate: true }))
+                  setOpen((prev) => ({ ...prev, addtemplate: true }))
                 }
               >
                 Add Template
@@ -774,79 +528,104 @@ export const Variantcontainer = ({
             {open.addtemplate && (
               <AddTemplateModal
                 close={() =>
-                  setopen((prev) => ({ ...prev, addtemplate: false }))
+                  setOpen((prev) => ({ ...prev, addtemplate: false }))
                 }
-                refresh={() => setreloadtemp(true)}
-                data={edittemplate}
+                refresh={() => templateManager.setReloadTemp(true)}
+                data={templateManager.editTemplate}
               />
             )}
           </>
         )}
         {newadd === "info" && (
-          <div className="addcontainer w-[95%] h-full flex flex-col gap-y-5 rounded-lg p-2">
+          <div className="addcontainer w-[95%] h-full flex flex-col gap-y-6 rounded-xl bg-white shadow-sm border border-gray-200 p-6">
             <Input
               name="name"
               type="text"
               label="Variant Name"
-              value={name}
-              onChange={(e) => setname(e.target.value)}
+              value={variantManager.name}
+              onChange={(e) => variantManager.setName(e.target.value)}
               size="lg"
               className="w-full"
             />
-            {temp && temp.type === "COLOR" ? (
+            {variantManager.temp && variantManager.temp.type === "COLOR" ? (
               <div className="color_container w-full h-fit flex flex-col gap-y-5">
                 <ColorSelectModal
-                  handleAddColor={handleAddColor}
-                  edit={edit}
-                  setedit={setedit}
+                  handleAddColor={variantManager.addColor}
+                  edit={variantManager.edit}
+                  setedit={variantManager.setEdit}
                   open={open.addcolor}
                   setopen={(val) =>
-                    setopen((prev) => ({ ...prev, addcolor: val }))
+                    setOpen((prev) => ({ ...prev, addcolor: val }))
                   }
-                  color={colordata.color}
-                  name={colordata.name}
+                  color={variantManager.colorData.color}
+                  name={variantManager.colorData.name}
                   setcolor={(val) => {
                     if (typeof val === "string") {
-                      setcolordata((prev) => ({ ...prev, name: val }));
+                      variantManager.setColorData((prev) => ({
+                        ...prev,
+                        name: val,
+                      }));
                     } else {
-                      setcolordata((prev) => ({ ...prev, color: val }));
+                      variantManager.setColorData((prev) => ({
+                        ...prev,
+                        color: val,
+                      }));
                     }
                   }}
                 />
 
-                <div className="listcolor flex flex-row flex-wrap gap-3 w-full">
-                  {temp?.value?.some((i) => i !== "") ? (
-                    temp?.value?.map((color, idx) => {
+                <div className="listcolor flex flex-row flex-wrap gap-4 w-full">
+                  {variantManager.temp?.value?.some((i) => i !== "") ? (
+                    variantManager.temp?.value?.map((color, idx) => {
                       const val = color as VariantColorValueType;
                       return (
-                        <Badge
-                          content="-"
-                          color="danger"
-                          onClick={() => handleDeleteColor(idx)}
+                        <motion.div
                           key={idx}
+                          initial={{ scale: 0, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          transition={{ duration: 0.2, delay: idx * 0.05 }}
                         >
-                          <div
-                            className={`w-fit h-[50px] rounded-lg flex flex-row justify-center items-center gap-x-3 cursor-pointer p-2 transition-colors active:bg-gray-300 hover:bg-gray-300`}
-                            onClick={() => handleColorSelect(idx, "color")}
+                          <Badge
+                            content="×"
+                            color="danger"
+                            onClick={() => variantManager.deleteValue(idx)}
+                            className="cursor-pointer"
                           >
-                            {/* Display created Color */}
                             <div
-                              className="color w-[30px] h-[30px] rounded-full"
-                              style={{ backgroundColor: val.val }}
-                            ></div>
-                            {val.name && (
-                              <p className="w-fit h-fit text-lg font-light">
-                                {val.name}
-                              </p>
-                            )}
-                          </div>
-                        </Badge>
+                              className="w-fit h-[56px] rounded-xl flex flex-row justify-center items-center gap-x-3 cursor-pointer px-4 transition-all duration-200 bg-gray-50 hover:bg-gray-100 active:scale-95 border-2 border-gray-200 hover:border-blue-300 shadow-sm hover:shadow-md"
+                              onClick={() => handleColorSelect(idx, "color")}
+                            >
+                              <div
+                                className="color w-[36px] h-[36px] rounded-full border-2 border-white shadow-md"
+                                style={{ backgroundColor: val.val }}
+                              ></div>
+                              {val.name && (
+                                <p className="w-fit h-fit text-base font-medium text-gray-700">
+                                  {val.name}
+                                </p>
+                              )}
+                            </div>
+                          </Badge>
+                        </motion.div>
                       );
                     })
                   ) : (
-                    <h3 className="warn_mess text-lg text-black font-normal">
-                      No Color Added Yet
-                    </h3>
+                    <div className="w-full text-center py-8 text-gray-400">
+                      <svg
+                        className="w-10 h-10 mx-auto mb-2"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"
+                        />
+                      </svg>
+                      <p className="text-sm font-medium">No colors added yet</p>
+                    </div>
                   )}
                 </div>
               </div>
@@ -856,81 +635,122 @@ export const Variantcontainer = ({
                   <Modal closestate="none" customZIndex={150}>
                     <form
                       onSubmit={(e) => handleUpdateVariantOption(e)}
-                      className="addoption w-[300px] h-1/3
-                       max-smallest_phone:w-[275px]
-                      bg-white p-3 flex flex-col gap-y-5 
-                      items-center justify-start rounded-md"
+                      className="addoption w-[340px] max-smallest_phone:w-[300px] h-fit bg-gradient-to-br from-blue-50/50 via-white to-purple-50/50 p-6 flex flex-col gap-y-6 items-center justify-start rounded-2xl shadow-2xl border-2 border-gray-200/60 backdrop-blur-sm"
                     >
+                      <div className="w-full flex flex-col gap-2">
+                        <h3 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                          {variantManager.edit === -1
+                            ? "Add Option"
+                            : "Edit Option"}
+                        </h3>
+                        <p className="text-sm text-gray-600">
+                          {variantManager.edit === -1
+                            ? "Create a new variant option"
+                            : "Update variant option"}
+                        </p>
+                      </div>
                       <input
                         name="option"
-                        placeholder="Option (Required)"
+                        placeholder="Enter option name..."
                         type="text"
-                        value={option}
-                        onChange={(e) => setoption(e.target.value)}
-                        className="text-sm font-medium pl-1 h-[50px] w-full border-2 border-gray-300 rounded-md"
+                        value={variantManager.option}
+                        onChange={(e) =>
+                          variantManager.setOption(e.target.value)
+                        }
+                        className="text-base font-semibold px-4 py-3 h-[56px] w-full border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 outline-none shadow-sm hover:shadow-md"
                       />
                       <div className="action-btn flex flex-row w-full gap-x-3">
-                        <PrimaryButton
-                          text={edit === -1 ? "Create" : "Update"}
-                          color="#35C191"
+                        <Button
                           type="submit"
-                          disable={option === ""}
-                          width="100%"
-                          textsize="12px"
-                          radius="10px"
-                          height="35px"
-                        />
-                        <PrimaryButton
-                          text="Back"
-                          color="black"
+                          isDisabled={variantManager.option === ""}
+                          className="flex-1 h-12 font-bold text-base bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95"
+                        >
+                          {variantManager.edit === -1 ? "Create" : "Update"}
+                        </Button>
+                        <Button
                           type="button"
                           onClick={() => {
-                            setopen((prev) => ({
+                            setOpen((prev) => ({
                               ...prev,
                               addoption: false,
                             }));
                           }}
-                          width="100%"
-                          textsize="12px"
-                          radius="10px"
-                          height="35px"
-                        />
+                          className="flex-1 h-12 font-bold text-base bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95"
+                        >
+                          Cancel
+                        </Button>
                       </div>
                     </form>
                   </Modal>
                 )}
-                <div className="text-container flex flex-col items-center justify-start gap-y-3">
-                  <h3
+                <div className="text-container flex flex-col items-start justify-start gap-y-4 w-full">
+                  <button
                     onClick={() => {
-                      setedit(-1);
-                      setoption("");
-                      setopen((prev) => ({ ...prev, addoption: true }));
+                      variantManager.setEdit(-1);
+                      variantManager.setOption("");
+                      setOpen((prev) => ({ ...prev, addoption: true }));
                     }}
-                    className="text-sm w-ft h-fit cursor-pointer font-medium text-blue-500 transition duration-300 hover:text-gray-300 active:text-gray-300"
+                    className="w-full px-4 py-3 rounded-lg border-2 border-dashed border-blue-300 bg-blue-50 text-blue-600 font-medium text-sm transition-all duration-200 hover:bg-blue-100 hover:border-blue-400 active:scale-95 flex items-center justify-center gap-2"
                   >
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                      />
+                    </svg>
                     Add Option
-                  </h3>
+                  </button>
                   <div className="opitonlist flex flex-row gap-3 flex-wrap w-full items-start justify-start h-fit">
-                    {temp?.value.length === 0 && (
-                      <h3 className="warn_mess text-lg text-black font-normal">
-                        No Option Yet
-                      </h3>
-                    )}
-                    {temp?.value.map((i, idx) => (
-                      <Badge
-                        key={idx}
-                        content="-"
-                        color="danger"
-                        onClick={() => handleDeleteVaraint(idx)}
-                      >
-                        <h3
-                          onClick={() => handleColorSelect(idx, "text")}
-                          className="option text-[15px] cursor-pointer p-2 rounded-lg text-black outline outline-2 outline-black font-normal transition duration-200 w-fit h-fit"
+                    {variantManager.temp?.value.length === 0 ? (
+                      <div className="w-full text-center py-8 text-gray-400">
+                        <svg
+                          className="w-10 h-10 mx-auto mb-2"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
                         >
-                          {i.toString()}
-                        </h3>
-                      </Badge>
-                    ))}
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                          />
+                        </svg>
+                        <p className="text-sm font-medium">
+                          No options added yet
+                        </p>
+                      </div>
+                    ) : (
+                      variantManager.temp?.value.map((i, idx) => (
+                        <motion.div
+                          key={idx}
+                          initial={{ scale: 0, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          transition={{ duration: 0.2, delay: idx * 0.05 }}
+                        >
+                          <Badge
+                            content="×"
+                            color="danger"
+                            onClick={() => variantManager.deleteValue(idx)}
+                            className="cursor-pointer"
+                          >
+                            <div
+                              onClick={() => handleColorSelect(idx, "text")}
+                              className="option text-sm cursor-pointer px-4 py-2.5 rounded-lg bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-200 text-gray-700 font-medium transition-all duration-200 hover:shadow-md hover:border-blue-400 active:scale-95 w-fit h-fit"
+                            >
+                              {i.toString()}
+                            </div>
+                          </Badge>
+                        </motion.div>
+                      ))
+                    )}
                   </div>
                 </div>
               </>
@@ -938,9 +758,12 @@ export const Variantcontainer = ({
 
             <div className="flex flex-row gap-x-5 w-full h-[35px]">
               <PrimaryButton
-                text={`${added === -1 ? "Create" : "Update"}`}
+                text={`${variantManager.added === -1 ? "Create" : "Update"}`}
                 type="button"
-                disable={name === "" || temp?.value.length === 0}
+                disable={
+                  variantManager.name === "" ||
+                  variantManager.temp?.value.length === 0
+                }
                 textsize="12px"
                 onClick={() => handleCreate()}
                 radius="10px"
@@ -953,10 +776,10 @@ export const Variantcontainer = ({
                 type="button"
                 textsize="12px"
                 onClick={() => {
-                  setedit(-1);
-                  setname("");
-                  settemp(undefined);
-                  setnew(added === -1 ? "type" : "variant");
+                  variantManager.setEdit(-1);
+                  variantManager.setName("");
+                  variantManager.setTemp(undefined);
+                  setNew(variantManager.added === -1 ? "type" : "variant");
                 }}
                 radius="10px"
                 width="100%"
@@ -966,104 +789,83 @@ export const Variantcontainer = ({
           </div>
         )}
         {newadd === "variant" && (
-          <PrimaryButton
-            text="Add new"
+          <button
             type="button"
             onClick={() => {
-              setname("");
-              setadded(-1);
-              setedit(-1);
-              setnew("type");
+              variantManager.setName("");
+              variantManager.setAdded(-1);
+              variantManager.setEdit(-1);
+              setNew("type");
             }}
-            radius="10px"
-            width="90%"
-            textsize="12px"
-            height="40px"
-          />
+            className="w-[90%] h-12 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold text-sm transition-all duration-200 hover:shadow-lg hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2"
+          >
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+              />
+            </svg>
+            Add New Variant
+          </button>
         )}
         {/* Choose Type of between Variant and Stock */}
         {newadd === "none" && (
           <>
-            <div className="w-[90%] h-full grid grid-cols-1 gap-5 place-items-center">
-              <div
-                onClick={() => setnew("variant")}
-                className="card w-[350px] h-[250px] 
-                max-small_phone:w-[200px] max-small_phone:h-[150px]
-              bg-blue-300 rounded-lg grid place-content-center place-items-center transition duration-200 cursor-pointer hover:bg-transparent hover:outline hover:outline-1 hover:outline-black"
-              >
-                <Image
-                  src={Variantimg}
-                  alt="Icon"
-                  className="w-[100px] h-[100px] object-contain pb-10"
-                />
-                <div className=" w-full h-fit text-black flex flex-row items-center gap-x-5">
-                  <h3 className="text-2xl font-bold">
-                    {`${
-                      !product.variants || product.variants.length === 0
-                        ? "Create"
-                        : ""
-                    } Variant`}
-                  </h3>
-                  <div
-                    style={
-                      !product.variants || product.variants.length === 0
-                        ? { display: "none" }
-                        : {}
-                    }
-                    className="font-bold w-[40px] h-[40px] text-[15px] p-1 bg-black text-white rounded-full grid place-content-center"
-                  >
-                    {product.variants?.length}
-                  </div>
-                </div>
-              </div>
-              <div
+            <div className="w-[90%] h-full grid grid-cols-1 gap-6 place-items-center">
+              <SelectionCard
+                title={`${
+                  !product.Variant || product.Variant.length === 0
+                    ? "Create"
+                    : "Manage"
+                } Variant`}
+                image={Variantimg}
+                count={product.Variant?.length}
+                onClick={() => setNew("variant")}
+                gradientFrom="from-blue-400"
+                gradientVia="via-blue-500"
+                gradientTo="to-purple-600"
+                badgeColor="text-blue-600"
+              />
+              <SelectionCard
+                title={`${
+                  !product.Stock || product.Stock.length === 0
+                    ? "Create"
+                    : "Manage"
+                } Stock`}
+                image={Variantstockimg}
+                count={product.Stock?.length}
+                disabled={!product.Variant || product.Variant.length === 0}
                 onClick={() => {
-                  if (!product.variants || product.variants.length === 0) {
+                  if (!product.Variant || product.Variant.length === 0) {
                     errorToast("Please Create Variant");
                     return;
                   }
-                  setnew("stock");
+                  setNew("stock");
                 }}
-                className="card w-[350px] h-[250px] max-small_phone:w-[200px] max-small_phone:h-[150px] bg-blue-300 rounded-lg grid place-content-center place-items-center transition duration-200 cursor-pointer hover:bg-transparent hover:outline hover:outline-1 hover:outline-black"
-              >
-                <Image
-                  src={Variantstockimg}
-                  alt="Icon"
-                  className="w-[70px] h-[70px[ object-contain pb-10"
-                />
-
-                <div className=" w-full h-fit text-black flex flex-row items-center gap-x-5">
-                  <h3 className="text-2xl font-bold">
-                    {`${
-                      !product.varaintstock || product.varaintstock.length === 0
-                        ? "Create"
-                        : ""
-                    } Stock`}
-                  </h3>
-                  <div
-                    style={
-                      !product.varaintstock || product.varaintstock.length === 0
-                        ? { display: "none" }
-                        : {}
-                    }
-                    className="font-bold w-[40px] h-[40px] text-[15px] p-1 bg-black text-white rounded-full grid place-content-center"
-                  >
-                    {product.varaintstock?.length}
-                  </div>
-                </div>
-              </div>
+                gradientFrom="from-green-400"
+                gradientVia="via-emerald-500"
+                gradientTo="to-teal-600"
+                badgeColor="text-green-600"
+              />
             </div>
           </>
         )}
       </div>
 
-      <div className="flex flex-row justify-end gap-x-5 w-full h-fit bg-white rounded-b-lg p-2 border-t-2 border-gray-500">
-        {editsubstockidx === -1 && (
+      <div className="flex flex-row justify-end gap-x-5 w-full h-fit bg-gradient-to-r from-gray-50 to-white rounded-b-lg p-4 border-t-2 border-gray-200 shadow-inner">
+        {stockManager.editSubStockIdx === -1 && (
           <>
             <PrimaryButton
               text={newadd !== "none" ? "Back" : "Close"}
               onClick={() => handleBack()}
-              status={loading ? "loading" : "authenticated"}
+              status={mainLoading ? "loading" : "authenticated"}
               type="button"
               width="30%"
               height="40px"

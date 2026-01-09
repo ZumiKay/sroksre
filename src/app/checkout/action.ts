@@ -5,9 +5,9 @@ import {
   Allstatus,
   Ordertype,
   Productordertype,
-  getUser,
   totalpricetype,
 } from "@/src/context/OrderContext";
+import { getUser } from "@/src/lib/session";
 import { Orderproduct } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import {

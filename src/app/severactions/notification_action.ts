@@ -4,7 +4,7 @@ import {
   ActionReturnType,
   NotificationType,
 } from "@/src/context/GlobalContext";
-import { getUser } from "@/src/context/OrderContext";
+import { getUser } from "@/src/lib/session";
 import Prisma from "@/src/lib/prisma";
 
 export const SaveNotification = async (

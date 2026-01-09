@@ -239,36 +239,64 @@ export default function AuthenticatePage() {
 
       <form
         onSubmit={handleLogin}
-        className="authentication__container  w-full min-h-[90vh] mt-4 flex items-center justify-center"
+        className="authentication__container w-full min-h-[90vh] mt-4 flex items-center justify-center px-4 py-8 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50"
       >
         <div
-          className={`bg-[#495464] shadow-large flex text-lg flex-col justify-center items-center gap-y-10 
+          className={`bg-white shadow-2xl flex text-lg flex-col justify-center items-center gap-y-8 
           max-large_phone:w-[90%] max-small_phone:w-[97%]
-          w-[70%] min-h-[70vh] 
-          h-fit p-5 
-          rounded-lg`}
+          w-full max-w-md min-h-[70vh] 
+          h-fit p-8 md:p-10
+          rounded-2xl backdrop-blur-sm border-5 border-incart`}
         >
+          {/* Header with branding */}
+          <div className="w-full text-center space-y-2">
+            <h1 className="text-3xl font-bold text-gray-800">
+              {type === "register"
+                ? "Create Account"
+                : type === "forget"
+                ? "Reset Password"
+                : "Welcome Back"}
+            </h1>
+            <p className="text-sm text-gray-500">
+              {type === "register"
+                ? "Join SrokSre today"
+                : type === "forget"
+                ? "Enter your email to reset your password"
+                : "Login to your account"}
+            </p>
+          </div>
+
           {type === "register" && (!verify.cid || !verify.email) && (
-            <div className="w-[80%] max-small_phone:w-[97%] flex flex-col gap-y-5">
+            <div className="w-full space-y-4">
               {!verify.email ? (
-                <input
-                  type="email"
-                  name="email"
-                  placeholder="Email Address"
-                  className="email w-full p-3 rounded-md"
-                  value={data.email}
-                  onChange={handleChange}
-                  required
-                />
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">
+                    Email Address
+                  </label>
+                  <input
+                    type="email"
+                    name="email"
+                    placeholder="your@email.com"
+                    className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none text-gray-700"
+                    value={data.email}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
               ) : (
-                <input
-                  type="number"
-                  name="cid"
-                  value={data.cid}
-                  placeholder="Verify Code"
-                  className="email w-full p-3 rounded-md"
-                  onChange={handleChange}
-                />
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">
+                    Verification Code
+                  </label>
+                  <input
+                    type="number"
+                    name="cid"
+                    value={data.cid}
+                    placeholder="Enter 6-digit code"
+                    className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none text-gray-700 text-center text-2xl tracking-widest"
+                    onChange={handleChange}
+                  />
+                </div>
               )}
             </div>
           )}
@@ -276,55 +304,69 @@ export default function AuthenticatePage() {
             <>
               {verify.email && verify.cid && (
                 <>
-                  <input
-                    type="text"
-                    className="username w-[80%] p-3 rounded-md"
-                    placeholder="Firstname"
-                    name="firstname"
-                    value={data.firstname}
-                    onChange={handleChange}
-                    required
-                  />
-                  <input
-                    type="text"
-                    className="username w-[80%] p-3 rounded-md"
-                    placeholder="Lastname"
-                    name="lastname"
-                    value={data.lastname}
-                    onChange={handleChange}
-                    required
-                  />
-                  <div className="w-full flex flex-col gap-y-2 items-center justify-center ">
+                  <div className="w-full space-y-2">
+                    <label className="text-sm font-medium text-gray-700">
+                      First Name
+                    </label>
+                    <input
+                      type="text"
+                      className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none text-gray-700"
+                      placeholder="John"
+                      name="firstname"
+                      value={data.firstname}
+                      onChange={handleChange}
+                      required
+                    />
+                  </div>
+                  <div className="w-full space-y-2">
+                    <label className="text-sm font-medium text-gray-700">
+                      Last Name
+                    </label>
+                    <input
+                      type="text"
+                      className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none text-gray-700"
+                      placeholder="Doe"
+                      name="lastname"
+                      value={data.lastname}
+                      onChange={handleChange}
+                      required
+                    />
+                  </div>
+                  <div className="w-full space-y-2">
                     <PasswordInput
                       name="password"
                       label="Password"
                       type="auth"
-                      width="80%"
+                      width="100%"
                       variant="filled"
                       onChange={handleChange}
                       require
                     />
                   </div>
-                  <PasswordInput
-                    name="confirmpassword"
-                    label="Confirm Password"
-                    width="80%"
-                    type="auth"
-                    variant="filled"
-                    onChange={handleChange}
-                    require
-                  />
-                  <div className="w-[80%] h-fit">
+                  <div className="w-full space-y-2">
+                    <PasswordInput
+                      name="confirmpassword"
+                      label="Confirm Password"
+                      width="100%"
+                      type="auth"
+                      variant="filled"
+                      onChange={handleChange}
+                      require
+                    />
+                  </div>
+                  <div className="w-full">
                     <PasswordVerification password={data.password ?? ""} />
                   </div>
 
-                  <RecapchaContainer
-                    captchaValue={data.recapcha}
-                    setcaptchaValue={(value) =>
-                      setdata((prev) => ({ ...prev, recapcha: value }))
-                    }
-                  />
-                  <div className="w-[80%] h-fit">
+                  <div className="w-full flex justify-center">
+                    <RecapchaContainer
+                      captchaValue={data.recapcha}
+                      setcaptchaValue={(value) =>
+                        setdata((prev) => ({ ...prev, recapcha: value }))
+                      }
+                    />
+                  </div>
+                  <div className="w-full">
                     <Checkbox
                       checked={data.agreement}
                       onChange={(val) => {
@@ -333,13 +375,16 @@ export default function AuthenticatePage() {
                           agreement: val.target.checked,
                         }));
                       }}
+                      classNames={{
+                        label: "text-gray-700 text-sm",
+                      }}
                     >
-                      <strong className="text-white"> Agree to </strong>
+                      <span className="text-gray-700">I agree to the </span>
                       <a
                         href="/privacyandpolicy"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-blue-400 underline"
+                        className="text-blue-600 hover:text-blue-700 underline font-medium"
                       >
                         terms and conditions
                       </a>
@@ -347,7 +392,7 @@ export default function AuthenticatePage() {
                   </div>
                 </>
               )}
-              <div className="form_actions flex flex-row gap-5 w-[80%] max-small_phone:w-[100%]">
+              <div className="form_actions flex flex-row gap-3 w-full">
                 {verify.cid && verify.email ? (
                   <PrimaryButton
                     text="Create Account"
@@ -387,18 +432,23 @@ export default function AuthenticatePage() {
             </>
           ) : (
             <>
-              <input
-                type="email"
-                name="email"
-                placeholder="Email Address"
-                className="email w-[80%] max-small_phone:w-full p-3 rounded-md"
-                value={data.email}
-                onChange={handleChange}
-                required
-              />
+              <div className="w-full space-y-2">
+                <label className="text-sm font-medium text-gray-700">
+                  Email Address
+                </label>
+                <input
+                  type="email"
+                  name="email"
+                  placeholder="your@email.com"
+                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none text-gray-700"
+                  value={data.email}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
               {type === "login" && (
                 <>
-                  <div className="h-full flex justify-start w-[80%] max-small_phone:w-[103%]">
+                  <div className="w-full space-y-2">
                     <PasswordInput
                       label="Password"
                       type="auth"
@@ -412,85 +462,86 @@ export default function AuthenticatePage() {
                     onClick={() => {
                       settype("forget");
                     }}
-                    className="w-[80%] text-lg underline text-right text-white cursor-pointer hover:text-black active:text-black"
+                    className="w-full text-sm text-right text-blue-600 hover:text-blue-700 cursor-pointer font-medium transition-colors"
                   >
-                    Forget Password?
+                    Forgot Password?
                   </div>
-                  <div className="form_actions flex flex-col gap-y-5 w-[80%] ">
+                  <div className="form_actions flex flex-col gap-y-4 w-full">
                     <Button
-                      className="bg-[#438D86] w-full text-white font-bold"
-                      size="md"
+                      className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 w-full text-white font-semibold shadow-lg shadow-blue-500/30 transition-all"
+                      size="lg"
                       type="submit"
                       isLoading={loading === "loading"}
                     >
                       Login
                     </Button>
-                    <div
-                      onClick={() => {
-                        setdata(Userinitialize);
-                        settype("register");
-                      }}
-                      className="w-full text-right text-lg font-medium underline text-white cursor-pointer hover:text-black active:text-black"
-                    >
-                      Create Account ?
+                    <div className="text-center">
+                      <span className="text-gray-600 text-sm">
+                        Don't have an account?{" "}
+                      </span>
+                      <span
+                        onClick={() => {
+                          setdata(Userinitialize);
+                          settype("register");
+                        }}
+                        className="text-blue-600 hover:text-blue-700 font-semibold cursor-pointer transition-colors"
+                      >
+                        Sign up
+                      </span>
                     </div>
-                    <label className="text-lg font-bold text-white">
-                      Sign with:{" "}
-                    </label>
-                    <div className="signinWith__container w-full flex flex-row items-center gap-x-2 gap-y-5 max-large_phone:flex-col">
-                      <PrimaryButton
+
+                    <div className="relative w-full">
+                      <div className="absolute inset-0 flex items-center">
+                        <div className="w-full border-t border-gray-300"></div>
+                      </div>
+                      <div className="relative flex justify-center text-sm">
+                        <span className="px-2 bg-white text-gray-500">
+                          Or continue with
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="signinWith__container w-full flex flex-col gap-3">
+                      <button
                         type="button"
-                        text="Discord"
-                        width="250px"
-                        color="black"
-                        height="50px"
-                        radius="10px"
-                        Icon={
-                          <i className="fa-brands fa-discord text-lg text-blue-900"></i>
-                        }
-                        onClick={() => servicesSignIn("discord")}
-                      />
-                      <PrimaryButton
-                        type="button"
-                        text="Gmail"
-                        hoverColor="black"
-                        hoverTextColor="white"
-                        width="250px"
-                        height="50px"
-                        color="white"
-                        textcolor="black"
-                        radius="10px"
                         onClick={() => servicesSignIn("google")}
-                        Icon={
-                          <i className="fa-brands fa-google text-lg text-red-600"></i>
-                        }
-                      />
+                        className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-gray-700 font-medium"
+                      >
+                        <i className="fa-brands fa-google text-lg text-red-500"></i>
+                        <span>Continue with Google</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => servicesSignIn("discord")}
+                        className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors text-white font-medium"
+                      >
+                        <i className="fa-brands fa-discord text-lg"></i>
+                        <span>Continue with Discord</span>
+                      </button>
                     </div>
                   </div>
                 </>
               )}
               {type === "forget" && (
                 <>
-                  <PrimaryButton
+                  <Button
                     type="button"
-                    text="Verify"
-                    color="#3D788E"
-                    width="80%"
-                    height="50px"
-                    radius="10px"
+                    className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold shadow-lg shadow-blue-500/30"
+                    size="lg"
                     onClick={() => handleConfirm("email")}
-                    status={loading}
-                  />
-                  <PrimaryButton
+                    isLoading={loading === "loading"}
+                  >
+                    Send Reset Link
+                  </Button>
+                  <Button
                     type="button"
-                    text="Back"
-                    color="lightcoral"
-                    width="80%"
-                    height="50px"
-                    radius="10px"
-                    disable={loading === "loading"}
+                    className="w-full border-2 border-gray-300 hover:border-gray-400 text-gray-700 font-semibold bg-white"
+                    size="lg"
+                    isDisabled={loading === "loading"}
                     onClick={() => settype("login")}
-                  />
+                  >
+                    Back to Login
+                  </Button>
                 </>
               )}
             </>
@@ -518,21 +569,34 @@ export const PasswordVerification = ({ password }: { password: string }) => {
   const validationStatus: Record<string, any> = validatePassword(password);
 
   return (
-    <ul className="password_verification w-full h-fit flex flex-col gap-5 bg-white p-3 rounded-lg">
-      <li className="text-lg font-bold">Your password must contains: </li>
-      {PasswordRequirement.map((requirement, idx) => {
-        const isValid = validationStatus[requirement.value];
-        return (
-          <li
-            key={idx}
-            className={`text-sm font-bold ${
-              !isValid ? "text-red-400" : "text-green-500"
-            }`}
-          >
-            - {requirement.label}
-          </li>
-        );
-      })}
-    </ul>
+    <div className="password_verification w-full h-fit flex flex-col gap-3 bg-gradient-to-br from-gray-50 to-blue-50 p-4 rounded-lg border border-gray-200">
+      <p className="text-sm font-semibold text-gray-700">
+        Password requirements:
+      </p>
+      <ul className="space-y-2">
+        {PasswordRequirement.map((requirement, idx) => {
+          const isValid = validationStatus[requirement.value];
+          return (
+            <li
+              key={idx}
+              className="flex items-center gap-2 text-sm font-medium"
+            >
+              <span
+                className={`flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center ${
+                  !isValid
+                    ? "bg-red-100 text-red-600"
+                    : "bg-green-100 text-green-600"
+                }`}
+              >
+                {isValid ? "✓" : "×"}
+              </span>
+              <span className={!isValid ? "text-gray-600" : "text-green-700"}>
+                {requirement.label}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
   );
 };

@@ -19,9 +19,9 @@ const RenderStockCards = ({
   handleSubStockClick,
 }: RenderStockCardsProps) => {
   const { product } = useGlobalContext();
-  if (!product || !product.variants) return null;
+  if (!product || !product.Variant) return null;
 
-  const { variants, varaintstock } = product;
+  const { Variant: variants, Stock: varaintstock } = product;
 
   const stockValues = useMemo(
     () =>
@@ -69,7 +69,7 @@ const RenderStockCards = ({
           >
             {i.variant_val
               ?.filter((i) => i !== "")
-              .map((item) => {
+              .map((item, variantIdx) => {
                 const variant = variantLookup[item] as Varianttype;
                 const isColor =
                   variant.option_type === "COLOR"
@@ -78,7 +78,7 @@ const RenderStockCards = ({
 
                 return (
                   <StockCard
-                    key={item}
+                    key={`${idx}-${variantIdx}-${item}`}
                     label={
                       variant.option_type === "COLOR"
                         ? isColor?.find((i) => i.val === item)?.name ?? ""

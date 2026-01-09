@@ -8,20 +8,52 @@ import {
 import { MultipleSelect } from "../../component/Button";
 import { getFilterOrder, GetOrder } from "./action";
 import {
-  getUser,
+  Ordertype,
   Productordertype,
   totalpricetype,
 } from "@/src/context/OrderContext";
+import { getUser } from "@/src/lib/session";
 import { notFound, redirect } from "next/navigation";
 import {
   AllOrderStatusColor,
   AllorderType,
   removeSpaceAndToLowerCase,
 } from "@/src/lib/utilities";
-
 import { OrderUserType } from "../../checkout/action";
 import { getCheckoutdata } from "../../checkout/page";
-import React from "react";
+import React, { Suspense, cache } from "react";
+import type { Metadata } from "next";
+import { userdata } from "@/src/context/GlobalContext";
+import { Orderproduct, Orders } from "@prisma/client";
+
+// Generate metadata for SEO
+export const metadata: Metadata = {
+  title: "Order Management | SrokSre Dashboard",
+  description: "Manage and track all orders in your system",
+};
+
+// Enable revalidation for this page
+export const revalidate = 60; // Revalidate every 60 seconds
+
+// Type definitions
+interface SearchParams {
+  p?: string;
+  show?: string;
+  status?: string;
+  q?: string;
+  fromdate?: string;
+  todate?: string;
+  startprice?: string;
+  endprice?: string;
+}
+
+interface OrderStats {
+  total: number;
+  pending: number;
+  processing: number;
+  completed: number;
+  totalRevenue: number;
+}
 
 export interface AllorderStatus {
   id: string;
@@ -34,17 +66,19 @@ export interface AllorderStatus {
 export default async function OrderManagement({
   searchParams,
 }: {
-  searchParams?: { [key: string]: string | undefined };
+  searchParams?: SearchParams;
 }) {
+  // Get user with error handling
   const getuser = await getUser();
 
   if (!getuser || (getuser.role !== "USER" && getuser.role !== "ADMIN")) {
     return notFound();
   }
 
-  let {
+  // Parse and validate search parameters
+  const {
     p = "1",
-    show = "1",
+    show = "10",
     status,
     q,
     fromdate,
@@ -53,158 +87,356 @@ export default async function OrderManagement({
     endprice,
   } = searchParams ?? {};
 
+  const page = Math.max(1, parseInt(p as string) || 1);
+  const limit = Math.max(1, Math.min(100, parseInt(show as string) || 10));
   const selectedStatus = status ? (status as string).split(",") : undefined;
+  const isFilter = Boolean(q || fromdate || todate || startprice || endprice);
 
-  const req: any = await GetOrder(
-    undefined,
-    undefined,
-    parseInt(p as string),
-    parseInt(show as string),
-    getuser.role === "USER" ? getuser.id : undefined
-  );
+  // Parallel data fetching for better performance
+  const userId = getuser.role === "USER" ? getuser.id : undefined;
 
-  const filterorder = await getFilterOrder({
-    status: selectedStatus ?? [""],
-    page: parseInt(p as string),
-    limit: parseInt(show as string),
-    search: q ? removeSpaceAndToLowerCase(q.toString()) : undefined,
-    startprice: parseFloat((startprice as string) ?? "0"),
-    endprice: parseFloat((endprice as string) ?? "0"),
-    fromdate: fromdate ? fromdate : undefined,
-    todate: todate ? todate : undefined,
-    userid: getuser.role === "USER" ? getuser.id : undefined,
-  });
+  try {
+    const [ordersResult, filterResult] = await Promise.all([
+      GetOrder(undefined, undefined, page, limit, userId),
+      isFilter || selectedStatus
+        ? getFilterOrder({
+            status: selectedStatus ?? [""],
+            page,
+            limit,
+            search: q ? removeSpaceAndToLowerCase(q.toString()) : undefined,
+            startprice: parseFloat((startprice as string) ?? "0"),
+            endprice: parseFloat((endprice as string) ?? "0"),
+            fromdate: fromdate || undefined,
+            todate: todate || undefined,
+            userid: userId,
+          })
+        : Promise.resolve({ data: [], total: 0 }),
+    ]);
 
-  const isFilter = q || fromdate || todate || startprice || endprice;
+    const orders = (
+      isFilter || selectedStatus ? filterResult.data : ordersResult?.order
+    ) as AllorderStatus[] | undefined;
 
-  const total = Math.ceil(
-    (isFilter ? filterorder.total ?? 0 : req?.total) / parseInt(show as string)
-  );
+    const totalOrders =
+      isFilter || selectedStatus
+        ? filterResult.total ?? 0
+        : ordersResult?.total ?? 0;
 
-  const orders =
-    isFilter || selectedStatus
-      ? filterorder.data
-      : (req?.order as unknown as AllorderStatus[]);
+    const totalPages = Math.ceil(totalOrders / limit);
+
+    // Calculate statistics efficiently
+    const stats = calculateOrderStats(orders || [], totalOrders);
+
+    return (
+      <main className="order__container w-full min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6 md:p-8">
+        <OrderHeader stats={stats} />
+        <FilterSection
+          isFilter={isFilter}
+          filterData={{ todate, fromdate, q, startprice, endprice }}
+        />
+        <OrdersTable
+          orders={orders}
+          isAdmin={getuser.role === "ADMIN"}
+          searchParams={searchParams}
+        />
+        {orders && orders.length > 0 && totalPages > 1 && (
+          <PaginationSection page={page} show={show} totalPages={totalPages} />
+        )}
+      </main>
+    );
+  } catch (error) {
+    console.error("Error fetching orders:", error);
+    return (
+      <main className="order__container w-full min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6 md:p-8">
+        <div className="flex flex-col items-center justify-center h-[60vh]">
+          <div className="w-20 h-20 rounded-full bg-red-100 flex items-center justify-center mb-4">
+            <i className="fa-solid fa-exclamation-triangle text-red-500 text-3xl"></i>
+          </div>
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">
+            Error Loading Orders
+          </h2>
+          <p className="text-gray-600">Please try again later</p>
+        </div>
+      </main>
+    );
+  }
+}
+
+// Helper function to calculate stats
+function calculateOrderStats(
+  orders: AllorderStatus[],
+  totalOrders: number
+): OrderStats {
+  return {
+    total: totalOrders,
+    pending: orders.filter((o) => o.status?.toLowerCase() === "pending").length,
+    processing: orders.filter((o) => o.status?.toLowerCase() === "processing")
+      .length,
+    completed: orders.filter((o) => o.status?.toLowerCase() === "completed")
+      .length,
+    totalRevenue: orders.reduce(
+      (sum, o) => sum + ((o.price as totalpricetype)?.total ?? 0),
+      0
+    ),
+  };
+}
+
+// Separate component for header section
+function OrderHeader({ stats }: { stats: OrderStats }) {
+  const statisticsCards = [
+    {
+      icon: "fa-shopping-cart",
+      gradient: "from-blue-500 to-purple-600",
+      label: "Total Orders",
+      value: stats.total,
+    },
+    {
+      icon: "fa-clock",
+      gradient: "from-yellow-500 to-orange-600",
+      label: "Pending",
+      value: stats.pending,
+    },
+    {
+      icon: "fa-spinner",
+      gradient: "from-indigo-500 to-blue-600",
+      label: "Processing",
+      value: stats.processing,
+    },
+    {
+      icon: "fa-check-circle",
+      gradient: "from-green-500 to-emerald-600",
+      label: "Completed",
+      value: stats.completed,
+    },
+  ];
 
   return (
-    <main className="order__container w-full min-h-screen flex flex-col items-start gap-y-5 pl-2 pr-2 relative">
-      <div
-        className="filter_container w-full flex flex-row items-center gap-x-5 
-      max-large_phone:justify-center
-      max-large_phone:flex-col max-large_phone:gap-y-5"
-      >
-        <div className="w-[300px] max-small_phone:w-[95%]">
+    <div className="w-full mb-8">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
+        <div>
+          <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-2">
+            Order Management
+          </h1>
+          <p className="text-gray-600">
+            Track and manage all orders in your system
+          </p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        {statisticsCards.map((card, idx) => (
+          <div
+            key={idx}
+            className="bg-white p-5 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow"
+          >
+            <div className="flex items-center justify-between mb-3">
+              <div
+                className={`w-12 h-12 rounded-lg bg-gradient-to-br ${card.gradient} flex items-center justify-center`}
+              >
+                <i className={`fa-solid ${card.icon} text-white text-xl`}></i>
+              </div>
+            </div>
+            <p className="text-sm text-gray-500 font-medium">{card.label}</p>
+            <p className="text-3xl font-bold text-gray-800">{card.value}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// Separate component for filter section
+function FilterSection({
+  isFilter,
+  filterData,
+}: {
+  isFilter: boolean;
+  filterData: Partial<SearchParams>;
+}) {
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
+      <div className="filter_container w-full flex flex-col md:flex-row items-start md:items-center gap-4">
+        <div className="w-full md:w-[300px]">
           <MultipleSelect />
         </div>
 
-        <div className="w-full h-full flex flex-row items-center gap-x-3 max-large_phone:justify-center">
-          <FilterButton
-            isFilter={!isFilter}
-            data={{ todate, fromdate, q, startprice, endprice }}
-          />
+        <div className="w-full md:w-auto flex flex-row items-center gap-3">
+          <FilterButton isFilter={!isFilter} data={filterData} />
           <DownloadButton />
         </div>
       </div>
-      <div className="w-full h-full overflow-x-auto">
-        <div className="orderlist min-w-[950px] w-full h-fit">
-          <table width={"100%"} className="ordertable text-lg font-medium">
+    </div>
+  );
+}
+
+// Separate component for orders table
+function OrdersTable({
+  orders,
+  isAdmin,
+  searchParams,
+}: {
+  orders: AllorderStatus[] | undefined;
+  isAdmin: boolean;
+  searchParams?: SearchParams;
+}) {
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+      <div className="w-full overflow-x-auto">
+        <div className="orderlist min-w-[950px] w-full">
+          <table width="100%" className="ordertable">
             <thead>
-              <tr className="text-left bg-[#495464] text-white h-[50px] rounded-2xl">
-                <th className="rounded-l-lg pl-2">Order ID#</th>
-                <th align="left">Details</th>
-                <th> Products </th>
-                <th> Amount</th>
-                <th>Status</th>
-                <th></th>
-                <th className="rounded-r-lg"> </th>
+              <tr className="bg-gradient-to-r from-gray-800 to-gray-700 text-white h-[56px]">
+                <th className="text-left pl-6 font-semibold text-sm">
+                  Order ID
+                </th>
+                <th className="text-left font-semibold text-sm">Details</th>
+                <th className="text-left font-semibold text-sm">Products</th>
+                <th className="text-left font-semibold text-sm">Amount</th>
+                <th className="text-left font-semibold text-sm">Status</th>
+                {isAdmin && (
+                  <th className="text-left font-semibold text-sm">Actions</th>
+                )}
+                <th className="pr-6"></th>
               </tr>
-              <tr className="h-[30px]"></tr>
             </thead>
-            <tbody>
-              {!orders || (orders && orders.length === 0) ? (
+            <tbody className="divide-y divide-gray-200">
+              {!orders || orders.length === 0 ? (
                 <tr>
-                  <td className="w-fit font-bold text-xl pl-3">
-                    No Purchased Order Yet :)
+                  <td colSpan={isAdmin ? 7 : 6} className="py-20">
+                    <div className="flex flex-col items-center justify-center">
+                      <div className="w-20 h-20 rounded-full bg-gray-200 flex items-center justify-center mb-4">
+                        <i className="fa-solid fa-shopping-bag text-gray-400 text-3xl"></i>
+                      </div>
+                      <p className="text-xl font-semibold text-gray-600 mb-2">
+                        No Orders Yet
+                      </p>
+                      <p className="text-sm text-gray-400">
+                        Orders will appear here once customers make purchases
+                      </p>
+                    </div>
                   </td>
                 </tr>
               ) : (
-                orders?.map((i, idx) => (
-                  <DataRow
-                    key={`row${idx}`}
-                    idx={idx + 1}
-                    data={i as AllorderStatus}
-                    param={searchParams}
-                    isAdmin={getuser.role === "ADMIN"}
-                  />
+                orders.map((order, idx) => (
+                  <Suspense
+                    key={order.id}
+                    fallback={<OrderRowSkeleton isAdmin={isAdmin} />}
+                  >
+                    <DataRow
+                      idx={idx + 1}
+                      data={order}
+                      param={searchParams as never}
+                      isAdmin={isAdmin}
+                    />
+                  </Suspense>
                 ))
               )}
             </tbody>
           </table>
         </div>
       </div>
-      {orders && orders.length !== 0 && (
-        <div className="w-full h-fit relative mt-10 bottom-0">
-          <PaginationSSR
-            total={total}
-            pages={parseInt(p as string)}
-            limit={show}
-          />
-        </div>
-      )}
-    </main>
+    </div>
   );
 }
 
-const checkparam = (ty: string) => {
-  const isValid = Object.entries(AllorderType).find(
-    ([_, val]) => val === ty
-  )?.[1];
+// Skeleton loader for order rows
+function OrderRowSkeleton({ isAdmin }: { isAdmin: boolean }) {
+  return (
+    <tr className="animate-pulse">
+      <td className="pl-6 py-4">
+        <div className="h-4 bg-gray-200 rounded w-24"></div>
+      </td>
+      <td className="py-4">
+        <div className="h-8 bg-gray-200 rounded w-28"></div>
+      </td>
+      <td className="py-4">
+        <div className="h-8 bg-gray-200 rounded w-32"></div>
+      </td>
+      <td className="py-4">
+        <div className="h-4 bg-gray-200 rounded w-20"></div>
+      </td>
+      <td className="py-4">
+        <div className="h-6 bg-gray-200 rounded-full w-24"></div>
+      </td>
+      {isAdmin && (
+        <td className="py-4">
+          <div className="h-8 bg-gray-200 rounded w-24"></div>
+        </td>
+      )}
+      <td className="pr-6"></td>
+    </tr>
+  );
+}
 
-  return isValid;
-};
+// Pagination section component
+function PaginationSection({
+  page,
+  show,
+  totalPages,
+}: {
+  page: number;
+  show: string;
+  totalPages: number;
+}) {
+  return (
+    <div className="w-full flex justify-center mt-8">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+        <PaginationSSR total={totalPages} pages={page} limit={show} />
+      </div>
+    </div>
+  );
+}
 
-const getOrderData = async (
-  oid: string,
-  isAdmin: boolean,
-  param?: { [key: string]: string | string[] | undefined }
-) => {
-  if (param) {
+// Cache helper function
+const checkparam = cache((ty: string): string | undefined => {
+  return Object.entries(AllorderType).find(([_, val]) => val === ty)?.[1];
+});
+
+// Cached order data fetching
+const getOrderData = cache(
+  async (
+    oid: string,
+    isAdmin: boolean,
+    param?: { [key: string]: string | string[] | undefined }
+  ): Promise<OrderDetailType | Productordertype[] | OrderUserType | null> => {
+    if (!param) return null;
+
     const { ty, id } = param;
 
-    if (ty && id) {
-      const verifyParams = checkparam(ty as string);
-      if (!verifyParams) {
+    if (!ty || !id || id !== oid) return null;
+
+    const verifyParams = checkparam(ty as string);
+    if (!verifyParams) {
+      redirect("/dashboard/order");
+    }
+
+    try {
+      const data = await (ty !== AllorderType.orderaction
+        ? GetOrder(oid, ty as string)
+        : getCheckoutdata(oid));
+
+      if (!data) {
         redirect("/dashboard/order");
       }
 
-      if (id === oid) {
-        const data = await (ty !== AllorderType.orderaction
-          ? GetOrder(oid, ty as string)
-          : getCheckoutdata(oid));
-
-        if (!data) {
-          redirect("/dashboard/order");
-        }
-
-        if (ty === AllorderType.orderdetail) {
-          return data as unknown as OrderDetailType;
-        } else if (ty === AllorderType.orderproduct) {
-          return data as unknown as Productordertype[];
-        }
-        if (!isAdmin) {
-        } else {
-          if (ty === AllorderType.orderaction) {
-            return data as unknown as OrderUserType;
-          }
-        }
+      if (ty === AllorderType.orderdetail) {
+        return data as unknown as OrderDetailType;
+      } else if (ty === AllorderType.orderproduct) {
+        return data as unknown as Productordertype[];
+      } else if (isAdmin && ty === AllorderType.orderaction) {
+        return data as unknown as OrderUserType;
       }
+    } catch (error) {
+      console.error(`Error fetching order data for ${oid}:`, error);
+      return null;
     }
+
+    return null;
   }
+);
 
-  return null;
-};
-
-export const DataRow = async ({
+// Optimized DataRow component
+export async function DataRow({
   idx,
   data,
   param,
@@ -214,74 +446,92 @@ export const DataRow = async ({
   data: AllorderStatus;
   param?: { [key: string]: string | string[] | undefined };
   isAdmin: boolean;
-}) => {
-  const orderData = await getOrderData(data.id, isAdmin, param);
+}) {
+  // Fetch order data only if needed
+  const orderData = param ? await getOrderData(data.id, isAdmin, param) : null;
+
+  // Memoize date formatting
+  const orderDate = new Date(data.createdAt).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+
+  const statusColor =
+    AllOrderStatusColor[data.status.toLowerCase()] || "#6B7280";
 
   return (
-    <>
-      <tr key={idx} className="bg-[#f2f2f3] h-[50px]">
-        <td className="max-w-[150px] p-2 break-all rounded-l-lg">{data.id}</td>
-        <td align="left">
-          <ButtonSsr
-            idx={idx}
-            type={AllorderType.orderdetail}
-            name="View"
-            color="#495464"
-            height="40px"
-            width="50%"
-            data={{ detail: orderData as OrderDetailType }}
-            id={data.id}
-            orderdata={data}
-            isAdmin={isAdmin}
-          />
-        </td>
-        <td align="left" className="">
-          <ButtonSsr
-            idx={idx}
-            type={AllorderType.orderproduct}
-            name={"View"}
-            color="#0097FA"
-            height="40px"
-            width="100px"
-            data={{ product: orderData as Array<Productordertype> }}
-            id={data.id}
-            isAdmin={isAdmin}
-          />
-        </td>
-        <td className="max-w-[100px] p-1 break-all">
-          ${data.price.total.toFixed(2)}
-        </td>
-        <td
+    <tr className="hover:bg-gray-50 transition-colors">
+      <td className="pl-6 py-4">
+        <div className="flex flex-col">
+          <span
+            className="font-mono text-sm font-semibold text-gray-800 truncate"
+            title={data.id}
+          >
+            #{data.id.slice(0, 8)}
+          </span>
+          <span className="text-xs text-gray-500 mt-1">{orderDate}</span>
+        </div>
+      </td>
+      <td className="py-4">
+        <ButtonSsr
+          idx={idx}
+          type={AllorderType.orderdetail}
+          name="View Details"
+          color="#3B82F6"
+          height="40px"
+          width="120px"
+          data={{ detail: orderData as OrderDetailType }}
+          id={data.id}
+          orderdata={data}
+          isAdmin={isAdmin}
+        />
+      </td>
+      <td className="py-4">
+        <ButtonSsr
+          idx={idx}
+          type={AllorderType.orderproduct}
+          name="View Products"
+          color="#6366F1"
+          height="40px"
+          width="130px"
+          data={{ product: orderData as Array<Productordertype> }}
+          id={data.id}
+          isAdmin={isAdmin}
+        />
+      </td>
+      <td className="py-4">
+        <span className="font-semibold text-gray-800">
+          ${(data.price?.total ?? 0).toFixed(2)}
+        </span>
+      </td>
+      <td className="py-4">
+        <span
           style={{
-            color: AllOrderStatusColor[data.status.toLocaleLowerCase()],
+            backgroundColor: statusColor + "20",
+            color: statusColor,
           }}
-          className={`max-w-[100px] p-1 break-all font-bold`}
+          className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold capitalize"
         >
           {data.status}
+        </span>
+      </td>
+      {isAdmin && (
+        <td className="py-4">
+          <ButtonSsr
+            idx={idx}
+            type={AllorderType.orderaction}
+            name="Manage"
+            color="#10B981"
+            height="40px"
+            width="100px"
+            data={{ action: orderData as OrderUserType }}
+            id={data.id}
+            isAdmin={isAdmin}
+          />
         </td>
-        {isAdmin ? (
-          <>
-            <td>
-              <ButtonSsr
-                idx={idx}
-                type={AllorderType.orderaction}
-                name="Action"
-                color="#44C3A0"
-                height="40px"
-                width="50%"
-                data={{ action: orderData as OrderUserType }}
-                id={data.id}
-                isAdmin={isAdmin}
-              />
-            </td>
-          </>
-        ) : (
-          <></>
-        )}
-      </tr>
-      <tr key={`row1${idx}`} className="h-[30px]">
-        <td></td>
-      </tr>
-    </>
+      )}
+      <td className="pr-6"></td>
+    </tr>
   );
-};
+}

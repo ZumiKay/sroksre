@@ -176,73 +176,121 @@ export function AddSubCategoryMenu({ index }: { index: number }) {
     setcategory((prev) => ({ ...prev, subcategories: subcate }));
   };
   return (
-    <div className="AddSubCategory_menu w-full h-fit p-1 flex flex-col justify-center gap-y-5 transition rounded-md outline outline-2 outline-gray-300">
-      <h2 className="text-lg font-bold">Sub Categories</h2>
-      <div className="subcategory_list flex flex-row flex-wrap gap-5 p-4 place-content-start h-full  max-h-[120px] overflow-y-auto">
-        {category.subcategories?.map((cat, index) => (
-          <div
-            key={index}
-            style={
-              editIdx === index
-                ? { backgroundColor: "black", color: "white" }
-                : {}
-            }
-            className="subcategory relative text-lg font-bold p-1 rounded-md outline outline-1 outline-offset-2 outline-black w-fit h-fit max-w-[100px] break-words cursor-pointer transition hover:bg-black hover:text-white"
-          >
-            <h3
-              onClick={() => {
-                setedit((prev) => (prev === index ? -1 : index));
-                setname(
-                  index === editIdx ? "" : category.subcategories[index].name
-                );
-              }}
-              className="subcategory__name text-lg font-medium"
-            >
-              {cat.name}
-            </h3>
-            <i
-              onClick={() => {
-                handleDelete(index);
-              }}
-              className="fa-solid fa-minus font-black p-[1px] h-fit absolute -right-2 -top-3  text-sm rounded-lg bg-red-500 text-white transition hover:bg-black "
-            ></i>
-          </div>
-        ))}
+    <div className="AddSubCategory_menu w-full h-fit p-6 flex flex-col justify-center gap-y-6 transition rounded-2xl bg-gradient-to-br from-white to-indigo-50 border-2 border-indigo-200 shadow-lg">
+      <div className="flex items-center gap-3 pb-2 border-b-2 border-indigo-200">
+        <i className="fa-solid fa-folder-tree text-2xl text-indigo-500"></i>
+        <h2 className="text-xl font-bold text-gray-800">Subcategories</h2>
+        {category.subcategories?.length > 0 && (
+          <span className="ml-auto text-sm font-semibold px-3 py-1 rounded-full bg-indigo-500 text-white">
+            {category.subcategories.length}
+          </span>
+        )}
       </div>
 
-      <div className="subcategoryform w-full h-full flex flex-col gap-y-3">
+      <div className="subcategory_list flex flex-row flex-wrap gap-3 p-4 place-content-start h-full max-h-[160px] overflow-y-auto bg-white rounded-xl border-2 border-gray-200 shadow-inner">
+        {category.subcategories?.length === 0 ? (
+          <div className="w-full h-20 flex items-center justify-center text-gray-400 text-sm">
+            <div className="flex flex-col items-center gap-2">
+              <i className="fa-solid fa-folder-open text-3xl"></i>
+              <p>No subcategories yet</p>
+            </div>
+          </div>
+        ) : (
+          category.subcategories?.map((cat, index) => (
+            <motion.div
+              key={index}
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className={`subcategory relative text-sm font-bold p-3 rounded-xl w-fit h-fit max-w-[140px] break-words cursor-pointer transition-all duration-200 shadow-md hover:shadow-lg group ${
+                editIdx === index
+                  ? "bg-gradient-to-r from-indigo-500 to-purple-600 text-white scale-105"
+                  : "bg-gradient-to-r from-gray-50 to-gray-100 text-gray-800 hover:from-indigo-100 hover:to-purple-100"
+              }`}
+            >
+              <h3
+                onClick={() => {
+                  setedit((prev) => (prev === index ? -1 : index));
+                  setname(
+                    index === editIdx ? "" : category.subcategories[index].name
+                  );
+                }}
+                className="subcategory__name text-sm font-semibold flex items-center gap-2"
+              >
+                <i
+                  className={`fa-solid fa-folder ${
+                    editIdx === index ? "text-white" : "text-indigo-500"
+                  }`}
+                ></i>
+                {cat.name}
+              </h3>
+              <button
+                onClick={() => {
+                  handleDelete(index);
+                }}
+                className="absolute -right-2 -top-2 w-6 h-6 rounded-full bg-gradient-to-r from-red-500 to-pink-600 text-white flex items-center justify-center transition-all duration-200 hover:from-red-600 hover:to-pink-700 hover:scale-110 shadow-md opacity-0 group-hover:opacity-100"
+              >
+                <i className="fa-solid fa-xmark text-xs"></i>
+              </button>
+            </motion.div>
+          ))
+        )}
+      </div>
+
+      <div className="subcategoryform w-full h-full flex flex-col gap-y-4 bg-white rounded-xl p-4 border-2 border-gray-200 shadow-md">
+        <div className="flex items-center gap-2 mb-2">
+          <i
+            className={`fa-solid ${
+              editIdx < 0 ? "fa-plus" : "fa-pen"
+            } text-lg text-indigo-500`}
+          ></i>
+          <h3 className="text-base font-bold text-gray-800">
+            {editIdx < 0 ? "Add New Subcategory" : "Edit Subcategory"}
+          </h3>
+        </div>
         <Input
           size="lg"
           type="text"
+          variant="bordered"
           className="subcate_name w-full"
-          placeholder="Name"
+          label="Subcategory Name"
+          placeholder="Enter subcategory name"
           value={name}
           onChange={(e) => {
             setname(e.target.value);
           }}
+          classNames={{
+            label: "text-gray-700 font-semibold",
+            input: "bg-gray-50",
+          }}
         />
-        <div className="w-full h-fit flex flex-row items-center gap-x-5">
-          <PrimaryButton
+        <div className="w-full h-fit flex flex-row items-center gap-3">
+          <button
             type="button"
-            text={editIdx < 0 ? "Add" : "Edit"}
             onClick={() => handleAdd()}
-            width="100%"
-            height="30px"
-            textsize="12px"
-            color="#44C3A0"
-            radius="10px"
-            disable={name.length === 0}
-          />
-          <PrimaryButton
+            disabled={name.length === 0}
+            className={`w-full h-10 rounded-xl font-bold text-sm transition-all duration-300 shadow-md flex items-center justify-center gap-2 ${
+              name.length === 0
+                ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                : editIdx < 0
+                ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:from-green-600 hover:to-emerald-700 hover:shadow-lg hover:scale-105"
+                : "bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700 hover:shadow-lg hover:scale-105"
+            }`}
+          >
+            <i
+              className={`fa-solid ${editIdx < 0 ? "fa-plus" : "fa-check"}`}
+            ></i>
+            <span>{editIdx < 0 ? "Add" : "Update"}</span>
+          </button>
+          <button
             type="button"
-            text={"Delete"}
             onClick={() => handleCancel()}
-            width="100%"
-            height="30px"
-            textsize="12px"
-            color="lightcoral"
-            radius="10px"
-          />
+            className="w-full h-10 rounded-xl font-bold text-sm transition-all duration-300 shadow-md flex items-center justify-center gap-2 bg-gradient-to-r from-gray-500 to-gray-700 text-white hover:from-gray-600 hover:to-gray-800 hover:shadow-lg hover:scale-105"
+          >
+            <i className="fa-solid fa-xmark"></i>
+            <span>Clear All</span>
+          </button>
         </div>
       </div>
     </div>

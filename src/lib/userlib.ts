@@ -1,10 +1,10 @@
 import * as jose from "jose";
 import { z } from "zod";
 import { compare, genSaltSync, hashSync } from "bcryptjs";
-import Prisma from "./prisma";
 import { userdata } from "../app/account/actions";
 
 import { checkpassword, getOneWeekFromToday } from "./utilities";
+import Prisma from "./prisma";
 
 export enum Role {
   USER = "USER",

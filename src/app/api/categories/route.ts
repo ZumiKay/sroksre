@@ -10,6 +10,7 @@ import {
 import Prisma from "@/src/lib/prisma";
 import { extractQueryParams } from "../banner/route";
 import dayjs from "dayjs";
+import { DeleteImageTempForCurrentUser } from "../products/cover/helper/Cleanup";
 
 export const categorytype = {
   normal: "normal",
@@ -176,6 +177,16 @@ export async function GET(req: NextRequest) {
   try {
     const url = req.url.toString();
     const { ty } = extractQueryParams(url);
+
+    ///Cleaning temp
+
+    if (ty === "create") {
+      const isDel = await DeleteImageTempForCurrentUser();
+      if (!isDel?.success) {
+        throw Error(isDel?.error);
+      }
+    }
+
     const allcat = await Prisma.parentcategories.findMany({
       where: ty === "create" ? { type: categorytype.normal } : {},
       select: {

@@ -6,13 +6,13 @@ import {
   Containertype,
   Homeitemtype,
 } from "../../severactions/containeraction";
-import { Homecontainer } from "@prisma/client";
 import {
   caculateArrayPagination,
   calculateDiscountProductPrice,
 } from "@/src/lib/utilities";
 import { ProductState } from "@/src/context/GlobalContext";
 import { calculatePopularityScore } from "../categories/route";
+import { Homecontainer } from "@/prisma/generated/prisma/client";
 
 interface Paramtype {
   ty?: "short" | "detail";
@@ -115,6 +115,7 @@ export async function fetchContainers(ty: string) {
                 discount: true,
                 price: true,
                 covers: {
+                  take: 1, // Only get first cover for performance
                   select: {
                     name: true,
                     url: true,

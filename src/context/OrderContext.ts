@@ -1,17 +1,6 @@
-import { getServerSession } from "next-auth";
-import {
-  ProductState,
-  Usersessiontype,
-  VariantColorValueType,
-} from "./GlobalContext";
-import { authOptions } from "../app/api/auth/[...nextauth]/route";
+import { Address, User } from "@prisma/client";
+import { ProductState, VariantColorValueType } from "./GlobalContext";
 
-export const getUser = async (): Promise<Usersessiontype | null> => {
-  const user = (await getServerSession(authOptions)) as any;
-  const result = user?.user as Usersessiontype | null;
-
-  return result;
-};
 export type Orderstatus =
   | "Incart"
   | "Unpaid"
@@ -30,6 +19,12 @@ export enum Allstatus {
   arrived = "Arrived",
 }
 
+export enum ShippingTypeEnum {
+  standard = "Normal",
+  express = "Express",
+  pickup = "Pickup",
+}
+
 export interface Productorderdetailtype {
   variant_id: number;
   value: string;
@@ -39,12 +34,14 @@ export interface Productorderdetailtype {
 export interface Productordertype {
   id: number;
   details?: Array<Productorderdetailtype>;
+  user_id?: number;
   quantity: number;
   price: Orderpricetype;
   productId?: number;
   maxqty?: number;
   product?: ProductState;
   orderId?: string;
+  status?: Allstatus;
   selectedvariant?: (string | VariantColorValueType)[];
 }
 
@@ -65,9 +62,15 @@ export interface totalpricetype {
 
 export interface Ordertype {
   id?: string;
-  buyerId: string;
-  products: Array<Productordertype>;
-  status: Orderstatus;
+  buyer_id: string;
+  Orderproduct: Array<Productordertype>;
+  status: Allstatus;
   price: totalpricetype;
   estimate?: Date;
+  shippingtype: ShippingTypeEnum;
+  createdAt?: Date;
+  updatdAt?: Date;
+  shipping_id?: number;
+  shipping?: Address;
+  user: User;
 }

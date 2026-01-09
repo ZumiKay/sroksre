@@ -1,3 +1,4 @@
+"use server";
 import { notFound } from "next/navigation";
 import { GetProductDetailById } from "./detail_action";
 import { ButtonForSimilarProd, OptionSection, ShowPrice } from "./Component";
@@ -6,11 +7,21 @@ import Link from "next/link";
 import ToggleMenu from "@/src/app/component/ToggleMenu";
 import { getRelatedProduct } from "./action";
 import Card from "@/src/app/component/Card";
-import { getUser } from "@/src/context/OrderContext";
+import { getUser } from "@/src/lib/session";
 import Prisma from "@/src/lib/prisma";
 import { Props } from "../../page";
 import { Metadata } from "next";
 import Image from "next/image";
+import { Suspense } from "react";
+import {
+  RelatedProductSkeleton,
+  SimilarProductCardSkeleton,
+} from "./LoadingSkeleton";
+
+export const revalidate = 600;
+
+// Enable dynamic params for product pages
+export const dynamicParams = true;
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const id = parseInt(params.id);
@@ -41,6 +52,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title,
     description,
+    openGraph: {
+      title,
+      description,
+    },
   };
 }
 
@@ -79,13 +94,17 @@ export default async function ProductDetailPage({
               <Image
                 key={idx}
                 src={img.url}
-                alt={`Cover ${idx + 1}`}
-                className="w-[400px] h-[500px] object-cover
+                alt={`${data.data.name} - Image ${idx + 1}`}
+                className="w-[400px] h-[500px] object-cover rounded-lg
                 max-medium_screen:w-[350px] max-medium_screen:h-[450px]
                 "
-                width={777}
-                height={777}
-                loading="lazy"
+                width={400}
+                height={500}
+                priority={idx === 0} // Load first image with priority
+                loading={idx === 0 ? undefined : "lazy"}
+                quality={85}
+                placeholder="blur"
+                blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mN8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=="
               />
             ))}
           </div>
@@ -108,7 +127,17 @@ export default async function ProductDetailPage({
           {data?.data.relatedproduct && data.data.relatedproduct.length > 0 && (
             <>
               <h3 className="text-lg font-bold">Other Version</h3>
-              <ShowRelated data={data.data.relatedproduct} />
+              <Suspense
+                fallback={
+                  <div className="w-full h-fit grid grid-cols-3 gap-y-5">
+                    {[...Array(3)].map((_, idx) => (
+                      <RelatedProductSkeleton key={idx} />
+                    ))}
+                  </div>
+                }
+              >
+                <ShowRelated data={data.data.relatedproduct} />
+              </Suspense>
             </>
           )}
 
@@ -142,13 +171,26 @@ export default async function ProductDetailPage({
       </div>
       {data.data.relatedproduct && (
         <div className="relatedproduct__section w-full h-full mt-10 flex flex-col gap-y-10">
-          <ShowSimilarProduct
-            pid={params.id}
-            parent_id={data?.data.category.parent_id ?? 0}
-            child_id={data?.data.category.child_id}
-            promoid={data?.data.promotion_id}
-            limit={searchparam.lt ? parseInt(searchparam.lt) : undefined}
-          />
+          <Suspense
+            fallback={
+              <div className="flex flex-col gap-y-5">
+                <div className="h-8 bg-gray-300 rounded w-64 animate-pulse"></div>
+                <div className="w-full h-fit flex flex-row overflow-x-auto gap-x-5">
+                  {[...Array(3)].map((_, idx) => (
+                    <SimilarProductCardSkeleton key={idx} />
+                  ))}
+                </div>
+              </div>
+            }
+          >
+            <ShowSimilarProduct
+              pid={params.id}
+              parent_id={data?.data.category.parent_id ?? 0}
+              child_id={data?.data.category.child_id}
+              promoid={data?.data.promotion_id}
+              limit={searchparam.lt ? parseInt(searchparam.lt) : undefined}
+            />
+          </Suspense>
         </div>
       )}
     </div>
@@ -159,16 +201,16 @@ const ShowRelated = ({ data }: { data: Relatedproducttype[] }) => {
   return (
     <div className="w-full h-fit grid grid-cols-3 gap-y-5">
       {data.map((related) => (
-        <Link href={`/product/detail/${related.id}`}>
-          <div
-            key={related.id}
-            className="w-[200px] h-fit flex flex-col gap-y-3 items-center justify-center p-2 rounded-lg border-2 border-black transition-all duration-200 hover:bg-black hover:text-white cursor-pointer"
-          >
-            <img
+        <Link key={related.id} href={`/product/detail/${related.id}`}>
+          <div className="w-[200px] h-fit flex flex-col gap-y-3 items-center justify-center p-2 rounded-lg border-2 border-black transition-all duration-200 hover:bg-black hover:text-white cursor-pointer">
+            <Image
               src={related.covers[0].url}
-              alt="cover"
+              alt={related.name}
               className="w-[100px] h-[100px] object-cover rounded-lg"
+              width={100}
+              height={100}
               loading="lazy"
+              quality={75}
             />
             <h3 className="w-full text-center">{related.name}</h3>
           </div>

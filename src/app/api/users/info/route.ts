@@ -1,7 +1,7 @@
 import Prisma from "@/src/lib/prisma";
 import { NextRequest } from "next/server";
 import { extractQueryParams } from "../../banner/route";
-import { getUser } from "@/src/context/OrderContext";
+import { getUser } from "@/src/lib/session";
 import { calculateDiscountProductPrice } from "@/src/lib/utilities";
 
 export async function GET(request: NextRequest) {

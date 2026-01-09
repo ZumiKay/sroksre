@@ -1,7 +1,15 @@
 "use client";
 import { StaticImageData } from "next/image";
 import PrimaryButton, { Selection } from "./Button";
-import React, { ChangeEvent, SetStateAction, useEffect, useState } from "react";
+import React, {
+  ChangeEvent,
+  SetStateAction,
+  useEffect,
+  useState,
+  useCallback,
+  useMemo,
+  memo,
+} from "react";
 import { CardSkeleton, SecondayCard } from "./Card";
 import { signOut } from "next-auth/react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -14,6 +22,7 @@ import {
   SelectType,
   Sessiontype,
   useGlobalContext,
+  Usersessiontype,
 } from "@/src/context/GlobalContext";
 import {
   ApiRequest,
@@ -56,7 +65,7 @@ import { Checkbox } from "@nextui-org/react";
 
 interface accountmenuprops {
   setProfile: (value: SetStateAction<boolean>) => void;
-  session?: Sessiontype;
+  session: Usersessiontype | null;
 }
 
 const AccountMenuItems = [
@@ -209,17 +218,17 @@ export default function AccountMenu(props: accountmenuprops) {
       initial={{ x: "100%" }}
       animate={{ x: 0 }}
       exit={{ x: "100%" }}
-      transition={{ duration: 0.5 }}
+      transition={{ duration: 0.4, ease: "easeInOut" }}
       onMouseEnter={() => props.setProfile(true)}
-      className="fixed right-0 top-0 w-[430px] max-small_phone:w-full h-full z-[99] bg-[#FFFFFF] flex flex-col items-center"
+      className="fixed right-0 top-0 w-[430px] max-small_phone:w-full h-full z-[99] bg-white shadow-2xl flex flex-col items-center border-l border-gray-200"
     >
       {openmodal?.editHome ? (
-        <div className="w-[90%] h-full flex flex-col items-center gap-y-10">
+        <div className="w-[90%] h-full flex flex-col items-center gap-y-10 pt-8">
           <h3
             onClick={() =>
               setopenmodal((prev) => ({ ...prev, editHome: false }))
             }
-            className="w-full h-fit text-left text-lg font-bold cursor-pointer  transition hover:text-white active:text-white pl-2"
+            className="w-full h-fit text-left text-lg font-semibold cursor-pointer transition-colors duration-200 hover:text-blue-600 active:text-blue-700 pl-2 flex items-center gap-x-2"
           >
             {`< Back`}
           </h3>
@@ -271,7 +280,15 @@ export default function AccountMenu(props: accountmenuprops) {
         </div>
       ) : (
         <>
-          <ul className="menu_container flex flex-col items-center w-full gap-y-10 mt-[10vh] mb-[10vh]">
+          <div className="w-full flex flex-col items-center pt-8 pb-6 border-b border-gray-100">
+            <h2 className="text-xl font-bold text-gray-800">
+              {props.session?.email || "User"}
+            </h2>
+            <p className="text-sm text-gray-500 capitalize">
+              {props.session?.role?.toLowerCase() || "Member"}
+            </p>
+          </div>
+          <ul className="menu_container flex flex-col items-center w-full gap-y-3 mt-8 mb-8 px-6">
             {AccountMenuItems.filter((i) =>
               pathname !== "/" ? i.name !== AccountMenuItems[4].name : true
             )
@@ -281,17 +298,21 @@ export default function AccountMenu(props: accountmenuprops) {
               .map((item, idx) => (
                 <li
                   key={idx}
-                  className="side_link w-[80%] h-[50px] text-center font-bold text-lg rounded-md transition hover:bg-gray-200 active:bg-gray-200 "
+                  className="side_link w-full h-[56px] text-center rounded-xl transition-all duration-200"
                 >
                   {item.link === "" ? (
                     <div
                       onClick={() => {
                         setopenmodal((prev) => ({ ...prev, editHome: true }));
                       }}
-                      className="w-full h-full flex flex-row items-center cursor-pointer gap-x-5 pl-2 rounded-lg transition hover:bg-gray-200 active:bg-gray-200"
+                      className="w-full h-full flex flex-row items-center cursor-pointer gap-x-4 px-4 rounded-xl transition-all duration-200 hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 hover:shadow-md hover:scale-[1.02] active:scale-[0.98] group"
                     >
-                      {item.icon}
-                      <h3 className="text-lg font-bold">{item.name}</h3>
+                      <div className="transition-transform duration-200 group-hover:scale-110">
+                        {item.icon}
+                      </div>
+                      <h3 className="text-base font-semibold text-gray-700 group-hover:text-gray-900">
+                        {item.name}
+                      </h3>
                     </div>
                   ) : (
                     <div
@@ -300,32 +321,40 @@ export default function AccountMenu(props: accountmenuprops) {
                         router.refresh();
                         isMobile && props.setProfile(false);
                       }}
-                      className="w-full h-full flex flex-row items-center gap-x-5 pl-2 rounded-lg transition hover:bg-gray-200 active:bg-gray-200 cursor-pointer"
+                      className="w-full h-full flex flex-row items-center gap-x-4 px-4 rounded-xl transition-all duration-200 hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 hover:shadow-md hover:scale-[1.02] active:scale-[0.98] cursor-pointer group"
                     >
-                      {item.icon}
-                      <h3 className="text-lg font-bold">{item.name}</h3>
+                      <div className="transition-transform duration-200 group-hover:scale-110">
+                        {item.icon}
+                      </div>
+                      <h3 className="text-base font-semibold text-gray-700 group-hover:text-gray-900">
+                        {item.name}
+                      </h3>
                     </div>
                   )}
                 </li>
               ))}
           </ul>
-          <PrimaryButton
-            text="Logout"
-            type="button"
-            color="#F08080"
-            width="80%"
-            status={loading ? "loading" : "authenticated"}
-            radius="10px"
-            onClick={() => handleSignOut()}
-          />
+          <div className="w-full px-6 mt-auto mb-8">
+            <PrimaryButton
+              text="Logout"
+              type="button"
+              color="#EF4444"
+              width="100%"
+              status={loading ? "loading" : "authenticated"}
+              radius="12px"
+              hoverColor="#DC2626"
+              textcolor="white"
+              onClick={() => handleSignOut()}
+            />
+          </div>
         </>
       )}
       {isMobile && (
         <div
           onClick={() => props.setProfile(false)}
-          className="w-fit h-fit absolute top-1 right-1"
+          className="w-10 h-10 absolute top-4 right-4 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 active:bg-gray-300 cursor-pointer transition-all duration-200 hover:scale-110 active:scale-95 shadow-sm"
         >
-          <CloseVector width="35px" height="35px" />
+          <CloseVector width="24px" height="24px" />
         </div>
       )}
     </motion.aside>
@@ -755,7 +784,6 @@ export const FilterMenu = ({
 
   const [loading, setloading] = useState(false);
 
-  const [selectdate, setselectdate] = useState(false);
   const [category, setcategory] = useState<categoriestype | undefined>(
     undefined
   );
@@ -774,6 +802,7 @@ export const FilterMenu = ({
     expired: expired,
     promoids: param?.promoids?.split(",").map((i) => parseInt(i, 10)),
   });
+
   const [filterdata, setdata] = useState<{
     size?: Array<string>;
     color?: Array<string>;
@@ -781,7 +810,7 @@ export const FilterMenu = ({
   }>({});
   const [promoval, setpromoval] = useState<SelectType[] | undefined>(undefined);
 
-  const fetchcate = async () => {
+  const fetchcate = useCallback(async () => {
     const asycnfetchdata = async () => {
       const categories = await ApiRequest("/api/categories", undefined, "GET");
 
@@ -795,7 +824,7 @@ export const FilterMenu = ({
     };
 
     await Delayloading(asycnfetchdata, setloading, 500);
-  };
+  }, []);
 
   useEffectOnce(() => {
     if (type === "listproduct") {
@@ -807,33 +836,35 @@ export const FilterMenu = ({
     type === "product" && fetchcate();
   });
 
-  useEffect(() => {
-    const fetchpromo = async () => {
-      if (!param?.promoids) {
-        return;
-      }
-      const data = await ApiRequest(
-        `/api/promotion?ty=byid&ids=${param.promoids}`,
-        undefined,
-        "GET"
-      );
-      if (data.success) {
-        setpromoval(data.data);
-      }
-    };
-    fetchpromo();
-  }, [filtervalue.promoids]);
+  const fetchPromo = useCallback(async (promoids: string) => {
+    const data = await ApiRequest(
+      `/api/promotion?ty=byid&ids=${promoids}`,
+      undefined,
+      "GET"
+    );
+    if (data.success) {
+      setpromoval(data.data);
+    }
+  }, []);
 
   useEffect(() => {
-    const getsub = async () => {
-      if (filtervalue.parentcate) {
-        const data = await fetchsubcate(filtervalue.parentcate.toString());
-        setcategory((prev) => ({ ...prev, childcate: data.data } as any));
-      }
-    };
-    getsub();
-  }, [filtervalue.parentcate]);
-  const handleFilter = () => {
+    if (param?.promoids) {
+      fetchPromo(param.promoids);
+    }
+  }, [param?.promoids, fetchPromo]);
+
+  const fetchSubcategory = useCallback(async (parentId: string) => {
+    const data = await fetchsubcate(parentId);
+    setcategory((prev) => ({ ...prev, childcate: data.data } as any));
+  }, []);
+
+  useEffect(() => {
+    if (filtervalue.parentcate) {
+      fetchSubcategory(filtervalue.parentcate.toString());
+    }
+  }, [filtervalue.parentcate, fetchSubcategory]);
+
+  const handleFilter = useCallback(() => {
     const params = new URLSearchParams(searchParams);
     const filtervalues = Object.entries(filtervalue);
 
@@ -868,19 +899,32 @@ export const FilterMenu = ({
     reloadData && reloadData();
 
     setopenmodal((prev) => ({ ...prev, filteroption: false }));
-  };
-  const handleSelect = (e: ChangeEvent<HTMLSelectElement>) => {
-    const { name, value } = e.target;
+  }, [
+    filtervalue,
+    searchParams,
+    router,
+    setfilterdata,
+    setisFilter,
+    reloadData,
+    setopenmodal,
+  ]);
 
-    setfilter((prev) => ({ ...prev, [name]: value }));
+  const handleSelect = useCallback(
+    (e: ChangeEvent<HTMLSelectElement>) => {
+      const { name, value } = e.target;
 
-    if (name === "parentcate") {
-      const params = new URLSearchParams(searchParams);
-      params.delete("childcate");
-      router.push(`?${params}`);
-    }
-  };
-  const handleClear = () => {
+      setfilter((prev) => ({ ...prev, [name]: value }));
+
+      if (name === "parentcate") {
+        const params = new URLSearchParams(searchParams);
+        params.delete("childcate");
+        router.push(`?${params}`);
+      }
+    },
+    [searchParams, router]
+  );
+
+  const handleClear = useCallback(() => {
     const params = new URLSearchParams(searchParams);
     Object.entries(filtervalue).map(([key, _]) => {
       if (key !== "p") {
@@ -897,7 +941,111 @@ export const FilterMenu = ({
     reloadData ? reloadData() : router.refresh();
 
     setopenmodal((prev) => ({ ...prev, filteroption: false }));
-  };
+  }, [
+    filtervalue,
+    searchParams,
+    router,
+    setfilterdata,
+    reloadData,
+    setopenmodal,
+  ]);
+
+  const handleNameChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
+    setfilter((prev) => ({ ...prev, name: e.target.value }));
+  }, []);
+
+  const handleSearchChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
+    setfilter((prev) => ({ ...prev, search: e.target.value }));
+  }, []);
+
+  const handleDateChange = useCallback((e: any) => {
+    if (e) {
+      setfilter((prev) => ({
+        ...prev,
+        expiredate: dayjs(e).toISOString(),
+      }));
+    }
+  }, []);
+
+  const handleExpiredChange = useCallback((value: string | number) => {
+    setfilter((prev) => ({ ...prev, expired: value as string }));
+  }, []);
+
+  const handlePromotionSelect = useCallback(
+    (value?: SelectType | SelectType[]) => {
+      if (!value) return;
+      const val = value as SelectType[];
+      setfilter((prev) => ({
+        ...prev,
+        promoids: val.map((i) => parseInt(i.value.toString(), 10)),
+      }));
+    },
+    []
+  );
+
+  const handleCheckboxChange = useCallback(
+    (value: boolean) => {
+      setfilter((prev) => ({
+        ...prev,
+        promoids: value ? [globalindex.promotioneditindex] : undefined,
+      }));
+    },
+    [globalindex.promotioneditindex]
+  );
+
+  const isFilterDisabled = useMemo(() => {
+    return Object.entries(filtervalue).every(([i, j]) => !j || j === "none");
+  }, [filtervalue]);
+
+  const mappedParentCategories = useMemo(() => {
+    return category?.parentcates?.map((i) => ({
+      label: i.name,
+      value: i.id,
+    }));
+  }, [category?.parentcates]);
+
+  const Footer = useMemo(() => {
+    return () => (
+      <>
+        {type !== "listproduct" ? (
+          <PrimaryButton
+            type="button"
+            onClick={handleFilter}
+            text="Filter"
+            disable={isFilterDisabled}
+            radius="10px"
+            width="100%"
+          />
+        ) : (
+          <PrimaryButton
+            type="button"
+            text={`Show Product ${totalproduct === 0 ? "" : totalproduct}`}
+            onClick={() =>
+              setopenmodal((prev) => ({ ...prev, filteroption: false }))
+            }
+            radius="10px"
+            width="100%"
+          />
+        )}
+        <PrimaryButton
+          type="button"
+          onClick={handleClear}
+          text="Clear"
+          color="lightcoral"
+          radius="10px"
+          width="100%"
+        />
+      </>
+    );
+  }, [
+    type,
+    totalproduct,
+    handleFilter,
+    handleClear,
+    isFilterDisabled,
+    setopenmodal,
+  ]);
+
   return (
     <SecondaryModal
       open={openmodal.filteroption}
@@ -907,55 +1055,28 @@ export const FilterMenu = ({
       }
       placement="top"
       closebtn
-      footer={() => (
-        <>
-          {type !== "listproduct" ? (
-            <PrimaryButton
-              type="button"
-              onClick={() => handleFilter()}
-              text="Filter"
-              disable={Object.entries(filtervalue).every(
-                ([i, j]) => !j || j === "none"
-              )}
-              radius="10px"
-              width="100%"
-            />
-          ) : (
-            <PrimaryButton
-              type="button"
-              text={`Show Product ${totalproduct === 0 ? "" : totalproduct}`}
-              onClick={() =>
-                setopenmodal((prev) => ({ ...prev, filteroption: false }))
-              }
-              radius="10px"
-              width="100%"
-            />
-          )}
-          <PrimaryButton
-            type="button"
-            onClick={() => handleClear()}
-            text="Clear"
-            color="lightcoral"
-            radius="10px"
-            width="100%"
-          />
-        </>
-      )}
+      footer={Footer}
     >
-      {loading && <ContainerLoading />}
-      <div className="filtermenu w-full relative  h-fit bg-white p-5 max-small_phone:max-h-[50vh] rounded-md flex flex-col justify-center gap-y-5">
+      <div
+        className="filtermenu w-full relative h-fit bg-white p-6 max-small_phone:p-4 max-small_phone:max-h-[50vh] rounded-xl flex flex-col justify-center gap-y-6 transition-opacity duration-200"
+        style={{ opacity: loading ? 0.6 : 1 }}
+      >
         {type !== "usermanagement" && (
-          <input
-            type="text"
-            name="name"
-            placeholder="Search Name"
-            value={filtervalue.name}
-            onChange={(e) =>
-              setfilter((prev) => ({ ...prev, name: e.target.value }))
-            }
-            className="search w-full pl-2 h-[50px] rounded-md border border-gray-300"
-            hidden={type === "listproduct"}
-          />
+          <div className={type === "listproduct" ? "hidden" : "w-full"}>
+            {loading ? (
+              <div className="w-full h-[50px] rounded-lg bg-gray-200 animate-pulse" />
+            ) : (
+              <input
+                type="text"
+                name="name"
+                placeholder="Search Name"
+                value={filtervalue.name}
+                onChange={handleNameChange}
+                disabled={loading}
+                className="search w-full px-4 py-3 h-[50px] rounded-lg border-2 border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+              />
+            )}
+          </div>
         )}
         {type === "listproduct" &&
           (filterdata.color || filterdata.size || filterdata.text) && (
@@ -982,137 +1103,177 @@ export const FilterMenu = ({
             </>
           )}
         {type === "usermanagement" && (
-          <input
-            type="text"
-            name="search"
-            placeholder="Search (ID , Email)"
-            value={filtervalue.search}
-            onChange={(e) =>
-              setfilter((prev) => ({ ...prev, search: e.target.value }))
-            }
-            className="search w-full pl-2 h-[50px] rounded-md border border-gray-300"
-          />
+          <div className="w-full">
+            {loading ? (
+              <div className="w-full h-[50px] rounded-lg bg-gray-200 animate-pulse" />
+            ) : (
+              <input
+                type="text"
+                name="search"
+                placeholder="Search (ID, Email)"
+                value={filtervalue.search}
+                onChange={handleSearchChange}
+                disabled={loading}
+                className="search w-full px-4 py-3 h-[50px] rounded-lg border-2 border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+              />
+            )}
+          </div>
         )}
         {type === "banner" && (
           <>
-            <div className="w-full h-fit flex flex-col gap-y-5">
-              <label className="w-full text-lg font-medium">Banner Type</label>
-              <Selection
-                name="bannertype"
-                data={[{ label: "None", value: "none" }, ...BannerType]}
-                value={filtervalue.bannertype}
-                onChange={handleSelect}
-              />
+            <div className="w-full h-fit flex flex-col gap-y-3">
+              <label className="w-full text-base font-semibold text-gray-700">
+                Banner Type
+              </label>
+              {loading ? (
+                <div className="w-full h-[50px] rounded-lg bg-gray-200 animate-pulse" />
+              ) : (
+                <Selection
+                  name="bannertype"
+                  data={[{ label: "None", value: "none" }, ...BannerType]}
+                  value={filtervalue.bannertype}
+                  onChange={handleSelect}
+                  disable={loading}
+                />
+              )}
             </div>
-            <div className="w-full h-fit flex flex-col gap-y-5">
-              <label className="w-full text-lg font-medium">Banner Size</label>
-              <Selection
-                name="bannersize"
-                data={[{ label: "None", value: "none" }, ...BannerSize]}
-                onChange={handleSelect}
-                value={filtervalue.bannersize}
-              />
+            <div className="w-full h-fit flex flex-col gap-y-3">
+              <label className="w-full text-base font-semibold text-gray-700">
+                Banner Size
+              </label>
+              {loading ? (
+                <div className="w-full h-[50px] rounded-lg bg-gray-200 animate-pulse" />
+              ) : (
+                <Selection
+                  name="bannersize"
+                  data={[{ label: "None", value: "none" }, ...BannerSize]}
+                  onChange={handleSelect}
+                  value={filtervalue.bannersize}
+                  disable={loading}
+                />
+              )}
             </div>
           </>
         )}
         {type === "promotion" && (
           <>
-            <div
-              onMouseEnter={() => setselectdate(true)}
-              onMouseLeave={() => setselectdate(false)}
-              className="w-full h-[50px] relative z-[100]"
-            >
-              <DateTimePicker
-                sx={{ width: "100%" }}
-                value={
-                  filtervalue.expiredate ? dayjs(filtervalue.expiredate) : null
-                }
-                onChange={(e) => {
-                  if (e) {
-                    setfilter((prev) => ({
-                      ...prev,
-                      expiredate: dayjs(e).toISOString(),
-                    }));
-                  }
-                }}
-              />{" "}
+            <div className="w-full h-fit flex flex-col gap-y-3">
+              <label className="w-full text-base font-semibold text-gray-700">
+                Expiration Date
+              </label>
+              {loading ? (
+                <div className="w-full h-[50px] rounded-lg bg-gray-200 animate-pulse" />
+              ) : (
+                <div className="w-full h-[50px] relative z-[100]">
+                  <DateTimePicker
+                    sx={{ width: "100%" }}
+                    value={
+                      filtervalue.expiredate
+                        ? dayjs(filtervalue.expiredate)
+                        : null
+                    }
+                    onChange={handleDateChange}
+                    disabled={loading}
+                  />
+                </div>
+              )}
             </div>
 
-            <SelectionCustom
-              data={[{ label: "Expired", value: "1" }]}
-              label="status"
-              value={filtervalue.expired}
-              placeholder="Status"
-              onChange={(value) =>
-                setfilter((prev) => ({ ...prev, expired: value as string }))
-              }
-            />
+            {loading ? (
+              <div className="w-full h-[50px] rounded-lg bg-gray-200 animate-pulse" />
+            ) : (
+              <SelectionCustom
+                data={[{ label: "Expired", value: "1" }]}
+                label="status"
+                value={filtervalue.expired}
+                placeholder="Status"
+                onChange={handleExpiredChange}
+              />
+            )}
           </>
         )}
         {type === "product" && (
           <>
-            <Selection
-              name="parentcate"
-              data={category?.parentcates?.map((i) => ({
-                label: i.name,
-                value: i.id,
-              }))}
-              default="Parent Category"
-              value={filtervalue.parentcate}
-              onChange={handleSelect}
-            />
+            <div className="w-full flex flex-col gap-y-3">
+              <label className="w-full text-base font-semibold text-gray-700">
+                Category
+              </label>
+              {loading ? (
+                <div className="w-full h-[50px] rounded-lg bg-gray-200 animate-pulse" />
+              ) : (
+                <Selection
+                  name="parentcate"
+                  data={mappedParentCategories}
+                  default="Parent Category"
+                  value={filtervalue.parentcate ?? ""}
+                  onChange={handleSelect}
+                  disable={loading}
+                />
+              )}
+            </div>
             {filtervalue.parentcate !== 0 && (
-              <Selection
-                type="subcategory"
-                subcategory={category?.childcate}
-                name="childcate"
-                default="Sub Category"
-                value={filtervalue.childcate}
-                onChange={handleSelect}
-              />
+              <div className="w-full flex flex-col gap-y-3">
+                <label className="w-full text-base font-semibold text-gray-700">
+                  Subcategory
+                </label>
+                {loading ? (
+                  <div className="w-full h-[50px] rounded-lg bg-gray-200 animate-pulse" />
+                ) : (
+                  <Selection
+                    type="subcategory"
+                    subcategory={category?.childcate}
+                    name="childcate"
+                    default="Sub Category"
+                    value={filtervalue.childcate ?? ""}
+                    onChange={handleSelect}
+                    disable={loading}
+                  />
+                )}
+              </div>
             )}
 
-            <Selection
-              default="Stock"
-              onChange={handleSelect}
-              name="status"
-              value={filtervalue.status}
-              data={statusFilter}
-            />
+            <div className="w-full flex flex-col gap-y-3">
+              <label className="w-full text-base font-semibold text-gray-700">
+                Stock Status
+              </label>
+              {loading ? (
+                <div className="w-full h-[50px] rounded-lg bg-gray-200 animate-pulse" />
+              ) : (
+                <Selection
+                  default="Stock"
+                  onChange={handleSelect}
+                  name="status"
+                  value={filtervalue.status}
+                  data={statusFilter}
+                  disable={loading}
+                />
+              )}
+            </div>
             {promotion.selectproduct && (
-              <Selection default="Discount" name="discount" />
+              <Selection default="Discount" name="discount" disable={loading} />
             )}
             {type === "product" &&
               (globalindex.promotioneditindex !== -1 && isSetPromotion ? (
-                <Checkbox
-                  className="w-full h-[40px]"
-                  isSelected={!!filtervalue.promoids}
-                  onValueChange={(value) => {
-                    setfilter((prev) => ({
-                      ...prev,
-                      promoids: value
-                        ? [globalindex.promotioneditindex]
-                        : undefined,
-                    }));
-                  }}
-                >
-                  {" "}
-                  Show Only Discount{" "}
-                </Checkbox>
+                loading ? (
+                  <div className="w-full h-[40px] rounded-lg bg-gray-200 animate-pulse" />
+                ) : (
+                  <Checkbox
+                    className="w-full h-[40px]"
+                    isSelected={!!filtervalue.promoids}
+                    isDisabled={loading}
+                    onValueChange={handleCheckboxChange}
+                  >
+                    Show Only Discount
+                  </Checkbox>
+                )
+              ) : loading ? (
+                <div className="w-full h-[50px] rounded-lg bg-gray-200 animate-pulse" />
               ) : (
                 <SelectAndSearchProduct
                   getdata={(take, value) => GetPromotionSelection(value, take)}
                   placeholder="Select Promotion"
                   value={promoval}
-                  onSelect={(value) => {
-                    const val = value as SelectType[];
-                    setfilter((prev) => ({
-                      ...prev,
-                      promoids: val.map((i) =>
-                        parseInt(i.value.toString(), 10)
-                      ),
-                    }));
-                  }}
+                  onSelect={handlePromotionSelect}
                 />
               ))}
           </>

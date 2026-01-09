@@ -1,13 +1,13 @@
 import {
   Orderpricetype,
+  Ordertype,
   Productordertype,
   totalpricetype,
 } from "@/src/context/OrderContext";
-import { OrderUserType } from "../checkout/action";
 import { VariantColorValueType } from "@/src/context/GlobalContext";
 
 interface OerderEmailProps {
-  order: OrderUserType;
+  order: Ordertype;
   isAdmin: boolean;
 }
 
@@ -73,211 +73,405 @@ export function OrderReceiptTemplate({ order, isAdmin }: OerderEmailProps) {
     <div
       style={{
         width: "100%",
-        height: "auto",
-        display: "grid",
-        placeItems: "center",
-        placeContent: "center",
+        minHeight: "100vh",
+        backgroundColor: "#f5f5f5",
+        padding: "20px 0",
+        fontFamily: "Arial, Helvetica, sans-serif",
       }}
     >
       <table
-        className="Reciept_Contianer"
+        cellPadding="0"
+        cellSpacing="0"
+        border={0}
         style={{
-          backgroundColor: "#f2f2f2",
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "center",
-          alignItems: "center",
+          maxWidth: "650px",
           width: "100%",
-          height: "100%",
-          border: 0,
+          margin: "0 auto",
+          backgroundColor: "#ffffff",
+          borderRadius: "12px",
+          overflow: "hidden",
+          boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
         }}
-        align="center"
       >
-        <tbody style={{ textAlign: "center", border: 0 }}>
-          <tr></tr>
+        <tbody>
+          {/* Logo Section */}
           <tr>
-            <td colSpan={2} align="center">
+            <td
+              colSpan={2}
+              align="center"
+              style={{
+                padding: "40px 20px 20px",
+                backgroundColor: "#495464",
+              }}
+            >
               <img
                 src="https://firebasestorage.googleapis.com/v0/b/sroksre-442c0.appspot.com/o/sideImage%2FLogo3.png?alt=media&token=e9bda37b-3cc7-400b-9680-01d3b2bf2064"
-                width={"100px"}
-                height={"auto"}
+                width="120"
+                height="auto"
                 title="Logo"
-                alt="Logo"
-                loading="eager"
-                style={{ display: "block", objectFit: "contain" }}
+                alt="SrokSre Logo"
+                style={{
+                  display: "block",
+                  margin: "0 auto",
+                  maxWidth: "120px",
+                  height: "auto",
+                }}
               />
             </td>
           </tr>
 
+          {/* Header Message */}
           <tr>
-            <td colSpan={2} height={"100px"} valign="middle">
-              <p style={{ fontSize: "20px", fontWeight: "700" }}>
+            <td
+              colSpan={2}
+              align="center"
+              style={{
+                padding: "30px 20px 20px",
+                backgroundColor: "#495464",
+              }}
+            >
+              <h1
+                style={{
+                  fontSize: "24px",
+                  fontWeight: "700",
+                  color: "#ffffff",
+                  margin: "0",
+                  lineHeight: "1.4",
+                }}
+              >
                 {isAdmin
-                  ? `Order for ${order.user.firstname}#${order.user.id}`
-                  : `Thank you for shopping with us`}
-              </p>
+                  ? `Order for ${order.user.firstname} #${order.user.id}`
+                  : `Thank you for your order!`}
+              </h1>
             </td>
           </tr>
 
+          {/* Order Summary Section */}
           <tr>
             <td
-              height={"50px"}
               colSpan={2}
-              style={{ textAlign: "left", paddingLeft: "5%", fontSize: "15px" }}
+              style={{
+                padding: "30px 30px 10px",
+                backgroundColor: "#ffffff",
+              }}
             >
               {!isAdmin && (
-                <p style={{ height: "50px" }}>
-                  <strong>{`Hi, ${order.user?.firstname ?? ""}`} </strong>
-                  {"we received your order."}
+                <p
+                  style={{
+                    fontSize: "16px",
+                    color: "#333333",
+                    margin: "0 0 20px",
+                    lineHeight: "1.6",
+                  }}
+                >
+                  <strong>Hi {order.user?.firstname ?? ""},</strong>
+                  <br />
+                  We've received your order and will process it shortly.
                 </p>
               )}
-              <p
+              <h2
                 style={{
-                  fontSize: "25px",
-                  fontWeight: 800,
-                  height: "50px",
+                  fontSize: "22px",
+                  fontWeight: "700",
+                  color: "#333333",
+                  margin: "0 0 20px",
+                  borderBottom: "2px solid #495464",
+                  paddingBottom: "10px",
                 }}
               >
                 Order Summary
-              </p>
-              <p style={{ fontWeight: "700" }}>Order #: {order.id}</p>
-              <p style={{ fontWeight: "700" }}>
-                Order on {formatDate(order.createdAt)}
-              </p>
-              <p
-                style={{
-                  fontWeight: "700",
-                  color: AllOrderStatusColor[order.status.toLowerCase()],
-                }}
+              </h2>
+              <table
+                cellPadding="0"
+                cellSpacing="0"
+                border={0}
+                style={{ width: "100%", marginBottom: "20px" }}
               >
-                {`Order status: ${order.status.toUpperCase()}`}
-              </p>
+                <tbody>
+                  <tr>
+                    <td
+                      style={{
+                        padding: "8px 0",
+                        fontSize: "15px",
+                        color: "#666666",
+                      }}
+                    >
+                      <strong style={{ color: "#333333" }}>Order #:</strong>
+                    </td>
+                    <td
+                      style={{
+                        padding: "8px 0",
+                        fontSize: "15px",
+                        color: "#333333",
+                        textAlign: "right",
+                      }}
+                    >
+                      {order.id}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td
+                      style={{
+                        padding: "8px 0",
+                        fontSize: "15px",
+                        color: "#666666",
+                      }}
+                    >
+                      <strong style={{ color: "#333333" }}>Order Date:</strong>
+                    </td>
+                    <td
+                      style={{
+                        padding: "8px 0",
+                        fontSize: "15px",
+                        color: "#333333",
+                        textAlign: "right",
+                      }}
+                    >
+                      {order.createdAt
+                        ? formatDate(order.createdAt)
+                        : "Unknown"}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td
+                      style={{
+                        padding: "8px 0",
+                        fontSize: "15px",
+                        color: "#666666",
+                      }}
+                    >
+                      <strong style={{ color: "#333333" }}>Status:</strong>
+                    </td>
+                    <td
+                      style={{
+                        padding: "8px 0",
+                        fontSize: "15px",
+                        fontWeight: "700",
+                        color: AllOrderStatusColor[order.status.toLowerCase()],
+                        textAlign: "right",
+                        textTransform: "uppercase",
+                      }}
+                    >
+                      {order.status}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
 
               {order.shipping && (
                 <>
-                  <p
+                  <h3
                     style={{
-                      fontSize: "25px",
-                      fontWeight: 800,
-                      height: "30px",
+                      fontSize: "18px",
+                      fontWeight: "700",
+                      color: "#333333",
+                      margin: "20px 0 10px",
                     }}
                   >
                     Shipping Address
-                  </p>
-                  <p
+                  </h3>
+                  <div
                     style={{
+                      padding: "15px",
+                      backgroundColor: "#f9f9f9",
+                      borderRadius: "8px",
                       fontSize: "15px",
-                      fontWeight: 500,
+                      color: "#555555",
+                      lineHeight: "1.6",
                     }}
                   >
-                    {" "}
-                    {`${order.shipping.firstname} ${order.shipping.lastname}`}
-                  </p>
-                  <p
-                    style={{
-                      fontSize: "15px",
-                      fontWeight: 500,
-                    }}
-                  >
-                    {" "}
-                    {`No${order.shipping.houseId}, Street ${order.shipping.street}`}{" "}
-                  </p>
-                  <p
-                    style={{
-                      fontSize: "15px",
-                      fontWeight: 500,
-                    }}
-                  >
-                    {`${order.shipping.district}, ${order.shipping.songkhat}`}{" "}
-                  </p>
-                  <p
-                    style={{
-                      fontSize: "15px",
-                      fontWeight: 500,
-                    }}
-                  >
-                    {" "}
-                    {`${order.shipping.province}, ${order.shipping.postalcode}`}{" "}
-                  </p>
+                    <p
+                      style={{
+                        margin: "0 0 5px",
+                        fontWeight: "600",
+                        color: "#333333",
+                      }}
+                    >
+                      {`${order.shipping.firstname} ${order.shipping.lastname}`}
+                    </p>
+                    <p style={{ margin: "0 0 5px" }}>
+                      {`No. ${order.shipping.houseId}, Street ${order.shipping.street}`}
+                    </p>
+                    <p style={{ margin: "0 0 5px" }}>
+                      {`${order.shipping.district}, ${order.shipping.songkhat}`}
+                    </p>
+                    <p style={{ margin: "0" }}>
+                      {`${order.shipping.province}, ${order.shipping.postalcode}`}
+                    </p>
+                  </div>
                 </>
               )}
             </td>
           </tr>
 
-          {order.Orderproduct.map((prob) => {
-            return <ShowCard orderProduct={prob} />;
-          })}
-
-          <tr style={{ height: "70px", width: "100%" }}>
-            <td colSpan={2} width={"95%"}>
-              <a
+          {/* Products Header */}
+          <tr>
+            <td
+              colSpan={2}
+              style={{
+                padding: "20px 30px 10px",
+                backgroundColor: "#ffffff",
+              }}
+            >
+              <h3
                 style={{
-                  width: "100%",
-                  padding: "10px",
-                  backgroundColor: "#495464",
-                  borderRadius: "10px",
-                  color: "white",
-                  fontWeight: "600",
-                  fontSize: "17px",
-                  border: "0px",
+                  fontSize: "18px",
+                  fontWeight: "700",
+                  color: "#333333",
+                  margin: "0",
                 }}
-                href={`${process.env.NEXT_PUBLIC_BASE_URL}/dashboard/order?q=${order.id}`}
               >
-                View Order
-              </a>
+                Order Items
+              </h3>
             </td>
           </tr>
+
+          {order.Orderproduct.map((prob, index) => (
+            <ShowCard key={index} orderProduct={prob} />
+          ))}
 
           <TotalPrice data={order.price} />
 
-          <tr style={{ width: "100%", height: "auto" }}>
-            <td colSpan={2} align="left">
-              <p style={{ fontWeight: 800, fontSize: "30px" }}>Need Help ?</p>
+          {/* View Order Button */}
+          <tr>
+            <td
+              colSpan={2}
+              align="center"
+              style={{
+                padding: "30px 30px 20px",
+                backgroundColor: "#ffffff",
+              }}
+            >
               <a
+                href={`${process.env.NEXT_PUBLIC_BASE_URL}/dashboard/order?q=${order.id}`}
                 style={{
-                  fontSize: "25px",
+                  display: "inline-block",
+                  padding: "14px 40px",
+                  backgroundColor: "#495464",
+                  borderRadius: "8px",
+                  color: "#ffffff",
                   fontWeight: "600",
-                  padding: "10px",
+                  fontSize: "16px",
+                  textDecoration: "none",
+                  textAlign: "center",
+                  transition: "background-color 0.3s ease",
                 }}
-                href={process.env.BASE_URL + "/contact"}
               >
-                Contact
+                View Full Order Details
               </a>
             </td>
           </tr>
 
+          {/* Footer Section */}
           <tr>
-            <td colSpan={2} align="left">
-              <a
+            <td
+              colSpan={2}
+              style={{
+                padding: "30px 30px 20px",
+                backgroundColor: "#f9f9f9",
+                borderTop: "1px solid #e0e0e0",
+              }}
+            >
+              <h3
                 style={{
-                  fontSize: "25px",
-                  fontWeight: "600",
-                  padding: "10px",
+                  fontSize: "18px",
+                  fontWeight: "700",
+                  color: "#333333",
+                  margin: "0 0 15px",
                 }}
-                href={process.env.NEXT_PUBLIC_BASE_URL + "/privacyandpolicy"}
               >
-                Policy and Terms
-              </a>
-            </td>
-          </tr>
-          <tr>
-            <td colSpan={2} align="left">
-              <a
+                Need Help?
+              </h3>
+              <p
                 style={{
-                  fontSize: "25px",
-                  fontWeight: "600",
-                  padding: "10px",
+                  fontSize: "14px",
+                  color: "#666666",
+                  margin: "0 0 15px",
+                  lineHeight: "1.6",
                 }}
-                href={
-                  process.env.NEXT_PUBLIC_BASE_URL + "/privacyandpolicy?p=0"
-                }
               >
-                FAQs
-              </a>
+                If you have any questions about your order, feel free to reach
+                out to us.
+              </p>
+              <table
+                cellPadding="0"
+                cellSpacing="0"
+                border={0}
+                style={{ width: "100%" }}
+              >
+                <tbody>
+                  <tr>
+                    <td style={{ padding: "5px 0" }}>
+                      <a
+                        href={process.env.NEXT_PUBLIC_BASE_URL + "/contact"}
+                        style={{
+                          fontSize: "15px",
+                          fontWeight: "600",
+                          color: "#495464",
+                          textDecoration: "none",
+                        }}
+                      >
+                        → Contact Support
+                      </a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style={{ padding: "5px 0" }}>
+                      <a
+                        href={
+                          process.env.NEXT_PUBLIC_BASE_URL +
+                          "/privacyandpolicy?p=0"
+                        }
+                        style={{
+                          fontSize: "15px",
+                          fontWeight: "600",
+                          color: "#495464",
+                          textDecoration: "none",
+                        }}
+                      >
+                        → FAQs
+                      </a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style={{ padding: "5px 0" }}>
+                      <a
+                        href={
+                          process.env.NEXT_PUBLIC_BASE_URL + "/privacyandpolicy"
+                        }
+                        style={{
+                          fontSize: "15px",
+                          fontWeight: "600",
+                          color: "#495464",
+                          textDecoration: "none",
+                        }}
+                      >
+                        → Privacy Policy & Terms
+                      </a>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </td>
           </tr>
 
-          <tr></tr>
+          {/* Copyright */}
+          <tr>
+            <td
+              colSpan={2}
+              align="center"
+              style={{
+                padding: "20px 30px",
+                backgroundColor: "#f9f9f9",
+                fontSize: "13px",
+                color: "#999999",
+              }}
+            >
+              <p style={{ margin: "0" }}>
+                © {new Date().getFullYear()} SrokSre. All rights reserved.
+              </p>
+            </td>
+          </tr>
         </tbody>
       </table>
     </div>
@@ -290,26 +484,108 @@ const TotalPrice = ({ data }: { data: totalpricetype }) => {
       <tr>
         <td
           colSpan={2}
-          width={"100%"}
-          style={{ borderTop: "2px dashed black" }}
-        ></td>
-      </tr>
-      <tr style={{ fontSize: "15px" }}>
-        <td style={{ textAlign: "left", paddingLeft: "10px" }}>Subtotal: </td>
-        <td style={{ textAlign: "right", paddingRight: "10px" }}>
-          ${data.subtotal.toFixed(2)}{" "}
+          style={{
+            padding: "0 30px",
+            backgroundColor: "#ffffff",
+          }}
+        >
+          <div
+            style={{
+              borderTop: "2px solid #e0e0e0",
+              margin: "20px 0",
+            }}
+          ></div>
         </td>
       </tr>
-      <tr style={{ fontSize: "15px" }}>
-        <td style={{ textAlign: "left", paddingLeft: "10px" }}>Shipping: </td>
-        <td style={{ textAlign: "right", paddingRight: "10px" }}>
-          ${data.shipping?.toFixed(2) ?? "0.00"}{" "}
-        </td>
-      </tr>
-      <tr style={{ fontSize: "20px", fontWeight: "700" }}>
-        <td style={{ textAlign: "left", paddingLeft: "10px" }}>Total: </td>
-        <td style={{ textAlign: "right", paddingRight: "10px" }}>
-          ${data.total.toFixed(2)}{" "}
+      <tr>
+        <td
+          colSpan={2}
+          style={{
+            padding: "0 30px 20px",
+            backgroundColor: "#ffffff",
+          }}
+        >
+          <table
+            cellPadding="0"
+            cellSpacing="0"
+            border={0}
+            style={{ width: "100%" }}
+          >
+            <tbody>
+              <tr>
+                <td
+                  style={{
+                    padding: "8px 0",
+                    fontSize: "15px",
+                    color: "#666666",
+                    textAlign: "left",
+                  }}
+                >
+                  Subtotal:
+                </td>
+                <td
+                  style={{
+                    padding: "8px 0",
+                    fontSize: "15px",
+                    color: "#333333",
+                    textAlign: "right",
+                    fontWeight: "500",
+                  }}
+                >
+                  ${data.subtotal.toFixed(2)}
+                </td>
+              </tr>
+              <tr>
+                <td
+                  style={{
+                    padding: "8px 0",
+                    fontSize: "15px",
+                    color: "#666666",
+                    textAlign: "left",
+                  }}
+                >
+                  Shipping:
+                </td>
+                <td
+                  style={{
+                    padding: "8px 0",
+                    fontSize: "15px",
+                    color: "#333333",
+                    textAlign: "right",
+                    fontWeight: "500",
+                  }}
+                >
+                  ${data.shipping?.toFixed(2) ?? "0.00"}
+                </td>
+              </tr>
+              <tr>
+                <td
+                  style={{
+                    padding: "12px 0 0",
+                    fontSize: "18px",
+                    color: "#333333",
+                    fontWeight: "700",
+                    textAlign: "left",
+                    borderTop: "2px solid #333333",
+                  }}
+                >
+                  Total:
+                </td>
+                <td
+                  style={{
+                    padding: "12px 0 0",
+                    fontSize: "18px",
+                    color: "#495464",
+                    fontWeight: "700",
+                    textAlign: "right",
+                    borderTop: "2px solid #333333",
+                  }}
+                >
+                  ${data.total.toFixed(2)}
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </td>
       </tr>
     </>
@@ -327,131 +603,192 @@ interface ProductEmailCardProps {
 const OrderProductEmailCard = ({ data }: { data: ProductEmailCardProps }) => {
   const isDiscount = data.price.discount;
 
-  const ShowPrice = () => {
-    return (
-      <p>
-        <span
+  return (
+    <tr>
+      <td
+        colSpan={2}
+        style={{
+          padding: "15px 30px",
+          backgroundColor: "#ffffff",
+        }}
+      >
+        <table
+          cellPadding="0"
+          cellSpacing="0"
+          border={0}
           style={{
-            textDecoration: isDiscount ? "line-through" : "none",
-            color: "red",
-            marginRight: "10px",
+            width: "100%",
+            backgroundColor: "#f9f9f9",
+            borderRadius: "8px",
+            overflow: "hidden",
           }}
         >
-          ${data.price.price}
-        </span>
-        {isDiscount && (
-          <>
-            <span style={{ color: "red", marginRight: "10px" }}>
-              -{isDiscount.percent ?? "0.00"}%
-            </span>
-            <span style={{ marginRight: "10px" }}>
-              ${isDiscount.newprice?.toFixed(2)}
-            </span>
-          </>
-        )}
-
-        <span>X {data.quantity}</span>
-      </p>
-    );
-  };
-  return (
-    <>
-      <tr
-        style={{
-          height: "100%",
-          backgroundColor: "white",
-          padding: "10px",
-          borderRadius: "10px",
-          width: "100%",
-          border: 0,
-        }}
-      >
-        <td style={{ verticalAlign: "middle", border: 0 }}>
-          <img
-            alt="cover"
-            title="cover"
-            width={"150px"}
-            style={{ objectFit: "cover", borderRadius: "10px" }}
-            src={data.cover}
-          />
-        </td>
-        <td style={{ verticalAlign: "top", textAlign: "left", border: 0 }}>
-          <p style={{ fontWeight: "700" }}>{data.name}</p>
-          {data.details.map((info, idx) =>
-            typeof info === "string" ? (
-              <p
-                key={idx}
+          <tbody>
+            <tr>
+              <td
                 style={{
-                  backgroundColor: "#f2f2f2",
-                  width: "150px",
-                  height: "fit-content",
-                  padding: "5px",
-                  borderRadius: "10px",
-                  wordBreak: "break-all",
-                  marginBottom: "10px",
+                  width: "140px",
+                  padding: "15px",
+                  verticalAlign: "top",
                 }}
               >
-                {info}
-              </p>
-            ) : (
-              <div
-                key={idx}
-                style={{
-                  width: "150px",
-                  maxWidth: "100%",
-                  backgroundColor: "#f2f2f2",
-                  borderRadius: "10px",
-                  marginBottom: "10px",
-                  padding: "5px",
-                }}
-              >
-                <div
+                <img
+                  alt={data.name}
+                  title={data.name}
+                  width="120"
+                  height="120"
                   style={{
-                    width: "25px",
-                    height: "25px",
-                    borderRadius: "100%",
-                    backgroundColor: info.val,
-                    display: "inline-block",
-                    verticalAlign: "middle",
+                    width: "120px",
+                    height: "120px",
+                    objectFit: "cover",
+                    borderRadius: "8px",
+                    display: "block",
                   }}
-                ></div>
-                {info.name && (
-                  <span
-                    style={{
-                      fontWeight: "normal",
-                      display: "inline-block",
-                      wordBreak: "break-all",
-                      paddingLeft: "5px",
-                    }}
-                  >
-                    {info.name}
-                  </span>
+                  src={data.cover}
+                />
+              </td>
+              <td
+                style={{
+                  padding: "15px 15px 15px 0",
+                  verticalAlign: "top",
+                }}
+              >
+                <h4
+                  style={{
+                    fontSize: "16px",
+                    fontWeight: "700",
+                    color: "#333333",
+                    margin: "0 0 10px",
+                    lineHeight: "1.4",
+                  }}
+                >
+                  {data.name}
+                </h4>
+                {data.details.map((info, idx) =>
+                  typeof info === "string" ? (
+                    <div
+                      key={idx}
+                      style={{
+                        display: "inline-block",
+                        backgroundColor: "#ffffff",
+                        padding: "4px 10px",
+                        borderRadius: "4px",
+                        fontSize: "13px",
+                        color: "#666666",
+                        marginRight: "8px",
+                        marginBottom: "8px",
+                        border: "1px solid #e0e0e0",
+                      }}
+                    >
+                      {info}
+                    </div>
+                  ) : (
+                    <div
+                      key={idx}
+                      style={{
+                        display: "inline-block",
+                        backgroundColor: "#ffffff",
+                        padding: "4px 10px",
+                        borderRadius: "4px",
+                        marginRight: "8px",
+                        marginBottom: "8px",
+                        border: "1px solid #e0e0e0",
+                      }}
+                    >
+                      <span
+                        style={{
+                          display: "inline-block",
+                          width: "16px",
+                          height: "16px",
+                          borderRadius: "50%",
+                          backgroundColor: info.val,
+                          border: "1px solid #cccccc",
+                          verticalAlign: "middle",
+                          marginRight: "6px",
+                        }}
+                      ></span>
+                      {info.name && (
+                        <span
+                          style={{
+                            fontSize: "13px",
+                            color: "#666666",
+                            verticalAlign: "middle",
+                          }}
+                        >
+                          {info.name}
+                        </span>
+                      )}
+                    </div>
+                  )
                 )}
-              </div>
-            )
-          )}
-        </td>
-      </tr>
-      <tr
-        style={{
-          backgroundColor: "white",
-          width: "auto",
-          fontWeight: "600",
-          fontSize: "16px",
-          border: 0,
-        }}
-      >
-        <td align="left">
-          <ShowPrice />
-        </td>
-        <td align="right">
-          <p>${data.total.toFixed(2)}</p>
-        </td>
-      </tr>
-      <tr style={{ height: "20px" }}>
-        <td></td>
-      </tr>
-    </>
+                <div style={{ marginTop: "12px" }}>
+                  <table
+                    cellPadding="0"
+                    cellSpacing="0"
+                    border={0}
+                    style={{ width: "100%" }}
+                  >
+                    <tbody>
+                      <tr>
+                        <td style={{ fontSize: "14px", color: "#666666" }}>
+                          <span
+                            style={{
+                              textDecoration: isDiscount
+                                ? "line-through"
+                                : "none",
+                              color: isDiscount ? "#999999" : "#333333",
+                              marginRight: "8px",
+                            }}
+                          >
+                            ${data.price.price}
+                          </span>
+                          {isDiscount && (
+                            <>
+                              <span
+                                style={{
+                                  color: "#EB5757",
+                                  fontWeight: "600",
+                                  marginRight: "8px",
+                                  fontSize: "13px",
+                                }}
+                              >
+                                -{isDiscount.percent ?? 0}%
+                              </span>
+                              <span
+                                style={{
+                                  color: "#333333",
+                                  fontWeight: "600",
+                                  marginRight: "8px",
+                                }}
+                              >
+                                ${isDiscount.newprice?.toFixed(2)}
+                              </span>
+                            </>
+                          )}
+                          <span style={{ color: "#666666" }}>
+                            × {data.quantity}
+                          </span>
+                        </td>
+                        <td
+                          style={{
+                            fontSize: "16px",
+                            fontWeight: "700",
+                            color: "#333333",
+                            textAlign: "right",
+                          }}
+                        >
+                          ${data.total.toFixed(2)}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </td>
+    </tr>
   );
 };
 

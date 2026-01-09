@@ -1,4 +1,4 @@
-import { getUser } from "@/src/context/OrderContext";
+import { getUser } from "@/src/lib/session";
 import { PolicyButton, QuestionCard, SidePolicyBar } from "./component";
 
 import {

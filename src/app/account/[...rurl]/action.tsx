@@ -9,14 +9,14 @@ interface returntype {
   success: boolean;
 }
 export const verifyUser = async (
-  prev: any,
-  data: FormData
+  prevState: returntype,
+  formData: FormData
 ): Promise<returntype> => {
   try {
     const dt = {
-      password: data.get("password"),
-      cfpassword: data.get("confirmpassword"),
-      cid: data.get("cid"),
+      password: formData.get("password"),
+      cfpassword: formData.get("confirmpassword"),
+      cid: formData.get("cid"),
     };
 
     if (dt.cid) {

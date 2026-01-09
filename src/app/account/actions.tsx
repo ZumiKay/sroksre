@@ -13,6 +13,7 @@ export interface userdata {
   role?: "ADMIN" | "USER" | "EDITOR";
   agreement?: boolean;
   cid?: string;
+  phonenumber?: string;
 }
 
 export const SendVfyEmail = async (

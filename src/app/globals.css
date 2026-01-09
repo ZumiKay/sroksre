@@ -103,6 +103,16 @@
     right: 0px;
   }
 }
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
 @keyframes ldio-jhvhak8eufc {
   0% {
     transform: rotate(0);

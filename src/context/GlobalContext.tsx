@@ -2,7 +2,7 @@
 import { Dayjs } from "dayjs";
 import React, { useContext, useState } from "react";
 
-import { Ordertype, Productordertype } from "./OrderContext";
+import { Orderpricetype, Ordertype, Productordertype } from "./OrderContext";
 import { BannerType } from "../app/severactions/actions";
 import { Categorytype } from "../app/api/categories/route";
 import { InventoryType } from "../app/dashboard/inventory/varaint_action";
@@ -115,15 +115,12 @@ export interface ProductState {
   details: ProductInfo[] | [];
   stock?: number;
   variantcount?: number;
-  variants?: Array<Varianttype>;
-  varaintstock?: Array<Stocktype>;
+  Variant?: Array<Varianttype>;
+  Stock?: Array<Stocktype>;
   lowstock?: boolean;
   incart?: boolean;
   promotion_id?: number;
-  discount?: {
-    percent: number;
-    newprice: string;
-  };
+  discount?: Orderpricetype | number;
   relatedproductid?: Array<number>;
   relatedproduct?: Array<Relatedproducttype>;
   amount_sold?: number;
@@ -273,6 +270,8 @@ export interface Usersessiontype {
   id: number;
   role: Role;
   session_id: string;
+  name?: string;
+  email?: string;
 }
 
 type confirmmodaltype = {

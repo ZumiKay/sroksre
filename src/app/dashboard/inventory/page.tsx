@@ -5,6 +5,7 @@ import { PromotionState, useGlobalContext } from "@/src/context/GlobalContext";
 import { SubInventoryMenu } from "../../component/Navbar";
 import { useEffect, useState } from "react";
 import { ApiRequest, Delayloading } from "@/src/context/CustomHook";
+import { motion } from "framer-motion";
 import { errorToast } from "../../component/Loading";
 import { FilterMenu } from "../../component/SideMenu";
 import dayjs from "dayjs";
@@ -382,7 +383,9 @@ export default function Inventory({
   return (
     <>
       <title>Inventory Management | SrokSre</title>
+      {/* Day JS Provider  */}
       <LocalizationProvider dateAdapter={AdapterDayjs}>
+        {/* Action modals */}
         {openmodal.createProduct && (
           <CreateProducts setreloaddata={setreloaddata} />
         )}
@@ -397,12 +400,13 @@ export default function Inventory({
             setreloaddata={setreloaddata}
           />
         )}
+        {/** Filter Modals */}
         {openmodal.filteroption && (
           <FilterMenu
             name={name}
             categories={{
-              parentid: parseInt(parentcate as string),
-              childid: parseInt(childcate as string),
+              parentid: parentcate ? parseInt(parentcate as string) : undefined,
+              childid: childcate ? parseInt(childcate as string) : undefined,
             }}
             expiredAt={expiredate ? dayjs(expiredate).toISOString() : undefined}
             type={ty}
@@ -413,59 +417,66 @@ export default function Inventory({
             isSetPromotion={promotion.selectproduct}
           />
         )}
+
+        {/**Discount edit modal */}
         {openmodal.discount && <DiscountModals setreloaddata={setreloaddata} />}
 
-        <div className="inventory__container w-full h-full min-h-screen relative flex flex-col items-center pb-[200px]">
-          <div className="inventory_header bg-white sticky z-30 top-[55px] w-full h-full p-2 border-b border-black">
-            <div className="w-full flex flex-row items-center overflow-x-auto gap-x-5 scrollbar-hide">
+        <div className="inventory__container w-full h-full min-h-screen relative flex flex-col items-center pb-[200px] bg-gradient-to-b from-gray-50 to-white">
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="inventory_header bg-white/95 backdrop-blur-sm sticky z-30 top-[55px] w-full h-full p-3 md:p-4 border-b-2 border-gray-200 shadow-md"
+          >
+            <div className="w-full flex flex-row items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
               {!promotion.selectproduct &&
               !promotion.selectbanner &&
               !openmodal.managebanner ? (
                 <>
-                  <div className="w-fit h-full">
-                    <SelectionCustom
-                      label="Filter"
-                      data={Filteroptions}
-                      placeholder="Item"
-                      value={type}
-                      onChange={(val) =>
-                        handleFilter(val.toString().toLowerCase())
-                      }
-                      style={{ width: "275px" }}
+                  <div className="flex-shrink-0">
+                    <div className="flex items-center gap-1.5 md:gap-2 px-2 md:px-3 py-1.5 md:py-2 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg md:rounded-xl border-2 border-indigo-200">
+                      <i className="fa-solid fa-layer-group text-indigo-500 text-sm md:text-base"></i>
+                      <SelectionCustom
+                        label="Filter"
+                        data={Filteroptions}
+                        placeholder="Item"
+                        value={type}
+                        onChange={(val) =>
+                          handleFilter(val.toString().toLowerCase())
+                        }
+                        style={{ width: "140px" }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex-shrink-0">
+                    <SubInventoryMenu
+                      data={createmenu as any}
+                      open="subcreatemenu_ivt"
                     />
                   </div>
 
-                  <SubInventoryMenu
-                    data={createmenu as any}
-                    open="subcreatemenu_ivt"
-                  />
-
-                  <PrimaryButton
-                    color="#60513C"
-                    width="150px"
-                    style={{ minWidth: "150px" }}
-                    radius="10px"
-                    type="button"
-                    text={"Total: " + itemlength.total}
-                  />
+                  <div className="flex-shrink-0 flex items-center gap-1.5 md:gap-2 px-2.5 md:px-4 py-1.5 md:py-2.5 bg-gradient-to-r from-blue-500 to-cyan-600 text-white rounded-lg md:rounded-xl shadow-md hover:shadow-lg transition-all">
+                    <i className="fa-solid fa-box text-sm md:text-lg"></i>
+                    <span className="font-bold text-xs md:text-sm whitespace-nowrap">
+                      Total: {itemlength.total}
+                    </span>
+                  </div>
                   {type === "product" ? (
-                    <PrimaryButton
-                      color="#F08080"
-                      style={{ minWidth: "150px" }}
-                      radius="10px"
-                      width="150px"
-                      type="button"
-                      text={`Low Stock: ${lowstock} `}
-                    />
+                    <div className="flex-shrink-0 flex items-center gap-1.5 md:gap-2 px-2.5 md:px-4 py-1.5 md:py-2.5 bg-gradient-to-r from-red-500 to-pink-600 text-white rounded-lg md:rounded-xl shadow-md hover:shadow-lg transition-all">
+                      <i className="fa-solid fa-triangle-exclamation text-sm md:text-lg"></i>
+                      <span className="font-bold text-xs md:text-sm whitespace-nowrap">
+                        Low: {lowstock}
+                      </span>
+                    </div>
                   ) : (
                     type === "promotion" && (
-                      <PrimaryButton
-                        text={`Expire: ${promoexpire} `}
-                        style={{ minWidth: "150px" }}
-                        onClick={() => {}}
-                        type="button"
-                        radius="10px"
-                      />
+                      <div className="flex-shrink-0 flex items-center gap-1.5 md:gap-2 px-2.5 md:px-4 py-1.5 md:py-2.5 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-lg md:rounded-xl shadow-md hover:shadow-lg transition-all">
+                        <i className="fa-solid fa-clock text-sm md:text-lg"></i>
+                        <span className="font-bold text-xs md:text-sm whitespace-nowrap">
+                          Expired: {promoexpire}
+                        </span>
+                      </div>
                     )
                   )}
                 </>
@@ -473,66 +484,79 @@ export default function Inventory({
                 <>
                   {promotion.selectproduct &&
                     promotion.Products.length !== 1 && (
-                      <>
-                        <PrimaryButton
-                          color="#6FCF97"
-                          radius="10px"
-                          type="button"
-                          style={{ minWidth: "150px" }}
-                          text="Set Discount"
-                          onClick={() => {
-                            setopenmodal((prev) => ({
-                              ...prev,
-                              discount: true,
-                            }));
-                          }}
-                        />
-                      </>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setopenmodal((prev) => ({
+                            ...prev,
+                            discount: true,
+                          }));
+                        }}
+                        className="flex-shrink-0 flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-1.5 md:py-2.5 bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-lg md:rounded-xl shadow-md hover:shadow-lg transition-all hover:scale-105 font-bold text-xs md:text-sm"
+                      >
+                        <i className="fa-solid fa-percent text-sm md:text-base"></i>
+                        <span className="whitespace-nowrap">Discount</span>
+                      </button>
                     )}
                 </>
               )}
               {promotion.selectbanner && (
-                <PrimaryButton
+                <button
                   type="button"
-                  text="Add New"
-                  style={{ minWidth: "150px" }}
-                  radius="10px"
                   onClick={() =>
                     setopenmodal((prev) => ({ ...prev, createBanner: true }))
                   }
-                  color="#6FCF97"
-                />
+                  className="flex-shrink-0 flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-1.5 md:py-2.5 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg md:rounded-xl shadow-md hover:shadow-lg transition-all hover:scale-105 font-bold text-xs md:text-sm"
+                >
+                  <i className="fa-solid fa-plus text-sm md:text-base"></i>
+                  <span className="whitespace-nowrap">Add New</span>
+                </button>
               )}
               {(promotion.selectproduct || promotion.selectbanner) && (
-                <>
-                  <PrimaryButton
-                    text="Done"
-                    type="button"
-                    status={isLoading.PUT ? "loading" : "authenticated"}
-                    radius="10px"
-                    style={{ minWidth: "150px" }}
-                    onClick={() => handleDoneButton()}
-                  />
-                </>
+                <button
+                  type="button"
+                  onClick={() => handleDoneButton()}
+                  disabled={isLoading.PUT}
+                  className={`flex-shrink-0 flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-1.5 md:py-2.5 rounded-lg md:rounded-xl shadow-md font-bold text-xs md:text-sm transition-all ${
+                    isLoading.PUT
+                      ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                      : "bg-gradient-to-r from-blue-500 to-cyan-600 text-white hover:shadow-lg hover:scale-105"
+                  }`}
+                >
+                  {isLoading.PUT ? (
+                    <>
+                      <i className="fa-solid fa-spinner fa-spin text-sm md:text-base"></i>
+                      <span className="whitespace-nowrap">Processing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <i className="fa-solid fa-check text-sm md:text-base"></i>
+                      <span className="whitespace-nowrap">Done</span>
+                    </>
+                  )}
+                </button>
               )}
 
-              <PrimaryButton
-                color="#4688A0"
-                radius="10px"
-                style={{ minWidth: "150px" }}
+              <button
                 type="button"
-                text={
-                  Object.values(filtervalue).some((i) => i !== undefined)
-                    ? "Clear Filter"
-                    : "Filter"
-                }
                 onClick={() =>
                   setopenmodal((prev) => ({ ...prev, filteroption: true }))
                 }
-              />
+                className="flex-shrink-0 flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-1.5 md:py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-white rounded-lg md:rounded-xl shadow-md hover:shadow-lg transition-all hover:scale-105 font-bold text-xs md:text-sm"
+              >
+                <i className="fa-solid fa-filter text-sm md:text-base"></i>
+                <span className="whitespace-nowrap">
+                  {Object.values(filtervalue).some((i) => i !== undefined)
+                    ? "Clear"
+                    : "Filter"}
+                </span>
+              </button>
             </div>
-          </div>
-          <div
+          </motion.div>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
             className={`productlist w-[95%] max-smallest_phone:w-full h-fit mt-10 grid grid-cols-3 
         max-small_screen:grid-cols-2 gap-x-5 gap-y-32
         max-small_phone:gap-x-0 max-smallest_tablet:grid-cols-1 
@@ -540,8 +564,25 @@ export default function Inventory({
         place-items-center place-content-center`}
           >
             {loaded ? (
-              <div className="w-full h-fit pl-1">
-                <BannerSkeleton />
+              <div className="col-span-full w-full h-fit flex flex-col gap-6 items-center py-10">
+                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center animate-pulse">
+                  <i className="fa-solid fa-spinner fa-spin text-2xl text-white"></i>
+                </div>
+                <p className="text-lg font-semibold text-gray-600">
+                  Loading {ty}...
+                </p>
+                <div className="w-full grid grid-cols-3 max-small_screen:grid-cols-2 max-smallest_tablet:grid-cols-1 gap-6 px-4">
+                  {[1, 2, 3, 4, 5, 6].map((i) => (
+                    <div
+                      key={i}
+                      className="bg-white rounded-2xl p-4 shadow-lg animate-pulse"
+                    >
+                      <div className="w-full h-48 bg-gradient-to-br from-gray-200 to-gray-300 rounded-xl mb-4"></div>
+                      <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                      <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                    </div>
+                  ))}
+                </div>
               </div>
             ) : (
               <>
@@ -624,43 +665,35 @@ export default function Inventory({
                 {allData &&
                   allData[type as string] &&
                   allData[type as string].length === 0 && (
-                    <h3
-                      hidden={!!allData}
-                      className="w-fit ml-10 h-fit font-normal text-xl text-red-400 p-3 border-2 border-red-300 rounded-lg"
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="col-span-full flex flex-col items-center justify-center py-16 px-4"
                     >
-                      {type === "banner" ? (
-                        <>
-                          {allData?.banner?.length === 0 && (
-                            <>
-                              No Banner (Create Banner by Click on Action and
-                              Banner)
-                            </>
-                          )}
-                        </>
-                      ) : type === "promotion" ? (
-                        <>
-                          {allData?.promotion?.length === 0 && (
-                            <>
-                              No Promotion (Create Promotion by Click on Action
-                              and Promotion)
-                            </>
-                          )}
-                        </>
-                      ) : (
-                        <>
-                          {allData?.product?.length === 0 && (
-                            <>
-                              No Product (Create Product by Click on Action and
-                              Product)
-                            </>
-                          )}
-                        </>
-                      )}
-                    </h3>
+                      <div className="w-24 h-24 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center mb-6">
+                        <i className="fa-solid fa-inbox text-4xl text-gray-400"></i>
+                      </div>
+                      <h3 className="text-2xl font-bold text-gray-700 mb-2">
+                        No{" "}
+                        {type === "banner"
+                          ? "Banners"
+                          : type === "promotion"
+                          ? "Promotions"
+                          : "Products"}{" "}
+                        Found
+                      </h3>
+                      <p className="text-gray-500 text-center max-w-md">
+                        {type === "banner"
+                          ? "Create your first banner by clicking on Action → Banner"
+                          : type === "promotion"
+                          ? "Create your first promotion by clicking on Action → Promotion"
+                          : "Create your first product by clicking on Action → Product"}
+                      </p>
+                    </motion.div>
                   )}
               </>
             )}
-          </div>
+          </motion.div>
         </div>
 
         <div className="w-full h-fit">

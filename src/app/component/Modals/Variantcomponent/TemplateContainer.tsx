@@ -45,13 +45,37 @@ export default function TemplateContainer({
   return (
     <div className="w-full h-fit flex flex-row justify-start gap-5 flex-wrap">
       {!data ? (
-        <h3 className="text-gray-400">No Template</h3>
+        <div className="w-full rounded-xl bg-gradient-to-r from-gray-100 to-gray-50 border-2 border-dashed border-gray-300 p-8 flex items-center justify-center">
+          <div className="flex flex-col items-center gap-3">
+            <svg
+              className="w-12 h-12 text-gray-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+              />
+            </svg>
+            <h3 className="text-lg font-semibold text-gray-500">
+              No Templates
+            </h3>
+            <p className="text-sm text-gray-400">
+              Create your first template to get started
+            </p>
+          </div>
+        </div>
       ) : group ? (
         groupedData &&
         Object.keys(groupedData).map((optionType, groupIdx) => (
           <div key={groupIdx} className="w-full">
-            <h3 className="text-lg font-medium mb-2">{optionType}</h3>
-            <div className="w-full h-fit flex flex-row justify-start gap-5 flex-wrap">
+            <h3 className="text-xl font-bold mb-4 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              {optionType}
+            </h3>
+            <div className="w-full h-fit flex flex-row justify-start gap-4 flex-wrap">
               {groupedData[optionType].map((item, idx) => (
                 <Badge
                   key={idx}
@@ -64,16 +88,16 @@ export default function TemplateContainer({
                 >
                   {color ? (
                     <div
-                      className={`w-fit h-[50px] rounded-lg flex flex-row justify-center items-center gap-x-3 cursor-pointer p-2 transition-colors active:bg-gray-300 hover:bg-gray-300`}
+                      className={`w-fit min-w-[140px] h-[56px] rounded-xl flex flex-row justify-start items-center gap-x-3 cursor-pointer px-4 py-2 transition-all duration-300 bg-gradient-to-r from-white to-gray-50 border-2 border-gray-200 hover:border-blue-400 hover:shadow-lg active:scale-95 hover:scale-105`}
                       onClick={() => onItemsClick && onItemsClick(idx)}
                     >
                       {/* Display created Color */}
                       <div
-                        className="color w-[30px] h-[30px] rounded-full"
+                        className="color w-[36px] h-[36px] rounded-full shadow-md border-3 border-white ring-2 ring-gray-200"
                         style={{ backgroundColor: item.val }}
                       ></div>
                       {item.name && (
-                        <p className="w-fit h-fit text-lg font-light">
+                        <p className="w-fit h-fit text-base font-semibold text-gray-800">
                           {item.name}
                         </p>
                       )}
@@ -83,7 +107,7 @@ export default function TemplateContainer({
                       onClick={() =>
                         onItemsClick && onItemsClick(item.id as number)
                       }
-                      className="template bg-gray-300 rounded-lg p-2 cursor-pointer transition-colors hover:bg-white"
+                      className="template bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl px-4 py-2.5 cursor-pointer transition-all duration-300 hover:from-blue-100 hover:to-purple-100 hover:shadow-lg active:scale-95 hover:scale-105 border-2 border-gray-300 hover:border-blue-400 font-semibold text-gray-800"
                     >
                       {item.val}
                     </div>
@@ -105,22 +129,24 @@ export default function TemplateContainer({
             >
               {color ? (
                 <div
-                  className={`w-fit h-[50px] rounded-lg flex flex-row justify-center items-center gap-x-3 cursor-pointer p-2 transition-colors active:bg-gray-300 hover:bg-gray-300`}
+                  className={`w-fit min-w-[140px] h-[56px] rounded-xl flex flex-row justify-start items-center gap-x-3 cursor-pointer px-4 py-2 transition-all duration-300 bg-gradient-to-r from-white to-gray-50 border-2 border-gray-200 hover:border-blue-400 hover:shadow-lg active:scale-95 hover:scale-105`}
                   onClick={() => onItemsClick && onItemsClick(idx)}
                 >
                   {/* Display created Color */}
                   <div
-                    className="color w-[30px] h-[30px] rounded-full"
+                    className="color w-[36px] h-[36px] rounded-full shadow-md border-3 border-white ring-2 ring-gray-200"
                     style={{ backgroundColor: i.val }}
                   ></div>
                   {i.name && (
-                    <p className="w-fit h-fit text-lg font-light">{i.name}</p>
+                    <p className="w-fit h-fit text-base font-semibold text-gray-800">
+                      {i.name}
+                    </p>
                   )}
                 </div>
               ) : (
                 <div
                   onClick={() => onItemsClick && onItemsClick(idx)}
-                  className="template bg-gray-300 rounded-lg p-2 cursor-pointer transition-colors hover:bg-white"
+                  className="template bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl px-4 py-2.5 cursor-pointer transition-all duration-300 hover:from-blue-100 hover:to-purple-100 hover:shadow-lg active:scale-95 hover:scale-105 border-2 border-gray-300 hover:border-blue-400 font-semibold text-gray-800"
                 >
                   {i.val}
                 </div>
@@ -288,9 +314,16 @@ export const AddTemplateModal = ({
     close();
   };
   return (
-    <Modal closestate="none" customwidth="280px" customheight="600px">
-      <div className="w-full h-full bg-white flex flex-col gap-y-5 p-2 relative rounded-md">
-        <h3 className="text-xl font-bold">Template</h3>
+    <Modal
+      closestate="none"
+      customwidth="20%"
+      minwidth="280px"
+      customheight="600px"
+    >
+      <div className="w-full h-full bg-gradient-to-br from-blue-50/30 via-white to-purple-50/30 flex flex-col gap-y-6 p-6 relative rounded-2xl shadow-xl">
+        <h3 className="text-2xl font-extrabold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+          Template
+        </h3>
         {step === "" ? (
           <>
             <Input
@@ -309,12 +342,14 @@ export const AddTemplateModal = ({
             />
           </>
         ) : (
-          <div className="w-full h-fit flex flex-col gap-y-5">
-            <div className="w-full h-fit p-3 max-h-[150px] overflow-y-auto overflow-x-hidden">
+          <div className="w-full h-fit flex flex-col gap-y-6">
+            <div className="w-full h-fit p-4 max-h-[150px] overflow-y-auto overflow-x-hidden rounded-xl bg-gradient-to-br from-gray-50 to-white border-2 border-gray-200 shadow-inner">
               {variant.option_value.length === 0 ? (
-                <h3 className="w-full border border-black rounded-lg p-2">
-                  No Variant
-                </h3>
+                <div className="w-full rounded-lg bg-gradient-to-r from-gray-100 to-gray-50 border-2 border-dashed border-gray-300 p-6 flex items-center justify-center">
+                  <p className="text-base font-semibold text-gray-500">
+                    No Variants
+                  </p>
+                </div>
               ) : (
                 <TemplateContainer
                   data={variant.option_value.map((i: any, idx) => ({
@@ -376,17 +411,35 @@ export const AddTemplateModal = ({
               templatetype === "COLOR" && (
                 <>
                   <div className="w-full h-fit flex flex-col gap-y-3">
-                    <label className="text-lg font-bold">Color</label>
+                    <label className="text-base font-bold text-gray-800">
+                      Color
+                    </label>
 
                     <div
                       onClick={() => {
                         setopencolor(true);
                       }}
-                      className={`w-[100%] h-[50px] border-[5px] border-gray-300 rounded-lg`}
+                      className={`w-[100%] h-[60px] border-4 border-gray-300 rounded-xl cursor-pointer transition-all duration-300 hover:border-blue-400 hover:shadow-lg hover:scale-[1.02] active:scale-95 relative overflow-hidden group`}
                       style={{
                         backgroundColor: color.hex,
                       }}
-                    ></div>
+                    >
+                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-300 flex items-center justify-center">
+                        <svg
+                          className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                          />
+                        </svg>
+                      </div>
+                    </div>
                   </div>
                   <Input
                     type="text"
@@ -426,12 +479,13 @@ export const AddTemplateModal = ({
               )
             )}
 
-            <div className="btn-1 w-full h-[30px] flex flex-row items-center gap-x-5">
+            <div className="btn-1 w-full h-fit flex flex-row items-center gap-x-3">
               <Button
                 onClick={() => handleAddOption()}
                 fullWidth
                 color="primary"
-                variant="solid"
+                variant="shadow"
+                className="font-bold text-base h-12 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95"
               >
                 {edit !== -1 ? "Update" : "Add"}
               </Button>
@@ -439,7 +493,8 @@ export const AddTemplateModal = ({
                 fullWidth
                 onClick={() => setopen(false)}
                 color="danger"
-                variant="solid"
+                variant="shadow"
+                className="font-bold text-base h-12 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95"
               >
                 Close
               </Button>
@@ -447,13 +502,14 @@ export const AddTemplateModal = ({
           </div>
         )}
 
-        <div className="btn w-fit h-[40px] flex flex-row gap-x-5 absolute bottom-1 right-1">
+        <div className="btn w-fit h-fit flex flex-row gap-x-3 absolute bottom-3 right-3">
           <Button
+            className="font-bold text-base shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95"
             style={{
-              backgroundColor: "#0097FA",
+              background: "linear-gradient(135deg, #0097FA 0%, #667eea 100%)",
               color: "white",
-              fontWeight: "bold",
-              width: "100px",
+              width: "110px",
+              height: "44px",
             }}
             isLoading={loading}
             variant="solid"
@@ -462,11 +518,12 @@ export const AddTemplateModal = ({
             {step === "create" ? (data ? "Update" : "Create") : "Next"}
           </Button>
           <Button
+            className="font-bold text-base shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95"
             style={{
-              backgroundColor: "lightcoral",
+              background: "linear-gradient(135deg, #f87171 0%, #ef4444 100%)",
               color: "white",
-              fontWeight: "bold",
-              width: "100px",
+              width: "110px",
+              height: "44px",
             }}
             variant="solid"
             isDisabled={loading}
