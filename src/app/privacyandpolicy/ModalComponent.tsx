@@ -4,7 +4,7 @@ import { TextField } from "@mui/material";
 import { SecondaryModal } from "../component/Modals";
 import { Paragraph } from "@prisma/client";
 import React, { ChangeEvent } from "react";
-import { Addpolicytype, Addquestiontype } from "./action";
+import { Addpolicytype, Addquestiontype, ParagraphType } from "./action";
 import PrimaryButton from "../component/Button";
 
 export const ParagraphModal = ({
@@ -37,8 +37,8 @@ export const ParagraphModal = ({
     e: ChangeEvent<HTMLTextAreaElement | HTMLInputElement>,
     idx: number
   ) => void;
-  paragraph?: Paragraph;
-  setparagraph?: React.Dispatch<React.SetStateAction<Paragraph>>;
+  paragraph?: ParagraphType;
+  setparagraph?: React.Dispatch<React.SetStateAction<ParagraphType>>;
   question?: Addquestiontype;
   setquestion?: React.Dispatch<React.SetStateAction<Addquestiontype>>;
   type: "Question" | "Policy";

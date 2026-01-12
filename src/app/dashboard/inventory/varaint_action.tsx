@@ -1,6 +1,5 @@
 "use server";
 
-import { FilterValue, Varianttype } from "@/src/context/GlobalContext";
 import { getUser } from "@/src/lib/session";
 import Prisma from "@/src/lib/prisma";
 import {
@@ -9,6 +8,7 @@ import {
 } from "@/src/lib/utilities";
 import dayjs from "dayjs";
 import { revalidateTag } from "next/cache";
+import { FilterValue, Varianttype } from "@/src/types/product.type";
 
 const INVENTORYENUM = {
   SIZE: "SIZE",

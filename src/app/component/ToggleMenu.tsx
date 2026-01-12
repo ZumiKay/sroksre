@@ -1,22 +1,17 @@
 "use client";
 import { CSSProperties, ReactNode, useEffect, useState } from "react";
 import "../globals.css";
-
-import {
-  ProductInfo,
-  SelectType,
-  VariantColorValueType,
-  useGlobalContext,
-} from "@/src/context/GlobalContext";
-import PrimaryButton from "./Button";
+import { useGlobalContext } from "@/src/context/GlobalContext";
 import { AnimatePresence, motion } from "framer-motion";
 import ReactSelect from "react-select/async";
 import makeAnimated from "react-select/animated";
-
 import { GetProductName } from "../dashboard/inventory/varaint_action";
 import { errorToast } from "./Loading";
 import { Button, Input } from "@nextui-org/react";
 import React from "react";
+import { ProductInfo, VariantColorValueType } from "@/src/types/product.type";
+import { SelectType } from "@/src/types/productAction.type";
+
 interface toggleprops {
   name: string;
   isAdmin: boolean;

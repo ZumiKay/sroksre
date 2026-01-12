@@ -1,5 +1,5 @@
 import { Shippingservice } from "@/src/context/Checkoutcontext";
-import { Orderpricetype, totalpricetype } from "@/src/context/OrderContext";
+import { Orderpricetype, totalpricetype } from "@/src/types/order.type";
 import Prisma from "@/src/lib/prisma";
 import { calculateDiscountProductPrice } from "@/src/lib/utilities";
 import { NextRequest } from "next/server";

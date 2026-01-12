@@ -1,7 +1,4 @@
-import {
-  Orderpricetype,
-  Productorderdetailtype,
-} from "@/src/context/OrderContext";
+import { Orderpricetype, Productorderdetailtype } from "@/src/types/order.type";
 import Image from "next/image";
 
 export const Checkoutproductcard = ({

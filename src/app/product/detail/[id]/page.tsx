@@ -2,7 +2,6 @@
 import { notFound } from "next/navigation";
 import { GetProductDetailById } from "./detail_action";
 import { ButtonForSimilarProd, OptionSection, ShowPrice } from "./Component";
-import { Relatedproducttype } from "@/src/context/GlobalContext";
 import Link from "next/link";
 import ToggleMenu from "@/src/app/component/ToggleMenu";
 import { getRelatedProduct } from "./action";
@@ -17,6 +16,8 @@ import {
   RelatedProductSkeleton,
   SimilarProductCardSkeleton,
 } from "./LoadingSkeleton";
+import { Relatedproducttype } from "@/src/types/product.type";
+import { Orderpricetype } from "@/src/types/order.type";
 
 export const revalidate = 600;
 
@@ -264,7 +265,7 @@ const ShowSimilarProduct = async ({
               price={prod.price.toFixed(2)}
               img={prod.covers}
               index={idx}
-              discount={prod.discount}
+              discount={prod.discount as Orderpricetype}
               id={prod.id}
             />
           ))}

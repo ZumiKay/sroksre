@@ -27,8 +27,9 @@ enum Imagetemptype {
 
 model User {
   id           Int            @id @default(autoincrement())
+  buyer_id     String         @unique @default(uuid()) //For Order ReF
   oauthId      String?
-  type         String?
+  type         String? //For Classify OAuth
   firstname    String
   lastname     String?
   email        String
@@ -171,7 +172,7 @@ model Producttype {
 
 model Orders {
   id           String         @id
-  buyer_id     Int
+  buyer_id     String
   status       String
   estimate     DateTime?
   price        Json
@@ -180,7 +181,7 @@ model Orders {
   updatedAt    DateTime       @updatedAt
   shipping_id  Int?
   shipping     Address?       @relation(fields: [shipping_id], references: [id])
-  user         User           @relation(fields: [buyer_id], references: [id], onDelete: Cascade)
+  user         User           @relation(fields: [buyer_id], references: [buyer_id], onDelete: Cascade)
   Orderproduct Orderproduct[]
 }
 

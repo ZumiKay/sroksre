@@ -1,8 +1,8 @@
 "use server";
 
-import { SelectType } from "@/src/context/GlobalContext";
 import Prisma from "@/src/lib/prisma";
 import { removeSpaceAndToLowerCase } from "@/src/lib/utilities";
+import { SelectType } from "@/src/types/productAction.type";
 
 interface returnType {
   success: boolean;

@@ -3,7 +3,7 @@ import {
   Productorderdetailtype,
   Productordertype,
   totalpricetype,
-} from "@/src/context/OrderContext";
+} from "@/src/types/order.type";
 import { getUser } from "@/src/lib/session";
 import Prisma from "@/src/lib/prisma";
 import {
@@ -13,11 +13,8 @@ import {
 } from "@/src/lib/utilities";
 import { NextRequest } from "next/server";
 import { extractQueryParams } from "../../banner/route";
-import {
-  ProductState,
-  VariantColorValueType,
-} from "@/src/context/GlobalContext";
 import { JsonObject } from "@/prisma/generated/prisma/internal/prismaNamespace";
+import { ProductState, VariantColorValueType } from "@/src/types/product.type";
 
 export async function PUT(req: NextRequest) {
   try {

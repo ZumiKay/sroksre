@@ -4,7 +4,7 @@ import { getPolicesByPage } from "@/src/app/api/policy/route";
 import Prisma from "@/src/lib/prisma";
 import { calculateDiscountProductPrice } from "@/src/lib/utilities";
 import { CheckCart, Checkwishlist } from "./action";
-import { ProductState } from "@/src/context/GlobalContext";
+import { ProductState } from "@/src/types/product.type";
 
 interface Policytype {
   id: number;

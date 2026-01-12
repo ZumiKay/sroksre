@@ -1,7 +1,6 @@
 "use client";
-import PrimaryButton from "../../component/Button";
 import Card, { BannerCard } from "../../component/Card";
-import { PromotionState, useGlobalContext } from "@/src/context/GlobalContext";
+import { useGlobalContext } from "@/src/context/GlobalContext";
 import { SubInventoryMenu } from "../../component/Navbar";
 import { useEffect, useState } from "react";
 import { ApiRequest, Delayloading } from "@/src/context/CustomHook";
@@ -24,8 +23,9 @@ import PaginationCustom, {
   SelectionCustom,
 } from "../../component/Pagination_Component";
 import { IsNumber } from "@/src/lib/utilities";
-import { BannerSkeleton } from "../../component/HomePage/Component";
 import React from "react";
+import { Orderpricetype } from "@/src/types/order.type";
+import { PromotionState } from "@/src/types/productAction.type";
 
 const createmenu = [
   {
@@ -596,7 +596,7 @@ export default function Inventory({
                       hover={true}
                       price={parseFloat(obj.price.toString()).toFixed(2)}
                       id={obj.id ?? 0}
-                      discount={obj.discount}
+                      discount={obj.discount as Orderpricetype}
                       stock={obj.stock}
                       stocktype={obj.stocktype}
                       isAdmin={true}

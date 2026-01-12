@@ -3,14 +3,14 @@ import ReactDOMServer from "react-dom/server";
 import { ChangeEvent, useEffect, useState } from "react";
 import PrimaryButton, { Selection } from "../../component/Button";
 import Modal, { SecondaryModal } from "../../component/Modals";
-import { useGlobalContext, userdata } from "@/src/context/GlobalContext";
+import { useGlobalContext } from "@/src/context/GlobalContext";
 import { DateTimePicker, LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import {
   Allstatus,
   Productordertype,
   totalpricetype,
-} from "@/src/context/OrderContext";
+} from "@/src/types/order.type";
 import { Checkoutproductcard } from "../../component/Checkout";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AllorderStatus } from "./page";
@@ -26,10 +26,10 @@ import * as XLSX from "xlsx";
 import { AllorderType, isObjectEmpty } from "@/src/lib/utilities";
 import { shippingtype } from "../../component/Modals/User";
 import PaginationCustom from "../../component/Pagination_Component";
-import { PaginationServer } from "../../component/PaginationServer";
 import { Input } from "@nextui-org/react";
 import { useScreenSize } from "@/src/context/CustomHook";
 import React from "react";
+import { userdata } from "@/src/types/user.type";
 
 export const SelectionSSR = ({
   name,
@@ -273,10 +273,8 @@ export const FilterButton = ({
 export interface OrderDetailType {
   user: userdata;
   shipping: shippingtype;
-
   createdAt: Date;
   updatedAt: Date;
-
   price: totalpricetype;
 }
 export interface ModalDataType {

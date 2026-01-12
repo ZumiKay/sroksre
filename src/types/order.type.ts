@@ -1,5 +1,5 @@
 import { Address, User } from "@prisma/client";
-import { ProductState, VariantColorValueType } from "./GlobalContext";
+import { ProductState, VariantColorValueType } from "./product.type";
 
 export type Orderstatus =
   | "Incart"

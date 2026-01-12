@@ -6,7 +6,7 @@ import {
   Ordertype,
   Productordertype,
   totalpricetype,
-} from "@/src/context/OrderContext";
+} from "@/src/types/order.type";
 import { getUser } from "@/src/lib/session";
 import { Orderproduct } from "@prisma/client";
 import { revalidatePath } from "next/cache";
@@ -25,12 +25,17 @@ import {
   generateRandomNumber,
   OrderReciptEmail,
 } from "@/src/lib/utilities";
-import { ProductStockType } from "../component/ServerComponents";
 import nodemailer from "nodemailer";
 import { shippingtype } from "../component/Modals/User";
 import { getCheckoutdata } from "./page";
 import { generateInvoicePdf } from "../api/order/route";
 import { formatDate } from "../component/EmailTemplate";
+import { ProductState, ProductStockType } from "@/src/types/product.type";
+import {
+  BatchPayload,
+  PrismaPromise,
+} from "@/prisma/generated/prisma/internal/prismaNamespace";
+import { canPlaceOrder } from "./helper";
 
 interface Returntype<k = string> {
   success: boolean;
@@ -190,16 +195,16 @@ export async function updateStatus(
   try {
     const order = await getCheckoutdata(orderid);
 
-    if (!order) {
-      return { success: false, status: 404 };
+    if (!order || !canPlaceOrder(order)) {
+      return { success: false, status: 400 };
     }
 
     // Prepare updates
-    const productUpdates: Array<Promise<any>> = [];
-    const stockUpdates: Array<Promise<any>> = [];
+    const productUpdates: Array<PrismaPromise<BatchPayload>> = [];
+    const stockUpdates: Array<PrismaPromise<BatchPayload>> = [];
 
     order.Orderproduct.forEach((cart) => {
-      const { stocktype, Stock } = cart.product;
+      const { stocktype, Stock, id } = cart.product as ProductState;
 
       if (stocktype === ProductStockType.stock) {
         productUpdates.push(
@@ -207,7 +212,7 @@ export async function updateStatus(
             where: {
               AND: [
                 {
-                  id: cart.product.id,
+                  id,
                 },
                 {
                   stock: { not: 0 },
@@ -217,10 +222,10 @@ export async function updateStatus(
             data: { stock: { decrement: cart.quantity } },
           })
         );
-      } else {
+      } else if (Stock) {
         const stockValueIds = Stock.flatMap((sk) =>
-          sk.Stockvalue.map((sv) => sv.id)
-        );
+          sk.Stockvalue.filter((i) => i.id).map((sv) => sv.id)
+        ) as Array<number>;
         stockUpdates.push(
           Prisma.stockvalue.updateMany({
             where: {
@@ -243,7 +248,11 @@ export async function updateStatus(
       ...stockUpdates,
       Prisma.products.updateMany({
         where: {
-          id: { in: order.Orderproduct.map((i) => i.productId) },
+          id: {
+            in: order.Orderproduct.filter((i) => i.productId).map(
+              (i) => i.productId
+            ) as number[],
+          },
         },
         data: { amount_sold: { increment: 1 } },
       }),
@@ -262,21 +271,21 @@ export async function updateStatus(
     const htmltemplate = OrderReciptEmail(html);
 
     const createInvoice = await generateInvoicePdf({
-      id: order.id,
-      product: order.Orderproduct.map((prob) => ({
-        id: prob.product.id,
-        name: prob.product.name,
+      id: order.id as string,
+      product: order.Orderproduct.filter((i) => i.product).map((prob) => ({
+        id: prob.product?.id as number,
+        name: prob.product?.name as string,
         price: prob.price,
-        selectedVariant: prob.selectedvariant.map((i) =>
+        selectedVariant: prob.selectedvariant?.map((i) =>
           typeof i === "string" ? i : i?.name ?? ""
-        ),
+        ) as never,
         quantity: prob.quantity,
         totalprice:
           prob.quantity * (prob.price.discount?.newprice ?? prob.price.price),
       })),
       price: order.price as unknown as totalpricetype,
       shipping: order.shipping as any,
-      createdAt: formatDate(order.createdAt),
+      createdAt: formatDate(order.createdAt as Date),
     });
 
     await Promise.all([

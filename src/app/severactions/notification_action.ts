@@ -1,11 +1,9 @@
 "use server";
 
-import {
-  ActionReturnType,
-  NotificationType,
-} from "@/src/context/GlobalContext";
 import { getUser } from "@/src/lib/session";
 import Prisma from "@/src/lib/prisma";
+import { NotificationType } from "@/src/types/user.type";
+import { ActionReturnType } from "@/src/types/global.type";
 
 export const SaveNotification = async (
   data: NotificationType

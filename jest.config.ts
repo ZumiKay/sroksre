@@ -14,11 +14,20 @@ const config: Config = {
   transform: {
     "^.+\\.tsx?$": "ts-jest",
   },
+  transformIgnorePatterns: ["node_modules/(?!(jose)/)"],
   moduleNameMapper: {
-    "^@/(.*)$": "<rootDir>/src/$1",
+    "^jose$": "<rootDir>/node_modules/jose/dist/node/cjs/index.js",
+    "^@/(.*)$": "<rootDir>/$1",
+    "\\.mjs$": "<rootDir>/jest.setup.ts", // Mock all .mjs files
   },
+  collectCoverageFrom: [
+    "src/lib/**/*.ts",
+    "src/app/**/action*.ts",
+    "!src/**/*.d.ts",
+    "!src/**/types.ts",
+  ],
   testPathIgnorePatterns: ["<rootDir>/.next/", "<rootDir>/node_modules/"],
-  moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json", "node"],
+  moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json", "node", "mjs"],
 };
 
 // createJestConfig is exported this way to ensure that next/jest can load the Next.js config which is async

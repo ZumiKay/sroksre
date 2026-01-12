@@ -1,4 +1,4 @@
-import { Orderpricetype } from "@/src/context/OrderContext";
+import { Orderpricetype } from "@/src/types/order.type";
 import {
   Banner,
   CategoryContainer,

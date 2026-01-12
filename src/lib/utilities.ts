@@ -1,13 +1,13 @@
 import { deleteObject, ref } from "firebase/storage";
 import { storage } from "./firebase";
-import { ProductState } from "../context/GlobalContext";
-import { Orderpricetype, Productordertype } from "../context/OrderContext";
+import { Orderpricetype, Productordertype } from "../types/order.type";
 import {
   CipherKey,
   createCipheriv,
   createDecipheriv,
   randomBytes,
 } from "crypto";
+import { ProductState } from "../types/product.type";
 
 export const AllorderType = {
   orderdetail: "orderdetail",

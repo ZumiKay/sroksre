@@ -2,16 +2,13 @@
 
 import Prisma from "@/src/lib/prisma";
 import {
-  caculateArrayPagination,
-  calculatePagination,
   OrderReciptEmail,
   removeSpaceAndToLowerCase,
 } from "@/src/lib/utilities";
 import { revalidatePath } from "next/cache";
-import { totalpricetype } from "@/src/context/OrderContext";
+import { totalpricetype } from "@/src/types/order.type";
 import { SendOrderEmail } from "../../checkout/action";
 import { Filterdatatype } from "./OrderComponent";
-import dayjs from "dayjs";
 import { getCheckoutdata } from "../../checkout/page";
 import { Orderproduct, Orders } from "@prisma/client";
 
@@ -27,7 +24,7 @@ export const GetOrder = async (
   type?: string,
   page?: number,
   limit?: number,
-  userid?: number
+  userid?: string
 ): Promise<{ data: Orders | Array<Orderproduct>; total?: number } | null> => {
   if (id && type) {
     if (type === AllorderType.orderdetail) {
@@ -92,7 +89,7 @@ export const GetOrder = async (
     return null;
   }
 
-  return { order, total };
+  return { data: order, total };
 };
 
 interface filtertype {
@@ -258,34 +255,6 @@ export const deleteOrder = async (id: string): Promise<Returntype> => {
     console.log("Error Delete Order", error);
     return { success: false, message: "Error occured" };
   }
-};
-
-const isInDateRange = (
-  createdAt: Date,
-  fromdate?: string,
-  todate?: string
-): boolean => {
-  if (fromdate && todate) {
-    return (
-      (dayjs(createdAt).isAfter(dayjs(fromdate)) &&
-        dayjs(createdAt).isBefore(dayjs(todate))) ||
-      dayjs(createdAt).isSame(dayjs(fromdate)) ||
-      dayjs(createdAt).isSame(dayjs(todate))
-    );
-  } else if (fromdate) {
-    // Only fromdate is provided, check if createdAt is after or on the fromdate
-    return (
-      dayjs(createdAt).isAfter(dayjs(fromdate)) ||
-      dayjs(createdAt).isSame(dayjs(fromdate))
-    );
-  } else if (todate) {
-    return (
-      dayjs(createdAt).isBefore(dayjs(todate)) ||
-      dayjs(createdAt).isSame(dayjs(todate))
-    );
-  }
-
-  return false;
 };
 
 export const ExportOrderData = async (filterdata: Filterdatatype) => {

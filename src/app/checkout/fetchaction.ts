@@ -1,23 +1,18 @@
 "use server";
 
 import {
-  ProductState,
-  VariantColorValueType,
-} from "@/src/context/GlobalContext";
-import {
   Ordertype,
   Productorderdetailtype,
   Productordertype,
-} from "@/src/context/OrderContext";
+} from "@/src/types/order.type";
 import Prisma from "@/src/lib/prisma";
 import { calculateDiscountProductPrice } from "@/src/lib/utilities";
-
-interface CheckoutReturnType extends Ordertype {}
+import { ProductState, VariantColorValueType } from "@/src/types/product.type";
 
 export const getCheckoutdata = async (
   orderid?: string,
   userid?: number
-): Promise<CheckoutReturnType | null> => {
+): Promise<Ordertype | null> => {
   const result = (await Prisma.orders.findFirst({
     where: userid ? { user: { id: userid } } : { id: orderid },
     include: {

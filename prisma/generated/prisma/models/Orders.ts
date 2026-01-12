@@ -27,18 +27,16 @@ export type AggregateOrders = {
 }
 
 export type OrdersAvgAggregateOutputType = {
-  buyer_id: number | null
   shipping_id: number | null
 }
 
 export type OrdersSumAggregateOutputType = {
-  buyer_id: number | null
   shipping_id: number | null
 }
 
 export type OrdersMinAggregateOutputType = {
   id: string | null
-  buyer_id: number | null
+  buyer_id: string | null
   status: string | null
   estimate: Date | null
   shippingtype: string | null
@@ -49,7 +47,7 @@ export type OrdersMinAggregateOutputType = {
 
 export type OrdersMaxAggregateOutputType = {
   id: string | null
-  buyer_id: number | null
+  buyer_id: string | null
   status: string | null
   estimate: Date | null
   shippingtype: string | null
@@ -73,12 +71,10 @@ export type OrdersCountAggregateOutputType = {
 
 
 export type OrdersAvgAggregateInputType = {
-  buyer_id?: true
   shipping_id?: true
 }
 
 export type OrdersSumAggregateInputType = {
-  buyer_id?: true
   shipping_id?: true
 }
 
@@ -205,7 +201,7 @@ export type OrdersGroupByArgs<ExtArgs extends runtime.Types.Extensions.InternalA
 
 export type OrdersGroupByOutputType = {
   id: string
-  buyer_id: number
+  buyer_id: string
   status: string
   estimate: Date | null
   price: runtime.JsonValue
@@ -240,7 +236,7 @@ export type OrdersWhereInput = {
   OR?: Prisma.OrdersWhereInput[]
   NOT?: Prisma.OrdersWhereInput | Prisma.OrdersWhereInput[]
   id?: Prisma.StringFilter<"Orders"> | string
-  buyer_id?: Prisma.IntFilter<"Orders"> | number
+  buyer_id?: Prisma.StringFilter<"Orders"> | string
   status?: Prisma.StringFilter<"Orders"> | string
   estimate?: Prisma.DateTimeNullableFilter<"Orders"> | Date | string | null
   price?: Prisma.JsonFilter<"Orders">
@@ -273,7 +269,7 @@ export type OrdersWhereUniqueInput = Prisma.AtLeast<{
   AND?: Prisma.OrdersWhereInput | Prisma.OrdersWhereInput[]
   OR?: Prisma.OrdersWhereInput[]
   NOT?: Prisma.OrdersWhereInput | Prisma.OrdersWhereInput[]
-  buyer_id?: Prisma.IntFilter<"Orders"> | number
+  buyer_id?: Prisma.StringFilter<"Orders"> | string
   status?: Prisma.StringFilter<"Orders"> | string
   estimate?: Prisma.DateTimeNullableFilter<"Orders"> | Date | string | null
   price?: Prisma.JsonFilter<"Orders">
@@ -308,7 +304,7 @@ export type OrdersScalarWhereWithAggregatesInput = {
   OR?: Prisma.OrdersScalarWhereWithAggregatesInput[]
   NOT?: Prisma.OrdersScalarWhereWithAggregatesInput | Prisma.OrdersScalarWhereWithAggregatesInput[]
   id?: Prisma.StringWithAggregatesFilter<"Orders"> | string
-  buyer_id?: Prisma.IntWithAggregatesFilter<"Orders"> | number
+  buyer_id?: Prisma.StringWithAggregatesFilter<"Orders"> | string
   status?: Prisma.StringWithAggregatesFilter<"Orders"> | string
   estimate?: Prisma.DateTimeNullableWithAggregatesFilter<"Orders"> | Date | string | null
   price?: Prisma.JsonWithAggregatesFilter<"Orders">
@@ -333,7 +329,7 @@ export type OrdersCreateInput = {
 
 export type OrdersUncheckedCreateInput = {
   id: string
-  buyer_id: number
+  buyer_id: string
   status: string
   estimate?: Date | string | null
   price: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -359,7 +355,7 @@ export type OrdersUpdateInput = {
 
 export type OrdersUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  buyer_id?: Prisma.IntFieldUpdateOperationsInput | number
+  buyer_id?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.StringFieldUpdateOperationsInput | string
   estimate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   price?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -372,7 +368,7 @@ export type OrdersUncheckedUpdateInput = {
 
 export type OrdersCreateManyInput = {
   id: string
-  buyer_id: number
+  buyer_id: string
   status: string
   estimate?: Date | string | null
   price: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -394,7 +390,7 @@ export type OrdersUpdateManyMutationInput = {
 
 export type OrdersUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  buyer_id?: Prisma.IntFieldUpdateOperationsInput | number
+  buyer_id?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.StringFieldUpdateOperationsInput | string
   estimate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   price?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -427,7 +423,6 @@ export type OrdersCountOrderByAggregateInput = {
 }
 
 export type OrdersAvgOrderByAggregateInput = {
-  buyer_id?: Prisma.SortOrder
   shipping_id?: Prisma.SortOrder
 }
 
@@ -454,7 +449,6 @@ export type OrdersMinOrderByAggregateInput = {
 }
 
 export type OrdersSumOrderByAggregateInput = {
-  buyer_id?: Prisma.SortOrder
   shipping_id?: Prisma.SortOrder
 }
 
@@ -622,7 +616,7 @@ export type OrdersScalarWhereInput = {
   OR?: Prisma.OrdersScalarWhereInput[]
   NOT?: Prisma.OrdersScalarWhereInput | Prisma.OrdersScalarWhereInput[]
   id?: Prisma.StringFilter<"Orders"> | string
-  buyer_id?: Prisma.IntFilter<"Orders"> | number
+  buyer_id?: Prisma.StringFilter<"Orders"> | string
   status?: Prisma.StringFilter<"Orders"> | string
   estimate?: Prisma.DateTimeNullableFilter<"Orders"> | Date | string | null
   price?: Prisma.JsonFilter<"Orders">
@@ -646,7 +640,7 @@ export type OrdersCreateWithoutShippingInput = {
 
 export type OrdersUncheckedCreateWithoutShippingInput = {
   id: string
-  buyer_id: number
+  buyer_id: string
   status: string
   estimate?: Date | string | null
   price: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -696,7 +690,7 @@ export type OrdersCreateWithoutOrderproductInput = {
 
 export type OrdersUncheckedCreateWithoutOrderproductInput = {
   id: string
-  buyer_id: number
+  buyer_id: string
   status: string
   estimate?: Date | string | null
   price: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -736,7 +730,7 @@ export type OrdersUpdateWithoutOrderproductInput = {
 
 export type OrdersUncheckedUpdateWithoutOrderproductInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  buyer_id?: Prisma.IntFieldUpdateOperationsInput | number
+  buyer_id?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.StringFieldUpdateOperationsInput | string
   estimate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   price?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -794,7 +788,7 @@ export type OrdersUncheckedUpdateManyWithoutUserInput = {
 
 export type OrdersCreateManyShippingInput = {
   id: string
-  buyer_id: number
+  buyer_id: string
   status: string
   estimate?: Date | string | null
   price: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -817,7 +811,7 @@ export type OrdersUpdateWithoutShippingInput = {
 
 export type OrdersUncheckedUpdateWithoutShippingInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  buyer_id?: Prisma.IntFieldUpdateOperationsInput | number
+  buyer_id?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.StringFieldUpdateOperationsInput | string
   estimate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   price?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -829,7 +823,7 @@ export type OrdersUncheckedUpdateWithoutShippingInput = {
 
 export type OrdersUncheckedUpdateManyWithoutShippingInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
-  buyer_id?: Prisma.IntFieldUpdateOperationsInput | number
+  buyer_id?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.StringFieldUpdateOperationsInput | string
   estimate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   price?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -950,7 +944,7 @@ export type $OrdersPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
-    buyer_id: number
+    buyer_id: string
     status: string
     estimate: Date | null
     price: runtime.JsonValue
@@ -1385,7 +1379,7 @@ export interface Prisma__OrdersClient<T, Null = never, ExtArgs extends runtime.T
  */
 export interface OrdersFieldRefs {
   readonly id: Prisma.FieldRef<"Orders", 'String'>
-  readonly buyer_id: Prisma.FieldRef<"Orders", 'Int'>
+  readonly buyer_id: Prisma.FieldRef<"Orders", 'String'>
   readonly status: Prisma.FieldRef<"Orders", 'String'>
   readonly estimate: Prisma.FieldRef<"Orders", 'DateTime'>
   readonly price: Prisma.FieldRef<"Orders", 'Json'>

@@ -1,23 +1,22 @@
-import { Role, hashedpassword } from "./userlib";
-
-import {
-  ProductInfo,
-  ProductState,
-  Stocktype,
-  SubcategoriesState,
-  VariantColorValueType,
-  Varianttype,
-  userdata,
-} from "../context/GlobalContext";
+import Prisma from "./prisma";
+import { hashedpassword } from "./userlib";
+import { SubcategoriesState } from "../context/GlobalContext";
 import {
   DeleteImageFromStorage,
   caculateArrayPagination,
   removeSpaceAndToLowerCase,
 } from "./utilities";
-
-import Prisma from "./prisma";
 import { Categorytype } from "../app/api/categories/route";
 import { DeleteImageTempForCurrentUser } from "../app/api/products/cover/helper/Cleanup";
+import {
+  ProductInfo,
+  ProductState,
+  Stocktype,
+  VariantColorValueType,
+  Varianttype,
+} from "../types/product.type";
+import { Role } from "@/prisma/generated/prisma/enums";
+import { userdata } from "../types/user.type";
 
 //
 //
@@ -520,8 +519,6 @@ const updateProductVariantStock = async (
       ...createPromises,
       ...deleteStockValuePromises,
     ]);
-
-    // Delete stocks that are no longer present
 
     return true;
   } catch (error) {

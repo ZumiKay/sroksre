@@ -8,15 +8,17 @@ interface returntype {
   message?: string;
 }
 
+export interface ParagraphType {
+  id?: number;
+  title?: string;
+  content: string;
+}
+
 export interface Addpolicytype {
   id?: number;
   title: string;
   showtype?: string[];
-  Paragraph: {
-    id?: number;
-    title?: string;
-    content: string;
-  }[];
+  Paragraph: Array<ParagraphType>;
 }
 
 export interface Addquestiontype {

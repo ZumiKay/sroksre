@@ -2,7 +2,7 @@ import {
   Allstatus,
   Productorderdetailtype,
   Productordertype,
-} from "@/src/context/OrderContext";
+} from "@/src/types/order.type";
 import { getUser } from "@/src/lib/session";
 import Prisma from "@/src/lib/prisma";
 import { NextRequest } from "next/server";

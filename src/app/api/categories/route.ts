@@ -37,6 +37,13 @@ export const calculatePopularityScore = (data: {
   );
 };
 
+/**Create Auto Category
+ *
+ * Auto Categories:
+ *  - Latest
+ *  - List promotions under sale categories
+ */
+
 const CreateAutoCategory = async (data: Categorydata) => {
   if (!data.type) {
     return { success: false };

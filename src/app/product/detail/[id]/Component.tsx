@@ -4,19 +4,15 @@ import PrimaryButton, {
   SelectContainer,
   Selection,
 } from "@/src/app/component/Button";
-
 import {
   Productdetailinitialize,
-  ProductState,
   ProductStockType,
-  Stocktype,
   useGlobalContext,
-  VariantColorValueType,
 } from "@/src/context/GlobalContext";
 import {
   Productorderdetailtype,
   Productordertype,
-} from "@/src/context/OrderContext";
+} from "@/src/types/order.type";
 import React, {
   useEffect,
   useState,
@@ -29,6 +25,11 @@ import { errorToast, successToast } from "@/src/app/component/Loading";
 import { ApiRequest } from "@/src/context/CustomHook";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Skeleton } from "@nextui-org/react";
+import {
+  ProductState,
+  Stocktype,
+  VariantColorValueType,
+} from "@/src/types/product.type";
 
 export const ShowPrice = React.memo(
   ({ price, discount }: Pick<ProductState, "price" | "discount">) => {

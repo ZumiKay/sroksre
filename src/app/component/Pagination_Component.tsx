@@ -10,8 +10,8 @@ import {
   SelectItem,
 } from "@nextui-org/react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { SelectType } from "@/src/context/GlobalContext";
 import { IsNumber } from "@/src/lib/utilities";
+import { SelectType } from "@/src/types/productAction.type";
 
 interface PaginationCustomProps {
   page?: number;

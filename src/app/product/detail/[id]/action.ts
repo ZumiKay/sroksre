@@ -1,17 +1,17 @@
 "use server";
 
-import { ProductState } from "@/src/context/GlobalContext";
 import {
   Allstatus,
   Productorderdetailtype,
   Productordertype,
   totalpricetype,
-} from "@/src/context/OrderContext";
+} from "@/src/types/order.type";
 import { getUser } from "@/src/lib/session";
 import Prisma from "@/src/lib/prisma";
 import { calculateDiscountProductPrice } from "@/src/lib/utilities";
 
 import { revalidatePath } from "next/cache";
+import { ProductState } from "@/src/types/product.type";
 
 interface returntype {
   success: boolean;

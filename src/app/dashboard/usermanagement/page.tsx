@@ -1,5 +1,5 @@
 "use client";
-import { useGlobalContext, UserState } from "@/src/context/GlobalContext";
+import { useGlobalContext } from "@/src/context/GlobalContext";
 import PrimaryButton from "../../component/Button";
 import { ApiRequest, Delayloading } from "@/src/context/CustomHook";
 import {
@@ -12,6 +12,7 @@ import { FilterMenu } from "../../component/SideMenu";
 import { Createusermodal } from "../../component/Modals/User";
 import { useRouter, useSearchParams } from "next/navigation";
 import PaginationCustom from "../../component/Pagination_Component";
+import { UserState } from "@/src/types/user.type";
 
 interface usermangementFilterType {
   search?: string;

@@ -5,7 +5,7 @@ import { CloseVector, Search_Icon } from "../Asset";
 import { ProductCard } from "../HomePage/Component";
 import { useGlobalContext } from "@/src/context/GlobalContext";
 import { motion } from "framer-motion";
-import { Orderpricetype } from "@/src/context/OrderContext";
+import { Orderpricetype } from "@/src/types/order.type";
 import { useState } from "react";
 import { ApiRequest, Delayloading } from "@/src/context/CustomHook";
 import { errorToast, LoadingText } from "../Loading";

@@ -1,6 +1,5 @@
 "use client";
 
-import { VariantColorValueType } from "@/src/context/GlobalContext";
 import { Chip, Select, SelectedItems, SelectItem } from "@nextui-org/react";
 import React, { ReactNode, useEffect } from "react";
 

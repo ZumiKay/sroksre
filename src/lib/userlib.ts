@@ -5,12 +5,8 @@ import { userdata } from "../app/account/actions";
 
 import { checkpassword, getOneWeekFromToday } from "./utilities";
 import Prisma from "./prisma";
+import { Role } from "@/prisma/generated/prisma/enums";
 
-export enum Role {
-  USER = "USER",
-  ADMIN = "ADMIN",
-  EDITOR = "EDITOR",
-}
 export interface RegisterUser {
   id?: number;
   oauthId?: string;
@@ -20,9 +16,10 @@ export interface RegisterUser {
   lastname?: string;
   role?: Role;
   type?: string;
-
   phonenumber?: string;
 }
+
+//encode secret
 export const secretkey = new TextEncoder().encode(
   process.env.JWT_SECRET as string
 );
@@ -164,7 +161,6 @@ export const registerUser = async (data: RegisterUser): Promise<ReturnType> => {
       return { success: false, message: isValid.error };
     }
   } catch (error: any) {
-    console.log("Register", error);
     if (error.issues) {
       return { success: false, message: error.issues[0].message };
     }
@@ -187,7 +183,7 @@ export const handleCheckandRegisterUser = async ({
         success: true,
         data: {
           id: existingUser.id,
-          role: "USER",
+          role: Role.USER,
           email: existingUser.email,
         },
       };
@@ -211,7 +207,7 @@ export const handleCheckandRegisterUser = async ({
       message: "User created successfully",
       data: {
         id: createdUser.id,
-        role: "USER",
+        role: Role.USER,
         email: createdUser.email,
       },
     };

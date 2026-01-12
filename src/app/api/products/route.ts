@@ -213,7 +213,8 @@ export async function GET(request: NextRequest) {
             })
           : [];
 
-      const result: any = {
+      //Prepare data for get request
+      const result = {
         ...product,
         discount: product.promotion_id
           ? product.discount
@@ -227,14 +228,11 @@ export async function GET(request: NextRequest) {
           parent_id: product.parentcategory_id,
           child_id: product.childcategory_id,
         },
-        variants: product.Variant,
-        varaintstock: convertStockData(product.Stock as Stocktype[]),
+        Stock: convertStockData(product.Stock as Stocktype[]),
         relatedproduct: otherProduct.filter((i) => i.id !== product.id),
         // Remove properties that are no longer needed
         parentcategory_id: undefined,
         childcategory_id: undefined,
-        Variant: undefined,
-        Stock: undefined,
       };
 
       return Response.json({ data: result }, { status: 200 });
@@ -273,8 +271,8 @@ export async function GET(request: NextRequest) {
       response = Response.json(
         {
           data: {
-            varaintstock: convertStockData(stock as unknown as Stocktype[]),
-            variants: variant,
+            Stock: convertStockData(stock as unknown as Stocktype[]),
+            Variant: variant,
           },
         },
         { status: 200 }

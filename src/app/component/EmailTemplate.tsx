@@ -3,8 +3,8 @@ import {
   Ordertype,
   Productordertype,
   totalpricetype,
-} from "@/src/context/OrderContext";
-import { VariantColorValueType } from "@/src/context/GlobalContext";
+} from "@/src/types/order.type";
+import { VariantColorValueType } from "@/src/types/product.type";
 
 interface OerderEmailProps {
   order: Ordertype;

@@ -2,11 +2,7 @@
 
 import { ChangeEvent, useEffect, useState } from "react";
 import PrimaryButton, { Selection } from "../component/Button";
-import {
-  ProductState,
-  useGlobalContext,
-  VariantColorValueType,
-} from "@/src/context/GlobalContext";
+import { useGlobalContext } from "@/src/context/GlobalContext";
 import { SecondaryModal } from "../component/Modals";
 import { useRouter, useSearchParams } from "next/navigation";
 import { filtervaluetype, getFilterValue } from "./action";
@@ -16,6 +12,8 @@ import Card from "../component/Card";
 import { Input, Spacer } from "@nextui-org/react";
 import { ApiRequest, useEffectOnce } from "@/src/context/CustomHook";
 import { NormalSkeleton } from "../component/Banner";
+import { ProductState, VariantColorValueType } from "@/src/types/product.type";
+import { Orderpricetype } from "@/src/types/order.type";
 
 export const ProductFilterButton = ({
   pid,
@@ -478,7 +476,7 @@ export const PromotionProductListContainer = ({
             name={prod.name}
             price={prod.price.toFixed(2)}
             img={prod.covers}
-            discount={prod.discount}
+            discount={prod.discount as Orderpricetype}
           />
         ))}
       </div>

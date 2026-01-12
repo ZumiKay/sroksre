@@ -15,16 +15,20 @@ import { notFound, redirect } from "next/navigation";
 import Prisma from "@/src/lib/prisma";
 import {
   Allstatus,
+  Orderpricetype,
+  Ordertype,
   Productorderdetailtype,
+  Productordertype,
+  ShippingTypeEnum,
   totalpricetype,
-} from "@/src/context/OrderContext";
+} from "@/src/types/order.type";
 import { calculateDiscountProductPrice, decrypt } from "@/src/lib/utilities";
-import { checkOrder, OrderUserType } from "./action";
+import { checkOrder } from "./action";
 import { SuccessVector } from "../component/Asset";
-import { VariantColorValueType } from "@/src/context/GlobalContext";
 import { getPolicesByPage } from "../api/policy/route";
 import Link from "next/link";
 import { Metadata } from "next";
+import { VariantColorValueType } from "@/src/types/product.type";
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
@@ -86,9 +90,12 @@ export default async function Checkoutpage({
 
 //Component
 
-export const getCheckoutdata = async (orderid?: string, userid?: number) => {
+export const getCheckoutdata = async (
+  orderid?: string,
+  userid?: string
+): Promise<Ordertype | null> => {
   const result = await Prisma.orders.findFirst({
-    where: userid ? { user: { id: userid } } : { id: orderid },
+    where: userid ? { user: { buyer_id: userid } } : { id: orderid },
     include: {
       user: {
         select: { id: true, firstname: true, lastname: true, email: true },
@@ -118,41 +125,49 @@ export const getCheckoutdata = async (orderid?: string, userid?: number) => {
 
   if (!result) return null;
 
-  const updatedOrderProducts = result.Orderproduct.map((orderProduct) => {
-    {
-      const detail = orderProduct.details as Productorderdetailtype[];
-      const selectedVariantDetails = orderProduct.product.Variant.map(
-        (variant, idx) => {
-          const detailValue = detail[idx].value;
-          const optionValues = variant.option_value as (
-            | string
-            | VariantColorValueType
-          )[];
+  const updatedOrderProducts: Array<Productordertype> = result.Orderproduct.map(
+    (orderProduct) => {
+      {
+        const detail = orderProduct.details as Productorderdetailtype[];
+        const selectedVariantDetails = orderProduct.product.Variant.map(
+          (variant, idx) => {
+            const detailValue = detail[idx].value;
+            const optionValues = variant.option_value as (
+              | string
+              | VariantColorValueType
+            )[];
 
-          return optionValues.find((val) =>
-            typeof val === "string"
-              ? val === detailValue
-              : val.val === detailValue
-          );
-        }
-      ).filter(Boolean);
+            return optionValues.find((val) =>
+              typeof val === "string"
+                ? val === detailValue
+                : val.val === detailValue
+            );
+          }
+        ).filter(Boolean);
 
-      return {
-        ...orderProduct,
-        selectedvariant: selectedVariantDetails,
-        price: calculateDiscountProductPrice({
-          price: orderProduct.product.price,
-          discount: orderProduct.product.discount ?? undefined,
-        }),
-        product: {
-          ...orderProduct.product,
-        },
-      };
+        return {
+          ...orderProduct,
+
+          selectedvariant: selectedVariantDetails,
+          price: calculateDiscountProductPrice({
+            price: orderProduct.product.price,
+            discount: orderProduct.product.discount ?? undefined,
+          }),
+          product: {
+            ...orderProduct.product,
+          },
+        } as unknown as Productordertype; //Ignore JSONValue type
+      }
     }
-  });
+  );
 
   return {
     ...result,
+    shippingtype: result.shippingtype as ShippingTypeEnum,
+    estimate: result.estimate ?? undefined,
+    price: result.price as unknown as totalpricetype,
+    status: result.status as Allstatus,
+    shipping_id: result.shipping_id ?? undefined,
     Orderproduct: updatedOrderProducts,
   };
 };
@@ -182,7 +197,7 @@ const OrderSummary = async ({ orderId }: { orderId: string }) => {
           const price = order.price;
           const total =
             order.quantity * (price.discount?.newprice ?? price.price);
-          return (
+          return order.product ? (
             <Checkoutproductcard
               key={order.id}
               qty={order.quantity}
@@ -192,6 +207,8 @@ const OrderSummary = async ({ orderId }: { orderId: string }) => {
               name={order.product.name}
               details={order.selectedvariant as any}
             />
+          ) : (
+            <></>
           );
         })}
       </div>
@@ -255,7 +272,7 @@ const PaymentDetail = async ({
           <div className="paypal_button w-[80%] h-fit relative">
             <Paypalbutton
               encripyid={encryptedId}
-              order={order}
+              order={order as Ordertype}
               orderId={orderId}
             />
           </div>

@@ -7,11 +7,7 @@ import {
 } from "./OrderComponent";
 import { MultipleSelect } from "../../component/Button";
 import { getFilterOrder, GetOrder } from "./action";
-import {
-  Ordertype,
-  Productordertype,
-  totalpricetype,
-} from "@/src/context/OrderContext";
+import { Productordertype, totalpricetype } from "@/src/types/order.type";
 import { getUser } from "@/src/lib/session";
 import { notFound, redirect } from "next/navigation";
 import {
@@ -23,10 +19,7 @@ import { OrderUserType } from "../../checkout/action";
 import { getCheckoutdata } from "../../checkout/page";
 import React, { Suspense, cache } from "react";
 import type { Metadata } from "next";
-import { userdata } from "@/src/context/GlobalContext";
-import { Orderproduct, Orders } from "@prisma/client";
 
-// Generate metadata for SEO
 export const metadata: Metadata = {
   title: "Order Management | SrokSre Dashboard",
   description: "Manage and track all orders in your system",
@@ -113,9 +106,7 @@ export default async function OrderManagement({
         : Promise.resolve({ data: [], total: 0 }),
     ]);
 
-    const orders = (
-      isFilter || selectedStatus ? filterResult.data : ordersResult?.order
-    ) as AllorderStatus[] | undefined;
+    const orders = ordersResult?.data as AllorderStatus[] | undefined;
 
     const totalOrders =
       isFilter || selectedStatus

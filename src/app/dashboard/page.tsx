@@ -4,11 +4,7 @@ import { useEffect, useState } from "react";
 import PrimaryButton from "../component/Button";
 import { ToggleDownMenu } from "../component/ToggleMenu";
 import Card from "../component/Card";
-import {
-  ProductState,
-  Userdatastate,
-  useGlobalContext,
-} from "@/src/context/GlobalContext";
+import { useGlobalContext } from "@/src/context/GlobalContext";
 import {
   ApiRequest,
   Delayloading,
@@ -18,6 +14,9 @@ import { ContainerLoading } from "../component/Loading";
 import { EditProfile } from "../component/Modals/User";
 import { signOut } from "next-auth/react";
 import React from "react";
+import { Userdatastate } from "@/src/types/user.type";
+import { ProductState } from "@/src/types/product.type";
+import { Orderpricetype } from "@/src/types/order.type";
 
 interface userdata extends Userdatastate {
   open: {
@@ -281,7 +280,7 @@ export default function UserDashboard() {
                           id={prod.id}
                           name={prod.name}
                           price={prod.price.toFixed(2)}
-                          discount={prod.discount}
+                          discount={prod.discount as Orderpricetype}
                           img={prod.covers}
                         />
                       ))}

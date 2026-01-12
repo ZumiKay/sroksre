@@ -5,18 +5,13 @@ import "../globals.css";
 import { useRef, useState } from "react";
 
 import { PrimaryPhoto } from "./PhotoComponent";
-import {
-  PromotionState,
-  VariantColorValueType,
-  productcoverstype,
-  useGlobalContext,
-} from "@/src/context/GlobalContext";
+import { useGlobalContext } from "@/src/context/GlobalContext";
 import Checkmark from "../../../public/Image/Checkmark.svg";
 import { SubInventoryMenu } from "./Navbar";
 import { errorToast } from "./Loading";
 import { useRouter } from "next/navigation";
 
-import { Orderpricetype, totalpricetype } from "@/src/context/OrderContext";
+import { Orderpricetype, totalpricetype } from "@/src/types/order.type";
 import { Variantcontainer } from "./Modals/VariantModal";
 
 import { Chip, Skeleton } from "@nextui-org/react";
@@ -26,6 +21,11 @@ import {
   useScreenSize,
 } from "@/src/context/CustomHook";
 import { SelectionCustom } from "./Pagination_Component";
+import {
+  productcoverstype,
+  VariantColorValueType,
+} from "@/src/types/product.type";
+import { PromotionState } from "@/src/types/productAction.type";
 
 interface cardprops {
   name: string;
@@ -36,10 +36,7 @@ interface cardprops {
   index?: number;
   hover?: boolean;
   id?: number;
-  discount?: {
-    percent: number;
-    newprice: string;
-  };
+  discount?: Orderpricetype;
   stock?: number;
   lowstock?: boolean;
   stocktype?: string;
@@ -173,7 +170,7 @@ export default function Card(props: cardprops) {
 
   //Price Condition
 
-  const hasDiscount = props.discount;
+  const hasDiscount = props.discount?.discount;
   const showOriginalPrice = (
     <h4 className="text-sm font-semibold">
       ${parseFloat(props.price).toFixed(2)}
