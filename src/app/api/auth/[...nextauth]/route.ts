@@ -9,6 +9,7 @@ import {
 } from "@/src/lib/userlib";
 import { NextAuthOptions } from "next-auth";
 import { generateRandomPassword } from "@/src/lib/utilities";
+import Prisma from "@/src/lib/prisma";
 
 interface JwtType {
   name: string;
@@ -122,21 +123,58 @@ export const authOptions: NextAuthOptions = {
     async session(params): Promise<any> {
       let { session, token } = params;
 
+      const jwtToken = token as unknown as JwtType;
+
       // Ensure user data from token is added to session
-      if (token && token.email && token.id) {
+      if (
+        session &&
+        jwtToken &&
+        jwtToken.email &&
+        jwtToken?.id &&
+        jwtToken?.session_id
+      ) {
+        // Verify session exists in database (but don't return null to avoid infinite loop)
+        try {
+          const dbSession = await Prisma.usersession.findUnique({
+            where: {
+              session_id: jwtToken.session_id,
+            },
+          });
+
+          // If session doesn't exist or is expired, set user to null but still return session
+          // This prevents infinite loops while still invalidating the session
+          if (!dbSession || dbSession.expireAt < new Date()) {
+            console.log("Session invalid or expired:", {
+              exists: !!dbSession,
+              expired: dbSession ? dbSession.expireAt < new Date() : null,
+              session_id: jwtToken.session_id,
+            });
+
+            // Return session with null user to trigger client-side logout
+            return {
+              ...session,
+              user: null,
+              expires: new Date(0).toISOString(), // Set to expired
+            };
+          }
+        } catch (error) {
+          console.error("Error verifying session:", error);
+          // On error, allow session to continue to prevent infinite loops
+        }
+
+        // Session is valid, populate user data
         (session.user as any) = {
-          email: token.email,
-          name: token.name,
-          session_id: token.session_id || "",
-          role: token.role || "USER",
-          id: token.id,
-          sub: token.id,
+          email: jwtToken.email,
+          name: jwtToken.name,
+          session_id: jwtToken.session_id || "",
+          role: jwtToken.role || "USER",
+          id: jwtToken.id,
         };
       } else {
         console.warn("Session callback: Invalid or incomplete token", {
-          hasToken: !!token,
-          hasEmail: !!token?.email,
-          hasId: !!token?.id,
+          hasToken: !!jwtToken,
+          hasEmail: !!jwtToken?.email,
+          hasId: !!jwtToken?.id,
         });
       }
 

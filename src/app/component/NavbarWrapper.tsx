@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import Navbar from "./Navbar";
 import { ApiRequest } from "@/src/context/CustomHook";
-import { Usersessiontype } from "@/src/context/GlobalContext";
+import { Usersessiontype } from "@/src/types/user.type";
 
 export default function NavbarWrapper() {
   const { data: session, status } = useSession();
@@ -45,7 +45,7 @@ export default function NavbarWrapper() {
     };
 
     fetchInitialData();
-  }, [userSession?.id, userSession?.role, status]);
+  }, []);
 
   return (
     <Navbar

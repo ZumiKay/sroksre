@@ -17,28 +17,22 @@ import {
   useState,
 } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import AccountMenu, { CartMenu } from "./SideMenu";
+import { AccountMenu, CartMenu } from "./SideMenu";
 import Link from "next/link";
 import {
   BannerInitialize,
   CateogoryState,
-  NotificationType,
   Productinitailizestate,
   PromotionInitialize,
   Sessiontype,
   useGlobalContext,
-  Usersessiontype,
 } from "@/src/context/GlobalContext";
 import { ApiRequest, useScreenSize } from "@/src/context/CustomHook";
-import { errorToast, infoToast } from "./Loading";
+import { errorToast } from "./Loading";
 import { useDataRefresh } from "@/src/hooks/useDataRefresh";
-
 import { CheckedNotification } from "../severactions/notification_action";
 import { Box, CircularProgress } from "@mui/material";
 import CookieConsent from "react-cookie-consent";
-
-import { signOut, useSession } from "next-auth/react";
-import { checkloggedsession } from "../dashboard/action";
 import Homecontainermodal from "./HomePage/Modals";
 import { AnimatePresence } from "framer-motion";
 import SearchContainer from "./Modals/Search";
@@ -52,6 +46,7 @@ import {
 } from "@nextui-org/react";
 import { useSocket } from "@/src/context/SocketContext";
 import React from "react";
+import { NotificationType, Usersessiontype } from "@/src/types/user.type";
 
 export default function Navbar({
   session,

@@ -100,6 +100,7 @@ export interface Sessiontype {
   image?: string;
   role?: "USER" | "ADMIN" | "EDITOR";
   status?: string;
+  session_id?: string;
 }
 
 //Initail State

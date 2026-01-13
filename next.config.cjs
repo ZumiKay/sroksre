@@ -30,6 +30,25 @@ const nextConfig = {
     if (!options.dev) {
       config.devtool = options.isServer ? false : "source-map";
     }
+
+    // Handle node: protocol imports (fixes UnhandledSchemeError for node:crypto)
+    config.resolve = config.resolve || {};
+    config.resolve.fallback = config.resolve.fallback || {};
+    
+    if (!options.isServer) {
+      // For client-side bundles, provide fallbacks for Node.js built-ins
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        crypto: false,
+        stream: false,
+        buffer: false,
+        util: false,
+        fs: false,
+        path: false,
+        os: false,
+      };
+    }
+
     return config;
   },
 };

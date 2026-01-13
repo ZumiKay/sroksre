@@ -2,7 +2,8 @@
 
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/src/app/api/auth/[...nextauth]/route";
-import { Usersessiontype } from "@/src/context/GlobalContext";
+import { Sessiontype } from "@/src/context/GlobalContext";
+import Prisma from "./prisma";
 
 /**
  * Optimized session and data fetching for Next.js 14
@@ -12,14 +13,46 @@ import { Usersessiontype } from "@/src/context/GlobalContext";
  * - Parallel data fetching reduces load time
  * - No client-side waterfalls
  * - Automatic revalidation with Next.js cache
+ * - Database session verification for auto-logout
  */
 
 /**
- * Get authenticated user from session
- * Returns user object or null if not authenticated
- * Uses NextAuth's getServerSession for optimal performance and security
+ * Verify if a session exists and is valid in the database
+ * Returns true if session is valid, false otherwise
  */
-export async function getUser(): Promise<Usersessiontype | null> {
+export async function verifySessionInDB(session_id: string): Promise<boolean> {
+  try {
+    const dbSession = await Prisma.usersession.findUnique({
+      where: { session_id },
+    });
+
+    // Check if session exists and hasn't expired
+    if (!dbSession || dbSession.expireAt < new Date()) {
+      // Clean up expired session if it exists
+      if (dbSession) {
+        await Prisma.usersession
+          .delete({
+            where: { session_id },
+          })
+          .catch(() => {}); // Ignore errors on cleanup
+      }
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error("Error verifying session in DB:", error);
+    return false;
+  }
+}
+
+/**
+ * Get authenticated user from session with DB verification
+ * Returns user object or null if not authenticated or session invalid
+ * Uses NextAuth's getServerSession for optimal performance and security
+ * Verifies session against database on every call for auto-logout capability
+ */
+export async function getUser(): Promise<Sessiontype | null> {
   try {
     const session = await getServerSession(authOptions);
 
@@ -29,7 +62,19 @@ export async function getUser(): Promise<Usersessiontype | null> {
 
     const user = session.user as any;
 
-    return user as Usersessiontype;
+    // Verify session in database
+    if (user.session_id) {
+      const isValid = await verifySessionInDB(user.session_id);
+      if (!isValid) {
+        console.log(
+          "Session invalid in DB, auto-logging out user:",
+          user.email
+        );
+        return null;
+      }
+    }
+
+    return user as Sessiontype;
   } catch (error) {
     console.error("Error fetching user session:", error);
     return null;

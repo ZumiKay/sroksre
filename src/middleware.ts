@@ -1,9 +1,11 @@
-"use server";
-
 import { NextRequest, NextResponse } from "next/server";
 import { VerifyApiRoute, methodtype } from "./lib/middlewareaction";
 import { getToken } from "next-auth/jwt";
 import { Role } from "@/prisma/generated/prisma/enums";
+
+/**
+ * Middleware - runs on Edge Runtime
+ */
 
 export default async function middleware(req: NextRequest) {
   const requestURL = (path: string) => req.nextUrl.pathname.endsWith(path);
@@ -36,7 +38,7 @@ export default async function middleware(req: NextRequest) {
         return NextResponse.next();
       }
     } else {
-      return NextResponse.redirect(new URL("/account", req.url));
+      return NextResponse.rewrite(new URL("/account", req.url));
     }
   }
   if (requestURL("account")) {
