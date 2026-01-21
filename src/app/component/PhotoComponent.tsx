@@ -32,8 +32,13 @@ export const PrimaryPhoto = (props: Primaryphotoprops) => {
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
 
+  // Track loading state for images
+  const [isImageLoading, setIsImageLoading] = useState<boolean>(true);
+
   useEffect(() => {
     setindex({ ...index, end: props.data?.length - 1 });
+    // Reset loading state when data changes
+    setIsImageLoading(true);
   }, [props.data]);
 
   const handleClick = (pos: string) => {
@@ -99,8 +104,16 @@ export const PrimaryPhoto = (props: Primaryphotoprops) => {
           return (
             <div
               key={idx}
-              className="flex-shrink-0 h-full w-full flex items-center justify-center"
+              className="flex-shrink-0 h-full w-full flex items-center justify-center relative"
             >
+              {isImageLoading && (
+                <div className="absolute inset-0 flex items-center justify-center bg-gray-200 rounded">
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-gray-500"></div>
+                    <span className="text-xs text-gray-600">Loading...</span>
+                  </div>
+                </div>
+              )}
               <Image
                 src={obj.url}
                 alt={`${obj.name}`}
@@ -109,6 +122,7 @@ export const PrimaryPhoto = (props: Primaryphotoprops) => {
                 height={550}
                 quality={80}
                 priority={true}
+                onLoadingComplete={() => setIsImageLoading(false)}
               />
             </div>
           );

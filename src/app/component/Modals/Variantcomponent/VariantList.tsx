@@ -1,6 +1,6 @@
 import React from "react";
 import { motion } from "framer-motion";
-import { VariantColorValueType } from "@/src/context/GlobalContext";
+import { VariantColorValueType } from "@/src/types/product.type";
 
 interface Variant {
   option_title: string;

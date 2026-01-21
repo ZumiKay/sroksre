@@ -1,9 +1,9 @@
+"use client";
 import {
   BannerInitialize,
-  SelectType,
   useGlobalContext,
 } from "@/src/context/GlobalContext";
-import { ChangeEvent, useState } from "react";
+import { ChangeEvent, useCallback, useState, useMemo, memo } from "react";
 import {
   getChildCategoryForBanner,
   getParentCategoryForBanner,
@@ -16,13 +16,14 @@ import {
   useScreenSize,
 } from "@/src/context/CustomHook";
 import { errorToast, successToast } from "../Loading";
-import Modal, { SecondaryModal } from "../Modals";
-
+import { SecondaryModal } from "../Modals";
 import PrimaryButton, { Selection } from "../Button";
 import { SelectAndSearchProduct } from "../Banner";
 import { ImageUpload } from "./Image";
 import { DeleteTempImage } from "../../dashboard/inventory/varaint_action";
 import { Input } from "@nextui-org/react";
+import { ImageWithLoader } from "../ImageWithLoader";
+import { SelectType } from "@/src/types/productAction.type";
 
 export const BannerType = [
   { label: "Normal", value: "normal" },
@@ -34,11 +35,11 @@ export const BannerSize = [
   { label: "Normal", value: "normal" },
 ];
 
-export const BannerModal = ({
+export const BannerModal = memo(function BannerModal({
   setreloaddata,
 }: {
   setreloaddata?: React.Dispatch<React.SetStateAction<boolean>>;
-}) => {
+}) {
   const {
     openmodal,
     setopenmodal,
@@ -53,25 +54,30 @@ export const BannerModal = ({
   const [loading, setloading] = useState(false);
   const { isMobile } = useScreenSize();
 
-  const Linktype = [
-    {
-      label: "Parent Category",
-      value: "parent",
-    },
-    {
-      label: "Sub Category",
-      value: "sub",
-    },
-    {
-      label: "Product",
-      value: "product",
-    },
-  ];
+  const Linktype = useMemo(
+    () => [
+      {
+        label: "Parent Category",
+        value: "parent",
+      },
+      {
+        label: "Sub Category",
+        value: "sub",
+      },
+      {
+        label: "Product",
+        value: "product",
+      },
+    ],
+    []
+  );
 
-  const handleCancel = async () => {
+  const handleCancel = useCallback(async () => {
     //delete temp image
 
+    setloading(true);
     const delreq = await DeleteTempImage();
+    setloading(false);
     if (!delreq.success) {
       errorToast("Error occured");
       return;
@@ -79,35 +85,37 @@ export const BannerModal = ({
 
     setopenmodal({ ...openmodal, createBanner: false });
     setglobalindex({ ...globalindex, bannereditindex: -1 });
-  };
+  }, [openmodal, globalindex, setopenmodal, setglobalindex]);
 
-  const getSelectItems = async (limit: number, value: string, type: string) => {
-    const getreq = (
-      type === "prod" ? getProductForBanner : getPromotionForBanner
-    ).bind(null, limit, value);
-    const request = await getreq();
+  const getSelectItems = useCallback(
+    async (limit: number, value: string, type: string) => {
+      const getreq = (
+        type === "prod" ? getProductForBanner : getPromotionForBanner
+      ).bind(null, limit, value);
+      const request = await getreq();
 
-    if (request.success) {
-      return request;
-    }
-    return null;
-  };
+      if (request.success) {
+        return request;
+      }
+      return null;
+    },
+    []
+  );
 
-  const getCategory = async (
-    type: "parent" | "child",
-    value: string,
-    pid: number
-  ) => {
-    const getreq =
-      type === "parent"
-        ? getParentCategoryForBanner.bind(null, value)
-        : getChildCategoryForBanner.bind(null, value, pid);
-    const request = await getreq();
-    if (request.success) {
-      return request;
-    }
-    return null;
-  };
+  const getCategory = useCallback(
+    async (type: "parent" | "child", value: string, pid: number) => {
+      const getreq =
+        type === "parent"
+          ? getParentCategoryForBanner.bind(null, value)
+          : getChildCategoryForBanner.bind(null, value, pid);
+      const request = await getreq();
+      if (request.success) {
+        return request;
+      }
+      return null;
+    },
+    []
+  );
 
   useEffectOnce(() => {
     const fetchdata = async () => {
@@ -128,7 +136,7 @@ export const BannerModal = ({
     globalindex.bannereditindex !== -1 && fetchdata();
   });
 
-  const handleCreate = async () => {
+  const handleCreate = useCallback(async () => {
     const allbanner = [...(allData?.banner ?? [])];
     const URL = "/api/banner";
 
@@ -185,43 +193,54 @@ export const BannerModal = ({
     } else {
       errorToast("Image is required");
     }
-  };
+  }, [
+    banner,
+    globalindex.bannereditindex,
+    allData?.banner,
+    setbanner,
+    setalldata,
+    setglobalindex,
+    setreloaddata,
+  ]);
 
-  const handleChange = (event: ChangeEvent<any>) => {
-    const { name, value } = event.target;
+  const handleChange = useCallback(
+    (event: ChangeEvent<any>) => {
+      const { name, value } = event.target;
 
-    if (name === "type" || name === "linktype") {
-      setbanner((prev) => ({
-        ...prev,
-        linktype:
-          value === "product"
-            ? value
-            : value === "category"
-            ? "parent"
-            : undefined,
-        [name]: value,
-      }));
-    } else {
-      setbanner((prev) => ({ ...prev, [name]: value }));
-    }
-  };
+      if (name === "type" || name === "linktype") {
+        setbanner((prev) => ({
+          ...prev,
+          linktype:
+            value === "product"
+              ? value
+              : value === "category"
+              ? "parent"
+              : undefined,
+          [name]: value,
+        }));
+      } else {
+        setbanner((prev) => ({ ...prev, [name]: value }));
+      }
+    },
+    [setbanner]
+  );
 
-  const handleSelectProduct = (
-    type: string,
-    value?: Array<SelectType> | SelectType
-  ) => {
-    if (type === "parentcate")
-      setbanner((prev) => ({
-        ...prev,
-        parentcate: value as any,
-        childcate: undefined,
-      }));
-    else
-      setbanner((prev) => ({
-        ...prev,
-        [type]: value,
-      }));
-  };
+  const handleSelectProduct = useCallback(
+    (type: string, value?: Array<SelectType> | SelectType) => {
+      if (type === "parentcate")
+        setbanner((prev) => ({
+          ...prev,
+          parentcate: value as any,
+          childcate: undefined,
+        }));
+      else
+        setbanner((prev) => ({
+          ...prev,
+          [type]: value,
+        }));
+    },
+    [setbanner]
+  );
 
   return (
     <SecondaryModal
@@ -230,7 +249,7 @@ export const BannerModal = ({
       placement="center"
       footer={() => {
         return (
-          <div className="actions_con w-full h-fit flex flex-row gap-4 p-4 bg-gradient-to-r from-gray-50 to-white border-t-2 border-gray-200">
+          <div className="actions_con w-full h-fit flex flex-row gap-4 p-4 bg-white border-t-2 border-gray-200">
             <PrimaryButton
               onClick={() => handleCreate()}
               text={
@@ -256,39 +275,39 @@ export const BannerModal = ({
         );
       }}
     >
-      <div className="bannermodal_content bg-gradient-to-br from-gray-50 via-white to-blue-50/30 p-6 relative max-small_phone:rounded-none rounded-2xl w-full h-full max-small_phone:min-h-screen overflow-x-hidden flex flex-col gap-y-6 items-center">
-        <div
-          style={banner.size === "normal" ? { width: "100%" } : {}}
-          className="image_container flex flex-col w-fit items-center justify-center h-fit group"
-        >
-          <div className="mb-3 text-center">
-            <h3 className="text-lg font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              Banner Preview
-            </h3>
-            <p className="text-sm text-gray-500 mt-1">
-              This is how your banner will appear
-            </p>
-          </div>
+      <div className="bannermodal_content bg-gray-50 p-6 relative max-small_phone:rounded-none rounded-2xl w-full h-full max-small_phone:min-h-screen overflow-x-hidden flex flex-col gap-y-6 items-center will-change-auto">
+        {banner.image.url && (
           <div
             style={banner.size === "normal" ? { width: "100%" } : {}}
-            className="flex flex-col w-full max-w-[80%] max-large_phone:max-w-full max-h-[80vh] min-h-[250px] rounded-2xl overflow-hidden border-4 border-gray-200 shadow-2xl hover:shadow-blue-200 transition-all duration-300 bg-white"
+            className="image_container flex flex-col w-fit items-center justify-center h-fit"
           >
-            <img
-              src={banner.image.url}
-              alt={"Banner"}
-              style={
-                banner.size === "small"
-                  ? {
-                      width: isMobile ? "200px" : "400px",
-                      height: isMobile ? "150px" : "500px",
-                    }
-                  : { width: "100%", height: isMobile ? "200px" : "auto" }
-              }
-              className="w-full min-h-[250px] object-cover transition-transform duration-300 group-hover:scale-105"
-              loading="lazy"
-            />
+            <div className="mb-3 text-center">
+              <h3 className="text-lg font-bold text-blue-600">
+                Banner Preview
+              </h3>
+              <p className="text-sm text-gray-500 mt-1">
+                This is how your banner will appear
+              </p>
+            </div>
+            <div
+              style={banner.size === "normal" ? { width: "100%" } : {}}
+              className="flex flex-col w-full max-w-[80%] max-large_phone:max-w-full max-h-[80vh] min-h-[250px] rounded-2xl overflow-hidden border-2 border-gray-200 shadow-lg bg-white"
+            >
+              <ImageWithLoader
+                src={banner.image.url}
+                alt={"Banner"}
+                width={600}
+                height={300}
+                className="w-full min-h-[250px] object-cover"
+                containerClassName="w-full h-full"
+                loading="lazy"
+                quality={75}
+                placeholder="blur"
+                blurDataURL="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNjAwIiBoZWlnaHQ9IjMwMCIgZmlsbD0iI2VlZSIvPjwvc3ZnPg=="
+              />
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="bannerform flex flex-col gap-y-6 justify-start items-center w-full h-full">
           <div className="w-full h-fit flex flex-col gap-y-6 bg-white rounded-2xl p-6 shadow-lg border-2 border-gray-200">
@@ -347,7 +366,7 @@ export const BannerModal = ({
           </div>
           <div className="w-full h-fit flex flex-row items-start gap-5 flex-wrap">
             {banner.linktype === "product" && (
-              <div className="w-full h-fit flex flex-col gap-y-4 bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl p-6 shadow-md border-2 border-blue-200">
+              <div className="w-full h-fit flex flex-col gap-y-4 bg-blue-50 rounded-2xl p-6 shadow-md border-2 border-blue-200">
                 <label className="w-full h-fit text-lg font-bold text-gray-800 flex items-center gap-2">
                   <i className="fa-solid fa-box text-blue-500"></i>
                   Select Products
@@ -362,19 +381,23 @@ export const BannerModal = ({
               </div>
             )}
             {banner.type !== "normal" && (
-              <div className="w-full h-fit flex flex-col gap-y-4 bg-gradient-to-br from-orange-50 to-yellow-50 rounded-2xl p-6 shadow-md border-2 border-orange-200">
+              <div className="w-full h-fit flex flex-col gap-y-4 bg-orange-50 rounded-2xl p-6 shadow-md border-2 border-orange-200">
                 <label className="font-bold text-lg text-gray-800 flex items-center gap-2">
                   <i className="fa-solid fa-link text-orange-500"></i>
                   Link Type
                 </label>
                 <Selection
-                  data={Linktype.filter((i) => {
-                    if (banner.type === "product") {
-                      return i.value === "product";
-                    } else {
-                      return i.value !== "product";
-                    }
-                  })}
+                  data={useMemo(
+                    () =>
+                      Linktype.filter((i) => {
+                        if (banner.type === "product") {
+                          return i.value === "product";
+                        } else {
+                          return i.value !== "product";
+                        }
+                      }),
+                    [banner.type, Linktype]
+                  )}
                   name="linktype"
                   value={banner.linktype}
                   onChange={handleChange}
@@ -384,7 +407,7 @@ export const BannerModal = ({
           </div>
 
           {banner.linktype === "parent" && (
-            <div className="w-full h-fit flex flex-col gap-y-4 bg-gradient-to-br from-green-50 to-teal-50 rounded-2xl p-6 shadow-md border-2 border-green-200">
+            <div className="w-full h-fit flex flex-col gap-y-4 bg-green-50 rounded-2xl p-6 shadow-md border-2 border-green-200">
               <label className="w-full h-fit text-lg font-bold text-gray-800 flex items-center gap-2">
                 <i className="fa-solid fa-folder-tree text-green-500"></i>
                 Parent Category
@@ -399,7 +422,7 @@ export const BannerModal = ({
             </div>
           )}
           {banner.linktype === "sub" && (
-            <div className="w-full h-fit flex flex-col gap-5 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl p-6 shadow-md border-2 border-indigo-200">
+            <div className="w-full h-fit flex flex-col gap-5 bg-indigo-50 rounded-2xl p-6 shadow-md border-2 border-indigo-200">
               <div className="w-full h-fit flex flex-col gap-y-4">
                 <label className="w-full h-fit text-lg font-bold text-gray-800 flex items-center gap-2">
                   <i className="fa-solid fa-folder text-indigo-500"></i>
@@ -441,9 +464,9 @@ export const BannerModal = ({
           <button
             type="button"
             onClick={() => setopenmodal({ ...openmodal, imageupload: true })}
-            className="w-full h-16 rounded-2xl font-bold text-lg transition-all duration-300 shadow-lg hover:shadow-2xl bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700 flex items-center justify-center gap-3 group"
+            className="w-full h-16 rounded-2xl font-bold text-lg shadow-lg bg-blue-600 text-white hover:bg-blue-700 flex items-center justify-center gap-3 transition-colors duration-200"
           >
-            <i className="fa-regular fa-image text-2xl group-hover:scale-110 transition-transform duration-300"></i>
+            <i className="fa-regular fa-image text-2xl"></i>
             <span>
               {banner.image?.url.length > 0
                 ? "Change Banner Image"
@@ -464,4 +487,4 @@ export const BannerModal = ({
       )}
     </SecondaryModal>
   );
-};
+});

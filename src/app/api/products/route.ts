@@ -6,9 +6,9 @@ import {
   calculateDiscountProductPrice,
   removeSpaceAndToLowerCase,
 } from "@/src/lib/utilities";
-import { Stocktype, VariantColorValueType } from "@/src/context/GlobalContext";
 import { extractQueryParams } from "../banner/route";
 import Prisma from "@/src/lib/prisma";
+import { Stocktype, VariantColorValueType } from "@/src/types/product.type";
 
 interface paramsType {
   ty: string;
@@ -29,7 +29,7 @@ interface paramsType {
   sp?: number;
 }
 
-const convertStockData = (stock: Stocktype[]) => {
+const convertStockData = (stock: Array<Stocktype>) => {
   const lowstock = parseInt(process.env.NEXT_PUBLIC_LOWSTOCK ?? "3");
 
   const Stock = stock.map((i) => {
@@ -125,7 +125,8 @@ export async function GET(request: NextRequest) {
       allfilter.forEach((filval) => {
         filval.Variant.forEach((variant) => {
           if (variant.option_type === "COLOR") {
-            const opt_val = variant.option_value as VariantColorValueType[];
+            const opt_val =
+              variant.option_value as Array<VariantColorValueType>;
             opt_val.map((i) => allval.color.add(i.val));
           } else if (variant.option_type === "TEXT") {
             const opt_val = variant.option_value as string[];

@@ -1,9 +1,11 @@
-import { useState, useCallback, useEffect } from "react";
-import { Stocktype } from "@/src/context/GlobalContext";
+"use client";
+
+import { useState, useCallback } from "react";
 import { errorToast } from "@/src/app/component/Loading";
 import { HasPartialOverlap } from "@/src/lib/utilities";
 import { ArraysAreEqualSets } from "../../VariantModal";
 import { MapSelectedValuesToVariant } from "../../VariantModalComponent";
+import { Stocktype } from "@/src/types/product.type";
 
 export const useStockManager = () => {
   const [stock, setStock] = useState("");
@@ -26,8 +28,8 @@ export const useStockManager = () => {
     (
       currentStock: Stocktype[],
       variantTitles: string[],
-      addNew?: boolean
-    ): Stocktype[] | null => {
+      addNew?: boolean,
+    ): Array<Stocktype> | null => {
       // Validate inputs - check if we have selected values and stock
 
       if (!selectedValues || !stock) {
@@ -35,7 +37,7 @@ export const useStockManager = () => {
       }
 
       // Check that all variant titles have selections
-      const hasAllSelections = variantTitles.every((title) => {
+      const hasAllSelections = variantTitles.some((title) => {
         const values = selectedValues[title];
         return values && values.length > 0;
       });
@@ -47,7 +49,7 @@ export const useStockManager = () => {
 
       const stockValues = MapSelectedValuesToVariant(
         selectedValues,
-        variantTitles
+        variantTitles,
       );
       const parsedQty = parseInt(stock, 10);
 
@@ -66,33 +68,34 @@ export const useStockManager = () => {
 
       const stockArray = [...currentStock];
 
-      // Check for overlap when adding new stock
-      if (editStockIdx === -1) {
-        const isOverlap = stockArray.some((item) =>
-          HasPartialOverlap(
-            item.Stockvalue.map((i) => i.variant_val),
-            stockValues
-          )
-        );
-
-        if (isOverlap) {
-          errorToast("Stock Existed");
-          return null;
+      // Check for overlap across ALL stocks (including other main stocks)
+      const isOverlap = stockArray.some((item, idx) => {
+        // When editing/adding to existing stock, skip checking against itself
+        if (editStockIdx !== -1 && idx === editStockIdx && !addNew) {
+          return false;
         }
+        return HasPartialOverlap(
+          item.Stockvalue.map((i) => i.variant_val),
+          stockValues,
+        );
+      });
+
+      if (isOverlap) {
+        errorToast(
+          "Stock with these variant values already exists in another stock",
+        );
+        return null;
       }
 
       // Add or update stock
       if (editStockIdx === -1) {
-        // Creating a completely new stock entry (for new product or adding new stock group)
         return [...stockArray, newStock].filter(
-          (stock) => stock.Stockvalue.length > 0
+          (stock) => stock.Stockvalue.length > 0,
         );
       } else {
-        // Working with an existing stock entry
         const existingStock = stockArray[editStockIdx];
 
         if (addNew) {
-          // Adding new sub-stock values to an existing stock entry
           // Don't update existing values, just add new ones
 
           const newStockValues = stockValues.map((i) => ({
@@ -100,25 +103,24 @@ export const useStockManager = () => {
             variant_val: i,
           }));
 
-          // Update the stock array immutably - append new values to existing
           const updatedStockArray = stockArray.map((item, idx) =>
             idx === editStockIdx
               ? {
                   ...item,
                   Stockvalue: [...item.Stockvalue, ...newStockValues],
                 }
-              : item
+              : item,
           );
 
           return updatedStockArray.filter(
-            (stock) => stock.Stockvalue.length > 0
+            (stock) => stock.Stockvalue.length > 0,
           );
         }
 
         // Updating existing sub-stock values (not adding new)
         const updatedStockValue = existingStock.Stockvalue.map((i) => {
           const isMatch = stockValues.some((val) =>
-            ArraysAreEqualSets(val, i.variant_val)
+            ArraysAreEqualSets(val, i.variant_val),
           );
           return isMatch ? { ...i, qty: parsedQty } : i;
         });
@@ -127,13 +129,13 @@ export const useStockManager = () => {
         const updatedStockArray = stockArray.map((item, idx) =>
           idx === editStockIdx
             ? { ...item, Stockvalue: updatedStockValue }
-            : item
+            : item,
         );
 
         return updatedStockArray.filter((stock) => stock.Stockvalue.length > 0);
       }
     },
-    [selectedValues, stock, editStockIdx]
+    [selectedValues, stock, editStockIdx],
   );
 
   return {

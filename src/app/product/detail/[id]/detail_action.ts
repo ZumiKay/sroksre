@@ -103,14 +103,10 @@ export async function GetProductDetailById(pid: string) {
         parent_id: product.parentcategory_id,
         child_id: product.childcategory_id,
       },
-      variants: product.Variant,
-      varaintstock: product.Stock,
       relatedproduct: otherProduct.filter((i) => i.id !== product.id),
       // Remove properties that are no longer needed
       parentcategory_id: undefined,
       childcategory_id: undefined,
-      Variant: undefined,
-      Stock: undefined,
     };
 
     const policy = (await getPolicesByPage("productdetail")) as Policytype[];

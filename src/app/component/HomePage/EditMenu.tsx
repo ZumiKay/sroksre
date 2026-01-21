@@ -75,45 +75,95 @@ const SortableItem = ({
       ref={setNodeRef}
       style={style}
       {...attributes}
-      className={`w-full min-h-[50px] h-fit p-2 rounded-lg flex flex-row justify-between items-center cursor-default ${
-        isDragging ? "shadow-lg" : ""
-      } transition-colors select-none hover:bg-gray-200 active:bg-gray-200`}
+      className={`w-full min-h-[60px] h-fit p-4 rounded-xl flex flex-row justify-between items-center cursor-default border border-gray-200 bg-white ${
+        isDragging
+          ? "shadow-2xl scale-105 border-blue-400 bg-blue-50 z-50"
+          : "shadow-sm hover:shadow-md"
+      } transition-all duration-200 select-none hover:border-gray-300 group`}
     >
-      {isEdit && <Checkbox size="lg" onChange={(e) => onEdit()} radius="md" />}
+      {isEdit && (
+        <div className="mr-3">
+          <Checkbox
+            size="lg"
+            onChange={(e) => onEdit()}
+            radius="md"
+            classNames={{
+              wrapper: "group-hover:border-blue-500",
+            }}
+          />
+        </div>
+      )}
 
       <div
         onClick={() => !isEdit && handleEdit(parseInt(id))}
-        className="flex flex-row items-center gap-x-5 w-full h-full"
+        className={`flex flex-row items-center gap-x-4 w-full h-full ${
+          !isEdit
+            ? "cursor-pointer hover:scale-[1.01] transition-transform"
+            : ""
+        }`}
       >
-        {type === "slide" ? (
-          <SlideIcon />
-        ) : type === "category" ? (
-          <CateconIcon />
-        ) : type === "scrollable" ? (
-          <ScrollableconIcon />
-        ) : (
-          <BannerHomeIcon />
-        )}
-        <div className="text-sm font-bold w-[150px] break-words">{name}</div>
+        <div className="p-2 rounded-lg bg-gradient-to-br from-blue-50 to-purple-50 group-hover:from-blue-100 group-hover:to-purple-100 transition-colors">
+          {type === "slide" ? (
+            <SlideIcon />
+          ) : type === "category" ? (
+            <CateconIcon />
+          ) : type === "scrollable" ? (
+            <ScrollableconIcon />
+          ) : (
+            <BannerHomeIcon />
+          )}
+        </div>
+        <div className="flex flex-col gap-y-1 flex-1">
+          <div className="text-sm font-semibold text-gray-800 group-hover:text-gray-900 transition-colors break-words">
+            {name}
+          </div>
+          <div className="text-xs text-gray-500 capitalize">{type}</div>
+        </div>
       </div>
-      <div
-        hidden={!isEdit}
-        {...listeners}
-        className="w-fit h-fit cursor-pointer"
-      >
-        <DragIcon />
-      </div>
+      {isEdit && (
+        <div
+          {...listeners}
+          className="ml-2 p-2 rounded-lg cursor-grab active:cursor-grabbing hover:bg-gray-100 active:bg-gray-200 transition-colors"
+        >
+          <DragIcon />
+        </div>
+      )}
     </div>
   );
 };
 
-const HomeitemsSkeleton = () => {
+const HomeitemsSkeleton = ({ delay = 0 }: { delay?: number }) => {
   return (
-    <div className="max-w-[300px] w-full flex items-center gap-3">
-      <div>
-        <Skeleton className="flex rounded-small w-[40px] h-[40px]" />
+    <div
+      className="w-full min-h-[60px] p-4 rounded-xl border border-gray-100 bg-white shadow-sm flex items-center gap-4 animate-pulse"
+      style={{ animationDelay: `${delay}ms` }}
+    >
+      <Skeleton
+        className="flex rounded-lg w-[48px] h-[48px]"
+        classNames={{
+          base: "bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 bg-[length:200%_100%] animate-shimmer",
+        }}
+      />
+      <div className="flex-1 flex flex-col gap-2">
+        <Skeleton
+          className="h-[16px] w-3/4 rounded-lg"
+          classNames={{
+            base: "bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 bg-[length:200%_100%] animate-shimmer",
+          }}
+        />
+        <Skeleton
+          className="h-[12px] w-1/2 rounded-lg"
+          classNames={{
+            base: "bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 bg-[length:200%_100%] animate-shimmer",
+          }}
+        />
       </div>
-      <Skeleton className="h-[40px] w-full rounded-small" />
+      <Skeleton
+        className="flex rounded-lg w-[32px] h-[32px]"
+        classNames={{
+          base: "bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 bg-[length:200%_100%] animate-shimmer",
+        }}
+      />
     </div>
   );
 };
@@ -166,34 +216,79 @@ export const Homeeditmenu = ({
       collisionDetection={closestCenter}
       onDragEnd={handleDragEnd}
     >
-      <div className="w-[90%] h-fit max-h-[600px] flex flex-col justify-start gap-y-5">
-        <p className="text-lg w-full h-fit text-left font-bold">
-          Homepage Customize
-        </p>
+      <div className="w-full h-fit max-h-[650px] flex flex-col justify-start gap-y-6 px-2">
+        <div className="flex flex-col gap-y-2">
+          {loading ? (
+            <>
+              <Skeleton className="h-8 w-64 rounded-lg">
+                <div className="h-8 w-64 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200"></div>
+              </Skeleton>
+              <Skeleton className="h-4 w-48 rounded-lg mt-2">
+                <div className="h-4 w-48 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200"></div>
+              </Skeleton>
+            </>
+          ) : (
+            <>
+              <h2 className="text-2xl font-bold text-gray-900 tracking-tight">
+                Homepage Customize
+              </h2>
+              <p className="text-sm text-gray-500">
+                {isEdit
+                  ? "Drag to reorder or select items to delete"
+                  : "Click any item to edit its content"}
+              </p>
+            </>
+          )}
+        </div>
 
         {!items && (
-          <p className="text-lg font-normal border-2 border-red-300 p-1 w-full rounded-medium">
-            No Items
-          </p>
-        )}
-        {loading ? (
-          Array.from({ length: items.length === 0 ? 3 : items.length }).map(
-            (i, idx) => <HomeitemsSkeleton key={idx} />
-          )
-        ) : (
-          <SortableContext items={items} strategy={verticalListSortingStrategy}>
-            {items.map((item, idx) => (
-              <SortableItem
-                key={item.id}
-                id={item.id}
-                type={item.type}
-                name={item.name}
-                isEdit={isEdit}
-                onEdit={() => onEdit(idx)}
+          <div className="w-full p-4 rounded-xl border-2 border-red-200 bg-red-50 flex items-center gap-3">
+            <svg
+              className="w-5 h-5 text-red-500"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
               />
-            ))}
-          </SortableContext>
+            </svg>
+            <p className="text-sm font-medium text-red-800">
+              No Items Available
+            </p>
+          </div>
         )}
+
+        <div className="flex flex-col gap-y-3 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+          {loading ? (
+            <div className="flex flex-col gap-y-3">
+              {Array.from({
+                length: items.length === 0 ? 3 : items.length,
+              }).map((_, idx) => (
+                <HomeitemsSkeleton key={idx} delay={idx * 100} />
+              ))}
+            </div>
+          ) : (
+            <SortableContext
+              items={items}
+              strategy={verticalListSortingStrategy}
+            >
+              {items.map((item, idx) => (
+                <SortableItem
+                  key={item.id}
+                  id={item.id}
+                  type={item.type}
+                  name={item.name}
+                  isEdit={isEdit}
+                  onEdit={() => onEdit(idx)}
+                />
+              ))}
+            </SortableContext>
+          )}
+        </div>
       </div>
     </DndContext>
   );

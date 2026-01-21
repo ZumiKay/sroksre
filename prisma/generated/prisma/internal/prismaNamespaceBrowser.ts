@@ -72,6 +72,7 @@ export const ModelName = {
   Questions: 'Questions',
   Info: 'Info',
   Variant: 'Variant',
+  VariantSection: 'VariantSection',
   Varianttemplate: 'Varianttemplate',
   Stock: 'Stock',
   Stockvalue: 'Stockvalue',
@@ -363,10 +364,22 @@ export const VariantScalarFieldEnum = {
   product_id: 'product_id',
   option_title: 'option_title',
   option_type: 'option_type',
-  option_value: 'option_value'
+  option_value: 'option_value',
+  optional: 'optional',
+  sectionId: 'sectionId',
+  variantSectionId: 'variantSectionId'
 } as const
 
 export type VariantScalarFieldEnum = (typeof VariantScalarFieldEnum)[keyof typeof VariantScalarFieldEnum]
+
+
+export const VariantSectionScalarFieldEnum = {
+  id: 'id',
+  strId: 'strId',
+  productsId: 'productsId'
+} as const
+
+export type VariantSectionScalarFieldEnum = (typeof VariantSectionScalarFieldEnum)[keyof typeof VariantSectionScalarFieldEnum]
 
 
 export const VarianttemplateScalarFieldEnum = {

@@ -1,16 +1,48 @@
+"use client";
+
 import { useState, useCallback } from "react";
 import { errorToast } from "@/src/app/component/Loading";
-import { VariantColorValueType } from "@/src/context/GlobalContext";
-import { Colortype, Colorinitalize } from "../../types";
+import { Colorinitalize } from "../../types";
+import {
+  VariantColorValueType,
+  VariantTypeEnum,
+} from "@/src/types/product.type";
 
 interface VariantDataType {
   id?: number;
-  type: "COLOR" | "TEXT";
+  type: VariantTypeEnum;
   name: string;
   value: Array<string | VariantColorValueType>;
 }
 
-export const useVariantManager = () => {
+export interface UseVariantManagerReturn {
+  temp: VariantDataType | undefined;
+  setTemp: React.Dispatch<React.SetStateAction<VariantDataType | undefined>>;
+  name: string;
+  setName: React.Dispatch<React.SetStateAction<string>>;
+  option: string;
+  setOption: React.Dispatch<React.SetStateAction<string>>;
+  edit: number;
+  setEdit: React.Dispatch<React.SetStateAction<number>>;
+  added: number;
+  setAdded: React.Dispatch<React.SetStateAction<number>>;
+  colorData: {
+    color: typeof Colorinitalize;
+    name: string;
+  };
+  setColorData: React.Dispatch<
+    React.SetStateAction<{
+      color: typeof Colorinitalize;
+      name: string;
+    }>
+  >;
+  resetState: () => void;
+  addColor: () => boolean;
+  deleteValue: (idx: number) => void;
+  addTextOption: (existingOptions: string[]) => boolean;
+}
+
+export const useVariantManager = (): UseVariantManagerReturn => {
   const [temp, setTemp] = useState<VariantDataType>();
   const [name, setName] = useState("");
   const [option, setOption] = useState("");
@@ -82,20 +114,30 @@ export const useVariantManager = () => {
 
       setTemp((prev) => {
         if (!prev) return prev;
-        const updated = { ...prev };
 
         if (edit === -1) {
-          updated.value?.push(option);
-        } else if (updated.value) {
-          updated.value[edit] = option;
+          // Create a new array instead of mutating
+          return {
+            ...prev,
+            value: [...(prev.value || []), option],
+          };
+        } else if (prev.value) {
+          // Create a new array with the updated value
+          const newValue = [...prev.value];
+          newValue[edit] = option;
+          return {
+            ...prev,
+            value: newValue,
+          };
         }
-        return updated;
+        return prev;
       });
 
       setEdit(-1);
+      setOption(""); // Reset the option input after adding
       return true;
     },
-    [option, edit]
+    [option, edit],
   );
 
   return {

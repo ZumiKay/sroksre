@@ -2,18 +2,17 @@
 import Image, { StaticImageData } from "next/image";
 import PrimaryButton from "./Button";
 import "../globals.css";
-import { useRef, useState } from "react";
-
+import { useRef, useState, useCallback, useMemo, memo } from "react";
+import { ImageWithLoader } from "./ImageWithLoader";
 import { PrimaryPhoto } from "./PhotoComponent";
 import { useGlobalContext } from "@/src/context/GlobalContext";
 import Checkmark from "../../../public/Image/Checkmark.svg";
 import { SubInventoryMenu } from "./Navbar";
 import { errorToast } from "./Loading";
 import { useRouter } from "next/navigation";
-
 import { Orderpricetype, totalpricetype } from "@/src/types/order.type";
 import { Variantcontainer } from "./Modals/VariantModal";
-
+import { UpdateStockModal } from "./Modals/Stock";
 import { Chip, Skeleton } from "@nextui-org/react";
 import {
   ApiRequest,
@@ -23,6 +22,7 @@ import {
 import { SelectionCustom } from "./Pagination_Component";
 import {
   productcoverstype,
+  StockTypeEnum,
   VariantColorValueType,
 } from "@/src/types/product.type";
 import { PromotionState } from "@/src/types/productAction.type";
@@ -58,7 +58,7 @@ const editactionMenu = [
   },
 ];
 
-export default function Card(props: cardprops) {
+const Card = memo(function Card(props: cardprops) {
   const {
     promotion,
     setpromotion,
@@ -70,150 +70,177 @@ export default function Card(props: cardprops) {
     setalldata,
   } = useGlobalContext();
   const route = useRouter();
-  const isProduct = promotion.Products.find((i) => i.id === props.id);
+  const isProduct = useMemo(
+    () => promotion.Products.find((i) => i.id === props.id),
+    [promotion.Products, props.id],
+  );
   const [previewphoto, setpreviewphoto] = useState(false);
   const [hover, sethover] = useState(false);
   const { isMobile, isTablet } = useScreenSize();
 
-  const [state, setstate] = useState({
-    detail: false,
-    editaction: false,
-    hover: false,
-    editvariantstock: false,
-  });
-
-  const handeMouseEvent = (type: "enter" | "leave") =>
-    setstate({
-      ...state,
-      hover: type === "enter" ? true : false,
-      editaction: type === "leave" && false,
-    });
+  const [showEditMenu, setShowEditMenu] = useState(false);
   const ref = useRef<HTMLDivElement | null>(null);
 
-  const handleSelectDiscount = async (id: number, type: "create" | "edit") => {
-    const promo = [...promotion.Products];
-    let temp: Array<number> = [];
+  const handleMouseEnter = useCallback(() => {
+    sethover(true);
+    setShowEditMenu(true);
+  }, []);
 
-    const index = promo.findIndex((i) => i.id === id);
+  const handleMouseLeave = useCallback(() => {
+    sethover(false);
+    setShowEditMenu(false);
+  }, []);
 
-    if (type == "create") {
-      if (!props.discount) {
-        if (!isProduct) {
-          const option = {
-            id: id,
-            discount: {
-              percent: 0,
-              newprice: "",
-              oldprice: parseFloat(props.price),
-            },
-          };
-          promo.push(option);
+  const handleSelectDiscount = useCallback(
+    async (id: number, type: "create" | "edit") => {
+      const promo = [...promotion.Products];
+      let temp: Array<number> = [];
+
+      const index = promo.findIndex((i) => i.id === id);
+
+      if (type == "create") {
+        if (!props.discount) {
+          if (!isProduct) {
+            const option = {
+              id: id,
+              discount: {
+                percent: 0,
+                newprice: "",
+                oldprice: parseFloat(props.price),
+              },
+            };
+            promo.push(option);
+          } else {
+            promo.splice(index, 1);
+          }
         } else {
-          promo.splice(index, 1);
+          if (isProduct) {
+            const isExist = promotion.tempproduct?.includes(id);
+            !isExist && temp.push(id);
+            let allproduct = [...(allData?.product ?? [])];
+            allproduct = allproduct.map((i) => {
+              if (i.id === id) {
+                return { ...i, discount: undefined };
+              }
+              return i;
+            });
+
+            promo.splice(index, 1);
+            setalldata({ product: allproduct });
+          } else {
+            promo.push({
+              id: id,
+              discount: {
+                percent: 0,
+                newprice: "",
+                oldprice: parseFloat(props.price),
+              },
+            });
+          }
         }
+
+        setpromotion((prev) => ({
+          ...prev,
+          Products: promo,
+          tempproduct: temp,
+        }));
       } else {
-        if (isProduct) {
-          const isExist = promotion.tempproduct?.includes(id);
-          !isExist && temp.push(id);
-          let allproduct = [...(allData?.product ?? [])];
-          allproduct = allproduct.map((i) => {
-            if (i.id === id) {
-              return { ...i, discount: undefined };
-            }
-            return i;
-          });
-
-          promo.splice(index, 1);
-          setalldata({ product: allproduct });
-        } else {
-          promo.push({
-            id: id,
-            discount: {
-              percent: 0,
-              newprice: "",
-              oldprice: parseFloat(props.price),
-            },
-          });
-        }
+        setglobalindex((prev) => ({ ...prev, promotionproductedit: id }));
+        setopenmodal((prev) => ({ ...prev, discount: true }));
       }
-
-      setpromotion((prev) => ({
-        ...prev,
-        Products: promo,
-        tempproduct: temp,
-      }));
-    } else {
-      setglobalindex((prev) => ({ ...prev, promotionproductedit: id }));
-      setopenmodal((prev) => ({ ...prev, discount: true }));
-    }
-  };
-
-  ///JSX CONDITIONS
-  ///
-  ///
-
-  const shouldShowCheckmark =
-    promotion.selectproduct &&
-    (globalindex.promotioneditindex === -1
-      ? isProduct?.discount
-      : isProduct?.discount);
-
-  const showCheckmark = (
-    <Image
-      src={Checkmark}
-      alt="checkmark"
-      width={1000}
-      height={1000}
-      className="w-[30px] h-[30px] object-contain"
-    />
+    },
+    [
+      promotion.Products,
+      props.discount,
+      isProduct,
+      promotion.tempproduct,
+      allData?.product,
+      setpromotion,
+      setalldata,
+      setglobalindex,
+      setopenmodal,
+    ],
   );
 
-  //Price Condition
-
-  const hasDiscount = props.discount?.discount;
-  const showOriginalPrice = (
-    <h4 className="text-sm font-semibold">
-      ${parseFloat(props.price).toFixed(2)}
-    </h4>
-  );
-  const showDiscountPrice = (
-    <div className="price_con flex flex-row flex-wrap items-center gap-x-5 w-full h-fit">
-      <p className="text-sm font-light line-through decoration-red-300 decoration-2">
-        ${parseFloat(props.price).toFixed(2)}
-      </p>
-
-      <p className="text-lg font-semibold text-red-500">
-        -{hasDiscount?.percent ?? 0}%
-      </p>
-
-      <p className="text-sm font-medium">{`${
-        hasDiscount?.newprice ? `$${hasDiscount?.newprice}` : ""
-      }`}</p>
-    </div>
+  ///JSX CONDITIONS - Memoized for performance
+  const shouldShowCheckmark = useMemo(
+    () => promotion.selectproduct && isProduct?.discount,
+    [promotion.selectproduct, isProduct?.discount],
   );
 
-  const showLowStock = () => {
-    return !promotion.selectproduct && props.lowstock && props.isAdmin ? (
-      <PrimaryButton
-        type="button"
-        text="Low Stock"
-        onClick={() => {
-          setopenmodal((prev) => ({
-            ...prev,
-            [`${props.stocktype}${props.id}`]: true,
-          }));
-        }}
-        width="100%"
-        color="lightcoral"
+  const showCheckmark = useMemo(
+    () => (
+      <Image
+        src={Checkmark}
+        alt="checkmark"
+        width={50}
+        height={50}
+        className="w-[30px] h-[30px] object-contain"
       />
-    ) : (
-      <></>
-    );
-  };
+    ),
+    [],
+  );
 
-  const closename: string = (props.stocktype &&
-    props.id &&
-    props.stocktype + props.id) as string;
+  const hasDiscount = useMemo(
+    () => props.discount?.discount,
+    [props.discount?.discount],
+  );
+  const showOriginalPrice = useMemo(
+    () => (
+      <h4 className="text-sm font-semibold">
+        ${parseFloat(props.price).toFixed(2)}
+      </h4>
+    ),
+    [props.price],
+  );
+
+  const showDiscountPrice = useMemo(
+    () => (
+      <div className="price_con flex flex-row flex-wrap items-center gap-x-5 w-full h-fit">
+        <p className="text-sm font-light line-through decoration-red-300 decoration-2">
+          ${parseFloat(props.price).toFixed(2)}
+        </p>
+        <p className="text-lg font-semibold text-red-500">
+          -{hasDiscount?.percent ?? 0}%
+        </p>
+        <p className="text-sm font-medium">
+          {hasDiscount?.newprice ? `$${hasDiscount?.newprice}` : ""}
+        </p>
+      </div>
+    ),
+    [props.price, hasDiscount],
+  );
+
+  const closename = useMemo(
+    () => (props.stocktype && props.id ? props.stocktype + props.id : ""),
+    [props.stocktype, props.id],
+  );
+
+  const handleLowStockClick = useCallback(() => {
+    setopenmodal((prev) => ({
+      ...prev,
+      [closename]: true,
+    }));
+  }, [closename, setopenmodal]);
+
+  const showLowStock = useMemo(
+    () =>
+      !promotion.selectproduct && props.lowstock && props.isAdmin ? (
+        <PrimaryButton
+          type="button"
+          text="Low Stock"
+          onClick={handleLowStockClick}
+          width="100%"
+          color="lightcoral"
+        />
+      ) : null,
+    [
+      promotion.selectproduct,
+      props.lowstock,
+      props.isAdmin,
+      handleLowStockClick,
+    ],
+  );
   //
   ///end
 
@@ -223,22 +250,10 @@ export default function Card(props: cardprops) {
         key={props.index}
         ref={ref}
         style={{ width: props.width, height: props.height }}
-        onMouseEnter={() => {
-          handeMouseEvent("enter");
-          sethover(true);
-        }}
-        onMouseLeave={() => {
-          handeMouseEvent("leave");
-          sethover(false);
-        }}
-        onTouchStart={() => {
-          handeMouseEvent("enter");
-          sethover(true);
-        }}
-        onTouchCancel={() => {
-          handeMouseEvent("leave");
-          sethover(false);
-        }}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        onTouchStart={handleMouseEnter}
+        onTouchCancel={handleMouseLeave}
         className={`card__container w-[500px] h-fit flex flex-col
        hover:border-[2px] hover:border-gray-300 ${
          isProduct ? "border border-gray-300" : ""
@@ -270,7 +285,7 @@ export default function Card(props: cardprops) {
           <span className="absolute top-3 right-3">
             {shouldShowCheckmark ? (
               showCheckmark
-            ) : state.hover && props.isAdmin ? (
+            ) : showEditMenu && props.isAdmin ? (
               <SubInventoryMenu
                 data={editactionMenu}
                 index={props.id}
@@ -311,22 +326,24 @@ export default function Card(props: cardprops) {
             radius="10px"
           />
         )}
-        {showLowStock()}
+        {showLowStock}
       </div>
-      {openmodal && (
-        <>
-          {openmodal[closename] && (
-            <Variantcontainer
-              type="stock"
-              editindex={props.id}
-              closename={closename}
-            />
-          )}
-        </>
+      {openmodal?.[closename] && props.stocktype === StockTypeEnum.variants ? (
+        <Variantcontainer
+          type="stock"
+          editindex={props.id}
+          closename={closename}
+        />
+      ) : openmodal?.[closename] && props.stocktype === StockTypeEnum.normal ? (
+        <UpdateStockModal closename={closename} action={props.reloaddata} />
+      ) : (
+        <> </>
       )}
     </>
   );
-}
+});
+
+export default Card;
 interface SecondayCardprops {
   id: number;
   img: string | StaticImageData;
@@ -381,7 +398,7 @@ export function SecondayCard(props: SecondayCardprops) {
         <h3 className="text-lg font-bold">
           {" "}
           {`$${parseFloat(
-            props.price.discount?.newprice?.toString() ?? `0.00`
+            props.price.discount?.newprice?.toString() ?? `0.00`,
           ).toFixed(2)}`}{" "}
         </h3>
       </div>
@@ -403,7 +420,7 @@ export function SecondayCard(props: SecondayCardprops) {
       undefined,
       "PUT",
       "JSON",
-      { id: props.id, qty: val }
+      { id: props.id, qty: val },
     );
     setloading(false);
 
@@ -520,100 +537,120 @@ interface Bannercardprops {
   isExpired?: boolean;
   reloaddata?: () => void;
 }
-export const BannerCard = ({
+export const BannerCard = memo(function BannerCard({
   data,
   index,
   id,
   type,
   isExpired,
   reloaddata,
-}: Bannercardprops) => {
+}: Bannercardprops) {
   const { promotion, setpromotion, openmodal } = useGlobalContext();
 
   const [hover, sethover] = useState(false);
-  const isBanner = promotion.banner_id === id;
+  const isBanner = useMemo(
+    () => promotion.banner_id === id,
+    [promotion.banner_id, id],
+  );
 
   const ref = useClickOutside(() => sethover(false));
-  const actionMenu = [
-    {
-      value: "Edit",
-      opencon: type === "promotion" ? "createPromotion" : "createBanner",
-    },
-    {
-      value: "Delete",
-      opencon: "",
-    },
-  ];
-  const handleSelectBanner = () => {
+
+  const actionMenu = useMemo(
+    () => [
+      {
+        value: "Edit",
+        opencon: type === "promotion" ? "createPromotion" : "createBanner",
+      },
+      {
+        value: "Delete",
+        opencon: "",
+      },
+    ],
+    [type],
+  );
+
+  const handleSelectBanner = useCallback(() => {
     sethover(true);
     if (promotion.selectbanner) {
-      let ID = 0;
-      isBanner ? (ID = 0) : (ID = id as number);
+      const ID = isBanner ? 0 : (id as number);
       setpromotion((prev) => ({
         ...prev,
         banner_id: ID === 0 ? undefined : ID,
       }));
     }
-  };
+  }, [promotion.selectbanner, isBanner, id, setpromotion]);
   return (
     <div
       ref={ref}
       key={index}
-      onClick={() => handleSelectBanner()}
-      className={`Banner__container relative w-full h-full transition-all rounded-t-lg border-t border-l border-r border-gray-300  duration-300 hover:-translate-y-3`}
+      onClick={handleSelectBanner}
+      className={`Banner__container group relative w-full h-full transition-all duration-300 ease-in-out
+        rounded-lg overflow-hidden shadow-md hover:shadow-2xl hover:-translate-y-2 
+        border border-gray-200 hover:border-gray-400 cursor-pointer
+        ${
+          isBanner && promotion.selectbanner
+            ? "ring-4 ring-blue-500 ring-offset-2"
+            : ""
+        }`}
     >
       {isExpired && (
-        <p
-          className={
-            "status w-full h-fit p-2 bg-red-300 font-bold text-lg text-white"
-          }
+        <div
+          className="status absolute top-0 left-0 right-0 z-10 px-3 py-2 sm:px-4 sm:py-2.5 
+          bg-gradient-to-r from-red-500 to-red-600 backdrop-blur-sm"
         >
-          Expired
-        </p>
+          <p className="font-bold text-sm sm:text-base md:text-lg text-white text-center flex items-center justify-center gap-2">
+            <span className="inline-block w-2 h-2 bg-white rounded-full animate-pulse"></span>
+            Expired
+          </p>
+        </div>
       )}
-      <div className="relative w-full h-full">
-        <Image
+
+      <div className="relative w-full aspect-[16/9] sm:aspect-[2/1] md:aspect-[21/9] overflow-hidden bg-gray-100">
+        <ImageWithLoader
           src={data.url ?? ""}
-          alt={`Banner`}
-          className="banner w-full h-full object-cover"
+          alt={data.name || "Banner"}
+          className="banner w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+          containerClassName="w-full h-full"
           loading="lazy"
           width={600}
           height={600}
         />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
       </div>
 
-      <p className="Banner text-xl w-full h-fit break-words p-1 bg-[#495464] rounded-b-lg  font-bold text-white">
-        {data.name.length === 0 ? "No name" : data.name}
-      </p>
+      <div className="p-3 sm:p-4 bg-gradient-to-br from-[#495464] to-[#3a4350]">
+        <p className="text-base sm:text-lg md:text-xl font-bold text-white break-words line-clamp-2 group-hover:text-blue-200 transition-colors duration-200">
+          {data.name.length === 0 ? "No name" : data.name}
+        </p>
+      </div>
 
-      <span
-        // onClick={() =>
-        //   (!promotion.selectbanner || !openmodal.managebanner) && setopen(true)
-        // }
-        className="action_container absolute top-0 right-0"
-      >
+      <span className="action_container absolute top-2 right-2 sm:top-3 sm:right-3 z-20">
         {type === "banner" && isBanner && promotion.selectbanner && (
-          <Image
-            src={Checkmark}
-            alt="checkmark"
-            width={1000}
-            height={1000}
-            className="w-[30px] h-[30px] object-contain"
-          />
+          <div className="bg-white rounded-full p-1 sm:p-1.5 shadow-lg">
+            <Image
+              src={Checkmark}
+              alt="checkmark"
+              width={100}
+              height={100}
+              className="w-6 h-6 sm:w-8 sm:h-8 object-contain"
+            />
+          </div>
         )}
         {hover && !promotion.selectbanner && !openmodal.managebanner && (
-          <SubInventoryMenu
-            data={actionMenu}
-            type={type}
-            style={{ top: "0", right: "0" }}
-            index={id}
-            reloaddata={reloaddata}
-          />
+          <div className="bg-white rounded-lg shadow-xl">
+            <SubInventoryMenu
+              data={actionMenu}
+              type={type}
+              style={{ top: "0", right: "0" }}
+              index={id}
+              reloaddata={reloaddata}
+            />
+          </div>
         )}
       </span>
     </div>
   );
-};
+});
 
 export const UserCard = ({
   uid,

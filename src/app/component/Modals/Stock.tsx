@@ -1,12 +1,10 @@
 import {
   Productinitailizestate,
   useGlobalContext,
-  VariantColorValueType,
 } from "@/src/context/GlobalContext";
 import { errorToast, successToast } from "../Loading";
 import Modal from "../Modals";
 import { ApiRequest } from "@/src/context/CustomHook";
-import PrimaryButton from "../Button";
 import { motion } from "framer-motion";
 import {
   Box,
@@ -22,7 +20,7 @@ import {
 
 import { Chip as NextChip } from "@nextui-org/chip";
 import { useRouter } from "next/navigation";
-import { Label } from "react-aria-components";
+import { VariantColorValueType } from "@/src/types/product.type";
 
 export const UpdateStockModal = ({
   action,
@@ -41,7 +39,7 @@ export const UpdateStockModal = ({
       setisLoading,
       "PUT",
       "JSON",
-      { stock: product.stock, id: product.id, type: "editstock" }
+      { stock: product.stock, id: product.id, type: "editstock" },
     );
     if (!update.success) {
       errorToast("Failed To Update Stock");
@@ -206,11 +204,11 @@ export function StockSelect({
                     key={value}
                     label={
                       data.type === "COLOR"
-                        ? (
+                        ? ((
                             data.value.find(
-                              (i: any) => i.val === value
+                              (i: any) => i.val === value,
                             ) as VariantColorValueType
-                          )?.name ?? ""
+                          )?.name ?? "")
                         : value
                     }
                   />
@@ -246,7 +244,7 @@ export function StockSelect({
                   style={getStyles(
                     item.val,
                     data.value.map((i: any) => i.val),
-                    theme
+                    theme,
                   )}
                 >
                   <div className="w-fit h-fit flex flex-row gap-x-5 items-center justify-center">

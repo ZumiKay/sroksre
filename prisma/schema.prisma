@@ -127,6 +127,7 @@ model Products {
   parentcateogries  Parentcategories? @relation(fields: [parentcategory_id], references: [id])
   childcategories   Childcategories?  @relation(fields: [childcategory_id], references: [id])
   Variant           Variant[]
+  Variantsection    VariantSection[]
   Stock             Stock[]
   Orderproduct      Orderproduct[]
   relatedproductId  Int?
@@ -282,15 +283,27 @@ model Info {
 }
 
 model Variant {
-  id              Int               @id @default(autoincrement())
-  product_id      Int?
-  product         Products?         @relation(fields: [product_id], references: [id], onDelete: Cascade)
-  option_title    String
-  option_type     String
-  option_value    Json
-  Varianttemplate Varianttemplate[]
+  id               Int               @id @default(autoincrement())
+  product_id       Int?
+  product          Products?         @relation(fields: [product_id], references: [id], onDelete: Cascade)
+  option_title     String
+  option_type      String
+  option_value     Json
+  optional         Boolean?
+  sectionId        String?
+  Varianttemplate  Varianttemplate[]
+  variantSection   VariantSection?   @relation(fields: [variantSectionId], references: [id])
+  variantSectionId Int?
 
   @@map("variant")
+}
+
+model VariantSection {
+  id         Int       @id @default(autoincrement())
+  strId      String    @unique() @default(uuid())
+  Variants   Variant[]
+  Product    Products? @relation(fields: [productsId], references: [id])
+  productsId Int?
 }
 
 model Varianttemplate {

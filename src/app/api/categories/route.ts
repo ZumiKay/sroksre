@@ -10,7 +10,6 @@ import {
 import Prisma from "@/src/lib/prisma";
 import { extractQueryParams } from "../banner/route";
 import dayjs from "dayjs";
-import { DeleteImageTempForCurrentUser } from "../products/cover/helper/Cleanup";
 
 export const categorytype = {
   normal: "normal",
@@ -185,17 +184,11 @@ export async function GET(req: NextRequest) {
     const url = req.url.toString();
     const { ty } = extractQueryParams(url);
 
-    ///Cleaning temp
-
-    if (ty === "create") {
-      const isDel = await DeleteImageTempForCurrentUser();
-      if (!isDel?.success) {
-        throw Error(isDel?.error);
-      }
-    }
+    const whereClause =
+      ty === "create" ? { type: categorytype.normal } : undefined;
 
     const allcat = await Prisma.parentcategories.findMany({
-      where: ty === "create" ? { type: categorytype.normal } : {},
+      where: whereClause,
       select: {
         id: true,
         name: true,
@@ -212,20 +205,26 @@ export async function GET(req: NextRequest) {
       },
     });
 
+    //Compare date using DayJs
     const now = dayjs(new Date());
 
     const checkpromotion = async (pid: number) => {
-      const promotion = await Prisma.promotion.findUnique({
-        where: { id: pid },
-        select: {
-          expireAt: true,
-        },
-      });
+      try {
+        const promotion = await Prisma.promotion.findUnique({
+          where: { id: pid },
+          select: {
+            expireAt: true,
+          },
+        });
 
-      return (
-        dayjs(promotion?.expireAt).isBefore(now) ||
-        dayjs(promotion?.expireAt).isSame(now)
-      );
+        return (
+          dayjs(promotion?.expireAt).isBefore(now) ||
+          dayjs(promotion?.expireAt).isSame(now)
+        );
+      } catch (error) {
+        console.error("Error checking promotion:", error);
+        return false;
+      }
     };
 
     const categories = await Promise.all(
@@ -251,8 +250,19 @@ export async function GET(req: NextRequest) {
 
     return Response.json({ data: categories }, { status: 200 });
   } catch (error) {
-    console.log("Fetch Categories");
-    return Response.json({ message: "Error Occured" }, { status: 500 });
+    console.error("Fetch Categories Error:", error);
+    console.error("Error details:", {
+      message: error instanceof Error ? error.message : "Unknown error",
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+
+    return Response.json(
+      {
+        message: "Error Occurred",
+        error: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 }
+    );
   }
 }
 

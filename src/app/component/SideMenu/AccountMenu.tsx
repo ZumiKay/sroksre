@@ -1,6 +1,12 @@
 "use client";
-import React, { SetStateAction, useEffect, useState } from "react";
-import { signOut } from "next-auth/react";
+import React, {
+  SetStateAction,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import { signOut, useSession } from "next-auth/react";
 import { usePathname, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import PrimaryButton from "../Button";
@@ -29,9 +35,7 @@ import {
 
 interface AccountMenuProps {
   setProfile: (value: SetStateAction<boolean>) => void;
-  session: Usersessiontype | null;
 }
-
 const AccountMenuItems = [
   {
     name: "Profile",
@@ -70,26 +74,54 @@ const AccountMenuItems = [
   },
 ];
 
-export default function AccountMenu({ setProfile, session }: AccountMenuProps) {
+export default function AccountMenu({ setProfile }: AccountMenuProps) {
   const pathname = usePathname();
+  const { data: session, status, update } = useSession();
+  const usersession = useMemo(
+    () => session?.user as unknown as Usersessiontype,
+    [session]
+  );
+  const memorizedStatus = useMemo(() => status, [status]);
   const { openmodal, setopenmodal } = useGlobalContext();
   const [loading, setloading] = useState(false);
   const [Homeitems, sethomeitems] = useState<Homeitemtype[]>([]);
   const [isEdit, setisEdit] = useState(false);
   const [selected, setselected] = useState<number[] | undefined>([]);
-
   const router = useRouter();
   const ref = useClickOutside(() => setProfile(false));
   const { isMobile } = useScreenSize();
 
   useEffect(() => {
+    let timeout: NodeJS.Timeout | null = null;
+
+    //Verify User Session
+    const verifyUserSession = async () => {
+      try {
+        const session = await update();
+
+        if (!session) {
+          errorToast("Session Expired");
+          timeout = setTimeout(() => window.location.reload(), 150);
+        }
+      } catch (error) {
+        //Force Signout if Error
+        await signOut();
+        router.push("/account");
+      }
+    };
+
+    if (memorizedStatus === "authenticated") {
+      verifyUserSession();
+    }
+
     document.body.style.overflowY = "hidden";
     return () => {
       document.body.style.overflowY = "auto";
+      timeout && clearTimeout(timeout);
     };
   }, []);
 
-  const handleSignOut = async () => {
+  const handleSignOut = useCallback(async () => {
     setloading(true);
     const deleteSession = await ApiRequest(
       "/api/users/logout",
@@ -103,9 +135,9 @@ export default function AccountMenu({ setProfile, session }: AccountMenuProps) {
       await signOut();
     }
     setloading(false);
-  };
+  }, []);
 
-  const handleEdit = async () => {
+  const handleEdit = useCallback(async () => {
     if (!isEdit) {
       setisEdit(true);
     } else {
@@ -130,9 +162,9 @@ export default function AccountMenu({ setProfile, session }: AccountMenuProps) {
       setisEdit(false);
       router.refresh();
     }
-  };
+  }, [isEdit, Homeitems, router]);
 
-  const handleDelete = async () => {
+  const handleDelete = useCallback(async () => {
     if (!selected?.length) {
       errorToast("No item selected");
       return;
@@ -163,22 +195,42 @@ export default function AccountMenu({ setProfile, session }: AccountMenuProps) {
     };
 
     await Delayloading(deleteItemsAsync, setloading, 500);
-  };
+  }, [selected, Homeitems]);
 
-  const handleOnEdit = (idx: number) => {
-    const updateselected = [...(selected ?? [])];
-    const isExist = updateselected.findIndex((i) => i === idx);
-    if (isExist !== -1) {
-      updateselected.splice(isExist, 1);
-    } else {
-      updateselected.push(idx);
-    }
-    setselected(updateselected);
-  };
+  const handleOnEdit = useCallback((idx: number) => {
+    setselected((prev) => {
+      const updateselected = [...(prev ?? [])];
+      const isExist = updateselected.findIndex((i) => i === idx);
+      if (isExist !== -1) {
+        updateselected.splice(isExist, 1);
+      } else {
+        updateselected.push(idx);
+      }
+      return updateselected;
+    });
+  }, []);
 
-  const filteredMenuItems = AccountMenuItems.filter((i) =>
-    pathname !== "/" ? i.name !== AccountMenuItems[4].name : true
-  ).filter((i) => (session?.role === "ADMIN" ? i.isAdmin : i.isUser));
+  const filteredMenuItems = useMemo(
+    () =>
+      AccountMenuItems.filter((i) =>
+        pathname !== "/" ? i.name !== AccountMenuItems[4].name : true
+      ).filter((i) => (usersession?.role === "ADMIN" ? i.isAdmin : i.isUser)),
+    [pathname, usersession?.role]
+  );
+
+  // Memoize callbacks to prevent MenuItem re-renders
+  const handleEditHomeClick = useCallback(() => {
+    setopenmodal((prev) => ({ ...prev, editHome: true }));
+  }, [setopenmodal]);
+
+  const handleNavigate = useCallback(
+    (link: string) => {
+      router.push(link);
+      router.refresh();
+      isMobile && setProfile(false);
+    },
+    [router, isMobile, setProfile]
+  );
 
   return (
     <motion.aside
@@ -190,7 +242,12 @@ export default function AccountMenu({ setProfile, session }: AccountMenuProps) {
       onMouseEnter={() => setProfile(true)}
       className="fixed right-0 top-0 w-[430px] max-small_phone:w-full h-full z-[99] bg-white shadow-2xl flex flex-col items-center border-l border-gray-200"
     >
-      {openmodal?.editHome ? (
+      {status === "loading" ? (
+        <div className="w-full h-full flex flex-col items-center justify-center gap-y-6 px-6">
+          <div className="w-20 h-20 border-4 border-gray-200 border-t-blue-600 rounded-full animate-spin"></div>
+          <p className="text-gray-500 text-sm">Loading account...</p>
+        </div>
+      ) : openmodal?.editHome ? (
         <div className="w-[90%] h-full flex flex-col items-center gap-y-10 pt-8">
           <h3
             onClick={() =>
@@ -250,50 +307,20 @@ export default function AccountMenu({ setProfile, session }: AccountMenuProps) {
         <>
           <div className="w-full flex flex-col items-center pt-8 pb-6 border-b border-gray-100">
             <h2 className="text-xl font-bold text-gray-800">
-              {session?.email || "User"}
+              {usersession.email || "User"}
             </h2>
             <p className="text-sm text-gray-500 capitalize">
-              {session?.role?.toLowerCase() || "Member"}
+              {usersession.role || "Member"}
             </p>
           </div>
           <ul className="menu_container flex flex-col items-center w-full gap-y-3 mt-8 mb-8 px-6">
-            {filteredMenuItems.map((item, idx) => (
-              <li
-                key={idx}
-                className="side_link w-full h-[56px] text-center rounded-xl transition-all duration-200"
-              >
-                {item.link === "" ? (
-                  <div
-                    onClick={() => {
-                      setopenmodal((prev) => ({ ...prev, editHome: true }));
-                    }}
-                    className="w-full h-full flex flex-row items-center cursor-pointer gap-x-4 px-4 rounded-xl transition-all duration-200 hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 hover:shadow-md hover:scale-[1.02] active:scale-[0.98] group"
-                  >
-                    <div className="transition-transform duration-200 group-hover:scale-110">
-                      {item.icon}
-                    </div>
-                    <h3 className="text-base font-semibold text-gray-700 group-hover:text-gray-900">
-                      {item.name}
-                    </h3>
-                  </div>
-                ) : (
-                  <div
-                    onClick={() => {
-                      router.push(item.link);
-                      router.refresh();
-                      isMobile && setProfile(false);
-                    }}
-                    className="w-full h-full flex flex-row items-center gap-x-4 px-4 rounded-xl transition-all duration-200 hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 hover:shadow-md hover:scale-[1.02] active:scale-[0.98] cursor-pointer group"
-                  >
-                    <div className="transition-transform duration-200 group-hover:scale-110">
-                      {item.icon}
-                    </div>
-                    <h3 className="text-base font-semibold text-gray-700 group-hover:text-gray-900">
-                      {item.name}
-                    </h3>
-                  </div>
-                )}
-              </li>
+            {filteredMenuItems.map((item) => (
+              <MenuItem
+                key={item.name}
+                item={item}
+                onEditHomeClick={handleEditHomeClick}
+                onNavigate={handleNavigate}
+              />
             ))}
           </ul>
           <div className="w-full px-6 mt-auto mb-8">
@@ -322,3 +349,40 @@ export default function AccountMenu({ setProfile, session }: AccountMenuProps) {
     </motion.aside>
   );
 }
+
+// Memoized MenuItem component to prevent unnecessary re-renders
+interface MenuItemProps {
+  item: (typeof AccountMenuItems)[0];
+  onEditHomeClick: () => void;
+  onNavigate: (link: string) => void;
+}
+
+const MenuItem = React.memo(
+  ({ item, onEditHomeClick, onNavigate }: MenuItemProps) => {
+    const handleClick = useCallback(() => {
+      if (item.link === "") {
+        onEditHomeClick();
+      } else {
+        onNavigate(item.link);
+      }
+    }, [item.link, onEditHomeClick, onNavigate]);
+
+    return (
+      <li className="side_link w-full h-[56px] text-center rounded-xl transition-all duration-200">
+        <div
+          onClick={handleClick}
+          className="w-full h-full flex flex-row items-center cursor-pointer gap-x-4 px-4 rounded-xl transition-all duration-200 hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 hover:shadow-md hover:scale-[1.02] active:scale-[0.98] group"
+        >
+          <div className="transition-transform duration-200 group-hover:scale-110">
+            {item.icon}
+          </div>
+          <h3 className="text-base font-semibold text-gray-700 group-hover:text-gray-900">
+            {item.name}
+          </h3>
+        </div>
+      </li>
+    );
+  }
+);
+
+MenuItem.displayName = "MenuItem";

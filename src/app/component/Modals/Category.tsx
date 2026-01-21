@@ -2,10 +2,9 @@
 import {
   CateogoryInitailizestate,
   CateogoryState,
-  SelectType,
   useGlobalContext,
 } from "@/src/context/GlobalContext";
-import React, { ChangeEvent, useEffect, useState } from "react";
+import React, { ChangeEvent, useCallback, useEffect, useState } from "react";
 import { errorToast, successToast } from "../Loading";
 import {
   ApiRequest,
@@ -15,12 +14,12 @@ import {
 import { motion } from "framer-motion";
 import { SecondaryModal } from "../Modals";
 import { AddSubCategoryMenu } from "../ToggleMenu";
-import PrimaryButton from "../Button";
 import { SelectionCustom } from "../Pagination_Component";
 import { Categorytype } from "../../api/categories/route";
 import { DateRangePicker, Input } from "@nextui-org/react";
 import { parseDate } from "@internationalized/date";
-import { NormalSkeleton, SelectAndSearchProduct } from "../Banner";
+import { SelectAndSearchProduct } from "../Banner";
+import { SelectType } from "@/src/types/productAction.type";
 
 const selecttype: Array<SelectType> = [
   {
@@ -70,23 +69,22 @@ export const Category = () => {
   const [catetype, setcatetype] = useState<Categorytype>("normal");
   const { isMobile, isTablet } = useScreenSize();
 
-  const handleAdd = async () => {
-    const isExist = allData?.category?.some(
-      (obj) => obj.name === category.name
-    );
-
-    if (category.name.length === 0 || category.description.length === 0) {
+  const handleAdd = useCallback(async () => {
+    if (!category.name || !category.description) {
       errorToast("Please Fill all required");
       return;
     }
+
+    // Check if category name already exists
+    const isExist = allData?.category?.some(
+      (obj) => obj.name === category.name
+    );
     if (isExist) {
       errorToast("Category Existed");
       return;
     }
 
     setloading(true);
-
-    //Save To DB
     const saved = await ApiRequest(
       "/api/categories",
       undefined,
@@ -95,44 +93,40 @@ export const Category = () => {
       { ...category, type: catetype }
     );
     setloading(false);
+
     if (!saved.success) {
       errorToast("Failed To Create");
       return;
     }
 
     setcategory(CateogoryInitailizestate);
-
     successToast("Category Created");
-  };
+  }, [allData?.category, category, catetype]);
 
-  const handleNavbar = (show: "Create" | "Edit") => {
+  const handleNavbar = useCallback((show: "Create" | "Edit") => {
     setshow(show);
     setopenmodal((prev) => ({ ...prev, addsubcategory: false }));
     setcategory(CateogoryInitailizestate);
-  };
+  }, []);
 
-  const handleSelectPromotion = (value: Array<SelectType>) => {
-    const categories = { ...category };
+  const handleSelectPromotion = useCallback((value: Array<SelectType>) => {
+    const subcategories =
+      value?.length > 0
+        ? value.map((i) => ({
+            name: i.label,
+            type: "promo" as const,
+            pid: i.value as number,
+            id: i.value as number,
+          }))
+        : [];
 
-    if (!value) {
-      setcategory((prev) => ({ ...prev, subcategories: [] }));
-      return;
-    }
+    setcategory((prev) => ({ ...prev, subcategories }));
+  }, []);
 
-    categories.subcategories = value?.map((i) => ({
-      name: i.label,
-      type: "promo",
-      pid: i.value as number,
-      id: (i.value as number) ?? 0,
-    }));
-
-    setcategory(categories);
-  };
-
-  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setcategory((prev) => ({ ...prev, [name]: value }));
-  };
+  }, []);
 
   //category navbar
 
@@ -140,28 +134,24 @@ export const Category = () => {
     return (
       <div className="category__navbar w-full h-fit bg-gradient-to-r from-blue-50 via-purple-50 to-pink-50 rounded-2xl p-2 shadow-md border-2 border-gray-200">
         <div className="flex flex-row items-center gap-2">
-          <button
-            onClick={() => handleNavbar("Create")}
-            className={`category_header w-[50%] h-12 text-center text-base font-bold transition-all duration-300 rounded-xl flex items-center justify-center gap-2 ${
-              show === "Create"
-                ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg scale-105"
-                : "bg-white text-gray-600 hover:bg-gray-50 hover:text-gray-800 hover:shadow-md"
-            }`}
-          >
-            <i className="fa-solid fa-plus text-sm"></i>
-            <span>Create</span>
-          </button>
-          <button
-            onClick={() => handleNavbar("Edit")}
-            className={`category_header w-[50%] h-12 text-center text-base font-bold transition-all duration-300 rounded-xl flex items-center justify-center gap-2 ${
-              show === "Edit"
-                ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg scale-105"
-                : "bg-white text-gray-600 hover:bg-gray-50 hover:text-gray-800 hover:shadow-md"
-            }`}
-          >
-            <i className="fa-solid fa-pen-to-square text-sm"></i>
-            <span>Edit</span>
-          </button>
+          {(["Create", "Edit"] as const).map((mode) => (
+            <button
+              key={mode}
+              onClick={() => handleNavbar(mode)}
+              className={`category_header w-[50%] h-12 text-center text-base font-bold transition-all duration-300 rounded-xl flex items-center justify-center gap-2 ${
+                show === mode
+                  ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg scale-105"
+                  : "bg-white text-gray-600 hover:bg-gray-50 hover:text-gray-800 hover:shadow-md"
+              }`}
+            >
+              <i
+                className={`fa-solid ${
+                  mode === "Create" ? "fa-plus" : "fa-pen-to-square"
+                } text-sm`}
+              ></i>
+              <span>{mode}</span>
+            </button>
+          ))}
         </div>
       </div>
     );
@@ -324,7 +314,7 @@ export const Category = () => {
               ))}
           </>
         ) : (
-          <EditCategory loading={loading} setloading={setloading} />
+          <EditCategory loading={loading} setloading={setloading} show={show} />
         )}
         <div className="flex flex-row justify-start gap-4 w-full">
           {show === "Create" && (
@@ -360,9 +350,11 @@ export const Category = () => {
 const EditCategory = ({
   loading,
   setloading,
+  show,
 }: {
   loading: boolean;
   setloading: React.Dispatch<React.SetStateAction<boolean>>;
+  show: "Create" | "Edit";
 }) => {
   const {
     allData,
@@ -381,6 +373,8 @@ const EditCategory = ({
   //API Request
 
   useEffect(() => {
+    if (show !== "Edit") return;
+
     const fetchAllCate = async () => {
       const request = async () => {
         const res = await ApiRequest(URL, undefined, "GET");
@@ -391,17 +385,20 @@ const EditCategory = ({
       await Delayloading(request, setloading, 500);
     };
     fetchAllCate();
-  }, []);
+  }, [show, setloading, setalldata]);
 
-  const handleClick = (index: number) => {
-    setedit(!edit);
-    seteditindex(index);
+  const handleClick = useCallback(
+    (index: number) => {
+      setedit((prev) => !prev);
+      seteditindex(index);
 
-    if (allData?.category) {
-      setcategory(allData.category[index]);
-    }
-  };
-  const handleDelete = async () => {
+      if (allData?.category) {
+        setcategory(allData.category[index]);
+      }
+    },
+    [allData?.category]
+  );
+  const handleDelete = useCallback(async () => {
     setloading(true);
     const deleterequest = await ApiRequest(URL, undefined, "DELETE", "JSON", {
       id: globalindex.categoryeditindex,
@@ -413,65 +410,66 @@ const EditCategory = ({
       setglobalindex((prev) => ({ ...prev, categoryeditindex: [] }));
       successToast("Category Deleted");
     } else {
-      handleReset();
+      // Restore deleted categories on error
+      const resetcate = tempcate.filter((obj) =>
+        globalindex.categoryeditindex.includes(obj.id as number)
+      );
+      const allcate = [...(allData?.category ?? []), ...resetcate];
+      setalldata((prev) => ({ ...prev, category: allcate }));
+      settempcate([]);
+      setglobalindex((prev) => ({ ...prev, categoryeditindex: [] }));
       errorToast(deleterequest.error as string);
     }
-  };
+  }, [globalindex.categoryeditindex, tempcate, allData?.category]);
 
-  const handleConfirm = async () => {
-    if (category.name.length === 0 || !category.description) {
-      errorToast("Please fill all requried");
+  const handleConfirm = useCallback(async () => {
+    if (!category.name || !category.description) {
+      errorToast("Please fill all required");
       return;
     }
 
-    const updateReq = async () => {
-      const updateRequest = async () => {
-        const res = await ApiRequest(URL, undefined, "PUT", "JSON", category);
-        if (res.success) {
-          let allcate = [...(allData?.category ?? [])];
-
-          allcate[editindex].name = category.name;
-          allcate[editindex].subcategories = category.subcategories;
-          setalldata((prev) => ({ ...prev, category: allcate }));
-          setedit(false);
-          seteditindex(-1);
-          successToast("Category Updated");
-        } else {
-          errorToast("Failed To Update");
-        }
-      };
-
-      await Delayloading(updateRequest, setloading, 1000);
+    const updateRequest = async () => {
+      const res = await ApiRequest(URL, undefined, "PUT", "JSON", category);
+      if (res.success) {
+        const allcate = [...(allData?.category ?? [])];
+        allcate[editindex] = {
+          ...allcate[editindex],
+          name: category.name,
+          subcategories: category.subcategories,
+        };
+        setalldata((prev) => ({ ...prev, category: allcate }));
+        setedit(false);
+        seteditindex(-1);
+        successToast("Category Updated");
+      } else {
+        errorToast("Failed To Update");
+      }
     };
-    await updateReq();
-  };
-  const handleReset = () => {
-    let deletedcate = [...tempcate];
-    let allcate = [...(allData?.category ?? [])];
-    const resetcate = deletedcate.filter((obj) =>
+
+    await Delayloading(updateRequest, setloading, 1000);
+  }, [category, editindex, allData?.category]);
+  const handleReset = useCallback(() => {
+    const resetcate = tempcate.filter((obj) =>
       globalindex.categoryeditindex.includes(obj.id as number)
     );
-    resetcate.forEach((obj) => allcate.push(obj));
+    const allcate = [...(allData?.category ?? []), ...resetcate];
     setalldata((prev) => ({ ...prev, category: allcate }));
     settempcate([]);
     setglobalindex((prev) => ({ ...prev, categoryeditindex: [] }));
-  };
+  }, [tempcate, allData?.category, globalindex.categoryeditindex]);
 
-  const handleSelectPromotion = (value: Array<SelectType>) => {
-    const categories = { ...category };
+  const handleSelectPromotion = useCallback((value: Array<SelectType>) => {
+    const subcategories =
+      value?.length > 0
+        ? value.map((i) => ({
+            name: i.label,
+            type: "promo" as const,
+            pid: i.value as number,
+          }))
+        : [];
 
-    if (!categories.subcategories) return;
-
-    categories.subcategories = !value
-      ? []
-      : value.map((i) => ({
-          name: i.label,
-          type: "promo",
-          pid: i.value as number,
-        }));
-
-    setcategory(categories);
-  };
+    setcategory((prev) => ({ ...prev, subcategories }));
+  }, []);
 
   return (
     <>
@@ -547,21 +545,17 @@ const EditCategory = ({
                   </button>
                   <button
                     onClick={() => {
-                      let categorydeleteindex = [
-                        ...globalindex.categoryeditindex,
-                      ];
-                      let allcate = [...(allData.category ?? [])];
-                      let copytemp = [...tempcate];
-                      copytemp.push(allcate[idx]);
-                      allcate.splice(idx, 1);
+                      const allcate = [...(allData.category ?? [])];
+                      const deletedItem = allcate.splice(idx, 1)[0];
 
                       setalldata((prev) => ({ ...prev, category: allcate }));
-                      settempcate(copytemp);
-
-                      categorydeleteindex.push(obj.id as number);
+                      settempcate((prev) => [...prev, deletedItem]);
                       setglobalindex((prev) => ({
                         ...prev,
-                        categoryeditindex: categorydeleteindex,
+                        categoryeditindex: [
+                          ...prev.categoryeditindex,
+                          obj.id as number,
+                        ],
                       }));
                     }}
                     className="actions text-white font-bold text-sm cursor-pointer min-w-[100px] h-full transition-all duration-300 rounded-lg flex items-center justify-center gap-2 bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 hover:shadow-lg px-4 py-2"

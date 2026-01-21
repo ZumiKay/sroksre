@@ -19,11 +19,6 @@ import {
 import { Relatedproducttype } from "@/src/types/product.type";
 import { Orderpricetype } from "@/src/types/order.type";
 
-export const revalidate = 600;
-
-// Enable dynamic params for product pages
-export const dynamicParams = true;
-
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const id = parseInt(params.id);
 
@@ -241,7 +236,7 @@ const ShowSimilarProduct = async ({
     parent_id,
     limit,
     child_id,
-    promoid
+    promoid,
   );
 
   if (data.success) {

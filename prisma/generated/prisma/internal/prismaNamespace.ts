@@ -405,6 +405,7 @@ export const ModelName = {
   Questions: 'Questions',
   Info: 'Info',
   Variant: 'Variant',
+  VariantSection: 'VariantSection',
   Varianttemplate: 'Varianttemplate',
   Stock: 'Stock',
   Stockvalue: 'Stockvalue',
@@ -427,7 +428,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "wishlist" | "address" | "usersession" | "parentcategories" | "childcategories" | "products" | "productcategory" | "productcover" | "tempimage" | "producttype" | "orders" | "orderproduct" | "banner" | "homecontainer" | "containeritems" | "promotion" | "answers" | "questions" | "info" | "variant" | "varianttemplate" | "stock" | "stockvalue" | "question" | "policy" | "paragraph" | "notification"
+    modelProps: "user" | "wishlist" | "address" | "usersession" | "parentcategories" | "childcategories" | "products" | "productcategory" | "productcover" | "tempimage" | "producttype" | "orders" | "orderproduct" | "banner" | "homecontainer" | "containeritems" | "promotion" | "answers" | "questions" | "info" | "variant" | "variantSection" | "varianttemplate" | "stock" | "stockvalue" | "question" | "policy" | "paragraph" | "notification"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -1985,6 +1986,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    VariantSection: {
+      payload: Prisma.$VariantSectionPayload<ExtArgs>
+      fields: Prisma.VariantSectionFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.VariantSectionFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VariantSectionPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.VariantSectionFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VariantSectionPayload>
+        }
+        findFirst: {
+          args: Prisma.VariantSectionFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VariantSectionPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.VariantSectionFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VariantSectionPayload>
+        }
+        findMany: {
+          args: Prisma.VariantSectionFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VariantSectionPayload>[]
+        }
+        create: {
+          args: Prisma.VariantSectionCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VariantSectionPayload>
+        }
+        createMany: {
+          args: Prisma.VariantSectionCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.VariantSectionCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VariantSectionPayload>[]
+        }
+        delete: {
+          args: Prisma.VariantSectionDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VariantSectionPayload>
+        }
+        update: {
+          args: Prisma.VariantSectionUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VariantSectionPayload>
+        }
+        deleteMany: {
+          args: Prisma.VariantSectionDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.VariantSectionUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.VariantSectionUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VariantSectionPayload>[]
+        }
+        upsert: {
+          args: Prisma.VariantSectionUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$VariantSectionPayload>
+        }
+        aggregate: {
+          args: Prisma.VariantSectionAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateVariantSection>
+        }
+        groupBy: {
+          args: Prisma.VariantSectionGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.VariantSectionGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.VariantSectionCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.VariantSectionCountAggregateOutputType> | number
+        }
+      }
+    }
     Varianttemplate: {
       payload: Prisma.$VarianttemplatePayload<ExtArgs>
       fields: Prisma.VarianttemplateFieldRefs
@@ -2808,10 +2883,22 @@ export const VariantScalarFieldEnum = {
   product_id: 'product_id',
   option_title: 'option_title',
   option_type: 'option_type',
-  option_value: 'option_value'
+  option_value: 'option_value',
+  optional: 'optional',
+  sectionId: 'sectionId',
+  variantSectionId: 'variantSectionId'
 } as const
 
 export type VariantScalarFieldEnum = (typeof VariantScalarFieldEnum)[keyof typeof VariantScalarFieldEnum]
+
+
+export const VariantSectionScalarFieldEnum = {
+  id: 'id',
+  strId: 'strId',
+  productsId: 'productsId'
+} as const
+
+export type VariantSectionScalarFieldEnum = (typeof VariantSectionScalarFieldEnum)[keyof typeof VariantSectionScalarFieldEnum]
 
 
 export const VarianttemplateScalarFieldEnum = {
@@ -3150,6 +3237,7 @@ export type GlobalOmitConfig = {
   questions?: Prisma.QuestionsOmit
   info?: Prisma.InfoOmit
   variant?: Prisma.VariantOmit
+  variantSection?: Prisma.VariantSectionOmit
   varianttemplate?: Prisma.VarianttemplateOmit
   stock?: Prisma.StockOmit
   stockvalue?: Prisma.StockvalueOmit

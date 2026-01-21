@@ -1,6 +1,11 @@
 import { InventoryType } from "../app/dashboard/inventory/varaint_action";
 import { Orderpricetype } from "./order.type";
 
+export enum StockTypeEnum {
+  normal = "stock",
+  variants = "variant",
+}
+
 export interface infovaluetype {
   qty: number;
   val: string;
@@ -44,11 +49,18 @@ export type VariantColorValueType = {
   val: string;
   name?: string;
 };
+
+export enum VariantTypeEnum {
+  color = "COLOR",
+  text = "TEXT",
+}
 export interface Varianttype {
   id?: number;
   option_title: string;
-  option_type: "COLOR" | "TEXT";
+  option_type: VariantTypeEnum;
   option_value: Array<string | VariantColorValueType>;
+  optional?: boolean;
+  sectionId?: string;
   [key: string]: any;
 }
 
@@ -74,18 +86,27 @@ export interface Relatedproducttype {
     url: string;
   }[];
 }
+
+export interface VariantSectionType {
+  id?: number;
+  strId?: string;
+  Variants: Array<Varianttype>;
+  Product?: ProductState;
+  productsId?: number;
+}
 export interface ProductState {
   id?: number;
   name: string;
   price: number;
   description: string;
-  stocktype: string;
+  stocktype: StockTypeEnum;
   covers: productcoverstype[] | [];
   category: { parent_id: number; child_id?: number };
   details: ProductInfo[] | [];
   stock?: number;
   variantcount?: number;
   Variant?: Array<Varianttype>;
+  VariantSection?: Array<VariantSectionType>;
   Stock?: Array<Stocktype>;
   lowstock?: boolean;
   incart?: boolean;

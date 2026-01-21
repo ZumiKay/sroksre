@@ -1,5 +1,5 @@
+import { VariantColorValueType } from "@/src/types/product.type";
 import { RGBColor } from "react-color";
-import { VariantColorValueType } from "@/src/context/GlobalContext";
 
 export interface VariantDataType {
   id?: number;

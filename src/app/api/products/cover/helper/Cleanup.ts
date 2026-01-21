@@ -6,53 +6,53 @@ import { del } from "@vercel/blob";
 
 /**Clean up image temp */
 
-export const DeleteImageTempForCurrentUser = async () => {
+export const DeleteImageTempForCurrentUser = async (delStorage?: boolean) => {
   const user = await getUser();
-
   if (!user) return null;
 
-  const isTemp = await Prisma.tempimage.findMany({
-    where: { user_id: user.id },
-  });
-
-  if (!isTemp || isTemp.length === 0) {
-    return null;
-  }
-
   try {
-    // Run both cleanup operations in parallel
-    const [deletedFromDB, deletedFromStorage] = await Promise.allSettled([
-      // Delete from database
-      Prisma.tempimage.deleteMany({
+    const deletedRecords = await Prisma.$transaction(async (tx) => {
+      const records = await tx.tempimage.findMany({
         where: { user_id: user.id },
-      }),
-      // Delete from Vercel Blob storage
-      Promise.all(
-        isTemp.map((temp) =>
-          del(temp.name).catch((error) => {
-            console.error(`Failed to delete ${temp.name} from storage:`, error);
-            return null;
-          })
-        )
-      ),
-    ]);
+        select: { id: true, name: true },
+      });
 
-    // Log results
-    if (deletedFromDB.status === "rejected") {
-      console.error("Failed to delete from database:", deletedFromDB.reason);
-    }
-    if (deletedFromStorage.status === "rejected") {
-      console.error(
-        "Failed to delete from storage:",
-        deletedFromStorage.reason
+      if (records.length === 0) return [];
+
+      await tx.tempimage.deleteMany({
+        where: { user_id: user.id },
+      });
+
+      return records;
+    });
+
+    if (deletedRecords.length === 0) return null;
+
+    let storageCleanup = true;
+    if (delStorage) {
+      const storageResults = await Promise.allSettled(
+        deletedRecords.map((record) => del(record.name))
       );
+
+      storageCleanup = storageResults.every(
+        (result) => result.status === "fulfilled"
+      );
+
+      storageResults.forEach((result, index) => {
+        if (result.status === "rejected") {
+          console.error(
+            `Failed to delete ${deletedRecords[index].name} from storage:`,
+            result.reason
+          );
+        }
+      });
     }
 
     return {
       success: true,
-      deletedCount: isTemp.length,
-      dbCleanup: deletedFromDB.status === "fulfilled",
-      storageCleanup: deletedFromStorage.status === "fulfilled",
+      deletedCount: deletedRecords.length,
+      dbCleanup: true,
+      storageCleanup,
     };
   } catch (error) {
     console.error("Cleanup error:", error);

@@ -64,7 +64,7 @@ export default function Navbar({
   const [profile, setprofile] = useState(false);
   const [opennotification, setnotification] = useState(false);
   const [checkNotification, setchecknotify] = useState<number | undefined>(
-    initialNotificationCount
+    initialNotificationCount,
   );
 
   const { isTablet, isMobile } = useScreenSize();
@@ -196,7 +196,7 @@ export default function Navbar({
                 {cartloading ? (
                   <span className="inline-block w-2 h-2 bg-white rounded-full animate-pulse"></span>
                 ) : (
-                  carttotal ?? 0
+                  (carttotal ?? 0)
                 )}
               </span>
             </div>
@@ -238,7 +238,7 @@ export default function Navbar({
         </div>
 
         <AnimatePresence>
-          {profile && <AccountMenu session={session} setProfile={setprofile} />}
+          {profile && <AccountMenu setProfile={setprofile} />}
         </AnimatePresence>
 
         {openmodal?.homecontainer && (
@@ -298,24 +298,24 @@ const CategoriesContainer = (props: {
   const [loading, setloading] = useState(false);
   const { isMobile } = useScreenSize();
   const router = useRouter();
-  const fetchcate = useCallback(
-    () => async () => {
-      setloading(true);
-      const request = await ApiRequest("/api/categories", undefined, "GET");
-      if (request.success) {
-        setallcate(request.data);
-      }
-      setloading(false);
-    },
-    []
-  );
+
+  const fetchcate = useCallback(async () => {
+    setloading(true);
+    const request = await ApiRequest("/api/categories", undefined, "GET");
+    console.log({ request });
+    if (request.success) {
+      setallcate(request.data);
+    }
+    setloading(false);
+  }, []);
+
   useEffect(() => {
     fetchcate();
     document.body.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = "auto";
     };
-  }, []);
+  }, [fetchcate]);
   return (
     <div
       onMouseLeave={() => props.setopen(false)}
@@ -382,7 +382,7 @@ const CategoriesContainer = (props: {
                     router.push(
                       `/product?${
                         i.type === "normal" ? `pid=${i.id}` : `ppid=${i.id}`
-                      }`
+                      }`,
                     );
                     router.refresh();
                     isMobile && props.setopen(false);
@@ -406,7 +406,7 @@ const CategoriesContainer = (props: {
                               sub.type === "normal"
                                 ? `&cid=${sub.id}`
                                 : `&promoid=${sub.pid}`
-                            }`
+                            }`,
                           );
                           router.refresh();
                           isMobile && props.setopen(false);
@@ -537,13 +537,13 @@ export const SubInventoryMenu = (props: Subinventorymenuprops) => {
           [props.type === "product"
             ? "producteditindex"
             : props.type === "banner"
-            ? "bannereditindex"
-            : "promotioneditindex"]: index,
+              ? "bannereditindex"
+              : "promotioneditindex"]: index,
         }));
         setopenmodal({ ...openmodal, [obj.opencon as string]: true });
       } else if (obj.value === actiontype.STOCK && props.stockaction) {
         props.stocktype?.includes("stock") &&
-          setproduct((prev) => ({ ...prev, stock: props.stock }));
+          setproduct((prev) => ({ ...prev, stock: props.stock, id: index }));
         props.stockaction();
       } else {
         setopenmodal((prev) => ({
@@ -574,48 +574,65 @@ export const SubInventoryMenu = (props: Subinventorymenuprops) => {
     }
   };
   return (
-    <Dropdown>
+    <Dropdown
+      classNames={{
+        base: "before:bg-white/10",
+        content:
+          "p-1.5 border border-gray-200 bg-white/95 backdrop-blur-xl shadow-xl rounded-xl",
+      }}
+    >
       <DropdownTrigger>
         <Button
           color={props.type ? "default" : "success"}
           variant="solid"
           endContent={
             !props.type ? (
-              <i className="fa-solid fa-plus text-xs md:text-sm font-bold text-white"></i>
+              <i className="fa-solid fa-plus text-xs md:text-sm font-bold text-white drop-shadow-sm"></i>
             ) : undefined
           }
           style={props.type ? { minWidth: "20px" } : {}}
-          className={`font-bold transition-all ${
+          className={`group relative overflow-hidden font-bold transition-all duration-300 ${
             props.type
-              ? "bg-white hover:bg-gray-100 text-gray-700 border-2 border-gray-300 min-w-[32px] md:min-w-[40px] h-8 md:h-10 px-1 md:px-2"
-              : "bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-md hover:shadow-lg hover:scale-105 min-w-[100px] md:min-w-[130px] h-8 md:h-10 text-xs md:text-sm"
-          } rounded-lg md:rounded-xl`}
+              ? "bg-gradient-to-br from-white to-gray-50 hover:from-gray-50 hover:to-gray-100 text-gray-700 border-2 border-gray-300 hover:border-indigo-500 hover:shadow-lg hover:shadow-indigo-100 min-w-[36px] md:min-w-[44px] h-9 md:h-11 px-1.5 md:px-2.5 shadow-md hover:scale-105 active:scale-95"
+              : "bg-gradient-to-br from-green-500 via-emerald-500 to-teal-600 hover:from-green-600 hover:via-emerald-600 hover:to-teal-700 text-white shadow-lg hover:shadow-2xl hover:shadow-emerald-500/50 hover:scale-105 active:scale-95 min-w-[110px] md:min-w-[140px] h-9 md:h-11 text-xs md:text-sm"
+          } rounded-xl md:rounded-2xl before:absolute before:inset-0 before:bg-gradient-to-r before:from-transparent before:via-white/20 before:to-transparent before:translate-x-[-200%] hover:before:translate-x-[200%] before:transition-transform before:duration-700`}
         >
           {props.type ? (
-            <i className="fa-solid fa-ellipsis-vertical text-base md:text-lg text-gray-600"></i>
+            <i className="fa-solid fa-ellipsis-vertical text-lg md:text-xl text-gray-600 group-hover:text-indigo-600 transition-all duration-200 group-hover:scale-110"></i>
           ) : (
-            <>
-              <span className="hidden md:inline">Create</span>
-              <span className="md:hidden">New</span>
-            </>
+            <div className="flex items-center gap-2 relative z-10">
+              <i className="fa-solid fa-sparkles text-[10px] md:text-xs animate-pulse"></i>
+              <span className="hidden md:inline font-extrabold tracking-wide uppercase text-xs">
+                Action
+              </span>
+              <span className="md:hidden font-extrabold tracking-wide uppercase text-xs">
+                New
+              </span>
+            </div>
           )}
         </Button>
       </DropdownTrigger>
       <DropdownMenu
         aria-label="Dynamic Actions"
         items={props.data}
-        className="min-w-[140px] md:min-w-[180px]"
+        className="min-w-[160px] md:min-w-[200px]"
         itemClasses={{
           base: [
             "rounded-lg",
             "text-xs md:text-sm",
-            "transition-colors",
+            "transition-all",
+            "duration-200",
             "data-[hover=true]:bg-gradient-to-r",
-            "data-[hover=true]:from-blue-50",
-            "data-[hover=true]:to-indigo-50",
-            "data-[hover=true]:text-blue-700",
-            "py-2 md:py-2.5",
+            "data-[hover=true]:from-indigo-50",
+            "data-[hover=true]:via-purple-50",
+            "data-[hover=true]:to-blue-50",
+            "data-[hover=true]:text-indigo-700",
+            "data-[hover=true]:scale-[1.02]",
+            "data-[hover=true]:shadow-sm",
+            "py-2.5 md:py-3",
             "px-3 md:px-4",
+            "my-0.5",
+            "cursor-pointer",
           ],
         }}
       >
@@ -625,33 +642,35 @@ export const SubInventoryMenu = (props: Subinventorymenuprops) => {
             onClick={() => handleClick(item)}
             textValue={item.value}
             startContent={
-              <i
-                className={`text-xs md:text-sm ${
-                  item.value === "Product"
-                    ? "fa-solid fa-box text-blue-500"
-                    : item.value === "Category"
-                    ? "fa-solid fa-folder text-purple-500"
-                    : item.value === "Banner"
-                    ? "fa-solid fa-image text-green-500"
-                    : item.value === "Promotion"
-                    ? "fa-solid fa-tags text-orange-500"
-                    : item.value === "Edit"
-                    ? "fa-solid fa-pen text-blue-500"
-                    : item.value === "Stock"
-                    ? "fa-solid fa-warehouse text-green-500"
-                    : item.value === "DELETE"
-                    ? "fa-solid fa-trash text-red-500"
-                    : "fa-solid fa-circle"
-                }`}
-              ></i>
+              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br transition-all duration-200">
+                <i
+                  className={`text-sm md:text-base ${
+                    item.value === "Product"
+                      ? "fa-solid fa-box text-blue-600"
+                      : item.value === "Category"
+                        ? "fa-solid fa-folder text-purple-600"
+                        : item.value === "Banner"
+                          ? "fa-solid fa-image text-green-600"
+                          : item.value === "Promotion"
+                            ? "fa-solid fa-tags text-orange-600"
+                            : item.value === "Edit"
+                              ? "fa-solid fa-pen-to-square text-blue-600"
+                              : item.value === "Stock"
+                                ? "fa-solid fa-boxes-stacked text-emerald-600"
+                                : item.value === "DELETE"
+                                  ? "fa-solid fa-trash-can text-red-600"
+                                  : "fa-solid fa-circle text-gray-500"
+                  }`}
+                ></i>
+              </div>
             }
             className={`${
               item.value === "DELETE"
-                ? "text-red-600 data-[hover=true]:bg-red-50 data-[hover=true]:from-red-50 data-[hover=true]:to-pink-50"
+                ? "text-red-600 data-[hover=true]:bg-gradient-to-r data-[hover=true]:from-red-50 data-[hover=true]:via-rose-50 data-[hover=true]:to-pink-50 data-[hover=true]:text-red-700"
                 : ""
             }`}
           >
-            <span className="font-medium">{item.value}</span>
+            <span className="font-semibold tracking-wide">{item.value}</span>
           </DropdownItem>
         )}
       </DropdownMenu>
@@ -668,7 +687,7 @@ export const NotificationMenu = forwardRef(
       notification?: NotificationType[];
       close: () => void;
     },
-    ref
+    ref,
   ) => {
     const [notifydata, setnotifydata] = useState<
       NotificationType[] | undefined
@@ -686,7 +705,7 @@ export const NotificationMenu = forwardRef(
         const result = await ApiRequest(
           `/api/users/notification?ty=detail&p=${page}&lt=${notioffset}`,
           undefined,
-          "GET"
+          "GET",
         );
         if (result.success) {
           if (notification) {
@@ -741,7 +760,7 @@ export const NotificationMenu = forwardRef(
         undefined,
         "DELETE",
         "JSON",
-        { id }
+        { id },
       );
       if (makereq.success) {
         setnotifydata((prev) => prev?.filter((i) => i.id === id));
@@ -813,5 +832,5 @@ export const NotificationMenu = forwardRef(
         </div>
       </aside>
     );
-  }
+  },
 );

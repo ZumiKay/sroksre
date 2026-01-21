@@ -54,14 +54,14 @@ const config: Config = {
           "100%": { opacity: "1", transform: "translateY(0px)" },
         },
         shimmer: {
-          "0%": { transform: "translateX(-100%)" },
-          "100%": { transform: "translateX(100%)" },
+          "0%": { backgroundPosition: "-200% 0" },
+          "100%": { backgroundPosition: "200% 0" },
         },
       },
       animation: {
         slidedown: "slidedown .5s ease-in-out",
         "fade-in": "fade-in 1s ease-in-out",
-        shimmer: "shimmer 2s infinite",
+        shimmer: "shimmer 2s ease-in-out infinite",
       },
     },
   },

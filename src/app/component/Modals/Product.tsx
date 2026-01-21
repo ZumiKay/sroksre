@@ -7,7 +7,6 @@ import {
 import {
   CateogoryState,
   Productinitailizestate,
-  ProductState,
   ProductStockType,
   SubcategoriesState,
   useGlobalContext,
@@ -23,6 +22,7 @@ import { Input, Textarea } from "@nextui-org/react";
 import { VariantIcon } from "../Asset";
 import { SelectionCustom } from "../Pagination_Component";
 import { SecondaryModal } from "../Modals";
+import { ProductState, StockTypeEnum } from "@/src/types/product.type";
 
 const stockTypeData = [
   {
@@ -57,13 +57,13 @@ export function CreateProducts({
   const [loading, setloading] = useState(true);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [stocktype, setstocktype] = useState<"stock" | "variant" | "size">(
-    "stock"
+    "stock",
   );
 
   const [subcate, setsubcate] = useState<Array<SubcategoriesState>>([]);
 
   const [cate, setcate] = useState<Array<CateogoryState> | undefined>(
-    undefined
+    undefined,
   );
 
   const fetchcate = async (products?: ProductState) => {
@@ -72,7 +72,7 @@ export function CreateProducts({
       const categories = await ApiRequest(
         "/api/categories?ty=create",
         undefined,
-        "GET"
+        "GET",
       );
       if (categories.success) {
         setcate(categories.data);
@@ -81,7 +81,7 @@ export function CreateProducts({
           : { ...product.category };
 
         const subcates: CateogoryState = categories.data.find(
-          (i: CateogoryState) => i.id === parent_id
+          (i: CateogoryState) => i.id === parent_id,
         );
 
         setsubcate(subcates?.subcategories ?? []);
@@ -99,7 +99,7 @@ export function CreateProducts({
       "GET",
       undefined,
       undefined,
-      "product"
+      "product",
     );
     if (!request.success) {
       errorToast("Connection Problem");
@@ -109,7 +109,7 @@ export function CreateProducts({
     const data: ProductState = request.data;
 
     const isExist = data.details.findIndex(
-      (i) => i.info_type === "COLOR" || i.info_type === "TEXT"
+      (i) => i.info_type === "COLOR" || i.info_type === "TEXT",
     );
     if (isExist !== -1) {
       setstocktype("variant");
@@ -150,7 +150,7 @@ export function CreateProducts({
       errorToast(
         `${
           !product.category.parent_id ? "Category" : "Cover Image"
-        } is Required`
+        } is Required`,
       );
       return;
     }
@@ -207,7 +207,7 @@ export function CreateProducts({
   const handleSelect = (value: string, name: "parent_id" | "child_id") => {
     if (name === "parent_id") {
       const subcates = cate?.find(
-        (i) => i.id?.toString() === value
+        (i) => i.id?.toString() === value,
       )?.subcategories;
       setsubcate(subcates ?? []);
     }
@@ -239,10 +239,10 @@ export function CreateProducts({
                   loading
                     ? "Loading..."
                     : isLoading.POST || isLoading.PUT
-                    ? "Saving..."
-                    : globalindex.producteditindex === -1
-                    ? "Create"
-                    : "Update"
+                      ? "Saving..."
+                      : globalindex.producteditindex === -1
+                        ? "Create"
+                        : "Update"
                 }
                 type={"button"}
                 onClick={() => handleSubmit()}
@@ -550,14 +550,14 @@ export function CreateProducts({
                     value === ProductStockType.variant
                   ) {
                     const idx = updateproducts.details?.findIndex(
-                      (i) => i.info_type === "SIZE"
+                      (i) => i.info_type === "SIZE",
                     );
                     idx !== undefined && updateproducts.details?.splice(idx, 1);
                   } else {
                     updateproducts.Variant = undefined;
                     updateproducts.Stock = undefined;
                   }
-                  updateproducts.stocktype = value;
+                  updateproducts.stocktype = value as StockTypeEnum;
                   setproduct(updateproducts);
                   setstocktype(value as any);
                 }}
@@ -678,7 +678,7 @@ const NormalDetail = () => {
   const handleAdd = () => {
     const updatedetail = [...product.details];
     const isExist = updatedetail.some(
-      (obj, idx) => idx !== index && obj.info_title === normaldetail.info_title
+      (obj, idx) => idx !== index && obj.info_title === normaldetail.info_title,
     );
     if (isExist) {
       errorToast("Name Already Exist");
@@ -703,7 +703,7 @@ const NormalDetail = () => {
   };
 
   const handleChange = (
-    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     setnormal({ ...normaldetail, [e.target.name]: e.target.value });
   };

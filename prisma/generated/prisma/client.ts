@@ -145,6 +145,11 @@ export type Info = Prisma.InfoModel
  */
 export type Variant = Prisma.VariantModel
 /**
+ * Model VariantSection
+ * 
+ */
+export type VariantSection = Prisma.VariantSectionModel
+/**
  * Model Varianttemplate
  * 
  */

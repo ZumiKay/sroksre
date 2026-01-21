@@ -6,6 +6,7 @@ import {
   HomeContainerSkeleton,
 } from "./component/HomePage/ErrorBoundary";
 import { ContainerRenderer } from "./component/HomePage/ContainerRenderer";
+import Image from "next/image";
 
 //  Revalidate every 5 minutes (300 seconds)
 export const revalidate = 300;

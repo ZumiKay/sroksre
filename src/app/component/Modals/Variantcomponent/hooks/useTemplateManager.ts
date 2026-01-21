@@ -1,9 +1,26 @@
+"use client";
 import { useState, useCallback } from "react";
 import { ApiRequest, Delayloading } from "@/src/context/CustomHook";
 import { errorToast } from "@/src/app/component/Loading";
 import { VariantTemplateType } from "../Action";
 
-export const useTemplateManager = () => {
+export interface UseTemplateManagerReturn {
+  templates: VariantTemplateType[];
+  reloadTemp: boolean;
+  setReloadTemp: React.Dispatch<React.SetStateAction<boolean>>;
+  loading: boolean;
+  setLoading: React.Dispatch<React.SetStateAction<boolean>>;
+  isEditTemp: boolean;
+  setIsEditTemp: React.Dispatch<React.SetStateAction<boolean>>;
+  editTemplate: VariantTemplateType | undefined;
+  setEditTemplate: React.Dispatch<
+    React.SetStateAction<VariantTemplateType | undefined>
+  >;
+  fetchTemplates: () => Promise<void>;
+  deleteTemplate: (id: number) => Promise<boolean>;
+}
+
+export const useTemplateManager = (): UseTemplateManagerReturn => {
   const [templates, setTemplates] = useState<VariantTemplateType[]>([]);
   const [reloadTemp, setReloadTemp] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -19,7 +36,7 @@ export const useTemplateManager = () => {
       const res = await ApiRequest(
         "/api/products/variant/template?ty=short",
         undefined,
-        "GET"
+        "GET",
       );
       setReloadTemp(false);
       if (res.success) {
@@ -37,7 +54,7 @@ export const useTemplateManager = () => {
       undefined,
       "DELETE",
       "JSON",
-      { id }
+      { id },
     );
     setLoading(false);
 

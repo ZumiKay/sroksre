@@ -1,24 +1,29 @@
 /** @type {import('next').NextConfig} */
+import withBundleAnalyzer from "@next/bundle-analyzer"
 const nextConfig = {
   images: {
     remotePatterns: [
       {
         protocol: "https",
-        hostname: "firebasestorage.googleapis.com",
+        hostname: "jrkeurxhiddg4zho.public.blob.vercel-storage.com",
+        pathname: "/**",
       },
       {
         protocol: "https",
-        hostname: "jrkeurxhiddg4zho.public.blob.vercel-storage.com",
+        hostname: "firebasestorage.googleapis.com",
+        pathname: "/**",
       },
       {
         protocol: "http",
         hostname: "localhost",
         port: "3000",
+        pathname: "/**",
       },
       {
         protocol: "http",
         hostname: "localhost",
         port: "8000",
+        pathname: "/**",
       },
     ],
   },
@@ -34,7 +39,7 @@ const nextConfig = {
     // Handle node: protocol imports (fixes UnhandledSchemeError for node:crypto)
     config.resolve = config.resolve || {};
     config.resolve.fallback = config.resolve.fallback || {};
-    
+
     if (!options.isServer) {
       // For client-side bundles, provide fallbacks for Node.js built-ins
       config.resolve.fallback = {
@@ -53,10 +58,6 @@ const nextConfig = {
   },
 };
 
-module.exports = nextConfig;
 
-const withBundleAnalyzer = require("@next/bundle-analyzer")({
-  enabled: process.env.ANALYZE === "true",
-});
 
-module.exports = withBundleAnalyzer(nextConfig);
+export default (nextConfig);

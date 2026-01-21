@@ -1,5 +1,4 @@
-import { deleteObject, ref } from "firebase/storage";
-import { storage } from "./firebase";
+import { del } from "@vercel/blob";
 import { Orderpricetype, Productordertype } from "../types/order.type";
 import {
   CipherKey,
@@ -36,11 +35,16 @@ export const DeleteImageFromStorage = async (
   filename: string
 ): Promise<{ Sucess: boolean }> => {
   try {
-    const deseRef = ref(storage, `productcovers/${filename}`);
-    await deleteObject(deseRef);
+    // For Vercel Blob, we need the full URL, not just the filename
+    // If filename is already a URL, use it; otherwise construct it
+    const url = filename.startsWith("http")
+      ? filename
+      : `https://jrkeurxhiddg4zho.public.blob.vercel-storage.com/${filename}`;
+
+    await del(url);
     return { Sucess: true };
   } catch (error) {
-    console.error("Firebase Storage", error);
+    console.error("Vercel Blob Storage", error);
     return { Sucess: false };
   }
 };
