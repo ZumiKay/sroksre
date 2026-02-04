@@ -15,7 +15,7 @@ import { Box, Chip, OutlinedInput, ThemeProvider } from "@mui/material";
 import { Allstatus } from "@/src/types/order.type";
 import { Mutiselectstatuscolor } from "../dashboard/order/Theme";
 import { useRouter, useSearchParams } from "next/navigation";
-import { VariantColorValueType } from "@/src/types/product.type";
+import { VariantValueObjType } from "@/src/types/product.type";
 
 interface buttonpros {
   type: "submit" | "reset" | "button" | undefined;
@@ -70,13 +70,14 @@ export default function PrimaryButton(props: buttonpros) {
             ? `${props.color}dd`
             : "#00000088"
           : hover
-          ? props.hoverColor ?? (props.color ? `${props.color}ee` : "#000000cc")
-          : props.color ?? "#000000",
+            ? (props.hoverColor ??
+              (props.color ? `${props.color}ee` : "#000000cc"))
+            : (props.color ?? "#000000"),
         borderRadius: props.radius ?? "8px",
         border: props.border ?? "none",
         color: hover
-          ? props.hoverTextColor ?? "white"
-          : props.textcolor ?? "white",
+          ? (props.hoverTextColor ?? "white")
+          : (props.textcolor ?? "white"),
         position: props.postion,
         top: props.top,
         left: props.left,
@@ -163,7 +164,7 @@ export function Selection(props: selectprops) {
           <option
             value={
               typeof props.defaultValue === "string"
-                ? props.defaultValue?.toLowerCase() ?? ""
+                ? (props.defaultValue?.toLowerCase() ?? "")
                 : props.defaultValue
             }
           >
@@ -173,7 +174,7 @@ export function Selection(props: selectprops) {
         {props.type
           ? (props.type === "category" && props.category
               ? props.category
-              : props.subcategory ?? []
+              : (props.subcategory ?? [])
             ).map((obj) => (
               <option key={obj.id} value={obj.id}>
                 {obj.name}{" "}
@@ -226,11 +227,11 @@ export const InputFileUpload = React.forwardRef(
         />
       </Button>
     );
-  }
+  },
 );
 
 interface Selectcontainerprops {
-  data: Array<string | VariantColorValueType>;
+  data: Array<string | VariantValueObjType>;
   type: "TEXT" | "COLOR";
   onSelect: (value: string) => void;
   isSelected?: string;

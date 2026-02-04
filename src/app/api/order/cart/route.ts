@@ -14,7 +14,7 @@ import {
 import { NextRequest } from "next/server";
 import { extractQueryParams } from "../../banner/route";
 import { JsonObject } from "@/prisma/generated/prisma/internal/prismaNamespace";
-import { ProductState, VariantColorValueType } from "@/src/types/product.type";
+import { ProductState, VariantValueObjType } from "@/src/types/product.type";
 
 export async function PUT(req: NextRequest) {
   try {
@@ -74,7 +74,7 @@ export async function PUT(req: NextRequest) {
         });
 
         const caculatedPrice = discount
-          ? productPrice.discount?.newprice ?? 0
+          ? (productPrice.discount?.newprice ?? 0)
           : price;
         return total + caculatedPrice * quantity;
       }, 0);
@@ -180,19 +180,19 @@ export async function GET(req: NextRequest) {
       });
       const detail = item.details as Productorderdetailtype[];
       const selectedvariant = item.product.Variant?.filter(
-        (variant, idx) => variant.id === detail[idx].variant_id
+        (variant, idx) => variant.id === detail[idx].variant_id,
       ).map((selected, idx) => {
-        const val = selected.option_value as (string | VariantColorValueType)[];
+        const val = selected.option_value as (string | VariantValueObjType)[];
         return val.filter((j) =>
           typeof j === "string"
             ? detail[idx].value === j
-            : detail[idx].value === j.val
+            : detail[idx].value === j.val,
         );
       });
 
       const maxqty = getmaxqtybaseStockType(
         item.product as unknown as ProductState,
-        detail.map((i) => i.value)
+        detail.map((i) => i.value),
       );
       return {
         id: item.id,
@@ -205,12 +205,12 @@ export async function GET(req: NextRequest) {
     });
 
     const totalPrice = calculateCartTotalPrice(
-      cartItems as unknown as Productordertype[]
+      cartItems as unknown as Productordertype[],
     );
 
     return Response.json(
       { data: cartItems, total: totalPrice },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error) {
     console.log("Get Cart", error);

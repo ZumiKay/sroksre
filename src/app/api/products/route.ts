@@ -8,7 +8,7 @@ import {
 } from "@/src/lib/utilities";
 import { extractQueryParams } from "../banner/route";
 import Prisma from "@/src/lib/prisma";
-import { Stocktype, VariantColorValueType } from "@/src/types/product.type";
+import { Stocktype, VariantValueObjType } from "@/src/types/product.type";
 
 interface paramsType {
   ty: string;
@@ -84,7 +84,7 @@ export async function GET(request: NextRequest) {
         ds,
         dt,
         sp,
-        pids?.toString()
+        pids?.toString(),
       );
 
       const total = await Prisma.products.count();
@@ -98,12 +98,12 @@ export async function GET(request: NextRequest) {
             lowstock: allProduct.lowstock,
             totalfilter: allProduct.totalfilter,
           },
-          { status: 200 }
+          { status: 200 },
         );
       } else {
         response = Response.json(
           { message: "Error Occurred" },
-          { status: 500 }
+          { status: 500 },
         );
       }
     } else if (ty === "getfilval") {
@@ -125,8 +125,7 @@ export async function GET(request: NextRequest) {
       allfilter.forEach((filval) => {
         filval.Variant.forEach((variant) => {
           if (variant.option_type === "COLOR") {
-            const opt_val =
-              variant.option_value as Array<VariantColorValueType>;
+            const opt_val = variant.option_value as Array<VariantValueObjType>;
             opt_val.map((i) => allval.color.add(i.val));
           } else if (variant.option_type === "TEXT") {
             const opt_val = variant.option_value as string[];
@@ -164,6 +163,16 @@ export async function GET(request: NextRequest) {
                   qty: true,
                   variant_val: true,
                 },
+              },
+            },
+          },
+          Variantsection: {
+            orderBy: { id: "asc" },
+            select: {
+              id: true,
+              name: true,
+              Variants: {
+                select: { id: true },
               },
             },
           },
@@ -230,6 +239,7 @@ export async function GET(request: NextRequest) {
           child_id: product.childcategory_id,
         },
         Stock: convertStockData(product.Stock as Stocktype[]),
+
         relatedproduct: otherProduct.filter((i) => i.id !== product.id),
         // Remove properties that are no longer needed
         parentcategory_id: undefined,
@@ -250,6 +260,7 @@ export async function GET(request: NextRequest) {
           option_title: true,
           option_type: true,
           option_value: true,
+          optional: true,
         },
       });
       const stock = await Prisma.stock.findMany({
@@ -276,7 +287,7 @@ export async function GET(request: NextRequest) {
             Variant: variant,
           },
         },
-        { status: 200 }
+        { status: 200 },
       );
     } else if (ty === "search") {
       if (!q) {

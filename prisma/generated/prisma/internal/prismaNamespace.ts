@@ -80,12 +80,12 @@ export type PrismaVersion = {
 }
 
 /**
- * Prisma Client JS version: 7.2.0
- * Query Engine version: 0c8ef2ce45c83248ab3df073180d5eda9e8be7a3
+ * Prisma Client JS version: 7.3.0
+ * Query Engine version: 9d6ad21cbbceab97458517b147a6a09ff43aa735
  */
 export const prismaVersion: PrismaVersion = {
-  client: "7.2.0",
-  engine: "0c8ef2ce45c83248ab3df073180d5eda9e8be7a3"
+  client: "7.3.0",
+  engine: "9d6ad21cbbceab97458517b147a6a09ff43aa735"
 }
 
 /**
@@ -2884,9 +2884,10 @@ export const VariantScalarFieldEnum = {
   option_title: 'option_title',
   option_type: 'option_type',
   option_value: 'option_value',
+  qty: 'qty',
+  price: 'price',
   optional: 'optional',
-  sectionId: 'sectionId',
-  variantSectionId: 'variantSectionId'
+  sectionId: 'sectionId'
 } as const
 
 export type VariantScalarFieldEnum = (typeof VariantScalarFieldEnum)[keyof typeof VariantScalarFieldEnum]
@@ -2894,7 +2895,7 @@ export type VariantScalarFieldEnum = (typeof VariantScalarFieldEnum)[keyof typeo
 
 export const VariantSectionScalarFieldEnum = {
   id: 'id',
-  strId: 'strId',
+  name: 'name',
   productsId: 'productsId'
 } as const
 

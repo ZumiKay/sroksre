@@ -32,7 +32,7 @@ export const GetListProduct = async (
   },
   all?: string,
   sort?: number,
-  promoid?: string
+  promoid?: string,
 ) => {
   let data = {
     parentcate_id: parseInt(parentcate_id),
@@ -63,27 +63,27 @@ export const GetListProduct = async (
       where: promoid
         ? { promotion_id: data.promoid }
         : !latestcate
-        ? !data.parentcate_id && data.childcate_id
-          ? {
-              childcategory_id: data.childcate_id,
-            }
-          : data.parentcate_id !== 0 && !childcate_id
-          ? {
-              parentcategory_id: data.parentcate_id,
-            }
-          : data.parentcate_id !== 0 && childcate_id
-          ? {
-              AND: {
-                parentcategory_id: data.parentcate_id,
+          ? !data.parentcate_id && data.childcate_id
+            ? {
                 childcategory_id: data.childcate_id,
-              },
-            }
-          : all && all === "1"
-          ? {}
-          : {}
-        : {
-            createdAt: { gte: GetOneWeekAgoDate() },
-          },
+              }
+            : data.parentcate_id !== 0 && !childcate_id
+              ? {
+                  parentcategory_id: data.parentcate_id,
+                }
+              : data.parentcate_id !== 0 && childcate_id
+                ? {
+                    AND: {
+                      parentcategory_id: data.parentcate_id,
+                      childcategory_id: data.childcate_id,
+                    },
+                  }
+                : all && all === "1"
+                  ? {}
+                  : {}
+          : {
+              createdAt: { gte: GetOneWeekAgoDate() },
+            },
 
       orderBy: {
         price: sort ? (sort === 1 ? "asc" : "desc") : "asc",
@@ -196,7 +196,7 @@ export const GetListProduct = async (
       products = caculateArrayPagination(
         products,
         parseInt(page),
-        parseInt(show)
+        parseInt(show),
       );
     }
 
@@ -223,12 +223,12 @@ export const GetListProduct = async (
         const isParent =
           filtervalue.parent_id &&
           filtervalue.parent_id.some(
-            (i) => prod.parentcategory_id === parseInt(i)
+            (i) => prod.parentcategory_id === parseInt(i),
           );
         const isChild =
           filtervalue.child_id &&
           filtervalue.child_id.some(
-            (i) => prod.childcategory_id === parseInt(i)
+            (i) => prod.childcategory_id === parseInt(i),
           );
         const isColor = filtervalue.color
           ? matchesVariant("COLOR", filtervalue.color)
@@ -243,13 +243,13 @@ export const GetListProduct = async (
               (i) =>
                 prod.promotion?.name &&
                 removeSpaceAndToLowerCase(i) ===
-                  removeSpaceAndToLowerCase(prod.promotion?.name)
+                  removeSpaceAndToLowerCase(prod.promotion?.name),
             )
           : false;
 
         const isName = filtervalue.search
           ? removeSpaceAndToLowerCase(prod.name).includes(
-              removeSpaceAndToLowerCase(filtervalue.search)
+              removeSpaceAndToLowerCase(filtervalue.search),
             )
           : false;
 
@@ -274,40 +274,40 @@ export const GetListProduct = async (
       filterproduct = caculateArrayPagination(
         products,
         parseInt(page),
-        parseInt(show)
+        parseInt(show),
       );
     }
 
     const countproduct = totalproduct
       ? totalproduct
       : isFilter
-      ? products.length
-      : await Prisma.products.count(
-          all
-            ? { where: {} }
-            : {
-                where: promoid
-                  ? { promotion_id: data.promoid }
-                  : !latestcate
-                  ? parentcate_id && !childcate_id
-                    ? {
-                        parentcategory_id: data.parentcate_id,
-                      }
-                    : parentcate_id && childcate_id
-                    ? {
-                        AND: {
-                          parentcategory_id: data.parentcate_id,
-                          childcategory_id: data.childcate_id,
+        ? products.length
+        : await Prisma.products.count(
+            all
+              ? { where: {} }
+              : {
+                  where: promoid
+                    ? { promotion_id: data.promoid }
+                    : !latestcate
+                      ? parentcate_id && !childcate_id
+                        ? {
+                            parentcategory_id: data.parentcate_id,
+                          }
+                        : parentcate_id && childcate_id
+                          ? {
+                              AND: {
+                                parentcategory_id: data.parentcate_id,
+                                childcategory_id: data.childcate_id,
+                              },
+                            }
+                          : {}
+                      : {
+                          createdAt: {
+                            gte: GetOneWeekAgoDate(),
+                          },
                         },
-                      }
-                    : {}
-                  : {
-                      createdAt: {
-                        gte: GetOneWeekAgoDate(),
-                      },
-                    },
-              }
-        );
+                },
+          );
 
     isFilter && (products = filterproduct);
 
@@ -397,7 +397,7 @@ function getUniqueOptionValues(options: string[]) {
   return uniqueValuesArray;
 }
 function getUniqueColor(
-  options: VariantColorValueType[]
+  options: VariantColorValueType[],
 ): VariantColorValueType[] {
   const uniqueValuesSet = new Set<string>();
   const uniqueOptions: VariantColorValueType[] = [];
@@ -436,7 +436,7 @@ export interface filtervaluetype {
 export const getFilterValue = async (
   parent_id: number,
   child_id?: number,
-  latest?: boolean
+  latest?: boolean,
 ) => {
   try {
     let filtervalues: filtervaluetype = {
@@ -454,13 +454,13 @@ export const getFilterValue = async (
               parentcategory_id: parent_id,
             }
           : parent_id && child_id
-          ? {
-              AND: [
-                { parentcategory_id: parent_id },
-                { childcategory_id: child_id },
-              ],
-            }
-          : {}
+            ? {
+                AND: [
+                  { parentcategory_id: parent_id },
+                  { childcategory_id: child_id },
+                ],
+              }
+            : {}
         : {
             createdAt: {
               gte: GetOneWeekAgoDate(),
@@ -470,7 +470,12 @@ export const getFilterValue = async (
       select: {
         stocktype: true,
         stock: true,
-        Variant: true,
+        Variant: {
+          where: {
+            sectionId: null,
+            optional: null,
+          },
+        },
         details: true,
         promotion: {
           select: {
@@ -488,7 +493,7 @@ export const getFilterValue = async (
     result.forEach((i) => {
       if (i.stocktype === "variant") {
         const color = i.Variant.filter(
-          (j) => j.option_type === "COLOR"
+          (j) => j.option_type === "COLOR",
         ).flatMap((j) => j.option_value) as VariantColorValueType[];
         const text = i.Variant.filter((j) => j.option_type === "TEXT");
 

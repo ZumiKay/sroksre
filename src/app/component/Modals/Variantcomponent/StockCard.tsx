@@ -5,7 +5,7 @@ import { Badge } from "@nextui-org/react";
 import { useMemo, memo, useCallback } from "react";
 import {
   SubStockType,
-  VariantColorValueType,
+  VariantValueObjType,
   Varianttype,
 } from "@/src/types/product.type";
 import { LowStockIcon, EmptyBoxIcon } from "../../svg";
@@ -57,7 +57,7 @@ const StockCardItem = memo(
 
           const isColor =
             variant.option_type === "COLOR"
-              ? (variant.option_value as VariantColorValueType[])
+              ? (variant.option_value as VariantValueObjType[])
               : undefined;
 
           return {

@@ -36,21 +36,11 @@ export const useStockManager = () => {
         return null;
       }
 
-      // Check that all variant titles have selections
-      const hasAllSelections = variantTitles.some((title) => {
-        const values = selectedValues[title];
-        return values && values.length > 0;
-      });
-
-      if (!hasAllSelections) {
-        errorToast("Please select options for all variants");
-        return null;
-      }
-
       const stockValues = MapSelectedValuesToVariant(
         selectedValues,
         variantTitles,
       );
+
       const parsedQty = parseInt(stock, 10);
 
       if (isNaN(parsedQty) || parsedQty < 0) {
@@ -67,6 +57,21 @@ export const useStockManager = () => {
       };
 
       const stockArray = [...currentStock];
+
+      // Check for exact duplicate within the same stock when adding new sub-stock
+      if (addNew && editStockIdx !== -1) {
+        const existingStock = stockArray[editStockIdx];
+        const hasDuplicate = existingStock.Stockvalue.some((existing) =>
+          stockValues.some((newVal) =>
+            ArraysAreEqualSets(newVal, existing.variant_val),
+          ),
+        );
+
+        if (hasDuplicate) {
+          errorToast("This stock variant combination already exists");
+          return null;
+        }
+      }
 
       // Check for overlap across ALL stocks (including other main stocks)
       const isOverlap = stockArray.some((item, idx) => {

@@ -23,7 +23,7 @@ import { SelectionCustom } from "./Pagination_Component";
 import {
   productcoverstype,
   StockTypeEnum,
-  VariantColorValueType,
+  VariantValueObjType,
 } from "@/src/types/product.type";
 import { PromotionState } from "@/src/types/productAction.type";
 
@@ -255,8 +255,9 @@ const Card = memo(function Card(props: cardprops) {
         onTouchStart={handleMouseEnter}
         onTouchCancel={handleMouseLeave}
         className={`card__container w-[500px] h-fit flex flex-col
-       hover:border-[2px] hover:border-gray-300 ${
-         isProduct ? "border border-gray-300" : ""
+       border border-gray-200 rounded-lg shadow-sm
+       hover:border-gray-400 hover:shadow-md transition-all duration-300 ${
+         isProduct ? "border-2 border-blue-400 shadow-md" : ""
        } 
         max-smaller_screen:w-[350px] 
         max-large_tablet:w-[280px]
@@ -334,8 +335,10 @@ const Card = memo(function Card(props: cardprops) {
           editindex={props.id}
           closename={closename}
         />
-      ) : openmodal?.[closename] && props.stocktype === StockTypeEnum.normal ? (
-        <UpdateStockModal closename={closename} action={props.reloaddata} />
+      ) : openmodal?.[closename] &&
+        props.stocktype === StockTypeEnum.normal &&
+        props.id ? (
+        <UpdateStockModal closename={closename} productId={props.id} />
       ) : (
         <> </>
       )}
@@ -349,7 +352,7 @@ interface SecondayCardprops {
   img: string | StaticImageData;
   name: string;
   price: Orderpricetype;
-  selecteddetail?: (string | VariantColorValueType)[];
+  selecteddetail?: (string | VariantValueObjType)[];
   selectedqty: number;
   maxqty?: number;
   width?: string;
@@ -362,7 +365,7 @@ export const Selecteddetailcard = ({
   text,
   key,
 }: {
-  text: string | VariantColorValueType;
+  text: string | VariantValueObjType;
   key: number;
 }) => (
   <Chip

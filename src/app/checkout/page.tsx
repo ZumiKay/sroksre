@@ -28,7 +28,7 @@ import { SuccessVector } from "../component/Asset";
 import { getPolicesByPage } from "../api/policy/route";
 import Link from "next/link";
 import { Metadata } from "next";
-import { VariantColorValueType } from "@/src/types/product.type";
+import { VariantValueObjType } from "@/src/types/product.type";
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
@@ -92,7 +92,7 @@ export default async function Checkoutpage({
 
 export const getCheckoutdata = async (
   orderid?: string,
-  userid?: string
+  userid?: string,
 ): Promise<Ordertype | null> => {
   const result = await Prisma.orders.findFirst({
     where: userid ? { user: { buyer_id: userid } } : { id: orderid },
@@ -134,15 +134,15 @@ export const getCheckoutdata = async (
             const detailValue = detail[idx].value;
             const optionValues = variant.option_value as (
               | string
-              | VariantColorValueType
+              | VariantValueObjType
             )[];
 
             return optionValues.find((val) =>
               typeof val === "string"
                 ? val === detailValue
-                : val.val === detailValue
+                : val.val === detailValue,
             );
-          }
+          },
         ).filter(Boolean);
 
         return {
@@ -158,7 +158,7 @@ export const getCheckoutdata = async (
           },
         } as unknown as Productordertype; //Ignore JSONValue type
       }
-    }
+    },
   );
 
   return {

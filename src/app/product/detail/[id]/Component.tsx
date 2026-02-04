@@ -25,11 +25,7 @@ import { errorToast, successToast } from "@/src/app/component/Loading";
 import { ApiRequest } from "@/src/context/CustomHook";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Skeleton } from "@nextui-org/react";
-import {
-  ProductState,
-  Stocktype,
-  VariantColorValueType,
-} from "@/src/types/product.type";
+import { ProductState, VariantValueObjType } from "@/src/types/product.type";
 
 export const ShowPrice = React.memo(
   ({ price, discount }: Pick<ProductState, "price" | "discount">) => {
@@ -40,7 +36,7 @@ export const ShowPrice = React.memo(
         isDiscount && isDiscount.newprice
           ? isDiscount.newprice.toFixed(2)
           : null,
-      [discount]
+      [discount],
     );
 
     if (isDiscount) {
@@ -56,7 +52,7 @@ export const ShowPrice = React.memo(
     }
 
     return <h3 className="text-lg font-bold w-full">{`$${priceString}`}</h3>;
-  }
+  },
 );
 
 ShowPrice.displayName = "ShowPrice";
@@ -66,16 +62,16 @@ interface errormessType {
   option?: string;
 }
 
-const InitializeDetail = (size: number) =>
-  Array.from({ length: size }).fill(null);
-
 export const OptionSection = ({
   data,
   isAdmin,
   isInWishlist,
   isInCart,
 }: {
-  data: Pick<ProductState, "id" | "stocktype" | "stock" | "Variant" | "Stock">;
+  data: Pick<
+    ProductState,
+    "id" | "stocktype" | "stock" | "Variant" | "Stock" | "Variantsection"
+  >;
   isAdmin: boolean;
   isInWishlist: boolean;
   isInCart: boolean;
@@ -92,39 +88,12 @@ export const OptionSection = ({
 
   //Initialize product detail options
   useEffect(() => {
-    const InitializeProductOrder = (
-      data: Pick<
-        ProductState,
-        "id" | "stocktype" | "stock" | "Variant" | "Stock"
-      >
-    ) => {
-      let type = data.stocktype;
-
-      if (type !== ProductStockType.stock) {
-        const arr = InitializeDetail(
-          type === "size" ? 1 : data.Variant ? data.Variant?.length : 0
-        ) as any[];
-
-        setproductorderdetail(
-          (prev) =>
-            ({
-              ...prev,
-              id: data.id as number,
-              details: arr,
-            } as Productordertype)
-        );
-      } else {
-        setproductorderdetail(
-          (prev) => ({ ...prev, id: data.id as number } as Productordertype)
-        );
-      }
-    };
-
-    InitializeProductOrder(data);
+    setproductorderdetail(
+      (prev) => ({ ...prev, id: data.id as number }) as Productordertype,
+    );
     seterrormess({
-      ...(data.stocktype === ProductStockType.stock
-        ? { qty: "Please Select Quantity" }
-        : { option: "Please Select Option" }),
+      option: "",
+      qty: "",
     });
   }, [data.id, data.stocktype, data.Variant]);
 
@@ -145,42 +114,35 @@ export const OptionSection = ({
     }
   }, [data.id]);
 
-  const checkallrequireddetail = () => {
+  const checkallrequireddetail = useCallback(() => {
     const { stocktype } = data;
     const { details, quantity } = productorderdetail ?? {};
 
     const ishaveQty = quantity !== 0;
     if (stocktype === "stock") {
       if (!ishaveQty) {
-        seterrormess(
-          !ishaveQty
-            ? { qty: "Please Select the quantity", option: "" }
-            : { option: "", qty: "" }
-        );
+        seterrormess({ qty: "Please select the quantity", option: "" });
         return false;
       }
     } else {
+      const validDetails = details?.filter((i) => i) ?? [];
       const isSelectedDetails =
-        details &&
-        details.filter((i) => i).length !== 0 &&
-        details.filter((i) => i).some((i) => i.value.length !== 0);
+        validDetails.length > 0 &&
+        validDetails.some((i) => i.value.length !== 0);
 
       const isValid = isSelectedDetails && ishaveQty;
 
       if (!isValid) {
         seterrormess(
           !isSelectedDetails
-            ? { option: "Please Select one of the option", qty: "" }
-            : !ishaveQty
-            ? { qty: "Please Select the quantity", option: "" }
-            : { option: "", qty: "" }
+            ? { option: "Please select one of the options", qty: "" }
+            : { qty: "Please select the quantity", option: "" },
         );
-
         return false;
       }
     }
     return true;
-  };
+  }, [data, productorderdetail]);
 
   const handleCart = useCallback(async () => {
     const checked = checkallrequireddetail();
@@ -210,33 +172,115 @@ export const OptionSection = ({
       setloading(false);
     }
   }, [
-    productorderdetail,
     checkallrequireddetail,
+    productorderdetail,
     setproductorderdetail,
     setcarttotal,
   ]);
+
+  const handleClearAllSelections = useCallback(() => {
+    // Initialize empty details based on variants
+    const emptyDetails =
+      data.Variant?.map(() => ({
+        variant_id: 0,
+        value: "",
+      })) || [];
+
+    setproductorderdetail((prev) => ({
+      id: prev.id,
+      details: emptyDetails,
+      quantity: 0,
+      price: { price: 0 },
+    }));
+    setqty(0);
+    setincart(false);
+    seterrormess({
+      option: "",
+      qty: "",
+    });
+  }, [data.stocktype, data.Variant, setproductorderdetail]);
+
+  const hasSelections = useMemo(() => {
+    const hasQty =
+      productorderdetail?.quantity && productorderdetail.quantity > 0;
+    const hasDetails = productorderdetail?.details?.some(
+      (detail) => detail && detail.value && detail.value.length > 0,
+    );
+    return hasQty || hasDetails;
+  }, [productorderdetail]);
+
+  // Compute the appropriate error message based on current state
+  const currentErrorMessage = useMemo(() => {
+    // Prioritize explicit error messages from errormess state
+    if (errormess?.qty || errormess?.option) {
+      return errormess.qty || errormess.option || "";
+    }
+
+    // Fall back to computed validation messages
+    const { stocktype } = data;
+    const { details, quantity } = productorderdetail ?? {};
+    const hasQty = quantity && quantity > 0;
+
+    if (stocktype === "stock") {
+      return !hasQty ? "Please select quantity" : "";
+    } else {
+      // For variant/size products
+      const validDetails = details?.filter((i) => i) ?? [];
+      const hasSelectedOptions = validDetails.some((i) => i.value.length !== 0);
+
+      if (!hasSelectedOptions) {
+        return "Please select an option";
+      } else if (!hasQty) {
+        return "Please select quantity";
+      }
+    }
+
+    return "";
+  }, [data.stocktype, productorderdetail, errormess]);
 
   return (
     <div className="w-full h-fit flex flex-col gap-y-5">
       {loading && (
         <div className="w-full h-1 bg-blue-500 animate-pulse rounded-full"></div>
       )}
-      <h3 className="error_mess text-lg text-red-500 font-bold w-full h-full transition-opacity duration-200">
-        {data.stocktype === ProductStockType.stock
-          ? errormess?.qty
-          : errormess?.option}
-      </h3>
+      <div className="w-full flex flex-row items-center justify-between gap-x-3">
+        <h3 className="error_mess text-lg text-red-500 font-bold flex-1 transition-opacity duration-200">
+          {currentErrorMessage}
+        </h3>
+        {hasSelections && (
+          <button
+            onClick={handleClearAllSelections}
+            disabled={loading}
+            className="px-4 py-2 text-sm font-medium text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed border border-red-300 hover:border-red-400"
+          >
+            Clear All
+          </button>
+        )}
+      </div>
       <div className="w-full h-fit overflow-x-hidden overflow-y-auto flex flex-col gap-y-5 pl-2">
-        <ShowOptionandStock
-          prob={data}
-          qty={qty}
-          setqty={setqty}
-          errormess={errormess}
-          setmess={seterrormess}
-          setloading={setloading}
-          setincart={setincart}
-          isloading={loading}
-        />
+        {data.Variantsection && data.Variantsection.length > 0 ? (
+          <ShowVariantSections
+            prob={data}
+            qty={qty}
+            setqty={setqty}
+            errormess={errormess}
+            setmess={seterrormess}
+            setloading={setloading}
+            setincart={setincart}
+            isloading={loading}
+          />
+        ) : (
+          <ShowOptionandStock
+            prob={data}
+            qty={qty}
+            setqty={setqty}
+            errormess={errormess}
+            setmess={seterrormess}
+            setloading={setloading}
+            setincart={setincart}
+            isloading={loading}
+          />
+        )}
       </div>
 
       <div className="product_action w-full pt-2 flex flex-col items-center gap-y-2">
@@ -269,100 +313,138 @@ export const OptionSection = ({
   );
 };
 
-const stock = (
-  max: number,
-  errormess: errormessType,
-  setmess: React.Dispatch<React.SetStateAction<errormessType>>,
-  incart?: boolean,
-  isStock?: boolean,
-  isloading?: boolean
-) => {
-  const showLowStock = max ? max <= 5 : false;
-  const { setproductorderdetail, productorderdetail } = useGlobalContext();
+const StockSelector = React.memo(
+  ({
+    max,
+    errormess,
+    setmess,
+    incart,
+    isStock,
+    isloading,
+  }: {
+    max: number;
+    errormess: errormessType;
+    setmess: React.Dispatch<React.SetStateAction<errormessType>>;
+    incart?: boolean;
+    isStock?: boolean;
+    isloading?: boolean;
+  }) => {
+    const showLowStock = useMemo(() => max > 0 && max <= 5, [max]);
+    const { setproductorderdetail, productorderdetail } = useGlobalContext();
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLSelectElement>,
-    isStock?: boolean
-  ) => {
-    setmess({ qty: "", option: "" });
-    let { value, name } = e.target;
-    let val = 0;
-
-    if (name === "quantity") {
-      val = value !== "QTY" ? parseInt(value) : 0;
-    }
-
-    setproductorderdetail(
-      (prev) =>
-        ({
-          ...prev,
-          ...(isStock ? { details: [] } : {}),
-          [e.target.name]: val,
-        } as Productordertype)
+    const quantityOptions = useMemo(
+      () =>
+        Array.from({ length: max }, (_, idx) => ({
+          label: idx + 1,
+          value: idx + 1,
+        })),
+      [max],
     );
-  };
 
-  return (
-    <div className="flex flex-col gap-y-3">
-      <label htmlFor="qty" className="text-lg font-bold">
-        Quantity
-      </label>
-      {isloading ? (
-        <Skeleton className="w-[90%] h-[40px] rounded-lg" />
-      ) : (
-        <Selection
-          default="QTY"
-          data={Array.from({ length: max }).map((_, idx) => ({
-            label: idx + 1,
-            value: idx + 1,
-          }))}
-          style={{ height: "50px", width: "200px", maxWidth: "250px" }}
-          onChange={(e) => handleChange(e, isStock)}
-          disable={max === 0 || incart}
-          value={productorderdetail?.quantity}
-          name="quantity"
-        />
-      )}
-      <h3 className="text-lg text-red-500 w-full text-left font-bold">
-        {`  ${
-          max === 0 ? errormess.qty ?? "" : showLowStock ? "Low on stock" : ""
-        }`}
-      </h3>
-    </div>
-  );
-};
+    const handleChange = useCallback(
+      (e: React.ChangeEvent<HTMLSelectElement>) => {
+        setmess({ qty: "", option: "" });
+        const { value, name } = e.target;
+        const val =
+          name === "quantity" && value !== "QTY" ? parseInt(value) : 0;
 
-const getQtyBasedOnOptions = (
-  variantstock: Stocktype[],
-  orderdetail: Productorderdetailtype[]
-): number => {
-  const orderdetailValuesSet = new Set(
-    orderdetail.map((i) => i.value).filter(Boolean)
-  );
+        setproductorderdetail(
+          (prev) =>
+            ({
+              ...prev,
+              ...(isStock ? { details: [] } : {}),
+              quantity: val,
+            }) as Productordertype,
+        );
+      },
+      [setmess, setproductorderdetail, isStock],
+    );
 
-  for (const stock of variantstock) {
-    for (const variant of stock.Stockvalue) {
-      const filteredVariant = variant.variant_val.filter(
-        (val) => val !== "null"
-      );
+    const warningMessage = useMemo(
+      () => (showLowStock && max > 0 ? "Low on stock" : ""),
+      [max, showLowStock],
+    );
 
-      if (
-        filteredVariant.length === orderdetailValuesSet.size &&
-        filteredVariant.every((val) => orderdetailValuesSet.has(val))
-      ) {
-        return variant.qty; // Early return on first match
-      }
-    }
+    return (
+      <div className="flex flex-col gap-y-3">
+        <label htmlFor="qty" className="text-lg font-bold">
+          Quantity
+        </label>
+        {isloading ? (
+          <Skeleton className="w-[90%] h-[40px] rounded-lg" />
+        ) : (
+          <Selection
+            default="QTY"
+            data={quantityOptions}
+            style={{ height: "50px", width: "200px", maxWidth: "250px" }}
+            onChange={handleChange}
+            disable={max === 0 || incart}
+            value={productorderdetail?.quantity}
+            name="quantity"
+          />
+        )}
+        {warningMessage && (
+          <h3 className="text-sm text-orange-500 w-full text-left font-medium">
+            {warningMessage}
+          </h3>
+        )}
+      </div>
+    );
+  },
+);
+
+StockSelector.displayName = "StockSelector";
+
+/**
+ * Fetches available quantity from backend API based on selected variants.
+ * Uses debouncing to prevent excessive API calls.
+ */
+let stockCheckTimeout: NodeJS.Timeout | null = null;
+
+const fetchAvailableQuantity = async (
+  productId: number,
+  selectedVariants: Productorderdetailtype[],
+): Promise<number> => {
+  // Clear previous timeout
+  if (stockCheckTimeout) {
+    clearTimeout(stockCheckTimeout);
   }
 
-  return 0;
+  return new Promise((resolve) => {
+    stockCheckTimeout = setTimeout(async () => {
+      try {
+        const response = await ApiRequest(
+          "/api/products/stock/available",
+          undefined,
+          "POST",
+          "JSON",
+          {
+            productId,
+            selectedVariants: selectedVariants.filter(
+              (i) => i && i.value && i.value.length > 0,
+            ),
+          },
+        );
+
+        if (response.success) {
+          resolve(response.data.availableQuantity || 0);
+        } else {
+          console.error("Error fetching stock:", response.error);
+          resolve(0);
+        }
+      } catch (error) {
+        console.error("Error fetching available quantity:", error);
+        resolve(0);
+      }
+    }, 300); // 300ms debounce
+  });
 };
 
 let cartCheckTimeout: NodeJS.Timeout | null = null;
 
 const inCartCheck = async (
   selecteddetail: Productorderdetailtype[],
-  pid: number
+  pid: number,
 ): Promise<{ success: boolean; incart: boolean }> => {
   // Clear previous timeout
   if (cartCheckTimeout) {
@@ -377,7 +459,7 @@ const inCartCheck = async (
           undefined,
           "POST",
           "JSON",
-          { selecteddetail, pid }
+          { selecteddetail, pid },
         );
         resolve({
           success: req.success,
@@ -391,107 +473,274 @@ const inCartCheck = async (
   });
 };
 
-const Variant = (
-  id: number,
-  name: string,
-  type: "COLOR" | "TEXT",
-  idx: number,
-  data: (string | VariantColorValueType)[],
-  prob: Pick<ProductState, "id" | "Stock" | "Variant">,
-  errormess: errormessType,
-  setmess: React.Dispatch<React.SetStateAction<errormessType>>,
-  setqty: React.Dispatch<React.SetStateAction<number>>,
-  setloading: React.Dispatch<React.SetStateAction<boolean>>,
-  setincart: React.Dispatch<React.SetStateAction<boolean>>
-) => {
-  const { productorderdetail, setproductorderdetail } = useGlobalContext();
-  const detail = productorderdetail?.details
-    ?.filter((i) => i)
-    .find((i) => i.variant_id === id);
-  const selected = detail ? detail.value : undefined;
+const VariantSelector = React.memo(
+  ({
+    id,
+    name,
+    type,
+    idx,
+    data,
+    prob,
+    errormess,
+    setmess,
+    setqty,
+    setloading,
+    setincart,
+  }: {
+    id: number;
+    name: string;
+    type: "COLOR" | "TEXT";
+    idx: number;
+    data: (string | VariantValueObjType)[];
+    prob: Pick<ProductState, "id" | "Stock" | "Variant">;
+    errormess: errormessType;
+    setmess: React.Dispatch<React.SetStateAction<errormessType>>;
+    setqty: React.Dispatch<React.SetStateAction<number>>;
+    setloading: React.Dispatch<React.SetStateAction<boolean>>;
+    setincart: React.Dispatch<React.SetStateAction<boolean>>;
+  }) => {
+    const { productorderdetail, setproductorderdetail } = useGlobalContext();
 
-  const handleSelectVariant = async (idx: number, value: string) => {
-    const Allvariant = [...(prob.Variant ?? [])];
-    const variant = Allvariant[idx];
-    let mess = { ...errormess };
+    const selected = useMemo(() => {
+      const detail = productorderdetail?.details
+        ?.filter((i) => i)
+        .find((i) => i.variant_id === id);
+      return detail?.value;
+    }, [productorderdetail, id]);
 
-    let orderDetail = { ...productorderdetail } as Productordertype;
-    if (!orderDetail.details) {
-      return;
-    }
-    const isValid = orderDetail.details.filter((i) => i);
-    const isExist =
-      isValid.length !== 0 ? isValid.findIndex((i) => i.id === variant.id) : -1;
+    const handleSelectVariant = useCallback(
+      async (idx: number, value: string) => {
+        const variant = prob.Variant?.[idx];
+        if (!variant || !productorderdetail?.details) return;
 
-    let selectedvariant: Productorderdetailtype = {
-      variant_id: variant.id ?? 0,
-      value: value,
-    };
+        const orderDetail = { ...productorderdetail } as Productordertype;
+        const validDetails = orderDetail?.details?.filter((i) => i);
 
-    const isSelected =
-      isValid.length !== 0
-        ? orderDetail.details[idx]
-          ? orderDetail.details[idx].value === selectedvariant.value
-          : false
-        : false;
+        // Find existing detail with matching variant_id
+        const existingDetailIdx = validDetails?.findIndex(
+          (i) => i.variant_id === id,
+        );
+        const currentDetail =
+          existingDetailIdx !== -1
+            ? validDetails?.[existingDetailIdx as number]
+            : null;
+        const isSelected = currentDetail?.value === value;
 
-    if (isSelected) {
-      orderDetail.details[idx] = {
-        variant_id: 0,
-        value: "",
-      };
-      setincart(false);
-    } else {
-      if (isExist === -1) {
-        orderDetail.details[idx] = selectedvariant;
-      } else if (isExist !== -1) {
-        orderDetail.details[isExist].value = selectedvariant.value;
-      }
-    }
+        // Update detail
+        if (isSelected) {
+          // Remove selection
+          if (existingDetailIdx !== -1 && orderDetail.details) {
+            const actualIdx = orderDetail.details.findIndex(
+              (i) => i && i.variant_id === id,
+            );
+            if (actualIdx !== -1) {
+              orderDetail.details[actualIdx] = { variant_id: 0, value: "" };
+            }
+          }
+          setincart(false);
+        } else {
+          // Add or update selection
+          if (orderDetail.details) {
+            const actualIdx = orderDetail.details.findIndex(
+              (i) => i && i.variant_id === id,
+            );
+            const targetIdx = actualIdx !== -1 ? actualIdx : idx;
+            orderDetail.details[targetIdx] = {
+              variant_id: id,
+              value: value,
+            };
+          }
+        }
 
-    //update qty
-    const maxqty: number = prob.Stock
-      ? getQtyBasedOnOptions(
-          prob.Stock,
-          orderDetail.details.filter((i) => i)
-        )
-      : 0;
+        // Check if any selection exists
+        const filteredDetails = orderDetail?.details?.filter(
+          (i) => i?.value?.length > 0,
+        );
+        if (filteredDetails?.length === 0) {
+          setmess({ qty: "", option: "" });
+          setqty(0);
+          setproductorderdetail(orderDetail);
+          return;
+        }
 
-    if (
-      orderDetail.details.filter((i) => i).every((i) => i.value.length === 0)
-    ) {
-      mess.qty = "";
-    } else {
-      mess.qty = maxqty === 0 ? "Product Unvaliable" : "";
-    }
-    mess.option = "";
+        if (!orderDetail.details) {
+          setmess({ qty: "", option: "Please select option" });
+          return;
+        }
 
-    if (maxqty && prob.id) {
-      setloading(true);
-      const checkreq = await inCartCheck(
-        orderDetail.details.filter((i) => i && i.value.length !== 0),
-        prob.id
-      );
-      setincart(checkreq.incart);
-      setloading(false);
-    }
-    setmess(mess);
-    setqty(maxqty);
-    setproductorderdetail(orderDetail);
-  };
+        const selectedOptionSet = new Set(
+          orderDetail.details.map((i) => i.variant_id),
+        );
+        const isMissingRequired =
+          prob.Variant?.filter(
+            (i) => i.id && !i.optional && !selectedOptionSet.has(i.id),
+          ) ?? [];
+        if (isMissingRequired?.length > 0) {
+          setmess({ qty: "", option: "Please select all required option" });
+          setproductorderdetail(orderDetail);
+          return;
+        }
+
+        // Fetch quantity and check cart
+        setloading(true);
+        try {
+          const maxqty = prob.id
+            ? await fetchAvailableQuantity(prob.id, orderDetail?.details ?? [])
+            : 0;
+
+          // Clear previous errors and set new ones only if needed
+          const mess: errormessType = {
+            qty: maxqty === 0 ? "Product Unavailable" : "",
+            option: "",
+          };
+
+          if (maxqty && prob.id && filteredDetails) {
+            const checkreq = await inCartCheck(filteredDetails, prob.id);
+            setincart(checkreq.incart);
+          }
+
+          setmess(mess);
+          setqty(maxqty);
+          setproductorderdetail(orderDetail);
+        } finally {
+          setloading(false);
+        }
+      },
+      [
+        prob,
+        productorderdetail,
+        setincart,
+        setloading,
+        setmess,
+        setqty,
+        setproductorderdetail,
+      ],
+    );
+
+    return (
+      <div className="w-full h-fit flex flex-col gap-y-5">
+        <label htmlFor={name} className="text-lg font-bold w-fit h-fit">
+          {name}
+        </label>
+        <SelectContainer
+          type={type}
+          data={data}
+          onSelect={(val) => handleSelectVariant(idx, val)}
+          isSelected={selected}
+        />
+      </div>
+    );
+  },
+);
+
+VariantSelector.displayName = "VariantSelector";
+
+const ShowVariantSections = ({
+  prob,
+  qty,
+  errormess,
+  setmess,
+  setqty,
+  setloading,
+  setincart,
+  isloading,
+}: {
+  prob: Pick<
+    ProductState,
+    "stocktype" | "stock" | "Variant" | "Stock" | "Variantsection"
+  >;
+  qty: number;
+  errormess: errormessType;
+  setmess: React.Dispatch<React.SetStateAction<errormessType>>;
+  setqty: React.Dispatch<React.SetStateAction<number>>;
+  setloading: React.Dispatch<React.SetStateAction<boolean>>;
+  setincart: React.Dispatch<React.SetStateAction<boolean>>;
+  isloading?: boolean;
+}) => {
+  const Productunvaliable = (
+    <h3 className="text-lg text-gray-400 font-medium"> Product Unavaliable </h3>
+  );
+
+  // Get variants that are not in any section
+  const variantsNotInSection = useMemo(
+    () => prob.Variant?.filter((variant) => !variant.sectionId) || [],
+    [prob.Variant],
+  );
 
   return (
-    <div key={idx} className="w-full h-fit flex flex-col gap-y-5">
-      <label htmlFor={name} className="text-lg font-bold w-fit h-fit">
-        {name}
-      </label>
-      <SelectContainer
-        type={type}
-        data={data}
-        onSelect={(val) => handleSelectVariant(idx, val)}
-        isSelected={selected}
-      />
-    </div>
+    <>
+      {/* Render Variant Sections */}
+      {prob.Variantsection?.map((section) => (
+        <div
+          key={section.id}
+          className="w-full h-fit flex flex-col gap-y-3 p-4 bg-gradient-to-br from-purple-50 to-blue-50 rounded-lg border-2 border-purple-200"
+        >
+          <h3 className="text-xl font-bold text-purple-800 mb-2">
+            {section.name}
+          </h3>
+          <div className="flex flex-col gap-y-5">
+            {section.Variants?.map((variant, idx) => {
+              const globalIdx =
+                prob.Variant?.findIndex((v) => v.id === variant.id) ?? idx;
+              return (
+                <VariantSelector
+                  key={variant.id}
+                  id={variant.id ?? 0}
+                  name={variant.option_title}
+                  type={variant.option_type}
+                  idx={globalIdx}
+                  data={variant.option_value}
+                  prob={prob}
+                  errormess={errormess}
+                  setmess={setmess}
+                  setqty={setqty}
+                  setloading={setloading}
+                  setincart={setincart}
+                />
+              );
+            })}
+          </div>
+        </div>
+      ))}
+
+      {/* Render standalone variants not in any section */}
+      {variantsNotInSection.length > 0 && (
+        <div className="w-full h-fit flex flex-col gap-y-5">
+          {variantsNotInSection.map((variant, idx) => {
+            const globalIdx =
+              prob.Variant?.findIndex((v) => v.id === variant.id) ?? idx;
+            return (
+              <VariantSelector
+                key={variant.id}
+                id={variant.id ?? 0}
+                name={variant.option_title}
+                type={variant.option_type}
+                idx={globalIdx}
+                data={variant.option_value}
+                prob={prob}
+                errormess={errormess}
+                setmess={setmess}
+                setqty={setqty}
+                setloading={setloading}
+                setincart={setincart}
+              />
+            );
+          })}
+        </div>
+      )}
+
+      {/* Show stock/quantity selector */}
+      {prob.Stock && prob.Stock.length !== 0 ? (
+        <StockSelector
+          max={qty}
+          errormess={errormess}
+          setmess={setmess}
+          isloading={isloading}
+        />
+      ) : qty === 0 ? (
+        Productunvaliable
+      ) : null}
+    </>
   );
 };
 
@@ -521,36 +770,45 @@ const ShowOptionandStock = ({
 
   return type === "stock" ? (
     prob.stock && prob.stock > 0 ? (
-      stock(prob.stock, errormess, setmess, undefined, true)
+      <StockSelector
+        max={prob.stock}
+        errormess={errormess}
+        setmess={setmess}
+        isStock={true}
+      />
     ) : (
       Productunvaliable
     )
   ) : prob.Variant ? (
     <>
-      {prob.Variant.map((i, idx) =>
-        Variant(
-          i.id ?? 0,
-          i.option_title,
-          i.option_type,
-          idx,
-          i.option_value,
-          prob,
-          errormess,
-          setmess,
-          setqty,
-          setloading,
-          setincart
-        )
-      )}
-      {prob.Stock && prob.Stock.length !== 0
-        ? stock(qty, errormess, setmess, undefined, undefined, isloading)
-        : qty === 0
-        ? Productunvaliable
-        : ""}
+      {prob.Variant.map((i, idx) => (
+        <VariantSelector
+          key={i.id}
+          id={i.id ?? 0}
+          name={i.option_title}
+          type={i.option_type}
+          idx={idx}
+          data={i.option_value}
+          prob={prob}
+          errormess={errormess}
+          setmess={setmess}
+          setqty={setqty}
+          setloading={setloading}
+          setincart={setincart}
+        />
+      ))}
+      {prob.Stock && prob.Stock.length !== 0 ? (
+        <StockSelector
+          max={qty}
+          errormess={errormess}
+          setmess={setmess}
+          isloading={isloading}
+        />
+      ) : qty === 0 ? (
+        Productunvaliable
+      ) : null}
     </>
-  ) : (
-    <></>
-  );
+  ) : null;
 };
 
 export const ButtonForSimilarProd = React.memo(({ lt }: { lt: number }) => {

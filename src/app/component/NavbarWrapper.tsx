@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSession } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import Navbar from "./Navbar";
 import { ApiRequest } from "@/src/context/CustomHook";
 import { Usersessiontype } from "@/src/types/user.type";
+import { errorToast } from "./Loading";
 
 export default function NavbarWrapper() {
   const { data: session, status } = useSession();
@@ -17,13 +18,18 @@ export default function NavbarWrapper() {
     const fetchInitialData = async () => {
       if (status === "loading") return;
 
+      if (session?.expires) {
+        await signOut();
+        errorToast("Session Expired!");
+        return;
+      }
       try {
         if (userSession && userSession.role !== "ADMIN") {
           // Fetch cart count for non-admin users
           const cartResponse = await ApiRequest(
             "/api/order/cart?count=1",
             undefined,
-            "GET"
+            "GET",
           );
           if (cartResponse.success) {
             setInitialCartCount(cartResponse.data || 0);
@@ -33,7 +39,7 @@ export default function NavbarWrapper() {
           const notificationResponse = await ApiRequest(
             "/api/users/notification?ty=check",
             undefined,
-            "GET"
+            "GET",
           );
           if (notificationResponse.success) {
             setInitialNotificationCount(notificationResponse.data?.length || 0);

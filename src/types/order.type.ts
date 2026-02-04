@@ -1,5 +1,5 @@
 import { Address, User } from "@prisma/client";
-import { ProductState, VariantColorValueType } from "./product.type";
+import { ProductState, VariantValueObjType } from "./product.type";
 
 export type Orderstatus =
   | "Incart"
@@ -28,7 +28,7 @@ export enum ShippingTypeEnum {
 export interface Productorderdetailtype {
   variant_id: number;
   value: string;
-  [key: string]: string | number | VariantColorValueType | undefined;
+  [key: string]: string | number | VariantValueObjType | undefined;
 }
 
 export interface Productordertype {
@@ -42,7 +42,7 @@ export interface Productordertype {
   product?: ProductState;
   orderId?: string;
   status?: Allstatus;
-  selectedvariant?: (string | VariantColorValueType)[];
+  selectedvariant?: (string | VariantValueObjType)[];
 }
 
 export interface Orderpricetype {

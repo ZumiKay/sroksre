@@ -1,11 +1,11 @@
-import { VariantColorValueType } from "@/src/types/product.type";
+import { VariantValueObjType } from "@/src/types/product.type";
 import { RGBColor } from "react-color";
 
 export interface VariantDataType {
   id?: number;
   type: "COLOR" | "TEXT";
   name: string;
-  value: Array<string | VariantColorValueType>;
+  value: Array<string | VariantValueObjType>;
 }
 
 export interface Colortype {
@@ -29,6 +29,9 @@ export type Variantcontainertype =
   | "type"
   | "info"
   | "stockinfo"
+  | "section"
+  | "section-edit"
+  | "section-list"
   | "none";
 
 export interface ModalOpenState {

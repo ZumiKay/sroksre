@@ -1,8 +1,13 @@
 import { VariantColorValueType } from "@/src/context/GlobalContext";
+import {
+  Stocktype,
+  Varianttype,
+  VariantValueObjType,
+} from "@/src/types/product.type";
 
 export const ArraysAreEqualSets = (
   array1: string[],
-  array2: string[]
+  array2: string[],
 ): boolean => {
   if (array1.length !== array2.length) return false;
 
@@ -21,7 +26,7 @@ export const ArraysAreEqualSets = (
 
 export const checkVariantExists = (
   variants: any[] | undefined,
-  name: string
+  name: string,
 ): boolean => {
   return !!variants?.some((i) => i.option_title === name);
 };
@@ -36,26 +41,24 @@ export const getColorRgb = (hex: string) => {
 };
 
 export const updateStockOnVariantEdit = (
-  varaintstock: any[],
-  variants: any[]
+  varaintstock: Stocktype[],
+  variants: Varianttype[],
 ): any[] => {
   return varaintstock.map((stockItem) => ({
     ...stockItem,
-    Stockvalue: stockItem.Stockvalue.map((stockValue: any) => ({
+    Stockvalue: stockItem.Stockvalue.map((stockValue) => ({
       ...stockValue,
       variant_val: stockValue.variant_val.map((val: string) =>
         variants.some((vars) =>
-          vars.option_type === "COLOR"
-            ? (vars.option_value as VariantColorValueType[]).some(
-                (color) => color.val === val
-              )
-            : vars.option_value.includes(val)
+          (vars.option_value as VariantValueObjType[]).some(
+            (color) => color.val === val,
+          ),
         )
           ? val
-          : ""
+          : "",
       ),
-    })).filter((stockValue: any) =>
-      stockValue.variant_val.some((val: string) => val !== "")
+    })).filter((stockValue) =>
+      stockValue.variant_val.some((val) => val !== ""),
     ),
   }));
 };

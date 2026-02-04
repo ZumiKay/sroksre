@@ -7,11 +7,11 @@ import {
 } from "@/src/types/order.type";
 import Prisma from "@/src/lib/prisma";
 import { calculateDiscountProductPrice } from "@/src/lib/utilities";
-import { ProductState, VariantColorValueType } from "@/src/types/product.type";
+import { ProductState, VariantValueObjType } from "@/src/types/product.type";
 
 export const getCheckoutdata = async (
   orderid?: string,
-  userid?: number
+  userid?: number,
 ): Promise<Ordertype | null> => {
   const result = (await Prisma.orders.findFirst({
     where: userid ? { user: { id: userid } } : { id: orderid },
@@ -53,13 +53,13 @@ export const getCheckoutdata = async (
           const detailValue = detail[idx].value;
           const optionValues = variant.option_value as (
             | string
-            | VariantColorValueType
+            | VariantValueObjType
           )[];
 
           return optionValues.find((val) =>
             typeof val === "string"
               ? val === detailValue
-              : val.val === detailValue
+              : val.val === detailValue,
           );
         }).filter(Boolean);
 
@@ -73,7 +73,7 @@ export const getCheckoutdata = async (
           }),
         } as unknown as Productordertype;
       }
-    }
+    },
   );
 
   return {

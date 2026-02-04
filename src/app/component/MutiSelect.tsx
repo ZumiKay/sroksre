@@ -10,6 +10,7 @@ interface Multiselectprops {
   value: string[];
   label: string;
   onSelect: (e: Set<string>) => void;
+  isOptional?: boolean;
 }
 
 export default function Multiselect({
@@ -19,6 +20,7 @@ export default function Multiselect({
   label,
   onSelect,
   type,
+  isOptional,
 }: Multiselectprops) {
   const [values, setValues] = React.useState(new Set([""]));
 
@@ -58,7 +60,21 @@ export default function Multiselect({
     <div key={id} className="w-full h-full">
       <Select
         key={label}
-        label={label}
+        label={
+          <div className="flex items-center gap-2">
+            <span>{label}</span>
+            {isOptional && (
+              <Chip
+                size="sm"
+                variant="flat"
+                color="default"
+                className="bg-blue-50 text-blue-600 border border-blue-200 text-xs font-medium px-2 py-0"
+              >
+                Optional
+              </Chip>
+            )}
+          </div>
+        }
         labelPlacement="inside"
         isMultiline={true}
         selectionMode="multiple"

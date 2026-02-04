@@ -16,7 +16,7 @@ import { GetProductName } from "../dashboard/inventory/varaint_action";
 import { errorToast } from "./Loading";
 import { Button, Input } from "@nextui-org/react";
 import React from "react";
-import { ProductInfo, VariantColorValueType } from "@/src/types/product.type";
+import { ProductInfo, VariantValueObjType } from "@/src/types/product.type";
 import { SelectType } from "@/src/types/productAction.type";
 
 interface toggleprops {
@@ -329,12 +329,12 @@ export function AddSubCategoryMenu({ index }: { index: number }) {
 interface Toggleselectprops {
   type: "color" | "size" | "text" | "pcate" | "ccate";
   title: string;
-  data: Array<string> | VariantColorValueType[];
+  data: Array<string> | VariantValueObjType[];
   clickfunction?: (idx: number, type: string) => void;
   selected?: string[];
   promo?: boolean;
   onClear?: (
-    data: string[] | VariantColorValueType[],
+    data: string[] | VariantValueObjType[],
     selectedvalue: string[],
     promo?: boolean,
     type?: string,

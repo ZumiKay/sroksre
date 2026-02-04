@@ -1,11 +1,14 @@
 "use server";
 import { getUser } from "@/src/lib/session";
-import { redirect } from "next/navigation";
 import { Metadata } from "next";
 import Prisma from "@/src/lib/prisma";
 
 export async function generateMetadata(): Promise<Metadata> {
   const user = await getUser();
+
+  if (!user) {
+    return { title: "", description: "" };
+  }
 
   const data = await Prisma.user.findUnique({ where: { id: user?.id } });
   let title = "";
@@ -23,14 +26,8 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 const DashboardLayout = async ({ children }: { children: React.ReactNode }) => {
-  const session = await getUser();
-
-  if (!session) {
-    return redirect("/account");
-  }
-
   return (
-    <section className="min-h-screen w-full h-full bg-gradient-to-br from-gray-50 via-white to-indigo-50 relative overflow-hidden">
+    <section className="min-h-screem min-w-screen w-full h-full bg-gradient-to-br from-gray-50 via-white to-indigo-50 relative">
       {/* Decorative Background Elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-indigo-200/30 to-purple-200/30 rounded-full blur-3xl transform translate-x-1/2 -translate-y-1/2" />
@@ -40,9 +37,7 @@ const DashboardLayout = async ({ children }: { children: React.ReactNode }) => {
       {/* Main Content Container */}
       <div className="relative z-10 w-full h-full">
         {/* Content Wrapper with max-width and centering */}
-        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {children}
-        </div>
+        {children}
       </div>
     </section>
   );

@@ -27,7 +27,7 @@ import { Selecteddetailcard } from "./Card";
 import { ApiRequest } from "@/src/context/CustomHook";
 import { SelectionCustom } from "./Pagination_Component";
 import { SendNotification, useSocket } from "@/src/context/SocketContext";
-import { VariantColorValueType } from "@/src/types/product.type";
+import { VariantValueObjType } from "@/src/types/product.type";
 
 //Step assets
 const LineSvg = ({
@@ -160,7 +160,7 @@ export const StepComponent = ({
     await linesequence.start(
       data.active
         ? { pathLength: 0, transition: { duration: 0 } }
-        : { pathLength: 1 }
+        : { pathLength: 1 },
     );
     await sequence.start({
       pathLength: 1,
@@ -224,7 +224,7 @@ export const Checkoutproductcard = ({
   cover: string;
   name: string;
   total: number;
-  details?: (string | VariantColorValueType)[];
+  details?: (string | VariantValueObjType)[];
 }) => {
   return (
     <div
@@ -368,7 +368,7 @@ export const StepIndicator = ({ step }: { step: number }) => {
 
   useEffect(() => {
     setstepdata(
-      stepsinitialize.map((i) => ({ ...i, active: i.step === step }))
+      stepsinitialize.map((i) => ({ ...i, active: i.step === step })),
     );
   }, [step]);
   return (
@@ -518,7 +518,7 @@ export const FormWrapper = ({
           order_id,
           value,
           undefined,
-          isSaved
+          isSaved,
         );
         const request = await saveAddress();
 
@@ -546,7 +546,7 @@ export const FormWrapper = ({
           order_id,
           undefined,
           modifiedData as shippingtype,
-          isSaved
+          isSaved,
         );
         const request = await createandsaveAddress();
         if (!request.success) {
@@ -682,7 +682,7 @@ export function ShippingForm({ orderid }: { orderid: string }) {
         undefined,
         "PUT",
         "JSON",
-        { id: orderid, ty: "removeAddress" }
+        { id: orderid, ty: "removeAddress" },
       );
       setloading(false);
       if (!updatereq.success) {
@@ -899,7 +899,7 @@ export function Paypalbutton({
               return actions.restart();
             } else if (errorDetail) {
               throw new Error(
-                `${errorDetail.description} (${orderData.debug_id})`
+                `${errorDetail.description} (${orderData.debug_id})`,
               );
             } else if (!orderData.purchase_units) {
               throw new Error(JSON.stringify(orderData));
@@ -907,7 +907,7 @@ export function Paypalbutton({
               const getPolicy = await ApiRequest(
                 `/api/policy?type=email`,
                 undefined,
-                "GET"
+                "GET",
               );
               if (!getPolicy.success) {
                 throw Error("Error Occured");
@@ -917,20 +917,20 @@ export function Paypalbutton({
                 <OrderReceiptTemplate
                   order={{ ...order, status: Allstatus.paid }}
                   isAdmin={false}
-                />
+                />,
               );
               const adminhtmltemplate = ReactDOMServer.renderToString(
                 <OrderReceiptTemplate
                   order={{ ...order, status: Allstatus.paid }}
                   isAdmin={true}
-                />
+                />,
               );
 
               const updateOrder = updateStatus.bind(
                 null,
                 orderId,
                 htmltemplate,
-                adminhtmltemplate
+                adminhtmltemplate,
               );
               const makeReq = await updateOrder();
 
@@ -946,7 +946,7 @@ export function Paypalbutton({
                     checked: false,
                     link: `${process.env.NEXT_PUBLIC_BASE_URL}/dashboard/order?&q=${orderId}`,
                   },
-                  socket
+                  socket,
                 ));
               successToast(`Purchase Complete`);
               router.replace(`/checkout?orderid=${encripyid}&step=4`);

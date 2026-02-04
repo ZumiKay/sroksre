@@ -12,7 +12,6 @@ import { FilterMenu } from "../../component/SideMenu";
 import { CreateProducts } from "../../component/Modals/Product";
 import { Category } from "../../component/Modals/Category";
 import { BannerModal } from "../../component/Modals/Banner";
-import { UpdateStockModal } from "../../component/Modals/Stock";
 import {
   CreatePromotionModal,
   DiscountModals,
@@ -482,12 +481,6 @@ export default function Inventory({ searchParams }: InventoryProps) {
         {openmodal.createCategory && <Category />}
         {openmodal.createBanner && (
           <BannerModal setreloaddata={setreloaddata} />
-        )}
-        {openmodal.updatestock && (
-          <UpdateStockModal
-            closename="updatestock"
-            action={() => setreloaddata(true)}
-          />
         )}
         {openmodal.createPromotion && (
           <CreatePromotionModal

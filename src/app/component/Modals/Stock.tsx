@@ -19,24 +19,47 @@ import {
 } from "@mui/material";
 
 import { Chip as NextChip } from "@nextui-org/chip";
-import { useRouter } from "next/navigation";
-import { VariantColorValueType } from "@/src/types/product.type";
+import { ProductState, VariantValueObjType } from "@/src/types/product.type";
+import { useState } from "react";
+import { methodtype } from "@/src/lib/middlewareaction";
 
-export const UpdateStockModal = ({
-  action,
-  closename,
-}: {
-  action?: () => void;
-  closename: string;
-}) => {
-  const { product, setproduct, setopenmodal, isLoading, setisLoading } =
-    useGlobalContext();
-  const router = useRouter();
+/**Fetch Stock Function */
+const FetchStockData = async (
+  productId: number,
+  isLoading?: (val: boolean) => void,
+  setState?: (val: Partial<ProductState>) => void,
+) => {
+  try {
+    isLoading?.(true);
+    const data = await ApiRequest(
+      `/api/products?ty=stock7pid=${productId}`,
+      undefined,
+      "GET",
+    );
+    isLoading?.(false);
+    if (!data.success) {
+      throw Error(data.error);
+    }
+
+    setState?.(data.data);
+
+    return data.data as Pick<ProductState, "Variant" | "Stock">;
+  } catch (error) {
+    console.log("Error Fetching", error);
+    return null;
+  }
+};
+
+export const UpdateStockModal = ({ closename }: { closename: string }) => {
+  const { product, setproduct, setopenmodal } = useGlobalContext();
+  const [loading, setloading] = useState<Partial<Record<methodtype, boolean>>>(
+    {},
+  );
 
   const handleUpdate = async () => {
     const update = await ApiRequest(
       "/api/products/crud",
-      setisLoading,
+      setloading as never,
       "PUT",
       "JSON",
       { stock: product.stock, id: product.id, type: "editstock" },
@@ -46,11 +69,9 @@ export const UpdateStockModal = ({
       return;
     }
 
+    successToast("Updated");
     setproduct(Productinitailizestate);
-
-    successToast("Stock Updated");
     setopenmodal((prev) => ({ ...prev, [closename]: false }));
-    router.refresh();
   };
   return (
     <Modal closestate={closename}>
@@ -102,14 +123,14 @@ export const UpdateStockModal = ({
           <button
             type="button"
             onClick={() => handleUpdate()}
-            disabled={isLoading.PUT}
+            disabled={loading?.PUT || loading?.GET}
             className={`w-full h-14 rounded-xl font-bold text-base transition-all duration-300 shadow-lg flex items-center justify-center gap-2 ${
-              isLoading.PUT
+              loading?.PUT || loading?.GET
                 ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                 : "bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:from-green-600 hover:to-emerald-700 hover:shadow-xl hover:scale-[1.02]"
             }`}
           >
-            {isLoading.PUT ? (
+            {loading?.PUT ? (
               <>
                 <i className="fa-solid fa-spinner fa-spin"></i>
                 <span>Updating...</span>
@@ -126,9 +147,9 @@ export const UpdateStockModal = ({
             onClick={() => {
               setopenmodal((prev) => ({ ...prev, [closename]: false }));
             }}
-            disabled={isLoading.PUT}
+            disabled={loading?.PUT || loading?.GET}
             className={`w-full h-14 rounded-xl font-bold text-base transition-all duration-300 shadow-lg flex items-center justify-center gap-2 ${
-              isLoading.PUT
+              loading?.PUT || loading?.GET
                 ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                 : "bg-gradient-to-r from-pink-500 to-red-600 text-white hover:from-pink-600 hover:to-red-700 hover:shadow-xl hover:scale-[1.02]"
             }`}
@@ -146,7 +167,7 @@ interface StockSelectProps {
   id?: number;
   data: {
     type: "TEXT" | "COLOR";
-    value: (string | VariantColorValueType)[];
+    value: (string | VariantValueObjType)[];
   };
   label: string;
   onSelect: (val: Set<string>) => void;
@@ -207,7 +228,7 @@ export function StockSelect({
                         ? ((
                             data.value.find(
                               (i: any) => i.val === value,
-                            ) as VariantColorValueType
+                            ) as VariantValueObjType
                           )?.name ?? "")
                         : value
                     }

@@ -45,9 +45,12 @@ export interface productcoverstype {
   id?: number;
 }
 
-export type VariantColorValueType = {
+//Variant value as object
+export type VariantValueObjType = {
   val: string;
   name?: string;
+  price?: string;
+  qty?: number;
 };
 
 export enum VariantTypeEnum {
@@ -56,11 +59,15 @@ export enum VariantTypeEnum {
 }
 export interface Varianttype {
   id?: number;
+  tempId?: number;
   option_title: string;
   option_type: VariantTypeEnum;
-  option_value: Array<string | VariantColorValueType>;
+  option_value: Array<string | VariantValueObjType>;
+  price?: number;
+  qty?: number;
   optional?: boolean;
-  sectionId?: string;
+  sectionId?: number;
+  product_id?: number;
   [key: string]: any;
 }
 
@@ -88,9 +95,11 @@ export interface Relatedproducttype {
 }
 
 export interface VariantSectionType {
+  tempId: number;
   id?: number;
-  strId?: string;
-  Variants: Array<Varianttype>;
+  name: string;
+  varaintId?: number;
+  Variants?: Array<Varianttype>;
   Product?: ProductState;
   productsId?: number;
 }
@@ -106,7 +115,7 @@ export interface ProductState {
   stock?: number;
   variantcount?: number;
   Variant?: Array<Varianttype>;
-  VariantSection?: Array<VariantSectionType>;
+  Variantsection?: Array<VariantSectionType>;
   Stock?: Array<Stocktype>;
   lowstock?: boolean;
   incart?: boolean;

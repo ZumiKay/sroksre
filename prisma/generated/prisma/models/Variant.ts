@@ -29,13 +29,17 @@ export type AggregateVariant = {
 export type VariantAvgAggregateOutputType = {
   id: number | null
   product_id: number | null
-  variantSectionId: number | null
+  qty: number | null
+  price: number | null
+  sectionId: number | null
 }
 
 export type VariantSumAggregateOutputType = {
   id: number | null
   product_id: number | null
-  variantSectionId: number | null
+  qty: number | null
+  price: number | null
+  sectionId: number | null
 }
 
 export type VariantMinAggregateOutputType = {
@@ -43,9 +47,10 @@ export type VariantMinAggregateOutputType = {
   product_id: number | null
   option_title: string | null
   option_type: string | null
+  qty: number | null
+  price: number | null
   optional: boolean | null
-  sectionId: string | null
-  variantSectionId: number | null
+  sectionId: number | null
 }
 
 export type VariantMaxAggregateOutputType = {
@@ -53,9 +58,10 @@ export type VariantMaxAggregateOutputType = {
   product_id: number | null
   option_title: string | null
   option_type: string | null
+  qty: number | null
+  price: number | null
   optional: boolean | null
-  sectionId: string | null
-  variantSectionId: number | null
+  sectionId: number | null
 }
 
 export type VariantCountAggregateOutputType = {
@@ -64,9 +70,10 @@ export type VariantCountAggregateOutputType = {
   option_title: number
   option_type: number
   option_value: number
+  qty: number
+  price: number
   optional: number
   sectionId: number
-  variantSectionId: number
   _all: number
 }
 
@@ -74,13 +81,17 @@ export type VariantCountAggregateOutputType = {
 export type VariantAvgAggregateInputType = {
   id?: true
   product_id?: true
-  variantSectionId?: true
+  qty?: true
+  price?: true
+  sectionId?: true
 }
 
 export type VariantSumAggregateInputType = {
   id?: true
   product_id?: true
-  variantSectionId?: true
+  qty?: true
+  price?: true
+  sectionId?: true
 }
 
 export type VariantMinAggregateInputType = {
@@ -88,9 +99,10 @@ export type VariantMinAggregateInputType = {
   product_id?: true
   option_title?: true
   option_type?: true
+  qty?: true
+  price?: true
   optional?: true
   sectionId?: true
-  variantSectionId?: true
 }
 
 export type VariantMaxAggregateInputType = {
@@ -98,9 +110,10 @@ export type VariantMaxAggregateInputType = {
   product_id?: true
   option_title?: true
   option_type?: true
+  qty?: true
+  price?: true
   optional?: true
   sectionId?: true
-  variantSectionId?: true
 }
 
 export type VariantCountAggregateInputType = {
@@ -109,9 +122,10 @@ export type VariantCountAggregateInputType = {
   option_title?: true
   option_type?: true
   option_value?: true
+  qty?: true
+  price?: true
   optional?: true
   sectionId?: true
-  variantSectionId?: true
   _all?: true
 }
 
@@ -207,9 +221,10 @@ export type VariantGroupByOutputType = {
   option_title: string
   option_type: string
   option_value: runtime.JsonValue
+  qty: number | null
+  price: number | null
   optional: boolean | null
-  sectionId: string | null
-  variantSectionId: number | null
+  sectionId: number | null
   _count: VariantCountAggregateOutputType | null
   _avg: VariantAvgAggregateOutputType | null
   _sum: VariantSumAggregateOutputType | null
@@ -241,9 +256,10 @@ export type VariantWhereInput = {
   option_title?: Prisma.StringFilter<"Variant"> | string
   option_type?: Prisma.StringFilter<"Variant"> | string
   option_value?: Prisma.JsonFilter<"Variant">
+  qty?: Prisma.IntNullableFilter<"Variant"> | number | null
+  price?: Prisma.IntNullableFilter<"Variant"> | number | null
   optional?: Prisma.BoolNullableFilter<"Variant"> | boolean | null
-  sectionId?: Prisma.StringNullableFilter<"Variant"> | string | null
-  variantSectionId?: Prisma.IntNullableFilter<"Variant"> | number | null
+  sectionId?: Prisma.IntNullableFilter<"Variant"> | number | null
   product?: Prisma.XOR<Prisma.ProductsNullableScalarRelationFilter, Prisma.ProductsWhereInput> | null
   Varianttemplate?: Prisma.VarianttemplateListRelationFilter
   variantSection?: Prisma.XOR<Prisma.VariantSectionNullableScalarRelationFilter, Prisma.VariantSectionWhereInput> | null
@@ -255,9 +271,10 @@ export type VariantOrderByWithRelationInput = {
   option_title?: Prisma.SortOrder
   option_type?: Prisma.SortOrder
   option_value?: Prisma.SortOrder
+  qty?: Prisma.SortOrderInput | Prisma.SortOrder
+  price?: Prisma.SortOrderInput | Prisma.SortOrder
   optional?: Prisma.SortOrderInput | Prisma.SortOrder
   sectionId?: Prisma.SortOrderInput | Prisma.SortOrder
-  variantSectionId?: Prisma.SortOrderInput | Prisma.SortOrder
   product?: Prisma.ProductsOrderByWithRelationInput
   Varianttemplate?: Prisma.VarianttemplateOrderByRelationAggregateInput
   variantSection?: Prisma.VariantSectionOrderByWithRelationInput
@@ -272,9 +289,10 @@ export type VariantWhereUniqueInput = Prisma.AtLeast<{
   option_title?: Prisma.StringFilter<"Variant"> | string
   option_type?: Prisma.StringFilter<"Variant"> | string
   option_value?: Prisma.JsonFilter<"Variant">
+  qty?: Prisma.IntNullableFilter<"Variant"> | number | null
+  price?: Prisma.IntNullableFilter<"Variant"> | number | null
   optional?: Prisma.BoolNullableFilter<"Variant"> | boolean | null
-  sectionId?: Prisma.StringNullableFilter<"Variant"> | string | null
-  variantSectionId?: Prisma.IntNullableFilter<"Variant"> | number | null
+  sectionId?: Prisma.IntNullableFilter<"Variant"> | number | null
   product?: Prisma.XOR<Prisma.ProductsNullableScalarRelationFilter, Prisma.ProductsWhereInput> | null
   Varianttemplate?: Prisma.VarianttemplateListRelationFilter
   variantSection?: Prisma.XOR<Prisma.VariantSectionNullableScalarRelationFilter, Prisma.VariantSectionWhereInput> | null
@@ -286,9 +304,10 @@ export type VariantOrderByWithAggregationInput = {
   option_title?: Prisma.SortOrder
   option_type?: Prisma.SortOrder
   option_value?: Prisma.SortOrder
+  qty?: Prisma.SortOrderInput | Prisma.SortOrder
+  price?: Prisma.SortOrderInput | Prisma.SortOrder
   optional?: Prisma.SortOrderInput | Prisma.SortOrder
   sectionId?: Prisma.SortOrderInput | Prisma.SortOrder
-  variantSectionId?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.VariantCountOrderByAggregateInput
   _avg?: Prisma.VariantAvgOrderByAggregateInput
   _max?: Prisma.VariantMaxOrderByAggregateInput
@@ -305,17 +324,19 @@ export type VariantScalarWhereWithAggregatesInput = {
   option_title?: Prisma.StringWithAggregatesFilter<"Variant"> | string
   option_type?: Prisma.StringWithAggregatesFilter<"Variant"> | string
   option_value?: Prisma.JsonWithAggregatesFilter<"Variant">
+  qty?: Prisma.IntNullableWithAggregatesFilter<"Variant"> | number | null
+  price?: Prisma.IntNullableWithAggregatesFilter<"Variant"> | number | null
   optional?: Prisma.BoolNullableWithAggregatesFilter<"Variant"> | boolean | null
-  sectionId?: Prisma.StringNullableWithAggregatesFilter<"Variant"> | string | null
-  variantSectionId?: Prisma.IntNullableWithAggregatesFilter<"Variant"> | number | null
+  sectionId?: Prisma.IntNullableWithAggregatesFilter<"Variant"> | number | null
 }
 
 export type VariantCreateInput = {
   option_title: string
   option_type: string
   option_value: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  qty?: number | null
+  price?: number | null
   optional?: boolean | null
-  sectionId?: string | null
   product?: Prisma.ProductsCreateNestedOneWithoutVariantInput
   Varianttemplate?: Prisma.VarianttemplateCreateNestedManyWithoutVariantInput
   variantSection?: Prisma.VariantSectionCreateNestedOneWithoutVariantsInput
@@ -327,9 +348,10 @@ export type VariantUncheckedCreateInput = {
   option_title: string
   option_type: string
   option_value: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  qty?: number | null
+  price?: number | null
   optional?: boolean | null
-  sectionId?: string | null
-  variantSectionId?: number | null
+  sectionId?: number | null
   Varianttemplate?: Prisma.VarianttemplateUncheckedCreateNestedManyWithoutVariantInput
 }
 
@@ -337,8 +359,9 @@ export type VariantUpdateInput = {
   option_title?: Prisma.StringFieldUpdateOperationsInput | string
   option_type?: Prisma.StringFieldUpdateOperationsInput | string
   option_value?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  qty?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  price?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   optional?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
-  sectionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   product?: Prisma.ProductsUpdateOneWithoutVariantNestedInput
   Varianttemplate?: Prisma.VarianttemplateUpdateManyWithoutVariantNestedInput
   variantSection?: Prisma.VariantSectionUpdateOneWithoutVariantsNestedInput
@@ -350,9 +373,10 @@ export type VariantUncheckedUpdateInput = {
   option_title?: Prisma.StringFieldUpdateOperationsInput | string
   option_type?: Prisma.StringFieldUpdateOperationsInput | string
   option_value?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  qty?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  price?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   optional?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
-  sectionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  variantSectionId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  sectionId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   Varianttemplate?: Prisma.VarianttemplateUncheckedUpdateManyWithoutVariantNestedInput
 }
 
@@ -362,17 +386,19 @@ export type VariantCreateManyInput = {
   option_title: string
   option_type: string
   option_value: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  qty?: number | null
+  price?: number | null
   optional?: boolean | null
-  sectionId?: string | null
-  variantSectionId?: number | null
+  sectionId?: number | null
 }
 
 export type VariantUpdateManyMutationInput = {
   option_title?: Prisma.StringFieldUpdateOperationsInput | string
   option_type?: Prisma.StringFieldUpdateOperationsInput | string
   option_value?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  qty?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  price?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   optional?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
-  sectionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type VariantUncheckedUpdateManyInput = {
@@ -381,9 +407,10 @@ export type VariantUncheckedUpdateManyInput = {
   option_title?: Prisma.StringFieldUpdateOperationsInput | string
   option_type?: Prisma.StringFieldUpdateOperationsInput | string
   option_value?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  qty?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  price?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   optional?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
-  sectionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  variantSectionId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  sectionId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 export type VariantListRelationFilter = {
@@ -402,15 +429,18 @@ export type VariantCountOrderByAggregateInput = {
   option_title?: Prisma.SortOrder
   option_type?: Prisma.SortOrder
   option_value?: Prisma.SortOrder
+  qty?: Prisma.SortOrder
+  price?: Prisma.SortOrder
   optional?: Prisma.SortOrder
   sectionId?: Prisma.SortOrder
-  variantSectionId?: Prisma.SortOrder
 }
 
 export type VariantAvgOrderByAggregateInput = {
   id?: Prisma.SortOrder
   product_id?: Prisma.SortOrder
-  variantSectionId?: Prisma.SortOrder
+  qty?: Prisma.SortOrder
+  price?: Prisma.SortOrder
+  sectionId?: Prisma.SortOrder
 }
 
 export type VariantMaxOrderByAggregateInput = {
@@ -418,9 +448,10 @@ export type VariantMaxOrderByAggregateInput = {
   product_id?: Prisma.SortOrder
   option_title?: Prisma.SortOrder
   option_type?: Prisma.SortOrder
+  qty?: Prisma.SortOrder
+  price?: Prisma.SortOrder
   optional?: Prisma.SortOrder
   sectionId?: Prisma.SortOrder
-  variantSectionId?: Prisma.SortOrder
 }
 
 export type VariantMinOrderByAggregateInput = {
@@ -428,15 +459,18 @@ export type VariantMinOrderByAggregateInput = {
   product_id?: Prisma.SortOrder
   option_title?: Prisma.SortOrder
   option_type?: Prisma.SortOrder
+  qty?: Prisma.SortOrder
+  price?: Prisma.SortOrder
   optional?: Prisma.SortOrder
   sectionId?: Prisma.SortOrder
-  variantSectionId?: Prisma.SortOrder
 }
 
 export type VariantSumOrderByAggregateInput = {
   id?: Prisma.SortOrder
   product_id?: Prisma.SortOrder
-  variantSectionId?: Prisma.SortOrder
+  qty?: Prisma.SortOrder
+  price?: Prisma.SortOrder
+  sectionId?: Prisma.SortOrder
 }
 
 export type VariantScalarRelationFilter = {
@@ -550,8 +584,9 @@ export type VariantCreateWithoutProductInput = {
   option_title: string
   option_type: string
   option_value: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  qty?: number | null
+  price?: number | null
   optional?: boolean | null
-  sectionId?: string | null
   Varianttemplate?: Prisma.VarianttemplateCreateNestedManyWithoutVariantInput
   variantSection?: Prisma.VariantSectionCreateNestedOneWithoutVariantsInput
 }
@@ -561,9 +596,10 @@ export type VariantUncheckedCreateWithoutProductInput = {
   option_title: string
   option_type: string
   option_value: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  qty?: number | null
+  price?: number | null
   optional?: boolean | null
-  sectionId?: string | null
-  variantSectionId?: number | null
+  sectionId?: number | null
   Varianttemplate?: Prisma.VarianttemplateUncheckedCreateNestedManyWithoutVariantInput
 }
 
@@ -602,17 +638,19 @@ export type VariantScalarWhereInput = {
   option_title?: Prisma.StringFilter<"Variant"> | string
   option_type?: Prisma.StringFilter<"Variant"> | string
   option_value?: Prisma.JsonFilter<"Variant">
+  qty?: Prisma.IntNullableFilter<"Variant"> | number | null
+  price?: Prisma.IntNullableFilter<"Variant"> | number | null
   optional?: Prisma.BoolNullableFilter<"Variant"> | boolean | null
-  sectionId?: Prisma.StringNullableFilter<"Variant"> | string | null
-  variantSectionId?: Prisma.IntNullableFilter<"Variant"> | number | null
+  sectionId?: Prisma.IntNullableFilter<"Variant"> | number | null
 }
 
 export type VariantCreateWithoutVariantSectionInput = {
   option_title: string
   option_type: string
   option_value: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  qty?: number | null
+  price?: number | null
   optional?: boolean | null
-  sectionId?: string | null
   product?: Prisma.ProductsCreateNestedOneWithoutVariantInput
   Varianttemplate?: Prisma.VarianttemplateCreateNestedManyWithoutVariantInput
 }
@@ -623,8 +661,9 @@ export type VariantUncheckedCreateWithoutVariantSectionInput = {
   option_title: string
   option_type: string
   option_value: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  qty?: number | null
+  price?: number | null
   optional?: boolean | null
-  sectionId?: string | null
   Varianttemplate?: Prisma.VarianttemplateUncheckedCreateNestedManyWithoutVariantInput
 }
 
@@ -658,8 +697,9 @@ export type VariantCreateWithoutVarianttemplateInput = {
   option_title: string
   option_type: string
   option_value: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  qty?: number | null
+  price?: number | null
   optional?: boolean | null
-  sectionId?: string | null
   product?: Prisma.ProductsCreateNestedOneWithoutVariantInput
   variantSection?: Prisma.VariantSectionCreateNestedOneWithoutVariantsInput
 }
@@ -670,9 +710,10 @@ export type VariantUncheckedCreateWithoutVarianttemplateInput = {
   option_title: string
   option_type: string
   option_value: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  qty?: number | null
+  price?: number | null
   optional?: boolean | null
-  sectionId?: string | null
-  variantSectionId?: number | null
+  sectionId?: number | null
 }
 
 export type VariantCreateOrConnectWithoutVarianttemplateInput = {
@@ -695,8 +736,9 @@ export type VariantUpdateWithoutVarianttemplateInput = {
   option_title?: Prisma.StringFieldUpdateOperationsInput | string
   option_type?: Prisma.StringFieldUpdateOperationsInput | string
   option_value?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  qty?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  price?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   optional?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
-  sectionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   product?: Prisma.ProductsUpdateOneWithoutVariantNestedInput
   variantSection?: Prisma.VariantSectionUpdateOneWithoutVariantsNestedInput
 }
@@ -707,9 +749,10 @@ export type VariantUncheckedUpdateWithoutVarianttemplateInput = {
   option_title?: Prisma.StringFieldUpdateOperationsInput | string
   option_type?: Prisma.StringFieldUpdateOperationsInput | string
   option_value?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  qty?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  price?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   optional?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
-  sectionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  variantSectionId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  sectionId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 export type VariantCreateManyProductInput = {
@@ -717,17 +760,19 @@ export type VariantCreateManyProductInput = {
   option_title: string
   option_type: string
   option_value: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  qty?: number | null
+  price?: number | null
   optional?: boolean | null
-  sectionId?: string | null
-  variantSectionId?: number | null
+  sectionId?: number | null
 }
 
 export type VariantUpdateWithoutProductInput = {
   option_title?: Prisma.StringFieldUpdateOperationsInput | string
   option_type?: Prisma.StringFieldUpdateOperationsInput | string
   option_value?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  qty?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  price?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   optional?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
-  sectionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   Varianttemplate?: Prisma.VarianttemplateUpdateManyWithoutVariantNestedInput
   variantSection?: Prisma.VariantSectionUpdateOneWithoutVariantsNestedInput
 }
@@ -737,9 +782,10 @@ export type VariantUncheckedUpdateWithoutProductInput = {
   option_title?: Prisma.StringFieldUpdateOperationsInput | string
   option_type?: Prisma.StringFieldUpdateOperationsInput | string
   option_value?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  qty?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  price?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   optional?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
-  sectionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  variantSectionId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  sectionId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   Varianttemplate?: Prisma.VarianttemplateUncheckedUpdateManyWithoutVariantNestedInput
 }
 
@@ -748,9 +794,10 @@ export type VariantUncheckedUpdateManyWithoutProductInput = {
   option_title?: Prisma.StringFieldUpdateOperationsInput | string
   option_type?: Prisma.StringFieldUpdateOperationsInput | string
   option_value?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  qty?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  price?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   optional?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
-  sectionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  variantSectionId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  sectionId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 export type VariantCreateManyVariantSectionInput = {
@@ -759,16 +806,18 @@ export type VariantCreateManyVariantSectionInput = {
   option_title: string
   option_type: string
   option_value: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  qty?: number | null
+  price?: number | null
   optional?: boolean | null
-  sectionId?: string | null
 }
 
 export type VariantUpdateWithoutVariantSectionInput = {
   option_title?: Prisma.StringFieldUpdateOperationsInput | string
   option_type?: Prisma.StringFieldUpdateOperationsInput | string
   option_value?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  qty?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  price?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   optional?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
-  sectionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   product?: Prisma.ProductsUpdateOneWithoutVariantNestedInput
   Varianttemplate?: Prisma.VarianttemplateUpdateManyWithoutVariantNestedInput
 }
@@ -779,8 +828,9 @@ export type VariantUncheckedUpdateWithoutVariantSectionInput = {
   option_title?: Prisma.StringFieldUpdateOperationsInput | string
   option_type?: Prisma.StringFieldUpdateOperationsInput | string
   option_value?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  qty?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  price?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   optional?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
-  sectionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   Varianttemplate?: Prisma.VarianttemplateUncheckedUpdateManyWithoutVariantNestedInput
 }
 
@@ -790,8 +840,9 @@ export type VariantUncheckedUpdateManyWithoutVariantSectionInput = {
   option_title?: Prisma.StringFieldUpdateOperationsInput | string
   option_type?: Prisma.StringFieldUpdateOperationsInput | string
   option_value?: Prisma.JsonNullValueInput | runtime.InputJsonValue
+  qty?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  price?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   optional?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
-  sectionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 
@@ -831,9 +882,10 @@ export type VariantSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   option_title?: boolean
   option_type?: boolean
   option_value?: boolean
+  qty?: boolean
+  price?: boolean
   optional?: boolean
   sectionId?: boolean
-  variantSectionId?: boolean
   product?: boolean | Prisma.Variant$productArgs<ExtArgs>
   Varianttemplate?: boolean | Prisma.Variant$VarianttemplateArgs<ExtArgs>
   variantSection?: boolean | Prisma.Variant$variantSectionArgs<ExtArgs>
@@ -846,9 +898,10 @@ export type VariantSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exten
   option_title?: boolean
   option_type?: boolean
   option_value?: boolean
+  qty?: boolean
+  price?: boolean
   optional?: boolean
   sectionId?: boolean
-  variantSectionId?: boolean
   product?: boolean | Prisma.Variant$productArgs<ExtArgs>
   variantSection?: boolean | Prisma.Variant$variantSectionArgs<ExtArgs>
 }, ExtArgs["result"]["variant"]>
@@ -859,9 +912,10 @@ export type VariantSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exten
   option_title?: boolean
   option_type?: boolean
   option_value?: boolean
+  qty?: boolean
+  price?: boolean
   optional?: boolean
   sectionId?: boolean
-  variantSectionId?: boolean
   product?: boolean | Prisma.Variant$productArgs<ExtArgs>
   variantSection?: boolean | Prisma.Variant$variantSectionArgs<ExtArgs>
 }, ExtArgs["result"]["variant"]>
@@ -872,12 +926,13 @@ export type VariantSelectScalar = {
   option_title?: boolean
   option_type?: boolean
   option_value?: boolean
+  qty?: boolean
+  price?: boolean
   optional?: boolean
   sectionId?: boolean
-  variantSectionId?: boolean
 }
 
-export type VariantOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "product_id" | "option_title" | "option_type" | "option_value" | "optional" | "sectionId" | "variantSectionId", ExtArgs["result"]["variant"]>
+export type VariantOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "product_id" | "option_title" | "option_type" | "option_value" | "qty" | "price" | "optional" | "sectionId", ExtArgs["result"]["variant"]>
 export type VariantInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   product?: boolean | Prisma.Variant$productArgs<ExtArgs>
   Varianttemplate?: boolean | Prisma.Variant$VarianttemplateArgs<ExtArgs>
@@ -906,9 +961,10 @@ export type $VariantPayload<ExtArgs extends runtime.Types.Extensions.InternalArg
     option_title: string
     option_type: string
     option_value: runtime.JsonValue
+    qty: number | null
+    price: number | null
     optional: boolean | null
-    sectionId: string | null
-    variantSectionId: number | null
+    sectionId: number | null
   }, ExtArgs["result"]["variant"]>
   composites: {}
 }
@@ -1340,9 +1396,10 @@ export interface VariantFieldRefs {
   readonly option_title: Prisma.FieldRef<"Variant", 'String'>
   readonly option_type: Prisma.FieldRef<"Variant", 'String'>
   readonly option_value: Prisma.FieldRef<"Variant", 'Json'>
+  readonly qty: Prisma.FieldRef<"Variant", 'Int'>
+  readonly price: Prisma.FieldRef<"Variant", 'Int'>
   readonly optional: Prisma.FieldRef<"Variant", 'Boolean'>
-  readonly sectionId: Prisma.FieldRef<"Variant", 'String'>
-  readonly variantSectionId: Prisma.FieldRef<"Variant", 'Int'>
+  readonly sectionId: Prisma.FieldRef<"Variant", 'Int'>
 }
     
 

@@ -665,7 +665,6 @@ const NormalDetail = () => {
   const [normaldetail, setnormal] = useState(normaldetailinitialize);
   useEffect(() => {
     const editindex = globalindex.productdetailindex === -1;
-    console.log(product.details[globalindex.productdetailindex]);
     if (!editindex) {
       setnormal({
         info_title: product.details[globalindex.productdetailindex].info_title,

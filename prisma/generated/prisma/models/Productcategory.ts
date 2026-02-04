@@ -222,6 +222,7 @@ export type ProductcategoryOrderByWithRelationInput = {
 
 export type ProductcategoryWhereUniqueInput = Prisma.AtLeast<{
   id?: number
+  product_id_autocategory_id?: Prisma.ProductcategoryProduct_idAutocategory_idCompoundUniqueInput
   AND?: Prisma.ProductcategoryWhereInput | Prisma.ProductcategoryWhereInput[]
   OR?: Prisma.ProductcategoryWhereInput[]
   NOT?: Prisma.ProductcategoryWhereInput | Prisma.ProductcategoryWhereInput[]
@@ -229,7 +230,7 @@ export type ProductcategoryWhereUniqueInput = Prisma.AtLeast<{
   autocategory_id?: Prisma.IntFilter<"Productcategory"> | number
   product?: Prisma.XOR<Prisma.ProductsScalarRelationFilter, Prisma.ProductsWhereInput>
   autocategory?: Prisma.XOR<Prisma.ParentcategoriesScalarRelationFilter, Prisma.ParentcategoriesWhereInput>
-}, "id">
+}, "id" | "product_id_autocategory_id">
 
 export type ProductcategoryOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
@@ -297,6 +298,11 @@ export type ProductcategoryListRelationFilter = {
 
 export type ProductcategoryOrderByRelationAggregateInput = {
   _count?: Prisma.SortOrder
+}
+
+export type ProductcategoryProduct_idAutocategory_idCompoundUniqueInput = {
+  product_id: number
+  autocategory_id: number
 }
 
 export type ProductcategoryCountOrderByAggregateInput = {

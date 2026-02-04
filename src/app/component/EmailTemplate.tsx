@@ -4,7 +4,7 @@ import {
   Productordertype,
   totalpricetype,
 } from "@/src/types/order.type";
-import { VariantColorValueType } from "@/src/types/product.type";
+import { VariantValueObjType } from "@/src/types/product.type";
 
 interface OerderEmailProps {
   order: Ordertype;
@@ -52,7 +52,7 @@ const ShowCard = ({ orderProduct }: { orderProduct: Productordertype }) => {
   const Totalprice =
     orderProduct.quantity *
     (!isDiscount
-      ? orderProduct.product?.price ?? 0
+      ? (orderProduct.product?.price ?? 0)
       : (price.discount?.newprice as number));
 
   return (
@@ -596,7 +596,7 @@ interface ProductEmailCardProps {
   cover: string;
   name: string;
   quantity: number;
-  details: (string | VariantColorValueType)[];
+  details: (string | VariantValueObjType)[];
   price: Orderpricetype;
   total: number;
 }
@@ -719,7 +719,7 @@ const OrderProductEmailCard = ({ data }: { data: ProductEmailCardProps }) => {
                         </span>
                       )}
                     </div>
-                  )
+                  ),
                 )}
                 <div style={{ marginTop: "12px" }}>
                   <table

@@ -3,16 +3,14 @@
 import { useState, useCallback } from "react";
 import { errorToast } from "@/src/app/component/Loading";
 import { Colorinitalize } from "../../types";
-import {
-  VariantColorValueType,
-  VariantTypeEnum,
-} from "@/src/types/product.type";
+import { VariantValueObjType, VariantTypeEnum } from "@/src/types/product.type";
 
 interface VariantDataType {
   id?: number;
   type: VariantTypeEnum;
   name: string;
-  value: Array<string | VariantColorValueType>;
+  value: Array<string | VariantValueObjType>;
+  optional?: boolean;
 }
 
 export interface UseVariantManagerReturn {
@@ -22,6 +20,10 @@ export interface UseVariantManagerReturn {
   setName: React.Dispatch<React.SetStateAction<string>>;
   option: string;
   setOption: React.Dispatch<React.SetStateAction<string>>;
+  optionPrice: number | undefined;
+  setOptionPrice: React.Dispatch<React.SetStateAction<number | undefined>>;
+  optionQty: number | undefined;
+  setOptionQty: React.Dispatch<React.SetStateAction<number | undefined>>;
   edit: number;
   setEdit: React.Dispatch<React.SetStateAction<number>>;
   added: number;
@@ -29,11 +31,15 @@ export interface UseVariantManagerReturn {
   colorData: {
     color: typeof Colorinitalize;
     name: string;
+    price?: number;
+    qty?: number;
   };
   setColorData: React.Dispatch<
     React.SetStateAction<{
       color: typeof Colorinitalize;
       name: string;
+      price?: number;
+      qty?: number;
     }>
   >;
   resetState: () => void;
@@ -46,11 +52,20 @@ export const useVariantManager = (): UseVariantManagerReturn => {
   const [temp, setTemp] = useState<VariantDataType>();
   const [name, setName] = useState("");
   const [option, setOption] = useState("");
+  const [optionPrice, setOptionPrice] = useState<number | undefined>();
+  const [optionQty, setOptionQty] = useState<number | undefined>();
   const [edit, setEdit] = useState(-1);
   const [added, setAdded] = useState(-1);
-  const [colorData, setColorData] = useState({
+  const [colorData, setColorData] = useState<{
+    color: typeof Colorinitalize;
+    name: string;
+    price?: number;
+    qty?: number;
+  }>({
     color: Colorinitalize,
     name: "",
+    price: undefined,
+    qty: undefined,
   });
 
   const resetState = useCallback(() => {
@@ -59,11 +74,18 @@ export const useVariantManager = (): UseVariantManagerReturn => {
     setEdit(-1);
     setAdded(-1);
     setOption("");
-    setColorData({ color: Colorinitalize, name: "" });
+    setOptionPrice(undefined);
+    setOptionQty(undefined);
+    setColorData({
+      color: Colorinitalize,
+      name: "",
+      price: undefined,
+      qty: undefined,
+    });
   }, []);
 
   const addColor = useCallback(() => {
-    const { color, name: colorName } = colorData;
+    const { color, name: colorName, price, qty } = colorData;
     if (color?.hex === "" || !colorName) {
       errorToast(color.hex === "" ? "Please Select Color" : "Name is Required");
       return false;
@@ -71,7 +93,12 @@ export const useVariantManager = (): UseVariantManagerReturn => {
 
     setTemp((prev) => {
       if (!prev) return prev;
-      const newColor = { val: color.hex, name: colorName };
+      const newColor: VariantValueObjType = {
+        val: color.hex,
+        name: colorName,
+        ...(price !== undefined && { price: price.toString() }),
+        ...(qty !== undefined && { qty }),
+      };
 
       if (edit === -1) {
         // Create a new array instead of mutating
@@ -91,7 +118,12 @@ export const useVariantManager = (): UseVariantManagerReturn => {
       return prev;
     });
 
-    setColorData({ color: Colorinitalize, name: "" });
+    setColorData({
+      color: Colorinitalize,
+      name: "",
+      price: undefined,
+      qty: undefined,
+    });
     setEdit(-1);
     return true;
   }, [colorData, edit]);
@@ -115,16 +147,27 @@ export const useVariantManager = (): UseVariantManagerReturn => {
       setTemp((prev) => {
         if (!prev) return prev;
 
+        const newOption: string | VariantValueObjType =
+          optionPrice !== undefined || optionQty !== undefined
+            ? {
+                val: option,
+                ...(optionPrice !== undefined && {
+                  price: optionPrice.toString(),
+                }),
+                ...(optionQty !== undefined && { qty: optionQty }),
+              }
+            : option;
+
         if (edit === -1) {
           // Create a new array instead of mutating
           return {
             ...prev,
-            value: [...(prev.value || []), option],
+            value: [...(prev.value || []), newOption],
           };
         } else if (prev.value) {
           // Create a new array with the updated value
           const newValue = [...prev.value];
-          newValue[edit] = option;
+          newValue[edit] = newOption;
           return {
             ...prev,
             value: newValue,
@@ -135,9 +178,11 @@ export const useVariantManager = (): UseVariantManagerReturn => {
 
       setEdit(-1);
       setOption(""); // Reset the option input after adding
+      setOptionPrice(undefined);
+      setOptionQty(undefined);
       return true;
     },
-    [option, edit],
+    [option, optionPrice, optionQty, edit],
   );
 
   return {
@@ -147,6 +192,10 @@ export const useVariantManager = (): UseVariantManagerReturn => {
     setName,
     option,
     setOption,
+    optionPrice,
+    setOptionPrice,
+    optionQty,
+    setOptionQty,
     edit,
     setEdit,
     added,

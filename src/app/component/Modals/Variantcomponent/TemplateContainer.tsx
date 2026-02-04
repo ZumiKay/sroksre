@@ -6,13 +6,10 @@ import { SelectionCustom } from "../../Pagination_Component";
 import { ChangeEvent, useState } from "react";
 import { RGBColor, SketchPicker } from "react-color";
 import PrimaryButton from "../../Button";
-import { errorToast, successToast } from "../../Loading";
+import { errorToast } from "../../Loading";
 import { CreateVariantTemplate, VariantTemplateType } from "./Action";
 import { ApiRequest } from "@/src/context/CustomHook";
-import {
-  VariantColorValueType,
-  Varianttype,
-} from "@/src/context/GlobalContext";
+import { Varianttype, VariantValueObjType } from "@/src/types/product.type";
 
 interface TemplateContainerProps {
   data?: {
@@ -35,13 +32,16 @@ export default function TemplateContainer({
   color,
   group,
 }: TemplateContainerProps) {
-  const groupedData = data?.reduce((acc, item) => {
-    if (!acc[item.type]) {
-      acc[item.type] = [];
-    }
-    acc[item.type].push(item);
-    return acc;
-  }, {} as { [key: string]: typeof data });
+  const groupedData = data?.reduce(
+    (acc, item) => {
+      if (!acc[item.type]) {
+        acc[item.type] = [];
+      }
+      acc[item.type].push(item);
+      return acc;
+    },
+    {} as { [key: string]: typeof data },
+  );
   return (
     <div className="w-full h-fit flex flex-row justify-start gap-5 flex-wrap">
       {!data ? (
@@ -186,6 +186,7 @@ interface AddTemplateModalProps {
   close: () => void;
   refresh?: () => void;
   data?: VariantTemplateType;
+  setSuccessMessage?: React.Dispatch<React.SetStateAction<string>>;
 }
 
 const VariantInitialize = {
@@ -198,12 +199,13 @@ export const AddTemplateModal = ({
   close,
   refresh,
   data,
+  setSuccessMessage,
 }: AddTemplateModalProps) => {
   const [option, setoption] = useState("");
   const [loading, setloading] = useState(false);
   const [step, setstep] = useState("");
   const [templatetype, settemplatetype] = useState<"COLOR" | "TEXT" | "">(
-    data ? (data.variant?.option_type as any) : ""
+    data ? (data.variant?.option_type as any) : "",
   );
   const [open, setopen] = useState(false);
   const [opencolor, setopencolor] = useState(false);
@@ -271,7 +273,7 @@ export const AddTemplateModal = ({
           undefined,
           "PUT",
           "JSON",
-          { id: data.id, variant: updatedvariant }
+          { id: data.id, variant: updatedvariant },
         );
         setloading(false);
 
@@ -279,7 +281,10 @@ export const AddTemplateModal = ({
           errorToast("Error occured");
           return;
         }
-        successToast(`${variant.option_title} updated`);
+        if (setSuccessMessage) {
+          setSuccessMessage(`${variant.option_title} updated`);
+          setTimeout(() => setSuccessMessage(""), 3000);
+        }
         refresh && refresh();
         close();
         return;
@@ -295,7 +300,10 @@ export const AddTemplateModal = ({
         errorToast("Error Occured");
         return;
       }
-      successToast(`${variant.option_title} created`);
+      if (setSuccessMessage) {
+        setSuccessMessage(`${variant.option_title} created`);
+        setTimeout(() => setSuccessMessage(""), 3000);
+      }
       setvariant(VariantInitialize);
       settemplatetype("");
       setstep("");
@@ -374,7 +382,7 @@ export const AddTemplateModal = ({
                       } else {
                         const colorval = variant.option_value[
                           id
-                        ] as VariantColorValueType;
+                        ] as VariantValueObjType;
                         setcolor({ hex: colorval.val });
                       }
                     }

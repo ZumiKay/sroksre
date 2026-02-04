@@ -222,6 +222,7 @@ export type WishlistOrderByWithRelationInput = {
 
 export type WishlistWhereUniqueInput = Prisma.AtLeast<{
   id?: number
+  uid_pid?: Prisma.WishlistUidPidCompoundUniqueInput
   AND?: Prisma.WishlistWhereInput | Prisma.WishlistWhereInput[]
   OR?: Prisma.WishlistWhereInput[]
   NOT?: Prisma.WishlistWhereInput | Prisma.WishlistWhereInput[]
@@ -229,7 +230,7 @@ export type WishlistWhereUniqueInput = Prisma.AtLeast<{
   uid?: Prisma.IntFilter<"Wishlist"> | number
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   product?: Prisma.XOR<Prisma.ProductsScalarRelationFilter, Prisma.ProductsWhereInput>
-}, "id">
+}, "id" | "uid_pid">
 
 export type WishlistOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
@@ -297,6 +298,11 @@ export type WishlistListRelationFilter = {
 
 export type WishlistOrderByRelationAggregateInput = {
   _count?: Prisma.SortOrder
+}
+
+export type WishlistUidPidCompoundUniqueInput = {
+  uid: number
+  pid: number
 }
 
 export type WishlistCountOrderByAggregateInput = {

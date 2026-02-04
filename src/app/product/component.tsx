@@ -12,7 +12,7 @@ import Card from "../component/Card";
 import { Input, Spacer } from "@nextui-org/react";
 import { ApiRequest, useEffectOnce } from "@/src/context/CustomHook";
 import { NormalSkeleton } from "../component/Banner";
-import { ProductState, VariantColorValueType } from "@/src/types/product.type";
+import { ProductState, VariantValueObjType } from "@/src/types/product.type";
 import { Orderpricetype } from "@/src/types/order.type";
 
 export const ProductFilterButton = ({
@@ -139,7 +139,7 @@ export const FilterContainer = ({
   const [loading, setloading] = useState(false);
 
   const [filtervalue, setfiltervalue] = useState<filtervaluetype | undefined>(
-    undefined
+    undefined,
   );
 
   const router = useRouter();
@@ -147,7 +147,7 @@ export const FilterContainer = ({
 
   useEffectOnce(() => {
     selected?.search &&
-      setfiltervalue((prev) => ({ ...prev, search: selected.search } as any));
+      setfiltervalue((prev) => ({ ...prev, search: selected.search }) as any);
 
     const getFiltervalue = async () => {
       if (!pid && !cid) {
@@ -160,7 +160,7 @@ export const FilterContainer = ({
         null,
         parseInt(pid),
         cid ? parseInt(cid) : undefined,
-        latest
+        latest,
       );
       const getreq = await res();
       setloading(false);
@@ -182,13 +182,13 @@ export const FilterContainer = ({
         const res = await ApiRequest(
           `/api/categories/select?ty=promocate&promoid=${isPromotion}`,
           undefined,
-          "GET"
+          "GET",
         );
         setloading(false);
         if (!res.success) {
           return;
         }
-        setfiltervalue((prev) => ({ ...prev, category: res.data } as any));
+        setfiltervalue((prev) => ({ ...prev, category: res.data }) as any);
       };
       fetchcate();
     }
@@ -244,10 +244,10 @@ export const FilterContainer = ({
   };
 
   const handleClearSpecific = (
-    data: string[] | VariantColorValueType[],
+    data: string[] | VariantValueObjType[],
     selectedValue: string[],
     promo?: boolean,
-    type?: string
+    type?: string,
   ) => {
     const param = new URLSearchParams(searchParams);
 
@@ -257,7 +257,7 @@ export const FilterContainer = ({
           if (param.has("other") && !promo) {
             const otherValues = param.get("other")?.split(",") || [];
             const updatedOtherValues = otherValues.filter(
-              (val) => val !== item
+              (val) => val !== item,
             );
 
             if (updatedOtherValues.length === 0) {
@@ -306,11 +306,11 @@ export const FilterContainer = ({
             defaultValue={selected?.search}
             onChange={(e) =>
               setfiltervalue(
-                (prev) => ({ ...prev, search: e.target.value } as any)
+                (prev) => ({ ...prev, search: e.target.value }) as any,
               )
             }
             onClear={() =>
-              setfiltervalue((prev) => ({ ...prev, search: "" } as any))
+              setfiltervalue((prev) => ({ ...prev, search: "" }) as any)
             }
             size="lg"
           />
@@ -335,7 +335,7 @@ export const FilterContainer = ({
                   type="ccate"
                   selected={filtervalue.category.child
                     ?.filter((i) =>
-                      selected?.ccate?.includes(i.value.toString())
+                      selected?.ccate?.includes(i.value.toString()),
                     )
                     ?.map((i) => i.label)}
                   clickfunction={handleClick}

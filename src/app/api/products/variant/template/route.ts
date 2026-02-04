@@ -1,8 +1,10 @@
+"use server";
+
 import { VariantTemplateType } from "@/src/app/component/Modals/Variantcomponent/Action";
 import Prisma from "@/src/lib/prisma";
 import { NextRequest } from "next/server";
 import { extractQueryParams } from "../../../banner/route";
-import { VariantColorValueType } from "@/src/context/GlobalContext";
+import { VariantValueObjType } from "@/src/types/product.type";
 
 export async function PUT(req: NextRequest) {
   const { id, variant } = (await req.json()) as VariantTemplateType;
@@ -18,7 +20,7 @@ export async function PUT(req: NextRequest) {
         { message: "Not found" },
         {
           status: 404,
-        }
+        },
       );
     }
 
@@ -26,21 +28,20 @@ export async function PUT(req: NextRequest) {
       const variantChanged = Object.entries(temp.variant).some(([key, val]) => {
         if (key === "option_value") {
           if (temp.variant.option_type === "COLOR") {
-            const tempValues = val as unknown as VariantColorValueType[];
-            const variantValues =
-              variant.option_value as VariantColorValueType[];
+            const tempValues = val as unknown as VariantValueObjType[];
+            const variantValues = variant.option_value as VariantValueObjType[];
 
             return tempValues.some((tempVal) =>
               variantValues.some(
                 (variantVal) =>
                   variantVal.val !== tempVal.val ||
-                  variantVal.name !== tempVal.name
-              )
+                  variantVal.name !== tempVal.name,
+              ),
             );
           } else {
             const tempValues = val as string[];
             return tempValues.some(
-              (tempVal) => !variant.option_value.includes(tempVal)
+              (tempVal) => !variant.option_value.includes(tempVal),
             );
           }
         } else {
@@ -67,7 +68,7 @@ export async function PUT(req: NextRequest) {
       { message: "Error occured" },
       {
         status: 500,
-      }
+      },
     );
   }
 }
@@ -81,7 +82,7 @@ export async function GET(req: NextRequest) {
   try {
     const searchParam = req.nextUrl.toString();
     const { ty, id } = extractQueryParams(
-      searchParam
+      searchParam,
     ) as unknown as VariantTemplateParam;
 
     if (!ty) {

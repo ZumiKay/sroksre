@@ -56,7 +56,7 @@ export async function getUser(): Promise<Sessiontype | null> {
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session) {
+    if (!session || !session.user) {
       return null;
     }
 
@@ -68,7 +68,7 @@ export async function getUser(): Promise<Sessiontype | null> {
       if (!isValid) {
         console.log(
           "Session invalid in DB, auto-logging out user:",
-          user.email
+          user.email,
         );
         return null;
       }
@@ -104,7 +104,7 @@ export async function getCartCount() {
         },
         cache: "no-store", // Disable cache for real-time data
         next: { revalidate: 0 }, // Alternative: set revalidation time
-      }
+      },
     );
 
     if (!response.ok) return 0;
@@ -134,7 +134,7 @@ export async function getNotificationCount() {
         },
         cache: "no-store",
         next: { revalidate: 0 },
-      }
+      },
     );
 
     if (!response.ok) return 0;

@@ -15,7 +15,7 @@ export const useRequest = (
   url: string,
   method: RequestMethod = "GET",
   data: any = null,
-  alldatastate?: string
+  alldatastate?: string,
 ) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -71,7 +71,7 @@ export const ApiRequest = async (
   method: RequestMethod = "DELETE",
   datatype: "JSON" | "FILE" = "JSON",
   data?: any,
-  revalidate?: string
+  revalidate?: string,
 ): Promise<{
   success: boolean;
   error?: string;
@@ -104,7 +104,7 @@ export const ApiRequest = async (
     }
     setloading && setloading((prev) => ({ ...prev, [method]: false }));
 
-    if (method === "GET" || method === "POST") {
+    if (method === "GET" || method === "POST" || method === "PUT") {
       return {
         success: true,
         data: responseJson.data,
@@ -115,6 +115,7 @@ export const ApiRequest = async (
         valid: responseJson.valid ?? undefined,
         isLimit: method === "GET" && responseJson?.isLimit,
         expirecount: method === "GET" && responseJson?.expirecount,
+        ...responseJson,
       };
     } else {
       return { success: true, message: responseJson.message };
@@ -133,7 +134,7 @@ export const ApiRequest = async (
 export function useDebounceEffect(
   fn: () => void,
   waitTime: number,
-  deps?: DependencyList
+  deps?: DependencyList,
 ) {
   useEffect(() => {
     const t = setTimeout(() => {
@@ -234,7 +235,7 @@ export const useClickOutside = (callback: () => void) => {
 export const Delayloading = async (
   asyncFn: () => Promise<void>,
   setLoading: (loading: boolean) => void,
-  delay: number = 3000
+  delay: number = 3000,
 ) => {
   let timeoutId: NodeJS.Timeout | null = null;
 
@@ -298,7 +299,7 @@ export const useScreenSize = () => {
 
 export const useDetectKeyboardOpen = (
   minKeyboardHeight = 300,
-  defaultValue = false
+  defaultValue = false,
 ) => {
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(defaultValue);
 

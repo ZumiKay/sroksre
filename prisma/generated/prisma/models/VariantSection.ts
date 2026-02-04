@@ -38,19 +38,19 @@ export type VariantSectionSumAggregateOutputType = {
 
 export type VariantSectionMinAggregateOutputType = {
   id: number | null
-  strId: string | null
+  name: string | null
   productsId: number | null
 }
 
 export type VariantSectionMaxAggregateOutputType = {
   id: number | null
-  strId: string | null
+  name: string | null
   productsId: number | null
 }
 
 export type VariantSectionCountAggregateOutputType = {
   id: number
-  strId: number
+  name: number
   productsId: number
   _all: number
 }
@@ -68,19 +68,19 @@ export type VariantSectionSumAggregateInputType = {
 
 export type VariantSectionMinAggregateInputType = {
   id?: true
-  strId?: true
+  name?: true
   productsId?: true
 }
 
 export type VariantSectionMaxAggregateInputType = {
   id?: true
-  strId?: true
+  name?: true
   productsId?: true
 }
 
 export type VariantSectionCountAggregateInputType = {
   id?: true
-  strId?: true
+  name?: true
   productsId?: true
   _all?: true
 }
@@ -173,7 +173,7 @@ export type VariantSectionGroupByArgs<ExtArgs extends runtime.Types.Extensions.I
 
 export type VariantSectionGroupByOutputType = {
   id: number
-  strId: string
+  name: string
   productsId: number | null
   _count: VariantSectionCountAggregateOutputType | null
   _avg: VariantSectionAvgAggregateOutputType | null
@@ -202,7 +202,7 @@ export type VariantSectionWhereInput = {
   OR?: Prisma.VariantSectionWhereInput[]
   NOT?: Prisma.VariantSectionWhereInput | Prisma.VariantSectionWhereInput[]
   id?: Prisma.IntFilter<"VariantSection"> | number
-  strId?: Prisma.StringFilter<"VariantSection"> | string
+  name?: Prisma.StringFilter<"VariantSection"> | string
   productsId?: Prisma.IntNullableFilter<"VariantSection"> | number | null
   Variants?: Prisma.VariantListRelationFilter
   Product?: Prisma.XOR<Prisma.ProductsNullableScalarRelationFilter, Prisma.ProductsWhereInput> | null
@@ -210,7 +210,7 @@ export type VariantSectionWhereInput = {
 
 export type VariantSectionOrderByWithRelationInput = {
   id?: Prisma.SortOrder
-  strId?: Prisma.SortOrder
+  name?: Prisma.SortOrder
   productsId?: Prisma.SortOrderInput | Prisma.SortOrder
   Variants?: Prisma.VariantOrderByRelationAggregateInput
   Product?: Prisma.ProductsOrderByWithRelationInput
@@ -218,18 +218,18 @@ export type VariantSectionOrderByWithRelationInput = {
 
 export type VariantSectionWhereUniqueInput = Prisma.AtLeast<{
   id?: number
-  strId?: string
   AND?: Prisma.VariantSectionWhereInput | Prisma.VariantSectionWhereInput[]
   OR?: Prisma.VariantSectionWhereInput[]
   NOT?: Prisma.VariantSectionWhereInput | Prisma.VariantSectionWhereInput[]
+  name?: Prisma.StringFilter<"VariantSection"> | string
   productsId?: Prisma.IntNullableFilter<"VariantSection"> | number | null
   Variants?: Prisma.VariantListRelationFilter
   Product?: Prisma.XOR<Prisma.ProductsNullableScalarRelationFilter, Prisma.ProductsWhereInput> | null
-}, "id" | "strId">
+}, "id">
 
 export type VariantSectionOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
-  strId?: Prisma.SortOrder
+  name?: Prisma.SortOrder
   productsId?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.VariantSectionCountOrderByAggregateInput
   _avg?: Prisma.VariantSectionAvgOrderByAggregateInput
@@ -243,49 +243,49 @@ export type VariantSectionScalarWhereWithAggregatesInput = {
   OR?: Prisma.VariantSectionScalarWhereWithAggregatesInput[]
   NOT?: Prisma.VariantSectionScalarWhereWithAggregatesInput | Prisma.VariantSectionScalarWhereWithAggregatesInput[]
   id?: Prisma.IntWithAggregatesFilter<"VariantSection"> | number
-  strId?: Prisma.StringWithAggregatesFilter<"VariantSection"> | string
+  name?: Prisma.StringWithAggregatesFilter<"VariantSection"> | string
   productsId?: Prisma.IntNullableWithAggregatesFilter<"VariantSection"> | number | null
 }
 
 export type VariantSectionCreateInput = {
-  strId?: string
+  name: string
   Variants?: Prisma.VariantCreateNestedManyWithoutVariantSectionInput
   Product?: Prisma.ProductsCreateNestedOneWithoutVariantsectionInput
 }
 
 export type VariantSectionUncheckedCreateInput = {
   id?: number
-  strId?: string
+  name: string
   productsId?: number | null
   Variants?: Prisma.VariantUncheckedCreateNestedManyWithoutVariantSectionInput
 }
 
 export type VariantSectionUpdateInput = {
-  strId?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
   Variants?: Prisma.VariantUpdateManyWithoutVariantSectionNestedInput
   Product?: Prisma.ProductsUpdateOneWithoutVariantsectionNestedInput
 }
 
 export type VariantSectionUncheckedUpdateInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
-  strId?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
   productsId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   Variants?: Prisma.VariantUncheckedUpdateManyWithoutVariantSectionNestedInput
 }
 
 export type VariantSectionCreateManyInput = {
   id?: number
-  strId?: string
+  name: string
   productsId?: number | null
 }
 
 export type VariantSectionUpdateManyMutationInput = {
-  strId?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
 }
 
 export type VariantSectionUncheckedUpdateManyInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
-  strId?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
   productsId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
@@ -306,7 +306,7 @@ export type VariantSectionNullableScalarRelationFilter = {
 
 export type VariantSectionCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
-  strId?: Prisma.SortOrder
+  name?: Prisma.SortOrder
   productsId?: Prisma.SortOrder
 }
 
@@ -317,13 +317,13 @@ export type VariantSectionAvgOrderByAggregateInput = {
 
 export type VariantSectionMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
-  strId?: Prisma.SortOrder
+  name?: Prisma.SortOrder
   productsId?: Prisma.SortOrder
 }
 
 export type VariantSectionMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
-  strId?: Prisma.SortOrder
+  name?: Prisma.SortOrder
   productsId?: Prisma.SortOrder
 }
 
@@ -391,13 +391,13 @@ export type VariantSectionUpdateOneWithoutVariantsNestedInput = {
 }
 
 export type VariantSectionCreateWithoutProductInput = {
-  strId?: string
+  name: string
   Variants?: Prisma.VariantCreateNestedManyWithoutVariantSectionInput
 }
 
 export type VariantSectionUncheckedCreateWithoutProductInput = {
   id?: number
-  strId?: string
+  name: string
   Variants?: Prisma.VariantUncheckedCreateNestedManyWithoutVariantSectionInput
 }
 
@@ -432,18 +432,18 @@ export type VariantSectionScalarWhereInput = {
   OR?: Prisma.VariantSectionScalarWhereInput[]
   NOT?: Prisma.VariantSectionScalarWhereInput | Prisma.VariantSectionScalarWhereInput[]
   id?: Prisma.IntFilter<"VariantSection"> | number
-  strId?: Prisma.StringFilter<"VariantSection"> | string
+  name?: Prisma.StringFilter<"VariantSection"> | string
   productsId?: Prisma.IntNullableFilter<"VariantSection"> | number | null
 }
 
 export type VariantSectionCreateWithoutVariantsInput = {
-  strId?: string
+  name: string
   Product?: Prisma.ProductsCreateNestedOneWithoutVariantsectionInput
 }
 
 export type VariantSectionUncheckedCreateWithoutVariantsInput = {
   id?: number
-  strId?: string
+  name: string
   productsId?: number | null
 }
 
@@ -464,35 +464,35 @@ export type VariantSectionUpdateToOneWithWhereWithoutVariantsInput = {
 }
 
 export type VariantSectionUpdateWithoutVariantsInput = {
-  strId?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
   Product?: Prisma.ProductsUpdateOneWithoutVariantsectionNestedInput
 }
 
 export type VariantSectionUncheckedUpdateWithoutVariantsInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
-  strId?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
   productsId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 export type VariantSectionCreateManyProductInput = {
   id?: number
-  strId?: string
+  name: string
 }
 
 export type VariantSectionUpdateWithoutProductInput = {
-  strId?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
   Variants?: Prisma.VariantUpdateManyWithoutVariantSectionNestedInput
 }
 
 export type VariantSectionUncheckedUpdateWithoutProductInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
-  strId?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
   Variants?: Prisma.VariantUncheckedUpdateManyWithoutVariantSectionNestedInput
 }
 
 export type VariantSectionUncheckedUpdateManyWithoutProductInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
-  strId?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
 }
 
 
@@ -528,7 +528,7 @@ export type VariantSectionCountOutputTypeCountVariantsArgs<ExtArgs extends runti
 
 export type VariantSectionSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
-  strId?: boolean
+  name?: boolean
   productsId?: boolean
   Variants?: boolean | Prisma.VariantSection$VariantsArgs<ExtArgs>
   Product?: boolean | Prisma.VariantSection$ProductArgs<ExtArgs>
@@ -537,25 +537,25 @@ export type VariantSectionSelect<ExtArgs extends runtime.Types.Extensions.Intern
 
 export type VariantSectionSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
-  strId?: boolean
+  name?: boolean
   productsId?: boolean
   Product?: boolean | Prisma.VariantSection$ProductArgs<ExtArgs>
 }, ExtArgs["result"]["variantSection"]>
 
 export type VariantSectionSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
-  strId?: boolean
+  name?: boolean
   productsId?: boolean
   Product?: boolean | Prisma.VariantSection$ProductArgs<ExtArgs>
 }, ExtArgs["result"]["variantSection"]>
 
 export type VariantSectionSelectScalar = {
   id?: boolean
-  strId?: boolean
+  name?: boolean
   productsId?: boolean
 }
 
-export type VariantSectionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "strId" | "productsId", ExtArgs["result"]["variantSection"]>
+export type VariantSectionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "productsId", ExtArgs["result"]["variantSection"]>
 export type VariantSectionInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   Variants?: boolean | Prisma.VariantSection$VariantsArgs<ExtArgs>
   Product?: boolean | Prisma.VariantSection$ProductArgs<ExtArgs>
@@ -576,7 +576,7 @@ export type $VariantSectionPayload<ExtArgs extends runtime.Types.Extensions.Inte
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: number
-    strId: string
+    name: string
     productsId: number | null
   }, ExtArgs["result"]["variantSection"]>
   composites: {}
@@ -1004,7 +1004,7 @@ export interface Prisma__VariantSectionClient<T, Null = never, ExtArgs extends r
  */
 export interface VariantSectionFieldRefs {
   readonly id: Prisma.FieldRef<"VariantSection", 'Int'>
-  readonly strId: Prisma.FieldRef<"VariantSection", 'String'>
+  readonly name: Prisma.FieldRef<"VariantSection", 'String'>
   readonly productsId: Prisma.FieldRef<"VariantSection", 'Int'>
 }
     
@@ -1224,7 +1224,7 @@ export type VariantSectionCreateArgs<ExtArgs extends runtime.Types.Extensions.In
   /**
    * The data needed to create a VariantSection.
    */
-  data?: Prisma.XOR<Prisma.VariantSectionCreateInput, Prisma.VariantSectionUncheckedCreateInput>
+  data: Prisma.XOR<Prisma.VariantSectionCreateInput, Prisma.VariantSectionUncheckedCreateInput>
 }
 
 /**

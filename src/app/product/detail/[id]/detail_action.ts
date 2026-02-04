@@ -32,6 +32,15 @@ export async function GetProductDetailById(pid: string) {
         Variant: {
           orderBy: { id: "asc" },
         },
+        Variantsection: {
+          select: {
+            id: true,
+            name: true,
+            Variants: {
+              orderBy: { id: "asc" },
+            },
+          },
+        },
         Stock: {
           select: {
             id: true,

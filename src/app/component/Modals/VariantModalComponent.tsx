@@ -23,6 +23,7 @@ import {
   PlusIcon,
   WarningIcon,
 } from "../svg/icons";
+import { AddIcon } from "../Asset";
 
 interface ManageStockContainerProps {
   editindex?: number;
@@ -51,16 +52,31 @@ interface ManageStockContainerProps {
 function GenerateCombinations(arrays: (string[] | undefined)[]): string[][] {
   if (arrays.length === 0) return [[]];
 
-  const [first, ...rest] = arrays;
-  const restCombinations = GenerateCombinations(rest);
+  // Start with an empty combination
+  let result: string[][] = [[]];
 
-  if (first) {
-    return first.flatMap((value) =>
-      restCombinations.map((combination) => [value, ...combination]),
-    );
-  } else {
-    return restCombinations.map((combination) => ["", ...combination]);
+  // Build combinations
+  for (const array of arrays) {
+    const newResult: string[][] = [];
+
+    if (array && array.length > 0) {
+      // For each existing combination, add each value from current array
+      for (const combination of result) {
+        for (const value of array) {
+          newResult.push([...combination, value]);
+        }
+      }
+    } else {
+      // If array is undefined or empty
+      for (const combination of result) {
+        newResult.push([...combination]);
+      }
+    }
+
+    result = newResult;
   }
+
+  return result;
 }
 
 export function MapSelectedValuesToVariant(
@@ -68,7 +84,7 @@ export function MapSelectedValuesToVariant(
   variantKeys: string[],
 ): string[][] {
   const arrays: (string[] | undefined)[] = variantKeys.map(
-    (key) => selectedValues[key] || [""],
+    (key) => selectedValues[key],
   );
 
   const combinations = GenerateCombinations(arrays);
@@ -393,6 +409,7 @@ export function ManageStockContainer({
                       key={item.id}
                       id={idx}
                       type={item.option_type}
+                      isOptional={item.optional}
                       value={selectedstock[item.option_title]}
                       data={item.option_value.map((i) => {
                         if (typeof i === "string") {
@@ -463,20 +480,21 @@ export function ManageStockContainer({
             {/**Stock list */}
             <div className="liststock_container flex flex-row flex-wrap gap-6 w-[95%] h-fit p-6 max-h-[46vh] overflow-y-auto rounded-2xl bg-gradient-to-br from-blue-50/40 via-white to-purple-50/40 shadow-2xl border-2 border-gray-200/50 backdrop-blur-sm scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent hover:scrollbar-thumb-gray-400">
               {((product.Stock && product.Stock.length === 0) ||
-                !product.Stock) && (
-                <div className="w-full rounded-2xl bg-gradient-to-br from-blue-100/50 via-purple-50/50 to-pink-100/50 border-3 border-dashed border-gray-400/50 p-12 flex flex-col items-center gap-5 backdrop-blur-sm shadow-inner hover:border-gray-500 transition-all duration-300 group">
-                  <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-xl group-hover:scale-110 transition-transform duration-300">
-                    <VariantStockIcon className="w-14 h-14 text-white" />
+                !product.Stock) &&
+                !isloading && (
+                  <div className="w-full rounded-2xl bg-gradient-to-br from-blue-100/50 via-purple-50/50 to-pink-100/50 border-3 border-dashed border-gray-400/50 p-12 flex flex-col items-center gap-5 backdrop-blur-sm shadow-inner hover:border-gray-500 transition-all duration-300 group">
+                    <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-xl group-hover:scale-110 transition-transform duration-300">
+                      <VariantStockIcon className="w-14 h-14 text-white" />
+                    </div>
+                    <h3 className="text-2xl font-extrabold bg-gradient-to-r from-gray-700 to-gray-900 bg-clip-text text-transparent">
+                      No Stock Available
+                    </h3>
+                    <p className="text-base text-gray-600 font-medium text-center max-w-md">
+                      Create your first stock entry to get started and manage
+                      your inventory
+                    </p>
                   </div>
-                  <h3 className="text-2xl font-extrabold bg-gradient-to-r from-gray-700 to-gray-900 bg-clip-text text-transparent">
-                    No Stock Available
-                  </h3>
-                  <p className="text-base text-gray-600 font-medium text-center max-w-md">
-                    Create your first stock entry to get started and manage your
-                    inventory
-                  </p>
-                </div>
-              )}
+                )}
               {isloading ? (
                 <NormalSkeleton
                   style={{ flexDirection: "row" }}
@@ -579,197 +597,292 @@ interface ColorSelectModal {
   open: boolean;
   setopen: (val: boolean) => void;
   setedit: React.Dispatch<React.SetStateAction<number>>;
-
   color: Colortype;
   name: string;
   setcolor: (value: Colortype | string) => void;
+  price?: number;
+  qty?: number;
+  setprice?: React.Dispatch<React.SetStateAction<number | undefined>>;
+  setqty?: React.Dispatch<React.SetStateAction<number | undefined>>;
 }
 
-export const ColorSelectModal = ({
-  handleAddColor,
-  edit,
-  setedit,
-  color,
-  setcolor,
-  name,
-  open,
-  setopen,
-}: ColorSelectModal) => {
-  const [colorpicker, setcolorpicker] = useState(false);
-  const { isMobile } = useScreenSize();
-  return (
-    <>
-      <button
-        onClick={() => {
-          setedit(-1);
-          setcolor(Colorinitalize);
-          setopen(true);
-        }}
-        className={`px-6 py-3 rounded-xl text-base font-bold transition-all duration-300 ${
+export const ColorSelectModal = React.memo(
+  ({
+    handleAddColor,
+    edit,
+    setedit,
+    color,
+    setcolor,
+    name,
+    open,
+    setopen,
+    price,
+    qty,
+    setprice,
+    setqty,
+  }: ColorSelectModal) => {
+    const [colorpicker, setcolorpicker] = useState(false);
+    const { isMobile } = useScreenSize();
+
+    // Memoized handlers
+    const handleOpenColorPicker = React.useCallback(() => {
+      setedit(-1);
+      setcolor(Colorinitalize);
+      setopen(true);
+    }, [setedit, setcolor, setopen]);
+
+    const handleClose = React.useCallback(() => {
+      setedit(-1);
+      setopen(false);
+    }, [setedit, setopen]);
+
+    const handleConfirm = React.useCallback(() => {
+      handleAddColor();
+      setopen(false);
+    }, [handleAddColor, setopen]);
+
+    const handleNameChange = React.useCallback(
+      (e: React.ChangeEvent<HTMLInputElement>) => {
+        setcolor(e.target.value as string);
+      },
+      [setcolor],
+    );
+
+    const handlePriceChange = React.useCallback(
+      (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        setprice?.(value ? parseFloat(value) : undefined);
+      },
+      [setprice],
+    );
+
+    const handleQtyChange = React.useCallback(
+      (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        setqty?.(value ? parseInt(value, 10) : undefined);
+      },
+      [setqty],
+    );
+
+    const openColorPickerModal = React.useCallback(() => {
+      setcolorpicker(true);
+    }, []);
+
+    const closeColorPickerModal = React.useCallback(() => {
+      setcolorpicker(false);
+    }, []);
+
+    const handleCirclePickerChange = React.useCallback(
+      (value: any) => {
+        setcolor({ hex: value.hex, rgb: value.rgb as any });
+      },
+      [setcolor],
+    );
+
+    const handleChromePickerChange = React.useCallback(
+      (val: any) => {
+        setcolor({ hex: val.hex, rgb: val.rgb });
+      },
+      [setcolor],
+    );
+
+    const handleHexCodeChange = React.useCallback(
+      (e: React.ChangeEvent<HTMLInputElement>) => {
+        const value = e.target.value;
+        // Regular expression to validate hex color code (#RRGGBB or #RGB)
+        const isValidHex = /^#([0-9A-F]{3}){1,2}$/i.test(value);
+
+        if (!isValidHex) {
+          errorToast("Invalid hexcode");
+          return;
+        }
+
+        setcolor({
+          rgb: { r: 0, g: 0, b: 0 },
+          hex: value,
+        });
+      },
+      [setcolor],
+    );
+
+    const buttonClassName = React.useMemo(
+      () =>
+        `px-6 py-3 rounded-xl text-base font-bold transition-all duration-300 ${
           open
             ? "bg-gray-300 text-gray-500 cursor-not-allowed"
             : "bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-white hover:shadow-2xl hover:scale-110 active:scale-95 shadow-lg hover:from-blue-600 hover:via-purple-600 hover:to-pink-600"
-        }`}
-        disabled={open}
-      >
-        <span className="flex items-center gap-3">
-          <svg
-            className="w-5 h-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2.5}
-              d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"
-            />
-          </svg>
-          Add Color
-        </span>
-      </button>
-      {open && (
-        <SecondaryModal
-          open={open}
-          size={isMobile ? "full" : "3xl"}
-          placement={isMobile ? "top" : "center"}
-          onPageChange={() => {
-            setedit(-1);
-            setopen(false);
-          }}
-          closebtn
-          footer={() => {
-            return (
-              <PrimaryButton
-                text={edit === -1 ? "Confirm" : "Update"}
-                type="button"
-                onClick={() => {
-                  handleAddColor();
-                  setopen(false);
-                }}
-                disable={color.hex === ""}
-                width="100%"
-                textsize="13px"
-                radius="10px"
-                height="35px"
-              />
-            );
-          }}
-        >
-          <form className="w-full h-fit bg-white flex flex-col items-center justify-center gap-y-3 p-3">
-            <Input
-              type="text"
-              fullWidth
-              size="lg"
-              label="Name"
-              onChange={(e) => setcolor(e.target.value as string)}
-              value={name}
-              required
-            />
+        }`,
+      [open],
+    );
 
-            <label
-              htmlFor="color"
-              className="font-semibold text-sm w-full text-left"
-            >
-              Color
-              <strong className="text-red-400 text-lg font-normal">*</strong>
-            </label>
-            <div
-              onClick={() => {
-                setcolorpicker(true);
-              }}
-              className="w-full h-24 relative rounded-2xl overflow-hidden cursor-pointer group transition-all duration-300 hover:shadow-2xl border-4 border-gray-300 hover:border-blue-500 hover:scale-[1.02]"
-            >
+    const buttonText = React.useMemo(
+      () => (edit === -1 ? "Confirm" : "Update"),
+      [edit],
+    );
+
+    const priceValue = React.useMemo(() => price?.toString() ?? "", [price]);
+
+    const qtyValue = React.useMemo(() => qty?.toString() ?? "", [qty]);
+
+    const priceStartContent = React.useMemo(
+      () => (
+        <div className="pointer-events-none flex items-center">
+          <span className="text-default-400 text-small">$</span>
+        </div>
+      ),
+      [],
+    );
+    return (
+      <>
+        <button
+          onClick={handleOpenColorPicker}
+          className={buttonClassName}
+          disabled={open}
+        >
+          <span className="flex items-center gap-3">
+            <AddIcon />
+            Add Color
+          </span>
+        </button>
+        {open && (
+          <SecondaryModal
+            open={open}
+            size={isMobile ? "full" : "3xl"}
+            placement={isMobile ? "top" : "center"}
+            onPageChange={handleClose}
+            closebtn
+            footer={() => {
+              return (
+                <PrimaryButton
+                  text={buttonText}
+                  type="button"
+                  onClick={handleConfirm}
+                  disable={color.hex === ""}
+                  width="100%"
+                  textsize="13px"
+                  radius="10px"
+                  height="35px"
+                />
+              );
+            }}
+          >
+            <form className="w-full h-fit bg-white flex flex-col items-center justify-center gap-y-3 p-3">
+              <Input
+                type="text"
+                fullWidth
+                size="lg"
+                label="Name"
+                onChange={handleNameChange}
+                value={name}
+                required
+              />
+
+              <div className="w-full flex flex-row gap-3">
+                <Input
+                  type="number"
+                  fullWidth
+                  size="lg"
+                  label="Price (Optional)"
+                  placeholder="0.00"
+                  value={priceValue}
+                  onChange={handlePriceChange}
+                  startContent={priceStartContent}
+                />
+                <Input
+                  type="number"
+                  fullWidth
+                  size="lg"
+                  label="Quantity (Optional)"
+                  placeholder="0"
+                  value={qtyValue}
+                  onChange={handleQtyChange}
+                  min="0"
+                />
+              </div>
+
+              <label
+                htmlFor="color"
+                className="font-semibold text-sm w-full text-left"
+              >
+                Color
+                <strong className="text-red-400 text-lg font-normal">*</strong>
+              </label>
               <div
-                className="w-full h-full transition-transform duration-300 group-hover:scale-110"
-                style={{ backgroundColor: color.hex }}
-              ></div>
-              <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-300">
-                <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 shadow-lg">
-                  <svg
-                    className="w-7 h-7 text-blue-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2.5}
-                      d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
-                    />
-                  </svg>
+                onClick={openColorPickerModal}
+                className="w-full h-24 relative rounded-2xl overflow-hidden cursor-pointer group transition-all duration-300 hover:shadow-2xl border-4 border-gray-300 hover:border-blue-500 hover:scale-[1.02]"
+              >
+                <div
+                  className="w-full h-full transition-transform duration-300 group-hover:scale-110"
+                  style={{ backgroundColor: color.hex }}
+                ></div>
+                <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-300">
+                  <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 shadow-lg">
+                    <svg
+                      className="w-7 h-7 text-blue-600"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2.5}
+                        d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                      />
+                    </svg>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {colorpicker && (
-              <SecondaryModal
-                onPageChange={(val) => setcolorpicker(val)}
-                footer={() => {
-                  return (
-                    <PrimaryButton
-                      text="Close"
-                      color="lightcoral"
-                      type="button"
-                      radius="10px"
-                      onClick={() => {
-                        setcolorpicker(false);
-                      }}
-                      width="100%"
-                      textsize="10px"
-                      height="30px"
-                    />
-                  );
-                }}
-                open={colorpicker}
-                size={"2xl"}
-                placement={isMobile ? "top" : "center"}
-              >
-                <div className="w-full h-full flex flex-col items-center gap-y-8 justify-center p-6 bg-gradient-to-br from-blue-50/60 via-purple-50/40 to-pink-50/60 rounded-2xl">
-                  <div className="w-full h-fit flex flex-col gap-6 items-center bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-xl border-2 border-gray-200">
-                    <CirclePicker
-                      color={color.hex}
-                      onChange={(value) => {
-                        setcolor({
-                          hex: value.hex,
-                          rgb: value.rgb as any,
-                        });
-                      }}
-                    />
-                    <ChromePicker
-                      color={color.hex}
-                      onChange={(val) =>
-                        setcolor({ hex: val.hex, rgb: val.rgb })
-                      }
-                      disableAlpha
+              {colorpicker && (
+                <SecondaryModal
+                  onPageChange={setcolorpicker}
+                  footer={() => {
+                    return (
+                      <PrimaryButton
+                        text="Close"
+                        color="lightcoral"
+                        type="button"
+                        radius="10px"
+                        onClick={closeColorPickerModal}
+                        width="100%"
+                        textsize="10px"
+                        height="30px"
+                      />
+                    );
+                  }}
+                  open={colorpicker}
+                  size={"2xl"}
+                  placement={isMobile ? "top" : "center"}
+                >
+                  <div className="w-full h-full flex flex-col items-center gap-y-8 justify-center p-6 bg-gradient-to-br from-blue-50/60 via-purple-50/40 to-pink-50/60 rounded-2xl">
+                    <div className="w-full h-fit flex flex-col gap-6 items-center bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-xl border-2 border-gray-200">
+                      <CirclePicker
+                        color={color.hex}
+                        onChange={handleCirclePickerChange}
+                      />
+                      <ChromePicker
+                        color={color.hex}
+                        onChange={handleChromePickerChange}
+                        disableAlpha
+                      />
+                    </div>
+
+                    <Input
+                      className="w-full h-[40px] max-small_phone:text-2xl text-lg"
+                      type="text"
+                      label="Hex Code"
+                      value={color.hex}
+                      size="lg"
+                      onChange={handleHexCodeChange}
                     />
                   </div>
-
-                  <Input
-                    className="w-full h-[40px] max-small_phone:text-2xl text-lg"
-                    type="text"
-                    label="Hex Code"
-                    value={color.hex}
-                    size="lg"
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      // Regular expression to validate hex color code (#RRGGBB or #RGB)
-                      const isValidHex = /^#([0-9A-F]{3}){1,2}$/i.test(value);
-
-                      setcolor({
-                        rgb: { r: 0, g: 0, b: 0 },
-                        hex: value, // Default to gray if invalid
-                      });
-                    }}
-                  />
-                </div>
-              </SecondaryModal>
-            )}
-          </form>
-        </SecondaryModal>
-      )}
-    </>
-  );
-};
+                </SecondaryModal>
+              )}
+            </form>
+          </SecondaryModal>
+        )}
+      </>
+    );
+  },
+);

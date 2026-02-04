@@ -3,19 +3,21 @@ import React from "react";
 import { motion } from "framer-motion";
 import { Badge } from "@nextui-org/react";
 import { ColorSelectModal } from "../VariantModalComponent";
-import { VariantColorValueType } from "@/src/types/product.type";
+import { VariantValueObjType } from "@/src/types/product.type";
 import { ModalOpenState } from "../types";
 import { ColorSelectIcon } from "../../svg/icons";
 
 interface ColorVariantEditorProps {
   variantManager: any;
   open: ModalOpenState;
+  localGlobalPrice?: number;
   setOpen: React.Dispatch<React.SetStateAction<ModalOpenState>>;
   onColorSelect: (idx: number, selectType: "color" | "text") => void;
 }
 
 export const ColorVariantEditor: React.FC<ColorVariantEditorProps> = ({
   variantManager,
+  localGlobalPrice,
   open,
   setOpen,
   onColorSelect,
@@ -30,6 +32,8 @@ export const ColorVariantEditor: React.FC<ColorVariantEditorProps> = ({
         setopen={(val) => setOpen((prev) => ({ ...prev, addcolor: val }))}
         color={variantManager.colorData.color}
         name={variantManager.colorData.name}
+        price={localGlobalPrice ?? variantManager.colorData.price}
+        qty={variantManager.colorData.qty}
         setcolor={(val) => {
           if (typeof val === "string") {
             variantManager.setColorData((prev: any) => ({
@@ -43,12 +47,24 @@ export const ColorVariantEditor: React.FC<ColorVariantEditorProps> = ({
             }));
           }
         }}
+        setprice={(val) => {
+          variantManager.setColorData((prev: any) => ({
+            ...prev,
+            price: val,
+          }));
+        }}
+        setqty={(val) => {
+          variantManager.setColorData((prev: any) => ({
+            ...prev,
+            qty: val,
+          }));
+        }}
       />
 
       <div className="listcolor flex flex-row flex-wrap gap-4 w-full">
         {variantManager.temp?.value?.some((i: any) => i !== "") ? (
           variantManager.temp?.value?.map((color: any, idx: number) => {
-            const val = color as VariantColorValueType;
+            const val = color as VariantValueObjType;
             return (
               <motion.div
                 key={idx}

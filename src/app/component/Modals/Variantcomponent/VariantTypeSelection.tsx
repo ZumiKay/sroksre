@@ -23,6 +23,7 @@ interface VariantTypeSelectionProps {
   setOpen: React.Dispatch<React.SetStateAction<ModalOpenState>>;
   setNew: React.Dispatch<React.SetStateAction<any>>;
   onSelectTemplate: (id: number) => void;
+  setSuccessMessage?: React.Dispatch<React.SetStateAction<string>>;
 }
 
 const VariantTypeSelectionOptions: Array<SelectType> = [
@@ -37,6 +38,7 @@ export const VariantTypeSelection: React.FC<VariantTypeSelectionProps> = ({
   setOpen,
   setNew,
   onSelectTemplate,
+  setSuccessMessage,
 }) => {
   return (
     <>
@@ -121,6 +123,7 @@ export const VariantTypeSelection: React.FC<VariantTypeSelectionProps> = ({
           close={() => setOpen((prev) => ({ ...prev, addtemplate: false }))}
           refresh={() => templateManager.setReloadTemp(true)}
           data={templateManager.editTemplate}
+          setSuccessMessage={setSuccessMessage}
         />
       )}
     </>
