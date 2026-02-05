@@ -154,3 +154,35 @@ export const apiRateLimiter = new RateLimiter({
 export function getRateLimitKey(ip: string, path: string): string {
   return `${ip}:${path}`;
 }
+
+// Example usage of the RateLimiter
+
+// Example 1: Basic usage with IP and route
+const clientIP = "192.168.1.100";
+const apiRoute = "/api/users";
+const rateLimitKey = getRateLimitKey(clientIP, apiRoute);
+
+const result = globalRateLimiter.try(rateLimitKey);
+
+if (result.success) {
+  console.log(`Request allowed. Remaining: ${result.remaining}`);
+  // Process the request
+} else {
+  console.log(`Rate limit exceeded. Retry after: ${result.retryAfter} seconds`);
+  // Return 429 Too Many Requests
+}
+
+// Example 2: Authentication endpoint with stricter limits
+const authKey = getRateLimitKey("10.0.0.5", "/auth/login");
+const authResult = authRateLimiter.try(authKey);
+
+// Example 3: API endpoint usage
+const apiKey = getRateLimitKey("203.0.113.1", "/api/products");
+const apiResult = apiRateLimiter.try(apiKey);
+
+// Example 4: Reset a specific user's rate limit (admin action)
+globalRateLimiter.reset(getRateLimitKey("192.168.1.100", "/api/users"));
+
+// Example 5: Get all current rate limit records for monitoring
+const allRecords = globalRateLimiter.getAll();
+console.log("Current rate limit records:", allRecords);
