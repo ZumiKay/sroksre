@@ -49,24 +49,31 @@ export default function AuthenticatePage() {
 
     setloading("loading");
 
-    await signIn("credentials", {
+    signIn("credentials", {
       email: data.email,
       password: data.password,
       redirect: false,
-    }).then((res) => {
-      setloading("authenticated");
-      if (res?.ok) {
-        successToast("Logged In");
-        router.replace("/dashboard");
-        router.refresh();
-      }
-      if (res?.error) {
-        if (res.status === 401) {
-          errorToast("Incorrect Informations");
-          return;
+    })
+      .then((res) => {
+        setloading("authenticated");
+        if (res?.ok) {
+          successToast("Logged In");
+          router.replace("/dashboard");
         }
-      }
-    });
+        if (res?.error) {
+          console.error("Login error:", res.error, "status:", res.status);
+          if (res.status === 401) {
+            errorToast("Incorrect Informations");
+            return;
+          }
+          errorToast("Login failed");
+        }
+      })
+      .catch((err) => {
+        console.error("Login exception:", err);
+        setloading("authenticated");
+        errorToast("An error occurred during login");
+      });
   };
 
   const handleRegisterUser = async () => {
@@ -112,7 +119,7 @@ export default function AuthenticatePage() {
       undefined,
       "POST",
       "JSON",
-      data
+      data,
     );
     setloading("authenticated");
 
@@ -154,7 +161,7 @@ export default function AuthenticatePage() {
       undefined,
       method,
       "JSON",
-      requestBody
+      requestBody,
     );
 
     if (types === "cid") setloading("authenticated");
@@ -166,13 +173,13 @@ export default function AuthenticatePage() {
         const emailSubject =
           type === "register" ? "Email Verification" : "Reset Password";
         const emailTemplate = ReactDOMServer.renderToString(
-          <CredentialEmail {...vfydata} />
+          <CredentialEmail {...vfydata} />,
         );
         const sendemail = SendVfyEmail.bind(
           null,
           emailTemplate,
           data.email,
-          emailSubject
+          emailSubject,
         );
 
         const makereq = await sendemail();
@@ -209,7 +216,7 @@ export default function AuthenticatePage() {
         setisLoading,
         "DELETE",
         "JSON",
-        { type: "email", cid: data.cid }
+        { type: "email", cid: data.cid },
       );
       if (!deletecid.success) {
         errorToast("Error Occured");
@@ -221,10 +228,14 @@ export default function AuthenticatePage() {
   };
 
   const servicesSignIn = async (type: "google" | "discord") => {
-    const res = await signIn(type);
+    const res = await signIn(type, { redirect: false });
     if (res?.ok) {
-      router.replace("/dashboard");
+      router.push("/dashboard");
       router.refresh();
+    }
+    if (res?.error) {
+      console.error("OAuth login error:", res.error);
+      errorToast("Failed to login with " + type);
     }
   };
 
@@ -249,15 +260,15 @@ export default function AuthenticatePage() {
               {type === "register"
                 ? "Create Account"
                 : type === "forget"
-                ? "Reset Password"
-                : "Welcome Back"}
+                  ? "Reset Password"
+                  : "Welcome Back"}
             </h1>
             <p className="text-sm text-gray-500">
               {type === "register"
                 ? "Join SrokSre today"
                 : type === "forget"
-                ? "Enter your email to reset your password"
-                : "Login to your account"}
+                  ? "Enter your email to reset your password"
+                  : "Login to your account"}
             </p>
           </div>
 

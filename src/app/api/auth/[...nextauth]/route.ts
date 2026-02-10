@@ -10,25 +10,15 @@ import {
 import { NextAuthOptions } from "next-auth";
 import { generateRandomPassword } from "@/src/lib/utilities";
 import Prisma from "@/src/lib/prisma";
-
-interface JwtType {
-  name: string;
-  email: string;
-  session_id: string;
-  picture?: string;
-  image?: string;
-  id: number;
-  role: "ADMIN" | "USER" | "EDITOR";
-  iat: number;
-  exp: number;
-  jti: string;
-}
+import { JwtType, userdata, Usersessiontype } from "@/src/types/user.type";
+import { Role } from "@/prisma/generated/prisma/enums";
 
 export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
+
   pages: {
-    signIn: "../../../account/page.tsx",
-    error: "/error.tsx",
+    signIn: "/account",
+    error: "/account",
   },
   session: {
     strategy: "jwt",
@@ -44,33 +34,37 @@ export const authOptions: NextAuthOptions = {
       clientId: process.env.DISCORD_CLIENTID as string,
       clientSecret: process.env.DISCORD_CLIENTSECRET as string,
     }),
-
     CredentialProvider({
-      name: "Credentials",
+      id: "credentials",
+      name: "credentials",
       credentials: {
-        email: { label: "Email", type: "text", placeholder: "Email" },
+        email: { label: "Email", type: "email" },
         password: {
           label: "Password",
           type: "password",
-          placeholder: "Password",
         },
       },
-      async authorize(credentails: any): Promise<any> {
-        if (!credentails.email || !credentails.password) {
+      async authorize(credentails): Promise<any> {
+        if (!credentails?.email || !credentails?.password) {
           return null;
         }
 
-        const login = await userlogin(credentails);
+        const login = await userlogin(credentails as never);
         if (!login.success) {
           return null;
         }
 
-        return login.data;
+        return {
+          id: login.data?.id,
+          sessionid: login.data?.sessionid,
+          role: login.data?.role,
+        };
       },
     }),
   ],
   callbacks: {
     async signIn(param): Promise<any> {
+      //Handle Oauth0 authentication (Google, Discord)
       if (param.account?.provider !== "credentials") {
         const checkuser = await handleCheckandRegisterUser({
           data: {
@@ -86,101 +80,100 @@ export const authOptions: NextAuthOptions = {
         }
       }
 
-      return param.user;
+      return true;
     },
 
     async jwt(params): Promise<any> {
       const { token, user, account } = params;
 
+      //Only avaliable when just sign in trigger
+      const loggedUser = user as unknown as userdata;
+
       // Initial sign in - user object is available
       if (user) {
-        const userData = user as any;
-        let tokenData = {
-          email: userData.email,
-          session_id: userData.sessionid,
-          role: userData.role,
-          id: userData.id,
-          name: userData.name,
-        };
-
         // Handle OAuth providers
         if (account?.provider && account.provider !== "credentials") {
-          const oauthUser = await getOAuthInfo(userData.id, userData.email);
-          tokenData = {
-            ...tokenData,
-            id: oauthUser?.id,
-            role: oauthUser?.role,
-            session_id: oauthUser.session_id,
+          console.log("Processing OAuth login for:", user.email);
+          const oauthUser = await getOAuthInfo(user.id, user.email as string);
+
+          if (!oauthUser || !oauthUser.session_id) {
+            console.error("Failed to create OAuth session for:", user.email);
+            return {
+              ...token,
+              isExpired: true,
+            };
+          }
+
+          console.log(
+            "OAuth session created successfully:",
+            oauthUser.session_id,
+          );
+          //Prepare tokendata for OAuth
+          return {
+            ...token,
+            email: user.email,
+            sessionid: oauthUser.session_id,
+            role: oauthUser.role,
+            id: oauthUser.id,
+            firstname: user.name,
+            lastname: "",
           };
         }
 
-        return { ...token, ...tokenData };
+        // Handle credentials provider
+        if (loggedUser && loggedUser.sessionid) {
+          return {
+            ...token,
+            sessionid: loggedUser.sessionid,
+            role: loggedUser.role,
+            id: loggedUser.id,
+          };
+        }
+        return null;
+      }
+      //after signed in - verify session is still valid
+      else if (token) {
+        const userToken = token as unknown as JwtType;
+        //verify user session
+        const dbSession = await Prisma.usersession.findUnique({
+          where: {
+            session_id: userToken.sessionid,
+          },
+        });
+
+        // If session doesn't exist or is expired, mark it in the token
+        if (!dbSession || dbSession.expireAt < new Date()) {
+          return {
+            ...token,
+            isExpired: true,
+          };
+        }
       }
 
-      // Subsequent requests - return existing token
       return token;
     },
     async session(params): Promise<any> {
       let { session, token } = params;
+      const userToken = token as unknown as JwtType;
 
-      const jwtToken = token as unknown as JwtType;
-
-      // Ensure user data from token is added to session
-      if (
-        session &&
-        jwtToken &&
-        jwtToken.email &&
-        jwtToken?.id &&
-        jwtToken?.session_id
-      ) {
-        // Verify session exists in database (but don't return null to avoid infinite loop)
-        try {
-          const dbSession = await Prisma.usersession.findUnique({
-            where: {
-              session_id: jwtToken.session_id,
-            },
-          });
-
-          // If session doesn't exist or is expired, set user to null but still return session
-          // This prevents infinite loops while still invalidating the session
-          if (!dbSession || dbSession.expireAt < new Date()) {
-            console.log("Session invalid or expired:", {
-              exists: !!dbSession,
-              expired: dbSession ? dbSession.expireAt < new Date() : null,
-              session_id: jwtToken.session_id,
-            });
-
-            // Return session with null user to trigger client-side logout
-            return {
-              ...session,
-              user: null,
-              expires: new Date(0).toISOString(), // Set to expired
-            };
-          }
-        } catch (error) {
-          console.error("Error verifying session:", error);
-          // On error, allow session to continue to prevent infinite loops
+      if (userToken) {
+        // Check if token is marked as expired
+        if ((token as any).isExpired) {
+          (session as any).isExpired = true;
+          session.expires = "0";
         }
 
-        // Session is valid, populate user data
-        (session.user as any) = {
-          email: jwtToken.email,
-          name: jwtToken.name,
-          session_id: jwtToken.session_id || "",
-          role: jwtToken.role || "USER",
-          id: jwtToken.id,
-        };
-      } else {
-        console.warn("Session callback: Invalid or incomplete token", {
-          hasToken: !!jwtToken,
-          hasEmail: !!jwtToken?.email,
-          hasId: !!jwtToken?.id,
-        });
-      }
+        const usersession = session as unknown as Usersessiontype;
+        usersession.sessionid = userToken.sessionid as string;
+        usersession.id = userToken.id as number;
+        usersession.role = userToken.role as Role;
 
+        return usersession;
+      }
       return session;
     },
   },
 };
-const Nextauth = NextAuth(authOptions);
-export { Nextauth as GET, Nextauth as POST };
+const handler = NextAuth(authOptions);
+
+export { handler as GET, handler as POST };

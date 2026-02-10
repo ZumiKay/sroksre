@@ -1,5 +1,8 @@
 "use server";
 
+import Prisma from "@/src/lib/prisma";
+import { getUser } from "@/src/lib/session";
+
 interface ResponseType {
   success: boolean;
   challenge_ts: number | string | Date;
@@ -21,5 +24,38 @@ export async function VerifyRecapcha(token: string) {
   } catch (error) {
     console.log("Verify Recapcha", error);
     return { success: false };
+  }
+}
+
+export async function CheckAndGetUserInfo({ nodata }: { nodata?: boolean }) {
+  try {
+    const isSession = await getUser();
+
+    const checkSession = await Prisma.usersession.findUnique({
+      where: { session_id: isSession?.sessionid },
+      select: {
+        expireAt: true,
+        user: {
+          select: {
+            email: true,
+            firstname: true,
+            lastname: true,
+          },
+        },
+      },
+    });
+
+    if (!checkSession)
+      return { success: false, message: "Invalid session", isExpire: true };
+
+    const isExpire = checkSession.expireAt.getTime() >= new Date().getTime();
+
+    if (isExpire)
+      return { success: false, message: "Session expired", isExpire };
+
+    return { success: true, data: nodata ? undefined : checkSession.user };
+  } catch (error) {
+    console.log("Verify Session", error);
+    return { success: false, message: "Error Occured" };
   }
 }

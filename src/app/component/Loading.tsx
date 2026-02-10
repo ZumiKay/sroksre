@@ -1,4 +1,4 @@
-import { toast } from "react-toastify";
+import { toast, ToastOptions } from "react-toastify";
 import "../globals.css";
 import { CSSProperties } from "react";
 import Modal from "./Modals";
@@ -50,7 +50,7 @@ export const successToast = (message: string) => {
     theme: "colored",
   });
 };
-export const errorToast = (message: string) => {
+export const errorToast = (message: string, option?: ToastOptions) => {
   const toastId = "uniqueerrortoastid";
 
   if (toast.isActive(toastId)) return;
@@ -62,6 +62,7 @@ export const errorToast = (message: string) => {
     draggable: true,
     position: "top-right",
     theme: "dark",
+    ...option,
   });
 };
 

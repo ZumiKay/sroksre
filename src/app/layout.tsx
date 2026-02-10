@@ -33,7 +33,7 @@ export const metadata: Metadata = {
     telephone: false,
   },
   metadataBase: new URL(
-    process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"
+    process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000",
   ),
   alternates: {
     canonical: "/",
@@ -111,9 +111,9 @@ export default async function RootLayout({
           width: "100%",
         }}
       >
-        <GlobalContextProvider>
-          <NextUIProvider>
-            <Provider>
+        <Provider>
+          <GlobalContextProvider>
+            <NextUIProvider>
               <Suspense fallback={<ContainerLoading />}>
                 <SocketProvider>
                   <div id="main" className="w-full h-full relative">
@@ -124,9 +124,9 @@ export default async function RootLayout({
                   </div>
                 </SocketProvider>
               </Suspense>
-            </Provider>
-          </NextUIProvider>
-        </GlobalContextProvider>
+            </NextUIProvider>
+          </GlobalContextProvider>
+        </Provider>
       </body>
     </html>
   );

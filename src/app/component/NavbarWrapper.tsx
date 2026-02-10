@@ -1,29 +1,45 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { signOut, useSession } from "next-auth/react";
 import Navbar from "./Navbar";
 import { ApiRequest } from "@/src/context/CustomHook";
 import { Usersessiontype } from "@/src/types/user.type";
+import { CheckAndGetUserInfo } from "../severactions/RecapchaAction";
 import { errorToast } from "./Loading";
 
 export default function NavbarWrapper() {
   const { data: session, status } = useSession();
   const [initialCartCount, setInitialCartCount] = useState(0);
   const [initialNotificationCount, setInitialNotificationCount] = useState(0);
-
-  const userSession = session?.user as Usersessiontype | null;
+  const [loading, setLoading] = useState(false);
+  const userSession = useMemo(
+    () => session as unknown as Usersessiontype,
+    [session],
+  );
 
   useEffect(() => {
     const fetchInitialData = async () => {
       if (status === "loading") return;
 
-      if (session?.expires) {
-        await signOut();
-        errorToast("Session Expired!");
-        return;
-      }
+      setLoading(true);
       try {
+        //verify active login session
+        const checkReq = CheckAndGetUserInfo.bind(null, { nodata: true });
+        const isValid = await checkReq();
+
+        if (!isValid.success) {
+          errorToast(isValid.message ?? "Error occured");
+          if (isValid.isExpire) {
+            await signOut({ redirect: false });
+            errorToast(isValid.message, {
+              onClose: () => window.location.reload(),
+              closeOnClick: true,
+            });
+          }
+          return;
+        }
+
         if (userSession && userSession.role !== "ADMIN") {
           // Fetch cart count for non-admin users
           const cartResponse = await ApiRequest(
@@ -47,17 +63,20 @@ export default function NavbarWrapper() {
         }
       } catch (error) {
         console.error("Error fetching initial data:", error);
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchInitialData();
-  }, []);
+  }, [session, status]);
 
   return (
     <Navbar
       session={userSession}
       initialCartCount={initialCartCount}
       initialNotificationCount={initialNotificationCount}
+      loading={loading}
     />
   );
 }

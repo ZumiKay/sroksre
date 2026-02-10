@@ -1,11 +1,10 @@
 import * as jose from "jose";
 import { z } from "zod";
 import { compare, genSaltSync, hashSync } from "bcryptjs";
-import { userdata } from "../app/account/actions";
-
 import { checkpassword, getOneWeekFromToday } from "./utilities";
 import Prisma from "./prisma";
 import { Role } from "@/prisma/generated/prisma/enums";
+import { userdata } from "../types/user.type";
 
 export interface RegisterUser {
   id?: number;
@@ -21,7 +20,7 @@ export interface RegisterUser {
 
 //encode secret
 export const secretkey = new TextEncoder().encode(
-  process.env.JWT_SECRET as string
+  process.env.JWT_SECRET as string,
 );
 export async function createToken(payload: {
   userid: number;
@@ -55,8 +54,12 @@ export const verfyUserLoginInput = z.object({
   password: z.string(),
 });
 export const userlogin = async (
-  credentail: userdata
-): Promise<{ success: boolean; data?: userdata; message?: string }> => {
+  credentail: userdata,
+): Promise<{
+  success: boolean;
+  data?: Partial<userdata>;
+  message?: string;
+}> => {
   try {
     const user = await Prisma.user.findFirst({
       where: {
@@ -69,7 +72,7 @@ export const userlogin = async (
     if (user) {
       const isValid = await compare(
         credentail.password as string,
-        user.password
+        user.password,
       );
       if (isValid) {
         const session = await Prisma.usersession.create({
@@ -86,6 +89,8 @@ export const userlogin = async (
               role: user.role,
               sessionid: session.session_id,
               email: user.email,
+              firstname: user.firstname,
+              lastname: user.lastname ?? "",
             },
           };
         } else {
@@ -172,7 +177,11 @@ export const handleCheckandRegisterUser = async ({
   data,
 }: {
   data: RegisterUser;
-}): Promise<{ success: boolean; message?: string; data?: userdata }> => {
+}): Promise<{
+  success: boolean;
+  message?: string;
+  data?: Partial<userdata>;
+}> => {
   try {
     const existingUser = await Prisma.user.findFirst({
       where: { email: data.email },
@@ -207,6 +216,7 @@ export const handleCheckandRegisterUser = async ({
       message: "User created successfully",
       data: {
         id: createdUser.id,
+        oauthId: createdUser.oauthId as string,
         role: Role.USER,
         email: createdUser.email,
       },

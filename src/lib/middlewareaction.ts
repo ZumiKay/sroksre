@@ -47,34 +47,33 @@ const userRoute: Map<string, methodtype[]> = new Map([
 export const VerifyApiRoute = (
   url: string,
   method: methodtype,
-  role: Role | null
+  role: Role | null,
 ): { success: boolean } => {
   const normalizedUrl = url.toLowerCase();
 
-  if (!Role) {
-    return { success: false };
-  }
-
-  const isUserRoute = userRoute.get(normalizedUrl)?.includes(method);
-
-  // Check if it's a valid user route
-  if (isUserRoute && role === Role.USER) {
+  // Check public routes first (no auth required)
+  const isPublicRoute = allPublicRoute.get(normalizedUrl)?.includes(method);
+  if (isPublicRoute) {
     return { success: true };
   }
 
-  // Check if it's a valid admin route
+  // Require authentication for protected routes
+  if (!role) {
+    return { success: false };
+  }
+
+  // Check admin-only routes
   const isAdminRoute = allAdminRoute.get(normalizedUrl)?.includes(method);
-  if (isAdminRoute && role === Role.ADMIN) {
+  if (isAdminRoute) {
+    return { success: role === Role.ADMIN };
+  }
+
+  // Check user routes (accessible by authenticated users)
+  const isUserRoute = userRoute.get(normalizedUrl)?.includes(method);
+  if (isUserRoute) {
     return { success: true };
   }
 
-  if (isAdminRoute && role !== Role.ADMIN) {
-    return { success: false };
-  }
-
-  if (!isAdminRoute && !isUserRoute) {
-    return { success: true };
-  }
-
-  return { success: false };
+  // Default: allow if not explicitly restricted
+  return { success: true };
 };

@@ -7,62 +7,83 @@ import { Role } from "@/prisma/generated/prisma/enums";
  * Middleware - runs on Edge Runtime
  */
 
+// Helper to check if token is expired
+const isTokenExpired = (token: any | null): boolean => {
+  if (!token?.exp) return true;
+  return token.exp <= Math.floor(Date.now() / 1000);
+};
+
+// Helper to add default pagination params
+const addPaginationParams = (url: URL): void => {
+  if (!url.searchParams.has("page")) {
+    url.searchParams.set("page", "1");
+  }
+  if (!url.searchParams.has("show")) {
+    url.searchParams.set("show", "1");
+  }
+};
+
+const nextAuthPath = "/api/auth";
+
 export default async function middleware(req: NextRequest) {
-  const requestURL = (path: string) => req.nextUrl.pathname.endsWith(path);
+  const { pathname } = req.nextUrl;
+  const token = (await getToken({ req })) as unknown as any;
 
-  const url = req.nextUrl.pathname;
-
-  const token = await getToken({ req });
-
-  if (url.includes("dashboard")) {
-    if (token) {
-      if (url.includes("order")) {
-        return NextResponse.next();
-      }
-      if (url.includes("products") || url.includes("usermanagement")) {
-        if (token.role && token.role === "ADMIN") {
-          const nextUrl = req.nextUrl.clone();
-          const searchparam = nextUrl.searchParams;
-
-          if (!searchparam.has("page")) {
-            searchparam.append("page", "1");
-          }
-          if (!searchparam.has("show")) {
-            searchparam.append("show", "1");
-          }
-
-          return NextResponse.rewrite(nextUrl);
-        }
-        return NextResponse.redirect(new URL("/", req.url));
-      } else {
-        return NextResponse.next();
-      }
-    } else {
-      return NextResponse.rewrite(new URL("/account", req.url));
+  // Handle dashboard routes
+  if (pathname.includes("/dashboard")) {
+    // Redirect to account if no token or expired
+    if (!token || isTokenExpired(token)) {
+      req.nextUrl.pathname = "/account";
+      return NextResponse.rewrite(req.nextUrl);
     }
-  }
-  if (requestURL("account")) {
-    if (!token) {
+
+    // Allow access to order pages for all authenticated users
+    if (pathname.includes("/order")) {
       return NextResponse.next();
-    } else {
-      return NextResponse.redirect(new URL("/dashboard", req.url));
     }
+
+    // Admin-only routes: products and user management
+    if (
+      pathname.includes("/products") ||
+      pathname.includes("/usermanagement")
+    ) {
+      if (token.role !== "ADMIN") {
+        req.nextUrl.pathname = "/";
+        return NextResponse.redirect(req.nextUrl);
+      }
+
+      // Add default pagination params for admin routes
+      addPaginationParams(req.nextUrl);
+      return NextResponse.rewrite(req.nextUrl);
+    }
+
+    // Allow access to other dashboard pages
+    return NextResponse.next();
   }
 
-  //API ROUTE
-  if (url.startsWith("/api")) {
-    const method: methodtype = req.method as methodtype;
-
-    const role = token?.role as Role;
-
-    const verifyroute = VerifyApiRoute(url.replace("/api", ""), method, role);
-    if (verifyroute.success) {
-      return NextResponse.next();
-    } else {
-      return NextResponse.error();
+  // Handle account route
+  if (pathname.endsWith("/account")) {
+    // Redirect authenticated users to dashboard
+    if (token && !isTokenExpired(token)) {
+      req.nextUrl.pathname = "/dashboard";
+      return NextResponse.redirect(req.nextUrl);
     }
+    return NextResponse.next();
   }
+
+  // Handle API routes
+  if (pathname.startsWith("/api") && !pathname.startsWith(nextAuthPath)) {
+    const method = req.method as methodtype;
+    const role = token?.role as Role | null;
+    const apiPath = pathname.replace("/api", "");
+
+    const { success } = VerifyApiRoute(apiPath, method, role);
+    return success ? NextResponse.next() : NextResponse.error();
+  }
+
+  return NextResponse.next();
 }
+
 export const config = {
   matcher: ["/dashboard/:path*", "/account", "/api/:path*"],
 };

@@ -32,6 +32,7 @@ import {
   ProfileIcon,
   UserIcon,
 } from "../Asset";
+import { CheckAndGetUserInfo } from "../../severactions/RecapchaAction";
 
 interface AccountMenuProps {
   setProfile: (value: SetStateAction<boolean>) => void;
@@ -76,10 +77,9 @@ const AccountMenuItems = [
 
 export default function AccountMenu({ setProfile }: AccountMenuProps) {
   const pathname = usePathname();
-  const { data: session, status, update } = useSession();
-  const usersession = useMemo(
-    () => session?.user as unknown as Usersessiontype,
-    [session]
+  const { data: session, status } = useSession();
+  const [usersession, setusersession] = useState<Usersessiontype | null>(
+    session as never,
   );
   const memorizedStatus = useMemo(() => status, [status]);
   const { openmodal, setopenmodal } = useGlobalContext();
@@ -91,25 +91,32 @@ export default function AccountMenu({ setProfile }: AccountMenuProps) {
   const ref = useClickOutside(() => setProfile(false));
   const { isMobile } = useScreenSize();
 
-  useEffect(() => {
-    let timeout: NodeJS.Timeout | null = null;
+  //Verify User Session
+  const verifyUserSession = useCallback(async () => {
+    setloading(true);
+    try {
+      const makeReq = CheckAndGetUserInfo.bind(null, {});
+      const isSession = await makeReq();
 
-    //Verify User Session
-    const verifyUserSession = async () => {
-      try {
-        const session = await update();
-
-        if (!session) {
-          errorToast("Session Expired");
-          timeout = setTimeout(() => window.location.reload(), 150);
+      if (!isSession.success) {
+        errorToast(isSession.message ?? "Error occured");
+        if (isSession.isExpire) {
+          await signOut({ redirect: false });
+          errorToast(isSession.message, {
+            onClose: () => window.location.reload(),
+            closeOnClick: true,
+          });
         }
-      } catch (error) {
-        //Force Signout if Error
-        await signOut();
-        router.push("/account");
+        return;
       }
-    };
 
+      setusersession((prev) => ({ ...prev, ...isSession.data }) as never);
+    } finally {
+      setloading(false);
+    }
+  }, []);
+
+  useEffect(() => {
     if (memorizedStatus === "authenticated") {
       verifyUserSession();
     }
@@ -117,16 +124,15 @@ export default function AccountMenu({ setProfile }: AccountMenuProps) {
     document.body.style.overflowY = "hidden";
     return () => {
       document.body.style.overflowY = "auto";
-      timeout && clearTimeout(timeout);
     };
-  }, []);
+  }, [memorizedStatus, verifyUserSession]);
 
   const handleSignOut = useCallback(async () => {
     setloading(true);
     const deleteSession = await ApiRequest(
       "/api/users/logout",
       undefined,
-      "DELETE"
+      "DELETE",
     );
 
     if (!deleteSession.success) {
@@ -150,7 +156,7 @@ export default function AccountMenu({ setProfile }: AccountMenuProps) {
         {
           ty: "idx",
           edititems: Homeitems.map((i, idx) => ({ id: i.id, idx })),
-        }
+        },
       );
 
       setloading(false);
@@ -179,7 +185,7 @@ export default function AccountMenu({ setProfile }: AccountMenuProps) {
         "JSON",
         {
           id: homeitem_id,
-        }
+        },
       );
 
       if (!deletereq.success) {
@@ -213,9 +219,9 @@ export default function AccountMenu({ setProfile }: AccountMenuProps) {
   const filteredMenuItems = useMemo(
     () =>
       AccountMenuItems.filter((i) =>
-        pathname !== "/" ? i.name !== AccountMenuItems[4].name : true
+        pathname !== "/" ? i.name !== AccountMenuItems[4].name : true,
       ).filter((i) => (usersession?.role === "ADMIN" ? i.isAdmin : i.isUser)),
-    [pathname, usersession?.role]
+    [pathname, usersession?.role],
   );
 
   // Memoize callbacks to prevent MenuItem re-renders
@@ -229,7 +235,7 @@ export default function AccountMenu({ setProfile }: AccountMenuProps) {
       router.refresh();
       isMobile && setProfile(false);
     },
-    [router, isMobile, setProfile]
+    [router, isMobile, setProfile],
   );
 
   return (
@@ -307,10 +313,10 @@ export default function AccountMenu({ setProfile }: AccountMenuProps) {
         <>
           <div className="w-full flex flex-col items-center pt-8 pb-6 border-b border-gray-100">
             <h2 className="text-xl font-bold text-gray-800">
-              {usersession.email || "User"}
+              {usersession?.email || "User"}
             </h2>
             <p className="text-sm text-gray-500 capitalize">
-              {usersession.role || "Member"}
+              {usersession?.role || "Member"}
             </p>
           </div>
           <ul className="menu_container flex flex-col items-center w-full gap-y-3 mt-8 mb-8 px-6">
@@ -382,7 +388,7 @@ const MenuItem = React.memo(
         </div>
       </li>
     );
-  }
+  },
 );
 
 MenuItem.displayName = "MenuItem";

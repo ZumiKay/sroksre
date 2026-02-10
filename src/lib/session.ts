@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/src/app/api/auth/[...nextauth]/route";
 import { Sessiontype } from "@/src/context/GlobalContext";
 import Prisma from "./prisma";
+import { Usersessiontype } from "../types/user.type";
 
 /**
  * Optimized session and data fetching for Next.js 14
@@ -56,15 +57,15 @@ export async function getUser(): Promise<Sessiontype | null> {
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session || !session.user) {
+    if (!session) {
       return null;
     }
 
-    const user = session.user as any;
+    const user = session as unknown as Usersessiontype;
 
     // Verify session in database
-    if (user.session_id) {
-      const isValid = await verifySessionInDB(user.session_id);
+    if (user.sessionid) {
+      const isValid = await verifySessionInDB(user.sessionid);
       if (!isValid) {
         console.log(
           "Session invalid in DB, auto-logging out user:",

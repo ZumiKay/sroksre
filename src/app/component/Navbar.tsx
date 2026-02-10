@@ -52,15 +52,16 @@ export default function Navbar({
   session,
   initialCartCount = 0,
   initialNotificationCount = 0,
+  loading = false,
 }: {
   initialCartCount?: number;
   initialNotificationCount?: number;
   session: Usersessiontype | null;
+  loading?: boolean;
 }) {
   const { cart, setcart, carttotal, setcarttotal, setopenmodal, openmodal } =
     useGlobalContext();
   const [categories, setcategories] = useState(false);
-  const [cartloading, setcartloading] = useState(false);
   const [profile, setprofile] = useState(false);
   const [opennotification, setnotification] = useState(false);
   const [checkNotification, setchecknotify] = useState<number | undefined>(
@@ -193,7 +194,7 @@ export default function Navbar({
                 onMouseEnter={() => setcart(true)}
               />
               <span className="text-[13px] w-[20px] h-[20px] grid place-content-center absolute -bottom-6 top-0 -right-3 bg-gray-500 text-white rounded-[50%]">
-                {cartloading ? (
+                {loading ? (
                   <span className="inline-block w-2 h-2 bg-white rounded-full animate-pulse"></span>
                 ) : (
                   (carttotal ?? 0)
@@ -215,7 +216,7 @@ export default function Navbar({
                   className="bell min-w-[30px] min-h-[30px] max-smallest_tablet:min-w-[25px] max-smallest_tablet:min-h-[25px] max-small_phone:min-w-[25px] max-small_phone:min-h-[25px] object-fill transition-all active:bg-gray-200 active:shadow-xl rounded-xl"
                 />
 
-                {cartloading ? (
+                {loading ? (
                   <span className="absolute top-0 -right-1 w-[10px] h-[10px] rounded-full bg-gray-400 animate-pulse"></span>
                 ) : (
                   checkNotification !== 0 && (

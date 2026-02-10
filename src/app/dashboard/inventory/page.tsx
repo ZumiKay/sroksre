@@ -43,6 +43,8 @@ import {
   transformBannerData,
   transformPromotionData,
 } from "./utils/apiBuilder";
+import { useSession } from "next-auth/react";
+import useCheckSession from "@/src/hooks/useCheckSession";
 
 // Constants
 const DEFAULT_PARAMS = (type: string) => `?ty=${type}&p=1&limit=1`;
@@ -51,6 +53,7 @@ interface InventoryProps {
   searchParams?: { [key: string]: string | undefined };
 }
 
+let testCount = 0;
 export default function Inventory({ searchParams }: InventoryProps) {
   // Global context
   const {
@@ -86,6 +89,7 @@ export default function Inventory({ searchParams }: InventoryProps) {
   // Router hooks
   const router = useRouter();
   const searchParam = useSearchParams();
+  const { handleCheckSession } = useCheckSession();
 
   // Local state
   const [loaded, setloaded] = useState(false);
@@ -119,6 +123,11 @@ export default function Inventory({ searchParams }: InventoryProps) {
     () => allData?.[type as string] || [],
     [allData, type],
   );
+
+  //Check user session
+  useEffect(() => {
+    handleCheckSession();
+  }, [reloaddata, ty, page, viewMode, filtervalue, openmodal]);
 
   // Validation effect
   useEffect(() => {
@@ -345,7 +354,7 @@ export default function Inventory({ searchParams }: InventoryProps) {
   ]);
 
   const handleFilter = useCallback(
-    (value: string) => {
+    async (value: string) => {
       const params = new URLSearchParams(searchParam);
 
       // Reset filter params
@@ -365,7 +374,7 @@ export default function Inventory({ searchParams }: InventoryProps) {
       router.push(`?${params}`, { scroll: false });
       setreloaddata(true);
     },
-    [searchParam, filtervalue, router],
+    [searchParam, filtervalue, router, handleCheckSession],
   );
 
   // Render card view items

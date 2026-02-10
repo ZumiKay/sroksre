@@ -6,7 +6,9 @@ import Prisma from "@/src/lib/prisma";
 export async function generateMetadata(): Promise<Metadata> {
   const user = await getUser();
 
-  if (!user) {
+  console.log("meta: ", { user });
+
+  if (!user || !user.id || !user.sessionid) {
     return { title: "", description: "" };
   }
 

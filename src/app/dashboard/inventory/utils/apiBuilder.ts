@@ -1,5 +1,4 @@
 import dayjs from "dayjs";
-import { InventoryParamType } from "../varaint_action";
 
 interface FilterParams {
   status?: string;
@@ -19,7 +18,7 @@ export const buildProductApiUrl = (
   filtervalue: FilterParams,
   promotionSelectProduct: boolean,
   pid?: number,
-  promoids?: string
+  promoids?: string,
 ): string => {
   const { status, name, childcate, parentcate } = filtervalue;
 
@@ -56,7 +55,7 @@ export const buildBannerApiUrl = (
   page: number,
   show: string,
   filtervalue: FilterParams,
-  promotionSelectBanner: boolean
+  promotionSelectBanner: boolean,
 ): string => {
   const { name, bannersize, bannertype } = filtervalue;
 
@@ -86,7 +85,7 @@ export const buildBannerApiUrl = (
 export const buildPromotionApiUrl = (
   page: number,
   show: string,
-  filtervalue: FilterParams
+  filtervalue: FilterParams,
 ): string => {
   const { name, expiredate, expired } = filtervalue;
 

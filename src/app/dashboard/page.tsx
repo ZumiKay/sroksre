@@ -12,7 +12,7 @@ import {
 } from "@/src/context/CustomHook";
 import { ContainerLoading } from "../component/Loading";
 import { EditProfile } from "../component/Modals/User";
-import { signOut, useSession } from "next-auth/react";
+import { signOut } from "next-auth/react";
 import React from "react";
 import { Userdatastate } from "@/src/types/user.type";
 import { ProductState } from "@/src/types/product.type";

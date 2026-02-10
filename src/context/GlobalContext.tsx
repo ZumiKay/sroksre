@@ -3,7 +3,11 @@ import React, { useContext, useState } from "react";
 import { Ordertype, Productordertype } from "../types/order.type";
 import { Categorytype } from "../app/api/categories/route";
 import { confirmmodaltype, userdata, Userdatastate } from "../types/user.type";
-import { Listproductfilter, ProductState } from "../types/product.type";
+import {
+  Listproductfilter,
+  ProductState,
+  StockTypeEnum,
+} from "../types/product.type";
 import {
   AllDataState,
   Allrefstate,
@@ -15,6 +19,7 @@ import {
   PromotionProductState,
   PromotionState,
 } from "../types/productAction.type";
+import { Role } from "@/prisma/generated/prisma/enums";
 
 type alerttype = {
   open: boolean;
@@ -98,9 +103,9 @@ export interface Sessiontype {
   email?: string;
   name?: string;
   image?: string;
-  role?: "USER" | "ADMIN" | "EDITOR";
+  role?: Role;
   status?: string;
-  session_id?: string;
+  sessionid?: string;
 }
 
 //Initail State
@@ -154,7 +159,7 @@ export const Productinitailizestate: ProductState = {
   name: "",
   price: 0.0,
   description: "",
-  stocktype: "stock",
+  stocktype: StockTypeEnum.normal,
   stock: 0,
   variantcount: 0,
   covers: [],
@@ -396,7 +401,7 @@ export const SaveCheck = (
   closecon: closecontype,
   openmodal: OpenModalState,
   open?: boolean,
-  deletecallback?: any
+  deletecallback?: any,
 ) => {
   return {
     ...openmodal,

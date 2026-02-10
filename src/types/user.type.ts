@@ -4,9 +4,12 @@ export interface Usersessiontype {
   sub: number;
   id: number;
   role: Role;
-  session_id: string;
+  sessionid: string;
   name?: string;
   email?: string;
+  expires?: string | number;
+  isexpires?: boolean;
+  exp?: number;
 }
 
 export type confirmmodaltype = {
@@ -28,6 +31,7 @@ export type confirmmodaltype = {
 
 export interface userdata {
   id?: number;
+  oauthId?: string;
   email?: string;
   password?: string;
   confirmpassword?: string;
@@ -70,4 +74,19 @@ export interface Userdatastate {
   role?: Role;
   oldpassword?: string;
   newpassword?: string;
+}
+
+export interface JwtType {
+  name: string;
+  email: string;
+  sessionid: string;
+  picture?: string;
+  image?: string;
+  id: number;
+  sub: number;
+  role: Role;
+  iat: number;
+  exp: number;
+  jti: string;
+  isexpired?: boolean;
 }
