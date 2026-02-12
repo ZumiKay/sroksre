@@ -129,17 +129,7 @@ export default function AccountMenu({ setProfile }: AccountMenuProps) {
 
   const handleSignOut = useCallback(async () => {
     setloading(true);
-    const deleteSession = await ApiRequest(
-      "/api/users/logout",
-      undefined,
-      "DELETE",
-    );
-
-    if (!deleteSession.success) {
-      errorToast(deleteSession.message ?? "Error occured");
-    } else {
-      await signOut();
-    }
+    await signOut();
     setloading(false);
   }, []);
 
@@ -313,7 +303,7 @@ export default function AccountMenu({ setProfile }: AccountMenuProps) {
         <>
           <div className="w-full flex flex-col items-center pt-8 pb-6 border-b border-gray-100">
             <h2 className="text-xl font-bold text-gray-800">
-              {usersession?.email || "User"}
+              {usersession?.user.email || "User"}
             </h2>
             <p className="text-sm text-gray-500 capitalize">
               {usersession?.role || "Member"}

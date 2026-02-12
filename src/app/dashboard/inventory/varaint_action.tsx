@@ -313,7 +313,7 @@ export const DeleteTempImage = async () => {
     }
 
     const images = await Prisma.tempimage.findMany({
-      where: { user_id: user.id },
+      where: { user_id: user.userId },
     });
 
     if (images.length !== 0) {

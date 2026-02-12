@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
       where: {
         AND: [
           {
-            user_id: user.id,
+            user_id: user.userId,
           },
           {
             status: Allstatus.incart || Allstatus.unpaid,
@@ -60,8 +60,8 @@ export async function POST(req: NextRequest) {
             detail?.length === selecteddetail.length &&
             detail?.every((obj, index) =>
               Object.entries(obj).every(
-                ([key, value]) => value === selecteddetail[index][key]
-              )
+                ([key, value]) => value === selecteddetail[index][key],
+              ),
             );
           return areArraysEqual;
         });

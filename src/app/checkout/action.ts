@@ -48,7 +48,7 @@ export async function getAddress(orderid?: string) {
   const user = await getUser();
 
   const address = await Prisma.address.findMany({
-    where: { userId: user?.id },
+    where: { userId: user?.userId },
   });
 
   let selectedaddress;
@@ -78,14 +78,16 @@ export async function Createorder(data: {
 }): Promise<Returntype<any>> {
   const user = await getUser();
 
-  const userid = user?.id;
+  if (!user || !user.user.buyer_id)
+    return { success: false, message: "No Access" };
+
   let orderId = "";
   try {
     const checkOrder = await Prisma.orders.findFirst({
       where: {
         AND: [
           {
-            buyer_id: userid,
+            buyer_id: user.user.buyer_id,
           },
           {
             status: Allstatus.unpaid,
@@ -112,7 +114,7 @@ export async function Createorder(data: {
       const create = await Prisma.orders.create({
         data: {
           id: generateID,
-          buyer_id: userid as any,
+          buyer_id: user.user.buyer_id as string,
           status: Allstatus.unpaid,
           price: data.price as any,
           shippingtype: Shippingservice[2].value,
@@ -132,8 +134,8 @@ export async function Createorder(data: {
           data: {
             orderId,
           },
-        })
-      )
+        }),
+      ),
     );
 
     const encryptId = encrypt(orderId, process.env.KEY as string);
@@ -157,7 +159,7 @@ export async function checkOrder(id: string) {
 }
 
 export async function getOrderProduct(
-  orderId: string
+  orderId: string,
 ): Promise<Returntype<Array<Orderproduct>>> {
   const getProduct = await Prisma.orderproduct.findMany({
     where: { orderId },
@@ -190,7 +192,7 @@ export interface OrderUserType extends Ordertype {
 export async function updateStatus(
   orderid: string,
   html: string,
-  adminhtml: string
+  adminhtml: string,
 ): Promise<Returntype> {
   try {
     const order = await getCheckoutdata(orderid);
@@ -220,11 +222,11 @@ export async function updateStatus(
               ],
             },
             data: { stock: { decrement: cart.quantity } },
-          })
+          }),
         );
       } else if (Stock) {
         const stockValueIds = Stock.flatMap((sk) =>
-          sk.Stockvalue.filter((i) => i.id).map((sv) => sv.id)
+          sk.Stockvalue.filter((i) => i.id).map((sv) => sv.id),
         ) as Array<number>;
         stockUpdates.push(
           Prisma.stockvalue.updateMany({
@@ -237,7 +239,7 @@ export async function updateStatus(
               ],
             },
             data: { qty: { decrement: cart.quantity } },
-          })
+          }),
         );
       }
     });
@@ -250,7 +252,7 @@ export async function updateStatus(
         where: {
           id: {
             in: order.Orderproduct.filter((i) => i.productId).map(
-              (i) => i.productId
+              (i) => i.productId,
             ) as number[],
           },
         },
@@ -277,7 +279,7 @@ export async function updateStatus(
         name: prob.product?.name as string,
         price: prob.price,
         selectedVariant: prob.selectedvariant?.map((i) =>
-          typeof i === "string" ? i : i?.name ?? ""
+          typeof i === "string" ? i : (i?.name ?? ""),
         ) as never,
         quantity: prob.quantity,
         totalprice:
@@ -293,13 +295,13 @@ export async function updateStatus(
         htmltemplate,
         order.user.email,
         emailSubject,
-        createInvoice
+        createInvoice,
       ),
       SendOrderEmail(
         adminhtml,
         process.env.EMAIL as string,
         `Order #${order.id} request`,
-        createInvoice
+        createInvoice,
       ),
     ]);
 
@@ -314,17 +316,21 @@ export async function handleShippingAdddress(
   orderId: string,
   selected?: number,
   shippingdata?: shippingtype,
-  isSave?: string
+  isSave?: string,
 ): Promise<Returntype> {
   try {
     let shipId = selected;
     const user = await getUser();
 
+    if (!user) {
+      return { success: false, message: "No access" };
+    }
+
     if (!shipId && shippingdata && user && isSave) {
       //create shipping addresss
       const create = await Prisma.address.create({
         data: {
-          userId: isSave === "1" ? user.id : undefined,
+          userId: isSave === "1" ? user.userId : undefined,
           firstname: shippingdata.firstname,
           lastname: shippingdata.lastname,
           houseId: shippingdata.houseId.toString(),
@@ -346,7 +352,7 @@ export async function handleShippingAdddress(
       if (address && !address.userId && isSave === "1") {
         await Prisma.address.update({
           where: { id: shipId },
-          data: { userId: user?.id },
+          data: { userId: user.userId },
         });
       }
     }
@@ -368,7 +374,7 @@ export async function handleShippingAdddress(
 
 export async function updateShippingService(
   orderId: string,
-  shippingtype: string
+  shippingtype: string,
 ): Promise<Returntype> {
   try {
     let updatePrice: totalpricetype = {
@@ -423,7 +429,7 @@ const generateAccessToken = async () => {
 
   try {
     const auth = Buffer.from(paypal_id + ":" + paypal_secret).toString(
-      "base64"
+      "base64",
     );
     const response = await fetch(`${process.env.PAYPAL_BASE}/v1/oauth2/token`, {
       method: "POST",
@@ -496,7 +502,7 @@ export async function Createpaypalorder(orderId: string): Promise<Returntype> {
     const currency_code = "USD";
     const orderPrice = order.price as unknown as totalpricetype;
     const shippingtype = Shippingservice.find(
-      (i) => i.value === order.shippingtype
+      (i) => i.value === order.shippingtype,
     );
     const url = `${process.env.PAYPAL_BASE}/v2/checkout/orders`;
     const header = {
@@ -506,10 +512,10 @@ export async function Createpaypalorder(orderId: string): Promise<Returntype> {
 
     let orderItems: Paypalitemtype[] = order.Orderproduct.map((i) => {
       const price = i.product.discount
-        ? calculateDiscountProductPrice({
+        ? (calculateDiscountProductPrice({
             price: i.product.price,
             discount: i.product.discount,
-          }).discount?.newprice?.toFixed(2) ?? "0.00"
+          }).discount?.newprice?.toFixed(2) ?? "0.00")
         : parseFloat(i.product.price.toString()).toFixed(2);
       return {
         name: i.product.name,
@@ -599,7 +605,7 @@ export const SendOrderEmail = async (
   html: string,
   to: string,
   subject: string,
-  attachment?: Uint8Array
+  attachment?: Uint8Array,
 ) => {
   try {
     const transporter = nodemailer.createTransport({

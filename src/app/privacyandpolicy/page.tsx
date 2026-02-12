@@ -13,6 +13,7 @@ import LoadingIcon from "../component/Loading";
 import { Props } from "../product/page";
 import { Metadata } from "next";
 import Prisma from "@/src/lib/prisma";
+import { Role } from "@/prisma/generated/prisma/enums";
 
 export async function generateMetadata({
   searchParams,
@@ -53,7 +54,7 @@ export default async function PrivacyandPolicy({
 }) {
   const params = searchParams;
   const pageId = params?.p ? parseInt(params.p) : undefined;
-  const user = await getUser();
+  const user = await getUser({ user: { select: { role: true } } });
 
   const allpolicy = await getAllPolicy();
   let policy: Addpolicytype | Addquestiontype[] | null = null;
@@ -71,10 +72,10 @@ export default async function PrivacyandPolicy({
       pageId === 0
         ? "FAQs (Frequent Ask Question)"
         : policy
-        ? "title" in policy
-          ? policy.title
-          : undefined
-        : undefined;
+          ? "title" in policy
+            ? policy.title
+            : undefined
+          : undefined;
 
     return (
       <h3 className="font-bold text-5xl w-[95%] max-small_phone:w-[90%] break-words">
@@ -86,7 +87,7 @@ export default async function PrivacyandPolicy({
   return (
     <div className="w-full min-h-screen">
       <SidePolicyBar
-        isAdmin={user?.role === "ADMIN"}
+        isAdmin={user?.user.role === Role.ADMIN}
         data={[
           { id: 0, content: "FAQs" },
           ...allpolicy.map((i) => ({ id: i.id, content: i.title })),
@@ -134,12 +135,12 @@ export default async function PrivacyandPolicy({
               {pageId !== 0 ? (
                 <PolicyContent
                   paragrah={policy as Addpolicytype}
-                  isAdmin={user?.role === "ADMIN"}
+                  isAdmin={user?.user.role === Role.ADMIN}
                 />
               ) : (
                 <PolicyContent
                   question={policy as Addquestiontype[]}
-                  isAdmin={user?.role === "ADMIN"}
+                  isAdmin={user?.user.role === Role.ADMIN}
                 />
               )}
             </Suspense>

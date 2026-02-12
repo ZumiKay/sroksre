@@ -6,7 +6,7 @@ import { NotificationType } from "@/src/types/user.type";
 import { ActionReturnType } from "@/src/types/global.type";
 
 export const SaveNotification = async (
-  data: NotificationType
+  data: NotificationType,
 ): Promise<ActionReturnType> => {
   const user = await Prisma.user.findFirst({ where: { role: "ADMIN" } });
 
@@ -31,7 +31,7 @@ export const SaveNotification = async (
 };
 
 export const CheckedNotification = async (
-  id: number
+  id: number,
 ): Promise<ActionReturnType> => {
   try {
     await Prisma.notification.update({
@@ -55,7 +55,7 @@ export const CheckNotification = async () => {
     where: {
       AND: [
         {
-          userid: user.id,
+          userid: user.userId,
         },
         {
           checked: false,

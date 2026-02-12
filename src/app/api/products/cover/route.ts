@@ -21,7 +21,7 @@ export async function POST(request: Request) {
       body,
       request,
       onBeforeGenerateToken: async (
-        pathname
+        pathname,
         /* clientPayload */
       ) => {
         // Generate a client token for the browser to upload the file
@@ -37,7 +37,7 @@ export async function POST(request: Request) {
         await Prisma.tempimage.create({
           data: {
             name: pathname,
-            user_id: user.id,
+            user_id: user.userId,
           },
         });
 
@@ -60,7 +60,7 @@ export async function POST(request: Request) {
     console.log("Save Image", error);
     return NextResponse.json(
       { message: "Failed To Save" },
-      { status: 400 } // The webhook will retry 5 times waiting for a 200
+      { status: 400 }, // The webhook will retry 5 times waiting for a 200
     );
   }
 }
@@ -88,8 +88,8 @@ export async function DELETE(request: NextRequest) {
         if (isExist.length > 0) {
           await Promise.all(
             isExist.map((i) =>
-              Prisma.productcover.delete({ where: { id: i?.id } })
-            )
+              Prisma.productcover.delete({ where: { id: i?.id } }),
+            ),
           );
           await Promise.all(isExist.map((cover) => del(cover.url)));
         }

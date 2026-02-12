@@ -26,9 +26,9 @@ export { updateProductVariantStock } from "./admin/stock.operations";
 
 // Admin user operations
 import Prisma from "./prisma";
-import { hashedpassword } from "./userlib";
 import { Role } from "@/prisma/generated/prisma/enums";
 import { userdata } from "../types/user.type";
+import { hashPassword } from "./userlib";
 
 export interface admindata {
   firstname: string;
@@ -53,7 +53,7 @@ export const Createadmin = async (data: userdata) => {
     data: {
       firstname: data.firstname as string,
       lastname: data.lastname,
-      password: hashedpassword(data.password as string),
+      password: hashPassword(data.password as string),
       email: data.email as string,
       role: "ADMIN",
     },

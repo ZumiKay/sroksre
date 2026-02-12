@@ -2,7 +2,6 @@ import Emailicon from "../../../public/Image/Mail1.png";
 import Fbicon from "../../../public/Image/Facebook1.png";
 import Igicon from "../../../public/Image/Instagram01.png";
 import Phoneicon from "../../../public/Image/Phone.png";
-
 import { ContactForm } from "./component";
 import { Suspense } from "react";
 import LoadingIcon from "../component/Loading";
@@ -30,7 +29,7 @@ const ContactItems = [
 export default async function ContactPage() {
   const user = await getUser();
   const userdata =
-    user && (await Prisma.user.findUnique({ where: { id: user?.id } }));
+    user && (await Prisma.user.findUnique({ where: { id: user.userId } }));
   return (
     <div className="w-[70%] max-large_phone:w-[95%] h-full min-h-screen pl-10 max-smallest_phone:pl-2 flex flex-col gap-y-20">
       <h2 className="text-5xl font-bold w-full h-fit">Contact Us</h2>

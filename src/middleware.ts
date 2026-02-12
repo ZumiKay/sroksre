@@ -9,8 +9,8 @@ import { Role } from "@/prisma/generated/prisma/enums";
 
 // Helper to check if token is expired
 const isTokenExpired = (token: any | null): boolean => {
-  if (!token?.exp) return true;
-  return token.exp <= Math.floor(Date.now() / 1000);
+  if (!token?.cexp) return true;
+  return token.cexp <= Math.floor(Date.now() / 1000);
 };
 
 // Helper to add default pagination params
@@ -76,6 +76,7 @@ export default async function middleware(req: NextRequest) {
     const method = req.method as methodtype;
     const role = token?.role as Role | null;
     const apiPath = pathname.replace("/api", "");
+    console.log({ token });
 
     const { success } = VerifyApiRoute(apiPath, method, role);
     return success ? NextResponse.next() : NextResponse.error();

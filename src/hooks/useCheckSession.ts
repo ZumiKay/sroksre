@@ -31,7 +31,7 @@ const useCheckSession = () => {
     // Skip if session is still loading
     if (sessionStatus === "loading") return;
 
-    const usersession = data as unknown as Usersessiontype & { exp?: number };
+    const usersession = data as unknown as Usersessiontype & { cexp?: number };
 
     // Check if session exists
     if (!usersession) return;
@@ -40,19 +40,19 @@ const useCheckSession = () => {
     const nowInSeconds = Math.floor(now / 1000);
     let isExpired = false;
 
-    // Check token.exp (JWT expiration in seconds)
-    if (usersession.exp && usersession.exp <= nowInSeconds) {
+    // Check token.cexp (JWT expiration in seconds)
+    if (usersession.cexp && usersession.cexp <= nowInSeconds) {
       isExpired = true;
     }
 
     // Check session.expires (ISO string)
-    if (usersession.expires) {
-      const expireDate = new Date(usersession.expires).getTime();
+    if (usersession.expireAt) {
+      const expireDate = new Date(usersession.expireAt).getTime();
       if (expireDate <= now) {
         isExpired = true;
       }
-    } else if (!usersession.exp) {
-      // Session exists but has neither expires nor exp - invalid session
+    } else if (!usersession.cexp) {
+      // Session exists but has neither expires nor cexp - invalid session
       errorToast("Invalid Session");
       timerRef.current = setTimeout(() => {
         signOut().catch(console.error);

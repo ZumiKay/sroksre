@@ -113,7 +113,7 @@ export async function GET(req: NextRequest) {
         where: {
           AND: [
             {
-              user_id: user.id,
+              user_id: user.userId,
             },
             {
               status: Allstatus.incart,
@@ -129,7 +129,7 @@ export async function GET(req: NextRequest) {
       where: {
         AND: [
           {
-            user_id: user.id,
+            user_id: user.userId,
           },
           {
             status: Allstatus.incart,
@@ -247,7 +247,7 @@ export async function DELETE(req: NextRequest) {
     if (order && order.order) {
       const orderItem = await Prisma.orderproduct.findMany({
         where: {
-          AND: [{ orderId: order.order.id }, { user_id: user.id }],
+          AND: [{ orderId: order.order.id }, { user_id: user.userId }],
         },
       });
       if (orderItem.length === 1) {

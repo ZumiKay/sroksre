@@ -219,6 +219,29 @@ export default function UserDashboard() {
       </div>
       {/* Account Actions Section */}
       <div className="setting__section w-full max-w-5xl flex flex-col gap-y-6">
+        {/* Device Management Section */}
+        <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
+          <a
+            href="/dashboard/devices"
+            className="w-full px-8 py-6 flex items-center justify-between bg-white text-gray-800 hover:bg-gray-50 transition-all group"
+          >
+            <div className="flex items-center gap-4">
+              <span className="text-2xl">🔐</span>
+              <div className="text-left">
+                <h3 className="text-xl font-bold max-large_phone:text-lg">
+                  Device Management
+                </h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  Manage your active sessions and devices
+                </p>
+              </div>
+            </div>
+            <span className="text-gray-600 group-hover:translate-x-1 transition-transform">
+              →
+            </span>
+          </a>
+        </div>
+
         {userinfo.role === "USER" && (
           <>
             {/* Wishlist Section */}

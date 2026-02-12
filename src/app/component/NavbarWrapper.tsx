@@ -20,8 +20,6 @@ export default function NavbarWrapper() {
 
   useEffect(() => {
     const fetchInitialData = async () => {
-      if (status === "loading") return;
-
       setLoading(true);
       try {
         //verify active login session
@@ -68,7 +66,7 @@ export default function NavbarWrapper() {
       }
     };
 
-    fetchInitialData();
+    if (status === "authenticated") fetchInitialData();
   }, [session, status]);
 
   return (

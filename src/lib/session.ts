@@ -5,45 +5,39 @@ import { authOptions } from "@/src/app/api/auth/[...nextauth]/route";
 import { Sessiontype } from "@/src/context/GlobalContext";
 import Prisma from "./prisma";
 import { Usersessiontype } from "../types/user.type";
-
-/**
- * Optimized session and data fetching for Next.js 14
- *
- * Benefits:
- * - Server-side rendering for better performance
- * - Parallel data fetching reduces load time
- * - No client-side waterfalls
- * - Automatic revalidation with Next.js cache
- * - Database session verification for auto-logout
- */
+import { hashToken } from "./userlib";
+import { UsersessionSelect } from "@/prisma/generated/prisma/models";
 
 /**
  * Verify if a session exists and is valid in the database
  * Returns true if session is valid, false otherwise
  */
-export async function verifySessionInDB(session_id: string): Promise<boolean> {
+export async function verifySessionInDB(
+  session_id: string,
+  select?: Partial<UsersessionSelect>,
+) {
   try {
-    const dbSession = await Prisma.usersession.findUnique({
-      where: { session_id },
-    });
+    const dbSession = (await Prisma.usersession.findUnique({
+      where: { refresh_token_hash: hashToken(session_id) },
+      select,
+    })) as Usersessiontype;
 
     // Check if session exists and hasn't expired
-    if (!dbSession || dbSession.expireAt < new Date()) {
-      // Clean up expired session if it exists
-      if (dbSession) {
-        await Prisma.usersession
-          .delete({
-            where: { session_id },
-          })
-          .catch(() => {}); // Ignore errors on cleanup
-      }
-      return false;
+    if (dbSession && dbSession.expireAt && dbSession.expireAt <= new Date()) {
+      //Session cleanup and ignore if session is not found
+      await Prisma.usersession
+        .delete({
+          where: { sessionid: dbSession.sessionid },
+        })
+        .catch(() => {});
+
+      return { success: false };
     }
 
-    return true;
+    return { success: true, user: dbSession?.user };
   } catch (error) {
     console.error("Error verifying session in DB:", error);
-    return false;
+    return { success: false };
   }
 }
 
@@ -53,7 +47,9 @@ export async function verifySessionInDB(session_id: string): Promise<boolean> {
  * Uses NextAuth's getServerSession for optimal performance and security
  * Verifies session against database on every call for auto-logout capability
  */
-export async function getUser(): Promise<Sessiontype | null> {
+export async function getUser(
+  selectUser?: Partial<UsersessionSelect>,
+): Promise<Usersessiontype | null> {
   try {
     const session = await getServerSession(authOptions);
 
@@ -61,21 +57,18 @@ export async function getUser(): Promise<Sessiontype | null> {
       return null;
     }
 
-    const user = session as unknown as Usersessiontype;
+    let user = session as unknown as Usersessiontype;
 
     // Verify session in database
     if (user.sessionid) {
-      const isValid = await verifySessionInDB(user.sessionid);
-      if (!isValid) {
-        console.log(
-          "Session invalid in DB, auto-logging out user:",
-          user.email,
-        );
+      const isValid = await verifySessionInDB(user.sessionid, selectUser);
+      if (!isValid.success) {
         return null;
       }
+      user.user = isValid.user as never;
     }
 
-    return user as Sessiontype;
+    return user;
   } catch (error) {
     console.error("Error fetching user session:", error);
     return null;

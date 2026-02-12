@@ -2,6 +2,7 @@
 
 import Prisma from "@/src/lib/prisma";
 import { getUser } from "@/src/lib/session";
+import { hashToken } from "@/src/lib/userlib";
 
 interface ResponseType {
   success: boolean;
@@ -30,9 +31,13 @@ export async function VerifyRecapcha(token: string) {
 export async function CheckAndGetUserInfo({ nodata }: { nodata?: boolean }) {
   try {
     const isSession = await getUser();
+    //Early return is the user session not exist
+    if (!isSession || !isSession?.sessionid)
+      return { success: false, message: "Unauthenticated" };
 
+    //check session
     const checkSession = await Prisma.usersession.findUnique({
-      where: { session_id: isSession?.sessionid },
+      where: { refresh_token_hash: hashToken(isSession.sessionid) },
       select: {
         expireAt: true,
         user: {
@@ -48,7 +53,7 @@ export async function CheckAndGetUserInfo({ nodata }: { nodata?: boolean }) {
     if (!checkSession)
       return { success: false, message: "Invalid session", isExpire: true };
 
-    const isExpire = checkSession.expireAt.getTime() >= new Date().getTime();
+    const isExpire = checkSession.expireAt.getTime() <= new Date().getTime();
 
     if (isExpire)
       return { success: false, message: "Session expired", isExpire };

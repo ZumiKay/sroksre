@@ -4,7 +4,8 @@ import { compare, genSaltSync, hashSync } from "bcryptjs";
 import { checkpassword, getOneWeekFromToday } from "./utilities";
 import Prisma from "./prisma";
 import { Role } from "@/prisma/generated/prisma/enums";
-import { userdata } from "../types/user.type";
+import { userdata, Usersessiontype } from "../types/user.type";
+import { createHash } from "crypto";
 
 export interface RegisterUser {
   id?: number;
@@ -18,158 +19,304 @@ export interface RegisterUser {
   phonenumber?: string;
 }
 
+export interface DeviceInfo {
+  device: string;
+  userAgent: string;
+  ipAddress: string;
+}
+
+interface AuthReturnType {
+  success: boolean;
+  data?: Partial<Usersessiontype>;
+  message?: string;
+}
+
 //encode secret
 export const secretkey = new TextEncoder().encode(
   process.env.JWT_SECRET as string,
 );
-export async function createToken(payload: {
+
+/**@requires For Usersession ONLY */
+const generateSessionId = (): string => {
+  return createHash("sha256")
+    .update(`${Date.now()}-${Math.random()}-${process.env.NEXTAUTH_SECRET}`)
+    .digest("hex");
+};
+
+export async function createUniqueSessionId(): Promise<string> {
+  let sessionId = generateSessionId();
+
+  while (true) {
+    const exists = await Prisma.usersession.findUnique({
+      where: { sessionid: sessionId },
+      select: { sessionid: true },
+    });
+
+    if (!exists) return sessionId;
+    sessionId = generateSessionId();
+  }
+}
+
+export const extractDeviceInfo = (request: Request | any): DeviceInfo => {
+  // Handle both Request object and NextAuth req object
+  const getHeader = (name: string) => {
+    if (request.headers?.get) {
+      return request.headers.get(name);
+    }
+    // Handle plain object headers (NextAuth format)
+    return request.headers?.[name] || request.headers?.[name.toLowerCase()];
+  };
+
+  const userAgent = getHeader("user-agent") || "Unknown";
+  const ua = userAgent.toLowerCase();
+
+  // Extract IP address from various possible headers
+  const ipAddress =
+    getHeader("cf-connecting-ip") ||
+    getHeader("x-forwarded-for")?.split(",")[0].trim() ||
+    getHeader("x-real-ip") ||
+    "Unknown";
+
+  // Determine device type from user agent with detailed detection
+  let device: string;
+
+  if (ua.includes("iphone")) {
+    device = "iPhone";
+  } else if (ua.includes("ipad")) {
+    device = "iPad";
+  } else if (ua.includes("android")) {
+    // Distinguish between Android phone and tablet
+    if (ua.includes("mobile")) {
+      device = "Android Phone";
+    } else {
+      device = "Android Tablet";
+    }
+  } else if (ua.includes("macintosh") || ua.includes("mac os x")) {
+    // Check if it's a MacBook or Mac Desktop
+    if (ua.includes("mobile") || ua.includes("safari")) {
+      device = "MacBook";
+    } else {
+      device = "Mac Desktop";
+    }
+  } else if (ua.includes("windows")) {
+    device = "Windows Desktop";
+  } else if (ua.includes("linux")) {
+    device = "Linux Desktop";
+  } else if (ua.includes("mobile")) {
+    device = "Mobile";
+  } else if (ua.includes("tablet")) {
+    device = "Tablet";
+  } else {
+    device = "Desktop";
+  }
+
+  return { device, userAgent, ipAddress };
+};
+
+/**
+ * Generate new expiration timestamp
+ * @param duration - Time duration number
+ * @param unit - Time unit ('seconds' | 'minutes' | 'hours' | 'days')
+ * @returns Unix timestamp in seconds (for JWT cexp claim)
+ */
+export const generateExpiration = (
+  duration: number,
+  unit: "seconds" | "minutes" | "hours" | "days" = "hours",
+): number => {
+  const now = Math.floor(Date.now() / 1000); // Current time in seconds
+
+  const multipliers = {
+    seconds: 1,
+    minutes: 60,
+    hours: 3600,
+    days: 86400,
+  };
+
+  return now + duration * multipliers[unit];
+};
+
+/**
+ * Generate new expiration Date object
+ * @param duration - Time duration number
+ * @param unit - Time unit ('seconds' | 'minutes' | 'hours' | 'days')
+ * @returns Date object for database expiration fields
+ */
+export const generateExpirationDate = (
+  duration: number,
+  unit: "seconds" | "minutes" | "hours" | "days" = "days",
+): Date => {
+  const multipliers = {
+    seconds: 1000,
+    minutes: 60000,
+    hours: 3600000,
+    days: 86400000,
+  };
+
+  return new Date(Date.now() + duration * multipliers[unit]);
+};
+
+export const createToken = async (payload: {
   userid: number;
   sessionid: string;
-}) {
-  const alg = "HS256";
-  const token = await new jose.SignJWT({
-    userid: payload.userid,
-    sessionid: payload.sessionid,
-  })
-    .setProtectedHeader({ alg })
+}): Promise<string> => {
+  return await new jose.SignJWT(payload)
+    .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("1h")
     .sign(secretkey);
-  return token;
-}
+};
 
 export const validateUserInput = z.object({
   firstname: z.string().max(50),
   lastname: z.string().max(50),
   email: z.string().email(),
 });
-export const hashedpassword = (password: string) => {
-  const saltround = 10;
-  const salt = genSaltSync(saltround);
-  const hashedpassword = hashSync(password, salt);
-  return hashedpassword;
-};
-export const verfyUserLoginInput = z.object({
+
+export const verifyUserLoginInput = z.object({
   email: z.string().email(),
   password: z.string(),
 });
+
+export const hashPassword = (password: string): string => {
+  const salt = genSaltSync(10);
+  return hashSync(password, salt);
+};
+
+export const hashToken = (token: string): string => {
+  return createHash("sha256").update(token).digest("hex");
+};
+
+// Helper function to create user session
+const createUserSession = async (
+  userId: number,
+  deviceInfo: DeviceInfo,
+): Promise<string> => {
+  const refreshToken = await createUniqueSessionId();
+
+  await Prisma.usersession.create({
+    data: {
+      refresh_token_hash: hashToken(refreshToken),
+      userId,
+      expireAt: getOneWeekFromToday(),
+      ...deviceInfo,
+    },
+  });
+
+  return refreshToken;
+};
+
+/**Login method
+ * @param credential - User credentials
+ * @param req - Request object for device info extraction
+ * @returns Authentication result with session data
+ */
 export const userlogin = async (
-  credentail: userdata,
-): Promise<{
-  success: boolean;
-  data?: Partial<userdata>;
-  message?: string;
-}> => {
+  credential: userdata,
+  req: Request | any,
+): Promise<AuthReturnType> => {
   try {
-    const user = await Prisma.user.findFirst({
-      where: {
-        email: {
-          equals: credentail.email,
-        },
-      },
+    const user = await Prisma.user.findUnique({
+      where: { email: credential.email },
+      select: { id: true, password: true, role: true },
     });
 
-    if (user) {
-      const isValid = await compare(
-        credentail.password as string,
-        user.password,
-      );
-      if (isValid) {
-        const session = await Prisma.usersession.create({
-          data: {
-            user_id: user.id,
-            expireAt: getOneWeekFromToday(),
-          },
-        });
-        if (session) {
-          return {
-            success: true,
-            data: {
-              id: user.id,
-              role: user.role,
-              sessionid: session.session_id,
-              email: user.email,
-              firstname: user.firstname,
-              lastname: user.lastname ?? "",
-            },
-          };
-        } else {
-          console.log("Can't Create Session");
-          return { success: false };
-        }
-      } else {
-        console.log("Can't Find User");
-        return { success: false, message: "Incorrect Information" };
-      }
-    } else {
+    if (!user) {
       return { success: false, message: "Incorrect Information" };
     }
-  } catch (error: any) {
-    console.log("Login", error);
-    return { success: false, message: "Error Occured" };
+
+    const isValidPassword = await compare(
+      credential.password as string,
+      user.password,
+    );
+
+    if (!isValidPassword) {
+      return { success: false, message: "Incorrect Information" };
+    }
+
+    const deviceInfo = extractDeviceInfo(req);
+    const sessionid = await createUserSession(user.id, deviceInfo);
+
+    return {
+      success: true,
+      data: {
+        userId: user.id,
+        sessionid,
+        role: user.role,
+        ...deviceInfo,
+      },
+    };
+  } catch (error: unknown) {
+    console.error("Login error:", error);
+    return { success: false, message: "Error occurred" };
   }
 };
-export const logout = async (sessionid: string) => {
+
+/**Logout method
+ * @param sessionid - Session identifier to invalidate
+ * @returns True if logout successful
+ */
+export const logout = async (sessionid: string): Promise<boolean> => {
   try {
     await Prisma.usersession.delete({
       where: {
-        session_id: sessionid,
+        refresh_token_hash: hashToken(sessionid),
       },
     });
     return true;
   } catch (error) {
-    console.log("Session Error", error);
-    throw new Error("Error Occured");
+    console.error("Logout error:", error);
+    throw new Error("Error occurred");
   }
-  //delete session
 };
 
-interface ReturnType {
+interface RegisterReturnType {
   success: boolean;
   message?: string;
 }
-export const registerUser = async (data: RegisterUser): Promise<ReturnType> => {
+
+export const registerUser = async (
+  data: RegisterUser,
+): Promise<RegisterReturnType> => {
   try {
     validateUserInput.parse(data);
 
-    const isExist = await Prisma.user.findFirst({
+    const userExists = await Prisma.user.findUnique({
       where: { email: data.email },
       select: { email: true },
     });
 
-    if (isExist) {
-      return { success: false, message: "User exist" };
+    if (userExists) {
+      return { success: false, message: "User already exists" };
     }
 
-    const isValid = checkpassword(data.password);
-    if (isValid.isValid) {
-      const password = hashedpassword(data.password);
-      const datatosave = {
-        email: data.email,
-        firstname: data.firstname,
-        lastname: data.lastname ?? null,
-        password: password,
-      };
-      //verify email
+    const passwordValidation = checkpassword(data.password);
+    if (!passwordValidation.isValid) {
+      return { success: false, message: passwordValidation.error };
+    }
 
-      if (!data.id) {
-        await Prisma.user.create({ data: { ...datatosave } });
-      } else {
-        await Prisma.user.update({
-          where: { id: data.id },
-          data: { ...datatosave, vfy: null },
-        });
-      }
+    const userData = {
+      email: data.email,
+      firstname: data.firstname,
+      lastname: data.lastname ?? null,
+      password: hashPassword(data.password),
+    };
 
-      return { success: true };
+    if (!data.id) {
+      await Prisma.user.create({ data: userData });
     } else {
-      return { success: false, message: isValid.error };
+      await Prisma.user.update({
+        where: { id: data.id },
+        data: { ...userData, vfy: null },
+      });
     }
+
+    return { success: true };
   } catch (error: any) {
-    if (error.issues) {
-      return { success: false, message: error.issues[0].message };
-    }
-    return { success: false };
+    console.error("Register user error:", error);
+    return {
+      success: false,
+      message: error.issues?.[0]?.message || "Registration failed",
+    };
   }
 };
 
@@ -177,77 +324,86 @@ export const handleCheckandRegisterUser = async ({
   data,
 }: {
   data: RegisterUser;
-}): Promise<{
-  success: boolean;
-  message?: string;
-  data?: Partial<userdata>;
-}> => {
+}): Promise<AuthReturnType> => {
   try {
-    const existingUser = await Prisma.user.findFirst({
+    const existingUser = await Prisma.user.findUnique({
       where: { email: data.email },
+      select: { id: true, role: true, email: true },
     });
 
     if (existingUser) {
       return {
         success: true,
         data: {
-          id: existingUser.id,
-          role: Role.USER,
-          email: existingUser.email,
+          userId: existingUser.id,
         },
       };
     }
 
-    const hashedPassword = hashedpassword(data.password);
-    data.password = hashedPassword;
-
     const createdUser = await Prisma.user.create({
       data: {
         ...data,
+        password: hashPassword(data.password),
       },
+      select: { id: true, role: true, email: true },
     });
-
-    if (!createdUser) {
-      return { success: false, message: "Failed to create user" };
-    }
 
     return {
       success: true,
       message: "User created successfully",
       data: {
-        id: createdUser.id,
-        oauthId: createdUser.oauthId as string,
-        role: Role.USER,
-        email: createdUser.email,
+        userId: createdUser.id,
       },
     };
   } catch (error) {
-    console.error("Register User", error);
+    console.error("Register user error:", error);
     return {
       success: false,
-      message: "An error occurred during user registration",
+      message: "Error occurred",
     };
   }
 };
 
-export const getOAuthInfo = async (oauthId: string, email: string) => {
-  const user = await Prisma.user.findFirst({
-    where: { OR: [{ email }, { oauthId }] },
-    select: {
-      id: true,
-      role: true,
-      email: true,
-    },
-  });
-
-  let session_id;
-
-  if (user) {
-    const session = await Prisma.usersession.create({
-      data: { user_id: user.id, expireAt: getOneWeekFromToday() },
+export const getOAuthInfo = async (
+  oauthId: string,
+  email: string,
+  deviceInfo?: Pick<
+    Usersessiontype,
+    "device" | "userAgent" | "ipAddress"
+  > | null,
+): Promise<{
+  id: number;
+  oauthId: string;
+  sessionid: string;
+  role: Role;
+} | null> => {
+  try {
+    const user = await Prisma.user.findFirst({
+      where: { OR: [{ email }, { oauthId }] },
+      select: { id: true, oauthId: true, role: true },
     });
-    session_id = session.session_id;
-  }
 
-  return { ...user, session_id };
+    if (!user) return null;
+
+    const defaultDeviceInfo = {
+      device: "Unknown",
+      userAgent: "OAuth Provider",
+      ipAddress: "Unknown",
+    };
+
+    const sessionid = await createUserSession(
+      user.id,
+      (deviceInfo as any) || defaultDeviceInfo,
+    );
+
+    return {
+      id: user.id,
+      oauthId: user.oauthId || oauthId,
+      sessionid,
+      role: user.role,
+    };
+  } catch (error) {
+    console.error("OAuth info error:", error);
+    return null;
+  }
 };

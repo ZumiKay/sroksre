@@ -32,7 +32,7 @@ model User {
   type         String? //For Classify OAuth
   firstname    String
   lastname     String?
-  email        String
+  email        String         @unique
   role         Role           @default(USER)
   phonenumber  String?        @unique
   password     String         @unique
@@ -88,14 +88,21 @@ model Address {
 }
 
 model Usersession {
-  session_id String   @id @default(uuid())
-  user_id    Int
-  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  createdAt  DateTime @default(now())
-  expireAt   DateTime
+  sessionid          String    @id @default(uuid())
+  refresh_token_hash String    @unique
+  userId             Int
+  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt          DateTime  @default(now())
+  expireAt           DateTime
+  lastUsed           DateTime?
+  device             String
+  userAgent          String?
+  ipAddress          String?
+  revoked            Boolean   @default(false)
 
-  @@index([user_id])
+  @@index([userId])
   @@index([expireAt])
+  @@index([refresh_token_hash])
 }
 
 model Parentcategories {

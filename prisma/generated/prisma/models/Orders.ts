@@ -541,10 +541,6 @@ export type OrdersUncheckedUpdateManyWithoutShippingNestedInput = {
   deleteMany?: Prisma.OrdersScalarWhereInput | Prisma.OrdersScalarWhereInput[]
 }
 
-export type NullableDateTimeFieldUpdateOperationsInput = {
-  set?: Date | string | null
-}
-
 export type OrdersCreateNestedOneWithoutOrderproductInput = {
   create?: Prisma.XOR<Prisma.OrdersCreateWithoutOrderproductInput, Prisma.OrdersUncheckedCreateWithoutOrderproductInput>
   connectOrCreate?: Prisma.OrdersCreateOrConnectWithoutOrderproductInput

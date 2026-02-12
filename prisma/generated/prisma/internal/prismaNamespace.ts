@@ -2665,10 +2665,16 @@ export type AddressScalarFieldEnum = (typeof AddressScalarFieldEnum)[keyof typeo
 
 
 export const UsersessionScalarFieldEnum = {
-  session_id: 'session_id',
-  user_id: 'user_id',
+  sessionid: 'sessionid',
+  refresh_token_hash: 'refresh_token_hash',
+  userId: 'userId',
   createdAt: 'createdAt',
-  expireAt: 'expireAt'
+  expireAt: 'expireAt',
+  lastUsed: 'lastUsed',
+  device: 'device',
+  userAgent: 'userAgent',
+  ipAddress: 'ipAddress',
+  revoked: 'revoked'
 } as const
 
 export type UsersessionScalarFieldEnum = (typeof UsersessionScalarFieldEnum)[keyof typeof UsersessionScalarFieldEnum]
@@ -3103,6 +3109,13 @@ export type ListDateTimeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaM
 
 
 /**
+ * Reference to a field of type 'Boolean'
+ */
+export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
+    
+
+
+/**
  * Reference to a field of type 'Float'
  */
 export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float'>
@@ -3113,13 +3126,6 @@ export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, '
  * Reference to a field of type 'Float[]'
  */
 export type ListFloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float[]'>
-    
-
-
-/**
- * Reference to a field of type 'Boolean'
- */
-export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
     
 
 /**

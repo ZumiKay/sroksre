@@ -2,21 +2,27 @@
 import { getUser } from "@/src/lib/session";
 import { Metadata } from "next";
 import Prisma from "@/src/lib/prisma";
+import { Role } from "@/prisma/generated/prisma/enums";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const user = await getUser();
+  const user = await getUser({
+    user: {
+      select: {
+        id: true,
+        role: true,
+      },
+    },
+  });
 
-  console.log("meta: ", { user });
-
-  if (!user || !user.id || !user.sessionid) {
+  if (!user || !user.userId || !user.sessionid) {
     return { title: "", description: "" };
   }
 
-  const data = await Prisma.user.findUnique({ where: { id: user?.id } });
+  const data = await Prisma.user.findUnique({ where: { id: user.user.id } });
   let title = "";
   if (data) {
     title =
-      user?.role === "ADMIN"
+      user.user.role === Role.ADMIN
         ? `Admin Dashboard | SrokSre`
         : `${data.firstname} ${data.lastname ?? ""} Dashboard | SrokSre`;
   }

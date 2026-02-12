@@ -12,7 +12,7 @@
 
 #### 1. **Authentication & Authorization** (`src/lib/userlib.ts`)
 
-- ✅ `hashedpassword(password: string)` - Password hashing
+- ✅ `hashpassword(password: string)` - Password hashing
 - ✅ `userlogin(credential: userdata)` - User authentication
 - ✅ `registerUser(data: RegisterUser)` - User registration
 - ✅ `createToken(payload)` - JWT token creation

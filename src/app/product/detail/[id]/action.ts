@@ -51,7 +51,7 @@ export async function Addtocart(data: Productordertype): Promise<returntype> {
     await Prisma.orderproduct.create({
       data: {
         productId: id,
-        user_id: user.id,
+        user_id: user.userId,
         quantity: quantity,
         details: details ?? "",
         status: Allstatus.incart,
@@ -67,7 +67,7 @@ export async function Addtocart(data: Productordertype): Promise<returntype> {
 
 export async function CheckCart(
   selectedDetail?: Productorderdetailtype[],
-  product_id?: number
+  product_id?: number,
 ): Promise<returntype> {
   try {
     let isInCart = false;
@@ -81,7 +81,7 @@ export async function CheckCart(
       where: {
         AND: [
           {
-            user_id: user.id,
+            user_id: user.userId,
           },
           {
             status: Allstatus.incart || Allstatus.unpaid,
@@ -112,8 +112,8 @@ export async function CheckCart(
             detail?.length === selectedDetail.length &&
             detail?.every((obj, index) =>
               Object.entries(obj).every(
-                ([key, value]) => value === selectedDetail[index][key]
-              )
+                ([key, value]) => value === selectedDetail[index][key],
+              ),
             );
           return areArraysEqual;
         });
@@ -134,7 +134,7 @@ export const getRelatedProduct = async (
   parent_id: number,
   limit: number,
   child_id?: number,
-  promoid?: number
+  promoid?: number,
 ) => {
   try {
     let maxprod = false;
@@ -239,7 +239,7 @@ export const AddWishlist = async (pid: number) => {
     await Prisma.wishlist.create({
       data: {
         pid,
-        uid: user.id,
+        uid: user.userId,
       },
     });
 
@@ -269,7 +269,7 @@ export const Checkwishlist = async (pid: number) => {
       where: {
         AND: [
           {
-            uid: user.id,
+            uid: user.userId,
           },
           {
             pid: parseInt(pid.toString()),

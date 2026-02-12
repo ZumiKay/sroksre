@@ -1,15 +1,19 @@
 import { Role } from "@/prisma/generated/prisma/enums";
 
 export interface Usersessiontype {
-  sub: number;
-  id: number;
-  role: Role;
   sessionid: string;
-  name?: string;
-  email?: string;
-  expires?: string | number;
-  isexpires?: boolean;
-  exp?: number;
+  refresh_token_hash: string;
+  userId: number;
+  user: userdata;
+  role: Role;
+  createdAt: Date;
+  expireAt?: Date;
+  lastUsed?: Date;
+  device: string;
+  userAgent?: string;
+  ipAddress?: string;
+  revoked?: boolean;
+  cexp?: number; //expiration in seconds
 }
 
 export type confirmmodaltype = {
@@ -31,6 +35,7 @@ export type confirmmodaltype = {
 
 export interface userdata {
   id?: number;
+  buyer_id?: string;
   oauthId?: string;
   email?: string;
   password?: string;
@@ -87,6 +92,7 @@ export interface JwtType {
   role: Role;
   iat: number;
   exp: number;
+  cexp: number;
   jti: string;
-  isexpired?: boolean;
+  isExpired?: boolean;
 }

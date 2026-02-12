@@ -1,7 +1,7 @@
 "use server";
 
 import Prisma from "@/src/lib/prisma";
-import { hashedpassword } from "@/src/lib/userlib";
+import { hashPassword } from "@/src/lib/userlib";
 import { checkpassword } from "@/src/lib/utilities";
 
 interface returntype {
@@ -10,7 +10,7 @@ interface returntype {
 }
 export const verifyUser = async (
   prevState: returntype,
-  formData: FormData
+  formData: FormData,
 ): Promise<returntype> => {
   try {
     const dt = {
@@ -31,7 +31,7 @@ export const verifyUser = async (
         return { message: "Confirm Password Not Match", success: false };
       }
 
-      const password = hashedpassword(dt.password as string);
+      const password = hashPassword(dt.password as string);
       const user = await Prisma.user.findFirst({
         where: { vfy: dt.cid as string },
         select: { id: true },
@@ -48,7 +48,7 @@ export const verifyUser = async (
       });
 
       //Delete Session
-      await Prisma.usersession.deleteMany({ where: { user_id: user?.id } });
+      await Prisma.usersession.deleteMany({ where: { userId: user?.id } });
 
       return {
         message: "Password Updated",

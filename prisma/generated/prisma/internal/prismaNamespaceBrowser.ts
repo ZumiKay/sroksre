@@ -146,10 +146,16 @@ export type AddressScalarFieldEnum = (typeof AddressScalarFieldEnum)[keyof typeo
 
 
 export const UsersessionScalarFieldEnum = {
-  session_id: 'session_id',
-  user_id: 'user_id',
+  sessionid: 'sessionid',
+  refresh_token_hash: 'refresh_token_hash',
+  userId: 'userId',
   createdAt: 'createdAt',
-  expireAt: 'expireAt'
+  expireAt: 'expireAt',
+  lastUsed: 'lastUsed',
+  device: 'device',
+  userAgent: 'userAgent',
+  ipAddress: 'ipAddress',
+  revoked: 'revoked'
 } as const
 
 export type UsersessionScalarFieldEnum = (typeof UsersessionScalarFieldEnum)[keyof typeof UsersessionScalarFieldEnum]

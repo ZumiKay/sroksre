@@ -19,6 +19,7 @@ import { OrderUserType } from "../../checkout/action";
 import { getCheckoutdata } from "../../checkout/page";
 import React, { Suspense, cache } from "react";
 import type { Metadata } from "next";
+import { Role } from "@prisma/client";
 
 export const metadata: Metadata = {
   title: "Order Management | SrokSre Dashboard",
@@ -62,9 +63,20 @@ export default async function OrderManagement({
   searchParams?: SearchParams;
 }) {
   // Get user with error handling
-  const getuser = await getUser();
+  const getuser = await getUser({
+    userId: true,
+    user: {
+      select: {
+        role: true,
+        buyer_id: true,
+      },
+    },
+  });
 
-  if (!getuser || (getuser.role !== "USER" && getuser.role !== "ADMIN")) {
+  if (
+    !getuser ||
+    (getuser.user.role !== Role.USER && getuser.user.role !== Role.ADMIN)
+  ) {
     return notFound();
   }
 
@@ -86,11 +98,11 @@ export default async function OrderManagement({
   const isFilter = Boolean(q || fromdate || todate || startprice || endprice);
 
   // Parallel data fetching for better performance
-  const userId = getuser.role === "USER" ? getuser.id : undefined;
+  const userId = getuser.user.role === Role.USER ? getuser.userId : undefined;
 
   try {
     const [ordersResult, filterResult] = await Promise.all([
-      GetOrder(undefined, undefined, page, limit, userId),
+      GetOrder(undefined, undefined, page, limit, getuser.user.buyer_id),
       isFilter || selectedStatus
         ? getFilterOrder({
             status: selectedStatus ?? [""],
@@ -110,8 +122,8 @@ export default async function OrderManagement({
 
     const totalOrders =
       isFilter || selectedStatus
-        ? filterResult.total ?? 0
-        : ordersResult?.total ?? 0;
+        ? (filterResult.total ?? 0)
+        : (ordersResult?.total ?? 0);
 
     const totalPages = Math.ceil(totalOrders / limit);
 
@@ -127,7 +139,7 @@ export default async function OrderManagement({
         />
         <OrdersTable
           orders={orders}
-          isAdmin={getuser.role === "ADMIN"}
+          isAdmin={getuser.role === Role.ADMIN}
           searchParams={searchParams}
         />
         {orders && orders.length > 0 && totalPages > 1 && (
@@ -156,7 +168,7 @@ export default async function OrderManagement({
 // Helper function to calculate stats
 function calculateOrderStats(
   orders: AllorderStatus[],
-  totalOrders: number
+  totalOrders: number,
 ): OrderStats {
   return {
     total: totalOrders,
@@ -167,7 +179,7 @@ function calculateOrderStats(
       .length,
     totalRevenue: orders.reduce(
       (sum, o) => sum + ((o.price as totalpricetype)?.total ?? 0),
-      0
+      0,
     ),
   };
 }
@@ -388,7 +400,7 @@ const getOrderData = cache(
   async (
     oid: string,
     isAdmin: boolean,
-    param?: { [key: string]: string | string[] | undefined }
+    param?: { [key: string]: string | string[] | undefined },
   ): Promise<OrderDetailType | Productordertype[] | OrderUserType | null> => {
     if (!param) return null;
 
@@ -423,7 +435,7 @@ const getOrderData = cache(
     }
 
     return null;
-  }
+  },
 );
 
 // Optimized DataRow component
