@@ -31,8 +31,9 @@ const useCheckSession = () => {
     // Skip if session is still loading
     if (sessionStatus === "loading") return;
 
-    const usersession = data as unknown as Usersessiontype & { cexp?: number };
+    const usersession = data as unknown as Usersessiontype;
 
+    console.log({ usersession });
     // Check if session exists
     if (!usersession) return;
 

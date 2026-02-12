@@ -31,9 +31,9 @@ export async function VerifyRecapcha(token: string) {
 export async function CheckAndGetUserInfo({ nodata }: { nodata?: boolean }) {
   try {
     const isSession = await getUser();
+
     //Early return is the user session not exist
-    if (!isSession || !isSession?.sessionid)
-      return { success: false, message: "Unauthenticated" };
+    if (!isSession || !isSession?.sessionid) return { success: true };
 
     //check session
     const checkSession = await Prisma.usersession.findUnique({
@@ -53,7 +53,7 @@ export async function CheckAndGetUserInfo({ nodata }: { nodata?: boolean }) {
     if (!checkSession)
       return { success: false, message: "Invalid session", isExpire: true };
 
-    const isExpire = checkSession.expireAt.getTime() <= new Date().getTime();
+    const isExpire = checkSession.expireAt <= new Date();
 
     if (isExpire)
       return { success: false, message: "Session expired", isExpire };

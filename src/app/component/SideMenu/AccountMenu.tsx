@@ -101,11 +101,11 @@ export default function AccountMenu({ setProfile }: AccountMenuProps) {
       if (!isSession.success) {
         errorToast(isSession.message ?? "Error occured");
         if (isSession.isExpire) {
-          await signOut({ redirect: false });
-          errorToast(isSession.message, {
-            onClose: () => window.location.reload(),
-            closeOnClick: true,
-          });
+          // await signOut({ redirect: false });
+          // errorToast(isSession.message, {
+          //   onClose: () => window.location.reload(),
+          //   closeOnClick: true,
+          // });
         }
         return;
       }

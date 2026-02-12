@@ -8,6 +8,12 @@ interface returntype {
   message: string;
   success: boolean;
 }
+
+/**Use for verify user of reset password form
+ * @param prevState (optional) ,
+ * @param formData,
+ * @returns success and message
+ */
 export const verifyUser = async (
   prevState: returntype,
   formData: FormData,

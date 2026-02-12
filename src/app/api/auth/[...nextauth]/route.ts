@@ -163,7 +163,7 @@ export const authOptions: NextAuthOptions = {
       }
 
       // Check if token is expired and needs renewal
-      if (userToken.cexp && userToken.cexp * 1000 < Date.now()) {
+      if (userToken.cexp && userToken.cexp * 1000 <= Date.now()) {
         try {
           const dbSession = await Prisma.usersession.findUnique({
             where: { refresh_token_hash: hashToken(userToken.sessionid) },
@@ -200,7 +200,7 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }): Promise<any> {
       const userToken = token as unknown as JwtType;
 
-      if ((token as any).isExpired) {
+      if (userToken.isExpired) {
         session.expires = "0";
         return session;
       }
@@ -211,6 +211,7 @@ export const authOptions: NextAuthOptions = {
           sessionid: userToken.sessionid,
           userId: userToken.id,
           role: userToken.role,
+          cexp: userToken.cexp,
           user: {
             ...session.user,
             id: userToken.id,
