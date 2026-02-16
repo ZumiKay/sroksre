@@ -76,7 +76,6 @@ export default async function middleware(req: NextRequest) {
     const method = req.method as methodtype;
     const role = token?.role as Role | null;
     const apiPath = pathname.replace("/api", "");
-    console.log({ token });
 
     const { success } = VerifyApiRoute(apiPath, method, role);
     return success ? NextResponse.next() : NextResponse.error();

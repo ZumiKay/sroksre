@@ -236,7 +236,7 @@ export const checkloggedsession = async (sessionid: string) => {
 
     return { success: false };
   } catch (error) {
-    console.error("Error checking session:", error);
+    console.log("Error checking session:", error);
     return { success: false, error: "Error checking session" };
   }
 };

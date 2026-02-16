@@ -268,29 +268,27 @@ export const useScreenSize = () => {
   });
 
   useEffect(() => {
-    setScreenSize({
-      isMobile: window && window?.innerWidth <= 432,
-      isTablet: window && window?.innerWidth >= 432 && window?.innerWidth < 768,
-      isDesktop: window && window?.innerWidth >= 768,
-      isSmallDesktop:
-        window && window.innerWidth >= 768 && window.innerWidth < 850,
-    });
+    // Only run on client-side
+    if (typeof window === "undefined") return;
 
-    const handleResize = () => {
+    const updateScreenSize = () => {
       setScreenSize({
         isMobile: window.innerWidth <= 432,
         isTablet: window.innerWidth >= 432 && window.innerWidth < 768,
-        isSmallDesktop:
-          window && window.innerWidth >= 768 && window.innerWidth < 850,
         isDesktop: window.innerWidth >= 768,
+        isSmallDesktop: window.innerWidth >= 768 && window.innerWidth < 850,
       });
     };
 
-    window.addEventListener("resize", handleResize);
+    // Initial call
+    updateScreenSize();
+
+    // Add resize listener
+    window.addEventListener("resize", updateScreenSize);
 
     // Cleanup event listener on unmount
     return () => {
-      window.removeEventListener("resize", handleResize);
+      window.removeEventListener("resize", updateScreenSize);
     };
   }, []);
 

@@ -240,7 +240,7 @@ export const updateOrderStatus = async (
 
     return { success: true, message: "Update Successful" };
   } catch (error) {
-    console.error("Failed to update order status:", error);
+    console.log("Failed to update order status:", error);
     return { success: false, message: "Failed to update" };
   }
 };
@@ -347,7 +347,7 @@ export const ExportOrderData = async (filterdata: Filterdatatype) => {
 
     return { success: true, message: "Export Successfully", data: orderdata };
   } catch (error) {
-    console.error("Export Order Error:", error);
+    console.log("Export Order Error:", error);
     return { success: false, message: "Failed To Export" };
   }
 };

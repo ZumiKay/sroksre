@@ -32,7 +32,7 @@ export const GetOneWeekAgoDate = () => {
 };
 
 export const DeleteImageFromStorage = async (
-  filename: string
+  filename: string,
 ): Promise<{ Sucess: boolean }> => {
   try {
     // For Vercel Blob, we need the full URL, not just the filename
@@ -44,7 +44,7 @@ export const DeleteImageFromStorage = async (
     await del(url);
     return { Sucess: true };
   } catch (error) {
-    console.error("Vercel Blob Storage", error);
+    console.log("Vercel Blob Storage", error);
     return { Sucess: false };
   }
 };
@@ -55,7 +55,7 @@ export const removeSpaceAndToLowerCase = (str: String) =>
 export const calculatePagination = (
   totalItem: number,
   itemPerPage: number,
-  currentPage: number
+  currentPage: number,
 ) => {
   const startIndex = (currentPage - 1) * itemPerPage;
   const endIndex = Math.min(startIndex + itemPerPage - 1, totalItem - 1);
@@ -68,7 +68,7 @@ export const calculatePagination = (
 export const caculateArrayPagination = (
   arr: Array<any>,
   page: number,
-  limit: number
+  limit: number,
 ) => {
   const startIndex = (page - 1) * limit;
   const endIndex = startIndex + limit;
@@ -131,7 +131,7 @@ export function getOneWeekFromToday(): Date {
 }
 
 export const calculateCartTotalPrice = (
-  cartItems: Array<Productordertype>
+  cartItems: Array<Productordertype>,
 ): number => {
   return cartItems.reduce((total, item) => {
     const { quantity, price } = item;
@@ -145,7 +145,7 @@ export const calculateCartTotalPrice = (
 
 export const getmaxqtybaseStockType = (
   product: ProductState,
-  selected_detail: Array<string>
+  selected_detail: Array<string>,
 ) => {
   const { stocktype, stock, Stock } = product;
 
@@ -176,7 +176,7 @@ export const encrypt = (text: string, key: string) => {
   // Ensure the key is 32 bytes (256 bits)
   const keyBuffer = Buffer.from(
     key.padEnd(32, "0").slice(0, 32),
-    "utf-8"
+    "utf-8",
   ) as unknown as CipherKey;
 
   const iv = randomBytes(16); // Initialization vector
@@ -198,7 +198,7 @@ export const decrypt = (text: string, key: string) => {
   // Ensure the key is 32 bytes (256 bits)
   const keyBuffer = Buffer.from(
     key.padEnd(32, "0").slice(0, 32),
-    "utf-8"
+    "utf-8",
   ) as unknown as CipherKey;
 
   const decipher = createDecipheriv(algorithm, keyBuffer, iv as any);
@@ -221,7 +221,7 @@ export const calculateDiscountProductPrice = (data: {
       price: data.price,
       discount: {
         newprice: parseFloat(
-          (data.price - (data.price * data.discount) / 100).toFixed(2)
+          (data.price - (data.price * data.discount) / 100).toFixed(2),
         ),
         percent: data.discount,
       },
@@ -233,7 +233,7 @@ export const calculateDiscountProductPrice = (data: {
 
 export const HasPartialOverlap = (
   arr1: string[][],
-  arr2: string[][]
+  arr2: string[][],
 ): boolean => {
   const set1 = new Set(arr1.map((subArr) => subArr.join(",")));
   const set2 = new Set(arr2.map((subArr) => subArr.join(",")));

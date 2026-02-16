@@ -77,7 +77,7 @@ const updateDetails = async (details: [] | ProductInfo[], id: number) => {
 
     return true;
   } catch (error) {
-    console.error("Failed to update product details:", error);
+    console.log("Failed to update product details:", error);
     throw new Error("Failed to update product details");
   }
 };
@@ -242,7 +242,7 @@ export const CreateProduct = async (
       return { success: false, error: "Product Already Exist" };
     }
   } catch (error) {
-    console.error("Create Product", error);
+    console.log("Create Product", error);
     return { success: false, error: "Error Occured" };
   }
 };
@@ -609,7 +609,7 @@ export const EditProduct = async (
 
     return { success: true };
   } catch (error) {
-    console.error("Edit Product", error);
+    console.log("Edit Product", error);
     return { success: false, error: "Failed To Update Product" };
   }
 };
@@ -698,7 +698,7 @@ export const DeleteProduct = async (id: number) => {
 
     return true;
   } catch (error) {
-    console.error("Delete Product", error);
+    console.log("Delete Product", error);
     throw new Error("Failed To Delete");
   }
 };
@@ -978,7 +978,7 @@ export const GetProductByCategory = async ({
     });
     return { success: true, data: products };
   } catch (error) {
-    console.error("GetProductByCategory", error);
+    console.log("GetProductByCategory", error);
     return { success: false };
   }
 };

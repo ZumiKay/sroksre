@@ -116,7 +116,7 @@ export default async function ProductDetailPage({
           className="product_detail  w-3/4 max-smallest_tablet:w-[95vw] 
         max-smallest_tablet:pl-0 flex flex-col pl-4 gap-y-10 h-fit"
         >
-          <h3 className="product_name text-3xl font-bold h-fit pt-1 break-words">
+          <h3 className="product_name text-3xl font-bold h-fit pt-1 wrap-break-word">
             {data?.data.name}
           </h3>
           <p className="product_description text-lg font-normal w-full">
@@ -177,7 +177,7 @@ export default async function ProductDetailPage({
           <Suspense
             fallback={
               <div className="flex flex-col gap-y-5">
-                <div className="h-8 bg-gray-300 rounded w-64 animate-pulse"></div>
+                <div className="h-8 bg-gray-300 rounded-sm w-64 animate-pulse"></div>
                 <div className="w-full h-fit flex flex-row overflow-x-auto gap-x-5">
                   {[...Array(3)].map((_, idx) => (
                     <SimilarProductCardSkeleton key={idx} />

@@ -87,7 +87,7 @@ export async function POST(req: Request) {
       { status: 201 },
     );
   } catch (error) {
-    console.error("POST /api/products/variant error:", error);
+    console.log("POST /api/products/variant error:", error);
     return NextResponse.json(
       {
         success: false,
@@ -203,7 +203,7 @@ export async function PUT(req: Request) {
       { status: 200 },
     );
   } catch (error) {
-    console.error("PUT /api/products/variant error:", error);
+    console.log("PUT /api/products/variant error:", error);
     return NextResponse.json(
       {
         success: false,
@@ -289,7 +289,7 @@ export async function DELETE(req: Request) {
       { status: 200 },
     );
   } catch (error) {
-    console.error("DELETE /api/products/variant error:", error);
+    console.log("DELETE /api/products/variant error:", error);
     return NextResponse.json(
       {
         success: false,

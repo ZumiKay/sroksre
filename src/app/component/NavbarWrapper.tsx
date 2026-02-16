@@ -7,6 +7,7 @@ import { ApiRequest } from "@/src/context/CustomHook";
 import { Usersessiontype } from "@/src/types/user.type";
 import { CheckAndGetUserInfo } from "../severactions/RecapchaAction";
 import { errorToast } from "./Loading";
+import { ToastContainer } from "react-toastify";
 
 // API endpoint constants
 const API_ENDPOINTS = {
@@ -86,7 +87,7 @@ export default function NavbarWrapper() {
         }
       }
     } catch (error) {
-      console.error("Error fetching initial data:", error);
+      console.log("Error fetching initial data:", error);
       hasFetchedRef.current = false; // Allow retry on error
     } finally {
       setLoading(false);
@@ -119,5 +120,10 @@ export default function NavbarWrapper() {
     [userSession, initialCartCount, initialNotificationCount, loading],
   );
 
-  return <Navbar {...navbarProps} />;
+  return (
+    <>
+      <ToastContainer />
+      <Navbar {...navbarProps} />
+    </>
+  );
 }

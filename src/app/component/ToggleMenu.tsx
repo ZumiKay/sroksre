@@ -57,7 +57,7 @@ export default function ToggleMenu(props: toggleprops) {
       }}
       className="toggle__container w-full h-fit flex flex-col gap-y-1"
     >
-      <div className="togglebtn sticky top-0 mb-6 bg-white/95 backdrop-blur-sm z-10 pb-3 border-b-2 border-gray-200">
+      <div className="togglebtn sticky top-0 mb-6 bg-white/95 backdrop-blur-xs z-10 pb-3 border-b-2 border-gray-200">
         <h3 className="font-normal text-lg flex flex-row items-center justify-start gap-x-4">
           <strong className="font-bold text-2xl text-gray-800">
             {props.name}
@@ -68,8 +68,8 @@ export default function ToggleMenu(props: toggleprops) {
               open ? "fa-minus" : "fa-plus"
             } rounded-xl text-base p-3 no-underline transition-all duration-300 shadow-md hover:shadow-lg active:scale-95 ${
               open
-                ? "bg-gradient-to-r from-red-500 to-pink-600 text-white hover:from-red-600 hover:to-pink-700"
-                : "bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700"
+                ? "bg-linear-to-r from-red-500 to-pink-600 text-white hover:from-red-600 hover:to-pink-700"
+                : "bg-linear-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700"
             }`}
             aria-label={open ? "Collapse section" : "Expand section"}
           ></button>{" "}
@@ -82,7 +82,7 @@ export default function ToggleMenu(props: toggleprops) {
             animate={{ height: "fit-content", y: 0, opacity: 1 }}
             exit={{ height: 0, y: -10, opacity: 0 }}
             transition={{ duration: 0.3, ease: "easeInOut" }}
-            className="detailheader w-full h-fit break-words flex flex-col items-start gap-y-4"
+            className="detailheader w-full h-fit wrap-break-word flex flex-col items-start gap-y-4"
           >
             {props.paragraph
               ? props.paragraph.map((i) => (
@@ -91,10 +91,10 @@ export default function ToggleMenu(props: toggleprops) {
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.3 }}
-                    className="w-full h-fit flex flex-col gap-y-3 p-5 rounded-xl bg-gradient-to-br from-gray-50 to-white border-2 border-gray-200 shadow-sm hover:shadow-md transition-shadow duration-300"
+                    className="w-full h-fit flex flex-col gap-y-3 p-5 rounded-xl bg-linear-to-br from-gray-50 to-white border-2 border-gray-200 shadow-xs hover:shadow-md transition-shadow duration-300"
                   >
                     {i.title && (
-                      <h3 className="w-full text-xl font-bold break-words text-gray-800 flex items-center gap-2">
+                      <h3 className="w-full text-xl font-bold wrap-break-word text-gray-800 flex items-center gap-2">
                         <i className="fa-solid fa-circle-info text-indigo-500 text-base"></i>
                         {i.title}
                       </h3>
@@ -110,7 +110,7 @@ export default function ToggleMenu(props: toggleprops) {
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.3, delay: index * 0.05 }}
-                    className="text-base font-normal flex flex-row items-center gap-x-4 p-4 rounded-lg bg-white border-2 border-gray-200 shadow-sm hover:shadow-md hover:border-indigo-300 transition-all duration-300 w-full group"
+                    className="text-base font-normal flex flex-row items-center gap-x-4 p-4 rounded-lg bg-white border-2 border-gray-200 shadow-xs hover:shadow-md hover:border-indigo-300 transition-all duration-300 w-full group"
                   >
                     <div className="flex flex-row items-center gap-x-2 flex-1">
                       <span className="font-semibold text-gray-700">
@@ -124,14 +124,14 @@ export default function ToggleMenu(props: toggleprops) {
                       <div className="flex flex-row items-center gap-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                         <button
                           onClick={() => handleEdit(index)}
-                          className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-blue-500 to-indigo-600 text-white text-sm font-semibold transition-all duration-300 hover:from-blue-600 hover:to-indigo-700 hover:scale-105 shadow-md hover:shadow-lg flex items-center gap-1.5"
+                          className="px-3 py-1.5 rounded-lg bg-linear-to-r from-blue-500 to-indigo-600 text-white text-sm font-semibold transition-all duration-300 hover:from-blue-600 hover:to-indigo-700 hover:scale-105 shadow-md hover:shadow-lg flex items-center gap-1.5"
                         >
                           <i className="fa-solid fa-pen text-xs"></i>
                           Edit
                         </button>
                         <button
                           onClick={() => handleDelete(index)}
-                          className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-red-500 to-pink-600 text-white text-sm font-semibold transition-all duration-300 hover:from-red-600 hover:to-pink-700 hover:scale-105 shadow-md hover:shadow-lg flex items-center gap-1.5"
+                          className="px-3 py-1.5 rounded-lg bg-linear-to-r from-red-500 to-pink-600 text-white text-sm font-semibold transition-all duration-300 hover:from-red-600 hover:to-pink-700 hover:scale-105 shadow-md hover:shadow-lg flex items-center gap-1.5"
                         >
                           <i className="fa-solid fa-trash text-xs"></i>
                           Delete
@@ -155,7 +155,7 @@ export function ToggleDownMenu(props: toggledownmenuprops) {
   return (
     <div
       style={{ ...props.style, display: !props.open ? "none" : "" }}
-      className="toggleDownMenu__container w-full h-[75vh] flex flex-col items-start gap-y-5 pl-2 overflow-y-auto overflow-x-hidden bg-gradient-to-b from-gray-50 to-white rounded-xl p-4 border-2 border-gray-200 shadow-inner"
+      className="toggleDownMenu__container w-full h-[75vh] flex flex-col items-start gap-y-5 pl-2 overflow-y-auto overflow-x-hidden bg-linear-to-b from-gray-50 to-white rounded-xl p-4 border-2 border-gray-200 shadow-inner"
     >
       {props.children}
     </div>
@@ -203,7 +203,7 @@ export function AddSubCategoryMenu({ index }: { index: number }) {
     setcategory((prev) => ({ ...prev, subcategories: subcate }));
   }, []);
   return (
-    <div className="AddSubCategory_menu w-full h-fit p-6 flex flex-col justify-center gap-y-6 transition rounded-2xl bg-gradient-to-br from-white to-indigo-50 border-2 border-indigo-200 shadow-lg">
+    <div className="AddSubCategory_menu w-full h-fit p-6 flex flex-col justify-center gap-y-6 transition rounded-2xl bg-linear-to-br from-white to-indigo-50 border-2 border-indigo-200 shadow-lg">
       <div className="flex items-center gap-3 pb-2 border-b-2 border-indigo-200">
         <i className="fa-solid fa-folder-tree text-2xl text-indigo-500"></i>
         <h2 className="text-xl font-bold text-gray-800">Subcategories</h2>
@@ -230,10 +230,10 @@ export function AddSubCategoryMenu({ index }: { index: number }) {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.8, opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className={`subcategory relative text-sm font-bold p-3 rounded-xl w-fit h-fit max-w-[140px] break-words cursor-pointer transition-all duration-200 shadow-md hover:shadow-lg group ${
+              className={`subcategory relative text-sm font-bold p-3 rounded-xl w-fit h-fit max-w-[140px] wrap-break-word cursor-pointer transition-all duration-200 shadow-md hover:shadow-lg group ${
                 editIdx === index
-                  ? "bg-gradient-to-r from-indigo-500 to-purple-600 text-white scale-105"
-                  : "bg-gradient-to-r from-gray-50 to-gray-100 text-gray-800 hover:from-indigo-100 hover:to-purple-100"
+                  ? "bg-linear-to-r from-indigo-500 to-purple-600 text-white scale-105"
+                  : "bg-linear-to-r from-gray-50 to-gray-100 text-gray-800 hover:from-indigo-100 hover:to-purple-100"
               }`}
             >
               <h3
@@ -256,7 +256,7 @@ export function AddSubCategoryMenu({ index }: { index: number }) {
                 onClick={() => {
                   handleDelete(index);
                 }}
-                className="absolute -right-2 -top-2 w-6 h-6 rounded-full bg-gradient-to-r from-red-500 to-pink-600 text-white flex items-center justify-center transition-all duration-200 hover:from-red-600 hover:to-pink-700 hover:scale-110 shadow-md opacity-0 group-hover:opacity-100"
+                className="absolute -right-2 -top-2 w-6 h-6 rounded-full bg-linear-to-r from-red-500 to-pink-600 text-white flex items-center justify-center transition-all duration-200 hover:from-red-600 hover:to-pink-700 hover:scale-110 shadow-md opacity-0 group-hover:opacity-100"
               >
                 <i className="fa-solid fa-xmark text-xs"></i>
               </button>
@@ -304,8 +304,8 @@ export function AddSubCategoryMenu({ index }: { index: number }) {
               name.length === 0
                 ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                 : editIdx < 0
-                  ? "bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:from-green-600 hover:to-emerald-700 hover:shadow-lg hover:scale-105"
-                  : "bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700 hover:shadow-lg hover:scale-105"
+                  ? "bg-linear-to-r from-green-500 to-emerald-600 text-white hover:from-green-600 hover:to-emerald-700 hover:shadow-lg hover:scale-105"
+                  : "bg-linear-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700 hover:shadow-lg hover:scale-105"
             }`}
           >
             <i
@@ -316,7 +316,7 @@ export function AddSubCategoryMenu({ index }: { index: number }) {
           <button
             type="button"
             onClick={() => handleCancel()}
-            className="w-full h-10 rounded-xl font-bold text-sm transition-all duration-300 shadow-md flex items-center justify-center gap-2 bg-gradient-to-r from-gray-500 to-gray-700 text-white hover:from-gray-600 hover:to-gray-800 hover:shadow-lg hover:scale-105"
+            className="w-full h-10 rounded-xl font-bold text-sm transition-all duration-300 shadow-md flex items-center justify-center gap-2 bg-linear-to-r from-gray-500 to-gray-700 text-white hover:from-gray-600 hover:to-gray-800 hover:shadow-lg hover:scale-105"
           >
             <i className="fa-solid fa-xmark"></i>
             <span>Clear All</span>
@@ -361,7 +361,7 @@ export function ToggleSelect({
     >
       <div
         onClick={() => setopen(!open)}
-        className="title h-fit text-lg font-semibold w-full text-left cursor-pointer p-4 flex flex-row items-center justify-between bg-gradient-to-r from-gray-50 to-white hover:from-indigo-50 hover:to-purple-50 transition-all duration-300 border-b-2 border-gray-200"
+        className="title h-fit text-lg font-semibold w-full text-left cursor-pointer p-4 flex flex-row items-center justify-between bg-linear-to-r from-gray-50 to-white hover:from-indigo-50 hover:to-purple-50 transition-all duration-300 border-b-2 border-gray-200"
       >
         <div className="w-full h-full flex items-center gap-2">
           {type === "color" ? (
@@ -434,9 +434,9 @@ export function ToggleSelect({
                 transition={{ duration: 0.2, delay: idx * 0.03 }}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className={`selectitem min-w-[50px] rounded-xl cursor-pointer w-fit h-fit break-words border-2 p-2 transition-all duration-300 shadow-sm hover:shadow-md ${
+                className={`selectitem min-w-[50px] rounded-xl cursor-pointer w-fit h-fit wrap-break-word border-2 p-2 transition-all duration-300 shadow-xs hover:shadow-md ${
                   selected?.includes(typeof i === "string" ? i : i.val)
-                    ? "bg-gradient-to-r from-indigo-500 to-purple-600 border-indigo-600 text-white scale-105"
+                    ? "bg-linear-to-r from-indigo-500 to-purple-600 border-indigo-600 text-white scale-105"
                     : "bg-white border-gray-300 hover:border-indigo-400"
                 }`}
                 onClick={() => {

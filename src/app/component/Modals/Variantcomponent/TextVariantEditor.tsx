@@ -99,10 +99,10 @@ export const TextVariantEditor: React.FC<TextVariantEditorProps> = React.memo(
           <Modal closestate="none" customZIndex={150}>
             <form
               onSubmit={onUpdateOption}
-              className="addoption w-[340px] max-smallest_phone:w-[300px] h-fit bg-gradient-to-br from-blue-50/50 via-white to-purple-50/50 p-6 flex flex-col gap-y-6 items-center justify-start rounded-2xl shadow-2xl border-2 border-gray-200/60 backdrop-blur-sm"
+              className="addoption w-[340px] max-smallest_phone:w-[300px] h-fit bg-linear-to-br from-blue-50/50 via-white to-purple-50/50 p-6 flex flex-col gap-y-6 items-center justify-start rounded-2xl shadow-2xl border-2 border-gray-200/60 backdrop-blur-xs"
             >
               <div className="w-full flex flex-col gap-2">
-                <h3 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                <h3 className="text-xl font-bold bg-linear-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                   {modalTitle}
                 </h3>
                 <p className="text-sm text-gray-600">{modalDescription}</p>
@@ -113,7 +113,7 @@ export const TextVariantEditor: React.FC<TextVariantEditorProps> = React.memo(
                 type="text"
                 value={variantManager.option}
                 onChange={handleOptionChange}
-                className="text-base font-semibold px-4 py-3 h-[56px] w-full border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 outline-none shadow-sm hover:shadow-md"
+                className="text-base font-semibold px-4 py-3 h-[56px] w-full border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 outline-hidden shadow-xs hover:shadow-md"
               />
               <div className="w-full flex flex-col gap-3">
                 <Input
@@ -139,14 +139,14 @@ export const TextVariantEditor: React.FC<TextVariantEditorProps> = React.memo(
                 <Button
                   type="submit"
                   isDisabled={variantManager.option === ""}
-                  className="flex-1 h-12 font-bold text-base bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95"
+                  className="flex-1 h-12 font-bold text-base bg-linear-to-r from-green-500 to-emerald-600 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95"
                 >
                   {buttonText}
                 </Button>
                 <Button
                   type="button"
                   onClick={handleCancel}
-                  className="flex-1 h-12 font-bold text-base bg-gradient-to-r from-gray-600 to-gray-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95"
+                  className="flex-1 h-12 font-bold text-base bg-linear-to-r from-gray-600 to-gray-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95"
                 >
                   Cancel
                 </Button>
@@ -214,7 +214,7 @@ const OptionItem = React.memo<{
       >
         <div
           onClick={handleSelect}
-          className="option text-sm cursor-pointer px-4 py-2.5 rounded-lg bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-200 text-gray-700 font-medium transition-all duration-200 hover:shadow-md hover:border-blue-400 active:scale-95 w-fit h-fit"
+          className="option text-sm cursor-pointer px-4 py-2.5 rounded-lg bg-linear-to-r from-blue-50 to-purple-50 border-2 border-blue-200 text-gray-700 font-medium transition-all duration-200 hover:shadow-md hover:border-blue-400 active:scale-95 w-fit h-fit"
         >
           {displayValue}
         </div>

@@ -302,7 +302,7 @@ export async function updateStatus(
 
     return { success: true, message: "Payment completed" };
   } catch (error) {
-    console.error("Update status error:", error);
+    console.log("Update status error:", error);
     return { success: false, message: "Error occurred" };
   }
 }
@@ -436,7 +436,7 @@ const generateAccessToken = async () => {
     const data = await response.json();
     return data.access_token;
   } catch (error) {
-    console.error("Failed to generate Access Token:", error);
+    console.log("Failed to generate Access Token:", error);
     return null;
   }
 };

@@ -184,3 +184,8 @@ export type Paragraph = Prisma.ParagraphModel
  * 
  */
 export type Notification = Prisma.NotificationModel
+/**
+ * Model LoginAttempt
+ * 
+ */
+export type LoginAttempt = Prisma.LoginAttemptModel

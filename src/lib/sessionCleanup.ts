@@ -20,7 +20,7 @@ export async function cleanupExpiredSessions(): Promise<number> {
     console.log(`Cleaned up ${result.count} expired sessions`);
     return result.count;
   } catch (error) {
-    console.error("Error cleaning up expired sessions:", error);
+    console.log("Error cleaning up expired sessions:", error);
     return 0;
   }
 }
@@ -30,7 +30,7 @@ export async function cleanupExpiredSessions(): Promise<number> {
  * Useful for admin actions or security purposes
  */
 export async function invalidateUserSession(
-  session_id: string
+  session_id: string,
 ): Promise<boolean> {
   try {
     await Prisma.usersession.delete({
@@ -39,7 +39,7 @@ export async function invalidateUserSession(
     console.log(`Session ${session_id} invalidated`);
     return true;
   } catch (error) {
-    console.error("Error invalidating session:", error);
+    console.log("Error invalidating session:", error);
     return false;
   }
 }
@@ -49,7 +49,7 @@ export async function invalidateUserSession(
  * Useful for security purposes (e.g., password reset, account compromise)
  */
 export async function invalidateAllUserSessions(
-  user_id: number
+  user_id: number,
 ): Promise<number> {
   try {
     const result = await Prisma.usersession.deleteMany({
@@ -58,7 +58,7 @@ export async function invalidateAllUserSessions(
     console.log(`Invalidated ${result.count} sessions for user ${user_id}`);
     return result.count;
   } catch (error) {
-    console.error("Error invalidating all user sessions:", error);
+    console.log("Error invalidating all user sessions:", error);
     return 0;
   }
 }
@@ -82,7 +82,7 @@ export async function getUserActiveSessions(user_id: number) {
     });
     return sessions;
   } catch (error) {
-    console.error("Error fetching user sessions:", error);
+    console.log("Error fetching user sessions:", error);
     return [];
   }
 }
@@ -93,7 +93,7 @@ export async function getUserActiveSessions(user_id: number) {
  */
 export async function extendSessionExpiration(
   session_id: string,
-  daysToExtend: number = 7
+  daysToExtend: number = 7,
 ): Promise<boolean> {
   try {
     const newExpireDate = new Date();
@@ -107,7 +107,7 @@ export async function extendSessionExpiration(
     console.log(`Extended session ${session_id} to ${newExpireDate}`);
     return true;
   } catch (error) {
-    console.error("Error extending session:", error);
+    console.log("Error extending session:", error);
     return false;
   }
 }

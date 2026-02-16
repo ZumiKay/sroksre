@@ -93,7 +93,7 @@ const CreateContainerType = memo(function CreateContainerType({
   return (
     <div className="slideshow w-full h-fit flex flex-col gap-y-6">
       {/* Header Section with Add Button */}
-      <div className="header-section w-full flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-blue-500/10 rounded-xl border border-blue-400/30 backdrop-blur-sm">
+      <div className="header-section w-full flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 bg-linear-to-r from-blue-500/10 via-purple-500/10 to-blue-500/10 rounded-xl border border-blue-400/30 backdrop-blur-xs">
         <div className="flex flex-col gap-2">
           <h3 className="text-lg font-bold text-white flex items-center gap-2">
             <svg
@@ -137,14 +137,14 @@ const CreateContainerType = memo(function CreateContainerType({
         <div className="selected-slides-container">
           <div className="flex items-center justify-between mb-4">
             <h4 className="text-base font-semibold text-gray-200 flex items-center gap-2">
-              <div className="w-1 h-5 bg-gradient-to-b from-blue-400 to-purple-600 rounded-full"></div>
+              <div className="w-1 h-5 bg-linear-to-b from-blue-400 to-purple-600 rounded-full"></div>
               Selected Banners
             </h4>
             <div className="px-3 py-1.5 bg-blue-500 text-white text-sm font-semibold rounded-full shadow-lg">
               {data.items.length}
             </div>
           </div>
-          <div className="selected-slides w-full h-fit max-h-[58vh] overflow-y-auto grid grid-cols-2 max-large_phone:grid-cols-1 gap-6 place-items-center p-4 bg-gradient-to-b from-gray-800/50 to-transparent rounded-xl">
+          <div className="selected-slides w-full h-fit max-h-[58vh] overflow-y-auto grid grid-cols-2 max-large_phone:grid-cols-1 gap-6 place-items-center p-4 bg-linear-to-b from-gray-800/50 to-transparent rounded-xl">
             {data.items.map(
               (item, idx) =>
                 item.item && (
@@ -164,8 +164,8 @@ const CreateContainerType = memo(function CreateContainerType({
           </div>
         </div>
       ) : (
-        <div className="empty-state w-full py-16 flex flex-col items-center justify-center gap-4 bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-xl border-2 border-dashed border-gray-600 hover:border-blue-500/50 transition-all duration-300">
-          <div className="w-20 h-20 bg-gradient-to-br from-blue-500/20 to-purple-600/20 rounded-full flex items-center justify-center">
+        <div className="empty-state w-full py-16 flex flex-col items-center justify-center gap-4 bg-linear-to-br from-gray-800/50 to-gray-900/50 rounded-xl border-2 border-dashed border-gray-600 hover:border-blue-500/50 transition-all duration-300">
+          <div className="w-20 h-20 bg-linear-to-br from-blue-500/20 to-purple-600/20 rounded-full flex items-center justify-center">
             <svg
               className="w-10 h-10 text-blue-400"
               fill="none"
@@ -293,7 +293,7 @@ const ScrollableContainerModal = memo(function ScrollableContainerModal({
   return (
     <div className="w-full h-full flex flex-col gap-y-6">
       {/* Configuration Section */}
-      <div className="config-section p-5 bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 rounded-xl border border-purple-400/30">
+      <div className="config-section p-5 bg-linear-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 rounded-xl border border-purple-400/30">
         <div className="flex items-center gap-2 mb-4">
           <svg
             className="w-5 h-5 text-purple-400"
@@ -375,7 +375,7 @@ const ScrollableContainerModal = memo(function ScrollableContainerModal({
         </div>
 
         {data.scrollabletype === "popular" && (
-          <div className="w-full h-fit flex flex-col gap-y-3 mt-5 p-4 bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-lg border border-blue-400/30">
+          <div className="w-full h-fit flex flex-col gap-y-3 mt-5 p-4 bg-linear-to-br from-blue-500/10 to-cyan-500/10 rounded-lg border border-blue-400/30">
             <label className="text-sm font-semibold text-gray-200 flex items-center gap-2">
               <svg
                 className="w-4 h-4 text-blue-400"
@@ -415,7 +415,7 @@ const ScrollableContainerModal = memo(function ScrollableContainerModal({
 
       {/* Add Product Button for Custom Type */}
       {data.scrollabletype !== "new" && data.scrollabletype !== "popular" && (
-        <div className="add-product-section p-5 bg-gradient-to-r from-green-500/10 via-emerald-500/10 to-teal-500/10 rounded-xl border border-green-400/30">
+        <div className="add-product-section p-5 bg-linear-to-r from-green-500/10 via-emerald-500/10 to-teal-500/10 rounded-xl border border-green-400/30">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex flex-col gap-1">
               <h4 className="text-base font-semibold text-white flex items-center gap-2">
@@ -462,7 +462,7 @@ const ScrollableContainerModal = memo(function ScrollableContainerModal({
         <div className="selected-products-container">
           <div className="flex items-center justify-between mb-4">
             <h4 className="text-base font-semibold text-gray-200 flex items-center gap-2">
-              <div className="w-1 h-5 bg-gradient-to-b from-green-400 to-emerald-600 rounded-full"></div>
+              <div className="w-1 h-5 bg-linear-to-b from-green-400 to-emerald-600 rounded-full"></div>
               Selected Products
             </h4>
             <div className="flex items-center gap-2">
@@ -471,7 +471,7 @@ const ScrollableContainerModal = memo(function ScrollableContainerModal({
               </div>
             </div>
           </div>
-          <div className="selectedproduct w-full overflow-y-auto overflow-x-auto max-h-[60vh] flex flex-row justify-start items-start gap-x-6 gap-y-6 p-4 bg-gradient-to-b from-gray-800/50 to-transparent rounded-xl scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800">
+          <div className="selectedproduct w-full overflow-y-auto overflow-x-auto max-h-[60vh] flex flex-row justify-start items-start gap-x-6 gap-y-6 p-4 bg-linear-to-b from-gray-800/50 to-transparent rounded-xl scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800">
             {data.items.map(
               (item, idx) =>
                 item.item && (
@@ -493,8 +493,8 @@ const ScrollableContainerModal = memo(function ScrollableContainerModal({
           </div>
         </div>
       ) : data.scrollabletype === "custom" ? (
-        <div className="empty-state w-full py-16 flex flex-col items-center justify-center gap-4 bg-gradient-to-br from-gray-800/50 to-gray-900/50 rounded-xl border-2 border-dashed border-gray-600 hover:border-green-500/50 transition-all duration-300">
-          <div className="w-20 h-20 bg-gradient-to-br from-green-500/20 to-emerald-600/20 rounded-full flex items-center justify-center">
+        <div className="empty-state w-full py-16 flex flex-col items-center justify-center gap-4 bg-linear-to-br from-gray-800/50 to-gray-900/50 rounded-xl border-2 border-dashed border-gray-600 hover:border-green-500/50 transition-all duration-300">
+          <div className="w-20 h-20 bg-linear-to-br from-green-500/20 to-emerald-600/20 rounded-full flex items-center justify-center">
             <svg
               className="w-10 h-10 text-green-400"
               fill="none"
@@ -520,9 +520,9 @@ const ScrollableContainerModal = memo(function ScrollableContainerModal({
           </div>
         </div>
       ) : (
-        <div className="auto-populate-info w-full p-6 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-xl border border-blue-400/30">
+        <div className="auto-populate-info w-full p-6 bg-linear-to-br from-blue-500/10 to-purple-500/10 rounded-xl border border-blue-400/30">
           <div className="flex items-start gap-4">
-            <div className="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center flex-shrink-0">
+            <div className="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center shrink-0">
               <svg
                 className="w-6 h-6 text-blue-400"
                 fill="none"
@@ -572,7 +572,7 @@ const ContainerTypeContainer = memo(function ContainerTypeContainer({
       onClick={onClick}
       className="w-[320px] h-[280px] 
       max-smallest_phone:w-full
-      rounded-2xl flex flex-col justify-start items-center bg-gradient-to-br from-white to-gray-100 text-gray-800
+      rounded-2xl flex flex-col justify-start items-center bg-linear-to-br from-white to-gray-100 text-gray-800
       transition-all duration-500 cursor-pointer
       hover:scale-105 hover:shadow-2xl hover:from-blue-500 hover:to-blue-600 hover:text-white
       active:scale-95
@@ -825,12 +825,12 @@ const Homecontainermodal = ({
         style={{ backgroundColor: "#1F2937" }}
         header={() => (
           <div className="title w-fit flex items-center gap-3">
-            <div className="w-1.5 h-8 bg-gradient-to-b from-blue-400 to-purple-600 rounded-full"></div>
+            <div className="w-1.5 h-8 bg-linear-to-b from-blue-400 to-purple-600 rounded-full"></div>
             <p className="text-2xl font-bold text-white">{headerTitle}</p>
           </div>
         )}
       >
-        <div className="w-full h-fit relative bg-gradient-to-br from-gray-800 via-gray-700 to-gray-800 text-white rounded-2xl flex flex-col items-center overflow-y-auto overflow-x-hidden shadow-2xl">
+        <div className="w-full h-fit relative bg-linear-to-br from-gray-800 via-gray-700 to-gray-800 text-white rounded-2xl flex flex-col items-center overflow-y-auto overflow-x-hidden shadow-2xl">
           {loading && (
             <div className="absolute inset-0 z-50">
               <ContainerLoading />
@@ -873,7 +873,7 @@ const Homecontainermodal = ({
             )}
           </div>
 
-          <div className="btn w-full h-[70px] max-smallest_phone:gap-x-2 px-6 py-4 flex flex-row gap-x-4 justify-end items-center border-t-2 border-gray-600 bg-gradient-to-r from-gray-800 to-gray-900">
+          <div className="btn w-full h-[70px] max-smallest_phone:gap-x-2 px-6 py-4 flex flex-row gap-x-4 justify-end items-center border-t-2 border-gray-600 bg-linear-to-r from-gray-800 to-gray-900">
             {openmodal["Addbanner"] && (
               <PrimaryButton
                 type="button"
@@ -1000,7 +1000,7 @@ const Bannercard = memo(function Bannercard({
                 ? { width: "400px", height: "250px" }
                 : {}
           }
-          className={`bg-gradient-to-br from-gray-100 via-gray-50 to-gray-100 transition-transform duration-500 ${
+          className={`bg-linear-to-br from-gray-100 via-gray-50 to-gray-100 transition-transform duration-500 ${
             isClickable ? "group-hover:scale-110" : ""
           } ${
             typesize === "small"
@@ -1010,7 +1010,7 @@ const Bannercard = memo(function Bannercard({
         />
         {/* Overlay on hover for clickable cards */}
         {isClickable && (
-          <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+          <div className="absolute inset-0 bg-linear-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
         )}
         {/* Click hint for non-added items */}
         {isClickable && !isAdded && (
@@ -1037,7 +1037,7 @@ const Bannercard = memo(function Bannercard({
 
       {isAdded && (
         <div className="absolute top-3 right-3 flex items-center gap-2">
-          <span className="w-[36px] h-[36px] text-white bg-gradient-to-br from-blue-500 via-blue-600 to-blue-700 rounded-full flex items-center justify-center font-bold text-sm shadow-2xl ring-4 ring-white animate-pulse">
+          <span className="w-[36px] h-[36px] text-white bg-linear-to-br from-blue-500 via-blue-600 to-blue-700 rounded-full flex items-center justify-center font-bold text-sm shadow-2xl ring-4 ring-white animate-pulse">
             {idx}
           </span>
           <div className="bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg flex items-center gap-1">
@@ -1055,7 +1055,7 @@ const Bannercard = memo(function Bannercard({
 
       {name && (
         <div className="p-4 bg-white">
-          <p className="text-sm font-semibold w-fit max-w-[280px] h-fit break-words text-gray-800 line-clamp-2 group-hover:text-blue-600 transition-colors duration-300">
+          <p className="text-sm font-semibold w-fit max-w-[280px] h-fit wrap-break-word text-gray-800 line-clamp-2 group-hover:text-blue-600 transition-colors duration-300">
             {name}
           </p>
         </div>
@@ -1164,7 +1164,7 @@ const AddBannerContainer = memo(function AddBannerContainer({
           setlimit(request.isLimit ?? false);
         }
       } catch (error) {
-        console.error("Failed to fetch data:", error);
+        console.log("Failed to fetch data:", error);
       } finally {
         if (isMounted) {
           setloading(false);
@@ -1212,7 +1212,7 @@ const AddBannerContainer = memo(function AddBannerContainer({
             setcate((prev) => ({ ...prev, parent: parentcategories.data }));
           }
         } catch (error) {
-          console.error("Failed to fetch categories:", error);
+          console.log("Failed to fetch categories:", error);
         } finally {
           if (isMounted) {
             setloading(false);
@@ -1291,7 +1291,7 @@ const AddBannerContainer = memo(function AddBannerContainer({
               setcate((prev) => ({ ...prev, sub: childcategories.data }));
             }
           } catch (error) {
-            console.error("Failed to fetch subcategories:", error);
+            console.log("Failed to fetch subcategories:", error);
           } finally {
             setloading(false);
           }
@@ -1336,7 +1336,7 @@ const AddBannerContainer = memo(function AddBannerContainer({
     <div className="addbannerContainer w-full h-fit flex flex-col items-center justify-center gap-y-6 relative">
       {/* Action Bar */}
       {!isFilter ? (
-        <div className="w-full p-4 bg-gradient-to-r from-gray-700 via-gray-600 to-gray-700 rounded-xl flex flex-row gap-x-3 items-center flex-wrap gap-y-3 shadow-lg border border-gray-600">
+        <div className="w-full p-4 bg-linear-to-r from-gray-700 via-gray-600 to-gray-700 rounded-xl flex flex-row gap-x-3 items-center flex-wrap gap-y-3 shadow-lg border border-gray-600">
           <PrimaryButton
             type="button"
             text="Filter Options"
@@ -1388,7 +1388,7 @@ const AddBannerContainer = memo(function AddBannerContainer({
             />
           )}
           {data.items.length > 0 && (
-            <div className="ml-auto bg-gradient-to-r from-blue-500 to-blue-600 text-white px-5 py-2.5 rounded-full font-bold shadow-lg flex items-center gap-2">
+            <div className="ml-auto bg-linear-to-r from-blue-500 to-blue-600 text-white px-5 py-2.5 rounded-full font-bold shadow-lg flex items-center gap-2">
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                 <path
                   fillRule="evenodd"
@@ -1401,7 +1401,7 @@ const AddBannerContainer = memo(function AddBannerContainer({
           )}
         </div>
       ) : (
-        <div className="filtercontainer w-full h-fit p-6 border-2 rounded-2xl border-blue-400 bg-gradient-to-br from-gray-700 via-gray-800 to-gray-900 flex flex-col justify-center gap-y-5 relative shadow-2xl">
+        <div className="filtercontainer w-full h-fit p-6 border-2 rounded-2xl border-blue-400 bg-linear-to-br from-gray-700 via-gray-800 to-gray-900 flex flex-col justify-center gap-y-5 relative shadow-2xl">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-blue-500/20 rounded-full flex items-center justify-center">
@@ -1527,7 +1527,7 @@ const AddBannerContainer = memo(function AddBannerContainer({
             : data.type !== "scrollable"
               ? "max-h-[68vh]"
               : "max-h-[65vh]"
-        } overflow-y-auto overflow-x-hidden grid grid-cols-2 max-smallest_tablet:grid-cols-1 gap-x-6 gap-y-8 place-items-center z-0 p-4 bg-gradient-to-b from-gray-800/30 to-transparent rounded-xl scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800`}
+        } overflow-y-auto overflow-x-hidden grid grid-cols-2 max-smallest_tablet:grid-cols-1 gap-x-6 gap-y-8 place-items-center z-0 p-4 bg-linear-to-b from-gray-800/30 to-transparent rounded-xl scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800`}
       >
         {loading ? (
           <BannerGridSkeleton

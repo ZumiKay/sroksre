@@ -63,7 +63,7 @@ export const VariantTypeSelection: React.FC<VariantTypeSelectionProps> = ({
           ]}
         />
       </div>
-      <div className="templatecontainer w-[90%] h-fit flex flex-col gap-y-5 bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+      <div className="templatecontainer w-[90%] h-fit flex flex-col gap-y-5 bg-white rounded-xl shadow-xs border border-gray-200 p-5">
         <div className="w-full h-fit flex flex-row justify-between items-center">
           <div className="flex items-center gap-2">
             <svg

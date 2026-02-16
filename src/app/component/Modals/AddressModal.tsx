@@ -68,7 +68,7 @@ const AddressItem = memo(
         className={`relative rounded-xl overflow-hidden mb-4 transition-all duration-300 
         ${
           isOpen
-            ? "bg-gradient-to-br from-gray-800 to-gray-900 shadow-xl"
+            ? "bg-linear-to-br from-gray-800 to-gray-900 shadow-xl"
             : "bg-white border-2 border-gray-200 hover:border-gray-400 hover:shadow-md"
         }`}
       >

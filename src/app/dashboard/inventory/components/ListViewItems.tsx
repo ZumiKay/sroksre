@@ -130,7 +130,7 @@ export const ProductListItem: React.FC<ProductListItemProps> = ({
           : "border-gray-200"
       }`}
     >
-      <div className="w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100 relative">
+      <div className="w-24 h-24 shrink-0 rounded-lg overflow-hidden bg-gray-100 relative">
         {product.covers && product.covers[0] ? (
           <>
             {isImageLoading && (
@@ -197,7 +197,7 @@ export const ProductListItem: React.FC<ProductListItemProps> = ({
 
       {hover && !promotion.selectproduct && (
         <div
-          className="flex-shrink-0 z-10"
+          className="shrink-0 z-10"
           onClick={(e) => e.stopPropagation()}
         >
           <SubInventoryMenu
@@ -262,7 +262,7 @@ export const BannerListItem: React.FC<BannerListItemProps> = ({
           : "border-gray-200"
       }`}
     >
-      <div className="w-32 h-20 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100 relative">
+      <div className="w-32 h-20 shrink-0 rounded-lg overflow-hidden bg-gray-100 relative">
         <Image
           src={banner.image.url}
           alt={banner.name}
@@ -297,7 +297,7 @@ export const BannerListItem: React.FC<BannerListItemProps> = ({
 
       {hover && !promotion.selectbanner && !openmodal.managebanner && (
         <div
-          className="flex-shrink-0 z-10"
+          className="shrink-0 z-10"
           onClick={(e) => e.stopPropagation()}
         >
           <SubInventoryMenu
@@ -338,7 +338,7 @@ export const PromotionListItem: React.FC<PromotionListItemProps> = ({
       className="relative w-full bg-white rounded-xl shadow-md hover:shadow-xl transition-all p-4 flex items-center gap-4 border border-gray-200"
     >
       {promotion.isExpired && (
-        <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-red-500 to-red-600 px-3 py-1 rounded-t-xl">
+        <div className="absolute top-0 left-0 right-0 bg-linear-to-r from-red-500 to-red-600 px-3 py-1 rounded-t-xl">
           <p className="font-bold text-xs text-white text-center flex items-center justify-center gap-1">
             <span className="inline-block w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span>
             Expired
@@ -347,7 +347,7 @@ export const PromotionListItem: React.FC<PromotionListItemProps> = ({
       )}
 
       <div
-        className={`w-32 h-20 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100 ${
+        className={`w-32 h-20 shrink-0 rounded-lg overflow-hidden bg-gray-100 ${
           promotion.isExpired ? "mt-6" : ""
         }`}
       >
@@ -388,7 +388,7 @@ export const PromotionListItem: React.FC<PromotionListItemProps> = ({
 
       {hover && !openmodal.managebanner && (
         <div
-          className={`flex-shrink-0 z-10 ${promotion.isExpired ? "mt-6" : ""}`}
+          className={`shrink-0 z-10 ${promotion.isExpired ? "mt-6" : ""}`}
           onClick={(e) => e.stopPropagation()}
         >
           <SubInventoryMenu

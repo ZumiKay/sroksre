@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
 
     return Response.json({ data: { id: result } }, { status: 200 });
   } catch (error) {
-    console.error("Create Promotion Error:", error);
+    console.log("Create Promotion Error:", error);
     return Response.json({ message: "Error Occurred" }, { status: 500 });
   }
 }
@@ -247,7 +247,7 @@ export async function PUT(request: NextRequest) {
     // Return success response
     return Response.json({ message: "Update Successfully" }, { status: 200 });
   } catch (error) {
-    console.error("Edit Promotion", error);
+    console.log("Edit Promotion", error);
     return Response.json({ message: "Editing Failed" }, { status: 500 });
   }
 }
@@ -299,7 +299,7 @@ export async function DELETE(request: NextRequest) {
 
     return Response.json({ message: "Delete Success" }, { status: 200 });
   } catch (error) {
-    console.error("Delete Promotion Error:", error);
+    console.log("Delete Promotion Error:", error);
     return Response.json({ message: "Deletion Failed" }, { status: 500 });
   }
 }

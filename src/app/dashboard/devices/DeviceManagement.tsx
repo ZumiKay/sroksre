@@ -23,7 +23,13 @@ export default function DeviceManagement() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
   const router = useRouter();
+
+  // Prevent hydration mismatch for date formatting
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const fetchSessions = async () => {
     try {
@@ -35,7 +41,7 @@ export default function DeviceManagement() {
         setSessions(data.sessions);
       }
     } catch (error) {
-      console.error("Failed to fetch sessions:", error);
+      console.log("Failed to fetch sessions:", error);
     } finally {
       setLoading(false);
     }
@@ -64,7 +70,7 @@ export default function DeviceManagement() {
         alert(data.message || "Failed to logout device");
       }
     } catch (error) {
-      console.error("Logout error:", error);
+      console.log("Logout error:", error);
       alert("An error occurred");
     } finally {
       setActionLoading(null);
@@ -95,7 +101,7 @@ export default function DeviceManagement() {
         alert(data.message || "Failed to logout devices");
       }
     } catch (error) {
-      console.error("Logout all error:", error);
+      console.log("Logout all error:", error);
       alert("An error occurred");
     } finally {
       setActionLoading(null);
@@ -171,26 +177,55 @@ export default function DeviceManagement() {
           sessions.map((session) => (
             <div
               key={session.sessionid}
-              className={`bg-white border rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow ${
+              className={`bg-white border rounded-lg p-6 shadow-xs hover:shadow-md transition-all duration-200 ${
                 session.isCurrent
-                  ? "border-blue-500 border-2"
+                  ? "border-blue-500 border-2 bg-linear-to-br from-blue-50/30 to-white ring-2 ring-blue-200 ring-opacity-50"
                   : "border-gray-200"
               }`}
             >
               <div className="flex items-start justify-between">
                 <div className="flex items-start space-x-4 flex-1">
-                  <div className="text-4xl">
+                  <div
+                    className={`text-4xl relative ${
+                      session.isCurrent ? "scale-110" : ""
+                    }`}
+                    style={
+                      session.isCurrent
+                        ? {
+                            filter:
+                              "drop-shadow(0 2px 4px rgba(59, 130, 246, 0.3))",
+                          }
+                        : undefined
+                    }
+                  >
                     {getDeviceIcon(session.device)}
+                    {session.isCurrent && (
+                      <span className="absolute -top-1 -right-1 flex h-4 w-4">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-4 w-4 bg-blue-500 border-2 border-white"></span>
+                      </span>
+                    )}
                   </div>
 
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <h3 className="text-lg font-semibold text-gray-900">
                         {session.device}
                       </h3>
                       {session.isCurrent && (
-                        <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">
-                          Current Device
+                        <span className="inline-flex items-center gap-1 px-3 py-1 bg-linear-to-r from-blue-500 to-blue-600 text-white text-xs font-semibold rounded-full shadow-sm">
+                          <svg
+                            className="w-3 h-3"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                          This Device
                         </span>
                       )}
                     </div>
@@ -208,17 +243,23 @@ export default function DeviceManagement() {
                       )}
                       <p>
                         <span className="font-medium">First seen:</span>{" "}
-                        {formatDate(session.createdAt)}
+                        {isMounted
+                          ? formatDate(session.createdAt)
+                          : "Loading..."}
                       </p>
                       {session.lastUsed && (
                         <p>
                           <span className="font-medium">Last active:</span>{" "}
-                          {formatDate(session.lastUsed)}
+                          {isMounted
+                            ? formatDate(session.lastUsed)
+                            : "Loading..."}
                         </p>
                       )}
                       <p>
                         <span className="font-medium">Expires:</span>{" "}
-                        {formatDate(session.expireAt)}
+                        {isMounted
+                          ? formatDate(session.expireAt)
+                          : "Loading..."}
                       </p>
                     </div>
                   </div>
@@ -243,7 +284,7 @@ export default function DeviceManagement() {
                   <summary className="cursor-pointer hover:text-gray-700">
                     Technical Details
                   </summary>
-                  <p className="mt-2 p-2 bg-gray-50 rounded break-all">
+                  <p className="mt-2 p-2 bg-gray-50 rounded-sm break-all">
                     {session.userAgent}
                   </p>
                 </details>
@@ -259,6 +300,24 @@ export default function DeviceManagement() {
           🔒 Security Information
         </h4>
         <ul className="text-sm text-blue-800 space-y-1">
+          <li>
+            • Devices marked with{" "}
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-500 text-white text-xs font-semibold rounded-full">
+              <svg
+                className="w-2.5 h-2.5"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              This Device
+            </span>{" "}
+            are your current session
+          </li>
           <li>• Sessions automatically expire after 7 days of inactivity</li>
           <li>• Logging out a device will immediately end that session</li>
           <li>• You cannot logout your current device from this page</li>

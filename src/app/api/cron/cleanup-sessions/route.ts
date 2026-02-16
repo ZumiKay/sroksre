@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
     if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
       return NextResponse.json(
         { success: false, message: "Unauthorized" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
     const count = await cleanupExpiredSessions();
 
     console.log(
-      `[CRON] Cleaned up ${count} expired sessions at ${new Date().toISOString()}`
+      `[CRON] Cleaned up ${count} expired sessions at ${new Date().toISOString()}`,
     );
 
     return NextResponse.json({
@@ -45,10 +45,10 @@ export async function GET(req: NextRequest) {
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    console.error("[CRON] Error cleaning up sessions:", error);
+    console.log("[CRON] Error cleaning up sessions:", error);
     return NextResponse.json(
       { success: false, message: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

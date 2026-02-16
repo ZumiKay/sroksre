@@ -170,7 +170,7 @@ export default async function ProductsPage({
   const breadcrumbSchema = generateBreadcrumbSchema(breadcrumbs);
 
   return (
-    <div className="products_page relative w-full min-h-[100vh] h-full flex flex-col justify-center items-center gap-y-20">
+    <div className="products_page relative w-full min-h-screen h-full flex flex-col justify-center items-center gap-y-20">
       {/* JSON-LD Structured Data for SEO */}
       {breadcrumbSchema && (
         <script

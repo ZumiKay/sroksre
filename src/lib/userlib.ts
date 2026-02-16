@@ -205,6 +205,169 @@ const createUserSession = async (
   return refreshToken;
 };
 
+/**
+ * Login Attempt Tracking Configuration
+ */
+const LOGIN_ATTEMPT_CONFIG = {
+  MAX_ATTEMPTS: 5, // Maximum failed attempts before lockout
+  LOCKOUT_DURATION_MINUTES: 15, // Duration of lockout in minutes
+  ATTEMPT_WINDOW_MINUTES: 30, // Time window to track attempts
+};
+
+/**
+ * Check if account is currently locked
+ * @param identifier - Email or IP address
+ * @returns Lock status and remaining time
+ */
+export const checkAccountLockStatus = async (
+  identifier: string,
+): Promise<{
+  isLocked: boolean;
+  remainingTime?: number;
+  attempts?: number;
+}> => {
+  try {
+    const attempt = await Prisma.loginAttempt.findUnique({
+      where: { identifier },
+    });
+
+    if (!attempt) {
+      return { isLocked: false, attempts: 0 };
+    }
+
+    // Check if account is locked and lock hasn't expired
+    if (attempt.isLocked && attempt.lockedUntil) {
+      const now = new Date();
+      if (now < attempt.lockedUntil) {
+        const remainingMs = attempt.lockedUntil.getTime() - now.getTime();
+        const remainingMinutes = Math.ceil(remainingMs / (1000 * 60));
+        return {
+          isLocked: true,
+          remainingTime: remainingMinutes,
+          attempts: attempt.failedAttempts,
+        };
+      } else {
+        // Lock expired, reset the attempt
+        await Prisma.loginAttempt.update({
+          where: { identifier },
+          data: {
+            isLocked: false,
+            lockedUntil: null,
+            failedAttempts: 0,
+            lastAttemptAt: now,
+          },
+        });
+        return { isLocked: false, attempts: 0 };
+      }
+    }
+
+    return {
+      isLocked: false,
+      attempts: attempt.failedAttempts,
+    };
+  } catch (error) {
+    console.log("Error checking lock status:", error);
+    return { isLocked: false, attempts: 0 };
+  }
+};
+
+/**
+ * Record a failed login attempt
+ * @param identifier - Email or IP address
+ * @returns Updated lock status
+ */
+export const recordFailedLoginAttempt = async (
+  identifier: string,
+): Promise<{
+  isLocked: boolean;
+  remainingTime?: number;
+  attempts: number;
+}> => {
+  try {
+    const now = new Date();
+    const attemptWindowStart = new Date(
+      now.getTime() - LOGIN_ATTEMPT_CONFIG.ATTEMPT_WINDOW_MINUTES * 60 * 1000,
+    );
+
+    const existingAttempt = await Prisma.loginAttempt.findUnique({
+      where: { identifier },
+    });
+
+    if (!existingAttempt) {
+      // Create new attempt record
+      await Prisma.loginAttempt.create({
+        data: {
+          identifier,
+          failedAttempts: 1,
+          lastAttemptAt: now,
+        },
+      });
+      return { isLocked: false, attempts: 1 };
+    }
+
+    // Reset attempts if last attempt was outside the window
+    const shouldReset = existingAttempt.lastAttemptAt < attemptWindowStart;
+    const newAttemptCount = shouldReset
+      ? 1
+      : existingAttempt.failedAttempts + 1;
+
+    // Check if account should be locked
+    const shouldLock = newAttemptCount >= LOGIN_ATTEMPT_CONFIG.MAX_ATTEMPTS;
+    const lockedUntil = shouldLock
+      ? new Date(
+          now.getTime() +
+            LOGIN_ATTEMPT_CONFIG.LOCKOUT_DURATION_MINUTES * 60 * 1000,
+        )
+      : null;
+
+    await Prisma.loginAttempt.update({
+      where: { identifier },
+      data: {
+        failedAttempts: newAttemptCount,
+        isLocked: shouldLock,
+        lockedUntil,
+        lastAttemptAt: now,
+      },
+    });
+
+    return {
+      isLocked: shouldLock,
+      remainingTime: shouldLock
+        ? LOGIN_ATTEMPT_CONFIG.LOCKOUT_DURATION_MINUTES
+        : undefined,
+      attempts: newAttemptCount,
+    };
+  } catch (error) {
+    console.log("Error recording failed attempt:", error);
+    return { isLocked: false, attempts: 0 };
+  }
+};
+
+/**
+ * Clear login attempts on successful login
+ * @param identifier - Email or IP address
+ */
+export const clearLoginAttempts = async (identifier: string): Promise<void> => {
+  try {
+    const existingAttempt = await Prisma.loginAttempt.findUnique({
+      where: { identifier },
+    });
+
+    if (existingAttempt) {
+      await Prisma.loginAttempt.update({
+        where: { identifier },
+        data: {
+          failedAttempts: 0,
+          isLocked: false,
+          lockedUntil: null,
+        },
+      });
+    }
+  } catch (error) {
+    console.log("Error clearing login attempts:", error);
+  }
+};
+
 /**Login method
  * @param credential - User credentials
  * @param req - Request object for device info extraction
@@ -215,12 +378,30 @@ export const userlogin = async (
   req: Request | any,
 ): Promise<AuthReturnType> => {
   try {
+    // Validate email exists
+    if (!credential.email) {
+      return { success: false, message: "Email is required" };
+    }
+
+    const identifier = credential.email;
+
+    // Check if account is locked
+    const lockStatus = await checkAccountLockStatus(identifier);
+    if (lockStatus.isLocked) {
+      return {
+        success: false,
+        message: `Account is temporarily locked due to multiple failed login attempts. Please try again in ${lockStatus.remainingTime} minute(s).`,
+      };
+    }
+
     const user = await Prisma.user.findUnique({
       where: { email: credential.email },
       select: { id: true, password: true, role: true },
     });
 
     if (!user) {
+      // Record failed attempt for non-existent user
+      await recordFailedLoginAttempt(identifier);
       return { success: false, message: "Incorrect Information" };
     }
 
@@ -230,8 +411,26 @@ export const userlogin = async (
     );
 
     if (!isValidPassword) {
-      return { success: false, message: "Incorrect Information" };
+      // Record failed attempt
+      const attemptResult = await recordFailedLoginAttempt(identifier);
+
+      if (attemptResult.isLocked) {
+        return {
+          success: false,
+          message: `Too many failed attempts. Account is locked for ${attemptResult.remainingTime} minute(s).`,
+        };
+      }
+
+      const remainingAttempts =
+        LOGIN_ATTEMPT_CONFIG.MAX_ATTEMPTS - attemptResult.attempts;
+      return {
+        success: false,
+        message: `Incorrect Information. ${remainingAttempts} attempt(s) remaining before account lockout.`,
+      };
     }
+
+    // Successful login - clear any failed attempts
+    await clearLoginAttempts(identifier);
 
     const deviceInfo = extractDeviceInfo(req);
     const sessionid = await createUserSession(user.id, deviceInfo);
@@ -246,7 +445,7 @@ export const userlogin = async (
       },
     };
   } catch (error: unknown) {
-    console.error("Login error:", error);
+    console.log("Login error:", error);
     return { success: false, message: "Error occurred" };
   }
 };
@@ -264,7 +463,7 @@ export const logout = async (sessionid: string): Promise<boolean> => {
     });
     return true;
   } catch (error) {
-    console.error("Logout error:", error);
+    console.log("Logout error:", error);
     throw new Error("Error occurred");
   }
 };
@@ -312,7 +511,7 @@ export const registerUser = async (
 
     return { success: true };
   } catch (error: any) {
-    console.error("Register user error:", error);
+    console.log("Register user error:", error);
     return {
       success: false,
       message: error.issues?.[0]?.message || "Registration failed",
@@ -356,7 +555,7 @@ export const handleCheckandRegisterUser = async ({
       },
     };
   } catch (error) {
-    console.error("Register user error:", error);
+    console.log("Register user error:", error);
     return {
       success: false,
       message: "Error occurred",
@@ -403,7 +602,7 @@ export const getOAuthInfo = async (
       role: user.role,
     };
   } catch (error) {
-    console.error("OAuth info error:", error);
+    console.log("OAuth info error:", error);
     return null;
   }
 };

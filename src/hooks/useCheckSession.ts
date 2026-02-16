@@ -56,7 +56,7 @@ const useCheckSession = () => {
       // Session exists but has neither expires nor cexp - invalid session
       errorToast("Invalid Session");
       timerRef.current = setTimeout(() => {
-        signOut().catch(console.error);
+        signOut().catch(console.log);
       }, 150);
       return;
     }
@@ -65,7 +65,7 @@ const useCheckSession = () => {
     if (isExpired) {
       errorToast("Invalid Session");
       timerRef.current = setTimeout(() => {
-        signOut().catch(console.error);
+        signOut().catch(console.log);
       }, 150);
     }
 

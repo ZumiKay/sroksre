@@ -105,7 +105,7 @@ export const updateProductVariantStock = async (
 
     return true;
   } catch (error) {
-    console.error("Failed to update product variant stock:", error);
+    console.log("Failed to update product variant stock:", error);
     return null;
   }
 };

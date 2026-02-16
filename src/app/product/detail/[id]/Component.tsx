@@ -429,11 +429,11 @@ const fetchAvailableQuantity = async (
         if (response.success) {
           resolve(response.data.availableQuantity || 0);
         } else {
-          console.error("Error fetching stock:", response.error);
+          console.log("Error fetching stock:", response.error);
           resolve(0);
         }
       } catch (error) {
-        console.error("Error fetching available quantity:", error);
+        console.log("Error fetching available quantity:", error);
         resolve(0);
       }
     }, 300); // 300ms debounce
@@ -466,7 +466,7 @@ const inCartCheck = async (
           incart: (req.data?.incart ?? false) as boolean,
         });
       } catch (error) {
-        console.error("Cart check failed:", error);
+        console.log("Cart check failed:", error);
         resolve({ success: false, incart: false });
       }
     }, 300); // 300ms debounce
@@ -673,7 +673,7 @@ const ShowVariantSections = ({
       {prob.Variantsection?.map((section) => (
         <div
           key={section.id}
-          className="w-full h-fit flex flex-col gap-y-3 p-4 bg-gradient-to-br from-purple-50 to-blue-50 rounded-lg border-2 border-purple-200"
+          className="w-full h-fit flex flex-col gap-y-3 p-4 bg-linear-to-br from-purple-50 to-blue-50 rounded-lg border-2 border-purple-200"
         >
           <h3 className="text-xl font-bold text-purple-800 mb-2">
             {section.name}

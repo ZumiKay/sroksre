@@ -8,7 +8,7 @@ export function ProductDetailSkeleton() {
             {[...Array(4)].map((_, idx) => (
               <div
                 key={idx}
-                className="w-[400px] h-[500px] bg-gray-300 rounded-lg max-medium_screen:w-[350px] max-medium_screen:h-[450px]"
+                className="w-100 h-125 bg-gray-300 rounded-lg max-medium_screen:w-87.5 max-medium_screen:h-112.5"
               />
             ))}
           </div>
@@ -21,9 +21,9 @@ export function ProductDetailSkeleton() {
 
           {/* Description Lines */}
           <div className="flex flex-col gap-y-2">
-            <div className="h-6 bg-gray-200 rounded w-full"></div>
-            <div className="h-6 bg-gray-200 rounded w-5/6"></div>
-            <div className="h-6 bg-gray-200 rounded w-4/5"></div>
+            <div className="h-6 bg-gray-200 rounded-sm w-full"></div>
+            <div className="h-6 bg-gray-200 rounded-sm w-5/6"></div>
+            <div className="h-6 bg-gray-200 rounded-sm w-4/5"></div>
           </div>
 
           {/* Price */}
@@ -31,12 +31,12 @@ export function ProductDetailSkeleton() {
 
           {/* Other Versions */}
           <div className="flex flex-col gap-y-5">
-            <div className="h-6 bg-gray-300 rounded w-40"></div>
+            <div className="h-6 bg-gray-300 rounded-sm w-40"></div>
             <div className="grid grid-cols-3 gap-y-5">
               {[...Array(3)].map((_, idx) => (
                 <div
                   key={idx}
-                  className="w-[200px] h-[180px] bg-gray-200 rounded-lg border-2 border-gray-300"
+                  className="w-50 h-45 bg-gray-200 rounded-lg border-2 border-gray-300"
                 />
               ))}
             </div>
@@ -60,12 +60,12 @@ export function ProductDetailSkeleton() {
 
       {/* Similar Products Section */}
       <div className="relatedproduct__section w-full h-full mt-10 flex flex-col gap-y-5">
-        <div className="h-8 bg-gray-300 rounded w-64"></div>
+        <div className="h-8 bg-gray-300 rounded-sm w-64"></div>
         <div className="w-full h-fit flex flex-row overflow-x-auto gap-x-5">
           {[...Array(3)].map((_, idx) => (
             <div
               key={idx}
-              className="min-w-[250px] h-[350px] bg-gray-200 rounded-lg"
+              className="min-w-62.5 h-87.5 bg-gray-200 rounded-lg"
             />
           ))}
         </div>
@@ -76,25 +76,25 @@ export function ProductDetailSkeleton() {
 
 export function ProductImageSkeleton() {
   return (
-    <div className="w-[400px] h-[500px] bg-gray-300 rounded-lg animate-pulse max-medium_screen:w-[350px] max-medium_screen:h-[450px]"></div>
+    <div className="w-100 h-125 bg-gray-300 rounded-lg animate-pulse max-medium_screen:w-87.5 max-medium_screen:h-112.5"></div>
   );
 }
 
 export function RelatedProductSkeleton() {
   return (
-    <div className="w-[200px] h-[180px] bg-gray-200 rounded-lg border-2 border-gray-300 animate-pulse flex flex-col gap-y-3 items-center justify-center p-2">
-      <div className="w-[100px] h-[100px] bg-gray-300 rounded-lg"></div>
-      <div className="w-full h-6 bg-gray-300 rounded"></div>
+    <div className="w-50 h-45 bg-gray-200 rounded-lg border-2 border-gray-300 animate-pulse flex flex-col gap-y-3 items-center justify-center p-2">
+      <div className="w-25 h-25 bg-gray-300 rounded-lg"></div>
+      <div className="w-full h-6 bg-gray-300 rounded-sm"></div>
     </div>
   );
 }
 
 export function SimilarProductCardSkeleton() {
   return (
-    <div className="min-w-[250px] h-[350px] bg-gray-200 rounded-lg shadow-md animate-pulse flex flex-col p-4 gap-y-3">
-      <div className="w-full h-[200px] bg-gray-300 rounded-lg"></div>
-      <div className="w-3/4 h-6 bg-gray-300 rounded"></div>
-      <div className="w-1/2 h-8 bg-gray-300 rounded"></div>
+    <div className="min-w-62.5 h-87.5 bg-gray-200 rounded-lg shadow-md animate-pulse flex flex-col p-4 gap-y-3">
+      <div className="w-full h-80 bg-gray-300 rounded-lg"></div>
+      <div className="w-3/4 h-6 bg-gray-300 rounded-sm"></div>
+      <div className="w-1/2 h-8 bg-gray-300 rounded-sm"></div>
     </div>
   );
 }

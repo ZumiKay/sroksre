@@ -79,7 +79,7 @@ export const ColorVariantEditor: React.FC<ColorVariantEditorProps> = ({
                   className="cursor-pointer"
                 >
                   <div
-                    className="w-fit h-[56px] rounded-xl flex flex-row justify-center items-center gap-x-3 cursor-pointer px-4 transition-all duration-200 bg-gray-50 hover:bg-gray-100 active:scale-95 border-2 border-gray-200 hover:border-blue-300 shadow-sm hover:shadow-md"
+                    className="w-fit h-[56px] rounded-xl flex flex-row justify-center items-center gap-x-3 cursor-pointer px-4 transition-all duration-200 bg-gray-50 hover:bg-gray-100 active:scale-95 border-2 border-gray-200 hover:border-blue-300 shadow-xs hover:shadow-md"
                     onClick={() => onColorSelect(idx, "color")}
                   >
                     <div

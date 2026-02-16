@@ -437,7 +437,7 @@ export const BannerModal = memo(function BannerModal({
                 />
               </div>
               {banner.parentcate && (
-                <div className="w-full h-fit flex flex-col gap-y-4 animate-fadeIn">
+                <div className="w-full h-fit flex flex-col gap-y-4 animate-fade-in">
                   <label className="w-full h-fit text-lg font-bold text-gray-800 flex items-center gap-2">
                     <i className="fa-solid fa-folder-open text-purple-500"></i>
                     Child Category

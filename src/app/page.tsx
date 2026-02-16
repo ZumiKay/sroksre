@@ -30,7 +30,7 @@ const fetchhomeitems = async () => {
     const res = data.map((i) => formatContainer(i as any));
     return res;
   } catch (error) {
-    console.error("Failed to fetch home items:", error);
+    console.log("Failed to fetch home items:", error);
     return [];
   }
 };

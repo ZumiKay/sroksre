@@ -199,7 +199,7 @@ export async function POST(request: NextRequest) {
       { status: 200 },
     );
   } catch (error) {
-    console.error("Error calculating stock availability:", error);
+    console.log("Error calculating stock availability:", error);
     return NextResponse.json(
       {
         success: false,

@@ -32,12 +32,12 @@ export const SelectionCard: React.FC<SelectionCardProps> = ({
       whileTap={{ scale: disabled ? 1 : 0.97 }}
       className={`card w-[350px] h-[250px] max-small_phone:w-[200px] max-small_phone:h-[150px] rounded-2xl grid place-content-center place-items-center transition-all duration-300 shadow-lg relative overflow-hidden group ${
         disabled
-          ? "bg-gradient-to-br from-gray-300 to-gray-400 cursor-not-allowed opacity-60"
-          : `bg-gradient-to-br ${gradientFrom} ${gradientVia} ${gradientTo} cursor-pointer hover:shadow-2xl`
+          ? "bg-linear-to-br from-gray-300 to-gray-400 cursor-not-allowed opacity-60"
+          : `bg-linear-to-br ${gradientFrom} ${gradientVia} ${gradientTo} cursor-pointer hover:shadow-2xl`
       }`}
     >
       {!disabled && (
-        <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+        <div className="absolute inset-0 bg-linear-to-br from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
       )}
       <Image
         src={image}

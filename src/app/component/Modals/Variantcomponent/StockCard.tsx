@@ -87,7 +87,7 @@ const StockCardItem = memo(
           className={`
             w-fit h-fit flex flex-col gap-y-2 rounded-lg p-3 
             border-2 cursor-pointer transition-all duration-200
-            shadow-sm hover:shadow-md
+            shadow-xs hover:shadow-md
             ${
               isLowStock
                 ? "border-red-400 bg-red-50/50 hover:border-red-500 hover:bg-red-50"

@@ -201,11 +201,11 @@ export const CreatePromotionModal = ({
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.3 }}
-        className="createPromotion__container relative rounded-2xl w-full h-full bg-gradient-to-br from-white to-orange-50 p-6 flex flex-col shadow-xl border-2 border-orange-200"
+        className="createPromotion__container relative rounded-2xl w-full h-full bg-linear-to-br from-white to-orange-50 p-6 flex flex-col shadow-xl border-2 border-orange-200"
       >
         <div className="w-full space-y-2 pb-5 border-b-2 border-orange-200 mb-6">
           <h4 className="text-2xl font-bold text-gray-800 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-full bg-linear-to-br from-orange-500 to-red-600 flex items-center justify-center">
               <i className="fa-solid fa-tags text-white"></i>
             </div>
             {globalindex.promotioneditindex === -1
@@ -221,7 +221,7 @@ export const CreatePromotionModal = ({
           onSubmit={handleSubmit}
           className="promotionform w-full h-full flex flex-col justify-start items-start gap-y-5 overflow-y-auto pr-2"
         >
-          <div className="w-full bg-white rounded-xl p-5 border-2 border-gray-200 shadow-sm space-y-4">
+          <div className="w-full bg-white rounded-xl p-5 border-2 border-gray-200 shadow-xs space-y-4">
             <div className="flex items-center gap-2 mb-3">
               <i className="fa-solid fa-info-circle text-lg text-orange-500"></i>
               <h5 className="font-bold text-gray-800">Basic Information</h5>
@@ -231,7 +231,7 @@ export const CreatePromotionModal = ({
               name="name"
               placeholder="Promotion Name"
               value={promotion.name}
-              className="w-full h-14 px-4 border-2 border-gray-300 rounded-xl text-base font-medium focus:border-orange-500 focus:outline-none transition-colors"
+              className="w-full h-14 px-4 border-2 border-gray-300 rounded-xl text-base font-medium focus:border-orange-500 focus:outline-hidden transition-colors"
               onChange={handleChange}
               required
             />
@@ -241,10 +241,10 @@ export const CreatePromotionModal = ({
               value={promotion.description}
               onChange={handleChange}
               placeholder="Description (optional)"
-              className="w-full h-14 px-4 border-2 border-gray-300 rounded-xl text-base font-medium focus:border-orange-500 focus:outline-none transition-colors"
+              className="w-full h-14 px-4 border-2 border-gray-300 rounded-xl text-base font-medium focus:border-orange-500 focus:outline-hidden transition-colors"
             />
           </div>
-          <div className="w-full bg-gradient-to-br from-red-50 to-pink-50 rounded-xl p-5 border-2 border-red-200 space-y-3">
+          <div className="w-full bg-linear-to-br from-red-50 to-pink-50 rounded-xl p-5 border-2 border-red-200 space-y-3">
             <div className="flex items-center gap-2">
               <i className="fa-solid fa-clock text-lg text-red-500"></i>
               <h5 className="font-bold text-gray-800">Expiration</h5>
@@ -264,7 +264,7 @@ export const CreatePromotionModal = ({
               sx={{ width: "100%", height: "56px" }}
             />
           </div>
-          <div className="w-full bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-5 border-2 border-blue-200">
+          <div className="w-full bg-linear-to-br from-blue-50 to-indigo-50 rounded-xl p-5 border-2 border-blue-200">
             <div className="flex items-center gap-3">
               <i className="fa-solid fa-layer-group text-lg text-blue-500"></i>
               <Switch
@@ -282,7 +282,7 @@ export const CreatePromotionModal = ({
           <button
             type="button"
             onClick={() => handleSelectProductAndBanner("banner")}
-            className="w-full h-14 rounded-xl font-bold text-base transition-all duration-300 shadow-lg flex items-center justify-center gap-2 bg-gradient-to-r from-purple-500 to-indigo-600 text-white hover:from-purple-600 hover:to-indigo-700 hover:shadow-xl hover:scale-[1.02]"
+            className="w-full h-14 rounded-xl font-bold text-base transition-all duration-300 shadow-lg flex items-center justify-center gap-2 bg-linear-to-r from-purple-500 to-indigo-600 text-white hover:from-purple-600 hover:to-indigo-700 hover:shadow-xl hover:scale-[1.02]"
           >
             <i className="fa-solid fa-image text-lg"></i>
             <span>
@@ -294,7 +294,7 @@ export const CreatePromotionModal = ({
           <button
             type="button"
             onClick={() => handleSelectProductAndBanner("product")}
-            className="w-full h-14 rounded-xl font-bold text-base transition-all duration-300 shadow-lg flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-cyan-600 text-white hover:from-blue-600 hover:to-cyan-700 hover:shadow-xl hover:scale-[1.02]"
+            className="w-full h-14 rounded-xl font-bold text-base transition-all duration-300 shadow-lg flex items-center justify-center gap-2 bg-linear-to-r from-blue-500 to-cyan-600 text-white hover:from-blue-600 hover:to-cyan-700 hover:shadow-xl hover:scale-[1.02]"
           >
             <i className="fa-solid fa-box text-lg"></i>
             <span>
@@ -312,7 +312,7 @@ export const CreatePromotionModal = ({
               className={`w-full h-14 rounded-xl font-bold text-base transition-all duration-300 shadow-lg flex items-center justify-center gap-2 ${
                 isLoading.POST || isLoading.PUT
                   ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                  : "bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:from-green-600 hover:to-emerald-700 hover:shadow-xl hover:scale-[1.02]"
+                  : "bg-linear-to-r from-green-500 to-emerald-600 text-white hover:from-green-600 hover:to-emerald-700 hover:shadow-xl hover:scale-[1.02]"
               }`}
             >
               {isLoading.POST || isLoading.PUT ? (
@@ -342,7 +342,7 @@ export const CreatePromotionModal = ({
               className={`w-full h-14 rounded-xl font-bold text-base transition-all duration-300 shadow-lg flex items-center justify-center gap-2 ${
                 isLoading.POST || isLoading.PUT
                   ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                  : "bg-gradient-to-r from-pink-500 to-red-600 text-white hover:from-pink-600 hover:to-red-700 hover:shadow-xl hover:scale-[1.02]"
+                  : "bg-linear-to-r from-pink-500 to-red-600 text-white hover:from-pink-600 hover:to-red-700 hover:shadow-xl hover:scale-[1.02]"
               }`}
             >
               <i className="fa-solid fa-times"></i>
@@ -459,11 +459,11 @@ export const DiscountModals = ({
         exit={{ opacity: 0 }}
         transition={{ duration: 0.3 }}
         onSubmit={handleDiscount}
-        className="discount_content rounded-2xl w-full h-full p-6 bg-gradient-to-br from-white to-purple-50 flex flex-col gap-y-6 shadow-xl border-2 border-purple-200"
+        className="discount_content rounded-2xl w-full h-full p-6 bg-linear-to-br from-white to-purple-50 flex flex-col gap-y-6 shadow-xl border-2 border-purple-200"
       >
         <div className="w-full space-y-2 pb-4 border-b-2 border-purple-200">
           <h4 className="text-2xl font-bold text-gray-800 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-full bg-linear-to-br from-purple-500 to-pink-600 flex items-center justify-center">
               <i className="fa-solid fa-percent text-white"></i>
             </div>
             Set Discount
@@ -475,7 +475,7 @@ export const DiscountModals = ({
           )}
         </div>
 
-        <div className="w-full bg-white rounded-xl p-5 border-2 border-gray-200 shadow-sm space-y-3">
+        <div className="w-full bg-white rounded-xl p-5 border-2 border-gray-200 shadow-xs space-y-3">
           <div className="flex items-center gap-2">
             <i className="fa-solid fa-tag text-lg text-purple-500"></i>
             <h5 className="font-bold text-gray-800">Discount Percentage</h5>
@@ -487,7 +487,7 @@ export const DiscountModals = ({
             value={discount}
             min={1}
             max={100}
-            className="w-full h-14 rounded-xl px-4 text-lg font-bold border-2 border-gray-300 focus:border-purple-500 focus:outline-none transition-colors"
+            className="w-full h-14 rounded-xl px-4 text-lg font-bold border-2 border-gray-300 focus:border-purple-500 focus:outline-hidden transition-colors"
             onChange={(e) => setdiscount(parseFloat(e.target.value))}
             required
           />
@@ -499,7 +499,7 @@ export const DiscountModals = ({
 
         <button
           type="submit"
-          className="w-full h-14 rounded-xl font-bold text-base transition-all duration-300 shadow-lg flex items-center justify-center gap-2 bg-gradient-to-r from-purple-500 to-pink-600 text-white hover:from-purple-600 hover:to-pink-700 hover:shadow-xl hover:scale-[1.02]"
+          className="w-full h-14 rounded-xl font-bold text-base transition-all duration-300 shadow-lg flex items-center justify-center gap-2 bg-linear-to-r from-purple-500 to-pink-600 text-white hover:from-purple-600 hover:to-pink-700 hover:shadow-xl hover:scale-[1.02]"
         >
           <i className="fa-solid fa-check"></i>
           <span>Apply Discount</span>

@@ -5,15 +5,7 @@ import {
 } from "@/src/context/CustomHook";
 import { useGlobalContext } from "@/src/context/GlobalContext";
 import { productcoverstype } from "@/src/types/product.type";
-import {
-  ChangeEvent,
-  useRef,
-  useState,
-  useCallback,
-  useMemo,
-  memo,
-  useEffect,
-} from "react";
+import { ChangeEvent, useRef, useState, useCallback, useEffect } from "react";
 import {
   ContainerLoading,
   errorToast,
@@ -56,6 +48,29 @@ const filetourl = (file: File[]) => {
   return file.map((obj) => URL.createObjectURL(obj));
 };
 
+// Verify URL is accessible with retry logic
+const verifyBlobUrl = async (
+  url: string,
+  maxRetries = 5,
+  delay = 1000,
+): Promise<boolean> => {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      const response = await fetch(url, { method: "HEAD" });
+      if (response.ok) {
+        return true;
+      }
+    } catch (error) {
+      console.log(`URL verification attempt ${i + 1} failed for ${url}`);
+    }
+    // Wait before retry
+    if (i < maxRetries - 1) {
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+  }
+  return false;
+};
+
 const uploadToVercel = async (
   file: File,
   onProgress?: (percentage: number) => void,
@@ -91,7 +106,7 @@ const uploadToVercel = async (
 
     return { success: true, data: Blob };
   } catch (error) {
-    console.error("Upload Image Error:", error);
+    console.log("Upload Image Error:", error);
     return {
       success: false,
       error: error instanceof Error ? error.message : "Upload failed",
@@ -317,7 +332,7 @@ export const ImageUpload = (props: imageuploadprops) => {
 
       // Handle errors
       if (errors.length > 0) {
-        console.error("Upload errors:", errors);
+        console.log("Upload errors:", errors);
         if (uploadImages.length === 0) {
           errorToast("All uploads failed");
           return;
@@ -333,6 +348,24 @@ export const ImageUpload = (props: imageuploadprops) => {
         name: i.pathname,
         url: i.url,
       }));
+
+      // Verify all URLs are accessible before proceeding
+      infoToast("Verifying uploaded images...");
+      const verificationResults = await Promise.all(
+        savedUrl.map(async (urlObj) => {
+          const isAccessible = await verifyBlobUrl(urlObj.url);
+          return { url: urlObj.url, isAccessible };
+        }),
+      );
+
+      const failedUrls = verificationResults.filter((r) => !r.isAccessible);
+      if (failedUrls.length > 0) {
+        console.log("Failed to verify URLs:", failedUrls);
+        errorToast(
+          `${failedUrls.length} image(s) uploaded but not yet accessible. Please try again.`,
+        );
+        return;
+      }
 
       if (props.type === "createproduct") {
         if (globalindex.producteditindex !== -1) {
@@ -373,7 +406,7 @@ export const ImageUpload = (props: imageuploadprops) => {
       });
       successToast("Image Saved");
     } catch (error) {
-      console.error("handleSave", error);
+      console.log("handleSave", error);
       errorToast("Failed To Save");
     } finally {
       setloading(false);
@@ -410,13 +443,13 @@ export const ImageUpload = (props: imageuploadprops) => {
     const ratio = dim.ratio;
 
     // Portrait (taller than wide)
-    if (ratio < 0.8) return "aspect-[3/4]";
+    if (ratio < 0.8) return "aspect-3/4";
     // Square-ish
     if (ratio >= 0.8 && ratio <= 1.2) return "aspect-square";
     // Landscape (wider than tall)
-    if (ratio > 1.2 && ratio < 1.8) return "aspect-[4/3]";
+    if (ratio > 1.2 && ratio < 1.8) return "aspect-4/3";
     // Wide landscape
-    if (ratio >= 1.8) return "aspect-[16/9]";
+    if (ratio >= 1.8) return "aspect-video";
 
     return "aspect-square";
   };
@@ -443,23 +476,23 @@ export const ImageUpload = (props: imageuploadprops) => {
       <div
         className={`w-full h-full flex ${
           isMobile ? "items-start pt-8" : "items-center"
-        } justify-center bg-gradient-to-br from-gray-50 to-white p-6`}
+        } justify-center bg-linear-to-br from-gray-50 to-white p-6`}
       >
         {loading && <ContainerLoading />}
         <div
           className="uploadImage__container w-[85%] 
       max-smallest_screen1:w-[97%] max-smallest_screen1:flex-col max-smallest_screen1:gap-y-6
-      max-h-[700px] flex flex-row justify-start items-start gap-x-6 bg-white rounded-2xl shadow-2xl p-6 border-2 border-gray-200/50"
+      max-h-175 flex flex-row justify-start items-start gap-x-6 bg-white rounded-2xl shadow-2xl p-6 border-2 border-gray-200/50"
         >
           <div
-            className="previewImage__container w-[55%] border-2 border-gray-300 rounded-2xl p-5 bg-gradient-to-br from-gray-50/50 to-white
+            className="previewImage__container w-[55%] border-2 border-gray-300 rounded-2xl p-5 bg-linear-to-br from-gray-50/50 to-white
         max-smallest_screen1:w-[97%]
-        min-h-[450px] max-h-[650px] overflow-y-auto shadow-inner"
+        min-h-112.5 max-h-162.5 overflow-y-auto shadow-inner"
           >
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 auto-rows-max">
               {Imgurl.length === 0 ? (
-                <div className="col-span-2 flex flex-col items-center justify-center min-h-[400px] gap-4">
-                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center">
+                <div className="col-span-2 flex flex-col items-center justify-center min-h-100 gap-4">
+                  <div className="w-20 h-20 rounded-full bg-linear-to-br from-blue-100 to-purple-100 flex items-center justify-center">
                     <svg
                       className="w-10 h-10 text-gray-400"
                       fill="none"
@@ -500,6 +533,7 @@ export const ImageUpload = (props: imageuploadprops) => {
                           index,
                         )} bg-gray-100`}
                       >
+                        (
                         <Image
                           src={file.url}
                           fill
@@ -509,19 +543,19 @@ export const ImageUpload = (props: imageuploadprops) => {
                           }}
                           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                           quality={80}
-                          loading="lazy"
                           alt={`Preview of Image ${file.name}`}
                           onLoad={(e) => handleImageLoad(index, e)}
                         />
+                        )
                       </div>
 
                       {/* Overlay with image info */}
-                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                      <div className="absolute bottom-0 left-0 right-0 bg-black  p-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                         <p className="text-white text-xs font-semibold truncate">
                           {file.name}
                         </p>
                         {dim && (
-                          <p className="text-white/80 text-xs mt-1">
+                          <p className="text-white text-xs mt-1">
                             {dim.width} × {dim.height}px
                             {dim.ratio > 1.5 && (
                               <span className="ml-2 px-2 py-0.5 bg-blue-500 rounded-full text-xs">
@@ -543,10 +577,10 @@ export const ImageUpload = (props: imageuploadprops) => {
                       </div>
 
                       {/* Hover overlay */}
-                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-300 flex items-center justify-center">
-                        <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center gap-2">
+                      <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-50 transition-opacity duration-300 flex items-center justify-center pointer-events-none">
+                        <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center gap-2 bg-black/40 backdrop-blur-sm px-4 py-2 rounded-lg">
                           <svg
-                            className="w-8 h-8 text-white drop-shadow-lg"
+                            className="w-8 h-8 text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]"
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
@@ -558,7 +592,7 @@ export const ImageUpload = (props: imageuploadprops) => {
                               d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
                             />
                           </svg>
-                          <span className="text-white font-bold drop-shadow-lg">
+                          <span className="text-white font-bold drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] text-lg">
                             Edit
                           </span>
                         </div>
@@ -593,19 +627,19 @@ export const ImageUpload = (props: imageuploadprops) => {
               )}
             </div>
           </div>
-          <div className="action__container w-[42%] max-smallest_screen:w-full flex flex-col items-stretch gap-y-6 h-fit bg-gradient-to-br from-blue-50/30 to-purple-50/30 p-6 rounded-2xl border-2 border-gray-200">
+          <div className="action__container w-[42%] max-smallest_screen:w-full flex flex-col items-stretch gap-y-6 h-fit bg-linear-to-br from-blue-50/30 to-purple-50/30 p-6 rounded-2xl border-2 border-gray-200">
             {/* Upload Progress Indicator */}
             {loading && Object.keys(uploadProgress).length > 0 && (
               <div className="w-full bg-white rounded-lg p-4 border-2 border-blue-200 shadow-md">
                 <h4 className="text-sm font-bold text-gray-700 mb-3">
                   Upload Progress
                 </h4>
-                <div className="space-y-2 max-h-[150px] overflow-y-auto">
+                <div className="space-y-2 max-h-37.5 overflow-y-auto">
                   {Object.entries(uploadProgress).map(
                     ([fileName, progress]) => (
                       <div key={fileName} className="space-y-1">
                         <div className="flex justify-between text-xs">
-                          <span className="text-gray-600 truncate max-w-[200px]">
+                          <span className="text-gray-600 truncate max-w-50">
                             {fileName}
                           </span>
                           <span className="text-blue-600 font-semibold">
@@ -614,7 +648,7 @@ export const ImageUpload = (props: imageuploadprops) => {
                         </div>
                         <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
                           <div
-                            className="bg-gradient-to-r from-blue-500 to-purple-500 h-full rounded-full transition-all duration-300"
+                            className="bg-linear-to-r from-blue-500 to-purple-500 h-full rounded-full transition-all duration-300"
                             style={{ width: `${progress}%` }}
                           />
                         </div>
@@ -626,7 +660,7 @@ export const ImageUpload = (props: imageuploadprops) => {
             )}
 
             <div className="flex flex-col gap-3">
-              <h3 className="text-xl font-extrabold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              <h3 className="text-xl font-extrabold bg-linear-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                 Upload Images
               </h3>
               <p className="text-sm text-gray-600">
@@ -649,7 +683,7 @@ export const ImageUpload = (props: imageuploadprops) => {
                 className={`w-full h-14 rounded-xl font-bold text-base transition-all duration-300 shadow-lg ${
                   !isEdit
                     ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                    : "bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:shadow-xl hover:scale-105 active:scale-95"
+                    : "bg-linear-to-r from-green-500 to-emerald-600 text-white hover:shadow-xl hover:scale-105 active:scale-95"
                 }`}
               >
                 Save Images
@@ -661,7 +695,7 @@ export const ImageUpload = (props: imageuploadprops) => {
                 className={`w-full h-14 rounded-xl font-bold text-base transition-all duration-300 shadow-lg ${
                   Imgurltemp.length === 0
                     ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                    : "bg-gradient-to-r from-orange-500 to-red-500 text-white hover:shadow-xl hover:scale-105 active:scale-95"
+                    : "bg-linear-to-r from-orange-500 to-red-500 text-white hover:shadow-xl hover:scale-105 active:scale-95"
                 }`}
               >
                 Reset Changes

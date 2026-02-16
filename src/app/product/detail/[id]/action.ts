@@ -124,7 +124,7 @@ export async function CheckCart(
 
     return { success: true, incart: isInCart };
   } catch (error) {
-    console.error("Check cart", error);
+    console.log("Check cart", error);
     return { success: false, message: "Network error" };
   }
 }

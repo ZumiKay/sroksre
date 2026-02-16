@@ -197,7 +197,7 @@ export const handleUpdateProductVariant = async (
 
     return result;
   } catch (error) {
-    console.error("Failed to update variant:", error);
+    console.log("Failed to update variant:", error);
     throw new Error("Failed to update variant");
   }
 };

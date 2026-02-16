@@ -79,7 +79,8 @@ export const ModelName = {
   Question: 'Question',
   Policy: 'Policy',
   Paragraph: 'Paragraph',
-  Notification: 'Notification'
+  Notification: 'Notification',
+  LoginAttempt: 'LoginAttempt'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -463,6 +464,20 @@ export const NotificationScalarFieldEnum = {
 } as const
 
 export type NotificationScalarFieldEnum = (typeof NotificationScalarFieldEnum)[keyof typeof NotificationScalarFieldEnum]
+
+
+export const LoginAttemptScalarFieldEnum = {
+  id: 'id',
+  identifier: 'identifier',
+  failedAttempts: 'failedAttempts',
+  isLocked: 'isLocked',
+  lockedUntil: 'lockedUntil',
+  lastAttemptAt: 'lastAttemptAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type LoginAttemptScalarFieldEnum = (typeof LoginAttemptScalarFieldEnum)[keyof typeof LoginAttemptScalarFieldEnum]
 
 
 export const SortOrder = {

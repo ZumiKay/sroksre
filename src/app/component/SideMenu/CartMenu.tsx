@@ -127,7 +127,7 @@ export function CartMenu({ img, setcart, setcarttotal }: CartMenuProps) {
         document.body.style.overflow = "auto";
         setcart(false);
       }}
-      className="Cart__Sidemenu fixed h-full w-[700px] max-large_tablet:w-[550px] max-large_phone:w-[100vw] right-0 bg-white z-40 flex flex-col items-center gap-y-5 transition-all"
+      className="Cart__Sidemenu fixed h-full w-[700px] max-large_tablet:w-[550px] max-large_phone:w-screen right-0 bg-white z-40 flex flex-col items-center gap-y-5 transition-all"
     >
       <div
         onClick={() => setcart(false)}

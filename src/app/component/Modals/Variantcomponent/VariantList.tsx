@@ -48,7 +48,7 @@ const VariantItem = memo(
           ease: "easeOut",
         }}
         key={idx}
-        className={`relative varaint_container w-[90%] max-small_phone:w-[100%] h-fit border-2 rounded-xl p-4 shadow-sm hover:shadow-lg transition-all duration-300 bg-gradient-to-br from-white to-gray-50 ${
+        className={`relative varaint_container w-[90%] max-small_phone:w-full h-fit border-2 rounded-xl p-4 shadow-xs hover:shadow-lg transition-all duration-300 bg-linear-to-br from-white to-gray-50 ${
           isSelected
             ? "border-red-400 bg-red-50"
             : "border-gray-200 hover:border-blue-300"
@@ -61,7 +61,7 @@ const VariantItem = memo(
                 type="checkbox"
                 checked={isSelected}
                 onChange={onToggleSelection}
-                className="w-5 h-5 text-red-600 border-gray-300 rounded focus:ring-red-500 cursor-pointer"
+                className="w-5 h-5 text-red-600 border-gray-300 rounded-sm focus:ring-red-500 cursor-pointer"
               />
             </div>
           )}
@@ -91,7 +91,7 @@ const VariantItem = memo(
             obj.option_value.map((item, idx) => (
               <div
                 key={idx}
-                className="min-w-[40px] h-fit max-w-full break-words font-normal text-base px-3 py-1.5 bg-gray-100 rounded-lg border border-gray-200 hover:bg-gray-200 transition-colors duration-200"
+                className="min-w-[40px] h-fit max-w-full wrap-break-word font-normal text-base px-3 py-1.5 bg-gray-100 rounded-lg border border-gray-200 hover:bg-gray-200 transition-colors duration-200"
               >
                 {typeof item === "string" ? item : item.val}
               </div>
@@ -120,13 +120,13 @@ const VariantItem = memo(
         <div className="action flex flex-row items-center w-full h-fit gap-x-3 pt-3 border-t border-gray-200">
           <button
             onClick={() => onEdit(idx)}
-            className="edit text-sm font-medium cursor-pointer px-4 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600 active:bg-blue-700 transition-all duration-200 shadow-sm hover:shadow-md"
+            className="edit text-sm font-medium cursor-pointer px-4 py-2 rounded-lg bg-blue-500 text-white hover:bg-blue-600 active:bg-blue-700 transition-all duration-200 shadow-xs hover:shadow-md"
           >
             Edit
           </button>
           <button
             onClick={() => onDelete(idx)}
-            className="delete text-sm font-medium cursor-pointer px-4 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600 active:bg-red-700 transition-all duration-200 shadow-sm hover:shadow-md"
+            className="delete text-sm font-medium cursor-pointer px-4 py-2 rounded-lg bg-red-500 text-white hover:bg-red-600 active:bg-red-700 transition-all duration-200 shadow-xs hover:shadow-md"
           >
             Delete
           </button>

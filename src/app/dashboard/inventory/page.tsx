@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState, useCallback, useMemo, use } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { redirect, useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { LocalizationProvider } from "@mui/x-date-pickers";
@@ -49,11 +49,25 @@ import useCheckSession from "@/src/hooks/useCheckSession";
 // Constants
 const DEFAULT_PARAMS = (type: string) => `?ty=${type}&p=1&limit=1`;
 
-interface InventoryProps {
-  searchParams: React.Usable<{ [x: string]: string | undefined }>;
-}
+export default function Inventory() {
+  // Router hooks
+  const router = useRouter();
+  const searchParam = useSearchParams();
 
-export default function Inventory({ searchParams }: InventoryProps) {
+  // URL parameters - Extract from useSearchParams hook
+  const type = searchParam.get("ty") ?? undefined;
+  const p = searchParam.get("p") ?? undefined;
+  const limit = searchParam.get("limit") ?? undefined;
+  const status = searchParam.get("status") ?? undefined;
+  const name = searchParam.get("name") ?? undefined;
+  const parentcate = searchParam.get("parentcate") ?? undefined;
+  const childcate = searchParam.get("childcate") ?? undefined;
+  const expiredate = searchParam.get("expiredate") ?? undefined;
+  const bannersize = searchParam.get("bannersize") ?? undefined;
+  const bannertype = searchParam.get("bannertype") ?? undefined;
+  const expired = searchParam.get("expired") ?? undefined;
+  const promoids = searchParam.get("promoids") ?? undefined;
+
   // Global context
   const {
     openmodal,
@@ -68,26 +82,6 @@ export default function Inventory({ searchParams }: InventoryProps) {
     setitemlength,
     globalindex,
   } = useGlobalContext();
-
-  // URL parameters
-  const {
-    ty: type,
-    p,
-    limit,
-    status,
-    name,
-    parentcate,
-    childcate,
-    expiredate,
-    bannersize,
-    bannertype,
-    expired,
-    promoids,
-  } = use(searchParams) as InventoryParamType;
-
-  // Router hooks
-  const router = useRouter();
-  const searchParam = useSearchParams();
   const { handleCheckSession } = useCheckSession();
 
   // Local state
@@ -251,7 +245,7 @@ export default function Inventory({ searchParams }: InventoryProps) {
 
         await Delayloading(makerequest, setloaded, 500);
       } catch (error) {
-        console.error("Inventory Fetch Error", error);
+        console.log("Inventory Fetch Error", error);
         errorToast("Error Occurred, Reload is Required");
       } finally {
         setreloaddata(false);
@@ -312,7 +306,7 @@ export default function Inventory({ searchParams }: InventoryProps) {
         return true;
       }
 
-      console.error("Update request failed:", updatereq.error);
+      console.log("Update request failed:", updatereq.error);
       return false;
     },
     [setisLoading],
@@ -416,12 +410,12 @@ export default function Inventory({ searchParams }: InventoryProps) {
       return allData?.promotion?.map((obj, idx) => (
         <div
           key={idx}
-          className="banner-card w-[500px] h-[300px]
-              max-smaller_screen:w-[400px] 
-              max-smaller_screen:h-[250px]
-              max-smallest_screen1:w-[300px] 
-              max-smallest_screen1:h-[150px]
-              max-smallest_phone:w-[250px]"
+          className="banner-card w-125 h-75
+              max-smaller_screen:w-100
+              max-smaller_screen:h-62.5
+              max-smallest_screen1:w-75
+              max-smallest_screen1:h-37.5
+              max-smallest_phone:w-62.5"
         >
           <BannerCard
             key={obj.name}
@@ -492,7 +486,16 @@ export default function Inventory({ searchParams }: InventoryProps) {
         )}
         {openmodal.createPromotion && (
           <CreatePromotionModal
-            searchparams={searchParams as any}
+            searchparams={{
+              ty: type,
+              p,
+              limit,
+              status,
+              name,
+              parentcate,
+              childcate,
+              expiredate,
+            }}
             settype={settype}
             setreloaddata={setreloaddata}
           />
@@ -517,13 +520,13 @@ export default function Inventory({ searchParams }: InventoryProps) {
         {/**Discount edit modal */}
         {openmodal.discount && <DiscountModals setreloaddata={setreloaddata} />}
 
-        <div className="inventory__container w-full h-full min-h-screen relative flex flex-col items-center pb-[200px] bg-gradient-to-b from-gray-50 to-white">
+        <div className="inventory__container w-full h-full min-h-screen relative flex flex-col items-center pb-50 bg-linear-to-b from-gray-50 to-white">
           {/* Header */}
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
-            className="inventory_header bg-white/95 backdrop-blur-sm sticky z-30 top-[55px] w-full h-full p-3 md:p-4 border-b-2 border-gray-200 shadow-md"
+            className="inventory_header bg-white/95 backdrop-blur-xs sticky z-30 top-13.75 w-full h-full p-3 md:p-4 border-b-2 border-gray-200 shadow-md"
           >
             <InventoryHeader
               type={type}

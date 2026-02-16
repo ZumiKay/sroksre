@@ -134,7 +134,7 @@ export function PaginationServer({
                   min-w-[40px] px-3 py-2 rounded-md text-center font-medium transition-colors
                   ${
                     isActive
-                      ? "bg-[#495464] text-white font-bold"
+                      ? "bg-incart text-white font-bold"
                       : "bg-gray-200 hover:bg-gray-300 text-gray-700"
                   }
                 `}

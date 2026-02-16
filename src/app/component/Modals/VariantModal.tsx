@@ -748,8 +748,8 @@ export const Variantcontainer = ({
         setopenmodal((prev) => ({ ...prev, [closename as string]: false }))
       }
     >
-      <div className="relative productvariant_creation rounded-t-md w-full h-full bg-gradient-to-b from-gray-50 to-white flex flex-col items-center justify-start pt-6 gap-y-6">
-        <h3 className="title text-2xl font-bold text-left w-full h-fit px-6 pb-4 border-b-2 border-gray-200 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+      <div className="relative productvariant_creation rounded-t-md w-full h-full bg-linear-to-b from-gray-50 to-white flex flex-col items-center justify-start pt-6 gap-y-6">
+        <h3 className="title text-2xl font-bold text-left w-full h-fit px-6 pb-4 border-b-2 border-gray-200 bg-linear-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
           {newadd === "variant" || newadd === "type" || newadd === "info"
             ? "Variant"
             : newadd === "stock" || newadd === "stockinfo"
@@ -767,7 +767,7 @@ export const Variantcontainer = ({
         {successMessage && (
           <div className="w-full px-6 animate-in slide-in-from-top duration-300">
             <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded-lg shadow-md flex items-center gap-3">
-              <div className="flex-shrink-0">
+              <div className="shrink-0">
                 <svg
                   className="w-5 h-5 text-green-500"
                   fill="currentColor"
@@ -787,7 +787,7 @@ export const Variantcontainer = ({
               </div>
               <button
                 onClick={() => setSuccessMessage("")}
-                className="flex-shrink-0 text-green-500 hover:text-green-700 transition-colors"
+                className="shrink-0 text-green-500 hover:text-green-700 transition-colors"
               >
                 <svg
                   className="w-4 h-4"
@@ -966,7 +966,7 @@ export const Variantcontainer = ({
         )}
       </div>
 
-      <div className="flex flex-row justify-end gap-x-5 w-full h-fit bg-gradient-to-r from-gray-50 to-white rounded-b-lg p-4 border-t-2 border-gray-200 shadow-inner">
+      <div className="flex flex-row justify-end gap-x-5 w-full h-fit bg-linear-to-r from-gray-50 to-white rounded-b-lg p-4 border-t-2 border-gray-200 shadow-inner">
         {stockManager.editSubStockIdx === -1 && (
           <>
             <PrimaryButton

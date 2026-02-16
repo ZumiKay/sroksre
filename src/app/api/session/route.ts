@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
         );
     }
   } catch (error) {
-    console.error("Session management error:", error);
+    console.log("Session management error:", error);
     return NextResponse.json(
       { success: false, message: "Internal server error" },
       { status: 500 },
@@ -124,7 +124,7 @@ export async function GET(req: NextRequest) {
       })),
     });
   } catch (error) {
-    console.error("Error fetching sessions:", error);
+    console.log("Error fetching sessions:", error);
     return NextResponse.json(
       { success: false, message: "Internal server error" },
       { status: 500 },

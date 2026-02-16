@@ -63,7 +63,7 @@ export async function PUT(req: NextRequest) {
 
     return Response.json({}, { status: 200 });
   } catch (error) {
-    console.error("Variant Template Edit Error:", error);
+    console.log("Variant Template Edit Error:", error);
     return Response.json(
       { message: "Error occured" },
       {

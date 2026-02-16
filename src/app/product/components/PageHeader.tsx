@@ -44,7 +44,7 @@ export const PageHeader = ({
         {breadcrumbs.map((item, index) => (
           <div key={index} className="flex flex-row items-center gap-x-3">
             {index > 0 && (
-              <div className="w-[3px] h-[25px] bg-black rotate-[190deg]"></div>
+              <div className="w-[3px] h-[25px] bg-black rotate-190"></div>
             )}
             <Link href={item.href}>
               <div className="transition hover:text-gray-300 cursor-pointer">

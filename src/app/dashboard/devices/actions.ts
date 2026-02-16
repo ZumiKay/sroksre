@@ -63,7 +63,7 @@ export async function getUserSessions(): Promise<{
 
     return { success: true, sessions: sessionsWithCurrent };
   } catch (error) {
-    console.error("Fetch sessions error:", error);
+    console.log("Fetch sessions error:", error);
     return { success: false, message: "Error occurred" };
   }
 }
@@ -97,7 +97,7 @@ export async function logoutDevice(
 
     return { success: true, message: "Device logged out successfully" };
   } catch (error) {
-    console.error("Logout device error:", error);
+    console.log("Logout device error:", error);
     return { success: false, message: "Error occurred" };
   }
 }
@@ -132,7 +132,7 @@ export async function logoutAllDevices(): Promise<{
       message: `Logged out ${result.count} device(s) successfully`,
     };
   } catch (error) {
-    console.error("Logout all devices error:", error);
+    console.log("Logout all devices error:", error);
     return { success: false, message: "Error occurred" };
   }
 }

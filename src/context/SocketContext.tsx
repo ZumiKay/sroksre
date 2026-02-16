@@ -26,7 +26,7 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
   //     console.log("Connected to socket server");
   //   });
   //   socketIo.on("connect_error", (err) => {
-  //     console.error("Connection error:", err);
+  //     console.log("Connection error:", err);
   //   });
   //   socketIo.on("disconnect", () => {
   //     console.log("Disconnected from socket server");

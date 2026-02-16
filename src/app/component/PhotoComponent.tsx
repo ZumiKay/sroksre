@@ -1,4 +1,14 @@
 import { CSSProperties, useEffect, useState } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faMagnifyingGlassPlus,
+  faMagnifyingGlassMinus,
+  faChevronLeft,
+  faChevronRight,
+  faImages,
+  faXmark,
+  faMousePointer,
+} from "@fortawesome/free-solid-svg-icons";
 import "../globals.css";
 import Image from "next/image";
 
@@ -134,8 +144,8 @@ export const PrimaryPhoto = (props: Primaryphotoprops) => {
     <div
       style={props.style}
       className="primaryphoto__container relative flex flex-col gap-y-0 w-full
-      max-smaller_screen:w-[400px] 
-      max-large_tablet:w-[280px] 
+      max-smaller_screen:w-100 
+      max-large_tablet:w-70 
       h-full 
       overflow-hidden
       rounded-lg shadow-lg bg-gray-50"
@@ -152,11 +162,11 @@ export const PrimaryPhoto = (props: Primaryphotoprops) => {
           return (
             <div
               key={idx}
-              className="flex-shrink-0 h-full w-full flex items-center justify-center relative bg-white"
+              className="shrink-0 h-full w-full flex items-center justify-center relative bg-white"
             >
               {/* Loading Skeleton */}
               {isImageLoading?.[obj.url] && (
-                <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg">
+                <div className="absolute inset-0 flex items-center justify-center bg-linear-to-br from-gray-100 to-gray-200 rounded-lg">
                   <div className="flex flex-col items-center gap-3">
                     <div className="relative">
                       <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-300 border-t-blue-500"></div>
@@ -177,7 +187,7 @@ export const PrimaryPhoto = (props: Primaryphotoprops) => {
                 <Image
                   src={obj.url}
                   alt={`${obj.name}`}
-                  className={`w-[280px] h-[350px] object-contain transition-all duration-300 ${
+                  className={`w-70 h-87.5 object-contain transition-all duration-300 ${
                     isImageLoading?.[obj.url] ? "opacity-0" : "opacity-100"
                   } group-hover:scale-105`}
                   width={400}
@@ -193,8 +203,11 @@ export const PrimaryPhoto = (props: Primaryphotoprops) => {
                 />
                 {/* Zoom indicator on hover */}
                 <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-black/10">
-                  <div className="bg-white/90 backdrop-blur-sm rounded-full p-3 shadow-lg">
-                    <i className="fa-solid fa-magnifying-glass-plus text-gray-700 text-xl"></i>
+                  <div className="bg-white/90 backdrop-blur-xs rounded-full p-3 shadow-lg">
+                    <FontAwesomeIcon
+                      icon={faMagnifyingGlassPlus}
+                      className="text-gray-700 text-xl"
+                    />
                   </div>
                 </div>
               </div>
@@ -217,7 +230,7 @@ export const PrimaryPhoto = (props: Primaryphotoprops) => {
               className="absolute top-1/2 -translate-y-1/2 left-2 z-10
                 w-10 h-10 flex items-center justify-center
                 bg-white/90 hover:bg-white
-                backdrop-blur-sm
+                backdrop-blur-xs
                 rounded-full shadow-lg
                 transition-all duration-200
                 hover:scale-110 hover:shadow-xl
@@ -225,7 +238,10 @@ export const PrimaryPhoto = (props: Primaryphotoprops) => {
                 group"
               aria-label="Previous image"
             >
-              <i className="fa-solid fa-chevron-left text-lg text-gray-700 group-hover:text-gray-900 transition-colors"></i>
+              <FontAwesomeIcon
+                icon={faChevronLeft}
+                className="text-lg text-gray-700 group-hover:text-gray-900 transition-colors"
+              />
             </button>
 
             <button
@@ -235,7 +251,7 @@ export const PrimaryPhoto = (props: Primaryphotoprops) => {
               className="absolute top-1/2 -translate-y-1/2 right-2 z-10
                 w-10 h-10 flex items-center justify-center
                 bg-white/90 hover:bg-white
-                backdrop-blur-sm
+                backdrop-blur-xs
                 rounded-full shadow-lg
                 transition-all duration-200
                 hover:scale-110 hover:shadow-xl
@@ -243,7 +259,10 @@ export const PrimaryPhoto = (props: Primaryphotoprops) => {
                 group"
               aria-label="Next image"
             >
-              <i className="fa-solid fa-chevron-right text-lg text-gray-700 group-hover:text-gray-900 transition-colors"></i>
+              <FontAwesomeIcon
+                icon={faChevronRight}
+                className="text-lg text-gray-700 group-hover:text-gray-900 transition-colors"
+              />
             </button>
           </>
         )}
@@ -268,9 +287,9 @@ export const PrimaryPhoto = (props: Primaryphotoprops) => {
 
       {/* Image Counter */}
       {props.showcount && (
-        <div className="w-full text-center text-white bg-gradient-to-r from-gray-700 via-gray-800 to-gray-700 py-2 px-4 text-sm font-semibold shadow-md">
+        <div className="w-full text-center text-white bg-linear-to-r from-gray-700 via-gray-800 to-gray-700 py-2 px-4 text-sm font-semibold shadow-md">
           <span className="inline-flex items-center gap-2">
-            <i className="fa-solid fa-images text-xs opacity-75"></i>
+            <FontAwesomeIcon icon={faImages} className="text-xs opacity-75" />
             <span>
               {props.data?.length > 0 ? index.current + 1 : index.current} /{" "}
               {props.data?.length}
@@ -282,18 +301,21 @@ export const PrimaryPhoto = (props: Primaryphotoprops) => {
       {/* Zoom Modal */}
       {isZoomed && (
         <div
-          className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center backdrop-blur-sm"
+          className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center backdrop-blur-xs"
           onClick={handleZoomClose}
         >
           {/* Close button */}
           <button
             onClick={handleZoomClose}
             className="absolute top-4 right-4 w-12 h-12 flex items-center justify-center
-              bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full
+              bg-white/10 hover:bg-white/20 backdrop-blur-xs rounded-full
               transition-all duration-200 hover:scale-110 group z-10"
             aria-label="Close zoom view"
           >
-            <i className="fa-solid fa-xmark text-white text-2xl group-hover:rotate-90 transition-transform duration-200"></i>
+            <FontAwesomeIcon
+              icon={faXmark}
+              className="text-white text-2xl group-hover:rotate-90 transition-transform duration-200"
+            />
           </button>
 
           {/* Zoom controls */}
@@ -305,12 +327,15 @@ export const PrimaryPhoto = (props: Primaryphotoprops) => {
               }}
               disabled={zoomScale <= 1}
               className="w-12 h-12 flex items-center justify-center
-                bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full
+                bg-white/10 hover:bg-white/20 backdrop-blur-xs rounded-full
                 transition-all duration-200 hover:scale-110
                 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
               aria-label="Zoom out"
             >
-              <i className="fa-solid fa-magnifying-glass-minus text-white text-lg"></i>
+              <FontAwesomeIcon
+                icon={faMagnifyingGlassMinus}
+                className="text-white text-lg"
+              />
             </button>
             <button
               onClick={(e) => {
@@ -319,16 +344,19 @@ export const PrimaryPhoto = (props: Primaryphotoprops) => {
               }}
               disabled={zoomScale >= 3}
               className="w-12 h-12 flex items-center justify-center
-                bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full
+                bg-white/10 hover:bg-white/20 backdrop-blur-xs rounded-full
                 transition-all duration-200 hover:scale-110
                 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
               aria-label="Zoom in"
             >
-              <i className="fa-solid fa-magnifying-glass-plus text-white text-lg"></i>
+              <FontAwesomeIcon
+                icon={faMagnifyingGlassPlus}
+                className="text-white text-lg"
+              />
             </button>
             <div
               className="w-12 h-12 flex items-center justify-center
-              bg-white/10 backdrop-blur-sm rounded-full text-white text-sm font-semibold"
+              bg-white/10 backdrop-blur-xs rounded-full text-white text-sm font-semibold"
             >
               {zoomScale}x
             </div>
@@ -363,10 +391,10 @@ export const PrimaryPhoto = (props: Primaryphotoprops) => {
           {/* Instructions */}
           <div
             className="absolute bottom-4 left-1/2 -translate-x-1/2 
-            bg-white/10 backdrop-blur-sm rounded-full px-6 py-3 text-white text-sm"
+            bg-white/10 backdrop-blur-xs rounded-full px-6 py-3 text-white text-sm"
           >
             <span className="flex items-center gap-2">
-              <i className="fa-solid fa-mouse-pointer text-xs"></i>
+              <FontAwesomeIcon icon={faMousePointer} className="text-xs" />
               <span className="cursor-pointer">Move mouse to pan • Close</span>
             </span>
           </div>

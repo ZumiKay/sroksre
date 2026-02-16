@@ -1,5 +1,7 @@
 "use client";
-import { ChangeEvent, FormEvent, useState } from "react";
+import { ChangeEvent, SubmitEvent, useState } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faDiscord, faGoogle } from "@fortawesome/free-brands-svg-icons";
 import PrimaryButton from "../component/Button";
 import { signIn } from "next-auth/react";
 import { errorToast, successToast } from "../component/Loading";
@@ -23,6 +25,7 @@ const validatePassword = (password: string) => {
   );
 };
 export default function AuthenticatePage() {
+  const router = useRouter();
   const { setisLoading, isLoading } = useGlobalContext();
   const [type, settype] = useState<"login" | "register" | "forget">("login");
   const [loading, setloading] = useState<
@@ -39,8 +42,7 @@ export default function AuthenticatePage() {
     cid: false,
   });
 
-  const router = useRouter();
-  const handleLogin = async (e: FormEvent<HTMLFormElement>) => {
+  const handleLogin = async (e: SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!data.email || !data.password) {
       errorToast("Fill in the required information ");
@@ -61,7 +63,6 @@ export default function AuthenticatePage() {
           router.replace("/dashboard");
         }
         if (res?.error) {
-          console.error("Login error:", res.error, "status:", res.status);
           if (res.status === 401) {
             errorToast("Incorrect Informations");
             return;
@@ -70,13 +71,13 @@ export default function AuthenticatePage() {
         }
       })
       .catch((err) => {
-        console.error("Login exception:", err);
         setloading("authenticated");
         errorToast("An error occurred during login");
       });
   };
 
   const handleRegisterUser = async () => {
+    //Validate user input data
     if (
       !data.password ||
       !data.firstname ||
@@ -104,7 +105,7 @@ export default function AuthenticatePage() {
 
     setloading("loading");
 
-    //verify bot
+    //verify GOOGLE RECAPCHAv2
     const verify = VerifyRecapcha.bind(null, data.recapcha);
     const req = await verify();
 
@@ -245,14 +246,14 @@ export default function AuthenticatePage() {
 
       <form
         onSubmit={handleLogin}
-        className="authentication__container w-full min-h-[90vh] mt-4 flex items-center justify-center px-4 py-8 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50"
+        className="authentication__container w-full min-h-[90vh] mt-4 flex items-center justify-center px-4 py-8 bg-linear-to-br from-slate-50 via-blue-50 to-indigo-50"
       >
         <div
           className={`bg-white shadow-2xl flex text-lg flex-col justify-center items-center gap-y-8 
           max-large_phone:w-[90%] max-small_phone:w-[97%]
           w-full max-w-md min-h-[70vh] 
           h-fit p-8 md:p-10
-          rounded-2xl backdrop-blur-sm border-5 border-incart`}
+          rounded-2xl backdrop-blur-xs border-5 border-incart`}
         >
           {/* Header with branding */}
           <div className="w-full text-center space-y-2">
@@ -283,7 +284,7 @@ export default function AuthenticatePage() {
                     type="email"
                     name="email"
                     placeholder="your@email.com"
-                    className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none text-gray-700"
+                    className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-hidden text-gray-700"
                     value={data.email}
                     onChange={handleChange}
                     required
@@ -299,7 +300,7 @@ export default function AuthenticatePage() {
                     name="cid"
                     value={data.cid}
                     placeholder="Enter 6-digit code"
-                    className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none text-gray-700 text-center text-2xl tracking-widest"
+                    className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-hidden text-gray-700 text-center text-2xl tracking-widest"
                     onChange={handleChange}
                   />
                 </div>
@@ -316,7 +317,7 @@ export default function AuthenticatePage() {
                     </label>
                     <input
                       type="text"
-                      className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none text-gray-700"
+                      className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-hidden text-gray-700"
                       placeholder="John"
                       name="firstname"
                       value={data.firstname}
@@ -330,7 +331,7 @@ export default function AuthenticatePage() {
                     </label>
                     <input
                       type="text"
-                      className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none text-gray-700"
+                      className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-hidden text-gray-700"
                       placeholder="Doe"
                       name="lastname"
                       value={data.lastname}
@@ -446,7 +447,7 @@ export default function AuthenticatePage() {
                   type="email"
                   name="email"
                   placeholder="your@email.com"
-                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none text-gray-700"
+                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-hidden text-gray-700"
                   value={data.email}
                   onChange={handleChange}
                   required
@@ -474,7 +475,7 @@ export default function AuthenticatePage() {
                   </div>
                   <div className="form_actions flex flex-col gap-y-4 w-full">
                     <Button
-                      className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 w-full text-white font-semibold shadow-lg shadow-blue-500/30 transition-all"
+                      className="bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 w-full text-white font-semibold shadow-lg shadow-blue-500/30 transition-all"
                       size="lg"
                       type="submit"
                       isLoading={loading === "loading"}
@@ -513,15 +514,18 @@ export default function AuthenticatePage() {
                         onClick={() => servicesSignIn("google")}
                         className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-gray-700 font-medium"
                       >
-                        <i className="fa-brands fa-google text-lg text-red-500"></i>
-                        <span>Continue with Google</span>
+                        <FontAwesomeIcon
+                          icon={faGoogle}
+                          className="text-lg text-red-500"
+                        />
+                        <span>Continue with Gmail</span>
                       </button>
                       <button
                         type="button"
                         onClick={() => servicesSignIn("discord")}
                         className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors text-white font-medium"
                       >
-                        <i className="fa-brands fa-discord text-lg"></i>
+                        <FontAwesomeIcon icon={faDiscord} className="text-lg" />
                         <span>Continue with Discord</span>
                       </button>
                     </div>
@@ -532,7 +536,7 @@ export default function AuthenticatePage() {
                 <>
                   <Button
                     type="button"
-                    className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold shadow-lg shadow-blue-500/30"
+                    className="w-full bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold shadow-lg shadow-blue-500/30"
                     size="lg"
                     onClick={() => handleConfirm("email")}
                     isLoading={loading === "loading"}
@@ -575,7 +579,7 @@ export const PasswordVerification = ({ password }: { password: string }) => {
   const validationStatus: Record<string, any> = validatePassword(password);
 
   return (
-    <div className="password_verification w-full h-fit flex flex-col gap-3 bg-gradient-to-br from-gray-50 to-blue-50 p-4 rounded-lg border border-gray-200">
+    <div className="password_verification w-full h-fit flex flex-col gap-3 bg-linear-to-br from-gray-50 to-blue-50 p-4 rounded-lg border border-gray-200">
       <p className="text-sm font-semibold text-gray-700">
         Password requirements:
       </p>
@@ -588,7 +592,7 @@ export const PasswordVerification = ({ password }: { password: string }) => {
               className="flex items-center gap-2 text-sm font-medium"
             >
               <span
-                className={`flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center ${
+                className={`shrink-0 w-5 h-5 rounded-full flex items-center justify-center ${
                   !isValid
                     ? "bg-red-100 text-red-600"
                     : "bg-green-100 text-green-600"

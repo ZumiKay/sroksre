@@ -132,7 +132,7 @@ export default async function OrderManagement({
     const stats = calculateOrderStats(orders || [], totalOrders);
 
     return (
-      <main className="order__container w-full min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6 md:p-8">
+      <main className="order__container w-full min-h-screen bg-linear-to-br from-gray-50 to-gray-100 p-6 md:p-8">
         <OrderHeader stats={stats} />
         <FilterSection
           isFilter={isFilter}
@@ -149,9 +149,9 @@ export default async function OrderManagement({
       </main>
     );
   } catch (error) {
-    console.error("Error fetching orders:", error);
+    console.log("Error fetching orders:", error);
     return (
-      <main className="order__container w-full min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6 md:p-8">
+      <main className="order__container w-full min-h-screen bg-linear-to-br from-gray-50 to-gray-100 p-6 md:p-8">
         <div className="flex flex-col items-center justify-center h-[60vh]">
           <div className="w-20 h-20 rounded-full bg-red-100 flex items-center justify-center mb-4">
             <i className="fa-solid fa-exclamation-triangle text-red-500 text-3xl"></i>
@@ -231,11 +231,11 @@ function OrderHeader({ stats }: { stats: OrderStats }) {
         {statisticsCards.map((card, idx) => (
           <div
             key={idx}
-            className="bg-white p-5 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow"
+            className="bg-white p-5 rounded-xl shadow-xs border border-gray-200 hover:shadow-md transition-shadow"
           >
             <div className="flex items-center justify-between mb-3">
               <div
-                className={`w-12 h-12 rounded-lg bg-gradient-to-br ${card.gradient} flex items-center justify-center`}
+                className={`w-12 h-12 rounded-lg bg-linear-to-br ${card.gradient} flex items-center justify-center`}
               >
                 <i className={`fa-solid ${card.icon} text-white text-xl`}></i>
               </div>
@@ -258,7 +258,7 @@ function FilterSection({
   filterData: Partial<SearchParams>;
 }) {
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
+    <div className="bg-white rounded-xl shadow-xs border border-gray-200 p-4 mb-6">
       <div className="filter_container w-full flex flex-col md:flex-row items-start md:items-center gap-4">
         <div className="w-full md:w-[300px]">
           <MultipleSelect />
@@ -284,12 +284,12 @@ function OrdersTable({
   searchParams?: SearchParams;
 }) {
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+    <div className="bg-white rounded-xl shadow-xs border border-gray-200 overflow-hidden">
       <div className="w-full overflow-x-auto">
         <div className="orderlist min-w-[950px] w-full">
           <table width="100%" className="ordertable">
             <thead>
-              <tr className="bg-gradient-to-r from-gray-800 to-gray-700 text-white h-[56px]">
+              <tr className="bg-linear-to-r from-gray-800 to-gray-700 text-white h-[56px]">
                 <th className="text-left pl-6 font-semibold text-sm">
                   Order ID
                 </th>
@@ -348,23 +348,23 @@ function OrderRowSkeleton({ isAdmin }: { isAdmin: boolean }) {
   return (
     <tr className="animate-pulse">
       <td className="pl-6 py-4">
-        <div className="h-4 bg-gray-200 rounded w-24"></div>
+        <div className="h-4 bg-gray-200 rounded-sm w-24"></div>
       </td>
       <td className="py-4">
-        <div className="h-8 bg-gray-200 rounded w-28"></div>
+        <div className="h-8 bg-gray-200 rounded-sm w-28"></div>
       </td>
       <td className="py-4">
-        <div className="h-8 bg-gray-200 rounded w-32"></div>
+        <div className="h-8 bg-gray-200 rounded-sm w-32"></div>
       </td>
       <td className="py-4">
-        <div className="h-4 bg-gray-200 rounded w-20"></div>
+        <div className="h-4 bg-gray-200 rounded-sm w-20"></div>
       </td>
       <td className="py-4">
         <div className="h-6 bg-gray-200 rounded-full w-24"></div>
       </td>
       {isAdmin && (
         <td className="py-4">
-          <div className="h-8 bg-gray-200 rounded w-24"></div>
+          <div className="h-8 bg-gray-200 rounded-sm w-24"></div>
         </td>
       )}
       <td className="pr-6"></td>
@@ -384,7 +384,7 @@ function PaginationSection({
 }) {
   return (
     <div className="w-full flex justify-center mt-8">
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+      <div className="bg-white rounded-xl shadow-xs border border-gray-200 p-4">
         <PaginationSSR total={totalPages} pages={page} limit={show} />
       </div>
     </div>
@@ -431,7 +431,7 @@ const getOrderData = cache(
         return data as unknown as OrderUserType;
       }
     } catch (error) {
-      console.error(`Error fetching order data for ${oid}:`, error);
+      console.log(`Error fetching order data for ${oid}:`, error);
       return null;
     }
 

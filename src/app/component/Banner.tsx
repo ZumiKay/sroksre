@@ -155,7 +155,7 @@ export const SelectAndSearchProduct = ({
           setIsLimit(res.isLimit ?? false);
         }
       } catch (error) {
-        console.error("Fetch error:", error);
+        console.log("Fetch error:", error);
       } finally {
         setloading(false);
       }
@@ -262,9 +262,9 @@ export const SelectAndSearchProduct = ({
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.8, opacity: 0 }}
-          className="w-fit h-fit flex flex-row items-center gap-2 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg px-3 py-2 shadow-md hover:shadow-lg transition-all duration-200"
+          className="w-fit h-fit flex flex-row items-center gap-2 bg-linear-to-r from-blue-500 to-purple-600 rounded-lg px-3 py-2 shadow-md hover:shadow-lg transition-all duration-200"
         >
-          <p className="text-sm font-semibold text-white truncate max-w-[200px]">
+          <p className="text-sm font-semibold text-white truncate max-w-50">
             {i.label}
           </p>
           <button
@@ -274,7 +274,7 @@ export const SelectAndSearchProduct = ({
             }}
             onMouseEnter={() => setisDelete(true)}
             onMouseLeave={() => setisDelete(false)}
-            className="text-white hover:text-red-200 transition-colors duration-200 flex-shrink-0"
+            className="text-white hover:text-red-200 transition-colors duration-200 shrink-0"
           >
             <DeleteIcon />
           </button>
@@ -293,7 +293,7 @@ export const SelectAndSearchProduct = ({
         onClick={() => {
           setfocus(true);
         }}
-        className={`inputcontainer w-full min-h-[54px] relative h-fit flex flex-row items-center border-2 rounded-xl transition-all duration-200 ${
+        className={`inputcontainer w-full min-h-13.5 relative h-fit flex flex-row items-center border-2 rounded-xl transition-all duration-200 ${
           focus
             ? "border-blue-500 shadow-lg shadow-blue-200"
             : "border-gray-300 hover:border-gray-400"
@@ -303,7 +303,7 @@ export const SelectAndSearchProduct = ({
           <AnimatePresence>{selectedTags}</AnimatePresence>
           <span
             ref={inputRef}
-            className="min-w-[200px] w-full h-full text-base flex flex-col justify-center cursor-text focus:outline-none text-gray-700 placeholder:text-gray-400"
+            className="min-w-50 w-full h-full text-base flex flex-col justify-center cursor-text focus:outline-hidden text-gray-700 placeholder:text-gray-400"
             role="textbox"
             onInput={handleInputChange}
             onClick={() => setfocus(true)}
@@ -312,7 +312,7 @@ export const SelectAndSearchProduct = ({
         </div>
         <div
           onClick={() => setfocus(true)}
-          className="absolute w-[40px] right-2 top-0 h-full flex flex-col justify-center items-center"
+          className="absolute w-10 right-2 top-0 h-full flex flex-col justify-center items-center"
         >
           <motion.div
             animate={{ rotate: focus ? 180 : 0 }}
@@ -321,7 +321,7 @@ export const SelectAndSearchProduct = ({
             <Image
               src={SelectArrow}
               alt="Arrow"
-              className="w-[24px] h-[24px] object-contain opacity-60"
+              className="w-6 h-6 object-contain opacity-60"
             />
           </motion.div>
         </div>
@@ -337,7 +337,7 @@ export const SelectAndSearchProduct = ({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className="option_container absolute bg-white w-full h-fit max-h-[400px] overflow-y-auto overflow-x-hidden p-3 flex flex-col gap-y-2 items-center border-2 border-gray-200 rounded-xl shadow-2xl z-50 mt-2"
+            className="option_container absolute bg-white w-full h-fit max-h-100 overflow-y-auto overflow-x-hidden p-3 flex flex-col gap-y-2 items-center border-2 border-gray-200 rounded-xl shadow-2xl z-50 mt-2"
           >
             {loading ? (
               <NormalSkeleton width="100%" height="40px" count={3} />
@@ -357,9 +357,9 @@ export const SelectAndSearchProduct = ({
                     onClick={() => handleSelectOption(i)}
                   >
                     <div
-                      className={`selectednumber w-[36px] h-[36px] font-semibold text-sm rounded-full flex justify-center items-center transition-all duration-200 ${
+                      className={`selectednumber w-9 h-9 font-semibold text-sm rounded-full flex justify-center items-center transition-all duration-200 ${
                         selected
-                          ? "bg-gradient-to-br from-blue-500 to-purple-600 text-white shadow-md scale-110"
+                          ? "bg-linear-to-br from-blue-500 to-purple-600 text-white shadow-md scale-110"
                           : "bg-gray-200 text-gray-600 group-hover:bg-gray-300"
                       }`}
                     >
@@ -372,7 +372,7 @@ export const SelectAndSearchProduct = ({
                     <li
                       className={`w-full h-fit p-3 font-medium rounded-lg transition-all duration-200 ${
                         selected
-                          ? "bg-gradient-to-r from-blue-50 to-purple-50 text-blue-700 font-semibold"
+                          ? "bg-linear-to-r from-blue-50 to-purple-50 text-blue-700 font-semibold"
                           : "bg-gray-50 text-gray-700 group-hover:bg-gray-100 group-hover:shadow-md"
                       }`}
                     >
@@ -394,7 +394,7 @@ export const SelectAndSearchProduct = ({
               >
                 <button
                   onClick={loadMore}
-                  className="w-full h-10 rounded-lg font-semibold text-sm bg-gradient-to-r from-teal-500 to-cyan-600 text-white hover:from-teal-600 hover:to-cyan-700 transition-all duration-200 shadow-md hover:shadow-lg"
+                  className="w-full h-10 rounded-lg font-semibold text-sm bg-linear-to-r from-teal-500 to-cyan-600 text-white hover:from-teal-600 hover:to-cyan-700 transition-all duration-200 shadow-md hover:shadow-lg"
                 >
                   Load More
                 </button>

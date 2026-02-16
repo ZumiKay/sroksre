@@ -40,7 +40,7 @@ export const DeleteImageTempForCurrentUser = async (delStorage?: boolean) => {
 
       storageResults.forEach((result, index) => {
         if (result.status === "rejected") {
-          console.error(
+          console.log(
             `Failed to delete ${deletedRecords[index].name} from storage:`,
             result.reason,
           );
@@ -55,7 +55,7 @@ export const DeleteImageTempForCurrentUser = async (delStorage?: boolean) => {
       storageCleanup,
     };
   } catch (error) {
-    console.error("Cleanup error:", error);
+    console.log("Cleanup error:", error);
     return {
       success: false,
       error: error instanceof Error ? error.message : "Unknown error",

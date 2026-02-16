@@ -327,11 +327,11 @@ const SuccessPage = async ({ orderid }: { orderid: string }) => {
   return (
     <div className="success_page w-full h-full mt-5 flex flex-col items-center gap-y-20">
       <div className="header w-full h-[50px] flex flex-row items-center justify-start">
-        <div className="line1 w-[50%] h-[10px] bg-[#495464] text-[#495464]"></div>
-        <div className="content w-[50%] max-large_tablet:w-[80%] max-large_phone:w-full max-small_phone:mt-10 p-4 bg-[#495464] text-white rounded-lg text-xl font-bold text-center">
+        <div className="line1 w-[50%] h-[10px] bg-incart text-incart"></div>
+        <div className="content w-[50%] max-large_tablet:w-[80%] max-large_phone:w-full max-small_phone:mt-10 p-4 bg-incart text-white rounded-lg text-xl font-bold text-center">
           Thank for your purchase
         </div>
-        <div className="line1 w-1/2 h-[10px] bg-[#495464] text-xs text-[#495464]"></div>
+        <div className="line1 w-1/2 h-[10px] bg-incart text-xs text-incart"></div>
       </div>
       <div className="order_detail w-[80%] h-fit flex flex-col gap-y-10 items-center">
         <SuccessVector />

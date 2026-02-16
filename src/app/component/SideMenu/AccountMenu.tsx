@@ -93,19 +93,21 @@ export default function AccountMenu({ setProfile }: AccountMenuProps) {
 
   //Verify User Session
   const verifyUserSession = useCallback(async () => {
+    let toastId = "SessionError";
     setloading(true);
     try {
       const makeReq = CheckAndGetUserInfo.bind(null, {});
       const isSession = await makeReq();
 
       if (!isSession.success) {
-        errorToast(isSession.message ?? "Error occured");
+        errorToast(isSession.message ?? "Error occured", { toastId });
         if (isSession.isExpire) {
-          // await signOut({ redirect: false });
-          // errorToast(isSession.message, {
-          //   onClose: () => window.location.reload(),
-          //   closeOnClick: true,
-          // });
+          await signOut({ redirect: false });
+          errorToast(isSession.message, {
+            toastId,
+            onClose: () => window.location.reload(),
+            closeOnClick: true,
+          });
         }
         return;
       }
@@ -117,7 +119,7 @@ export default function AccountMenu({ setProfile }: AccountMenuProps) {
   }, []);
 
   useEffect(() => {
-    if (memorizedStatus === "authenticated") {
+    if (memorizedStatus === "authenticated" && session) {
       verifyUserSession();
     }
 
@@ -236,7 +238,7 @@ export default function AccountMenu({ setProfile }: AccountMenuProps) {
       exit={{ x: "100%" }}
       transition={{ duration: 0.4, ease: "easeInOut" }}
       onMouseEnter={() => setProfile(true)}
-      className="fixed right-0 top-0 w-[430px] max-small_phone:w-full h-full z-[99] bg-white shadow-2xl flex flex-col items-center border-l border-gray-200"
+      className="fixed right-0 top-0 w-107.5 max-small_phone:w-full h-full z-99 bg-white shadow-2xl flex flex-col items-center border-l border-gray-200"
     >
       {status === "loading" ? (
         <div className="w-full h-full flex flex-col items-center justify-center gap-y-6 px-6">
@@ -259,7 +261,7 @@ export default function AccountMenu({ setProfile }: AccountMenuProps) {
             items={Homeitems}
             setItems={sethomeitems}
           />
-          <div className="w-full h-[40px] flex flex-row gap-x-5 justify-start">
+          <div className="w-full h-10 flex flex-row gap-x-5 justify-start">
             <PrimaryButton
               type="button"
               text={isEdit ? "Delete" : "Add New"}
@@ -292,7 +294,7 @@ export default function AccountMenu({ setProfile }: AccountMenuProps) {
               color="white"
               textcolor="black"
               Icon={
-                <div className="w-[30px] h-[30px] bg-white rounded-full">
+                <div className="w-7.5 h-7.5 bg-white rounded-full">
                   <PencilEditIcon />
                 </div>
               }
@@ -337,7 +339,7 @@ export default function AccountMenu({ setProfile }: AccountMenuProps) {
       {isMobile && (
         <div
           onClick={() => setProfile(false)}
-          className="w-10 h-10 absolute top-4 right-4 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 active:bg-gray-300 cursor-pointer transition-all duration-200 hover:scale-110 active:scale-95 shadow-sm"
+          className="w-10 h-10 absolute top-4 right-4 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 active:bg-gray-300 cursor-pointer transition-all duration-200 hover:scale-110 active:scale-95 shadow-xs"
         >
           <CloseVector width="24px" height="24px" />
         </div>
@@ -364,10 +366,10 @@ const MenuItem = React.memo(
     }, [item.link, onEditHomeClick, onNavigate]);
 
     return (
-      <li className="side_link w-full h-[56px] text-center rounded-xl transition-all duration-200">
+      <li className="side_link w-full h-14 text-center rounded-xl transition-all duration-200">
         <div
           onClick={handleClick}
-          className="w-full h-full flex flex-row items-center cursor-pointer gap-x-4 px-4 rounded-xl transition-all duration-200 hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 hover:shadow-md hover:scale-[1.02] active:scale-[0.98] group"
+          className="w-full h-full flex flex-row items-center cursor-pointer gap-x-4 px-4 rounded-xl transition-all duration-200 hover:bg-linear-to-r hover:from-blue-50 hover:to-purple-50 hover:shadow-md hover:scale-[1.02] active:scale-[0.98] group"
         >
           <div className="transition-transform duration-200 group-hover:scale-110">
             {item.icon}

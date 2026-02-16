@@ -472,3 +472,19 @@ model Notification {
   @@index([createdAt])
   @@index([userid, checked])
 }
+
+model LoginAttempt {
+  id             Int       @id @default(autoincrement())
+  identifier     String // Email or IP address
+  failedAttempts Int       @default(0)
+  isLocked       Boolean   @default(false)
+  lockedUntil    DateTime?
+  lastAttemptAt  DateTime  @default(now())
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@unique([identifier])
+  @@index([identifier])
+  @@index([isLocked])
+  @@index([lockedUntil])
+}

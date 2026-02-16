@@ -9,7 +9,7 @@ interface sliderprops {
 export default function SliderContainer(props: sliderprops) {
   return (
     <div className="slider__container w-full h-[50vh] flex flex-col justify-center ">
-      <h1 className="slider_title bg-[#495464] p-3 text-xl font-bold text-white">
+      <h1 className="slider_title bg-incart p-3 text-xl font-bold text-white">
         {" "}
         {props.name}{" "}
       </h1>

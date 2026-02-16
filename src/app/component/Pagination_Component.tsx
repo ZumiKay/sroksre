@@ -84,7 +84,7 @@ export default function PaginationCustom({
         variant="light"
       />
       {count && (
-        <div className="w-[280px]">
+        <div className="w-70">
           <SelectionCustom
             data={numberperpage.map((i) => ({
               label: `${i === 1 ? "1 item" : `${i} item`}`,

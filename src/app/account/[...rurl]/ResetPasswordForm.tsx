@@ -14,7 +14,7 @@ const CONTAINER_CLASSES =
 const HEADING_CLASSES =
   "text-2xl font-bold w-full max-w-md h-fit p-5 text-center rounded-lg";
 const SUCCESS_HEADING_CLASSES =
-  "text-2xl font-black w-full max-w-md text-[#495464] h-fit p-5 text-center rounded-lg";
+  "text-2xl font-black w-full max-w-md text-incart h-fit p-5 text-center rounded-lg";
 const ERROR_MESSAGE_CLASSES =
   "text-lg font-semibold w-full max-w-md h-fit text-center";
 const FORM_CLASSES =

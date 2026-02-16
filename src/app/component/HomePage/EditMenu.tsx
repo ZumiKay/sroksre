@@ -78,7 +78,7 @@ const SortableItem = ({
       className={`w-full min-h-[60px] h-fit p-4 rounded-xl flex flex-row justify-between items-center cursor-default border border-gray-200 bg-white ${
         isDragging
           ? "shadow-2xl scale-105 border-blue-400 bg-blue-50 z-50"
-          : "shadow-sm hover:shadow-md"
+          : "shadow-xs hover:shadow-md"
       } transition-all duration-200 select-none hover:border-gray-300 group`}
     >
       {isEdit && (
@@ -102,7 +102,7 @@ const SortableItem = ({
             : ""
         }`}
       >
-        <div className="p-2 rounded-lg bg-gradient-to-br from-blue-50 to-purple-50 group-hover:from-blue-100 group-hover:to-purple-100 transition-colors">
+        <div className="p-2 rounded-lg bg-linear-to-br from-blue-50 to-purple-50 group-hover:from-blue-100 group-hover:to-purple-100 transition-colors">
           {type === "slide" ? (
             <SlideIcon />
           ) : type === "category" ? (
@@ -114,7 +114,7 @@ const SortableItem = ({
           )}
         </div>
         <div className="flex flex-col gap-y-1 flex-1">
-          <div className="text-sm font-semibold text-gray-800 group-hover:text-gray-900 transition-colors break-words">
+          <div className="text-sm font-semibold text-gray-800 group-hover:text-gray-900 transition-colors wrap-break-word">
             {name}
           </div>
           <div className="text-xs text-gray-500 capitalize">{type}</div>
@@ -135,33 +135,33 @@ const SortableItem = ({
 const HomeitemsSkeleton = ({ delay = 0 }: { delay?: number }) => {
   return (
     <div
-      className="w-full min-h-[60px] p-4 rounded-xl border border-gray-100 bg-white shadow-sm flex items-center gap-4 animate-pulse"
+      className="w-full min-h-[60px] p-4 rounded-xl border border-gray-100 bg-white shadow-xs flex items-center gap-4 animate-pulse"
       style={{ animationDelay: `${delay}ms` }}
     >
       <Skeleton
         className="flex rounded-lg w-[48px] h-[48px]"
         classNames={{
-          base: "bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 bg-[length:200%_100%] animate-shimmer",
+          base: "bg-linear-to-r from-gray-200 via-gray-100 to-gray-200 bg-size-[200%_100%] animate-shimmer",
         }}
       />
       <div className="flex-1 flex flex-col gap-2">
         <Skeleton
           className="h-[16px] w-3/4 rounded-lg"
           classNames={{
-            base: "bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 bg-[length:200%_100%] animate-shimmer",
+            base: "bg-linear-to-r from-gray-200 via-gray-100 to-gray-200 bg-size-[200%_100%] animate-shimmer",
           }}
         />
         <Skeleton
           className="h-[12px] w-1/2 rounded-lg"
           classNames={{
-            base: "bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 bg-[length:200%_100%] animate-shimmer",
+            base: "bg-linear-to-r from-gray-200 via-gray-100 to-gray-200 bg-size-[200%_100%] animate-shimmer",
           }}
         />
       </div>
       <Skeleton
         className="flex rounded-lg w-[32px] h-[32px]"
         classNames={{
-          base: "bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 bg-[length:200%_100%] animate-shimmer",
+          base: "bg-linear-to-r from-gray-200 via-gray-100 to-gray-200 bg-size-[200%_100%] animate-shimmer",
         }}
       />
     </div>
@@ -221,10 +221,10 @@ export const Homeeditmenu = ({
           {loading ? (
             <>
               <Skeleton className="h-8 w-64 rounded-lg">
-                <div className="h-8 w-64 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200"></div>
+                <div className="h-8 w-64 bg-linear-to-r from-gray-200 via-gray-100 to-gray-200"></div>
               </Skeleton>
               <Skeleton className="h-4 w-48 rounded-lg mt-2">
-                <div className="h-4 w-48 bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200"></div>
+                <div className="h-4 w-48 bg-linear-to-r from-gray-200 via-gray-100 to-gray-200"></div>
               </Skeleton>
             </>
           ) : (

@@ -9,6 +9,18 @@ interface SessionInfo {
   isCurrent: boolean;
 }
 
+// Helper to format date consistently on client-side only
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString);
+  return date.toLocaleString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
+
 /**
  * Example component showing how to use the session management API
  * This can be used in a user dashboard to show active sessions
@@ -17,6 +29,12 @@ export default function SessionManager() {
   const [sessions, setSessions] = useState<SessionInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Prevent hydration mismatch for date formatting
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Fetch active sessions
   const fetchSessions = async () => {
@@ -32,7 +50,7 @@ export default function SessionManager() {
       }
     } catch (err) {
       setError("Failed to fetch sessions");
-      console.error(err);
+      console.log(err);
     } finally {
       setLoading(false);
     }
@@ -62,7 +80,7 @@ export default function SessionManager() {
         alert("Failed to logout: " + data.message);
       }
     } catch (err) {
-      console.error(err);
+      console.log(err);
       alert("Failed to logout");
     }
   };
@@ -89,7 +107,7 @@ export default function SessionManager() {
         alert("Failed to logout from all devices: " + data.message);
       }
     } catch (err) {
-      console.error(err);
+      console.log(err);
       alert("Failed to logout from all devices");
     }
   };
@@ -112,7 +130,7 @@ export default function SessionManager() {
         <h2 className="text-2xl font-bold">Active Sessions</h2>
         <button
           onClick={logoutAllSessions}
-          className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+          className="px-4 py-2 bg-red-500 text-white rounded-sm hover:bg-red-600"
         >
           Logout All Devices
         </button>
@@ -133,7 +151,7 @@ export default function SessionManager() {
                     {session.isCurrent ? "This Device" : "Another Device"}
                   </h3>
                   {session.isCurrent && (
-                    <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded">
+                    <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-sm">
                       Current
                     </span>
                   )}
@@ -142,16 +160,18 @@ export default function SessionManager() {
                   Session ID: {session.session_id.substring(0, 8)}...
                 </p>
                 <p className="text-sm text-gray-600">
-                  Created: {new Date(session.createdAt).toLocaleString()}
+                  Created:{" "}
+                  {isMounted ? formatDate(session.createdAt) : "Loading..."}
                 </p>
                 <p className="text-sm text-gray-600">
-                  Expires: {new Date(session.expireAt).toLocaleString()}
+                  Expires:{" "}
+                  {isMounted ? formatDate(session.expireAt) : "Loading..."}
                 </p>
               </div>
 
               <button
                 onClick={() => logoutSession(session.session_id)}
-                className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300"
+                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-sm hover:bg-gray-300"
               >
                 {session.isCurrent ? "Logout" : "Remove"}
               </button>
@@ -162,7 +182,7 @@ export default function SessionManager() {
 
       <button
         onClick={fetchSessions}
-        className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+        className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-sm hover:bg-blue-600"
       >
         Refresh
       </button>

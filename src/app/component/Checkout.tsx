@@ -191,7 +191,7 @@ export const StepComponent = ({
       } max-smallest_phone:grid max-smallest_phone:place-content-start`}
       style={data.noline ? { display: "grid", placeContent: "start" } : {}}
     >
-      <div className="indicator h-[150px] w-[100%] max-small_phone:h-[100px] flex flex-col items-center">
+      <div className="indicator h-[150px] w-full max-small_phone:h-[100px] flex flex-col items-center">
         <CircleSvg control={sequence} step={data.step} active={isActive} />
         <h3 className="title text-lg font-medium w-full h-fit text-center">
           {data.title}
@@ -230,7 +230,7 @@ export const Checkoutproductcard = ({
     <div
       key={cover}
       className={
-        "w-full h-fit bg-white rounded-lg flex flex-row gap-x-5 items-center max-large_phone:flex-col max-large_phone:gap-y-5 border-1 border-gray-300"
+        "w-full h-fit bg-white rounded-lg flex flex-row gap-x-5 items-center max-large_phone:flex-col max-large_phone:gap-y-5 border border-gray-300"
       }
     >
       <Image
@@ -327,7 +327,7 @@ export const Shippingservicecard = ({
         key={type}
         onClick={() => handleClick()}
         style={isSelected ? { outline: "2px solid #495464 " } : {}}
-        className="w-[250px] h-[150px] p-2 flex flex-col gap-y-3 bg-white outline outline-2 rounded-lg outline-gray-300 transition duration-200 hover:outline-2 hover:outline-[#495464]"
+        className="w-[250px] h-[150px] p-2 flex flex-col gap-y-3 bg-white outline-solid outline-2 rounded-lg outline-gray-300 transition duration-200 hover:outline-2 hover:outline-incart"
       >
         <h3 className="text-lg font-semibold w-fit h-fit">{type}</h3>
         <h3 className="text-lg font-normal w-fit h-fit">{showPrice}</h3>
@@ -600,7 +600,7 @@ export function SelectionSSR(props: {
     <select
       onChange={handleChange}
       value={props.selectedvalue}
-      className={`select__container border-1 border-black rounded-md w-full h-full p-2`}
+      className={`select__container border border-black rounded-md w-full h-full p-2`}
     >
       <option value="">None</option>
       {props.data.map((i, idx) => (

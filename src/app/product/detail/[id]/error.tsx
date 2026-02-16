@@ -30,7 +30,7 @@ export default function Error({
       <div className="flex gap-4">
         <button
           onClick={() => reset()}
-          className="px-6 py-3 bg-[#495464] text-white rounded-lg hover:bg-[#5a6575] transition-colors font-medium"
+          className="px-6 py-3 bg-incart text-white rounded-lg hover:bg-[#5a6575] transition-colors font-medium"
         >
           Try Again
         </button>

@@ -113,7 +113,7 @@ export const Createusermodal = ({
       closebtn
       header={() => (
         <div className="flex items-center gap-3 px-2">
-          <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-lg bg-linear-to-br from-blue-500 to-purple-600 flex items-center justify-center">
             <i className="fa-solid fa-user-plus text-white text-lg"></i>
           </div>
           <div>
@@ -128,7 +128,7 @@ export const Createusermodal = ({
       )}
       placement="top"
     >
-      <div className="relative w-full max-small_phone:max-h-[50vh] h-fit bg-gradient-to-br from-gray-50 to-white p-6 md:p-8 flex flex-col items-end gap-y-6 rounded-xl">
+      <div className="relative w-full max-small_phone:max-h-[50vh] h-fit bg-linear-to-br from-gray-50 to-white p-6 md:p-8 flex flex-col items-end gap-y-6 rounded-xl">
         <form
           onSubmit={handleSubmit}
           className="form_container w-full h-full flex flex-col items-center gap-y-5"
@@ -184,7 +184,7 @@ export const Createusermodal = ({
               onChange={(e) =>
                 setdata((prev) => ({ ...prev, role: e.target.value } as never))
               }
-              className="w-full h-[50px] px-4 py-2 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all bg-white text-gray-800 font-medium"
+              className="w-full h-[50px] px-4 py-2 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-hidden transition-all bg-white text-gray-800 font-medium"
               required
             >
               <option value="USER">User - Regular Customer</option>

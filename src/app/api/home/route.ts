@@ -254,7 +254,7 @@ export async function GET(request: NextRequest) {
       return Response.json({ data: res }, { status: 200 });
     }
   } catch (error) {
-    console.error("Get container error", error);
+    console.log("Get container error", error);
     return Response.json({ message: "Error Occurred" }, { status: 500 });
   }
 }
@@ -493,7 +493,7 @@ export async function PUT(req: Request) {
       return Response.json({ success: true }, { status: 200 });
     }
   } catch (error) {
-    console.error("Edit container error:", error);
+    console.log("Edit container error:", error);
     return Response.json(
       { success: false, message: "Error Occurred" },
       { status: 500 },

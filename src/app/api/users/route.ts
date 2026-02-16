@@ -78,7 +78,7 @@ export async function GET(request: NextRequest) {
       { status: 200 },
     );
   } catch (error) {
-    console.error("Get User Error:", error);
+    console.log("Get User Error:", error);
     return Response.json({ message: "An error occurred" }, { status: 500 });
   }
 }

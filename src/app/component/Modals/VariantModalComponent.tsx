@@ -380,12 +380,12 @@ export function ManageStockContainer({
               </Button>
             )}
             <div className="w-full flex flex-col items-center gap-3">
-              <h3 className="text-2xl font-extrabold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent drop-shadow-sm">
+              <h3 className="text-2xl font-extrabold bg-linear-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent drop-shadow-xs">
                 {edit === -1 ? "Select Variant Options" : "Manage Stock"}
               </h3>
               {lowstock !== 0 && edit !== -1 && (
-                <div className="flex items-center gap-3 px-6 py-4 rounded-2xl bg-gradient-to-r from-red-50 via-orange-50 to-amber-50 border-2 border-red-400 shadow-xl backdrop-blur-sm animate-in fade-in slide-in-from-top-2 duration-500">
-                  <div className="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center shadow-lg animate-pulse">
+                <div className="flex items-center gap-3 px-6 py-4 rounded-2xl bg-linear-to-r from-red-50 via-orange-50 to-amber-50 border-2 border-red-400 shadow-xl backdrop-blur-xs animate-in fade-in slide-in-from-top-2 duration-500">
+                  <div className="shrink-0 w-10 h-10 rounded-full bg-linear-to-br from-red-500 to-red-600 flex items-center justify-center shadow-lg animate-pulse">
                     <WarningIcon className="w-5 h-5 text-white" />
                   </div>
                   <div className="flex flex-col gap-0.5">
@@ -402,7 +402,7 @@ export function ManageStockContainer({
             </div>
 
             {edit === -1 || isAddNew || editsubidx !== -1 ? (
-              <div className="variantlist relative rounded-2xl flex flex-col items-center justify-start gap-y-6 w-full h-full max-h-[60vh] p-8 overflow-y-auto bg-gradient-to-br from-blue-50/50 via-white to-purple-50/50 border-2 border-gray-200/60 shadow-2xl backdrop-blur-sm scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent hover:scrollbar-thumb-gray-400">
+              <div className="variantlist relative rounded-2xl flex flex-col items-center justify-start gap-y-6 w-full h-full max-h-[60vh] p-8 overflow-y-auto bg-linear-to-br from-blue-50/50 via-white to-purple-50/50 border-2 border-gray-200/60 shadow-2xl backdrop-blur-xs scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent hover:scrollbar-thumb-gray-400">
                 {product.Variant?.map((item, idx) => {
                   return (
                     <Multiselect
@@ -478,15 +478,15 @@ export function ManageStockContainer({
         ) : (
           <div className="selectvariaint_container flex flex-col items-center justify-start gap-y-8 w-full h-full p-4">
             {/**Stock list */}
-            <div className="liststock_container flex flex-row flex-wrap gap-6 w-[95%] h-fit p-6 max-h-[46vh] overflow-y-auto rounded-2xl bg-gradient-to-br from-blue-50/40 via-white to-purple-50/40 shadow-2xl border-2 border-gray-200/50 backdrop-blur-sm scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent hover:scrollbar-thumb-gray-400">
+            <div className="liststock_container flex flex-row flex-wrap gap-6 w-[95%] h-fit p-6 max-h-[46vh] overflow-y-auto rounded-2xl bg-linear-to-br from-blue-50/40 via-white to-purple-50/40 shadow-2xl border-2 border-gray-200/50 backdrop-blur-xs scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent hover:scrollbar-thumb-gray-400">
               {((product.Stock && product.Stock.length === 0) ||
                 !product.Stock) &&
                 !isloading && (
-                  <div className="w-full rounded-2xl bg-gradient-to-br from-blue-100/50 via-purple-50/50 to-pink-100/50 border-3 border-dashed border-gray-400/50 p-12 flex flex-col items-center gap-5 backdrop-blur-sm shadow-inner hover:border-gray-500 transition-all duration-300 group">
-                    <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-xl group-hover:scale-110 transition-transform duration-300">
+                  <div className="w-full rounded-2xl bg-linear-to-br from-blue-100/50 via-purple-50/50 to-pink-100/50 border-3 border-dashed border-gray-400/50 p-12 flex flex-col items-center gap-5 backdrop-blur-xs shadow-inner hover:border-gray-500 transition-all duration-300 group">
+                    <div className="w-24 h-24 rounded-full bg-linear-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-xl group-hover:scale-110 transition-transform duration-300">
                       <VariantStockIcon className="w-14 h-14 text-white" />
                     </div>
-                    <h3 className="text-2xl font-extrabold bg-gradient-to-r from-gray-700 to-gray-900 bg-clip-text text-transparent">
+                    <h3 className="text-2xl font-extrabold bg-linear-to-r from-gray-700 to-gray-900 bg-clip-text text-transparent">
                       No Stock Available
                     </h3>
                     <p className="text-base text-gray-600 font-medium text-center max-w-md">
@@ -511,20 +511,20 @@ export function ManageStockContainer({
                       key={idx}
                       className={`stockcard relative w-[260px] h-[100px] flex flex-col items-start justify-center p-5 rounded-2xl transition-all duration-300 cursor-pointer shadow-lg hover:shadow-2xl transform hover:scale-[1.05] hover:-translate-y-1 group ${
                         i.isLowStock
-                          ? "bg-gradient-to-br from-red-100 via-orange-50 to-red-50 border-2 border-red-400 hover:border-red-500 ring-2 ring-red-200"
-                          : "bg-gradient-to-br from-white via-blue-50/30 to-purple-50/30 border-2 border-gray-300 hover:border-blue-400"
+                          ? "bg-linear-to-br from-red-100 via-orange-50 to-red-50 border-2 border-red-400 hover:border-red-500 ring-2 ring-red-200"
+                          : "bg-linear-to-br from-white via-blue-50/30 to-purple-50/30 border-2 border-gray-300 hover:border-blue-400"
                       }`}
                     >
                       {i.isLowStock && (
                         <div className="absolute top-2 right-2 animate-bounce">
-                          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-red-500 to-red-600 flex items-center justify-center shadow-lg">
+                          <div className="w-7 h-7 rounded-full bg-linear-to-br from-red-500 to-red-600 flex items-center justify-center shadow-lg">
                             <WarningIcon className="w-4 h-4 text-white" />
                           </div>
                         </div>
                       )}
                       <div className="flex items-center justify-between w-full mb-2">
                         <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 rounded-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 shadow-md group-hover:scale-125 transition-transform duration-300"></div>
+                          <div className="w-3 h-3 rounded-full bg-linear-to-r from-blue-500 via-purple-500 to-pink-500 shadow-md group-hover:scale-125 transition-transform duration-300"></div>
                           <h3 className="text-lg font-extrabold text-gray-900 group-hover:text-gray-800 transition-colors">
                             Stock #{idx + 1}
                           </h3>
@@ -546,14 +546,14 @@ export function ManageStockContainer({
                       <div className="action w-full flex flex-row items-center gap-3">
                         <button
                           onClick={() => handleEdit(idx)}
-                          className="flex-1 px-4 py-2.5 text-sm font-bold rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 text-white transition-all duration-200 hover:from-blue-600 hover:to-blue-700 active:scale-95 shadow-md hover:shadow-xl focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                          className="flex-1 px-4 py-2.5 text-sm font-bold rounded-xl bg-linear-to-r from-blue-500 to-blue-600 text-white transition-all duration-200 hover:from-blue-600 hover:to-blue-700 active:scale-95 shadow-md hover:shadow-xl focus:ring-2 focus:ring-blue-400 focus:outline-hidden"
                           aria-label={`Edit stock #${idx + 1}`}
                         >
                           Edit
                         </button>
                         <button
                           onClick={() => handleDeleteStock(idx)}
-                          className="flex-1 px-4 py-2.5 text-sm font-bold rounded-xl bg-gradient-to-r from-red-500 to-red-600 text-white transition-all duration-200 hover:from-red-600 hover:to-red-700 active:scale-95 shadow-md hover:shadow-xl focus:ring-2 focus:ring-red-400 focus:outline-none"
+                          className="flex-1 px-4 py-2.5 text-sm font-bold rounded-xl bg-linear-to-r from-red-500 to-red-600 text-white transition-all duration-200 hover:from-red-600 hover:to-red-700 active:scale-95 shadow-md hover:shadow-xl focus:ring-2 focus:ring-red-400 focus:outline-hidden"
                           aria-label={`Delete stock #${idx + 1}`}
                         >
                           Delete
@@ -567,7 +567,7 @@ export function ManageStockContainer({
 
             <button
               type="button"
-              className="w-[90%] h-16 rounded-2xl bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-white font-bold text-lg transition-all duration-300 hover:shadow-2xl hover:scale-[1.03] active:scale-95 flex items-center justify-center gap-4 shadow-xl hover:from-blue-700 hover:via-purple-700 hover:to-pink-700 relative overflow-hidden group focus:ring-4 focus:ring-purple-300 focus:outline-none"
+              className="w-[90%] h-16 rounded-2xl bg-linear-to-r from-blue-600 via-purple-600 to-pink-600 text-white font-bold text-lg transition-all duration-300 hover:shadow-2xl hover:scale-[1.03] active:scale-95 flex items-center justify-center gap-4 shadow-xl hover:from-blue-700 hover:via-purple-700 hover:to-pink-700 relative overflow-hidden group focus:ring-4 focus:ring-purple-300 focus:outline-hidden"
               onClick={() => {
                 if (!product.Variant) {
                   errorToast("Please Create Variant");
@@ -578,7 +578,7 @@ export function ManageStockContainer({
               }}
               aria-label="Add new stock"
             >
-              <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
+              <div className="absolute inset-0 bg-linear-to-r from-white/0 via-white/20 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
               <PlusIcon className="w-7 h-7 relative z-10" />
               <span className="relative z-10">Add New Stock</span>
             </button>
@@ -710,7 +710,7 @@ export const ColorSelectModal = React.memo(
         `px-6 py-3 rounded-xl text-base font-bold transition-all duration-300 ${
           open
             ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-            : "bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 text-white hover:shadow-2xl hover:scale-110 active:scale-95 shadow-lg hover:from-blue-600 hover:via-purple-600 hover:to-pink-600"
+            : "bg-linear-to-r from-blue-500 via-purple-500 to-pink-500 text-white hover:shadow-2xl hover:scale-110 active:scale-95 shadow-lg hover:from-blue-600 hover:via-purple-600 hover:to-pink-600"
         }`,
       [open],
     );
@@ -855,8 +855,8 @@ export const ColorSelectModal = React.memo(
                   size={"2xl"}
                   placement={isMobile ? "top" : "center"}
                 >
-                  <div className="w-full h-full flex flex-col items-center gap-y-8 justify-center p-6 bg-gradient-to-br from-blue-50/60 via-purple-50/40 to-pink-50/60 rounded-2xl">
-                    <div className="w-full h-fit flex flex-col gap-6 items-center bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-xl border-2 border-gray-200">
+                  <div className="w-full h-full flex flex-col items-center gap-y-8 justify-center p-6 bg-linear-to-br from-blue-50/60 via-purple-50/40 to-pink-50/60 rounded-2xl">
+                    <div className="w-full h-fit flex flex-col gap-6 items-center bg-white/80 backdrop-blur-xs p-6 rounded-2xl shadow-xl border-2 border-gray-200">
                       <CirclePicker
                         color={color.hex}
                         onChange={handleCirclePickerChange}

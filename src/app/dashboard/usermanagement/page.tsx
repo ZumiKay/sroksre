@@ -7,14 +7,7 @@ import {
   errorToast,
   successToast,
 } from "../../component/Loading";
-import React, {
-  useCallback,
-  useEffect,
-  useState,
-  useMemo,
-  memo,
-  use,
-} from "react";
+import React, { useCallback, useEffect, useState, useMemo, memo } from "react";
 import { FilterMenu } from "../../component/SideMenu";
 import { Createusermodal } from "../../component/Modals/User";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -38,11 +31,17 @@ interface UserType {
   phonenumber?: string;
   createdAt: string;
 }
-export default function UsermanagementPage({
-  searchParams,
-}: {
-  searchParams: React.Usable<{ [key: string]: string | undefined }>;
-}) {
+export default function UsermanagementPage() {
+  const router = useRouter();
+  const searchParam = useSearchParams();
+
+  // Extract search params directly from hook
+  const search = searchParam.get("search") ?? undefined;
+  const p = searchParam.get("p") ?? undefined;
+  const lt = searchParam.get("lt") ?? undefined;
+  const sort = searchParam.get("sort") ?? undefined;
+  const role = searchParam.get("role") ?? undefined;
+
   const {
     openmodal,
     setopenmodal,
@@ -51,9 +50,7 @@ export default function UsermanagementPage({
     setalldata,
     allData,
   } = useGlobalContext();
-  const { search, p, lt, sort, role } = use(
-    searchParams,
-  ) as usermangementFilterType;
+
   const handleAdd = useCallback(() => {
     setopenmodal((prev) => ({ ...prev, createUser: true }));
   }, [setopenmodal]);
@@ -71,8 +68,6 @@ export default function UsermanagementPage({
     regularUsers: 0,
     newThisMonth: 0,
   });
-  const router = useRouter();
-  const searchParam = useSearchParams();
 
   // Optimize useEffect to only call fetchdata when necessary
   useEffect(() => {
@@ -306,7 +301,7 @@ export default function UsermanagementPage({
   return (
     <>
       <title>User Management | SrokSre</title>
-      <div className="usermanagement_container relative w-full h-full min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6 md:p-8">
+      <div className="usermanagement_container relative w-full h-full min-h-screen bg-linear-to-br from-gray-50 to-gray-100 p-6 md:p-8">
         {loading && <ContainerLoading />}
 
         {/* Header Section */}
@@ -340,11 +335,11 @@ export default function UsermanagementPage({
             {statisticsCards.map((card, idx) => (
               <div
                 key={idx}
-                className="bg-white p-5 rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow"
+                className="bg-white p-5 rounded-xl shadow-xs border border-gray-200 hover:shadow-md transition-shadow"
               >
                 <div className="flex items-center justify-between mb-3">
                   <div
-                    className={`w-12 h-12 rounded-lg bg-gradient-to-br ${card.gradient} flex items-center justify-center`}
+                    className={`w-12 h-12 rounded-lg bg-linear-to-br ${card.gradient} flex items-center justify-center`}
                   >
                     <i
                       className={`fa-solid ${card.icon} text-white text-xl`}
@@ -361,7 +356,7 @@ export default function UsermanagementPage({
         </div>
 
         {/* Search and Filter Bar */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
+        <div className="bg-white rounded-xl shadow-xs border border-gray-200 p-4 mb-6">
           <div className="flex flex-col lg:flex-row gap-3">
             {/* Search Input */}
             <div className="flex-1 flex gap-2">
@@ -373,7 +368,7 @@ export default function UsermanagementPage({
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-hidden transition-all"
                 />
               </div>
               <button
@@ -388,7 +383,7 @@ export default function UsermanagementPage({
             <select
               value={sort || "newest"}
               onChange={(e) => handleSort(e.target.value)}
-              className="px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all bg-white"
+              className="px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-hidden transition-all bg-white"
             >
               <option value="newest">Newest First</option>
               <option value="oldest">Oldest First</option>
@@ -400,7 +395,7 @@ export default function UsermanagementPage({
             <select
               value={role || "all"}
               onChange={(e) => handleRoleFilter(e.target.value)}
-              className="px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all bg-white"
+              className="px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-hidden transition-all bg-white"
             >
               <option value="all">All Roles</option>
               <option value="ADMIN">Admin</option>
@@ -439,14 +434,14 @@ export default function UsermanagementPage({
 
           {/* Bulk Actions */}
           {selectedUsers.length > 0 && (
-            <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-lg border border-gray-200 shadow-sm">
+            <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-lg border border-gray-200 shadow-xs">
               <span className="text-sm font-medium text-gray-700">
                 {selectedUsers.length} selected
               </span>
               <select
                 value={bulkAction}
                 onChange={(e) => setBulkAction(e.target.value)}
-                className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-hidden"
               >
                 <option value="">Select Action</option>
                 <option value="delete">Delete</option>
@@ -463,13 +458,13 @@ export default function UsermanagementPage({
         </div>
         {/* Bulk Selection Header */}
         {allData?.user && allData.user.length > 0 && (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 mb-4">
+          <div className="bg-white rounded-lg shadow-xs border border-gray-200 p-3 mb-4">
             <label className="flex items-center gap-3 cursor-pointer">
               <input
                 type="checkbox"
                 checked={selectedUsers.length === allData.user.length}
                 onChange={handleSelectAll}
-                className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                className="w-5 h-5 rounded-sm border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 cursor-pointer"
               />
               <span className="text-sm font-medium text-gray-700">
                 Select All ({allData.user.length} users)
@@ -481,7 +476,7 @@ export default function UsermanagementPage({
         {/* User Cards Grid/List */}
         <div className="userlist w-full h-fit">
           {!allData || !allData.user || allData.user.length === 0 ? (
-            <div className="w-full flex flex-col items-center justify-center py-20 bg-white rounded-xl shadow-sm border border-gray-200">
+            <div className="w-full flex flex-col items-center justify-center py-20 bg-white rounded-xl shadow-xs border border-gray-200">
               <div className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center mb-4">
                 <i className="fa-solid fa-users text-gray-400 text-4xl"></i>
               </div>
@@ -507,7 +502,7 @@ export default function UsermanagementPage({
                       type="checkbox"
                       checked={selectedUsers.includes(i.id || idx)}
                       onChange={() => handleSelectUser(i.id || idx)}
-                      className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                      className="w-5 h-5 rounded-sm border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 cursor-pointer"
                     />
                   </label>
 
@@ -531,7 +526,7 @@ export default function UsermanagementPage({
         {/* Pagination */}
         {itemlength.totalpage ? (
           <div className="w-full h-fit mt-12 flex justify-center">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+            <div className="bg-white rounded-xl shadow-xs border border-gray-200 p-4">
               <PaginationCustom
                 count={itemlength.totalpage}
                 page={page}
@@ -591,6 +586,12 @@ const EnhancedUserCard = memo(
     viewMode: "grid" | "list";
   }) => {
     const { setopenmodal, setglobalindex } = useGlobalContext();
+    const [isMounted, setIsMounted] = useState(false);
+
+    // Prevent hydration mismatch for date formatting
+    useEffect(() => {
+      setIsMounted(true);
+    }, []);
 
     const handleEdit = useCallback(() => {
       setglobalindex((prev) => ({ ...prev, useredit: index }));
@@ -638,8 +639,8 @@ const EnhancedUserCard = memo(
       [firstname, lastname],
     );
     const formattedDate = useMemo(
-      () => createdAt?.toLocaleDateString() || "",
-      [createdAt],
+      () => (isMounted && createdAt ? createdAt.toLocaleDateString() : ""),
+      [createdAt, isMounted],
     );
 
     if (viewMode === "list") {
@@ -654,7 +655,7 @@ const EnhancedUserCard = memo(
         >
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-4 flex-1 min-w-0">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+              <div className="w-12 h-12 rounded-full bg-linear-to-br from-blue-500 to-purple-600 flex items-center justify-center shrink-0">
                 <span className="text-white font-bold text-lg">
                   {firstLetter}
                 </span>
@@ -666,7 +667,7 @@ const EnhancedUserCard = memo(
                 <p className="text-sm text-gray-500 truncate">{email}</p>
               </div>
             </div>
-            <div className="flex items-center gap-4 flex-shrink-0">
+            <div className="flex items-center gap-4 shrink-0">
               <span
                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold border ${roleColor}`}
               >
@@ -707,7 +708,7 @@ const EnhancedUserCard = memo(
         }`}
       >
         <div className="flex flex-col items-center gap-4">
-          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+          <div className="w-20 h-20 rounded-full bg-linear-to-br from-blue-500 to-purple-600 flex items-center justify-center">
             <span className="text-white font-bold text-2xl">{firstLetter}</span>
           </div>
           <div className="text-center w-full">

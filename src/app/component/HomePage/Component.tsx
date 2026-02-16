@@ -16,19 +16,19 @@ import PrimaryButton from "../Button";
 export const BannerSkeleton = () => {
   return (
     <Card
-      className="w-[350px] h-[270px] space-y-5 p-4 max-small_phone:w-[275px] bg-gradient-to-br from-gray-100 to-gray-200 border border-gray-200 shadow-lg"
+      className="w-[350px] h-[270px] space-y-5 p-4 max-small_phone:w-[275px] bg-linear-to-br from-gray-100 to-gray-200 border border-gray-200 shadow-lg"
       style={{ backgroundColor: "transparent" }}
       radius="lg"
     >
       <Skeleton className="rounded-xl">
-        <div className="h-[200px] rounded-xl bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 animate-pulse"></div>
+        <div className="h-[200px] rounded-xl bg-linear-to-r from-gray-200 via-gray-300 to-gray-200 animate-pulse"></div>
       </Skeleton>
       <div className="space-y-3">
         <Skeleton className="w-4/5 rounded-lg">
-          <div className="h-4 w-full rounded-lg bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 animate-pulse"></div>
+          <div className="h-4 w-full rounded-lg bg-linear-to-r from-gray-200 via-gray-300 to-gray-200 animate-pulse"></div>
         </Skeleton>
         <Skeleton className="w-3/5 rounded-lg">
-          <div className="h-3 w-full rounded-lg bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 animate-pulse"></div>
+          <div className="h-3 w-full rounded-lg bg-linear-to-r from-gray-200 via-gray-300 to-gray-200 animate-pulse"></div>
         </Skeleton>
       </div>
     </Card>
@@ -110,7 +110,7 @@ export const SlideShow = (props: bannerprops) => {
                     loading="lazy"
                   />
                   {/* Gradient overlay for better text readability */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent pointer-events-none" />
+                  <div className="absolute inset-0 bg-linear-to-t from-black/70 via-black/20 to-transparent pointer-events-none" />
                   <motion.h3
                     initial={{ left: "10px", opacity: 0 }}
                     animate={{ left: "5%", opacity: 1 }}
@@ -132,10 +132,10 @@ export const SlideShow = (props: bannerprops) => {
         </AnimatePresence>
       </div>
 
-      <div className="control_item h-fit min-h-[60px] w-full flex flex-row justify-between items-center bg-gradient-to-r from-gray-800 via-gray-700 to-gray-800 flex-wrap px-4 py-2 shadow-lg">
+      <div className="control_item h-fit min-h-[60px] w-full flex flex-row justify-between items-center bg-linear-to-r from-gray-800 via-gray-700 to-gray-800 flex-wrap px-4 py-2 shadow-lg">
         {props.data[currentSlide].link && (
           <Button
-            className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold max-w-md rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+            className="bg-linear-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold max-w-md rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
             size="lg"
             onClick={() =>
               router.replace(props.data[currentSlide].link as string)
@@ -182,7 +182,7 @@ export const SlideShow = (props: bannerprops) => {
                   initial={{ width: 0 }}
                   animate={{ width: "44px" }}
                   transition={{ duration: 10, ease: "linear" }}
-                  className="h-[3px] bg-gradient-to-r from-blue-400 via-blue-500 to-blue-400 rounded-full shadow-lg mt-1"
+                  className="h-[3px] bg-linear-to-r from-blue-400 via-blue-500 to-blue-400 rounded-full shadow-lg mt-1"
                 ></motion.span>
               )}
             </div>
@@ -193,7 +193,7 @@ export const SlideShow = (props: bannerprops) => {
         className="w-fit h-fit absolute top-[45%] cursor-pointer left-4 transition-all opacity-70 hover:scale-110 hover:opacity-100 active:scale-95 z-10"
         onClick={() => handleNavigate("prev")}
       >
-        <div className="arrow text-[28px] grid place-content-center bg-gradient-to-br from-gray-900 to-black backdrop-blur-sm border-2 border-white/30 w-[60px] h-[60px] rounded-full text-white shadow-2xl hover:shadow-blue-500/50 transition-all duration-300 hover:border-blue-400">
+        <div className="arrow text-[28px] grid place-content-center bg-linear-to-br from-gray-900 to-black backdrop-blur-xs border-2 border-white/30 w-[60px] h-[60px] rounded-full text-white shadow-2xl hover:shadow-blue-500/50 transition-all duration-300 hover:border-blue-400">
           <svg
             className="w-6 h-6"
             fill="none"
@@ -213,7 +213,7 @@ export const SlideShow = (props: bannerprops) => {
         className="w-fit h-fit absolute top-[45%] cursor-pointer right-4 transition-all opacity-70 hover:scale-110 hover:opacity-100 active:scale-95 z-10"
         onClick={() => handleNavigate("next")}
       >
-        <div className="arrow text-[28px] grid place-content-center bg-gradient-to-br from-gray-900 to-black backdrop-blur-sm border-2 border-white/30 w-[60px] h-[60px] rounded-full text-white shadow-2xl hover:shadow-blue-500/50 transition-all duration-300 hover:border-blue-400">
+        <div className="arrow text-[28px] grid place-content-center bg-linear-to-br from-gray-900 to-black backdrop-blur-xs border-2 border-white/30 w-[60px] h-[60px] rounded-full text-white shadow-2xl hover:shadow-blue-500/50 transition-all duration-300 hover:border-blue-400">
           <svg
             className="w-6 h-6"
             fill="none"
@@ -264,9 +264,9 @@ const CategoryCard = (props: Categorycardprops) => {
           loading="lazy"
         />
         {/* Gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+        <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
       </div>
-      <div className="name text-[32px] grid place-content-center font-bold text-white w-full min-h-[100px] h-fit bg-gradient-to-r from-gray-800 via-gray-700 to-gray-800 p-4 text-center group-hover:bg-gradient-to-r group-hover:from-blue-600 group-hover:via-blue-700 group-hover:to-blue-600 transition-all duration-500">
+      <div className="name text-[32px] grid place-content-center font-bold text-white w-full min-h-[100px] h-fit bg-linear-to-r from-gray-800 via-gray-700 to-gray-800 p-4 text-center group-hover:bg-linear-to-r group-hover:from-blue-600 group-hover:via-blue-700 group-hover:to-blue-600 transition-all duration-500">
         <span className="group-hover:scale-110 transition-transform duration-300">
           {props.data.name}
         </span>
@@ -292,8 +292,8 @@ export const CategoryContainer = ({ name, data }: CategoryContainerProps) => {
 
   return (
     <div key={name} className="w-full h-fit">
-      <h3 className="title w-full h-fit text-4xl text-left bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 bg-clip-text text-transparent font-black mb-8 flex items-center gap-3">
-        <div className="w-2 h-10 bg-gradient-to-b from-blue-500 to-purple-600 rounded-full"></div>
+      <h3 className="title w-full h-fit text-4xl text-left bg-linear-to-r from-gray-900 via-gray-800 to-gray-900 bg-clip-text text-transparent font-black mb-8 flex items-center gap-3">
+        <div className="w-2 h-10 bg-linear-to-b from-blue-500 to-purple-600 rounded-full"></div>
         {name}
       </h3>
 
@@ -349,7 +349,7 @@ export const Banner: React.FC<BannerProps> = (props) => {
         className="object-cover w-full h-auto max-h-[90vh] min-h-[600px]"
       />
       {/* Gradient overlay for better text visibility */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent pointer-events-none" />
+      <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/30 to-transparent pointer-events-none" />
       <motion.h3
         initial={{ paddingLeft: "0px", opacity: 0 }}
         whileInView={{ paddingLeft: "50px", opacity: 1 }}
@@ -405,7 +405,7 @@ export const ProductCard = (props: ProductCardProps) => {
           className="w-full h-[500px] object-contain transition-transform duration-700 group-hover:scale-110"
         />
         {props.price.discount && (
-          <div className="absolute top-4 right-4 bg-gradient-to-r from-red-500 to-red-600 text-white px-4 py-2 rounded-full font-bold text-sm shadow-lg">
+          <div className="absolute top-4 right-4 bg-linear-to-r from-red-500 to-red-600 text-white px-4 py-2 rounded-full font-bold text-sm shadow-lg">
             -{props.price.discount.percent}%
           </div>
         )}
@@ -466,9 +466,9 @@ export const ScrollableContainer = (props: ScrollableContainerProps) => {
   };
   return (
     <div key={props.title} className="w-full h-fit">
-      <div className="header w-full h-[70px] flex flex-row items-center justify-between bg-gradient-to-r from-gray-800 via-gray-700 to-gray-800 px-6 py-3 rounded-t-2xl shadow-lg">
+      <div className="header w-full h-[70px] flex flex-row items-center justify-between bg-linear-to-r from-gray-800 via-gray-700 to-gray-800 px-6 py-3 rounded-t-2xl shadow-lg">
         <h3 className="text-3xl text-white font-bold w-full text-left flex items-center gap-3">
-          <div className="w-1.5 h-8 bg-gradient-to-b from-blue-400 to-purple-600 rounded-full"></div>
+          <div className="w-1.5 h-8 bg-linear-to-b from-blue-400 to-purple-600 rounded-full"></div>
           {props.title}
         </h3>
         <div className="w-[200px] flex flex-row items-center justify-end gap-x-3 select-none">
@@ -476,7 +476,7 @@ export const ScrollableContainer = (props: ScrollableContainerProps) => {
             onClick={() => handleScroll("left")}
             className="w-fit h-fit cursor-pointer transition-all hover:scale-110 active:scale-95 group"
           >
-            <div className="arrow text-[20px] flex items-center justify-center bg-gradient-to-br from-white to-gray-100 hover:from-blue-500 hover:to-blue-600 text-gray-800 hover:text-white w-[48px] h-[48px] rounded-full shadow-lg hover:shadow-xl transition-all duration-300">
+            <div className="arrow text-[20px] flex items-center justify-center bg-linear-to-br from-white to-gray-100 hover:from-blue-500 hover:to-blue-600 text-gray-800 hover:text-white w-[48px] h-[48px] rounded-full shadow-lg hover:shadow-xl transition-all duration-300">
               <svg
                 className="w-5 h-5"
                 fill="none"
@@ -496,7 +496,7 @@ export const ScrollableContainer = (props: ScrollableContainerProps) => {
             onClick={() => handleScroll("right")}
             className="w-fit h-fit cursor-pointer transition-all hover:scale-110 active:scale-95 group"
           >
-            <div className="arrow text-[20px] flex items-center justify-center bg-gradient-to-br from-white to-gray-100 hover:from-blue-500 hover:to-blue-600 text-gray-800 hover:text-white w-[48px] h-[48px] rounded-full shadow-lg hover:shadow-xl transition-all duration-300">
+            <div className="arrow text-[20px] flex items-center justify-center bg-linear-to-br from-white to-gray-100 hover:from-blue-500 hover:to-blue-600 text-gray-800 hover:text-white w-[48px] h-[48px] rounded-full shadow-lg hover:shadow-xl transition-all duration-300">
               <svg
                 className="w-5 h-5"
                 fill="none"
@@ -515,7 +515,7 @@ export const ScrollableContainer = (props: ScrollableContainerProps) => {
         </div>
       </div>
       <div
-        className="w-full overflow-x-auto scrollbar-hide overflow-y-hidden pb-20 bg-gradient-to-b from-gray-50 to-white rounded-b-2xl"
+        className="w-full overflow-x-auto scrollbar-hide overflow-y-hidden pb-20 bg-linear-to-b from-gray-50 to-white rounded-b-2xl"
         ref={scrollref}
       >
         <div className="productlist w-fit h-fit flex flex-row items-center gap-x-6 mt-8 px-6 pb-6">

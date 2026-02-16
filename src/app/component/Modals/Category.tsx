@@ -132,7 +132,7 @@ export const Category = () => {
 
   const CategoryNavBar = () => {
     return (
-      <div className="category__navbar w-full h-fit bg-gradient-to-r from-blue-50 via-purple-50 to-pink-50 rounded-2xl p-2 shadow-md border-2 border-gray-200">
+      <div className="category__navbar w-full h-fit bg-linear-to-r from-blue-50 via-purple-50 to-pink-50 rounded-2xl p-2 shadow-md border-2 border-gray-200">
         <div className="flex flex-row items-center gap-2">
           {(["Create", "Edit"] as const).map((mode) => (
             <button
@@ -140,7 +140,7 @@ export const Category = () => {
               onClick={() => handleNavbar(mode)}
               className={`category_header w-[50%] h-12 text-center text-base font-bold transition-all duration-300 rounded-xl flex items-center justify-center gap-2 ${
                 show === mode
-                  ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg scale-105"
+                  ? "bg-linear-to-r from-blue-500 to-purple-600 text-white shadow-lg scale-105"
                   : "bg-white text-gray-600 hover:bg-gray-50 hover:text-gray-800 hover:shadow-md"
               }`}
             >
@@ -166,7 +166,7 @@ export const Category = () => {
       }
       placement={isMobile ? "top-center" : isTablet ? "center" : undefined}
     >
-      <div className="category relative rounded-2xl p-6 w-full h-full flex flex-col items-center bg-gradient-to-br from-gray-50 via-white to-blue-50/30 gap-y-6 shadow-inner">
+      <div className="category relative rounded-2xl p-6 w-full h-full flex flex-col items-center bg-linear-to-br from-gray-50 via-white to-blue-50/30 gap-y-6 shadow-inner">
         <CategoryNavBar />
         {show === "Create" ? (
           <>
@@ -226,7 +226,7 @@ export const Category = () => {
               />
             </div>
             {catetype === "sale" && (
-              <div className="w-full h-fit bg-gradient-to-br from-orange-50 to-red-50 rounded-2xl p-6 shadow-lg border-2 border-orange-200">
+              <div className="w-full h-fit bg-linear-to-br from-orange-50 to-red-50 rounded-2xl p-6 shadow-lg border-2 border-orange-200">
                 <div className="space-y-2 mb-4">
                   <h4 className="text-lg font-bold text-gray-800 flex items-center gap-2">
                     <i className="fa-solid fa-tags text-orange-500"></i>
@@ -251,7 +251,7 @@ export const Category = () => {
             )}
 
             {catetype === "popular" && (
-              <div className="w-full h-fit bg-gradient-to-br from-green-50 to-teal-50 rounded-2xl p-6 shadow-lg border-2 border-green-200">
+              <div className="w-full h-fit bg-linear-to-br from-green-50 to-teal-50 rounded-2xl p-6 shadow-lg border-2 border-green-200">
                 <div className="space-y-2 mb-4">
                   <h4 className="text-lg font-bold text-gray-800 flex items-center gap-2">
                     <i className="fa-solid fa-calendar-days text-green-500"></i>
@@ -303,7 +303,7 @@ export const Category = () => {
                   className={`w-full h-14 rounded-xl font-bold text-base transition-all duration-300 shadow-lg flex items-center justify-center gap-2 ${
                     category.name.length === 0
                       ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                      : "bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700 hover:shadow-xl hover:scale-105"
+                      : "bg-linear-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700 hover:shadow-xl hover:scale-105"
                   }`}
                 >
                   <i className="fa-solid fa-folder-tree text-lg"></i>
@@ -327,7 +327,7 @@ export const Category = () => {
               className={`w-full h-14 rounded-xl font-bold text-lg transition-all duration-300 shadow-lg flex items-center justify-center gap-3 ${
                 category.name.length === 0 || loading
                   ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                  : "bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:from-green-600 hover:to-emerald-700 hover:shadow-2xl hover:scale-105"
+                  : "bg-linear-to-r from-green-500 to-emerald-600 text-white hover:from-green-600 hover:to-emerald-700 hover:shadow-2xl hover:scale-105"
               }`}
             >
               {loading ? (
@@ -497,23 +497,23 @@ const EditCategory = ({
                 {Array.from({ length: 3 }).map((_, idx) => (
                   <div
                     key={idx}
-                    className="w-full h-[60px] rounded-xl bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 animate-pulse"
+                    className="w-full h-[60px] rounded-xl bg-linear-to-r from-gray-200 via-gray-100 to-gray-200 animate-pulse"
                     style={{
                       animationDelay: `${idx * 0.1}s`,
                     }}
                   >
                     <div className="flex items-center h-full px-4 gap-3">
                       <div className="w-8 h-8 bg-gray-300 rounded-lg"></div>
-                      <div className="flex-1 h-4 bg-gray-300 rounded"></div>
+                      <div className="flex-1 h-4 bg-gray-300 rounded-sm"></div>
                       <div className="w-20 h-8 bg-gray-300 rounded-lg"></div>
                     </div>
                   </div>
                 ))}
               </div>
             ) : allData?.category && allData.category.length === 0 ? (
-              <div className="w-full h-[300px] flex flex-col items-center justify-center bg-gradient-to-br from-gray-50 to-indigo-50 rounded-2xl border-2 border-dashed border-gray-300">
+              <div className="w-full h-[300px] flex flex-col items-center justify-center bg-linear-to-br from-gray-50 to-indigo-50 rounded-2xl border-2 border-dashed border-gray-300">
                 <div className="text-center space-y-4">
-                  <div className="w-20 h-20 mx-auto rounded-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center">
+                  <div className="w-20 h-20 mx-auto rounded-full bg-linear-to-br from-gray-200 to-gray-300 flex items-center justify-center">
                     <i className="fa-solid fa-folder-open text-3xl text-gray-400"></i>
                   </div>
                   <div>
@@ -536,11 +536,11 @@ const EditCategory = ({
                     duration: 0.3,
                     delay: idx * 0.05,
                   }}
-                  className="parentcategory w-full bg-gradient-to-r from-white to-gray-50 h-fit min-h-[60px] rounded-xl flex flex-row items-center gap-3 p-3 border-2 border-gray-200 hover:border-blue-300 hover:shadow-lg transition-all duration-300 group"
+                  className="parentcategory w-full bg-linear-to-r from-white to-gray-50 h-fit min-h-[60px] rounded-xl flex flex-row items-center gap-3 p-3 border-2 border-gray-200 hover:border-blue-300 hover:shadow-lg transition-all duration-300 group"
                 >
                   <button
                     onClick={() => handleClick(idx)}
-                    className="parentcateogry text-base font-bold w-full h-full break-all flex items-center justify-start gap-2 cursor-pointer px-4 py-2 rounded-lg bg-gray-50 text-gray-800 hover:bg-gradient-to-r hover:from-blue-500 hover:to-purple-600 hover:text-white transition-all duration-300 group-hover:scale-105"
+                    className="parentcateogry text-base font-bold w-full h-full break-all flex items-center justify-start gap-2 cursor-pointer px-4 py-2 rounded-lg bg-gray-50 text-gray-800 hover:bg-linear-to-r hover:from-blue-500 hover:to-purple-600 hover:text-white transition-all duration-300 group-hover:scale-105"
                   >
                     <i className="fa-solid fa-folder text-lg"></i>
                     <span>{obj.name}</span>
@@ -560,7 +560,7 @@ const EditCategory = ({
                         ],
                       }));
                     }}
-                    className="actions text-white font-bold text-sm cursor-pointer min-w-[100px] h-full transition-all duration-300 rounded-lg flex items-center justify-center gap-2 bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 hover:shadow-lg px-4 py-2"
+                    className="actions text-white font-bold text-sm cursor-pointer min-w-[100px] h-full transition-all duration-300 rounded-lg flex items-center justify-center gap-2 bg-linear-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 hover:shadow-lg px-4 py-2"
                   >
                     <i className="fa-solid fa-trash"></i>
                     <span>Delete</span>
@@ -574,12 +574,12 @@ const EditCategory = ({
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.3 }}
-            className="editcontainer flex flex-col gap-y-6 w-full h-full bg-gradient-to-br from-white to-blue-50 rounded-2xl p-6 relative shadow-xl border-2 border-blue-200"
+            className="editcontainer flex flex-col gap-y-6 w-full h-full bg-linear-to-br from-white to-blue-50 rounded-2xl p-6 relative shadow-xl border-2 border-blue-200"
           >
             {loading && (
-              <div className="absolute inset-0 bg-white/80 backdrop-blur-sm rounded-2xl flex items-center justify-center z-10">
+              <div className="absolute inset-0 bg-white/80 backdrop-blur-xs rounded-2xl flex items-center justify-center z-10">
                 <div className="text-center space-y-3">
-                  <div className="w-16 h-16 mx-auto rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                  <div className="w-16 h-16 mx-auto rounded-full bg-linear-to-br from-blue-500 to-purple-600 flex items-center justify-center">
                     <i className="fa-solid fa-spinner fa-spin text-2xl text-white"></i>
                   </div>
                   <p className="text-base font-semibold text-gray-700">
@@ -591,7 +591,7 @@ const EditCategory = ({
 
             <div className="w-full space-y-2 pb-4 border-b-2 border-blue-200">
               <h4 className="text-2xl font-bold text-gray-800 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-full bg-linear-to-br from-blue-500 to-purple-600 flex items-center justify-center">
                   <i className="fa-solid fa-pen-to-square text-white"></i>
                 </div>
                 Edit Category
@@ -602,7 +602,7 @@ const EditCategory = ({
             </div>
 
             <div className="space-y-5">
-              <div className="bg-white rounded-xl p-5 border-2 border-gray-200 shadow-sm space-y-4">
+              <div className="bg-white rounded-xl p-5 border-2 border-gray-200 shadow-xs space-y-4">
                 <div className="flex items-center gap-2 mb-3">
                   <i className="fa-solid fa-info-circle text-lg text-blue-500"></i>
                   <h5 className="font-bold text-gray-800">Basic Information</h5>
@@ -647,7 +647,7 @@ const EditCategory = ({
               </div>
 
               {category.type === "sale" && (
-                <div className="w-full bg-gradient-to-br from-orange-50 to-red-50 rounded-xl p-4 border-2 border-orange-200">
+                <div className="w-full bg-linear-to-br from-orange-50 to-red-50 rounded-xl p-4 border-2 border-orange-200">
                   <div className="space-y-2 mb-4">
                     <h5 className="font-semibold text-gray-800 flex items-center gap-2">
                       <i className="fa-solid fa-tags text-orange-500"></i>
@@ -670,13 +670,13 @@ const EditCategory = ({
                 </div>
               )}
               {category.type === "normal" && (
-                <div className="w-full bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl p-4 border-2 border-indigo-200">
+                <div className="w-full bg-linear-to-br from-indigo-50 to-purple-50 rounded-xl p-4 border-2 border-indigo-200">
                   <AddSubCategoryMenu index={editindex} />
                 </div>
               )}
 
               {category.type === "popular" && (
-                <div className="w-full bg-gradient-to-br from-green-50 to-teal-50 rounded-xl p-4 border-2 border-green-200">
+                <div className="w-full bg-linear-to-br from-green-50 to-teal-50 rounded-xl p-4 border-2 border-green-200">
                   <div className="space-y-2 mb-4">
                     <h5 className="font-semibold text-gray-800 flex items-center gap-2">
                       <i className="fa-solid fa-calendar-days text-green-500"></i>
@@ -718,7 +718,7 @@ const EditCategory = ({
                 className={`w-full h-12 rounded-xl font-bold text-base transition-all duration-300 shadow-lg flex items-center justify-center gap-2 ${
                   loading
                     ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                    : "bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700 hover:shadow-xl"
+                    : "bg-linear-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700 hover:shadow-xl"
                 }`}
               >
                 {loading ? (
@@ -739,7 +739,7 @@ const EditCategory = ({
                   setedit(false);
                   setcategory(CateogoryInitailizestate);
                 }}
-                className="w-full h-12 rounded-xl font-bold text-base transition-all duration-300 shadow-lg flex items-center justify-center gap-2 bg-gradient-to-r from-pink-500 to-red-600 text-white hover:from-pink-600 hover:to-red-700 hover:shadow-xl"
+                className="w-full h-12 rounded-xl font-bold text-base transition-all duration-300 shadow-lg flex items-center justify-center gap-2 bg-linear-to-r from-pink-500 to-red-600 text-white hover:from-pink-600 hover:to-red-700 hover:shadow-xl"
               >
                 <i className="fa-solid fa-arrow-left"></i>
                 <span>Back</span>
@@ -752,7 +752,7 @@ const EditCategory = ({
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col gap-4 w-full h-fit bg-gradient-to-r from-red-50 to-pink-50 p-5 rounded-2xl border-2 border-red-300 shadow-lg"
+          className="flex flex-col gap-4 w-full h-fit bg-linear-to-r from-red-50 to-pink-50 p-5 rounded-2xl border-2 border-red-300 shadow-lg"
         >
           <div className="flex items-center gap-2 pb-2 border-b border-red-200">
             <i className="fa-solid fa-exclamation-triangle text-red-500"></i>
@@ -776,7 +776,7 @@ const EditCategory = ({
               className={`w-full h-12 rounded-xl font-bold text-base transition-all duration-300 shadow-lg flex items-center justify-center gap-2 ${
                 loading
                   ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                  : "bg-gradient-to-r from-red-500 to-pink-600 text-white hover:from-red-600 hover:to-pink-700 hover:shadow-2xl hover:scale-105"
+                  : "bg-linear-to-r from-red-500 to-pink-600 text-white hover:from-red-600 hover:to-pink-700 hover:shadow-2xl hover:scale-105"
               }`}
             >
               {loading ? (
@@ -802,7 +802,7 @@ const EditCategory = ({
               className={`w-full h-12 rounded-xl font-bold text-base transition-all duration-300 shadow-lg flex items-center justify-center gap-2 ${
                 loading || globalindex.categoryeditindex.length === 0
                   ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                  : "bg-gradient-to-r from-gray-500 to-gray-700 text-white hover:from-gray-600 hover:to-gray-800 hover:shadow-2xl hover:scale-105"
+                  : "bg-linear-to-r from-gray-500 to-gray-700 text-white hover:from-gray-600 hover:to-gray-800 hover:shadow-2xl hover:scale-105"
               }`}
             >
               <i className="fa-solid fa-rotate-left"></i>

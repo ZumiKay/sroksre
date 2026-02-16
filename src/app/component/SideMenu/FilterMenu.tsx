@@ -308,7 +308,7 @@ export const FilterMenu = ({
 
   const Footer = useMemo(() => {
     return () => (
-      <div className="flex gap-3 w-full p-4 bg-gradient-to-t from-gray-50 to-white border-t border-gray-100">
+      <div className="flex gap-3 w-full p-4 bg-linear-to-t from-gray-50 to-white border-t border-gray-100">
         {type !== "listproduct" ? (
           <PrimaryButton
             type="button"
@@ -368,7 +368,7 @@ export const FilterMenu = ({
     >
       <div className="filtermenu w-full relative h-fit">
         <div
-          className="bg-gradient-to-b from-white to-gray-50 p-8 max-small_phone:p-5 max-small_phone:max-h-[50vh] rounded-2xl flex flex-col gap-y-6 transition-all duration-300 shadow-sm"
+          className="bg-linear-to-b from-white to-gray-50 p-8 max-small_phone:p-5 max-small_phone:max-h-[50vh] rounded-2xl flex flex-col gap-y-6 transition-all duration-300 shadow-xs"
           style={{
             opacity: loading ? 0.5 : 1,
             pointerEvents: loading ? "none" : "auto",
@@ -395,7 +395,7 @@ export const FilterMenu = ({
                 Search by Name
               </label>
               {loading ? (
-                <div className="w-full h-[52px] rounded-xl bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 animate-pulse" />
+                <div className="w-full h-[52px] rounded-xl bg-linear-to-r from-gray-200 via-gray-300 to-gray-200 animate-pulse" />
               ) : (
                 <input
                   type="text"
@@ -404,7 +404,7 @@ export const FilterMenu = ({
                   value={filtervalue.name}
                   onChange={handleNameChange}
                   disabled={loading}
-                  className="w-full px-4 py-3 h-[52px] rounded-xl border-2 border-gray-200 bg-white hover:border-gray-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all duration-200 outline-none disabled:opacity-50 disabled:cursor-not-allowed shadow-sm text-gray-900 placeholder:text-gray-400"
+                  className="w-full px-4 py-3 h-[52px] rounded-xl border-2 border-gray-200 bg-white hover:border-gray-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all duration-200 outline-hidden disabled:opacity-50 disabled:cursor-not-allowed shadow-xs text-gray-900 placeholder:text-gray-400"
                 />
               )}
             </div>
@@ -456,7 +456,7 @@ export const FilterMenu = ({
                 Search Users
               </label>
               {loading ? (
-                <div className="w-full h-[52px] rounded-xl bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 animate-pulse" />
+                <div className="w-full h-[52px] rounded-xl bg-linear-to-r from-gray-200 via-gray-300 to-gray-200 animate-pulse" />
               ) : (
                 <input
                   type="text"
@@ -465,15 +465,15 @@ export const FilterMenu = ({
                   value={filtervalue.search}
                   onChange={handleSearchChange}
                   disabled={loading}
-                  className="w-full px-4 py-3 h-[52px] rounded-xl border-2 border-gray-200 bg-white hover:border-gray-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all duration-200 outline-none disabled:opacity-50 disabled:cursor-not-allowed shadow-sm text-gray-900 placeholder:text-gray-400"
+                  className="w-full px-4 py-3 h-[52px] rounded-xl border-2 border-gray-200 bg-white hover:border-gray-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all duration-200 outline-hidden disabled:opacity-50 disabled:cursor-not-allowed shadow-xs text-gray-900 placeholder:text-gray-400"
                 />
               )}
             </div>
           )}
           {type === "banner" && (
-            <div className="space-y-6 p-4 bg-gradient-to-br from-purple-50 to-blue-50 rounded-xl border border-purple-100">
+            <div className="space-y-6 p-4 bg-linear-to-br from-purple-50 to-blue-50 rounded-xl border border-purple-100">
               <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-blue-500 rounded-lg flex items-center justify-center">
+                <div className="w-8 h-8 bg-linear-to-br from-purple-500 to-blue-500 rounded-lg flex items-center justify-center">
                   <svg
                     className="w-5 h-5 text-white"
                     fill="none"
@@ -497,7 +497,7 @@ export const FilterMenu = ({
                   Banner Type
                 </label>
                 {loading ? (
-                  <div className="w-full h-[52px] rounded-xl bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 animate-pulse" />
+                  <div className="w-full h-[52px] rounded-xl bg-linear-to-r from-gray-200 via-gray-300 to-gray-200 animate-pulse" />
                 ) : (
                   <Selection
                     name="bannertype"
@@ -513,7 +513,7 @@ export const FilterMenu = ({
                   Banner Size
                 </label>
                 {loading ? (
-                  <div className="w-full h-[52px] rounded-xl bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 animate-pulse" />
+                  <div className="w-full h-[52px] rounded-xl bg-linear-to-r from-gray-200 via-gray-300 to-gray-200 animate-pulse" />
                 ) : (
                   <Selection
                     name="bannersize"
@@ -527,9 +527,9 @@ export const FilterMenu = ({
             </div>
           )}
           {type === "promotion" && (
-            <div className="space-y-6 p-4 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border border-green-100">
+            <div className="space-y-6 p-4 bg-linear-to-br from-green-50 to-emerald-50 rounded-xl border border-green-100">
               <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-500 rounded-lg flex items-center justify-center">
+                <div className="w-8 h-8 bg-linear-to-br from-green-500 to-emerald-500 rounded-lg flex items-center justify-center">
                   <svg
                     className="w-5 h-5 text-white"
                     fill="none"
@@ -566,9 +566,9 @@ export const FilterMenu = ({
                   Expiration Date
                 </label>
                 {loading ? (
-                  <div className="w-full h-[52px] rounded-xl bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 animate-pulse" />
+                  <div className="w-full h-[52px] rounded-xl bg-linear-to-r from-gray-200 via-gray-300 to-gray-200 animate-pulse" />
                 ) : (
-                  <div className="w-full h-[52px] relative z-[100]">
+                  <div className="w-full h-[52px] relative z-100">
                     <DateTimePicker
                       sx={{
                         width: "100%",
@@ -593,7 +593,7 @@ export const FilterMenu = ({
                   Status
                 </label>
                 {loading ? (
-                  <div className="w-full h-[52px] rounded-xl bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 animate-pulse" />
+                  <div className="w-full h-[52px] rounded-xl bg-linear-to-r from-gray-200 via-gray-300 to-gray-200 animate-pulse" />
                 ) : (
                   <SelectionCustom
                     data={[{ label: "Expired", value: "1" }]}
@@ -608,9 +608,9 @@ export const FilterMenu = ({
           )}
           {type === "product" && (
             <div className="space-y-6">
-              <div className="p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-100 space-y-5">
+              <div className="p-4 bg-linear-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-100 space-y-5">
                 <div className="flex items-center gap-2 mb-4">
-                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-lg flex items-center justify-center">
+                  <div className="w-8 h-8 bg-linear-to-br from-blue-500 to-indigo-500 rounded-lg flex items-center justify-center">
                     <svg
                       className="w-5 h-5 text-white"
                       fill="none"
@@ -634,7 +634,7 @@ export const FilterMenu = ({
                     Category
                   </label>
                   {loading ? (
-                    <div className="w-full h-[52px] rounded-xl bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 animate-pulse" />
+                    <div className="w-full h-[52px] rounded-xl bg-linear-to-r from-gray-200 via-gray-300 to-gray-200 animate-pulse" />
                   ) : (
                     <Selection
                       name="parentcate"
@@ -652,7 +652,7 @@ export const FilterMenu = ({
                       Subcategory
                     </label>
                     {loading ? (
-                      <div className="w-full h-[52px] rounded-xl bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 animate-pulse" />
+                      <div className="w-full h-[52px] rounded-xl bg-linear-to-r from-gray-200 via-gray-300 to-gray-200 animate-pulse" />
                     ) : (
                       <Selection
                         type="subcategory"
@@ -686,7 +686,7 @@ export const FilterMenu = ({
                   Stock Status
                 </label>
                 {loading ? (
-                  <div className="w-full h-[52px] rounded-xl bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 animate-pulse" />
+                  <div className="w-full h-[52px] rounded-xl bg-linear-to-r from-gray-200 via-gray-300 to-gray-200 animate-pulse" />
                 ) : (
                   <Selection
                     default="Select Stock Status"
@@ -712,9 +712,9 @@ export const FilterMenu = ({
               )}
               {type === "product" &&
                 (globalindex.promotioneditindex !== -1 && isSetPromotion ? (
-                  <div className="p-4 bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl border border-amber-100">
+                  <div className="p-4 bg-linear-to-br from-amber-50 to-orange-50 rounded-xl border border-amber-100">
                     {loading ? (
-                      <div className="w-full h-[44px] rounded-xl bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 animate-pulse" />
+                      <div className="w-full h-[44px] rounded-xl bg-linear-to-r from-gray-200 via-gray-300 to-gray-200 animate-pulse" />
                     ) : (
                       <Checkbox
                         className="w-full"
@@ -747,7 +747,7 @@ export const FilterMenu = ({
                       Promotion
                     </label>
                     {loading ? (
-                      <div className="w-full h-[52px] rounded-xl bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 animate-pulse" />
+                      <div className="w-full h-[52px] rounded-xl bg-linear-to-r from-gray-200 via-gray-300 to-gray-200 animate-pulse" />
                     ) : (
                       <SelectAndSearchProduct
                         getdata={(take, value) =>
@@ -776,9 +776,9 @@ interface InfoContainerProps {
 
 export const InfoContainer = ({ title, content }: InfoContainerProps) => {
   return (
-    <div className="info__container w-[300px] max-w-[400px] h-fit flex flex-col items-start justify-start gap-y-4 p-6 bg-gradient-to-br from-white to-gray-50 rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 hover:scale-[1.02]">
+    <div className="info__container w-[300px] max-w-[400px] h-fit flex flex-col items-start justify-start gap-y-4 p-6 bg-linear-to-br from-white to-gray-50 rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 hover:scale-[1.02]">
       <div className="info__header text-lg font-bold text-gray-800 flex items-center gap-2">
-        <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-500 rounded-lg flex items-center justify-center">
+        <div className="w-8 h-8 bg-linear-to-br from-blue-500 to-purple-500 rounded-lg flex items-center justify-center">
           <svg
             className="w-5 h-5 text-white"
             fill="none"
@@ -795,7 +795,7 @@ export const InfoContainer = ({ title, content }: InfoContainerProps) => {
         </div>
         {title}
       </div>
-      <p className="info__body text-sm font-normal max-w-[350px] break-words text-left text-gray-600 leading-relaxed">
+      <p className="info__body text-sm font-normal max-w-[350px] wrap-break-word text-left text-gray-600 leading-relaxed">
         {content}
       </p>
     </div>

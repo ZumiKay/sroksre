@@ -158,10 +158,10 @@ export const VariantView: React.FC<VariantViewProps> = ({
         // Clear selection
         setSelectedForDelete(new Set());
       } else {
-        console.error("Failed to delete variants");
+        console.log("Failed to delete variants");
       }
     } catch (error) {
-      console.error("Error deleting variants:", error);
+      console.log("Error deleting variants:", error);
     } finally {
       setIsDeleting(false);
     }
@@ -210,7 +210,7 @@ export const VariantView: React.FC<VariantViewProps> = ({
                 placeholder="Search variants..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full px-4 py-3 pl-10 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 transition-colors"
+                className="w-full px-4 py-3 pl-10 border-2 border-gray-300 rounded-lg focus:outline-hidden focus:border-blue-500 transition-colors"
               />
               <svg
                 className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"
@@ -548,7 +548,7 @@ export const VariantView: React.FC<VariantViewProps> = ({
                     setCurrentPage(page);
                   }
                 }}
-                className="w-16 px-2 py-1 border border-gray-300 rounded text-center"
+                className="w-16 px-2 py-1 border border-gray-300 rounded-sm text-center"
               />
             )}
           </div>
@@ -568,7 +568,7 @@ export const VariantView: React.FC<VariantViewProps> = ({
         <button
           type="button"
           onClick={handleAddSelectedVariants}
-          className="w-[90%] h-12 rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 text-white font-semibold text-sm transition-all duration-200 hover:shadow-lg hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2 mb-2"
+          className="w-[90%] h-12 rounded-xl bg-linear-to-r from-green-600 to-emerald-600 text-white font-semibold text-sm transition-all duration-200 hover:shadow-lg hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2 mb-2"
         >
           <svg
             className="w-5 h-5"
@@ -590,7 +590,7 @@ export const VariantView: React.FC<VariantViewProps> = ({
       <button
         type="button"
         onClick={onAddNew}
-        className="w-[90%] h-12 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold text-sm transition-all duration-200 hover:shadow-lg hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2"
+        className="w-[90%] h-12 rounded-xl bg-linear-to-r from-blue-600 to-purple-600 text-white font-semibold text-sm transition-all duration-200 hover:shadow-lg hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2"
       >
         <PlusRoundSignIcon />
         {accessFromSection === "secion-create"

@@ -24,7 +24,7 @@ export default async function ResetPage({
   if (!user || !user.vfy) {
     return (
       <div className="min-h-[50vh] w-full flex flex-col gap-y-5 items-center justify-center">
-        <h1 className="text-xl font-black text-[#495464]"> 404 | Not Found</h1>
+        <h1 className="text-xl font-black text-incart"> 404 | Not Found</h1>
       </div>
     );
   }

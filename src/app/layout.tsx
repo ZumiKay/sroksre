@@ -2,12 +2,12 @@ import type { Metadata } from "next";
 import { Prompt } from "next/font/google";
 import NavbarWrapper from "./component/NavbarWrapper";
 import Footer from "./component/Footer";
-import { ToastContainer } from "react-toastify";
 import { GlobalContextProvider } from "../context/GlobalContext";
 import { Suspense } from "react";
 import { ContainerLoading } from "./component/Loading";
 import { SocketProvider } from "../context/SocketContext";
-import "../app/globals.css";
+import "../lib/fontawesome";
+import "./globals.css";
 import "react-toastify/ReactToastify.css";
 import Provider from "./provider";
 const prompt = Prompt({
@@ -116,7 +116,6 @@ export default async function RootLayout({
             <Suspense fallback={<ContainerLoading />}>
               <SocketProvider>
                 <div id="main" className="w-full h-full relative">
-                  <ToastContainer />
                   <NavbarWrapper />
                   {children}
                   <Footer />

@@ -69,7 +69,7 @@ export default function Modal({
           closestate !== "none"
         ) {
           const updateIndex = Object.fromEntries(
-            Object.entries(globalindex).map(([key, _]) => [key, -1])
+            Object.entries(globalindex).map(([key, _]) => [key, -1]),
           ) as unknown as GlobalIndexState;
           action && action();
           setglobalindex(updateIndex);
@@ -149,7 +149,7 @@ export function SecondaryModal({
       placement={placement}
       closeButton
       style={style}
-      className="z-[200]"
+      className="z-200 aria-hidden:false"
       scrollBehavior={scroll}
       onOpenChange={(open) => {
         onPageChange && onPageChange(open);

@@ -19,13 +19,13 @@ export const GET = async () => {
     const sessions = await Prisma.usersession.findMany({
       where: {
         userId: user.userId,
-        revoked: false,
         expireAt: {
           gt: new Date(),
         },
       },
       select: {
         sessionid: true,
+        refresh_token_hash: true,
         device: true,
         userAgent: true,
         ipAddress: true,
@@ -37,15 +37,13 @@ export const GET = async () => {
         lastUsed: "desc",
       },
     });
-
-    // Check which session is current
     const currentSessionHash = user.sessionid
       ? hashToken(user.sessionid)
       : null;
 
     const sessionsWithCurrent = sessions.map((session) => ({
       ...session,
-      isCurrent: currentSessionHash === hashToken(session.sessionid),
+      isCurrent: currentSessionHash === session.refresh_token_hash,
     }));
 
     return NextResponse.json({
@@ -53,7 +51,7 @@ export const GET = async () => {
       sessions: sessionsWithCurrent,
     });
   } catch (error) {
-    console.error("Fetch sessions error:", error);
+    console.log("Fetch sessions error:", error);
     return NextResponse.json({ message: "Error occurred" }, { status: 500 });
   }
 };
@@ -117,7 +115,7 @@ export const DELETE = async (req: NextRequest) => {
 
     return NextResponse.json({ message: "Invalid request" }, { status: 400 });
   } catch (error) {
-    console.error("Logout session error:", error);
+    console.log("Logout session error:", error);
     return NextResponse.json({ message: "Error occurred" }, { status: 500 });
   }
 };

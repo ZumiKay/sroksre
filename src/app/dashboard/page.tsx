@@ -173,7 +173,7 @@ export default function UserDashboard() {
                       <button
                         type="button"
                         onClick={() => handleEdit("shipping")}
-                        className="text-white bg-[#495464] hover:bg-gray-700 px-4 py-2 rounded-lg font-medium text-sm transition-all active:scale-95"
+                        className="text-white bg-incart hover:bg-gray-700 px-4 py-2 rounded-lg font-medium text-sm transition-all active:scale-95"
                       >
                         View Details
                       </button>
@@ -259,7 +259,7 @@ export default function UserDashboard() {
                 }}
                 className={`w-full px-8 py-6 flex items-center justify-between transition-all ${
                   userdata.open.whilist
-                    ? "bg-gradient-to-r from-[#2F4865] to-[#1e3a52] text-white"
+                    ? "bg-linear-to-r from-[#2F4865] to-[#1e3a52] text-white"
                     : "bg-white text-gray-800 hover:bg-gray-50"
                 }`}
               >
@@ -340,7 +340,7 @@ export default function UserDashboard() {
                     },
                   }))
                 }
-                className="w-full px-8 py-6 flex items-center justify-between bg-gradient-to-r from-red-50 to-red-100 hover:from-red-100 hover:to-red-200 transition-all group"
+                className="w-full px-8 py-6 flex items-center justify-between bg-linear-to-r from-red-50 to-red-100 hover:from-red-100 hover:to-red-200 transition-all group"
               >
                 <div className="flex items-center gap-4">
                   <span className="text-2xl">⚠️</span>

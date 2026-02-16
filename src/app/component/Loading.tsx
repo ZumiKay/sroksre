@@ -22,7 +22,7 @@ export const LoadingText = ({ style }: { style?: CSSProperties }) => {
   return (
     <div
       style={style}
-      className="textloading w-full h-full p-2 absolute top-[45%] left-[47%] z-[100] animate-pulse"
+      className="textloading w-full h-full p-2 absolute top-[45%] left-[47%] z-100 animate-pulse"
     >
       <h1 className="loading text-xl font-bold">Loading...</h1>
     </div>
@@ -30,7 +30,7 @@ export const LoadingText = ({ style }: { style?: CSSProperties }) => {
 };
 export const BlurLoading = () => {
   return (
-    <div className="blueloading w-full h-full p-2 absolute top-0 left-0 z-[100] backdrop-blur flex justify-center">
+    <div className="blueloading w-full h-full p-2 absolute top-0 left-0 z-100 backdrop-blur-sm flex justify-center">
       <CircularProgress size="lg" />
     </div>
   );

@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
 
     return Response.json({ data: { incart: isInCart } }, { status: 200 });
   } catch (error) {
-    console.error("Check cart", error);
+    console.log("Check cart", error);
     return Response.json({ message: "Error Occured" }, { status: 500 });
   }
 }

@@ -12,7 +12,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
   icon,
 }) => {
   return (
-    <div className="w-[90%] rounded-xl bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-dashed border-gray-300 p-6 flex flex-col items-center gap-3">
+    <div className="w-[90%] rounded-xl bg-linear-to-r from-blue-50 to-purple-50 border-2 border-dashed border-gray-300 p-6 flex flex-col items-center gap-3">
       {icon || (
         <svg
           className="w-12 h-12 text-gray-400"

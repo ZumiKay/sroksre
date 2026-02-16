@@ -77,12 +77,12 @@ const CreateAutoCategory = async (data: Categorydata) => {
               promotion_id: { not: null },
             }
           : data.type === "popular"
-          ? {
-              amount_incart: { not: null },
-              amount_sold: { not: null },
-              amount_wishlist: { not: null },
-            }
-          : {},
+            ? {
+                amount_incart: { not: null },
+                amount_sold: { not: null },
+                amount_wishlist: { not: null },
+              }
+            : {},
       select: {
         id: true,
         amount_incart: true,
@@ -101,8 +101,8 @@ const CreateAutoCategory = async (data: Categorydata) => {
               product_id: prod.id,
               autocategory_id: created.id,
             },
-          })
-        )
+          }),
+        ),
       );
     } else if (data.type === "popular") {
       await Promise.all(
@@ -121,11 +121,11 @@ const CreateAutoCategory = async (data: Categorydata) => {
               },
             });
           }
-        })
+        }),
       );
     } else if (data.type === "latest") {
       const latestProducts = product.sort(
-        (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
+        (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
       );
       await Promise.all(
         latestProducts.map((product) => {
@@ -135,7 +135,7 @@ const CreateAutoCategory = async (data: Categorydata) => {
               product_id: product.id,
             },
           });
-        })
+        }),
       );
     }
 
@@ -160,7 +160,7 @@ export async function POST(req: NextRequest) {
       return Response.json({}, { status: 500 });
     }
   } catch (error) {
-    console.error("createCategory", error);
+    console.log("createCategory", error);
     return Response.json({ message: "Error Occurred" }, { status: 500 });
   }
 }
@@ -174,7 +174,7 @@ export async function PUT(req: NextRequest) {
       return Response.json({ message: update.message }, { status: 500 });
     }
   } catch (error) {
-    console.error("Category Error", error);
+    console.log("Category Error", error);
     return Response.json({ message: "Error Occured" }, { status: 500 });
   }
 }
@@ -222,7 +222,7 @@ export async function GET(req: NextRequest) {
           dayjs(promotion?.expireAt).isSame(now)
         );
       } catch (error) {
-        console.error("Error checking promotion:", error);
+        console.log("Error checking promotion:", error);
         return false;
       }
     };
@@ -236,7 +236,7 @@ export async function GET(req: NextRequest) {
                 obj.sub.map(async (i) => ({
                   ...i,
                   isExpired: i.pid ? await checkpromotion(i.pid) : undefined,
-                }))
+                })),
               );
         return {
           id: obj.id,
@@ -245,23 +245,19 @@ export async function GET(req: NextRequest) {
           type: obj.type,
           subcategories,
         };
-      })
+      }),
     );
 
     return Response.json({ data: categories }, { status: 200 });
   } catch (error) {
-    console.error("Fetch Categories Error:", error);
-    console.error("Error details:", {
-      message: error instanceof Error ? error.message : "Unknown error",
-      stack: error instanceof Error ? error.stack : undefined,
-    });
+    console.log("Fetch Categories Error:", error);
 
     return Response.json(
       {
         message: "Error Occurred",
         error: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

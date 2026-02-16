@@ -452,7 +452,7 @@ const VariantSectionEditor = ({
   return (
     <div className="w-full h-full flex flex-col px-6">
       <div className="max-w-2xl mx-auto w-full flex-1 flex flex-col overflow-hidden">
-        <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg p-6 border-2 border-blue-200 flex-shrink-0">
+        <div className="bg-linear-to-br from-blue-50 to-purple-50 rounded-lg p-6 border-2 border-blue-200 shrink-0">
           <h3 className="text-xl font-bold text-gray-800 mb-2">
             Variant Sections
           </h3>
@@ -545,7 +545,7 @@ const VariantSectionEditor = ({
                             onChange={(e) =>
                               setSectionSearchQuery(e.target.value)
                             }
-                            className="w-full px-4 py-2 pl-10 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 transition-colors"
+                            className="w-full px-4 py-2 pl-10 border-2 border-gray-300 rounded-lg focus:outline-hidden focus:border-blue-500 transition-colors"
                           />
                           <svg
                             className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400"
@@ -598,7 +598,7 @@ const VariantSectionEditor = ({
                             product.Variantsection.length
                           }
                           onChange={handleSelectAllSections}
-                          className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                          className="w-4 h-4 text-blue-600 border-gray-300 rounded-sm focus:ring-blue-500"
                         />
                         <span className="text-sm text-gray-600 font-medium">
                           Select All
@@ -686,7 +686,7 @@ const VariantSectionEditor = ({
             >
               <Card className="border-2 border-gray-200 mt-4">
                 <CardBody className="p-6 space-y-6">
-                  <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg p-6 border-2 border-blue-200">
+                  <div className="bg-linear-to-br from-blue-50 to-purple-50 rounded-lg p-6 border-2 border-blue-200">
                     <label className="block text-sm font-semibold text-gray-700 mb-2">
                       Section Name *
                     </label>
@@ -695,7 +695,7 @@ const VariantSectionEditor = ({
                       value={sectionName}
                       onChange={(e) => setSectionName(e.target.value)}
                       placeholder="e.g., Size & Color Options"
-                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 transition-colors"
+                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-hidden focus:border-blue-500 transition-colors"
                     />
                   </div>
 
@@ -750,7 +750,7 @@ const VariantSectionEditor = ({
                                     .map((val, vIdx) => (
                                       <span
                                         key={vIdx}
-                                        className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded"
+                                        className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-sm"
                                       >
                                         {typeof val === "string"
                                           ? val
@@ -824,7 +824,7 @@ const VariantSectionEditor = ({
           </Tabs>
         </div>
 
-        <div className="flex gap-3 mt-6 flex-shrink-0">
+        <div className="flex gap-3 mt-6 shrink-0">
           <button
             onClick={() => setNew("none")}
             className="flex-1 px-4 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
@@ -880,7 +880,7 @@ const SectionItem = memo(
             type="checkbox"
             checked={isSelected}
             onChange={() => onToggleSelection(section.id || section.tempId)}
-            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+            className="w-4 h-4 text-blue-600 border-gray-300 rounded-sm focus:ring-blue-500"
           />
           <span className="flex items-center justify-center w-8 h-8 bg-purple-100 text-purple-600 rounded-full font-bold text-sm">
             {idx + 1}
@@ -895,7 +895,7 @@ const SectionItem = memo(
                 {section.Variants.slice(0, 3).map((variant, vIdx) => (
                   <span
                     key={vIdx}
-                    className="text-xs bg-purple-50 text-purple-700 px-2 py-0.5 rounded"
+                    className="text-xs bg-purple-50 text-purple-700 px-2 py-0.5 rounded-sm"
                   >
                     {variant.option_title}
                   </span>

@@ -23,7 +23,7 @@ export class HomeErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: any) {
-    console.error("Home page error:", error, errorInfo);
+    console.log("Home page error:", error, errorInfo);
   }
 
   render() {
@@ -53,7 +53,7 @@ export class HomeErrorBoundary extends Component<Props, State> {
             </p>
             <button
               onClick={() => window.location.reload()}
-              className="mt-4 px-6 py-2 bg-[#495464] text-white rounded-lg hover:bg-[#5a6575] transition-colors"
+              className="mt-4 px-6 py-2 bg-incart text-white rounded-lg hover:bg-[#5a6575] transition-colors"
             >
               Refresh Page
             </button>

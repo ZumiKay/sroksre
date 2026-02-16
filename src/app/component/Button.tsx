@@ -1,6 +1,8 @@
 "use client";
 
 import { CSSProperties, MouseEventHandler, ReactNode, useState } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faCloudArrowUp } from "@fortawesome/free-solid-svg-icons";
 import "../globals.css";
 import * as React from "react";
 import { styled } from "@mui/material/styles";
@@ -50,7 +52,7 @@ export default function PrimaryButton(props: buttonpros) {
     <button
       type={props.type}
       className="primary__button relative font-semibold transition-all duration-300 ease-in-out 
-        shadow-sm hover:shadow-md active:shadow-inner
+        shadow-xs hover:shadow-md active:shadow-inner
         transform hover:-translate-y-0.5 active:translate-y-0"
       onClick={
         props.disable || props.status === "loading" ? () => {} : props.onClick
@@ -152,7 +154,7 @@ export function Selection(props: selectprops) {
 
       <select
         disabled={props.disable ? props.disable : false}
-        className={`select border-1 border-black rounded-md ${
+        className={`select border border-black rounded-md ${
           props.label ? "w-1/2" : "w-full"
         } h-full p-2 bg-white`}
         onChange={props.onChange}
@@ -216,7 +218,7 @@ export const InputFileUpload = React.forwardRef<
       variant="contained"
       fullWidth
       sx={{ height: "50px", boxShadow: "0", borderRadius: "10px" }}
-      startIcon={<i className="fa-solid fa-cloud-arrow-up"></i>}
+      startIcon={<FontAwesomeIcon icon={faCloudArrowUp} />}
     >
       Upload Image
       <VisuallyHiddenInput
@@ -244,7 +246,7 @@ const isSelectedStyle: CSSProperties = {
 
 export const SelectContainer = (props: Selectcontainerprops) => {
   return (
-    <div className="w-fit max-w-[80%]  min-h-[50px] h-fit p-2 flex flex-row flex-wrap items-center gap-x-3 rounded-lg outline-1 outline outline-gray-400 outline-offset-2">
+    <div className="w-fit max-w-[80%]  min-h-12.5 h-fit p-2 flex flex-row flex-wrap items-center gap-x-3 rounded-lg outline-1 outline-solid outline-gray-400 outline-offset-2">
       {props.data.map((i, idx) => (
         <div key={idx} className="w-fit h-fit">
           {typeof i === "string" ? (
@@ -254,7 +256,7 @@ export const SelectContainer = (props: Selectcontainerprops) => {
                 props.onSelect(i);
               }}
               style={props.isSelected === i ? isSelectedStyle : {}}
-              className={`select_item cursor-pointer w-fit h-fit p-2 max-w-[200px] break-words rounded-lg transition-all duration-30 hover:bg-black hover:text-white`}
+              className={`select_item cursor-pointer w-fit h-fit p-2 max-w-50 wrap-break-word rounded-lg transition-all duration-30 hover:bg-black hover:text-white`}
             >
               {props.type === "TEXT" && (i as string)}
             </div>
@@ -266,7 +268,7 @@ export const SelectContainer = (props: Selectcontainerprops) => {
               onClick={() => {
                 props.onSelect(i.val);
               }}
-              className="w-fit h-fit flex flex-row gap-x-3 p-2 items-center rounded-lg cursor-pointer justify-center hover:outline-2 hover:outline  hover:outline-gray-500 hover:outline-offset-2 active:outline-1 active:outline  active:outline-gray-300 active:outline-offset-2  "
+              className="w-fit h-fit flex flex-row gap-x-3 p-2 items-center rounded-lg cursor-pointer justify-center hover:outline-2 hover:outline-solid  hover:outline-gray-500 hover:outline-offset-2 active:outline-1 active:outline-solid  active:outline-gray-300 active:outline-offset-2  "
             >
               <div
                 className="rounded-full"

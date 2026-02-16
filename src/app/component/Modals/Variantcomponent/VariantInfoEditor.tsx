@@ -149,11 +149,11 @@ export const VariantInfoEditor: React.FC<VariantInfoEditorProps> = ({
   const optionsWithPrices = getOptionsWithPrices();
 
   return (
-    <div className="addcontainer w-[95%] h-full flex flex-col gap-y-6 rounded-xl bg-white shadow-sm border border-gray-200 p-6">
+    <div className="addcontainer w-[95%] h-full flex flex-col gap-y-6 rounded-xl bg-white shadow-xs border border-gray-200 p-6">
       {variantSectionId && (
         <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
           <svg
-            className="w-5 h-5 text-blue-600 flex-shrink-0"
+            className="w-5 h-5 text-blue-600 shrink-0"
             fill="currentColor"
             viewBox="0 0 20 20"
           >
@@ -235,7 +235,7 @@ export const VariantInfoEditor: React.FC<VariantInfoEditorProps> = ({
         <div className="flex flex-col gap-2 p-4 bg-amber-50 rounded-lg border border-amber-300">
           <div className="flex items-center gap-2">
             <svg
-              className="w-5 h-5 text-amber-600 flex-shrink-0"
+              className="w-5 h-5 text-amber-600 shrink-0"
               fill="currentColor"
               viewBox="0 0 20 20"
             >
@@ -276,7 +276,7 @@ export const VariantInfoEditor: React.FC<VariantInfoEditorProps> = ({
           id="variant-optional"
           checked={optional}
           onChange={(e) => setOptional(e.target.checked)}
-          className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 cursor-pointer"
+          className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded-sm focus:ring-blue-500 focus:ring-2 cursor-pointer"
         />
         <label
           htmlFor="variant-optional"

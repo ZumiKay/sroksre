@@ -334,7 +334,7 @@ export const GetListProduct = async (
       count: Math.ceil(countproduct / parseInt(show)),
     };
   } catch (error) {
-    console.error("Error fetching products:", error);
+    console.log("Error fetching products:", error);
     return { success: false, error: "Problem Occured" };
   }
 };

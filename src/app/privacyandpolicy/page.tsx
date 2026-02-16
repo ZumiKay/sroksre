@@ -80,7 +80,7 @@ export default async function PrivacyandPolicy({
           : undefined;
 
     return (
-      <h3 className="font-bold text-5xl w-[95%] max-small_phone:w-[90%] break-words">
+      <h3 className="font-bold text-5xl w-[95%] max-small_phone:w-[90%] wrap-break-word">
         {title}
       </h3>
     );
@@ -168,7 +168,7 @@ const PolicyContent = ({ paragrah, question, isAdmin }: Policycontent) => {
             {i.title && <h3 className="text-xl font-bold">{i.title}</h3>}
             <p
               key={i.id}
-              className="w-full font-normal text-lg h-fit break-words"
+              className="w-full font-normal text-lg h-fit wrap-break-word"
             >
               {i.content}
             </p>

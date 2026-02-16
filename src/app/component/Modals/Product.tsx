@@ -270,7 +270,7 @@ export function CreateProducts({
         {(loading || isLoading.PUT || isLoading.POST) && <ContainerLoading />}
         <form
           className={`createform w-full max-small_phone:max-h-[50vh]
-          overflow-y-auto overflow-x-hidden relative bg-gradient-to-br from-gray-50 to-gray-100 
+          overflow-y-auto overflow-x-hidden relative bg-linear-to-br from-gray-50 to-gray-100 
           p-4 sm:p-6 md:p-8 rounded-lg`}
         >
           <div
@@ -288,7 +288,7 @@ export function CreateProducts({
               bg-white rounded-xl shadow-lg p-4 sm:p-5 border border-gray-200"
             >
               {loading && (
-                <div className="absolute inset-0 bg-white/80 backdrop-blur-sm rounded-xl z-10 flex items-center justify-center">
+                <div className="absolute inset-0 bg-white/80 backdrop-blur-xs rounded-xl z-10 flex items-center justify-center">
                   <div className="flex flex-col items-center gap-3">
                     <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-500 rounded-full animate-spin"></div>
                     <p className="text-gray-600 font-medium text-sm">
@@ -327,7 +327,7 @@ export function CreateProducts({
               "
             >
               {loading && (
-                <div className="absolute inset-0 bg-white/80 backdrop-blur-sm rounded-xl z-10 flex items-center justify-center">
+                <div className="absolute inset-0 bg-white/80 backdrop-blur-xs rounded-xl z-10 flex items-center justify-center">
                   <div className="flex flex-col items-center gap-3">
                     <svg
                       className="animate-spin h-10 w-10 text-blue-500"
@@ -425,7 +425,7 @@ export function CreateProducts({
               />
               <div
                 className="w-full h-fit flex flex-col gap-y-3 z-50 
-                bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200"
+                bg-linear-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200"
               >
                 <label className="font-semibold text-sm text-gray-700">
                   Add related product (Optional)
@@ -438,17 +438,17 @@ export function CreateProducts({
                   <div className="w-full flex flex-col gap-4">
                     {/* Category loading skeleton */}
                     <div className="animate-pulse">
-                      <div className="h-4 w-24 bg-gray-300 rounded mb-2"></div>
-                      <div className="h-12 bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 rounded-lg relative overflow-hidden">
-                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-shimmer"></div>
+                      <div className="h-4 w-24 bg-gray-300 rounded-sm mb-2"></div>
+                      <div className="h-12 bg-linear-to-r from-gray-200 via-gray-300 to-gray-200 rounded-lg relative overflow-hidden">
+                        <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/40 to-transparent animate-shimmer"></div>
                       </div>
                     </div>
                     {/* Subcategory loading skeleton */}
                     <div className="animate-pulse">
-                      <div className="h-4 w-32 bg-gray-300 rounded mb-2"></div>
-                      <div className="h-12 bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 rounded-lg relative overflow-hidden">
+                      <div className="h-4 w-32 bg-gray-300 rounded-sm mb-2"></div>
+                      <div className="h-12 bg-linear-to-r from-gray-200 via-gray-300 to-gray-200 rounded-lg relative overflow-hidden">
                         <div
-                          className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-shimmer"
+                          className="absolute inset-0 bg-linear-to-r from-transparent via-white/40 to-transparent animate-shimmer"
                           style={{ animationDelay: "0.2s" }}
                         ></div>
                       </div>
@@ -607,7 +607,7 @@ export function CreateProducts({
 
               <div
                 className="toggleMenu_section w-full h-fit p-4 transition cursor-pointer 
-                  rounded-lg bg-gradient-to-r from-gray-50 to-slate-50 
+                  rounded-lg bg-linear-to-r from-gray-50 to-slate-50 
                   border-2 border-gray-300 hover:border-blue-400 hover:shadow-md"
               >
                 <ToggleMenu
@@ -769,7 +769,7 @@ export const DetailsModal = () => {
 
   return (
     <div
-      className="details_modal bg-gradient-to-br from-blue-100 via-indigo-100 to-purple-100 
+      className="details_modal bg-linear-to-br from-blue-100 via-indigo-100 to-purple-100 
       w-full h-full flex flex-col gap-y-5 items-center 
       px-3 sm:px-4 md:px-6 py-5 sm:py-6 md:py-8 rounded-xl shadow-inner border border-blue-200"
     >

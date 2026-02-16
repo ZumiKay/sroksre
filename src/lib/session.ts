@@ -37,7 +37,7 @@ export async function verifySessionInDB(
 
     return { success: true, user: dbSession?.user };
   } catch (error) {
-    console.error("Error verifying session in DB:", error);
+    console.log("Error verifying session in DB:", error);
     return { success: false };
   }
 }
@@ -71,7 +71,7 @@ export async function getUser(
 
     return user;
   } catch (error) {
-    console.error("Error fetching user session:", error);
+    console.log("Error fetching user session:", error);
     return null;
   }
 }
@@ -106,7 +106,7 @@ export async function getCartCount() {
     const data = await response.json();
     return data.data || 0;
   } catch (error) {
-    console.error("Failed to fetch cart count:", error);
+    console.log("Failed to fetch cart count:", error);
     return 0;
   }
 }
@@ -136,7 +136,7 @@ export async function getNotificationCount() {
     const data = await response.json();
     return data.data?.length || 0;
   } catch (error) {
-    console.error("Failed to fetch notification count:", error);
+    console.log("Failed to fetch notification count:", error);
     return 0;
   }
 }

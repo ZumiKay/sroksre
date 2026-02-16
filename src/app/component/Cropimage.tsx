@@ -62,7 +62,7 @@ if (typeof document !== "undefined") {
 function centerAspectCrop(
   mediaWidth: number,
   mediaHeight: number,
-  aspect: number
+  aspect: number,
 ) {
   return centerCrop(
     makeAspectCrop(
@@ -72,10 +72,10 @@ function centerAspectCrop(
       },
       aspect,
       mediaWidth,
-      mediaHeight
+      mediaHeight,
     ),
     mediaWidth,
-    mediaHeight
+    mediaHeight,
   );
 }
 
@@ -185,12 +185,12 @@ export default function CropImage({
           previewCanvasRef.current,
           completedCrop,
           scale,
-          rotate
+          rotate,
         );
       }
     },
     100,
-    [completedCrop, scale, rotate]
+    [completedCrop, scale, rotate],
   );
 
   const handleToggleAspectClick = useCallback(() => {
@@ -223,7 +223,7 @@ export default function CropImage({
       const scaleY = image.naturalHeight / image.height;
       const offscreen = new OffscreenCanvas(
         completedCrop.width * scaleX,
-        completedCrop.height * scaleY
+        completedCrop.height * scaleY,
       );
       const ctx = offscreen.getContext("2d");
       if (!ctx) {
@@ -238,7 +238,7 @@ export default function CropImage({
         0,
         0,
         offscreen.width,
-        offscreen.height
+        offscreen.height,
       );
       // You might want { type: "image/jpeg", quality: <0 to 1> } to
       // reduce image size
@@ -264,7 +264,7 @@ export default function CropImage({
 
       setclose(false);
     } catch (error) {
-      console.error("Error cropping image:", error);
+      console.log("Error cropping image:", error);
       errorToast("Failed to crop image");
     }
   }, [completedCrop, imgurl, Files, index, setimgurl, setfile, setclose]);
@@ -289,7 +289,7 @@ export default function CropImage({
           <button
             type="button"
             onClick={() => handleSaveCrop()}
-            className="flex-1 h-14 rounded-xl font-bold text-base bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95 flex items-center justify-center gap-2"
+            className="flex-1 h-14 rounded-xl font-bold text-base bg-linear-to-r from-blue-500 to-purple-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95 flex items-center justify-center gap-2"
           >
             <svg
               className="w-5 h-5"
@@ -309,7 +309,7 @@ export default function CropImage({
           <button
             type="button"
             onClick={() => setclose(false)}
-            className="flex-1 h-14 rounded-xl font-bold text-base bg-gradient-to-r from-gray-600 to-gray-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95 flex items-center justify-center gap-2"
+            className="flex-1 h-14 rounded-xl font-bold text-base bg-linear-to-r from-gray-600 to-gray-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95 flex items-center justify-center gap-2"
           >
             <svg
               className="w-5 h-5"
@@ -329,10 +329,10 @@ export default function CropImage({
         </div>
       )}
     >
-      <div className="cropimageContainer w-full h-full bg-gradient-to-br from-gray-50 via-white to-blue-50/30 overflow-y-auto overflow-x-hidden flex flex-col items-center gap-y-8 py-8 px-4">
+      <div className="cropimageContainer w-full h-full bg-linear-to-br from-gray-50 via-white to-blue-50/30 overflow-y-auto overflow-x-hidden flex flex-col items-center gap-y-8 py-8 px-4">
         <div className="w-full max-w-5xl">
           <div className="mb-6">
-            <h2 className="text-3xl font-extrabold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
+            <h2 className="text-3xl font-extrabold bg-linear-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
               Crop & Edit Image
             </h2>
             <p className="text-gray-600">
@@ -368,7 +368,7 @@ export default function CropImage({
                 step="0.1"
                 value={scale}
                 disabled={!img}
-                className="w-full h-3 bg-gradient-to-r from-blue-200 to-purple-200 rounded-lg appearance-none cursor-pointer slider"
+                className="w-full h-3 bg-linear-to-r from-blue-200 to-purple-200 rounded-lg appearance-none cursor-pointer slider"
                 onChange={(e) => setScale(Number(e.target.value))}
               />
               <input
@@ -376,7 +376,7 @@ export default function CropImage({
                 step="0.1"
                 value={scale}
                 disabled={!img}
-                className="text-base w-full h-12 px-4 border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all"
+                className="text-base w-full h-12 px-4 border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-hidden transition-all"
                 onChange={(e) => setScale(Number(e.target.value))}
               />
             </div>
@@ -406,18 +406,18 @@ export default function CropImage({
                 min="-180"
                 max="180"
                 value={rotate}
-                className="w-full h-3 bg-gradient-to-r from-purple-200 to-pink-200 rounded-lg appearance-none cursor-pointer slider"
+                className="w-full h-3 bg-linear-to-r from-purple-200 to-pink-200 rounded-lg appearance-none cursor-pointer slider"
                 disabled={!img}
                 onChange={(e) => setRotate(Number(e.target.value))}
               />
               <input
                 type="number"
                 value={rotate}
-                className="text-base w-full h-12 px-4 border-2 border-gray-300 rounded-xl focus:border-purple-500 focus:ring-2 focus:ring-purple-200 outline-none transition-all"
+                className="text-base w-full h-12 px-4 border-2 border-gray-300 rounded-xl focus:border-purple-500 focus:ring-2 focus:ring-purple-200 outline-hidden transition-all"
                 disabled={!img}
                 onChange={(e) =>
                   setRotate(
-                    Math.min(180, Math.max(-180, Number(e.target.value)))
+                    Math.min(180, Math.max(-180, Number(e.target.value))),
                   )
                 }
               />
@@ -456,7 +456,7 @@ export default function CropImage({
           <button
             type="button"
             onClick={handleToggleAspectClick}
-            className="w-full max-w-md h-14 rounded-xl font-bold text-base bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95 flex items-center justify-center gap-2"
+            className="w-full max-w-md h-14 rounded-xl font-bold text-base bg-linear-to-r from-green-500 to-emerald-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95 flex items-center justify-center gap-2"
           >
             <svg
               className="w-5 h-5"
@@ -475,9 +475,9 @@ export default function CropImage({
           </button>
 
           {/* Recommended ratios info box */}
-          <div className="w-full bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl border-2 border-blue-200 p-4">
+          <div className="w-full bg-linear-to-r from-blue-50 to-purple-50 rounded-xl border-2 border-blue-200 p-4">
             <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center">
+              <div className="shrink-0 w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center">
                 <svg
                   className="w-6 h-6 text-white"
                   fill="none"
@@ -676,7 +676,7 @@ export default function CropImage({
                   This is how your cropped image will look
                 </p>
               </div>
-              <div className="flex justify-center items-center bg-gradient-to-br from-gray-100 to-gray-50 rounded-xl p-8 border-2 border-dashed border-gray-300">
+              <div className="flex justify-center items-center bg-linear-to-br from-gray-100 to-gray-50 rounded-xl p-8 border-2 border-dashed border-gray-300">
                 <canvas
                   ref={previewCanvasRef}
                   style={{

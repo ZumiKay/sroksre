@@ -255,7 +255,7 @@ const Card = memo(function Card(props: cardprops) {
         onTouchStart={handleMouseEnter}
         onTouchCancel={handleMouseLeave}
         className={`card__container w-[500px] h-fit flex flex-col
-       border border-gray-200 rounded-lg shadow-sm
+       border border-gray-200 rounded-lg shadow-xs
        hover:border-gray-400 hover:shadow-md transition-all duration-300 ${
          isProduct ? "border-2 border-blue-400 shadow-md" : ""
        } 
@@ -456,7 +456,7 @@ export function SecondayCard(props: SecondayCardprops) {
           loading="lazy"
         />
         <div className="product_detail flex flex-col items-start gap-y-5 w-full">
-          <div className="product_info flex flex-col gap-y-5 w-[90%] break-words">
+          <div className="product_info flex flex-col gap-y-5 w-[90%] wrap-break-word">
             <h3 className="text-lg font-bold w-fit"> {props.name}</h3>
             {showprice()}
           </div>
@@ -522,7 +522,7 @@ export const CardSkeleton = () => {
   return (
     <div className=" w-full flex items-start gap-3 h-fit">
       <Skeleton className="flex rounded-lg w-[250px] h-[150px]" />
-      <Skeleton className="h-[150px] w-[100%] rounded-lg" />
+      <Skeleton className="h-[150px] w-full rounded-lg" />
     </div>
   );
 };
@@ -599,7 +599,7 @@ export const BannerCard = memo(function BannerCard({
       {isExpired && (
         <div
           className="status absolute top-0 left-0 right-0 z-10 px-3 py-2 sm:px-4 sm:py-2.5 
-          bg-gradient-to-r from-red-500 to-red-600 backdrop-blur-sm"
+          bg-linear-to-r from-red-500 to-red-600 backdrop-blur-xs"
         >
           <p className="font-bold text-sm sm:text-base md:text-lg text-white text-center flex items-center justify-center gap-2">
             <span className="inline-block w-2 h-2 bg-white rounded-full animate-pulse"></span>
@@ -608,7 +608,7 @@ export const BannerCard = memo(function BannerCard({
         </div>
       )}
 
-      <div className="relative w-full aspect-[16/9] sm:aspect-[2/1] md:aspect-[21/9] overflow-hidden bg-gray-100">
+      <div className="relative w-full aspect-video sm:aspect-2/1 md:aspect-21/9 overflow-hidden bg-gray-100">
         <ImageWithLoader
           src={data.url ?? ""}
           alt={data.name || "Banner"}
@@ -618,11 +618,11 @@ export const BannerCard = memo(function BannerCard({
           width={600}
           height={600}
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+        <div className="absolute inset-0 bg-linear-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
       </div>
 
-      <div className="p-3 sm:p-4 bg-gradient-to-br from-[#495464] to-[#3a4350]">
-        <p className="text-base sm:text-lg md:text-xl font-bold text-white break-words line-clamp-2 group-hover:text-blue-200 transition-colors duration-200">
+      <div className="p-3 sm:p-4 bg-linear-to-br from-incart to-[#3a4350]">
+        <p className="text-base sm:text-lg md:text-xl font-bold text-white wrap-break-word line-clamp-2 group-hover:text-blue-200 transition-colors duration-200">
           {data.name.length === 0 ? "No name" : data.name}
         </p>
       </div>
@@ -679,10 +679,10 @@ export const UserCard = ({
       onClick={() => handleEdit()}
       className="usercard_container max-smallest_phone:w-[275px] w-[330px] h-[100px] rounded-lg border-2 border-black flex flex-col justify-center items-center gap-y-5 p-2 transition hover:bg-black hover:text-white"
     >
-      <h3 className="text-md font-bold w-full text-center break-words">
+      <h3 className="text-md font-bold w-full text-center wrap-break-word">
         {`${firstname} ${lastname}`} #{uid}
       </h3>
-      <h3 className="text-md text-center font-bold w-full break-words">
+      <h3 className="text-md text-center font-bold w-full wrap-break-word">
         {email}
       </h3>
     </div>

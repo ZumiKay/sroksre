@@ -15,6 +15,19 @@ import { generateRandomPassword } from "@/src/lib/utilities";
 import Prisma from "@/src/lib/prisma";
 import { JwtType, userdata } from "@/src/types/user.type";
 
+/**Authentication Features
+ * [✓] Credentail / Oauth (Discord , Google)
+ * [✓] Email will be save for Oauth with unique OauthId (Oauth)
+ * [✓] Register user will be validate data before save (Crendtial)
+ * [✓] Session will manage using DB with expiration flag cexp for Client
+ * [✓] Session expire in 7 days with access token expired in 15min
+ * [✓] Forget password with verification of email address
+ * [✓] Login attempt lockdown (Prevent Brute Force)
+ *     - Max 5 failed attempts before 15-minute lockout
+ *     - Tracks attempts within 30-minute window
+ *     - Automatic unlock after lockout period
+ */
+
 export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
 
@@ -75,14 +88,19 @@ export const authOptions: NextAuthOptions = {
       if (userToken?.sessionid) {
         try {
           // Delete the session from database
-          await Prisma.usersession.delete({
-            where: {
-              refresh_token_hash: hashToken(userToken.sessionid),
-            },
+          const isSession = await Prisma.usersession.findUnique({
+            where: { refresh_token_hash: hashToken(userToken.sessionid) },
           });
+          if (isSession) {
+            await Prisma.usersession.delete({
+              where: {
+                refresh_token_hash: hashToken(userToken.sessionid),
+              },
+            });
+          }
           console.log("Session deleted on signout:", userToken.sessionid);
         } catch (error) {
-          console.error("Error deleting session on signout:", error);
+          console.log("Error deleting session on signout:", error);
         }
       }
     },
@@ -104,7 +122,7 @@ export const authOptions: NextAuthOptions = {
         });
 
         if (!result.success) {
-          console.error("Failed to register OAuth user:", user.email);
+          console.log("Failed to register OAuth user:", user.email);
           return false;
         }
       }
@@ -127,7 +145,7 @@ export const authOptions: NextAuthOptions = {
           );
 
           if (!oauthUser?.sessionid) {
-            console.error("Failed to create OAuth session for:", user.email);
+            console.log("Failed to create OAuth session for:", user.email);
             return { ...token, isExpired: true };
           }
 
@@ -158,7 +176,7 @@ export const authOptions: NextAuthOptions = {
 
       // Subsequent requests - verify session is still valid
       const userToken = token as unknown as JwtType;
-      if (!userToken.sessionid) {
+      if (!userToken) {
         return { ...token, isExpired: true };
       }
 
@@ -190,7 +208,7 @@ export const authOptions: NextAuthOptions = {
             sessionid: newSessionId,
           };
         } catch (error) {
-          console.error("Token renewal error:", error);
+          console.log("Token renewal error:", error);
           return { ...token, isExpired: true };
         }
       }

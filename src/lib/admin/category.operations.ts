@@ -47,7 +47,7 @@ export const createCategory = async (
       }
     }
   } catch (error) {
-    console.error("Create Category", error);
+    console.log("Create Category", error);
     return { success: false, error: "An error occurred" };
   }
 };
@@ -143,7 +143,7 @@ export const updateCategory = async (data: updateCategoryData) => {
 
     return { success: true };
   } catch (error) {
-    console.error("Update Category", error);
+    console.log("Update Category", error);
     return { success: false, error: "Error Occurred" };
   }
 };
@@ -199,7 +199,7 @@ export const deleteCategory = async (data: Deletecategorydata) => {
 
     return { success: true };
   } catch (error) {
-    console.error("Delete Category", error);
+    console.log("Delete Category", error);
     throw new Error("Error Occurred");
   }
 };

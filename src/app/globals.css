@@ -1,6 +1,88 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+@plugin './hero.ts';
+@source '../../node_modules/@heroui/theme/dist/**/*.{js,ts,jsx,tsx}';
+@custom-variant dark (&:is(.dark *));
+
+
+@theme {
+  --breakpoint-smaller_screen: 1155px;
+  --breakpoint-small_screen: 1490px;
+  --breakpoint-medium_screen: 1600px;
+  --breakpoint-large_tablet: 768px;
+  --breakpoint-smallest_screen: 800px;
+  --breakpoint-smallest_screen1: 850px;
+  --breakpoint-small_tablet: 700px;
+  --breakpoint-smallest_tablet: 650px;
+  --breakpoint-large_phone: 550px;
+  --breakpoint-small_phone: 432px;
+  --breakpoint-smallest_phone: 385px;
+
+  --background-image-gradient-radial: radial-gradient(var(--tw-gradient-stops));
+  --background-image-gradient-conic: conic-gradient(
+    from 180deg at 50% 50%,
+    var(--tw-gradient-stops)
+  );
+
+  --shadow-shadowlg:
+    box-shadow: rgba(0, 0, 0, 0.1) 0px 1px 3px 0px,
+    rgba(0, 0, 0, 0.06) 0px 1px 2px 0px;
+
+  --color-incart: #495464;
+  --color-unpaid: #eb5757;
+  --color-paid: #35c191;
+  --color-preparing: #0097fa;
+  --color-shipped: #60513c;
+
+  --animate-slidedown: slidedown 0.5s ease-in-out;
+  --animate-fade-in: fade-in 1s ease-in-out;
+  --animate-shimmer: shimmer 2s ease-in-out infinite;
+
+  @keyframes slidedown {
+    from {
+      height: 0;
+    }
+    to {
+      height: fit-content;
+    }
+  }
+  @keyframes fade-in {
+    0% {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0px);
+    }
+  }
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
+}
+
+/*
+  The default border color has changed to `currentcolor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+}
+
 /* :root {
   width: 100%;
   overflow-x: hidden;
@@ -301,5 +383,3 @@
   background: black;
   border-radius: 5px;
 }
-
-/*# sourceMappingURL=globals.css.map */

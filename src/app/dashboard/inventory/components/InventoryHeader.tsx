@@ -2,6 +2,21 @@
 import React from "react";
 import { SelectionCustom } from "../../../component/Pagination_Component";
 import { SubInventoryMenu } from "../../../component/Navbar";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faBox,
+  faCheck,
+  faClock,
+  faFilter,
+  faGrip,
+  faLayerGroup,
+  faList,
+  faPercent,
+  faPlus,
+  faSpinner,
+  faTriangleExclamation,
+  IconDefinition,
+} from "@fortawesome/free-solid-svg-icons";
 
 interface InventoryHeaderProps {
   type?: string;
@@ -62,9 +77,12 @@ export const InventoryHeader: React.FC<InventoryHeaderProps> = ({
     <div className="w-full flex flex-row items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
       {showNormalMode ? (
         <>
-          <div className="flex-shrink-0">
-            <div className="flex items-center gap-1.5 md:gap-2 px-2 md:px-3 py-1.5 md:py-2 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-lg md:rounded-xl border-2 border-indigo-200">
-              <i className="fa-solid fa-layer-group text-indigo-500 text-sm md:text-base"></i>
+          <div className="shrink-0">
+            <div className="flex items-center gap-1.5 md:gap-2 px-2 md:px-3 py-1.5 md:py-2 bg-linear-to-r from-indigo-50 to-purple-50 rounded-lg md:rounded-xl border-2 border-indigo-200">
+              <FontAwesomeIcon
+                icon={faLayerGroup}
+                className="text-indigo-500 text-sm md:text-base"
+              />
               <SelectionCustom
                 label="Filter"
                 data={filterOptions}
@@ -76,7 +94,7 @@ export const InventoryHeader: React.FC<InventoryHeaderProps> = ({
             </div>
           </div>
 
-          <div className="flex-shrink-0">
+          <div className="shrink-0">
             <SubInventoryMenu
               data={createMenu as any}
               open="subcreatemenu_ivt"
@@ -84,7 +102,7 @@ export const InventoryHeader: React.FC<InventoryHeaderProps> = ({
           </div>
 
           <StatBadge
-            icon="fa-box"
+            icon={faBox}
             label="Total"
             value={itemTotal}
             gradient="from-blue-500 to-cyan-600"
@@ -92,7 +110,7 @@ export const InventoryHeader: React.FC<InventoryHeaderProps> = ({
 
           {type === "product" && (
             <StatBadge
-              icon="fa-triangle-exclamation"
+              icon={faTriangleExclamation}
               label="Low"
               value={lowstock}
               gradient="from-red-500 to-pink-600"
@@ -101,7 +119,7 @@ export const InventoryHeader: React.FC<InventoryHeaderProps> = ({
 
           {type === "promotion" && (
             <StatBadge
-              icon="fa-clock"
+              icon={faClock}
               label="Expired"
               value={promoexpire}
               gradient="from-orange-500 to-red-600"
@@ -112,7 +130,7 @@ export const InventoryHeader: React.FC<InventoryHeaderProps> = ({
         <>
           {isPromotionSelection && isMultipleProducts && (
             <ActionButton
-              icon="fa-percent"
+              icon={faPercent}
               label="Discount"
               gradient="from-purple-500 to-pink-600"
               onClick={onDiscountClick}
@@ -123,7 +141,7 @@ export const InventoryHeader: React.FC<InventoryHeaderProps> = ({
 
       {isBannerSelection && (
         <ActionButton
-          icon="fa-plus"
+          icon={faPlus}
           label="Add New"
           gradient="from-green-500 to-emerald-600"
           onClick={onAddBannerClick}
@@ -135,20 +153,27 @@ export const InventoryHeader: React.FC<InventoryHeaderProps> = ({
           type="button"
           onClick={onDoneClick}
           disabled={isLoadingUpdate}
-          className={`flex-shrink-0 flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-1.5 md:py-2.5 rounded-lg md:rounded-xl shadow-md font-bold text-xs md:text-sm transition-all ${
+          className={`shrink-0 flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-1.5 md:py-2.5 rounded-lg md:rounded-xl shadow-md font-bold text-xs md:text-sm transition-all ${
             isLoadingUpdate
               ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-              : "bg-gradient-to-r from-blue-500 to-cyan-600 text-white hover:shadow-lg hover:scale-105"
+              : "bg-linear-to-r from-blue-500 to-cyan-600 text-white hover:shadow-lg hover:scale-105"
           }`}
         >
           {isLoadingUpdate ? (
             <>
-              <i className="fa-solid fa-spinner fa-spin text-sm md:text-base"></i>
+              <FontAwesomeIcon
+                icon={faSpinner}
+                className="text-sm md:text-base"
+              />
               <span className="whitespace-nowrap">Processing...</span>
             </>
           ) : (
             <>
               <i className="fa-solid fa-check text-sm md:text-base"></i>
+              <FontAwesomeIcon
+                icon={faCheck}
+                className="text-sm md:text-base"
+              />
               <span className="whitespace-nowrap">Done</span>
             </>
           )}
@@ -156,7 +181,7 @@ export const InventoryHeader: React.FC<InventoryHeaderProps> = ({
       )}
 
       <ActionButton
-        icon="fa-filter"
+        icon={faFilter}
         label={hasActiveFilters ? "Clear" : "Filter"}
         gradient="from-cyan-500 to-blue-600"
         onClick={onFilterClick}
@@ -169,15 +194,15 @@ export const InventoryHeader: React.FC<InventoryHeaderProps> = ({
 
 // Sub-components
 const StatBadge: React.FC<{
-  icon: string;
+  icon: IconDefinition;
   label: string;
   value: number;
   gradient: string;
 }> = ({ icon, label, value, gradient }) => (
   <div
-    className={`flex-shrink-0 flex items-center gap-1.5 md:gap-2 px-2.5 md:px-4 py-1.5 md:py-2.5 bg-gradient-to-r ${gradient} text-white rounded-lg md:rounded-xl shadow-md hover:shadow-lg transition-all`}
+    className={`shrink-0 flex items-center gap-1.5 md:gap-2 px-2.5 md:px-4 py-1.5 md:py-2.5 bg-linear-to-r ${gradient} text-white rounded-lg md:rounded-xl shadow-md hover:shadow-lg transition-all`}
   >
-    <i className={`fa-solid ${icon} text-sm md:text-lg`}></i>
+    <FontAwesomeIcon icon={icon} className={`text-sm md:text-lg`} />
     <span className="font-bold text-xs md:text-sm whitespace-nowrap">
       {label}: {value}
     </span>
@@ -185,7 +210,7 @@ const StatBadge: React.FC<{
 );
 
 const ActionButton: React.FC<{
-  icon: string;
+  icon: IconDefinition;
   label: string;
   gradient: string;
   onClick: () => void;
@@ -193,9 +218,9 @@ const ActionButton: React.FC<{
   <button
     type="button"
     onClick={onClick}
-    className={`flex-shrink-0 flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-1.5 md:py-2.5 bg-gradient-to-r ${gradient} text-white rounded-lg md:rounded-xl shadow-md hover:shadow-lg transition-all hover:scale-105 font-bold text-xs md:text-sm`}
+    className={`shrink-0 flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-1.5 md:py-2.5 bg-linear-to-r ${gradient} text-white rounded-lg md:rounded-xl shadow-md hover:shadow-lg transition-all hover:scale-105 font-bold text-xs md:text-sm`}
   >
-    <i className={`fa-solid ${icon} text-sm md:text-base`}></i>
+    <FontAwesomeIcon icon={icon} className={`text-sm md:text-base`} />
     <span className="whitespace-nowrap">{label}</span>
   </button>
 );
@@ -204,30 +229,30 @@ const ViewModeToggle: React.FC<{
   viewMode: "card" | "list";
   onChange: (mode: "card" | "list") => void;
 }> = ({ viewMode, onChange }) => (
-  <div className="flex-shrink-0 flex items-center gap-1 bg-white rounded-lg md:rounded-xl shadow-md border-2 border-gray-200 overflow-hidden">
+  <div className="shrink-0 flex items-center gap-1 bg-white rounded-lg md:rounded-xl shadow-md border-2 border-gray-200 overflow-hidden">
     <button
       type="button"
       onClick={() => onChange("card")}
       className={`px-2.5 md:px-3 py-1.5 md:py-2 transition-all ${
         viewMode === "card"
-          ? "bg-gradient-to-r from-indigo-500 to-purple-600 text-white"
+          ? "bg-linear-to-r from-indigo-500 to-purple-600 text-white"
           : "text-gray-600 hover:bg-gray-100"
       }`}
       title="Card View"
     >
-      <i className="fa-solid fa-grip text-sm md:text-base"></i>
+      <FontAwesomeIcon icon={faGrip} className="text-sm md:text-base" />
     </button>
     <button
       type="button"
       onClick={() => onChange("list")}
       className={`px-2.5 md:px-3 py-1.5 md:py-2 transition-all ${
         viewMode === "list"
-          ? "bg-gradient-to-r from-indigo-500 to-purple-600 text-white"
+          ? "bg-linear-to-r from-indigo-500 to-purple-600 text-white"
           : "text-gray-600 hover:bg-gray-100"
       }`}
       title="List View"
     >
-      <i className="fa-solid fa-list text-sm md:text-base"></i>
+      <FontAwesomeIcon icon={faList} className="text-sm md:text-base" />
     </button>
   </div>
 );
