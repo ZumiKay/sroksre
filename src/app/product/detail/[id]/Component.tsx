@@ -24,7 +24,7 @@ import { Addtocart, AddWishlist } from "./action";
 import { errorToast, successToast } from "@/src/app/component/Loading";
 import { ApiRequest } from "@/src/context/CustomHook";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Skeleton } from "@nextui-org/react";
+import { Skeleton } from "@heroui/react";
 import { ProductState, VariantValueObjType } from "@/src/types/product.type";
 
 export const ShowPrice = React.memo(

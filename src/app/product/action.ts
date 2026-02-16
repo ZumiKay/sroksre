@@ -2,9 +2,9 @@
 
 import {
   ProductState,
-  SelectType,
-  VariantColorValueType,
-} from "@/src/context/GlobalContext";
+  VariantValueObjType as VariantColorValueType,
+} from "@/src/types/product.type";
+import { SelectType } from "@/src/types/productAction.type";
 import Prisma from "@/src/lib/prisma";
 import {
   caculateArrayPagination,

@@ -1,6 +1,6 @@
 "use client";
 
-import { Badge, Button, Input } from "@nextui-org/react";
+import { Badge, Button, Input } from "@heroui/react";
 import Modal from "../../Modals";
 import { SelectionCustom } from "../../Pagination_Component";
 import { ChangeEvent, useState } from "react";

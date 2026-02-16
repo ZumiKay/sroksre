@@ -4,7 +4,6 @@ import NavbarWrapper from "./component/NavbarWrapper";
 import Footer from "./component/Footer";
 import { ToastContainer } from "react-toastify";
 import { GlobalContextProvider } from "../context/GlobalContext";
-import { NextUIProvider } from "@nextui-org/react";
 import { Suspense } from "react";
 import { ContainerLoading } from "./component/Loading";
 import { SocketProvider } from "../context/SocketContext";
@@ -113,18 +112,17 @@ export default async function RootLayout({
       >
         <Provider>
           <GlobalContextProvider>
-            <NextUIProvider>
-              <Suspense fallback={<ContainerLoading />}>
-                <SocketProvider>
-                  <div id="main" className="w-full h-full relative">
-                    <ToastContainer />
-                    <NavbarWrapper />
-                    {children}
-                    <Footer />
-                  </div>
-                </SocketProvider>
-              </Suspense>
-            </NextUIProvider>
+            {/* NextUIProvider not needed for HeroUI */}
+            <Suspense fallback={<ContainerLoading />}>
+              <SocketProvider>
+                <div id="main" className="w-full h-full relative">
+                  <ToastContainer />
+                  <NavbarWrapper />
+                  {children}
+                  <Footer />
+                </div>
+              </SocketProvider>
+            </Suspense>
           </GlobalContextProvider>
         </Provider>
       </body>

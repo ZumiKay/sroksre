@@ -1,7 +1,7 @@
 "use client";
 import { useGlobalContext } from "@/src/context/GlobalContext";
 import { StockCard } from "../Stock";
-import { Badge } from "@nextui-org/react";
+import { Badge } from "@heroui/react";
 import { useMemo, memo, useCallback } from "react";
 import {
   SubStockType,

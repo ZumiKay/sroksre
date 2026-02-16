@@ -1,7 +1,7 @@
 "use client";
 import Image, { ImageProps, StaticImageData } from "next/image";
 import { useState, useEffect, useMemo } from "react";
-import { Skeleton } from "@nextui-org/react";
+import { Skeleton } from "@heroui/react";
 import DefaultImage from "../../../public/Image/default.png";
 
 interface ImageWithLoaderProps

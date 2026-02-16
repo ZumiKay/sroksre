@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Select, SelectItem } from "@nextui-org/react";
+import { Select, SelectItem } from "@heroui/react";
 
 interface SelectionServerSideProps {
   currentValue: number;
@@ -56,7 +56,7 @@ export function SelectionServerSide({
         onChange={(e) => handleChange(e.target.value)}
       >
         {options.map((num) => (
-          <SelectItem key={num.toString()} value={num.toString()}>
+          <SelectItem key={num.toString()}>
             {num === 1 ? "1 item" : `${num} items`}
           </SelectItem>
         ))}

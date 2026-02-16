@@ -28,16 +28,20 @@ import { GetListProduct } from "./action";
 import { PageHeader } from "./components/PageHeader";
 import { ProductGrid } from "./components/ProductGrid";
 import { buildBreadcrumbs } from "./breadcrumb-utils";
+import { ProductState } from "@/src/types/product.type";
 
 export type Props = {
-  params: { id: string };
-  searchParams: { [key: string]: string | string[] | undefined };
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 };
 
 export async function generateMetadata({
   searchParams,
-}: Props): Promise<Metadata> {
-  const param = searchParams as ProductParam;
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}): Promise<Metadata> {
+  const resolvedSearchParams = await searchParams;
+  const param = resolvedSearchParams as ProductParam;
   return await fetchCategoryMetadata(
     param.pid,
     param.cid,
@@ -50,12 +54,16 @@ export async function generateMetadata({
 export default async function ProductsPage({
   searchParams,
 }: {
-  searchParams?: { [key: string]: string | string[] | undefined };
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-  const params = searchParams as unknown as ProductParam;
+  const resolvedSearchParams = await searchParams;
+  const params = resolvedSearchParams as unknown as ProductParam;
 
   // Early validation
-  if (!searchParams || Object.entries(searchParams).length === 0) {
+  if (
+    !resolvedSearchParams ||
+    Object.entries(resolvedSearchParams).length === 0
+  ) {
     return NotFound();
   }
 

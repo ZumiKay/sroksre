@@ -1,4 +1,4 @@
-import { PromotionState, SelectType } from "@/src/context/GlobalContext";
+import { PromotionState, SelectType } from "@/src/types/productAction.type";
 
 import { NextRequest } from "next/server";
 import { extractQueryParams } from "../banner/route";
@@ -9,7 +9,7 @@ import {
 } from "@/src/lib/utilities";
 import dayjs from "dayjs";
 import Prisma from "@/src/lib/prisma";
-import { Prisma as prisma } from "@prisma/client";
+import type { Prisma as PrismaTypes } from "@/prisma/generated/prisma/client";
 import { categorytype } from "../categories/route";
 
 export async function POST(request: NextRequest) {
@@ -47,8 +47,8 @@ export async function POST(request: NextRequest) {
             data: {
               promotion_id: create.id,
             },
-          })
-        )
+          }),
+        ),
       );
 
       // Check for Sale Category
@@ -166,8 +166,8 @@ export async function PUT(request: NextRequest) {
                 promotion_id: updatedata.id === -1 ? null : updatedata.id,
                 discount: product.discount?.percent,
               },
-            })
-          )
+            }),
+          ),
         );
       }
 
@@ -198,8 +198,8 @@ export async function PUT(request: NextRequest) {
               tx.products.update({
                 where: { id },
                 data: { promotion_id: null, discount: null },
-              })
-            )
+              }),
+            ),
           );
         }
 
@@ -211,8 +211,8 @@ export async function PUT(request: NextRequest) {
                 promotion_id: updatedata.id === -1 ? null : updatedata.id,
                 discount: product.discount?.percent,
               },
-            })
-          )
+            }),
+          ),
         );
       }
 
@@ -329,11 +329,11 @@ export async function GET(request: NextRequest) {
     });
 
     expirecount = countexpiredPromo.filter(
-      (i) => dayjs(i.expireAt).isBefore(now) || dayjs(i.expireAt).isSame(now)
+      (i) => dayjs(i.expireAt).isBefore(now) || dayjs(i.expireAt).isSame(now),
     ).length;
 
     // Base query condition
-    const baseCondition: prisma.PromotionWhereInput = {
+    const baseCondition: PrismaTypes.PromotionWhereInput = {
       name: param.q
         ? {
             contains: removeSpaceAndToLowerCase(param.q),
@@ -345,10 +345,10 @@ export async function GET(request: NextRequest) {
             lt: new Date(param.exp as string),
           }
         : param.expired
-        ? {
-            lte: new Date(),
-          }
-        : {},
+          ? {
+              lte: new Date(),
+            }
+          : {},
     };
 
     const total = await Prisma.promotion.count({
@@ -359,7 +359,7 @@ export async function GET(request: NextRequest) {
     const { startIndex, endIndex } = calculatePagination(
       total,
       param.lt as number,
-      param.p as number
+      param.p as number,
     );
 
     if (param.ty === "all" || param.ty === "filter") {
@@ -385,7 +385,7 @@ export async function GET(request: NextRequest) {
         modified = caculateArrayPagination(
           modified as any,
           param.p ?? 1,
-          param.lt ?? 1
+          param.lt ?? 1,
         );
       }
     } else if (param.ty === "selection") {
@@ -400,7 +400,7 @@ export async function GET(request: NextRequest) {
 
       return Response.json(
         { data: promotions, isLimit: promotions.length <= 5 },
-        { status: 200 }
+        { status: 200 },
       );
     } else if (param.ty === "byid") {
       //For Multiselect and Search Value
@@ -469,7 +469,7 @@ export async function GET(request: NextRequest) {
         total,
         totalpage: totalpromo,
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error) {
     console.log("Get Promotion", error);

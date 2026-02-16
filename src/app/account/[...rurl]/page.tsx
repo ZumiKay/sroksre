@@ -5,9 +5,10 @@ import ResetPasswordForm from "./ResetPasswordForm";
 export default async function ResetPage({
   params,
 }: {
-  params: { rurl: string };
+  params: Promise<{ rurl: string }>;
 }) {
-  const URL = decodeURIComponent(params.rurl);
+  const { rurl } = await params;
+  const URL = decodeURIComponent(rurl);
   const match = URL.match(/cid=(\d+)/);
 
   if (!match) {

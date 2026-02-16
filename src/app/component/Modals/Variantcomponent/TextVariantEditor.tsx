@@ -1,7 +1,7 @@
 "use client";
 import React, { FormEvent, useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Badge, Button, Input } from "@nextui-org/react";
+import { Badge, Button, Input } from "@heroui/react";
 import Modal from "../../Modals";
 import { ModalOpenState } from "../types";
 import { PlusRoundSignIcon, TextBasedOptionIcon } from "../../svg/icons";

@@ -14,7 +14,7 @@ import ReactSelect from "react-select/async";
 import makeAnimated from "react-select/animated";
 import { GetProductName } from "../dashboard/inventory/varaint_action";
 import { errorToast } from "./Loading";
-import { Button, Input } from "@nextui-org/react";
+import { Button, Input } from "@heroui/react";
 import React from "react";
 import { ProductInfo, VariantValueObjType } from "@/src/types/product.type";
 import { SelectType } from "@/src/types/productAction.type";

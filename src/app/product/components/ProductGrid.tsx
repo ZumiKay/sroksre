@@ -1,3 +1,4 @@
+import { ProductState } from "@/src/types/product.type";
 import Card from "../../component/Card";
 
 interface Product {
@@ -10,7 +11,7 @@ interface Product {
 }
 
 interface ProductGridProps {
-  products: Product[];
+  products: ProductState[];
 }
 
 export const ProductGrid = ({ products }: ProductGridProps) => {

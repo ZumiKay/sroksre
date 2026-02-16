@@ -2,6 +2,7 @@
 
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/src/app/api/auth/[...nextauth]/route";
+// Sessiontype is defined in GlobalContext.tsx and needs to stay there
 import { Sessiontype } from "@/src/context/GlobalContext";
 import Prisma from "./prisma";
 import { Usersessiontype } from "../types/user.type";

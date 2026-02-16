@@ -16,7 +16,7 @@ import { getSubCategories } from "../dashboard/inventory/varaint_action";
 import SelectArrow from "../../../public/Image/Arrow_down.svg";
 import { AnimatePresence, motion } from "framer-motion";
 import { DeleteIcon } from "./Asset";
-import { Skeleton } from "@nextui-org/react";
+import { Skeleton } from "@heroui/react";
 import { SelectType } from "@/src/types/productAction.type";
 
 //
@@ -60,7 +60,7 @@ export const SearchAndSelectCategory = () => {
     if (selected?.value) {
       const getreq = getSubCategories.bind(
         null,
-        parseInt(selected.value.toString())
+        parseInt(selected.value.toString()),
       );
       const sub = await getreq();
       if (sub.success) {
@@ -104,7 +104,7 @@ export const SearchAndSelectCategory = () => {
 interface selectprops {
   getdata: (
     take: number,
-    value: string
+    value: string,
   ) => Promise<{
     success: boolean;
     isLimit?: boolean;
@@ -132,17 +132,17 @@ export const SelectAndSearchProduct = ({
   const [options, setoptions] = useState<Array<SelectType> | undefined>();
   const [inputValue, setInputValue] = useState<string>("");
   const [selectedvalue, setselectedvalue] = useState<SelectType[] | undefined>(
-    value
+    value,
   );
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const conref = useRef<HTMLDivElement>();
+  const conref = useRef<HTMLDivElement>(null);
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const isSelected = useCallback(
     (val: SelectType) => {
       return selectedvalue?.findIndex((i) => i.value === val.value) !== -1;
     },
-    [selectedvalue]
+    [selectedvalue],
   );
 
   const fetchData = useCallback(
@@ -160,7 +160,7 @@ export const SelectAndSearchProduct = ({
         setloading(false);
       }
     },
-    [getdata]
+    [getdata],
   );
 
   useEffect(() => {
@@ -213,7 +213,7 @@ export const SelectAndSearchProduct = ({
           : onSelect(selected.length === 0 ? undefined : selected));
       setselectedvalue(selected);
     },
-    [selectedvalue, singleselect, onSelect]
+    [selectedvalue, singleselect, onSelect],
   );
 
   const handleInputChange = useCallback(() => {
@@ -250,7 +250,7 @@ export const SelectAndSearchProduct = ({
           : onSelect(selected.length === 0 ? undefined : selected));
       setisDelete(false);
     },
-    [selectedvalue, singleselect, onSelect]
+    [selectedvalue, singleselect, onSelect],
   );
 
   // Memoize selected tags rendering
@@ -280,7 +280,7 @@ export const SelectAndSearchProduct = ({
           </button>
         </motion.div>
       )),
-    [selectedvalue, handleDeleteSelected]
+    [selectedvalue, handleDeleteSelected],
   );
 
   return (
@@ -345,7 +345,7 @@ export const SelectAndSearchProduct = ({
               options.map((i, idx) => {
                 const selected = isSelected(i);
                 const selectedIndex = selectedvalue?.findIndex(
-                  (v) => v.value === i.value
+                  (v) => v.value === i.value,
                 );
                 return (
                   <motion.div
@@ -366,8 +366,8 @@ export const SelectAndSearchProduct = ({
                       {!singleselect && selected
                         ? (selectedIndex as number) + 1
                         : selected
-                        ? "✓"
-                        : ""}
+                          ? "✓"
+                          : ""}
                     </div>
                     <li
                       className={`w-full h-fit p-3 font-medium rounded-lg transition-all duration-200 ${

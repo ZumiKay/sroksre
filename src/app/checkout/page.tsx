@@ -15,7 +15,6 @@ import { notFound, redirect } from "next/navigation";
 import Prisma from "@/src/lib/prisma";
 import {
   Allstatus,
-  Orderpricetype,
   Ordertype,
   Productorderdetailtype,
   Productordertype,
@@ -29,6 +28,7 @@ import { getPolicesByPage } from "../api/policy/route";
 import Link from "next/link";
 import { Metadata } from "next";
 import { VariantValueObjType } from "@/src/types/product.type";
+import { userdata } from "../account/actions";
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
@@ -39,10 +39,13 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function Checkoutpage({
   searchParams,
 }: {
-  searchParams?: { [key: string]: string | string[] | undefined };
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-  const step = searchParams?.step ? parseInt(searchParams?.step as string) : 0;
-  const orderid_param = searchParams?.orderid;
+  const resolvedSearchParams = await searchParams;
+  const step = resolvedSearchParams?.step
+    ? parseInt(resolvedSearchParams?.step as string)
+    : 0;
+  const orderid_param = resolvedSearchParams?.orderid;
   if (!step || !orderid_param || orderid_param.length === 0) {
     return redirect("/");
   }
@@ -163,6 +166,8 @@ export const getCheckoutdata = async (
 
   return {
     ...result,
+    user: result.user as userdata,
+    shipping: result.shipping ?? undefined,
     shippingtype: result.shippingtype as ShippingTypeEnum,
     estimate: result.estimate ?? undefined,
     price: result.price as unknown as totalpricetype,
@@ -172,7 +177,7 @@ export const getCheckoutdata = async (
   };
 };
 
-export const calculatePrice = (price: number, percent: number) =>
+export const calculatePrice = async (price: number, percent: number) =>
   price - (price * percent) / 100;
 
 const OrderSummary = async ({ orderId }: { orderId: string }) => {

@@ -11,7 +11,7 @@ import {
   ModalFooter,
   ModalHeader,
   Modal as Modals,
-} from "@nextui-org/react";
+} from "@heroui/react";
 import React from "react";
 
 export default function Modal({

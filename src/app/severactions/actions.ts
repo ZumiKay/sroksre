@@ -21,7 +21,7 @@ export type BannerType = keyof typeof BannerType;
 const getDataForBanner = async (
   limit: number,
   value: string,
-  model: any
+  model: any,
 ): Promise<returnType> => {
   try {
     const data = await model.findMany({
@@ -49,16 +49,16 @@ const getDataForBanner = async (
   }
 };
 
-export const getProductForBanner = (limit: number, value: string) => {
+export const getProductForBanner = async (limit: number, value: string) => {
   return getDataForBanner(limit, value, Prisma.products);
 };
 
-export const getPromotionForBanner = (limit: number, value: string) => {
+export const getPromotionForBanner = async (limit: number, value: string) => {
   return getDataForBanner(limit, value, Prisma.promotion);
 };
 
 export const getParentCategoryForBanner = async (
-  value: string
+  value: string,
 ): Promise<returnType> => {
   try {
     const data = await Prisma.parentcategories.findMany({
@@ -84,7 +84,7 @@ export const getParentCategoryForBanner = async (
 
 export const getChildCategoryForBanner = async (
   value: string,
-  pid: number
+  pid: number,
 ): Promise<returnType> => {
   try {
     const data = await Prisma.parentcategories.findUnique({

@@ -11,7 +11,7 @@ import { motion } from "framer-motion";
 import { DateTimePicker } from "@mui/x-date-pickers";
 import dayjs from "dayjs";
 import { ImageUpload } from "./Image";
-import { Switch } from "@nextui-org/react";
+import { Switch } from "@heroui/react";
 
 interface InventoryParamType {
   ty?: string;
@@ -55,7 +55,7 @@ export const CreatePromotionModal = ({
     const request = await ApiRequest(
       `/api/promotion?ty=edit&p=${id}`,
       undefined,
-      "GET"
+      "GET",
     );
     setloading(false);
     if (request.success) {
@@ -79,7 +79,7 @@ export const CreatePromotionModal = ({
     const isProduct = promo.Products.filter((i) => i.id !== 0).length;
     if (isProduct === 0 || !promo.expireAt) {
       errorToast(
-        !promo.expireAt ? "Please Fill Expire Date" : "Please Select Product"
+        !promo.expireAt ? "Please Fill Expire Date" : "Please Select Product",
       );
       return;
     }
@@ -91,7 +91,7 @@ export const CreatePromotionModal = ({
       setisLoading,
       method,
       "JSON",
-      { ...promo, type: "edit" }
+      { ...promo, type: "edit" },
     );
     if (!createpromo.success) {
       errorToast(createpromo.error ?? "Error Occured");
@@ -103,7 +103,7 @@ export const CreatePromotionModal = ({
     successToast(
       `Promotion ${
         globalindex.promotioneditindex === -1 ? "Created" : "Updated"
-      }`
+      }`,
     );
     Object.keys(searchparams).forEach((key) => {
       if (key === "ty") {
@@ -131,7 +131,7 @@ export const CreatePromotionModal = ({
       setisLoading,
       "PUT",
       "JSON",
-      { type: "cancelproduct" }
+      { type: "cancelproduct" },
     );
 
     if (!deletepromoproduct.success) {
@@ -381,7 +381,7 @@ export const DiscountModals = ({
   useEffectOnce(() => {
     if (globalindex.promotionproductedit !== -1) {
       const idx = promotion.Products.findIndex(
-        (i) => i.id === globalindex.promotionproductedit
+        (i) => i.id === globalindex.promotionproductedit,
       );
       const promo = promotion.Products[idx].discount;
       const percent = promo?.percent;
@@ -414,18 +414,23 @@ export const DiscountModals = ({
     //update product discount
     allproduct = allproduct.map((product) => {
       const matchingPromoProduct = promoproduct.find(
-        (promoProduct) => promoProduct.id === product.id
+        (promoProduct) => promoProduct.id === product.id,
       );
 
       if (matchingPromoProduct) {
         const { percent, newprice } = matchingPromoProduct.discount || {};
         return {
           ...product,
-          discount: {
-            ...product.discount,
-            percent: percent as number,
-            newprice: newprice as string,
-          },
+          discount: (typeof product.discount === "object"
+            ? {
+                ...product.discount,
+                percent: percent as number,
+                newprice: newprice as string,
+              }
+            : {
+                percent: percent as number,
+                newprice: newprice as string,
+              }) as any,
         };
       }
 

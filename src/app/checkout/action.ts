@@ -8,7 +8,7 @@ import {
   totalpricetype,
 } from "@/src/types/order.type";
 import { getUser } from "@/src/lib/session";
-import { Orderproduct } from "@prisma/client";
+import { Orderproduct } from "@/prisma/generated/prisma/client";
 import { revalidatePath } from "next/cache";
 import {
   CountryCode,
@@ -36,6 +36,7 @@ import {
   PrismaPromise,
 } from "@/prisma/generated/prisma/internal/prismaNamespace";
 import { canPlaceOrder } from "./helper";
+import { userdata } from "@/src/types/user.type";
 
 interface Returntype<k = string> {
   success: boolean;
@@ -178,15 +179,9 @@ export async function getOrderProduct(
 }
 
 export interface OrderUserType extends Ordertype {
-  user: {
-    id: number;
-    firstname: string;
-    lastname?: string;
-    email: string;
-  };
   Orderproduct: Productordertype[];
   createdAt: Date;
-  shipping?: shippingtype;
+  // shipping already defined in Ordertype
 }
 
 export async function updateStatus(
@@ -197,7 +192,7 @@ export async function updateStatus(
   try {
     const order = await getCheckoutdata(orderid);
 
-    if (!order || !canPlaceOrder(order)) {
+    if (!order || !canPlaceOrder(order) || !order.user || !order.user.email) {
       return { success: false, status: 400 };
     }
 
@@ -293,7 +288,7 @@ export async function updateStatus(
     await Promise.all([
       SendOrderEmail(
         htmltemplate,
-        order.user.email,
+        order.user.email as string,
         emailSubject,
         createInvoice,
       ),

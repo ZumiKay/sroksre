@@ -10,7 +10,7 @@ import {
 import { errorToast } from "../Loading";
 import { SecondaryModal } from "../Modals";
 import { CirclePicker, ChromePicker } from "react-color";
-import { Button, Input } from "@nextui-org/react";
+import { Button, Input } from "@heroui/react";
 import { HasPartialOverlap } from "@/src/lib/utilities";
 import { ApiRequest, useScreenSize } from "@/src/context/CustomHook";
 import Multiselect from "../MutiSelect";

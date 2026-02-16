@@ -18,7 +18,7 @@ import PrimaryButton, { Selection } from "../Button";
 import ToggleMenu, { SearchAndMultiSelect } from "../ToggleMenu";
 import { Variantcontainer } from "./VariantModal";
 import { ImageUpload } from "./Image";
-import { Input, Textarea } from "@nextui-org/react";
+import { Input, Textarea } from "@heroui/react";
 import { VariantIcon } from "../Asset";
 import { SelectionCustom } from "../Pagination_Component";
 import { SecondaryModal } from "../Modals";

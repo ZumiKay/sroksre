@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState, useCallback, useMemo } from "react";
+import React, { useEffect, useState, useCallback, useMemo, use } from "react";
 import { redirect, useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { LocalizationProvider } from "@mui/x-date-pickers";
@@ -50,10 +50,9 @@ import useCheckSession from "@/src/hooks/useCheckSession";
 const DEFAULT_PARAMS = (type: string) => `?ty=${type}&p=1&limit=1`;
 
 interface InventoryProps {
-  searchParams?: { [key: string]: string | undefined };
+  searchParams: React.Usable<{ [x: string]: string | undefined }>;
 }
 
-let testCount = 0;
 export default function Inventory({ searchParams }: InventoryProps) {
   // Global context
   const {
@@ -84,7 +83,7 @@ export default function Inventory({ searchParams }: InventoryProps) {
     bannertype,
     expired,
     promoids,
-  } = (searchParams || {}) as InventoryParamType;
+  } = use(searchParams) as InventoryParamType;
 
   // Router hooks
   const router = useRouter();
@@ -508,7 +507,6 @@ export default function Inventory({ searchParams }: InventoryProps) {
             }}
             expiredAt={expiredate ? dayjs(expiredate).toISOString() : undefined}
             type={ty}
-            param={searchParams}
             expired={expired}
             reloadData={() => setreloaddata(true)}
             setfilterdata={setfiltervalue as any}

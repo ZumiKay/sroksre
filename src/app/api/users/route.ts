@@ -6,10 +6,11 @@ import {
   IsNumber,
   removeSpaceAndToLowerCase,
 } from "@/src/lib/utilities";
-import { UserState } from "@/src/context/GlobalContext";
+import { UserState } from "@/src/types/user.type";
 import { revalidateTag } from "next/cache";
 
-import { Prisma as prisma, Role } from "@prisma/client";
+import type { Prisma as PrismaTypes } from "@/prisma/generated/prisma/client";
+import { Role } from "@/prisma/generated/prisma/enums";
 
 interface Userparam {
   lt?: number;
@@ -23,7 +24,7 @@ export async function GET(request: NextRequest) {
     const url = request.url.toString();
     const params: Userparam = extractQueryParams(url);
 
-    const searchCondition: prisma.UserWhereInput = params.search
+    const searchCondition: PrismaTypes.UserWhereInput = params.search
       ? IsNumber(params.search.toString())
         ? { id: parseInt(params.search.toString()) }
         : {
@@ -57,7 +58,7 @@ export async function GET(request: NextRequest) {
     const { startIndex, endIndex } = calculatePagination(
       total,
       params.lt as number,
-      params.p as number
+      params.p as number,
     );
 
     const result = await Prisma.user.findMany({
@@ -74,7 +75,7 @@ export async function GET(request: NextRequest) {
         total,
         totalpage,
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error) {
     console.error("Get User Error:", error);
@@ -89,7 +90,7 @@ export async function DELETE(request: NextRequest) {
     await Prisma.wishlist.deleteMany({ where: { uid: id } });
     await Prisma.orderproduct.deleteMany({ where: { user_id: id } });
     await Prisma.orders.deleteMany({ where: { buyer_id: id } });
-    await Prisma.usersession.deleteMany({ where: { user_id: id } });
+    await Prisma.usersession.deleteMany({ where: { userId: id } });
     await Prisma.user.delete({ where: { id: id } });
 
     return Response.json({ message: "User Deleted" }, { status: 200 });

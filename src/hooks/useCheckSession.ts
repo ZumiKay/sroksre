@@ -11,7 +11,7 @@ import { errorToast } from "../app/component/Loading";
  */
 const useCheckSession = () => {
   const { status, data } = useSession();
-  const timerRef = useRef<NodeJS.Timeout>();
+  const timerRef = useRef<NodeJS.Timeout>(undefined);
   const [sessionStatus, setStatus] = useState<string>("");
 
   useEffect(() => {

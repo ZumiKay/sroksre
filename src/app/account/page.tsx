@@ -12,7 +12,7 @@ import { SendVfyEmail } from "./actions";
 import { PasswordInput } from "../component/FormComponent";
 import RecapchaContainer from "../component/RecaphaComponent";
 import { VerifyRecapcha } from "../severactions/RecapchaAction";
-import { Button, Checkbox } from "@nextui-org/react";
+import { Button, Checkbox } from "@heroui/react";
 import { userdata } from "@/src/types/user.type";
 
 const validatePassword = (password: string) => {

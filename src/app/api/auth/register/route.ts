@@ -1,4 +1,4 @@
-import { UserState } from "@/src/context/GlobalContext";
+import { UserState } from "@/src/types/user.type";
 import Prisma from "@/src/lib/prisma";
 import { registerUser } from "@/src/lib/userlib";
 import { NextRequest } from "next/server";

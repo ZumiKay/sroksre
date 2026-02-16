@@ -20,7 +20,6 @@ export const WarningIcon = ({
       className={sizeClass}
       fill="currentColor"
       viewBox="0 0 20 20"
-      aria-hidden="true"
       {...props}
     >
       <path
@@ -48,7 +47,6 @@ export const EmptyBoxIcon = ({
       fill="none"
       stroke="currentColor"
       viewBox="0 0 24 24"
-      aria-hidden="true"
       {...props}
     >
       <path

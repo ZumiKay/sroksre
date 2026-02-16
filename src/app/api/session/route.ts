@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
     if (!token) {
       return NextResponse.json(
         { success: false, message: "Unauthorized" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
         if (token.role !== "ADMIN") {
           return NextResponse.json(
             { success: false, message: "Forbidden" },
-            { status: 403 }
+            { status: 403 },
           );
         }
         const count = await cleanupExpiredSessions();
@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
         if (!sessionId) {
           return NextResponse.json(
             { success: false, message: "session_id required" },
-            { status: 400 }
+            { status: 400 },
           );
         }
 
@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
         if (token.role !== "ADMIN" && token.session_id !== sessionId) {
           return NextResponse.json(
             { success: false, message: "Forbidden" },
-            { status: 403 }
+            { status: 403 },
           );
         }
 
@@ -88,14 +88,14 @@ export async function POST(req: NextRequest) {
       default:
         return NextResponse.json(
           { success: false, message: "Invalid action" },
-          { status: 400 }
+          { status: 400 },
         );
     }
   } catch (error) {
     console.error("Session management error:", error);
     return NextResponse.json(
       { success: false, message: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -107,7 +107,7 @@ export async function GET(req: NextRequest) {
     if (!token) {
       return NextResponse.json(
         { success: false, message: "Unauthorized" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -117,17 +117,17 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       success: true,
       sessions: sessions.map((s) => ({
-        session_id: s.session_id,
+        session_id: s.sessionid,
         createdAt: s.createdAt,
         expireAt: s.expireAt,
-        isCurrent: s.session_id === token.session_id,
+        isCurrent: s.sessionid === token.session_id,
       })),
     });
   } catch (error) {
     console.error("Error fetching sessions:", error);
     return NextResponse.json(
       { success: false, message: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

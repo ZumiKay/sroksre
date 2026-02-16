@@ -22,11 +22,11 @@ import { deleteOrder, ExportOrderData, updateOrderStatus } from "./action";
 import { errorToast, successToast } from "../../component/Loading";
 import dayjs, { Dayjs } from "dayjs";
 import { OrderUserType } from "../../checkout/action";
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 import { AllorderType, isObjectEmpty } from "@/src/lib/utilities";
 import { shippingtype } from "../../component/Modals/User";
 import PaginationCustom from "../../component/Pagination_Component";
-import { Input } from "@nextui-org/react";
+import { Input } from "@heroui/react";
 import { useScreenSize } from "@/src/context/CustomHook";
 import React from "react";
 import { userdata } from "@/src/types/user.type";
@@ -61,7 +61,7 @@ export interface DownloadData {
       quantity: number;
       price: number;
       discount: number;
-    }
+    },
   ];
   shippingtype: string;
   shippingprice?: number;
@@ -118,15 +118,27 @@ export const DownloadButton = () => {
     setopen(true);
   };
 
-  const handleDownload = () => {
-    const workbook = XLSX.utils.book_new();
-    const worksheet = XLSX.utils.json_to_sheet(downloaddata.filedata);
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
-    const excelBuffer = XLSX.write(workbook, {
-      bookType: "xlsx",
-      type: "array",
-    });
-    const blob = new Blob([excelBuffer], {
+  const handleDownload = async () => {
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet("Sheet1");
+
+    // Add columns based on the data structure
+    if (downloaddata.filedata.length > 0) {
+      const firstRow = downloaddata.filedata[0] as any;
+      worksheet.columns = Object.keys(firstRow).map((key) => ({
+        header: key,
+        key: key,
+        width: 15,
+      }));
+
+      // Add rows
+      downloaddata.filedata.forEach((row) => {
+        worksheet.addRow(row);
+      });
+    }
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], {
       type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8",
     });
     // Create a link element, use it to download the file and remove it
@@ -425,7 +437,7 @@ export const ButtonSsr = React.memo(
       prevProps.isAdmin === nextProps.isAdmin &&
       prevProps.color === nextProps.color
     );
-  }
+  },
 );
 
 ButtonSsr.displayName = "ButtonSsr";
@@ -452,7 +464,7 @@ const FilterMenu = ({
   close: "exportoption" | "filteroption";
   handleNext?: (
     data: Filterdatatype,
-    settotalcount?: React.Dispatch<React.SetStateAction<number>>
+    settotalcount?: React.Dispatch<React.SetStateAction<number>>,
   ) => void;
   loading?: boolean;
   open: boolean;
@@ -513,7 +525,7 @@ const FilterMenu = ({
 
   const handleChange = (
     event: ChangeEvent<HTMLInputElement> | Dayjs | null,
-    name?: string
+    name?: string,
   ) => {
     if (dayjs.isDayjs(event) && name) {
       setfilterdata((prev) => ({ ...prev, [name]: event }));
@@ -758,7 +770,7 @@ export function DetailModal({
   isAdmin: boolean;
 }) {
   const [type, settype] = useState<"user" | "shipping" | "close" | "none">(
-    "none"
+    "none",
   );
   const { openmodal } = useGlobalContext();
 
@@ -924,7 +936,7 @@ export function DetailModal({
                     <td align="right" className="pr-5 rounded-br-lg">
                       <div className="flex flex-col w-full h-full">
                         <p className="text-lime-700">{`Subtotal: $${orderdata.price?.subtotal.toFixed(
-                          2
+                          2,
                         )}`}</p>
                         <p className="text-amber-600">{`Shipping: $${
                           orderdata.price?.shipping?.toFixed(2) ?? "0.0"
@@ -1112,13 +1124,13 @@ const UpdateStatus = ({
       <OrderReceiptTemplate
         order={{ ...order, status: status as any }}
         isAdmin={false}
-      />
+      />,
     );
     const makereq = updateOrderStatus.bind(
       null,
       status as any,
       oid,
-      emailTemplate
+      emailTemplate,
     );
     const update = await makereq();
     setloading(false);

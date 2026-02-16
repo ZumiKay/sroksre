@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
 
       return Response.json(
         { message: "Successfully Sent Code", data: emailTemplate },
-        { status: 200 }
+        { status: 200 },
       );
     } else {
       return Response.json({ message: "Email already exist" }, { status: 500 });
@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
     if (error?.issues) {
       return Response.json(
         { message: error.issues[0].message },
-        { status: 500 }
+        { status: 500 },
       );
     }
     console.log("Verify User", error);
@@ -121,7 +121,7 @@ export async function DELETE(request: NextRequest) {
       } else {
         return Response.json(
           { message: "what you try to do?" },
-          { status: 404 }
+          { status: 404 },
         );
       }
     } else {
@@ -133,7 +133,7 @@ export async function DELETE(request: NextRequest) {
       if (alluser) {
         await Prisma.usersession.deleteMany({
           where: {
-            user_id: { in: alluser.map((i) => i.id) },
+            userId: { in: alluser.map((i) => i.id) },
           },
         });
         await Prisma.user.updateMany({

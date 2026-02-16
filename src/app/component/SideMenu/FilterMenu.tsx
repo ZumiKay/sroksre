@@ -8,7 +8,7 @@ import React, {
 } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import dayjs from "dayjs";
-import { Checkbox } from "@nextui-org/react";
+import { Checkbox } from "@heroui/react";
 import { DateTimePicker } from "@mui/x-date-pickers";
 import { SecondaryModal } from "../Modals";
 import { Selection } from "../Button";

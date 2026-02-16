@@ -18,7 +18,7 @@ import {
   useTheme,
 } from "@mui/material";
 
-import { Chip as NextChip } from "@nextui-org/chip";
+import { Chip as NextChip } from "@heroui/react";
 import { ProductState, VariantValueObjType } from "@/src/types/product.type";
 import { useState } from "react";
 import { methodtype } from "@/src/lib/middlewareaction";
@@ -50,7 +50,13 @@ const FetchStockData = async (
   }
 };
 
-export const UpdateStockModal = ({ closename }: { closename: string }) => {
+export const UpdateStockModal = ({
+  closename,
+  productId,
+}: {
+  closename: string;
+  productId?: number;
+}) => {
   const { product, setproduct, setopenmodal } = useGlobalContext();
   const [loading, setloading] = useState<Partial<Record<methodtype, boolean>>>(
     {},

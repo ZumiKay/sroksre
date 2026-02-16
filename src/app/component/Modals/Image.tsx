@@ -3,10 +3,8 @@ import {
   Delayloading,
   useScreenSize,
 } from "@/src/context/CustomHook";
-import {
-  productcoverstype,
-  useGlobalContext,
-} from "@/src/context/GlobalContext";
+import { useGlobalContext } from "@/src/context/GlobalContext";
+import { productcoverstype } from "@/src/types/product.type";
 import {
   ChangeEvent,
   useRef,
@@ -60,7 +58,7 @@ const filetourl = (file: File[]) => {
 
 const uploadToVercel = async (
   file: File,
-  onProgress?: (percentage: number) => void
+  onProgress?: (percentage: number) => void,
 ): Promise<{
   success: boolean;
   data?: PutBlobResult;
@@ -135,8 +133,8 @@ export const ImageUpload = (props: imageuploadprops) => {
       product.covers.length > 0
         ? product.covers.map((i) => ({ ...i, isSave: true }))
         : banner.image?.url.length > 0
-        ? [banner.image]
-        : [];
+          ? [banner.image]
+          : [];
 
     seturl([...updatedImages]);
     //Initailize File
@@ -166,20 +164,20 @@ export const ImageUpload = (props: imageuploadprops) => {
 
       // Validate file size
       const oversizedFiles = filesArray.filter(
-        (file) => file.size > MAX_FILE_SIZE
+        (file) => file.size > MAX_FILE_SIZE,
       );
       if (oversizedFiles.length > 0) {
         errorToast(
           `${oversizedFiles.length} file(s) exceed 10MB limit: ${oversizedFiles
             .map((f) => f.name)
-            .join(", ")}`
+            .join(", ")}`,
         );
         return;
       }
 
       // Filter by file type
       const filteredFile = filesArray.filter((file) =>
-        ALLOWED_FILE_TYPES.includes(file.type)
+        ALLOWED_FILE_TYPES.includes(file.type),
       );
 
       // Alert if some files were filtered out
@@ -187,7 +185,7 @@ export const ImageUpload = (props: imageuploadprops) => {
         infoToast(
           `${
             filesArray.length - filteredFile.length
-          } file(s) skipped (invalid type)`
+          } file(s) skipped (invalid type)`,
         );
       }
       const filteredFileUrl = filetourl(filteredFile);
@@ -208,7 +206,7 @@ export const ImageUpload = (props: imageuploadprops) => {
               undefined,
               "DELETE",
               "JSON",
-              { covers: Imgurltemp, type: props.type }
+              { covers: Imgurltemp, type: props.type },
             );
             if (!deleteImage.success) {
               errorToast("Error Occured");
@@ -247,13 +245,13 @@ export const ImageUpload = (props: imageuploadprops) => {
         fileInputRef.current.value = "";
       }
     },
-    [Imgurl, Files]
+    [Imgurl, Files],
   );
 
   //Update Product when saved
   const handleUpdateCover = async (
     data: productcoverstype[],
-    type: "product" | "banner"
+    type: "product" | "banner",
   ) => {
     const update =
       type === "product"
@@ -292,7 +290,7 @@ export const ImageUpload = (props: imageuploadprops) => {
             ...prev,
             [file.name]: percentage,
           }));
-        })
+        }),
       );
 
       const results = await Promise.allSettled(uploadPromises);
@@ -310,7 +308,7 @@ export const ImageUpload = (props: imageuploadprops) => {
           uploadImages.push(result.value.data);
         } else if (result.status === "fulfilled" && !result.value.success) {
           errors.push(
-            result.value.error || `Failed to upload ${Files[index].name}`
+            result.value.error || `Failed to upload ${Files[index].name}`,
           );
         } else if (result.status === "rejected") {
           errors.push(`Upload rejected: ${Files[index].name}`);
@@ -325,7 +323,7 @@ export const ImageUpload = (props: imageuploadprops) => {
           return;
         } else {
           infoToast(
-            `${errors.length} upload(s) failed, ${uploadImages.length} succeeded`
+            `${errors.length} upload(s) failed, ${uploadImages.length} succeeded`,
           );
         }
       }
@@ -499,7 +497,7 @@ export const ImageUpload = (props: imageuploadprops) => {
                     >
                       <div
                         className={`relative w-full ${getImageContainerClass(
-                          index
+                          index,
                         )} bg-gray-100`}
                       >
                         <Image
@@ -621,7 +619,7 @@ export const ImageUpload = (props: imageuploadprops) => {
                           />
                         </div>
                       </div>
-                    )
+                    ),
                   )}
                 </div>
               </div>

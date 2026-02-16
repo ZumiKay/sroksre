@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import { motion } from "framer-motion";
-import { Badge } from "@nextui-org/react";
+import { Badge } from "@heroui/react";
 import { ColorSelectModal } from "../VariantModalComponent";
 import { VariantValueObjType } from "@/src/types/product.type";
 import { ModalOpenState } from "../types";

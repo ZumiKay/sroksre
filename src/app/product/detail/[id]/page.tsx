@@ -19,8 +19,13 @@ import {
 import { Relatedproducttype } from "@/src/types/product.type";
 import { Orderpricetype } from "@/src/types/order.type";
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const id = parseInt(params.id);
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id: idString } = await params;
+  const id = parseInt(idString);
 
   const product = await Prisma.products.findUnique({
     where: { id },
@@ -62,17 +67,19 @@ export default async function ProductDetailPage({
   params,
   searchParams,
 }: {
-  params: { id: string };
-  searchParams?: { [key: string]: string | undefined };
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ [key: string]: string | undefined }>;
 }) {
   const user = await getUser();
-  if (!params.id) {
+  const { id } = await params;
+
+  if (!id) {
     return notFound();
   }
 
-  const searchparam = searchParams as SearchParamType;
+  const searchparam = (await searchParams) as SearchParamType;
 
-  const { success, data } = await GetProductDetailById(params.id);
+  const { success, data } = await GetProductDetailById(id);
 
   if (!success || !data?.data) {
     return notFound();
@@ -180,7 +187,7 @@ export default async function ProductDetailPage({
             }
           >
             <ShowSimilarProduct
-              pid={params.id}
+              pid={id}
               parent_id={data?.data.category.parent_id ?? 0}
               child_id={data?.data.category.child_id}
               promoid={data?.data.promotion_id}

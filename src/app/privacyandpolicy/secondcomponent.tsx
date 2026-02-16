@@ -1,5 +1,5 @@
 "use client";
-import { Button, Select, SelectItem } from "@nextui-org/react";
+import { Button, Select, SelectItem } from "@heroui/react";
 import Modal from "../component/Modals";
 import React, { ChangeEvent, useState } from "react";
 import { showtype } from "../api/policy/route";

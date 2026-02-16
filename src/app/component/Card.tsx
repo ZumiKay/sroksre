@@ -13,7 +13,7 @@ import { useRouter } from "next/navigation";
 import { Orderpricetype, totalpricetype } from "@/src/types/order.type";
 import { Variantcontainer } from "./Modals/VariantModal";
 import { UpdateStockModal } from "./Modals/Stock";
-import { Chip, Skeleton } from "@nextui-org/react";
+import { Chip, Skeleton } from "@heroui/react";
 import {
   ApiRequest,
   useClickOutside,

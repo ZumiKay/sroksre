@@ -10,7 +10,7 @@ import { totalpricetype } from "@/src/types/order.type";
 import { SendOrderEmail } from "../../checkout/action";
 import { Filterdatatype } from "./OrderComponent";
 import { getCheckoutdata } from "../../checkout/page";
-import { Orderproduct, Orders } from "@prisma/client";
+import { Orderproduct, Orders } from "@/prisma/generated/prisma/client";
 
 const AllorderType = {
   orderdetail: "orderdetail",
@@ -24,7 +24,7 @@ export const GetOrder = async (
   type?: string,
   page?: number,
   limit?: number,
-  userid?: string
+  userid?: string,
 ): Promise<{ data: Orders | Array<Orderproduct>; total?: number } | null> => {
   if (id && type) {
     if (type === AllorderType.orderdetail) {
@@ -89,7 +89,7 @@ export const GetOrder = async (
     return null;
   }
 
-  return { data: order, total };
+  return { data: order as never, total };
 };
 
 interface filtertype {
@@ -213,7 +213,7 @@ interface Returntype<t = undefined> {
 export const updateOrderStatus = async (
   status: string,
   id: string,
-  email: string
+  email: string,
 ): Promise<Returntype> => {
   try {
     // Combine finding and updating the order in one step

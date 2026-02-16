@@ -1,5 +1,5 @@
 "use client";
-import { Button, Card, Skeleton } from "@nextui-org/react";
+import { Button, Card, Skeleton } from "@heroui/react";
 import {
   AnimatePresence,
   motion,

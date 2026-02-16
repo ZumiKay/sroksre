@@ -10,15 +10,17 @@ import {
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import LoadingIcon from "../component/Loading";
-import { Props } from "../product/page";
 import { Metadata } from "next";
 import Prisma from "@/src/lib/prisma";
 import { Role } from "@/prisma/generated/prisma/enums";
 
 export async function generateMetadata({
   searchParams,
-}: Props): Promise<Metadata> {
-  const { p } = searchParams;
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}): Promise<Metadata> {
+  const resolvedSearchParams = await searchParams;
+  const { p } = resolvedSearchParams;
   const page = p ? parseInt(p.toString()) : undefined;
 
   if (!page && page !== 0) {
@@ -50,9 +52,9 @@ export async function generateMetadata({
 export default async function PrivacyandPolicy({
   searchParams,
 }: {
-  searchParams?: { [key: string]: string | undefined };
+  searchParams: Promise<{ [key: string]: string | undefined }>;
 }) {
-  const params = searchParams;
+  const params = await searchParams;
   const pageId = params?.p ? parseInt(params.p) : undefined;
   const user = await getUser({ user: { select: { role: true } } });
 

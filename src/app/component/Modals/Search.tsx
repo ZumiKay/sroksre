@@ -1,6 +1,6 @@
 "use client";
 import Modal from "../Modals";
-import { Button, CircularProgress, Input } from "@nextui-org/react";
+import { Button, CircularProgress, Input } from "@heroui/react";
 import { CloseVector, Search_Icon } from "../Asset";
 import { ProductCard } from "../HomePage/Component";
 import { useGlobalContext } from "@/src/context/GlobalContext";

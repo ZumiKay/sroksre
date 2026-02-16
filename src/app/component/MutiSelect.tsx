@@ -1,6 +1,6 @@
 "use client";
 
-import { Chip, Select, SelectedItems, SelectItem } from "@nextui-org/react";
+import { Chip, Select, SelectedItems, SelectItem } from "@heroui/react";
 import React, { ReactNode, useEffect } from "react";
 
 interface Multiselectprops {
@@ -45,7 +45,7 @@ export default function Multiselect({
             startContent={
               <div
                 className="w-[15px] h-[15px] rounded-full"
-                style={{ backgroundColor: `${data.key ?? "white"}` }}
+                style={{ backgroundColor: `${String(data.key) ?? "white"}` }}
               ></div>
             }
           >

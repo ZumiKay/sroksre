@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { extractQueryParams } from "../../banner/route";
-import { ProductState } from "@/src/context/GlobalContext";
+import { ProductState } from "@/src/types/product.type";
 import { calculateDiscountProductPrice } from "@/src/lib/utilities";
 import Prisma from "@/src/lib/prisma";
 
@@ -100,7 +100,7 @@ export async function GET(req: NextRequest) {
           maxprod,
         },
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error) {
     console.log("Fetch Similar Product", error);

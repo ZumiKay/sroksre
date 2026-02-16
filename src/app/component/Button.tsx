@@ -204,31 +204,31 @@ const VisuallyHiddenInput = styled("input")({
 
 interface Inputfileuploadprops {
   onChange: React.ChangeEventHandler<HTMLInputElement>;
-  ref: any;
   multiple: boolean;
 }
-export const InputFileUpload = React.forwardRef(
-  (props: Inputfileuploadprops, ref: any) => {
-    return (
-      <Button
-        component="label"
-        variant="contained"
-        fullWidth
-        sx={{ height: "50px", boxShadow: "0", borderRadius: "10px" }}
-        startIcon={<i className="fa-solid fa-cloud-arrow-up"></i>}
-      >
-        Upload Image
-        <VisuallyHiddenInput
-          ref={ref}
-          multiple={props.multiple}
-          accept=".jpg, .png , .webp"
-          onChange={props.onChange}
-          type="file"
-        />
-      </Button>
-    );
-  },
-);
+export const InputFileUpload = React.forwardRef<
+  HTMLInputElement,
+  Inputfileuploadprops
+>((props, ref) => {
+  return (
+    <Button
+      component="label"
+      variant="contained"
+      fullWidth
+      sx={{ height: "50px", boxShadow: "0", borderRadius: "10px" }}
+      startIcon={<i className="fa-solid fa-cloud-arrow-up"></i>}
+    >
+      Upload Image
+      <VisuallyHiddenInput
+        ref={ref}
+        multiple={props.multiple}
+        accept=".jpg, .png , .webp"
+        onChange={props.onChange}
+        type="file"
+      />
+    </Button>
+  );
+});
 
 interface Selectcontainerprops {
   data: Array<string | VariantValueObjType>;

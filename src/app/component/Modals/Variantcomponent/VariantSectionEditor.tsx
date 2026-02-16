@@ -6,7 +6,7 @@ import PrimaryButton from "../../Button";
 import { useGlobalContext } from "@/src/context/GlobalContext";
 import { errorToast } from "../../Loading";
 import { ApiRequest } from "@/src/context/CustomHook";
-import { Tabs, Tab, Card, CardBody } from "@nextui-org/react";
+import { Tabs, Tab, Card, CardBody } from "@heroui/react";
 import { accessFromSectionType } from "../VariantModal";
 import React from "react";
 

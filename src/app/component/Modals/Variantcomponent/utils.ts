@@ -1,4 +1,4 @@
-import { VariantColorValueType } from "@/src/context/GlobalContext";
+import { VariantValueObjType as VariantColorValueType } from "@/src/types/product.type";
 import {
   Stocktype,
   Varianttype,

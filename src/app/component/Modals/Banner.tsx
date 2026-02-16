@@ -21,7 +21,7 @@ import PrimaryButton, { Selection } from "../Button";
 import { SelectAndSearchProduct } from "../Banner";
 import { ImageUpload } from "./Image";
 import { DeleteTempImage } from "../../dashboard/inventory/varaint_action";
-import { Input } from "@nextui-org/react";
+import { Input } from "@heroui/react";
 import { ImageWithLoader } from "../ImageWithLoader";
 import { SelectType } from "@/src/types/productAction.type";
 

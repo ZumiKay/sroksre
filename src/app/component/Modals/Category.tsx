@@ -16,7 +16,7 @@ import { SecondaryModal } from "../Modals";
 import { AddSubCategoryMenu } from "../ToggleMenu";
 import { SelectionCustom } from "../Pagination_Component";
 import { Categorytype } from "../../api/categories/route";
-import { DateRangePicker, Input } from "@nextui-org/react";
+import { DateRangePicker, Input } from "@heroui/react";
 import { parseDate } from "@internationalized/date";
 import { SelectAndSearchProduct } from "../Banner";
 import { SelectType } from "@/src/types/productAction.type";
@@ -42,7 +42,7 @@ const selecttype: Array<SelectType> = [
 
 export const GetPromotionSelection = async (
   search: string,
-  limit: number = 1
+  limit: number = 1,
 ) => {
   const url = `/api/promotion?ty=selection&lt=${limit}${
     search !== "" ? `&q=${search}` : ""
@@ -77,7 +77,7 @@ export const Category = () => {
 
     // Check if category name already exists
     const isExist = allData?.category?.some(
-      (obj) => obj.name === category.name
+      (obj) => obj.name === category.name,
     );
     if (isExist) {
       errorToast("Category Existed");
@@ -90,7 +90,7 @@ export const Category = () => {
       undefined,
       "POST",
       "JSON",
-      { ...category, type: catetype }
+      { ...category, type: catetype },
     );
     setloading(false);
 
@@ -264,21 +264,23 @@ export const Category = () => {
                 <DateRangePicker
                   value={
                     category.daterange
-                      ? {
+                      ? ({
                           start: parseDate(category.daterange.start),
                           end: parseDate(category.daterange.end),
-                        }
+                        } as any)
                       : undefined
                   }
-                  onChange={(val) =>
-                    setcategory((prev) => ({
-                      ...prev,
-                      daterange: {
-                        start: val.start.toString(),
-                        end: val.end.toString(),
-                      },
-                    }))
-                  }
+                  onChange={(val) => {
+                    if (val) {
+                      setcategory((prev) => ({
+                        ...prev,
+                        daterange: {
+                          start: val.start.toString(),
+                          end: val.end.toString(),
+                        },
+                      }));
+                    }
+                  }}
                   label="Range of Date"
                   className="w-full"
                 />
@@ -396,7 +398,7 @@ const EditCategory = ({
         setcategory(allData.category[index]);
       }
     },
-    [allData?.category]
+    [allData?.category],
   );
   const handleDelete = useCallback(async () => {
     setloading(true);
@@ -412,7 +414,7 @@ const EditCategory = ({
     } else {
       // Restore deleted categories on error
       const resetcate = tempcate.filter((obj) =>
-        globalindex.categoryeditindex.includes(obj.id as number)
+        globalindex.categoryeditindex.includes(obj.id as number),
       );
       const allcate = [...(allData?.category ?? []), ...resetcate];
       setalldata((prev) => ({ ...prev, category: allcate }));
@@ -450,7 +452,7 @@ const EditCategory = ({
   }, [category, editindex, allData?.category]);
   const handleReset = useCallback(() => {
     const resetcate = tempcate.filter((obj) =>
-      globalindex.categoryeditindex.includes(obj.id as number)
+      globalindex.categoryeditindex.includes(obj.id as number),
     );
     const allcate = [...(allData?.category ?? []), ...resetcate];
     setalldata((prev) => ({ ...prev, category: allcate }));
@@ -684,21 +686,23 @@ const EditCategory = ({
                   <DateRangePicker
                     value={
                       category.daterange
-                        ? {
+                        ? ({
                             start: parseDate(category.daterange.start),
                             end: parseDate(category.daterange.end),
-                          }
+                          } as any)
                         : undefined
                     }
-                    onChange={(val) =>
-                      setcategory((prev) => ({
-                        ...prev,
-                        daterange: {
-                          start: val.start.toString(),
-                          end: val.end.toString(),
-                        },
-                      }))
-                    }
+                    onChange={(val) => {
+                      if (val) {
+                        setcategory((prev) => ({
+                          ...prev,
+                          daterange: {
+                            start: val.start.toString(),
+                            end: val.end.toString(),
+                          },
+                        }));
+                      }
+                    }}
                     label="Range of Date"
                     className="w-full"
                   />

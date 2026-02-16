@@ -1,5 +1,6 @@
-import { Address, User } from "@prisma/client";
+import { Address, User } from "@/prisma/generated/prisma/client";
 import { ProductState, VariantValueObjType } from "./product.type";
+import { userdata } from "./user.type";
 
 export type Orderstatus =
   | "Incart"
@@ -72,5 +73,5 @@ export interface Ordertype {
   updatdAt?: Date;
   shipping_id?: number;
   shipping?: Address;
-  user: User;
+  user: Partial<userdata>;
 }

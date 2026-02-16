@@ -9,7 +9,7 @@ import { filtervaluetype, getFilterValue } from "./action";
 import { ToggleSelect } from "../component/ToggleMenu";
 import Image from "next/image";
 import Card from "../component/Card";
-import { Input, Spacer } from "@nextui-org/react";
+import { Input, Spacer } from "@heroui/react";
 import { ApiRequest, useEffectOnce } from "@/src/context/CustomHook";
 import { NormalSkeleton } from "../component/Banner";
 import { ProductState, VariantValueObjType } from "@/src/types/product.type";

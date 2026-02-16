@@ -1,4 +1,4 @@
-import { BannerState } from "@/src/context/GlobalContext";
+import { BannerState } from "@/src/types/productAction.type";
 import Prisma from "@/src/lib/prisma";
 import {
   DeleteImageFromStorage,
@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     console.log("Create Banner", error);
     return Response.json(
       { message: "Failed To Create Banner" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -181,7 +181,7 @@ export async function GET(request: NextRequest) {
     const { startIndex, endIndex } = calculatePagination(
       total,
       param.limit as number,
-      param.p as number
+      param.p as number,
     );
 
     let result;
@@ -204,7 +204,7 @@ export async function GET(request: NextRequest) {
             ? (
                 await getBannerData(
                   [result.parentcate_id],
-                  Prisma.parentcategories
+                  Prisma.parentcategories,
                 )
               )[0]
             : undefined,
@@ -212,14 +212,14 @@ export async function GET(request: NextRequest) {
             ? (
                 await getBannerData(
                   [result.childcate_id],
-                  Prisma.childcategories
+                  Prisma.childcategories,
                 )
               )[0]
             : undefined,
           selectedproduct: result.selectedproduct_id
             ? await getBannerData(
                 result.selectedproduct_id as Array<number>,
-                Prisma.products
+                Prisma.products,
               )
             : undefined,
         };
@@ -251,13 +251,13 @@ export async function GET(request: NextRequest) {
         total: total,
         totalpage: Math.ceil(total / itemperpage),
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error) {
     console.log("Fetch Banner", error);
     return Response.json(
       { message: "Failed To Fetch Banner" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

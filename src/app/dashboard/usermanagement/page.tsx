@@ -7,7 +7,14 @@ import {
   errorToast,
   successToast,
 } from "../../component/Loading";
-import React, { useCallback, useEffect, useState, useMemo, memo } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useState,
+  useMemo,
+  memo,
+  use,
+} from "react";
 import { FilterMenu } from "../../component/SideMenu";
 import { Createusermodal } from "../../component/Modals/User";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -34,7 +41,7 @@ interface UserType {
 export default function UsermanagementPage({
   searchParams,
 }: {
-  searchParams?: { [key: string]: string | undefined };
+  searchParams: React.Usable<{ [key: string]: string | undefined }>;
 }) {
   const {
     openmodal,
@@ -44,7 +51,9 @@ export default function UsermanagementPage({
     setalldata,
     allData,
   } = useGlobalContext();
-  const { search, p, lt, sort, role } = searchParams as usermangementFilterType;
+  const { search, p, lt, sort, role } = use(
+    searchParams,
+  ) as usermangementFilterType;
   const handleAdd = useCallback(() => {
     setopenmodal((prev) => ({ ...prev, createUser: true }));
   }, [setopenmodal]);
@@ -129,7 +138,7 @@ export default function UsermanagementPage({
       router.push(`?${param}`);
       router.refresh();
     },
-    [searchParam, router]
+    [searchParam, router],
   );
 
   const handleSearch = useCallback(() => {
@@ -152,7 +161,7 @@ export default function UsermanagementPage({
       router.push(`?${param}`);
       router.refresh();
     },
-    [searchParam, router]
+    [searchParam, router],
   );
 
   const handleRoleFilter = useCallback(
@@ -167,14 +176,14 @@ export default function UsermanagementPage({
       router.push(`?${param}`);
       router.refresh();
     },
-    [searchParam, router]
+    [searchParam, router],
   );
 
   const handleSelectUser = useCallback((userId: number) => {
     setSelectedUsers((prev) =>
       prev.includes(userId)
         ? prev.filter((id) => id !== userId)
-        : [...prev, userId]
+        : [...prev, userId],
     );
   }, []);
 
@@ -201,7 +210,7 @@ export default function UsermanagementPage({
           undefined,
           "DELETE",
           "JSON",
-          { userIds: selectedUsers }
+          { userIds: selectedUsers },
         );
         if (result.success) {
           successToast("Users deleted successfully");
@@ -224,7 +233,7 @@ export default function UsermanagementPage({
   // Memoize users list to avoid recalculating on every render
   const usersList = useMemo(
     () => (allData?.user as UserState[]) || [],
-    [allData?.user]
+    [allData?.user],
   );
 
   const handleExportUsers = useCallback(() => {
@@ -291,7 +300,7 @@ export default function UsermanagementPage({
         value: stats.newThisMonth,
       },
     ],
-    [stats]
+    [stats],
   );
 
   return (
@@ -550,11 +559,7 @@ export default function UsermanagementPage({
         />
       )}
       {openmodal.filteroption && (
-        <FilterMenu
-          type="usermanagement"
-          setisFilter={setisFilter}
-          param={searchParams}
-        />
+        <FilterMenu type="usermanagement" setisFilter={setisFilter} />
       )}
     </>
   );
@@ -604,7 +609,7 @@ const EnhancedUserCard = memo(
             return "bg-green-100 text-green-700 border-green-200";
         }
       },
-      []
+      [],
     );
 
     const getRoleIcon = useMemo(
@@ -619,22 +624,22 @@ const EnhancedUserCard = memo(
             return "fa-user";
         }
       },
-      []
+      [],
     );
 
     const roleColor = useMemo(() => getRoleColor(role), [role, getRoleColor]);
     const roleIcon = useMemo(() => getRoleIcon(role), [role, getRoleIcon]);
     const firstLetter = useMemo(
       () => firstname.charAt(0).toUpperCase(),
-      [firstname]
+      [firstname],
     );
     const fullName = useMemo(
       () => `${firstname} ${lastname || ""}`,
-      [firstname, lastname]
+      [firstname, lastname],
     );
     const formattedDate = useMemo(
       () => createdAt?.toLocaleDateString() || "",
-      [createdAt]
+      [createdAt],
     );
 
     if (viewMode === "list") {
@@ -740,7 +745,7 @@ const EnhancedUserCard = memo(
         </div>
       </div>
     );
-  }
+  },
 );
 
 EnhancedUserCard.displayName = "EnhancedUserCard";

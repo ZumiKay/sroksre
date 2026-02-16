@@ -15,7 +15,7 @@ import PrimaryButton from "../Button";
 import { listofprovinces } from "@/src/lib/utilities";
 import { Addaddress, Deleteaddress } from "../../dashboard/action";
 import { errorToast, successToast } from "../Loading";
-import { Skeleton } from "@nextui-org/react";
+import { Skeleton } from "@heroui/react";
 import { shippingtype } from "./User";
 import { motion, AnimatePresence } from "framer-motion";
 

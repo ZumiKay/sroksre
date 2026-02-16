@@ -16,7 +16,7 @@ import {
 import { errorToast, successToast } from "../component/Loading";
 import { TabArrow } from "../component/Asset";
 import { PrimaryConfirmModal } from "../component/SideMenu";
-import { Button, Chip } from "@nextui-org/react";
+import { Button, Chip } from "@heroui/react";
 import { ApiRequest, useClickOutside } from "@/src/context/CustomHook";
 import { Showtypemodal } from "./secondcomponent";
 import Textarea from "@mui/joy/Textarea";

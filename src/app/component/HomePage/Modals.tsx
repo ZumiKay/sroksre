@@ -36,7 +36,7 @@ import {
   ScrollableConIcon,
   SlideShowIcon,
 } from "../Asset";
-import { Button, DateRangePicker } from "@nextui-org/react";
+import { Button, DateRangePicker } from "@heroui/react";
 import { BannerSkeleton } from "./Component";
 import { ContainerLoading, errorToast, successToast } from "../Loading";
 import { BannerModal } from "../Modals/Banner";
@@ -83,7 +83,7 @@ const CreateContainerType = memo(function CreateContainerType({
         items: prev.items.filter((item) => item.item?.id !== id),
       }));
     },
-    [setdata]
+    [setdata],
   );
 
   const handleAddBanner = useCallback(() => {
@@ -159,7 +159,7 @@ const CreateContainerType = memo(function CreateContainerType({
                     typesize={item.item.type}
                     preview
                   />
-                )
+                ),
             )}
           </div>
         </div>
@@ -223,7 +223,7 @@ const ScrollableContainerModal = memo(function ScrollableContainerModal({
     (e: ChangeEvent<HTMLInputElement>) => {
       setdata((prev) => ({ ...prev, [e.target.name]: e.target.value }));
     },
-    [setdata]
+    [setdata],
   );
 
   const handleClick = useCallback(
@@ -233,7 +233,7 @@ const ScrollableContainerModal = memo(function ScrollableContainerModal({
         items: prev.items.filter((item) => item.item?.id !== id),
       }));
     },
-    [setdata]
+    [setdata],
   );
 
   const handleDelete = useCallback(
@@ -243,7 +243,7 @@ const ScrollableContainerModal = memo(function ScrollableContainerModal({
         items: prev.items.filter((item) => item.item?.id !== id),
       }));
     },
-    [setdata]
+    [setdata],
   );
 
   const handleTypeChange = useCallback(
@@ -256,7 +256,7 @@ const ScrollableContainerModal = memo(function ScrollableContainerModal({
         scrollabletype: e.target.value as any,
       }));
     },
-    [setdata]
+    [setdata],
   );
 
   const handleDateChange = useCallback(
@@ -269,7 +269,7 @@ const ScrollableContainerModal = memo(function ScrollableContainerModal({
         },
       }));
     },
-    [setdata]
+    [setdata],
   );
 
   const handleAddProduct = useCallback(() => {
@@ -397,10 +397,10 @@ const ScrollableContainerModal = memo(function ScrollableContainerModal({
               aria-label="Date Range Picker"
               value={
                 data.daterange
-                  ? {
+                  ? ({
                       start: parseDate(data.daterange.start ?? ""),
                       end: parseDate(data.daterange.end),
-                    }
+                    } as any)
                   : undefined
               }
               onChange={handleDateChange}
@@ -488,7 +488,7 @@ const ScrollableContainerModal = memo(function ScrollableContainerModal({
                     name={item.item.name}
                     preview
                   />
-                )
+                ),
             )}
           </div>
         </div>
@@ -735,7 +735,7 @@ const Homecontainermodal = ({
 
     if (data.items.length === 0 && !data.scrollabletype) {
       errorToast(
-        `Please Add ${data.type === "scrollable" ? "Product" : "Banner"}`
+        `Please Add ${data.type === "scrollable" ? "Product" : "Banner"}`,
       );
 
       return;
@@ -899,9 +899,9 @@ const Homecontainermodal = ({
                   openmodal["Addbanner"] || openmodal["Addproduct"]
                     ? "Confirm"
                     : globalindex.homeeditindex &&
-                      globalindex.homeeditindex !== -1
-                    ? "Update"
-                    : "Create"
+                        globalindex.homeeditindex !== -1
+                      ? "Update"
+                      : "Create"
                 }
                 width={isPhone ? "50%" : "180px"}
                 radius="12px"
@@ -967,7 +967,7 @@ const Bannercard = memo(function Bannercard({
       e.stopPropagation();
       if (onDelete) onDelete(id);
     },
-    [onDelete, id]
+    [onDelete, id],
   );
 
   const isClickable = !preview && onClick;
@@ -997,8 +997,8 @@ const Bannercard = memo(function Bannercard({
             style
               ? style
               : typesize === "normal"
-              ? { width: "400px", height: "250px" }
-              : {}
+                ? { width: "400px", height: "250px" }
+                : {}
           }
           className={`bg-gradient-to-br from-gray-100 via-gray-50 to-gray-100 transition-transform duration-500 ${
             isClickable ? "group-hover:scale-110" : ""
@@ -1177,7 +1177,7 @@ const AddBannerContainer = memo(function AddBannerContainer({
       () => {
         fetchdata();
       },
-      filter.q ? 300 : 0
+      filter.q ? 300 : 0,
     );
 
     return () => {
@@ -1205,7 +1205,7 @@ const AddBannerContainer = memo(function AddBannerContainer({
           const parentcategories = await ApiRequest(
             "/api/categories/select?ty=parent",
             undefined,
-            "GET"
+            "GET",
           );
 
           if (parentcategories.success && isMounted) {
@@ -1246,7 +1246,7 @@ const AddBannerContainer = memo(function AddBannerContainer({
         }
 
         const itemIndex = updatedata.items.findIndex(
-          (item) => item.item?.id === id
+          (item) => item.item?.id === id,
         );
 
         if (itemIndex !== -1) {
@@ -1265,7 +1265,7 @@ const AddBannerContainer = memo(function AddBannerContainer({
         return updatedata;
       });
     },
-    [banners, singleselect, setdata]
+    [banners, singleselect, setdata],
   );
 
   const handleSelect = useCallback(
@@ -1275,7 +1275,7 @@ const AddBannerContainer = memo(function AddBannerContainer({
       //fetch subcategories
       if (name === "parentcate") {
         setfilter(
-          (prev) => ({ ...prev, parentcate: value, subcate: "" } as any)
+          (prev) => ({ ...prev, parentcate: value, subcate: "" }) as any,
         );
 
         if (value) {
@@ -1284,7 +1284,7 @@ const AddBannerContainer = memo(function AddBannerContainer({
             const childcategories = await ApiRequest(
               `/api/categories/select?ty=child&pid=${value}`,
               undefined,
-              "GET"
+              "GET",
             );
 
             if (childcategories.success) {
@@ -1302,7 +1302,7 @@ const AddBannerContainer = memo(function AddBannerContainer({
         setfilter((prev) => ({ ...prev, [name]: value }));
       }
     },
-    []
+    [],
   );
 
   const handleClear = useCallback(
@@ -1319,7 +1319,7 @@ const AddBannerContainer = memo(function AddBannerContainer({
         });
       }
     },
-    [setdata]
+    [setdata],
   );
 
   const handleSearchChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
@@ -1525,8 +1525,8 @@ const AddBannerContainer = memo(function AddBannerContainer({
               ? "max-h-[60vh]"
               : "max-h-[48vh]"
             : data.type !== "scrollable"
-            ? "max-h-[68vh]"
-            : "max-h-[65vh]"
+              ? "max-h-[68vh]"
+              : "max-h-[65vh]"
         } overflow-y-auto overflow-x-hidden grid grid-cols-2 max-smallest_tablet:grid-cols-1 gap-x-6 gap-y-8 place-items-center z-0 p-4 bg-gradient-to-b from-gray-800/30 to-transparent rounded-xl scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800`}
       >
         {loading ? (

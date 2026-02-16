@@ -8,7 +8,7 @@ import {
   cn,
   Select,
   SelectItem,
-} from "@nextui-org/react";
+} from "@heroui/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { IsNumber } from "@/src/lib/utilities";
 import { SelectType } from "@/src/types/productAction.type";

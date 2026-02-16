@@ -19,7 +19,7 @@ import { OrderUserType } from "../../checkout/action";
 import { getCheckoutdata } from "../../checkout/page";
 import React, { Suspense, cache } from "react";
 import type { Metadata } from "next";
-import { Role } from "@prisma/client";
+import { Role } from "@/prisma/generated/prisma/enums";
 
 export const metadata: Metadata = {
   title: "Order Management | SrokSre Dashboard",
@@ -60,7 +60,7 @@ export interface AllorderStatus {
 export default async function OrderManagement({
   searchParams,
 }: {
-  searchParams?: SearchParams;
+  searchParams: Promise<SearchParams>;
 }) {
   // Get user with error handling
   const getuser = await getUser({
@@ -81,6 +81,7 @@ export default async function OrderManagement({
   }
 
   // Parse and validate search parameters
+  const resolvedSearchParams = await searchParams;
   const {
     p = "1",
     show = "10",
@@ -90,7 +91,7 @@ export default async function OrderManagement({
     todate,
     startprice,
     endprice,
-  } = searchParams ?? {};
+  } = resolvedSearchParams ?? {};
 
   const page = Math.max(1, parseInt(p as string) || 1);
   const limit = Math.max(1, Math.min(100, parseInt(show as string) || 10));
@@ -140,7 +141,7 @@ export default async function OrderManagement({
         <OrdersTable
           orders={orders}
           isAdmin={getuser.role === Role.ADMIN}
-          searchParams={searchParams}
+          searchParams={resolvedSearchParams}
         />
         {orders && orders.length > 0 && totalPages > 1 && (
           <PaginationSection page={page} show={show} totalPages={totalPages} />

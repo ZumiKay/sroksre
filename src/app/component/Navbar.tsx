@@ -43,7 +43,7 @@ import {
   DropdownItem,
   DropdownMenu,
   DropdownTrigger,
-} from "@nextui-org/react";
+} from "@heroui/react";
 import { useSocket } from "@/src/context/SocketContext";
 import React from "react";
 import { NotificationType, Usersessiontype } from "@/src/types/user.type";
