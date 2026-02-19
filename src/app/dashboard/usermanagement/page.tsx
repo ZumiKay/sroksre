@@ -13,6 +13,7 @@ import { Createusermodal } from "../../component/Modals/User";
 import { useRouter, useSearchParams } from "next/navigation";
 import PaginationCustom from "../../component/Pagination_Component";
 import { UserState } from "@/src/types/user.type";
+import useCheckSession from "@/src/hooks/useCheckSession";
 
 interface usermangementFilterType {
   search?: string;
@@ -34,6 +35,7 @@ interface UserType {
 export default function UsermanagementPage() {
   const router = useRouter();
   const searchParam = useSearchParams();
+  const { handleCheckSession } = useCheckSession();
 
   // Extract search params directly from hook
   const search = searchParam.get("search") ?? undefined;
@@ -106,6 +108,9 @@ export default function UsermanagementPage() {
   }, []);
 
   const fetchdata = useCallback(async () => {
+    const isValidSession = await handleCheckSession();
+    if (!isValidSession) return;
+
     const asyncfetch = async () => {
       const URL = `/api/users?${search ? `ty=filter` : `ty=all`}${
         search ? `&search=${search}` : ""
@@ -123,7 +128,14 @@ export default function UsermanagementPage() {
       setalldata({ user: user.data });
     };
     await Delayloading(asyncfetch, setloading, 2000);
-  }, [search, page, showperpage, setitemlength, setalldata]);
+  }, [
+    search,
+    page,
+    showperpage,
+    setitemlength,
+    setalldata,
+    handleCheckSession,
+  ]);
 
   const handleSelectShow = useCallback(
     (value: string) => {
@@ -196,6 +208,9 @@ export default function UsermanagementPage() {
       errorToast("Please select users and action");
       return;
     }
+
+    const isValidSession = await handleCheckSession();
+    if (!isValidSession) return;
 
     setloading(true);
     try {

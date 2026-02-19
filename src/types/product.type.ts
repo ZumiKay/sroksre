@@ -68,6 +68,7 @@ export interface Varianttype {
   optional?: boolean;
   sectionId?: number;
   product_id?: number;
+  variantSection?: VariantSectionType;
   [key: string]: any;
 }
 

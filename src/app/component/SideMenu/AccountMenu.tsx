@@ -33,6 +33,7 @@ import {
   UserIcon,
 } from "../Asset";
 import { CheckAndGetUserInfo } from "../../severactions/RecapchaAction";
+import useCheckSession from "@/src/hooks/useCheckSession";
 
 interface AccountMenuProps {
   setProfile: (value: SetStateAction<boolean>) => void;
@@ -78,6 +79,7 @@ const AccountMenuItems = [
 export default function AccountMenu({ setProfile }: AccountMenuProps) {
   const pathname = usePathname();
   const { data: session, status } = useSession();
+  const { handleCheckSession } = useCheckSession();
   const [usersession, setusersession] = useState<Usersessiontype | null>(
     session as never,
   );
@@ -100,14 +102,9 @@ export default function AccountMenu({ setProfile }: AccountMenuProps) {
       const isSession = await makeReq();
 
       if (!isSession.success) {
-        errorToast(isSession.message ?? "Error occured", { toastId });
         if (isSession.isExpire) {
-          await signOut({ redirect: false });
-          errorToast(isSession.message, {
-            toastId,
-            onClose: () => window.location.reload(),
-            closeOnClick: true,
-          });
+          const isRenew = await handleCheckSession();
+          if (!isRenew) return;
         }
         return;
       }

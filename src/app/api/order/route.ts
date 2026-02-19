@@ -1,10 +1,15 @@
 import { Shippingservice } from "@/src/context/Checkoutcontext";
-import { Orderpricetype, totalpricetype } from "@/src/types/order.type";
+import {
+  Orderpricetype,
+  totalpricetype,
+  OrderSelectedVariantType,
+} from "@/src/types/order.type";
 import Prisma from "@/src/lib/prisma";
 import { calculateDiscountProductPrice } from "@/src/lib/utilities";
 import { NextRequest } from "next/server";
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 import { shippingtype } from "../../component/Modals/User";
+import { VariantValueObjType } from "@/src/types/product.type";
 
 //Edit Created Order Information
 export async function PUT(req: NextRequest) {
@@ -87,7 +92,9 @@ interface GenerateInvoicePdf {
     id: number;
     name: string;
     price: Orderpricetype;
-    selectedVariant: string[];
+    selectedVariant:
+      | Array<string | VariantValueObjType>
+      | OrderSelectedVariantType;
     quantity: number;
     totalprice: number;
   }[];
@@ -196,7 +203,7 @@ export const generateInvoicePdf = async (Order: GenerateInvoicePdf) => {
         size: fontSize,
         font,
         color: textColor,
-      }
+      },
     );
     page.drawText(`${Order.shipping.district}, ${Order.shipping.songkhat}`, {
       x: 30,
@@ -235,7 +242,7 @@ export const generateInvoicePdf = async (Order: GenerateInvoicePdf) => {
         size: fontSize,
         font,
         color: textColor,
-      }
+      },
     );
     page.drawText(`${Order.shipping.district}, ${Order.shipping.songkhat}`, {
       x: 390,
@@ -336,10 +343,53 @@ export const generateInvoicePdf = async (Order: GenerateInvoicePdf) => {
   });
   y -= 30;
 
+  // Helper function to format variant display
+  const formatVariantDisplay = (
+    selectedVariant:
+      | Array<string | VariantValueObjType>
+      | OrderSelectedVariantType,
+  ): string => {
+    if (Array.isArray(selectedVariant)) {
+      // Handle flat array
+      return selectedVariant
+        .map((item) =>
+          typeof item === "string" ? item : item.name || item.val,
+        )
+        .join(" / ");
+    } else if (selectedVariant && typeof selectedVariant === "object") {
+      // Handle OrderSelectedVariantType with sections
+      const parts: string[] = [];
+
+      if (selectedVariant.variantsection) {
+        selectedVariant.variantsection.forEach((section) => {
+          const sectionName = section.variantSection?.name || "";
+          const values = section.variants
+            .map((v) => (typeof v === "string" ? v : v.name || v.val))
+            .join(", ");
+          if (sectionName) {
+            parts.push(`${sectionName}: ${values}`);
+          } else {
+            parts.push(values);
+          }
+        });
+      }
+
+      if (selectedVariant.variant) {
+        const standaloneValues = selectedVariant.variant
+          .map((v) => (typeof v === "string" ? v : v.name || v.val))
+          .join(" / ");
+        parts.push(standaloneValues);
+      }
+
+      return parts.join(" | ");
+    }
+    return "";
+  };
+
   const orderedProduct = Order.product.map((prob) => ({
     id: prob.id,
     name: prob.name,
-    variant: prob.selectedVariant.join("/"),
+    variant: formatVariantDisplay(prob.selectedVariant),
     qty: prob.quantity,
     price: prob.totalprice,
   }));
@@ -490,7 +540,7 @@ export const generateInvoicePdf = async (Order: GenerateInvoicePdf) => {
       size: fontSize,
       font,
       color: textColor,
-    }
+    },
   );
 
   // Serialize the PDF document to bytes (a Uint8Array)

@@ -1,5 +1,9 @@
 import { Address, User } from "@/prisma/generated/prisma/client";
-import { ProductState, VariantValueObjType } from "./product.type";
+import {
+  ProductState,
+  VariantSectionType,
+  VariantValueObjType,
+} from "./product.type";
 import { userdata } from "./user.type";
 
 export type Orderstatus =
@@ -32,6 +36,15 @@ export interface Productorderdetailtype {
   [key: string]: string | number | VariantValueObjType | undefined;
 }
 
+//Order Detail type
+export interface OrderSelectedVariantType {
+  variantsection?: Array<{
+    variantSection: Partial<VariantSectionType>;
+    variants: Array<string | VariantValueObjType>;
+  }>;
+  variant?: Array<string | VariantValueObjType>;
+}
+
 export interface Productordertype {
   id: number;
   details?: Array<Productorderdetailtype>;
@@ -43,7 +56,10 @@ export interface Productordertype {
   product?: ProductState;
   orderId?: string;
   status?: Allstatus;
-  selectedvariant?: (string | VariantValueObjType)[];
+  /**If any variant has section, returns OrderSelectedVariantType, otherwise Array<string | VariantValueObjType> */
+  selectedvariant?:
+    | Array<string | VariantValueObjType>
+    | OrderSelectedVariantType;
 }
 
 export interface Orderpricetype {

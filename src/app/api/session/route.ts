@@ -6,6 +6,9 @@ import {
   getUserActiveSessions,
 } from "@/src/lib/sessionCleanup";
 import { getToken } from "next-auth/jwt";
+import { JwtType } from "@/src/types/user.type";
+import Prisma from "@/src/lib/prisma";
+import { createUniqueSessionId, hashToken } from "@/src/lib/userlib";
 
 /**
  * POST /api/session/cleanup - Clean up expired sessions
@@ -16,7 +19,7 @@ import { getToken } from "next-auth/jwt";
 
 export async function POST(req: NextRequest) {
   try {
-    const token = await getToken({ req });
+    const token = (await getToken({ req })) as unknown as JwtType;
 
     if (!token) {
       return NextResponse.json(
@@ -30,6 +33,42 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
 
     switch (action) {
+      case "renewaccess":
+        const isValidSession = await Prisma.usersession.findUnique({
+          where: {
+            refresh_token_hash: hashToken(token.sessionid),
+            expireAt: {
+              gt: new Date(),
+            },
+          },
+          select: {
+            sessionid: true,
+            refresh_token_hash: true,
+            userId: true,
+          },
+        });
+
+        if (!isValidSession || !isValidSession.userId) {
+          return NextResponse.json(
+            { success: false, message: "Invalid Session" },
+            { status: 401 },
+          );
+        }
+
+        //Renew access token
+        const newSession = await createUniqueSessionId();
+        await Prisma.usersession.update({
+          where: { sessionid: isValidSession.sessionid },
+          data: {
+            refresh_token_hash: hashToken(newSession),
+            lastUsed: new Date(),
+          },
+        });
+        return NextResponse.json(
+          { success: true, message: "Valid Session" },
+          { status: 200 },
+        );
+
       case "cleanup":
         // Only admins can cleanup
         if (token.role !== "ADMIN") {
@@ -56,7 +95,7 @@ export async function POST(req: NextRequest) {
         }
 
         // Verify session belongs to user (unless admin)
-        if (token.role !== "ADMIN" && token.session_id !== sessionId) {
+        if (token.role !== "ADMIN" && token.sessionid !== sessionId) {
           return NextResponse.json(
             { success: false, message: "Forbidden" },
             { status: 403 },

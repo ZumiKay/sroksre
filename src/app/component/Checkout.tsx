@@ -1,11 +1,24 @@
 "use client";
 
+/**UI COMPONENT FOR CHECKOUT PROCESS */
+
 import { Stepindicatortype } from "@/src/context/Checkoutcontext";
 import { AnimationControls, motion, useAnimation } from "framer-motion";
-import { ChangeEvent, FormEvent, ReactNode, useEffect, useState } from "react";
+import {
+  ChangeEvent,
+  ReactNode,
+  SubmitEvent,
+  useEffect,
+  useState,
+} from "react";
 import ReactDOMServer from "react-dom/server";
 import { useGlobalContext } from "@/src/context/GlobalContext";
-import { Allstatus, Orderpricetype, Ordertype } from "@/src/types/order.type";
+import {
+  Allstatus,
+  Orderpricetype,
+  OrderSelectedVariantType,
+  Ordertype,
+} from "@/src/types/order.type";
 import PrimaryButton from "./Button";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
@@ -16,7 +29,11 @@ import {
   updateShippingService,
   updateStatus,
 } from "../checkout/action";
-import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
+import {
+  PayPalScriptProvider,
+  PayPalButtons,
+  usePayPalScriptReducer,
+} from "@paypal/react-paypal-js";
 import { errorToast, LoadingText, successToast } from "./Loading";
 import { Checkbox, FormControlLabel } from "@mui/material";
 import { OrderReceiptTemplate } from "./EmailTemplate";
@@ -28,6 +45,7 @@ import { ApiRequest } from "@/src/context/CustomHook";
 import { SelectionCustom } from "./Pagination_Component";
 import { SendNotification, useSocket } from "@/src/context/SocketContext";
 import { VariantValueObjType } from "@/src/types/product.type";
+import useCheckSession from "@/src/hooks/useCheckSession";
 
 //Step assets
 const LineSvg = ({
@@ -95,7 +113,7 @@ const CircleSvg = ({
       onClick={() => {
         handleClick && handleClick();
       }}
-      className="w-[70px] h-[70px] 
+      className="w-17 h-17.5 
      
        relative grid place-items-center"
     >
@@ -183,15 +201,15 @@ export const StepComponent = ({
   return (
     <div
       key={data.idx}
-      className={`step_container w-[180px]  max-h-[300px] h-fit flex flex-row justify-center 
-      max-small_phone:w-[150px] max-smallest_phone:w-[120px] ${
+      className={`step_container w-45  max-h-75 h-fit flex flex-row justify-center 
+      max-small_phone:w-37.5 max-smallest_phone:w-30 ${
         data.step === 2
           ? "max-large_phone:grid max-large_phone:place-content-start"
           : ""
       } max-smallest_phone:grid max-smallest_phone:place-content-start`}
       style={data.noline ? { display: "grid", placeContent: "start" } : {}}
     >
-      <div className="indicator h-[150px] w-full max-small_phone:h-[100px] flex flex-col items-center">
+      <div className="indicator h-37.5 w-full max-small_phone:h-25 flex flex-col items-center">
         <CircleSvg control={sequence} step={data.step} active={isActive} />
         <h3 className="title text-lg font-medium w-full h-fit text-center">
           {data.title}
@@ -224,32 +242,86 @@ export const Checkoutproductcard = ({
   cover: string;
   name: string;
   total: number;
-  details?: (string | VariantValueObjType)[];
+  details?: Array<string | VariantValueObjType> | OrderSelectedVariantType;
 }) => {
+  // Helper function to check if details is OrderSelectedVariantType
+  const isOrderSelectedVariantType = (
+    details: any,
+  ): details is OrderSelectedVariantType => {
+    return (
+      details &&
+      !Array.isArray(details) &&
+      ("variantsection" in details || "variant" in details)
+    );
+  };
+
+  const renderVariants = () => {
+    if (!details) return null;
+
+    if (isOrderSelectedVariantType(details)) {
+      // Handle OrderSelectedVariantType - object with variantsection and variant
+      return (
+        <div className="w-full flex flex-col gap-3">
+          {/* Render variants grouped by sections */}
+          {details.variantsection?.map((section, sectionIdx) => (
+            <div key={sectionIdx} className="flex flex-col gap-2">
+              {section.variantSection && (
+                <span className="text-sm font-semibold text-gray-600">
+                  {section.variantSection.name}:
+                </span>
+              )}
+              <div className="w-full flex flex-row gap-2 flex-wrap">
+                {section.variants.map((item, idx) => (
+                  <Selecteddetailcard
+                    key={sectionIdx * 1000 + idx}
+                    text={item}
+                  />
+                ))}
+              </div>
+            </div>
+          ))}
+          {/* Render standalone variants (no section) */}
+          {details.variant && details.variant.length > 0 && (
+            <div className="w-full flex flex-row gap-2 flex-wrap">
+              {details.variant.map((item, idx) => (
+                <Selecteddetailcard key={idx} text={item} />
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    } else if (Array.isArray(details)) {
+      // Handle Array<string | VariantValueObjType> - flat array
+      if (details.length === 0) return null;
+      return (
+        <div className="w-full flex flex-row gap-2 flex-wrap">
+          {details.map((item, idx) => (
+            <Selecteddetailcard key={idx} text={item} />
+          ))}
+        </div>
+      );
+    }
+    return null;
+  };
+
   return (
     <div
       key={cover}
-      className={
-        "w-full h-fit bg-white rounded-lg flex flex-row gap-x-5 items-center max-large_phone:flex-col max-large_phone:gap-y-5 border border-gray-300"
-      }
+      className="w-full bg-white rounded-xl shadow-sm border border-gray-200 p-6 flex flex-row gap-6 items-center max-large_phone:flex-col hover:shadow-md transition-shadow duration-300"
     >
-      <Image
-        src={cover}
-        width={200}
-        height={200}
-        alt="thumbnail"
-        className="w-[150px] h-auto rounded-lg object-contain"
-        loading="lazy"
-      />
-      <div className="w-[60%] max-large_phone:w-[90%] min-h-[200px] h-fit flex flex-col items-start gap-y-3 relative">
-        <h3 className="text-xl font-bold w-fit h-fit">{name}</h3>
-        {details && details.length > 0 && (
-          <div className="w-full flex flex-row gap-3 flex-wrap h-fit">
-            {details.map((item, idx) => (
-              <Selecteddetailcard key={idx} text={item} />
-            ))}
-          </div>
-        )}
+      <div className="relative group">
+        <Image
+          src={cover}
+          width={200}
+          height={200}
+          alt="thumbnail"
+          className="w-40 h-40 rounded-lg object-contain group-hover:scale-105 transition-transform duration-300"
+          loading="lazy"
+        />
+      </div>
+      <div className="flex-1 w-full min-h-40 flex flex-col justify-between gap-3">
+        <h3 className="text-xl font-bold text-gray-800 line-clamp-2">{name}</h3>
+        {renderVariants()}
         <ShowPrice total={total} qty={qty} price={price} />
       </div>
     </div>
@@ -269,23 +341,26 @@ const ShowPrice = ({
   const Price = price.price;
 
   return (
-    <div className="w-full h-fit flex flex-row items-center justify-between">
-      <div className="price flex flex-row items-center max-small_phone:flex-wrap gap-x-3 w-full h-full">
+    <div className="w-full flex flex-row items-center justify-between pt-4 border-t border-gray-100">
+      <div className="price flex flex-row items-center flex-wrap gap-3">
         <h3
           hidden={!isDiscount}
-          className="text-lg font-normal text-red-500 line-through"
+          className="text-base font-medium text-gray-400 line-through"
         >
           ${Price}
         </h3>
-        <h3 hidden={!isDiscount} className="text-lg font-normal text-red-500">
+        <span
+          hidden={!isDiscount}
+          className="px-2 py-0.5 bg-red-100 text-red-600 text-sm font-semibold rounded-full"
+        >
           -{isDiscount?.percent}%
-        </h3>
-        <h3 className="text-lg font-normal">
+        </span>
+        <h3 className="text-lg font-semibold text-gray-800">
           ${isDiscount ? isDiscount.newprice?.toFixed(2) : Price}
         </h3>
-        <h3 className="text-lg font-normal">{`x${qty}`}</h3>
+        <span className="text-sm text-gray-500 font-medium">{`× ${qty}`}</span>
       </div>
-      <h3 className="text-lg font-bold">
+      <h3 className="text-xl font-bold text-blue-600">
         ${parseFloat(total.toString()).toFixed(2)}
       </h3>
     </div>
@@ -326,14 +401,32 @@ export const Shippingservicecard = ({
       <div
         key={type}
         onClick={() => handleClick()}
-        style={isSelected ? { outline: "2px solid #495464 " } : {}}
-        className="w-[250px] h-[150px] p-2 flex flex-col gap-y-3 bg-white outline-solid outline-2 rounded-lg outline-gray-300 transition duration-200 hover:outline-2 hover:outline-incart"
+        className={`group relative w-full h-40 p-6 flex flex-col justify-between bg-white rounded-xl border-2 transition-all duration-300 cursor-pointer ${
+          isSelected
+            ? "border-blue-500 shadow-lg shadow-blue-100 ring-2 ring-blue-200"
+            : "border-gray-200 hover:border-blue-300 hover:shadow-md"
+        }`}
       >
-        <h3 className="text-lg font-semibold w-fit h-fit">{type}</h3>
-        <h3 className="text-lg font-normal w-fit h-fit">{showPrice}</h3>
-        <h3 className="text-lg font-normal text-gray-500 w-full h-fit mt-5">
-          {estimate}
-        </h3>
+        {isSelected && (
+          <div className="absolute top-3 right-3 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+            <svg
+              className="w-4 h-4 text-white"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fillRule="evenodd"
+                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                clipRule="evenodd"
+              />
+            </svg>
+          </div>
+        )}
+        <div className="space-y-2">
+          <h3 className="text-lg font-bold text-gray-800">{type}</h3>
+          <p className="text-2xl font-bold text-blue-600">{showPrice}</p>
+        </div>
+        <p className="text-sm text-gray-500 font-medium">{estimate}</p>
       </div>
     </>
   );
@@ -372,16 +465,7 @@ export const StepIndicator = ({ step }: { step: number }) => {
     );
   }, [step]);
   return (
-    <div
-      className="step_containter w-full h-fit flex flex-row justify-center items-center pt-2 
-      pl-10
-    max-small_tablet:pl-10 
-    max-small_phone:flex-wrap
-    max-large_phone:justify-center 
-    max-large_phone:items-center max-small_phone:justify-center max-small_phone:pl-[15%]
-    max-smallest_phone:grid max-smallest_phone:grid-cols-2
-    "
-    >
+    <div className="w-full flex flex-row justify-center items-center gap-0 max-small_phone:grid max-small_phone:grid-cols-2 max-small_phone:gap-y-4 max-small_phone:px-4">
       {stepdata?.map((i, idx) => (
         <StepComponent
           key={idx}
@@ -414,26 +498,25 @@ export const BackAndEdit = ({ step }: { step: number }) => {
     }
   };
   return (
-    <div
-      className={`btn-1 flex flex-col items-center gap-3 w-[150px] h-fit 
-        max-small_tablet:w-full max-small_tablet:order-3 max-small_tablet:flex-row`}
-    >
+    <div className="flex flex-col items-center gap-4 w-full max-w-xs max-small_tablet:max-w-full max-small_tablet:flex-row">
       <PrimaryButton
-        text={step === 1 ? "Edit" : "Back"}
-        color="lightcoral"
+        text={step === 1 ? "Edit Cart" : "Back"}
+        color="#6B7280"
         type="button"
         onClick={() => handleedit()}
         height="50px"
         width="100%"
-        radius="10px"
+        radius="12px"
       />
-      <PrimaryButton
-        text="Back to shop"
-        type="button"
-        height="50px"
-        width="100%"
-        radius="10px"
-      />
+      <Link href="/" className="w-full">
+        <PrimaryButton
+          text="Continue Shopping"
+          type="button"
+          height="50px"
+          width="100%"
+          radius="12px"
+        />
+      </Link>
     </div>
   );
 };
@@ -441,12 +524,12 @@ export const BackAndEdit = ({ step }: { step: number }) => {
 export const Proceedbutton = ({ step }: { step: number }) => {
   return (
     <PrimaryButton
-      text="Confirm"
+      text={step === 3 ? "Processing..." : "Continue"}
       type={step === 3 ? "button" : "submit"}
       height="50px"
       disable={step === 3}
       width="100%"
-      radius="10px"
+      radius="12px"
     />
   );
 };
@@ -459,13 +542,13 @@ export const Navigatebutton = ({
   to: string;
 }) => {
   return (
-    <Link href={to}>
+    <Link href={to} className="w-full">
       <PrimaryButton
         text={title}
         type="button"
-        height="50px"
+        height="56px"
         width="100%"
-        radius="10px"
+        radius="12px"
       />
     </Link>
   );
@@ -484,6 +567,7 @@ export const FormWrapper = ({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [loading, setloading] = useState(false);
+  const { handleCheckSession } = useCheckSession();
 
   const handleProcceed = () => {
     const getStep = stepsinitialize.find((i) => i.step === step);
@@ -492,6 +576,8 @@ export const FormWrapper = ({
     }
 
     const current = new URLSearchParams(searchParams);
+
+    //Determine for the next step
     const nextstep = step < 4 ? step + 1 : step;
     current.set("step", nextstep.toString());
     const value = current.toString();
@@ -500,10 +586,14 @@ export const FormWrapper = ({
     router.push(`${pathname}${query}`, { scroll: false });
     router.refresh();
   };
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     setloading(true);
+
+    //Verify User Session
+    const isValid = await handleCheckSession();
+    if (!isValid) return;
 
     const isShipping = event.currentTarget["shipping"];
     const isSaved = event?.currentTarget["save"]?.value;
@@ -567,10 +657,7 @@ export const FormWrapper = ({
   return (
     <form
       onSubmit={handleSubmit}
-      className={`checked_body w-full h-fit flex flex-row justify-center gap-x-5 
-        max-smaller_screen:justify-between max-smaller_screen:pl-1 max-smaller_screen:pr-1
-        max-small_tablet:flex-col max-small_tablet:gap-y-5
-        `}
+      className="w-full flex flex-row justify-center gap-6 max-small_tablet:flex-col"
     >
       {loading && <LoadingText />}
       {children}
@@ -703,18 +790,17 @@ export function ShippingForm({ orderid }: { orderid: string }) {
     <motion.div
       initial={{ y: 20, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
-      transition={{ duration: 1, ease: "easeInOut" }}
-      className="w-fit max-smaller_screen:w-full h-full flex flex-row gap-x-5"
+      transition={{ duration: 0.5, ease: "easeOut" }}
+      className="w-full max-w-4xl mx-auto"
     >
       <input type="hidden" name="shipping" value={"shipping"} />
-      <div
-        className="checkout_container bg-[#F1F1F1] w-[50vw]
-      max-smaller_screen:w-full
-       h-fit p-2 rounded-lg shadow-lg flex flex-col items-center"
-      >
-        <h3 className="title text-2xl font-bold pb-5"> Shipping Address </h3>
+      <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8 max-smaller_screen:p-6">
+        <div className="flex items-center gap-3 mb-8">
+          <div className="w-1 h-8 bg-linear-to-b from-purple-600 to-purple-400 rounded-full"></div>
+          <h3 className="text-3xl font-bold text-gray-800">Shipping Address</h3>
+        </div>
 
-        <div className="shippingform w-[70%] max-large_phone:w-full h-fit p-2 flex flex-col gap-y-5 items-center">
+        <div className="shippingform w-full space-y-6">
           <SelectionCustom
             label="Address"
             placeholder={
@@ -743,19 +829,19 @@ export function ShippingForm({ orderid }: { orderid: string }) {
             value={selectedaddress?.id ?? 0}
           />
           {select !== 0 && (
-            <>
-              <div className="w-full h-fit flex flex-row items-center gap-x-5">
+            <div className="space-y-5 animate-in fade-in duration-300">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <input
-                  className="w-full h-[50px] p-1  font-medium text-sm"
-                  placeholder="Firstname"
+                  className="w-full h-12 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 font-medium text-sm placeholder:text-gray-400"
+                  placeholder="First name"
                   name="firstname"
                   value={selectedaddress?.firstname}
                   onChange={handleChange}
                   required
                 />
                 <input
-                  className="w-full h-[50px] p-1  font-medium text-sm"
-                  placeholder="Lastname"
+                  className="w-full h-12 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 font-medium text-sm placeholder:text-gray-400"
+                  placeholder="Last name"
                   name="lastname"
                   value={selectedaddress?.lastname}
                   onChange={handleChange}
@@ -763,48 +849,50 @@ export function ShippingForm({ orderid }: { orderid: string }) {
                 />
               </div>
               <input
-                className="w-full h-[50px] p-1  font-medium text-sm"
-                placeholder="Street Name or Id"
+                className="w-full h-12 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 font-medium text-sm placeholder:text-gray-400"
+                placeholder="Street Name or ID"
                 name="street"
                 value={selectedaddress?.street}
                 onChange={handleChange}
                 required
               />
               <input
-                className="w-full h-[50px] p-1  font-medium text-sm"
-                placeholder="House or Apartment Id"
+                className="w-full h-12 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 font-medium text-sm placeholder:text-gray-400"
+                placeholder="House or Apartment ID"
                 name="houseId"
                 value={selectedaddress?.houseId}
                 onChange={handleChange}
                 required
               />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <input
+                  className="w-full h-12 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 font-medium text-sm placeholder:text-gray-400"
+                  placeholder="Province / State"
+                  name="province"
+                  value={selectedaddress?.province}
+                  onChange={handleChange}
+                  required
+                />
+                <input
+                  className="w-full h-12 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 font-medium text-sm placeholder:text-gray-400"
+                  placeholder="District"
+                  name="district"
+                  value={selectedaddress?.district}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
               <input
-                className="w-full h-[50px] p-1  font-medium text-sm"
-                placeholder="Province / State"
-                name="province"
-                value={selectedaddress?.province}
-                onChange={handleChange}
-                required
-              />
-              <input
-                className="w-full h-[50px] p-1  font-medium text-sm"
-                placeholder="District"
-                name="district"
-                value={selectedaddress?.district}
-                onChange={handleChange}
-                required
-              />
-              <input
-                className="w-full h-[50px] p-1  font-medium text-sm"
-                placeholder="Songkhat"
+                className="w-full h-12 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 font-medium text-sm placeholder:text-gray-400"
+                placeholder="Songkhat / Commune"
                 name="songkhat"
                 value={selectedaddress?.songkhat}
                 onChange={handleChange}
                 required
               />
-              <div className="flex flex-row w-full h-fit gap-x-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <input
-                  className="w-full h-[50px] p-1  font-medium text-sm"
+                  className="w-full h-12 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 font-medium text-sm placeholder:text-gray-400"
                   placeholder="Postal code"
                   name="postalcode"
                   value={selectedaddress?.postalcode}
@@ -812,24 +900,30 @@ export function ShippingForm({ orderid }: { orderid: string }) {
                   required
                 />
                 <input
-                  className="w-full h-[50px] p-1  font-medium text-sm"
+                  className="w-full h-12 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 font-medium text-sm placeholder:text-gray-400"
                   placeholder="Phone number (optional)"
                   name="phonenumber"
                 />
               </div>
               <input type="hidden" name="save" value={save} />
 
-              <FormControlLabel
-                hidden={select !== -1}
-                control={
-                  <Checkbox
-                    onChange={(e) => setsave(e.target.checked ? 1 : 0)}
-                    style={{ color: "#495464" }}
-                  />
-                }
-                label="Save for future use"
-              />
-            </>
+              <div className="pt-4 border-t border-gray-200">
+                <FormControlLabel
+                  hidden={select !== -1}
+                  control={
+                    <Checkbox
+                      onChange={(e) => setsave(e.target.checked ? 1 : 0)}
+                      style={{ color: "#3B82F6" }}
+                    />
+                  }
+                  label={
+                    <span className="text-gray-700 font-medium">
+                      Save address for future orders
+                    </span>
+                  }
+                />
+              </div>
+            </div>
           )}
         </div>
       </div>
@@ -838,6 +932,86 @@ export function ShippingForm({ orderid }: { orderid: string }) {
 }
 
 //Paypal Button
+
+// PayPal Button Wrapper with Loading State
+function PaypalButtonWrapper({
+  orderId,
+  order,
+  encripyid,
+  onCreateOrder,
+  onApproveOrder,
+}: {
+  orderId: string;
+  encripyid: string;
+  order: Ordertype;
+  onCreateOrder: () => Promise<string>;
+  onApproveOrder: (data: any, actions: any) => Promise<void>;
+}) {
+  const [{ isPending, isResolved }] = usePayPalScriptReducer();
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  if (isPending) {
+    return (
+      <div className="w-full h-32 flex items-center justify-center bg-gray-50 rounded-lg border border-gray-200">
+        <div className="flex flex-col items-center gap-2">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <p className="text-sm text-gray-600">Loading PayPal...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative">
+      {isProcessing && (
+        <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 flex items-center justify-center rounded-lg">
+          <div className="flex flex-col items-center gap-2">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <p className="text-sm text-gray-700 font-medium">
+              Processing Payment...
+            </p>
+          </div>
+        </div>
+      )}
+      <PayPalButtons
+        createOrder={async () => {
+          setIsProcessing(true);
+          try {
+            return await onCreateOrder();
+          } catch (error) {
+            setIsProcessing(false);
+            throw error;
+          }
+        }}
+        onApprove={async (data, actions) => {
+          setIsProcessing(true);
+          try {
+            await onApproveOrder(data, actions);
+          } finally {
+            setIsProcessing(false);
+          }
+        }}
+        onError={(err) => {
+          setIsProcessing(false);
+          console.error("PayPal error:", err);
+          errorToast("Payment error occurred. Please try again.");
+        }}
+        onCancel={() => {
+          setIsProcessing(false);
+          errorToast("Payment cancelled");
+        }}
+        style={{
+          layout: "vertical",
+          color: "gold",
+          shape: "rect",
+          label: "paypal",
+          height: 50,
+        }}
+        disabled={isProcessing}
+      />
+    </div>
+  );
+}
 
 export function Paypalbutton({
   orderId,
@@ -851,14 +1025,23 @@ export function Paypalbutton({
   const router = useRouter();
   const socket = useSocket();
   const { setcarttotal } = useGlobalContext();
+  const { handleCheckSession } = useCheckSession();
 
-  const createOrder = async () => {
+  const createOrder = async (): Promise<string> => {
+    //Verify user session before create paypal order
+
+    const isValid = await handleCheckSession();
+    if (!isValid) {
+      throw new Error("Session validation failed");
+    }
+
     const CreateOrder = Createpaypalorder.bind(null, orderId);
     const request = await CreateOrder();
 
     if (!request.success) {
-      errorToast(request.message ?? "Server error");
-      return;
+      const errorMsg = request.message ?? "Server error";
+      errorToast(errorMsg);
+      throw new Error(errorMsg);
     }
 
     if (request.data.id) {
@@ -870,6 +1053,81 @@ export function Paypalbutton({
         : JSON.stringify(request);
 
       errorToast(errorMessage);
+      throw new Error(errorMessage);
+    }
+  };
+
+  const handleApprove = async (data: any, actions: any) => {
+    try {
+      const captureOrder = CaptureOrder.bind(null, data.orderID);
+      const request = await captureOrder();
+
+      if (!request.success) {
+        errorToast(request.message ?? "Server error");
+        return;
+      }
+      const orderData = request.data;
+      const errorDetail = orderData?.details?.[0];
+
+      if (errorDetail?.issue === "INSTRUMENT_DECLINED") {
+        return actions.restart();
+      } else if (errorDetail) {
+        throw new Error(`${errorDetail.description} (${orderData.debug_id})`);
+      } else if (!orderData.purchase_units) {
+        throw new Error(JSON.stringify(orderData));
+      } else {
+        const getPolicy = await ApiRequest(
+          `/api/policy?type=email`,
+          undefined,
+          "GET",
+        );
+        if (!getPolicy.success) {
+          throw Error("Error Occured");
+        }
+
+        const htmltemplate = ReactDOMServer.renderToString(
+          <OrderReceiptTemplate
+            order={{ ...order, status: Allstatus.paid }}
+            isAdmin={false}
+          />,
+        );
+        const adminhtmltemplate = ReactDOMServer.renderToString(
+          <OrderReceiptTemplate
+            order={{ ...order, status: Allstatus.paid }}
+            isAdmin={true}
+          />,
+        );
+
+        const updateOrder = updateStatus.bind(
+          null,
+          orderId,
+          htmltemplate,
+          adminhtmltemplate,
+        );
+        const makeReq = await updateOrder();
+
+        if (!makeReq.success) {
+          errorToast(makeReq.message ?? "");
+          return;
+        }
+        socket &&
+          (await SendNotification(
+            {
+              type: "New Order",
+              content: `Order #${orderId} has requested`,
+              checked: false,
+              link: `${process.env.NEXT_PUBLIC_BASE_URL}/dashboard/order?&q=${orderId}`,
+            },
+            socket,
+          ));
+        successToast(`Purchase Complete`);
+        router.replace(`/checkout?orderid=${encripyid}&step=4`);
+        setcarttotal(0);
+        router.refresh();
+      }
+    } catch (error) {
+      console.log("Payment error", error);
+      errorToast("Payment failed , Please try again!");
     }
   };
 
@@ -879,86 +1137,15 @@ export function Paypalbutton({
         clientId: process.env.NEXT_PUBLIC_PAYPAL_ID as string,
         components: "buttons",
         currency: "USD",
+        intent: "capture",
       }}
     >
-      <PayPalButtons
-        createOrder={() => createOrder()}
-        onApprove={async (data, actions) => {
-          try {
-            const captureOrder = CaptureOrder.bind(null, data.orderID);
-            const request = await captureOrder();
-
-            if (!request.success) {
-              errorToast(request.message ?? "Server error");
-              return;
-            }
-            const orderData = request.data;
-            const errorDetail = orderData?.details?.[0];
-
-            if (errorDetail?.issue === "INSTRUMENT_DECLINED") {
-              return actions.restart();
-            } else if (errorDetail) {
-              throw new Error(
-                `${errorDetail.description} (${orderData.debug_id})`,
-              );
-            } else if (!orderData.purchase_units) {
-              throw new Error(JSON.stringify(orderData));
-            } else {
-              const getPolicy = await ApiRequest(
-                `/api/policy?type=email`,
-                undefined,
-                "GET",
-              );
-              if (!getPolicy.success) {
-                throw Error("Error Occured");
-              }
-
-              const htmltemplate = ReactDOMServer.renderToString(
-                <OrderReceiptTemplate
-                  order={{ ...order, status: Allstatus.paid }}
-                  isAdmin={false}
-                />,
-              );
-              const adminhtmltemplate = ReactDOMServer.renderToString(
-                <OrderReceiptTemplate
-                  order={{ ...order, status: Allstatus.paid }}
-                  isAdmin={true}
-                />,
-              );
-
-              const updateOrder = updateStatus.bind(
-                null,
-                orderId,
-                htmltemplate,
-                adminhtmltemplate,
-              );
-              const makeReq = await updateOrder();
-
-              if (!makeReq.success) {
-                errorToast(makeReq.message ?? "");
-                return;
-              }
-              socket &&
-                (await SendNotification(
-                  {
-                    type: "New Order",
-                    content: `Order #${orderId} has requested`,
-                    checked: false,
-                    link: `${process.env.NEXT_PUBLIC_BASE_URL}/dashboard/order?&q=${orderId}`,
-                  },
-                  socket,
-                ));
-              successToast(`Purchase Complete`);
-              router.replace(`/checkout?orderid=${encripyid}&step=4`);
-              setcarttotal(0);
-              router.refresh();
-            }
-          } catch (error) {
-            console.log("Payment error", error);
-            errorToast("Payment failed , Please try again!");
-          }
-        }}
-        style={{ disableMaxWidth: true }}
+      <PaypalButtonWrapper
+        orderId={orderId}
+        order={order}
+        encripyid={encripyid}
+        onCreateOrder={createOrder}
+        onApproveOrder={handleApprove}
       />
     </PayPalScriptProvider>
   );

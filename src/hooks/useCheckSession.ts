@@ -1,76 +1,98 @@
 "use client";
 
 import { signOut, useSession } from "next-auth/react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { Usersessiontype } from "../types/user.type";
 import { errorToast } from "../app/component/Loading";
 
 /**
  * Check for invalid session and auto sign out if expired
+ * Optimized for performance with efficient state management and early returns
  * @returns handleCheckSession function to validate session
  */
 const useCheckSession = () => {
-  const { status, data } = useSession();
-  const timerRef = useRef<NodeJS.Timeout>(undefined);
-  const [sessionStatus, setStatus] = useState<string>("");
-
-  useEffect(() => {
-    setStatus(status);
-  }, [status]);
+  const { status, data, update } = useSession();
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const isSigningOutRef = useRef(false);
 
   // Cleanup timer on unmount
   useEffect(() => {
     return () => {
       if (timerRef.current) {
         clearTimeout(timerRef.current);
+        timerRef.current = null;
       }
     };
   }, []);
 
-  const handleCheckSession = useCallback(() => {
-    // Skip if session is still loading
-    if (sessionStatus === "loading") return;
+  const handleSignOut = useCallback(() => {
+    // Prevent multiple simultaneous sign-out
+    if (isSigningOutRef.current) return;
+
+    isSigningOutRef.current = true;
+
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+
+    errorToast("Invalid Session", {
+      autoClose: 5000,
+      closeOnClick: true,
+      onClose: () => {
+        timerRef.current = setTimeout(() => {
+          signOut().catch(console.error);
+        }, 150);
+      },
+    });
+  }, []);
+
+  const handleCheckSession = useCallback(async () => {
+    if (status === "loading" || isSigningOutRef.current) return false;
 
     const usersession = data as unknown as Usersessiontype;
 
-    console.log({ usersession });
-    // Check if session exists
-    if (!usersession) return;
+    if (!usersession) return false;
 
-    const now = Date.now();
-    const nowInSeconds = Math.floor(now / 1000);
-    let isExpired = false;
+    const nowInSeconds = Math.floor(Date.now() / 1000);
 
-    // Check token.cexp (JWT expiration in seconds)
-    if (usersession.cexp && usersession.cexp <= nowInSeconds) {
-      isExpired = true;
+    if (!usersession.cexp && !usersession.expireAt) {
+      handleSignOut();
+      return false;
     }
 
-    // Check session.expires (ISO string)
+    // Check JWT token expiration (cexp is in seconds)
+    if (usersession.cexp && usersession.cexp <= nowInSeconds) {
+      try {
+        const renewedSession = await update();
+
+        // Renewal failed or returned null/undefined
+        if (
+          (renewedSession?.expires && renewedSession.expires === "0") ||
+          !renewedSession
+        ) {
+          handleSignOut();
+          return false;
+        }
+
+        return true;
+      } catch (error) {
+        console.error("Session renewal failed:", error);
+        handleSignOut();
+        return false;
+      }
+    }
+
     if (usersession.expireAt) {
       const expireDate = new Date(usersession.expireAt).getTime();
-      if (expireDate <= now) {
-        isExpired = true;
+      if (expireDate <= nowInSeconds * 1000) {
+        handleSignOut();
+        return false;
       }
-    } else if (!usersession.cexp) {
-      // Session exists but has neither expires nor cexp - invalid session
-      errorToast("Invalid Session");
-      timerRef.current = setTimeout(() => {
-        signOut().catch(console.log);
-      }, 150);
-      return;
-    }
-
-    // Handle expired session
-    if (isExpired) {
-      errorToast("Invalid Session");
-      timerRef.current = setTimeout(() => {
-        signOut().catch(console.log);
-      }, 150);
     }
 
     return true;
-  }, [sessionStatus, data]);
+  }, [status, data, update, handleSignOut]);
 
   return { handleCheckSession };
 };

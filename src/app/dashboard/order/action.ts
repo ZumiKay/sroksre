@@ -11,6 +11,7 @@ import { SendOrderEmail } from "../../checkout/action";
 import { Filterdatatype } from "./OrderComponent";
 import { getCheckoutdata } from "../../checkout/page";
 import { Orderproduct, Orders } from "@/prisma/generated/prisma/client";
+import { OrdersWhereInput } from "@/prisma/generated/prisma/models";
 
 const AllorderType = {
   orderdetail: "orderdetail",
@@ -18,6 +19,11 @@ const AllorderType = {
   orderaction: "orderaction",
   orderupdatestatus: "orderupdatestatus",
 };
+
+/**Get Order Data As Admin and Normal User (Only self order)
+ * @params id , type , page , limit , userid (buyer_id)
+ * @returns order data with total count
+ */
 
 export const GetOrder = async (
   id?: string,
@@ -34,6 +40,7 @@ export const GetOrder = async (
           user: {
             select: {
               id: true,
+              buyer_id: true,
               firstname: true,
               lastname: true,
               email: true,
@@ -257,10 +264,14 @@ export const deleteOrder = async (id: string): Promise<Returntype> => {
   }
 };
 
+/**
+ * Export Order Data Action
+ * @param filterdata - UserId must string use buyer_id (auto generated id in user model)
+ */
 export const ExportOrderData = async (filterdata: Filterdatatype) => {
   try {
     // Build where clause for database-level filtering
-    const whereClause: any = {};
+    const whereClause: OrdersWhereInput = {};
 
     // Date range filter
     if (filterdata.fromdate || filterdata.todate) {
@@ -273,20 +284,18 @@ export const ExportOrderData = async (filterdata: Filterdatatype) => {
       }
     }
 
-    // Search filter (order ID, user ID, name, or email)
+    // Search filter
     if (filterdata.q) {
       const searchQuery = filterdata.q;
-      const searchLower = removeSpaceAndToLowerCase(searchQuery);
       whereClause.OR = [
-        { id: { equals: searchQuery } },
+        { buyer_id: { equals: searchQuery } },
         { user: { email: { contains: searchQuery, mode: "insensitive" } } },
         { user: { firstname: { contains: searchQuery, mode: "insensitive" } } },
         { user: { lastname: { contains: searchQuery, mode: "insensitive" } } },
       ];
 
-      // Try to parse as user ID if it's a number
-      const userId = parseInt(searchQuery);
-      if (!isNaN(userId)) {
+      const userId = searchQuery;
+      if (userId) {
         whereClause.OR.push({ buyer_id: userId });
       }
     }
@@ -323,7 +332,6 @@ export const ExportOrderData = async (filterdata: Filterdatatype) => {
       orderBy: { createdAt: "desc" },
     });
 
-    // Post-filter for price (since JSON field filtering is limited)
     if (filterdata.startprice || filterdata.endprice) {
       const startPrice = filterdata.startprice
         ? parseFloat(filterdata.startprice as string)
@@ -345,6 +353,7 @@ export const ExportOrderData = async (filterdata: Filterdatatype) => {
       });
     }
 
+    //Return
     return { success: true, message: "Export Successfully", data: orderdata };
   } catch (error) {
     console.log("Export Order Error:", error);

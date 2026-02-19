@@ -1,5 +1,12 @@
 import { Role } from "@/prisma/generated/prisma/enums";
 
+/**To be used in for usesession status associate with next-auth */
+export enum UserSessionStatusEnum {
+  authenticated = "authenticated",
+  loading = "loading",
+  unauthenticated = "unauthenticated",
+}
+
 export interface Usersessiontype {
   sessionid: string;
   refresh_token_hash: string;

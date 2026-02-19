@@ -6,6 +6,7 @@ import {
   Ordertype,
   Productordertype,
   totalpricetype,
+  OrderSelectedVariantType,
 } from "@/src/types/order.type";
 import { getUser } from "@/src/lib/session";
 import { Orderproduct } from "@/prisma/generated/prisma/client";
@@ -273,9 +274,7 @@ export async function updateStatus(
         id: prob.product?.id as number,
         name: prob.product?.name as string,
         price: prob.price,
-        selectedVariant: prob.selectedvariant?.map((i) =>
-          typeof i === "string" ? i : (i?.name ?? ""),
-        ) as never,
+        selectedVariant: prob.selectedvariant as any,
         quantity: prob.quantity,
         totalprice:
           prob.quantity * (prob.price.discount?.newprice ?? prob.price.price),

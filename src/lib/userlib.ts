@@ -43,6 +43,9 @@ const generateSessionId = (): string => {
     .digest("hex");
 };
 
+/**Method only for create a unique token usersession model
+ * @returns string
+ */
 export async function createUniqueSessionId(): Promise<string> {
   let sessionId = generateSessionId();
 

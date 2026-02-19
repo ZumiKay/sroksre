@@ -8,6 +8,7 @@ import { Usersessiontype } from "@/src/types/user.type";
 import { CheckAndGetUserInfo } from "../severactions/RecapchaAction";
 import { errorToast } from "./Loading";
 import { ToastContainer } from "react-toastify";
+import useCheckSession from "@/src/hooks/useCheckSession";
 
 // API endpoint constants
 const API_ENDPOINTS = {
@@ -17,6 +18,7 @@ const API_ENDPOINTS = {
 
 export default function NavbarWrapper() {
   const { data: session, status } = useSession();
+  const { handleCheckSession } = useCheckSession();
   const [initialCartCount, setInitialCartCount] = useState(0);
   const [initialNotificationCount, setInitialNotificationCount] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -39,9 +41,9 @@ export default function NavbarWrapper() {
     setLoading(true);
 
     try {
-      // Logged out invalid session - early exit
+      // Check for invalid session with expires "0" - handleCheckSession shows toast and signs out internally
       if (session?.expires === "0") {
-        await signOut();
+        await handleCheckSession();
         return;
       }
 
@@ -50,13 +52,22 @@ export default function NavbarWrapper() {
       const isValid = await checkReq();
 
       if (!isValid.success) {
-        errorToast(isValid.message ?? "Error occurred");
+        // Show expired session toast before signing out
         if (isValid.isExpire) {
-          await signOut({ redirect: false });
-          errorToast(isValid.message, {
-            onClose: () => window.location.reload(),
+          errorToast(isValid.message ?? "Session Expired", {
+            autoClose: 2000,
             closeOnClick: true,
           });
+
+          // Wait for toast to be visible before signing out
+          await new Promise((resolve) => setTimeout(resolve, 200));
+
+          await signOut({ redirect: false });
+
+          // Reload after sign out
+          setTimeout(() => window.location.reload(), 100);
+        } else {
+          errorToast(isValid.message ?? "Error occurred");
         }
         return;
       }
@@ -64,7 +75,7 @@ export default function NavbarWrapper() {
       // Mark as successfully fetched
       hasFetchedRef.current = true;
 
-      // Fetch role-specific data
+      // Fetch role-specific data in parallel for better performance
       if (userSession && userSession.role !== "ADMIN") {
         // Fetch cart count for non-admin users
         const cartResponse = await ApiRequest(
@@ -93,7 +104,7 @@ export default function NavbarWrapper() {
       setLoading(false);
       isFetchingRef.current = false;
     }
-  }, [session, userSession]);
+  }, [session, userSession, handleCheckSession]);
 
   useEffect(() => {
     if (status === "authenticated" && session) {

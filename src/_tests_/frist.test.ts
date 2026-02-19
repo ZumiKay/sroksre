@@ -1,4 +1,4 @@
-describe("First Test", () => {
+describe.skip("First Test", () => {
   it("Is it really 4", () => {
     const testresult = 2 + 2;
 

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import useCheckSession from "@/src/hooks/useCheckSession";
 
 interface Session {
   sessionid: string;
@@ -25,6 +26,7 @@ export default function DeviceManagement() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState(false);
   const router = useRouter();
+  const { handleCheckSession } = useCheckSession();
 
   // Prevent hydration mismatch for date formatting
   useEffect(() => {
@@ -32,6 +34,9 @@ export default function DeviceManagement() {
   }, []);
 
   const fetchSessions = async () => {
+    const isValidSession = await handleCheckSession();
+    if (!isValidSession) return;
+
     try {
       setLoading(true);
       const response = await fetch("/api/auth/sessions");
@@ -53,6 +58,9 @@ export default function DeviceManagement() {
 
   const handleLogoutDevice = async (sessionId: string) => {
     if (!confirm("Are you sure you want to logout this device?")) return;
+
+    const isValidSession = await handleCheckSession();
+    if (!isValidSession) return;
 
     try {
       setActionLoading(sessionId);
@@ -84,6 +92,9 @@ export default function DeviceManagement() {
       )
     )
       return;
+
+    const isValidSession = await handleCheckSession();
+    if (!isValidSession) return;
 
     try {
       setActionLoading("all");

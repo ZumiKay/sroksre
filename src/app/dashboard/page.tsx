@@ -17,6 +17,7 @@ import React from "react";
 import { Userdatastate } from "@/src/types/user.type";
 import { ProductState } from "@/src/types/product.type";
 import { Orderpricetype } from "@/src/types/order.type";
+import useCheckSession from "@/src/hooks/useCheckSession";
 
 interface userdata extends Userdatastate {
   open: {
@@ -38,7 +39,10 @@ export default function UserDashboard() {
   });
   const [wishlist, setwishlist] = useState<ProductState[] | null>(null);
   const [loading, setloading] = useState(false);
+  const { handleCheckSession } = useCheckSession();
   const fetchuser = async (type: "userinfo" | "wishlist") => {
+    const isValidSession = await handleCheckSession();
+    if (!isValidSession) return;
     const asyncfetch = async () => {
       const URL = `/api/users/info?ty=${type}`;
       const userreq = await ApiRequest(
@@ -89,7 +93,7 @@ export default function UserDashboard() {
       <div className="profile__section w-full max-w-5xl">
         <div className="profiledetail__section relative w-full bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
           {loading ? (
-            <div className="min-h-[400px]">
+            <div className="min-h-100">
               <ContainerLoading />
             </div>
           ) : (
@@ -292,7 +296,7 @@ export default function UserDashboard() {
               <ToggleDownMenu open={userdata.open.whilist}>
                 <div className="p-6 bg-gray-50">
                   {loading ? (
-                    <div className="min-h-[200px]">
+                    <div className="min-h-50">
                       <ContainerLoading />
                     </div>
                   ) : wishlist && wishlist.length > 0 ? (

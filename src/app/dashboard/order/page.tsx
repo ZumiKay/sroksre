@@ -57,6 +57,8 @@ export interface AllorderStatus {
   createdAt: Date;
   updatedAt: Date;
 }
+
+//Composite component
 export default async function OrderManagement({
   searchParams,
 }: {
@@ -260,7 +262,7 @@ function FilterSection({
   return (
     <div className="bg-white rounded-xl shadow-xs border border-gray-200 p-4 mb-6">
       <div className="filter_container w-full flex flex-col md:flex-row items-start md:items-center gap-4">
-        <div className="w-full md:w-[300px]">
+        <div className="w-full md:w-75">
           <MultipleSelect />
         </div>
 
@@ -286,10 +288,10 @@ function OrdersTable({
   return (
     <div className="bg-white rounded-xl shadow-xs border border-gray-200 overflow-hidden">
       <div className="w-full overflow-x-auto">
-        <div className="orderlist min-w-[950px] w-full">
+        <div className="orderlist min-w-237.5 w-full">
           <table width="100%" className="ordertable">
             <thead>
-              <tr className="bg-linear-to-r from-gray-800 to-gray-700 text-white h-[56px]">
+              <tr className="bg-linear-to-r from-gray-800 to-gray-700 text-white h-14">
                 <th className="text-left pl-6 font-semibold text-sm">
                   Order ID
                 </th>
@@ -399,7 +401,7 @@ const checkparam = cache((ty: string): string | undefined => {
 // Cached order data fetching
 const getOrderData = cache(
   async (
-    oid: string,
+    oid: string, //orderId
     isAdmin: boolean,
     param?: { [key: string]: string | string[] | undefined },
   ): Promise<OrderDetailType | Productordertype[] | OrderUserType | null> => {

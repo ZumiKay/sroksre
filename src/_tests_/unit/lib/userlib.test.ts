@@ -102,11 +102,11 @@ describe("Testing Authentication && Authorization", () => {
       // Arrange
       mockGetOneWeekFromToday.mockReturnValue(mockSession.expireAt);
       (mockPrisma.user.findFirst as jest.Mock).mockResolvedValue(
-        mockUser as any
+        mockUser as any,
       );
       mockCompare.mockResolvedValue(true as never);
       (mockPrisma.usersession.create as jest.Mock).mockResolvedValue(
-        mockSession as never
+        mockSession as never,
       );
 
       // Act
@@ -215,7 +215,7 @@ describe("Testing Authentication && Authorization", () => {
       // Assert
       expect(result.success).toBe(false);
       expect(result.message).toBe(
-        "String must contain at most 50 character(s)"
+        "String must contain at most 50 character(s)",
       );
     });
 

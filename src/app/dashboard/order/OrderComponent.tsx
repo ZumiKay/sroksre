@@ -30,6 +30,7 @@ import { Input } from "@heroui/react";
 import { useScreenSize } from "@/src/context/CustomHook";
 import React from "react";
 import { userdata } from "@/src/types/user.type";
+import useCheckSession from "@/src/hooks/useCheckSession";
 
 export const SelectionSSR = ({
   name,
@@ -50,6 +51,7 @@ export const SelectionSSR = ({
   );
 };
 
+/**Download Button For Order Management */
 export interface DownloadData {
   orderID: string;
   orderDate: string;
@@ -76,8 +78,11 @@ export const DownloadButton = () => {
     filename: "",
     filedata: [],
   });
+
+  /**
+   * Fetch Export Data
+   */
   const handleGetData = async (filterdata: Filterdatatype) => {
-    //get order data
     setloading(true);
     const orderdata = await ExportOrderData({
       ...filterdata,
@@ -171,7 +176,7 @@ export const DownloadButton = () => {
 
       {open && (
         <Modal closestate="none" customZIndex={210}>
-          <div className="w-[250px] h-[250px] bg-[#f3f3f3] flex flex-col items-center justify-between p-5 rounded-lg">
+          <div className="w-62.5 h-62.5 bg-[#f3f3f3] flex flex-col items-center justify-between p-5 rounded-lg">
             {totalcount ? (
               <table className="w-full text-lg">
                 <tr>
@@ -187,7 +192,7 @@ export const DownloadButton = () => {
               <h3 className="text-xl font-bold">No data</h3>
             )}
 
-            <div className="w-full h-[50px] flex flex-row gap-x-5">
+            <div className="w-full h-12.5 flex flex-row gap-x-5">
               <PrimaryButton
                 type="button"
                 text="Yes"
@@ -309,6 +314,7 @@ interface ButtonSsrProps {
   isAdmin: boolean;
 }
 
+/**Button for order management tables optimzie for use in composite */
 export const ButtonSsr = React.memo(
   ({
     width,
@@ -326,6 +332,7 @@ export const ButtonSsr = React.memo(
     const router = useRouter();
     const searchParams = useSearchParams();
 
+    //Openmodal Identifier
     const clickedtype = React.useMemo(() => `${type}${idx}`, [type, idx]);
 
     const handleClick = React.useCallback(() => {
@@ -406,7 +413,7 @@ export const ButtonSsr = React.memo(
         <button
           type="button"
           onClick={handleClick}
-          className="relative min-w-[100px] px-4 py-2 rounded-xl font-medium text-white 
+          className="relative min-w-25 px-4 py-2 rounded-xl font-medium text-white 
                    bg-linear-to-r from-blue-600 to-purple-600 
                    hover:from-blue-700 hover:to-purple-700 
                    active:scale-95 
@@ -476,6 +483,11 @@ const FilterMenu = ({
   const [isFilter, setisFilter] = useState(false);
   const { setopenmodal } = useGlobalContext();
   const { isMobile } = useScreenSize();
+  const { handleCheckSession } = useCheckSession();
+
+  useEffect(() => {
+    handleCheckSession();
+  }, []);
 
   useEffect(() => {
     if (
@@ -561,7 +573,7 @@ const FilterMenu = ({
       placement={isMobile ? "top" : "center"}
       footer={() => {
         return (
-          <div className="Filter_btn inline-flex items-center gap-x-5 w-full h-[50px]">
+          <div className="Filter_btn inline-flex items-center gap-x-5 w-full h-12.5">
             {type === "filter" ? (
               <PrimaryButton
                 width="100%"
@@ -727,10 +739,31 @@ export const PaginationSSR = ({
 }) => {
   const [page, setpage] = useState(pages ?? 1);
   const [show, setshow] = useState(limit ?? "1");
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { handleCheckSession } = useCheckSession();
 
-  const handleSelectPage = (value: number | string) => {
+  // Update page when props change (after navigation completes)
+  useEffect(() => {
+    setpage(pages ?? 1);
+    setshow(limit ?? "1");
+    setIsLoading(false);
+  }, [pages, limit]);
+
+  const handleSelectPage = async (value: number | string) => {
+    setIsLoading(true);
+
+    const isValid = await handleCheckSession();
+
+    if (!isValid) {
+      errorToast("Can't Verify Session", {
+        toastId: "OrderManagementPagination",
+      });
+      setIsLoading(false);
+      return;
+    }
+
     const searchparam = new URLSearchParams(searchParams);
 
     searchparam.set("p", "1");
@@ -738,10 +771,27 @@ export const PaginationSSR = ({
     setpage(1);
 
     router.push(`?${searchparam}`, { scroll: false });
+    // Loading will be set to false by the useEffect when new data arrives
+  };
+
+  const handlePageChange = () => {
+    // Set loading state when user clicks pagination buttons
+    setIsLoading(true);
+    // Loading will be set to false by the useEffect when new data arrives
   };
 
   return (
-    <div className="w-full h-fit mt-[10%]">
+    <div className="w-full h-fit mt-[10%] relative">
+      {isLoading && (
+        <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 flex items-center justify-center rounded-lg min-h-24">
+          <div className="flex flex-col items-center gap-3">
+            <div className="animate-spin rounded-full h-10 w-10 border-b-3 border-blue-600"></div>
+            <p className="text-sm text-gray-700 font-medium">
+              Loading orders...
+            </p>
+          </div>
+        </div>
+      )}
       <PaginationCustom
         page={page}
         show={show}
@@ -749,6 +799,7 @@ export const PaginationSSR = ({
         setshow={setshow}
         count={total}
         onSelectShowPerPage={handleSelectPage}
+        onPageChange={handlePageChange}
       />
     </div>
   );
@@ -788,25 +839,25 @@ export function DetailModal({
       <table align="left" className="text-left" width={"100%"}>
         {type === "user" && data?.user ? (
           <tbody className="bg-white">
-            <tr className="h-[50px]">
+            <tr className="h-12.5">
               <th className="pl-2 rounded-tl-lg">Firstname: </th>
               <td align="right" className="pr-5 rounded-tr-lg break-all">
                 {data?.user?.firstname}
               </td>
             </tr>
-            <tr className="h-[50px]">
+            <tr className="h-12.5">
               <th className="pl-2">Lastname: </th>
               <td align="right" className="pr-5 break-all">
                 {data.user?.lastname ?? ""}
               </td>
             </tr>
-            <tr className="h-[50px]">
+            <tr className="h-12.5">
               <th className="pl-2">Email: </th>
               <td align="right" className="pr-5 break-all">
                 {data.user?.email}
               </td>
             </tr>
-            <tr className="h-[50px]">
+            <tr className="h-12.5">
               <th className="pl-2 rounded-bl-lg">Phone Number: </th>
               <td align="right" className="pr-5 rounded-br-lg break-all"></td>
             </tr>
@@ -814,43 +865,43 @@ export function DetailModal({
         ) : (
           type === "shipping" && (
             <tbody className="bg-white">
-              <tr className="h-[50px]">
+              <tr className="h-12.5">
                 <th className="pl-2">Firstname: </th>
                 <td align="right" className="pr-5 break-all">
                   {data.shipping?.firstname}
                 </td>
               </tr>
-              <tr className="h-[50px]">
+              <tr className="h-12.5">
                 <th className="pl-2">Lastname: </th>
                 <td align="right" className="pr-5 break-all">
                   {data.shipping?.lastname}
                 </td>
               </tr>
-              <tr className="h-[50px]">
+              <tr className="h-12.5">
                 <th className="pl-2">HouseId: </th>
                 <td align="right" className="pr-5 break-all">
                   {data.shipping?.houseId}
                 </td>
               </tr>
-              <tr className="h-[50px]">
+              <tr className="h-12.5">
                 <th className="pl-2">District / Khan: </th>
                 <td align="right" className="pr-5 break-all">
                   {data.shipping?.district}
                 </td>
               </tr>
-              <tr className="h-[50px]">
+              <tr className="h-12.5">
                 <th className="pl-2">Songkat: </th>
                 <td align="right" className="pr-5 break-all">
                   {data.shipping?.songkhat}
                 </td>
               </tr>
-              <tr className="h-[50px]">
+              <tr className="h-12.5">
                 <th className="pl-2">City / Province: </th>
                 <td align="right" className="pr-5 break-all">
                   {data.shipping?.province}
                 </td>
               </tr>
-              <tr className="h-[50px]">
+              <tr className="h-12.5">
                 <th className="pl-2">PostalCode: </th>
                 <td align="right" className="pr-5 break-all">
                   {data.shipping?.postalcode}
@@ -913,25 +964,25 @@ export function DetailModal({
                 }}
               >
                 <tbody className="text-left">
-                  <tr className="h-[50px]">
+                  <tr className="h-12.5">
                     <th className="pl-5">Order On: </th>
                     <td align="right" className="pr-5">
                       {formatDate(orderdata.createdAt)}
                     </td>
                   </tr>
-                  <tr className="h-[50px]">
+                  <tr className="h-12.5">
                     <th className="pl-5">Updated At: </th>
                     <td align="right" className="pr-5">
                       {formatDate(orderdata.updatedAt)}
                     </td>
                   </tr>
-                  <tr className="h-[50px]">
+                  <tr className="h-12.5">
                     <th className="pl-5">Shipping Type: </th>
                     <td align="right" className="pr-5">
                       {orderdata.shippingtype}
                     </td>
                   </tr>
-                  <tr className="h-[100px]">
+                  <tr className="h-25">
                     <th className="rounded-bl-lg pl-5">Price: </th>
                     <td align="right" className="pr-5 rounded-br-lg">
                       <div className="flex flex-col w-full h-full">
@@ -973,7 +1024,7 @@ export const OrderProductDetailsModal = ({
   close,
   data,
 }: {
-  setclose: any;
+  setclose: () => void;
   close: string;
   data: Productordertype[];
 }) => {
@@ -1106,6 +1157,7 @@ const UpdateStatus = ({
   const router = useRouter();
   const [status, setstatus] = useState("");
   const [loading, setloading] = useState(false);
+  const { handleCheckSession } = useCheckSession();
   const handleSelect = (e: ChangeEvent<HTMLSelectElement>) => {
     setstatus(e.target.value as typeof order.status);
   };
@@ -1120,6 +1172,12 @@ const UpdateStatus = ({
 
   const handleUpdate = async () => {
     setloading(true);
+    const isValid = await handleCheckSession();
+    if (!isValid) {
+      errorToast("Can't Verify Session");
+      return;
+    }
+
     const emailTemplate = ReactDOMServer.renderToStaticMarkup(
       <OrderReceiptTemplate
         order={{ ...order, status: status as any }}
@@ -1210,7 +1268,7 @@ export const OrderAlert = ({
       customheight="300px"
       customwidth="300px"
     >
-      <div className="w-full h-[300px] bg-white rounded-lg grid place-items-center">
+      <div className="w-full h-75 bg-white rounded-lg grid place-items-center">
         <h3 className="w-full text-center"> {"Are you sure ?"}</h3>
 
         <div className="w-full h-full flex flex-col items-center gap-y-5">
