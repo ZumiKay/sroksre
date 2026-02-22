@@ -14,9 +14,10 @@ const config: Config = {
   transform: {
     "^.+\\.tsx?$": "ts-jest",
   },
-  transformIgnorePatterns: ["node_modules/(?!(jose)/)"],
+  transformIgnorePatterns: ["node_modules/(?!(jose|@panva/hkdf)/)"],
   moduleNameMapper: {
     "^jose$": "<rootDir>/node_modules/jose/dist/node/cjs/index.js",
+    "^@panva/hkdf$": "<rootDir>/__mocks__/@panva/hkdf.js",
     "^@/(.*)$": "<rootDir>/$1",
     "\\.mjs$": "<rootDir>/jest.setup.ts", // Mock all .mjs files
   },

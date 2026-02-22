@@ -235,7 +235,7 @@ export default function AuthenticatePage() {
       router.refresh();
     }
     if (res?.error) {
-      console.error("OAuth login error:", res.error);
+      console.log("OAuth login error:", res.error);
       errorToast("Failed to login with " + type);
     }
   };

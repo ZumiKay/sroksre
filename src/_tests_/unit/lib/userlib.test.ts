@@ -98,6 +98,15 @@ describe("Testing Authentication && Authorization", () => {
       createdAt: new Date(),
     };
 
+    const mockReq = {
+      headers: {
+        "user-agent":
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+        "x-forwarded-for": "127.0.0.1",
+        "x-real-ip": "127.0.0.1",
+      },
+    };
+
     it("should successfully login a user with valid credentials", async () => {
       // Arrange
       mockGetOneWeekFromToday.mockReturnValue(mockSession.expireAt);
@@ -110,15 +119,19 @@ describe("Testing Authentication && Authorization", () => {
       );
 
       // Act
-      const result = await userlogin({
-        email: "test@example.com",
-        password: "ValidPassword123!",
-      });
+      const result = await userlogin(
+        {
+          email: "test@example.com",
+          password: "ValidPassword123!",
+          recapcha: null,
+        },
+        mockReq,
+      );
 
       // Assert
       expect(result.success).toBe(true);
       expect(result.data).toBeDefined();
-      expect(result.data?.id).toBe(1);
+      expect(result.data?.userId).toBe(1);
       expect(result.data?.role).toBe(Role.USER);
       expect(result.data?.sessionid).toBe(mockSession.session_id);
       expect(mockPrisma.usersession.create).toHaveBeenCalledTimes(1);

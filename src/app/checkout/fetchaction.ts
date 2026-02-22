@@ -5,24 +5,38 @@ import {
   Productorderdetailtype,
   Productordertype,
   OrderSelectedVariantType,
+  ShippingTypeEnum,
+  totalpricetype,
+  Allstatus,
 } from "@/src/types/order.type";
 import Prisma from "@/src/lib/prisma";
 import { calculateDiscountProductPrice } from "@/src/lib/utilities";
 import {
-  ProductState,
   VariantValueObjType,
   VariantSectionType,
 } from "@/src/types/product.type";
+import { userdata } from "../account/actions";
 
+/** Get Specific Order Details
+ * @param orderid
+ * @param userid
+ * @returns order with user details
+ */
 export const getCheckoutdata = async (
   orderid?: string,
-  userid?: number,
+  userid?: string,
 ): Promise<Ordertype | null> => {
-  const result = (await Prisma.orders.findFirst({
-    where: userid ? { user: { id: userid } } : { id: orderid },
+  const result = await Prisma.orders.findFirst({
+    where: userid ? { user: { buyer_id: userid } } : { id: orderid },
     include: {
       user: {
-        select: { id: true, firstname: true, lastname: true, email: true },
+        select: {
+          id: true,
+          buyer_id: true,
+          firstname: true,
+          lastname: true,
+          email: true,
+        },
       },
       shipping: true,
       Orderproduct: {
@@ -36,16 +50,26 @@ export const getCheckoutdata = async (
               price: true,
               stocktype: true,
               Stock: { select: { Stockvalue: true } },
+              //Variant with variant section
               Variant: {
                 orderBy: { id: "asc" },
-                select: { id: true, option_value: true },
+                select: {
+                  id: true,
+                  option_value: true,
+                  variantSection: {
+                    select: {
+                      id: true,
+                      name: true,
+                    },
+                  },
+                },
               },
             },
           },
         },
       },
     },
-  })) as unknown as Ordertype;
+  });
 
   if (!result) return null;
 
@@ -53,26 +77,23 @@ export const getCheckoutdata = async (
     (orderProduct) => {
       {
         const detail = orderProduct.details as Productorderdetailtype[];
-        const product = orderProduct.product as ProductState;
-
-        // Check if any variant has variantSection (assuming it's in the data if queried with it)
-        const hasVariantSection = product.Variant?.some(
-          (variant: any) => variant.variantSection,
+        const hasVariantSection = orderProduct.product.Variant.some(
+          (variant) => variant.variantSection,
         );
 
         let selectedVariantDetails:
           | Array<string | VariantValueObjType>
           | OrderSelectedVariantType;
 
-        if (hasVariantSection && product.Variant) {
-          // Group by variant sections
+        if (hasVariantSection) {
+          // Grouped by variant sections
           const sectionMap = new Map<
             number | null,
             Array<string | VariantValueObjType>
           >();
           const sectionInfoMap = new Map<number, any>();
 
-          product.Variant.forEach((variant: any, idx) => {
+          orderProduct.product.Variant.forEach((variant, idx) => {
             const detailValue = detail[idx].value;
             const optionValues = variant.option_value as (
               | string
@@ -122,36 +143,47 @@ export const getCheckoutdata = async (
           };
         } else {
           // No sections - return flat array
-          selectedVariantDetails = (product.Variant?.map((variant, idx) => {
-            const detailValue = detail[idx].value;
-            const optionValues = variant.option_value as (
-              | string
-              | VariantValueObjType
-            )[];
+          selectedVariantDetails = orderProduct.product.Variant.map(
+            (variant, idx) => {
+              const detailValue = detail[idx].value;
+              const optionValues = variant.option_value as (
+                | string
+                | VariantValueObjType
+              )[];
 
-            return optionValues.find((val) =>
-              typeof val === "string"
-                ? val === detailValue
-                : val.val === detailValue,
-            );
-          }).filter(Boolean) ?? []) as Array<string | VariantValueObjType>;
+              return optionValues.find((val) =>
+                typeof val === "string"
+                  ? val === detailValue
+                  : val.val === detailValue,
+              );
+            },
+          ).filter(Boolean) as Array<string | VariantValueObjType>;
         }
 
         return {
           ...orderProduct,
           selectedvariant: selectedVariantDetails,
-          //Calculated Discounted Price
           price: calculateDiscountProductPrice({
-            price: product.price,
-            discount: product.discount as number,
+            price: orderProduct.product.price,
+            discount: orderProduct.product.discount ?? undefined,
           }),
-        } as unknown as Productordertype;
+          product: {
+            ...orderProduct.product,
+          },
+        } as unknown as Productordertype; //Ignore JSONValue type
       }
     },
   );
 
   return {
     ...result,
+    user: result.user as userdata,
+    shipping: result.shipping ?? undefined,
+    shippingtype: result.shippingtype as ShippingTypeEnum,
+    estimate: result.estimate ?? undefined,
+    price: result.price as unknown as totalpricetype,
+    status: result.status as Allstatus,
+    shipping_id: result.shipping_id ?? undefined,
     Orderproduct: updatedOrderProducts,
   };
 };

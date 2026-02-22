@@ -6,7 +6,6 @@ import {
   Ordertype,
   Productordertype,
   totalpricetype,
-  OrderSelectedVariantType,
 } from "@/src/types/order.type";
 import { getUser } from "@/src/lib/session";
 import { Orderproduct } from "@/prisma/generated/prisma/client";
@@ -28,8 +27,6 @@ import {
 } from "@/src/lib/utilities";
 import nodemailer from "nodemailer";
 import { shippingtype } from "../component/Modals/User";
-import { getCheckoutdata } from "./page";
-import { generateInvoicePdf } from "../api/order/route";
 import { formatDate } from "../component/EmailTemplate";
 import { ProductState, ProductStockType } from "@/src/types/product.type";
 import {
@@ -37,7 +34,8 @@ import {
   PrismaPromise,
 } from "@/prisma/generated/prisma/internal/prismaNamespace";
 import { canPlaceOrder } from "./helper";
-import { userdata } from "@/src/types/user.type";
+import { getCheckoutdata } from "./fetchaction";
+import { generateInvoicePdf } from "../api/order/helper";
 
 interface Returntype<k = string> {
   success: boolean;
