@@ -28,7 +28,6 @@ import { GetListProduct } from "./action";
 import { PageHeader } from "./components/PageHeader";
 import { ProductGrid } from "./components/ProductGrid";
 import { buildBreadcrumbs } from "./breadcrumb-utils";
-import { ProductState } from "@/src/types/product.type";
 
 export type Props = {
   params: Promise<{ id: string }>;
@@ -194,8 +193,8 @@ export default async function ProductsPage({
       />
 
       {(all || pid) && (
-        <div className="filter_container w-full pr-2 pl-2 h-[40px] flex flex-row justify-center">
-          <div className="w-full h-[40px] flex flex-row items-center gap-x-5">
+        <div className="filter_container w-full pr-2 pl-2 h-10 flex flex-row justify-center">
+          <div className="w-full h-10 flex flex-row items-center gap-x-5">
             {(() => {
               return (
                 <ProductFilterButton

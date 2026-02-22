@@ -1,8 +1,15 @@
 /** @type {import('next').NextConfig} */
-import withBundleAnalyzer from "@next/bundle-analyzer"
+import withBundleAnalyzer from "@next/bundle-analyzer";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const nextConfig = {
+  outputFileTracingRoot: __dirname,
   images: {
-    qualities: [50, 75 , 80 , 85 , 90, 100],
+    qualities: [50, 75, 80, 85, 90, 100],
     remotePatterns: [
       {
         protocol: "https",
@@ -59,6 +66,4 @@ const nextConfig = {
   },
 };
 
-
-
-export default (nextConfig);
+export default nextConfig;

@@ -18,7 +18,6 @@ import {
   PurcahseUnitType,
   Shippingservice,
 } from "@/src/context/Checkoutcontext";
-
 import {
   calculateDiscountProductPrice,
   encrypt,
@@ -300,7 +299,7 @@ export async function updateStatus(
     return { success: true, message: "Payment completed" };
   } catch (error) {
     console.log("Update status error:", error);
-    return { success: false, message: "Error occurred" };
+    return { success: false, message: "Error occurred", status: 500 };
   }
 }
 

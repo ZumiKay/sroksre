@@ -5,6 +5,7 @@ import {
   Productordertype,
   ShippingTypeEnum,
 } from "@/src/types/order.type";
+import { StockTypeEnum } from "@/src/types/product.type";
 
 interface GenerateOrderDataOptions {
   customField?: Partial<Ordertype>;
@@ -16,20 +17,38 @@ interface GenerateOrderDataOptions {
  * Helper function to generate OrderProduct items
  */
 export const generateOrderProduct = (count: number = 1): Productordertype[] => {
-  return Array.from({ length: count }, (_, index) => ({
-    id: index + 1,
-    quantity: Math.floor(Math.random() * 5) + 1, // Random quantity 1-5
-    price: {
-      price: Math.floor(Math.random() * 200) + 50, // Random price 50-250
-      discount: {
-        percent: Math.floor(Math.random() * 30) + 5, // Random discount 5-35%
-        newprice: Math.floor(Math.random() * 180) + 40,
+  return Array.from({ length: count }, (_, index) => {
+    const basePrice = Math.floor(Math.random() * 200) + 50; // Random price 50-250
+    const discountPercent = Math.floor(Math.random() * 30) + 5; // Random discount 5-35%
+    const newPrice = Math.floor(basePrice * (1 - discountPercent / 100)); // Calculate valid discounted price
+
+    return {
+      id: index + 1,
+      quantity: Math.floor(Math.random() * 5) + 1, // Random quantity 1-5
+      price: {
+        price: basePrice,
+        discount: {
+          percent: discountPercent,
+          newprice: newPrice,
+        },
       },
-    },
-    productId: index + 1,
-    maxqty: Math.floor(Math.random() * 50) + 10, // Random max 10-60
-    status: Allstatus.paid,
-  }));
+      productId: index + 1,
+      maxqty: Math.floor(Math.random() * 50) + 10, // Random max 10-60
+      status: Allstatus.paid,
+      product: {
+        id: index + 1,
+        name: `Test Product ${index + 1}`,
+        price: basePrice,
+        description: `Description for product ${index + 1}`,
+        stocktype: StockTypeEnum.normal,
+        stock: Math.floor(Math.random() * 50) + 10,
+        covers: [],
+        category: { parent_id: 1, child_id: 1 },
+        details: [],
+        Stock: [],
+      },
+    };
+  });
 };
 
 export const generateOrderData = ({
@@ -63,6 +82,21 @@ export const generateOrderData = ({
         total,
       },
       estimate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
+      shipping_id: 1,
+      shipping: {
+        id: 1,
+        street: "",
+        firstname: "firname",
+        lastname: "lastname",
+        songkhat: "sangg",
+        district: "dis",
+        houseId: "111",
+        province: "phnomPenh",
+        postalcode: "123602",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        userId: 1,
+      },
       shippingtype: ShippingTypeEnum.standard,
       createdAt: new Date(),
       updatdAt: new Date(),

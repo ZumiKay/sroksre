@@ -88,7 +88,7 @@ export const FilterMenu = ({
 
   const [loading, setloading] = useState(false);
   const [category, setcategory] = useState<CategoriesType | undefined>(
-    undefined
+    undefined,
   );
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -142,7 +142,7 @@ export const FilterMenu = ({
     const data = await ApiRequest(
       `/api/promotion?ty=byid&ids=${promoids}`,
       undefined,
-      "GET"
+      "GET",
     );
     if (data.success) {
       setpromoval(data.data);
@@ -157,7 +157,7 @@ export const FilterMenu = ({
 
   const fetchSubcategory = useCallback(async (parentId: string) => {
     const data = await fetchsubcate(parentId);
-    setcategory((prev) => ({ ...prev, childcate: data.data } as any));
+    setcategory((prev) => ({ ...prev, childcate: data.data }) as any);
   }, []);
 
   useEffect(() => {
@@ -223,7 +223,7 @@ export const FilterMenu = ({
         router.push(`?${params}`);
       }
     },
-    [searchParams, router]
+    [searchParams, router],
   );
 
   const handleClear = useCallback(() => {
@@ -282,7 +282,7 @@ export const FilterMenu = ({
         promoids: val.map((i) => parseInt(i.value.toString(), 10)),
       }));
     },
-    []
+    [],
   );
 
   const handleCheckboxChange = useCallback(
@@ -292,7 +292,7 @@ export const FilterMenu = ({
         promoids: value ? [globalindex.promotioneditindex] : undefined,
       }));
     },
-    [globalindex.promotioneditindex]
+    [globalindex.promotioneditindex],
   );
 
   const isFilterDisabled = useMemo(() => {

@@ -31,9 +31,7 @@ const mockedPrisma = Prisma as unknown as {
   };
 };
 
-jest.mock("@/src/app/checkout/helper", () => ({
-  canPlaceOrder: jest.fn(),
-}));
+// Not mocking canPlaceOrder - using actual validation
 
 jest.mock("@/src/app/api/order/helper", () => ({
   generateInvoicePdf: jest.fn(),
@@ -73,6 +71,170 @@ describe("Testing Update Order Status", () => {
     expect(handleUpdateStatus).toStrictEqual({
       success: false,
       status: 400,
+    });
+  });
+
+  //Case 2 - Order not found
+  test("Should Return Error When Order is Null", async () => {
+    (getCheckoutdata as jest.Mock).mockResolvedValue(null);
+
+    const handleUpdateStatus = await updateStatus("invalid-id", "", "");
+
+    expect(handleUpdateStatus).toStrictEqual({
+      success: false,
+      status: 400,
+    });
+  });
+
+  //Case 3 - Missing user data
+  test("Should Return Error When User is Missing", async () => {
+    const orderWithoutUser = generateOrderData({
+      customField: {
+        user: undefined,
+      },
+    }) as Ordertype;
+
+    (getCheckoutdata as jest.Mock).mockResolvedValue(orderWithoutUser);
+
+    const handleUpdateStatus = await updateStatus(
+      orderWithoutUser.id as never,
+      "",
+      "",
+    );
+
+    expect(handleUpdateStatus).toStrictEqual({
+      success: false,
+      status: 400,
+    });
+  });
+
+  //Case 4 - Missing user email
+  test("Should Return Error When User Email is Missing", async () => {
+    const orderWithoutEmail = generateOrderData({
+      customField: {
+        user: { email: undefined },
+      },
+    }) as Ordertype;
+
+    (getCheckoutdata as jest.Mock).mockResolvedValue(orderWithoutEmail);
+
+    const handleUpdateStatus = await updateStatus(
+      orderWithoutEmail.id as never,
+      "",
+      "",
+    );
+
+    expect(handleUpdateStatus).toStrictEqual({
+      success: false,
+      status: 400,
+    });
+  });
+
+  //Case 5 - Database error during update
+  test("Should Handle Database Error", async () => {
+    const validOrder = generateOrderData() as Ordertype;
+    (getCheckoutdata as jest.Mock).mockResolvedValue(validOrder);
+
+    // Mock database error
+    mockedPrisma.products.updateMany = jest
+      .fn()
+      .mockRejectedValue(new Error("Database connection failed"));
+
+    const handleUpdateStatus = await updateStatus(
+      validOrder.id as never,
+      "",
+      "",
+    );
+
+    expect(handleUpdateStatus).toStrictEqual({
+      success: false,
+      message: "Error occurred",
+      status: 500,
+    });
+  });
+
+  //Case 6 - Order update fails
+  test("Should Handle Order Update Failure", async () => {
+    const validOrder = generateOrderData() as Ordertype;
+    (getCheckoutdata as jest.Mock).mockResolvedValue(validOrder);
+
+    mockedPrisma.products.updateMany = jest.fn().mockResolvedValue({});
+    mockedPrisma.stockvalue.updateMany = jest.fn().mockResolvedValue({});
+    mockedPrisma.orders.update = jest
+      .fn()
+      .mockRejectedValue(new Error("Failed to update order"));
+
+    const handleUpdateStatus = await updateStatus(
+      validOrder.id as never,
+      "",
+      "",
+    );
+
+    expect(handleUpdateStatus).toStrictEqual({
+      success: false,
+      message: "Error occurred",
+      status: 500,
+    });
+  });
+
+  //Case 7 - Invalid order ID format
+  test("Should Handle Invalid Order ID", async () => {
+    (getCheckoutdata as jest.Mock).mockResolvedValue(null);
+
+    const handleUpdateStatus = await updateStatus("", "", "");
+
+    expect(handleUpdateStatus).toStrictEqual({
+      success: false,
+      status: 400,
+    });
+  });
+
+  //Case 8 - Promise.all rejection
+  test("Should Handle Multiple Promise Failures", async () => {
+    const validOrder = generateOrderData() as Ordertype;
+    (getCheckoutdata as jest.Mock).mockResolvedValue(validOrder);
+
+    // Mock multiple failures
+    mockedPrisma.products.updateMany = jest
+      .fn()
+      .mockRejectedValue(new Error("Product update failed"));
+    mockedPrisma.orderproduct.updateMany = jest
+      .fn()
+      .mockRejectedValue(new Error("Order product update failed"));
+
+    const handleUpdateStatus = await updateStatus(
+      validOrder.id as never,
+      "",
+      "",
+    );
+
+    expect(handleUpdateStatus).toStrictEqual({
+      success: false,
+      message: "Error occurred",
+      status: 500,
+    });
+  });
+
+  //Case 9 - Unexpected error type
+  test("Should Handle Non-Error Exceptions", async () => {
+    const validOrder = generateOrderData() as Ordertype;
+    (getCheckoutdata as jest.Mock).mockResolvedValue(validOrder);
+
+    // Mock throwing a non-Error object
+    mockedPrisma.products.updateMany = jest
+      .fn()
+      .mockRejectedValue("Unexpected error string");
+
+    const handleUpdateStatus = await updateStatus(
+      validOrder.id as never,
+      "",
+      "",
+    );
+
+    expect(handleUpdateStatus).toStrictEqual({
+      success: false,
+      message: "Error occurred",
+      status: 500,
     });
   });
 });

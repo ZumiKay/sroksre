@@ -52,7 +52,6 @@ export const BannerModal = memo(function BannerModal({
   } = useGlobalContext();
 
   const [loading, setloading] = useState(false);
-  const { isMobile } = useScreenSize();
 
   const Linktype = useMemo(
     () => [
@@ -69,7 +68,7 @@ export const BannerModal = memo(function BannerModal({
         value: "product",
       },
     ],
-    []
+    [],
   );
 
   const handleCancel = useCallback(async () => {
@@ -99,7 +98,7 @@ export const BannerModal = memo(function BannerModal({
       }
       return null;
     },
-    []
+    [],
   );
 
   const getCategory = useCallback(
@@ -114,7 +113,7 @@ export const BannerModal = memo(function BannerModal({
       }
       return null;
     },
-    []
+    [],
   );
 
   useEffectOnce(() => {
@@ -123,7 +122,7 @@ export const BannerModal = memo(function BannerModal({
       const request = await ApiRequest(
         `/api/banner?ty=edit&p=${globalindex.bannereditindex}`,
         undefined,
-        "GET"
+        "GET",
       );
       setloading(false);
 
@@ -155,8 +154,8 @@ export const BannerModal = memo(function BannerModal({
         banner.type === "product"
           ? "Please Select Product"
           : banner.type === "category" && banner.linktype === "parent"
-          ? "Please Select Parent Category"
-          : "Please Select Child Category";
+            ? "Please Select Parent Category"
+            : "Please Select Child Category";
       errorToast(errormess);
       return;
     }
@@ -180,7 +179,7 @@ export const BannerModal = memo(function BannerModal({
           return;
         }
         const idx = allbanner.findIndex(
-          (i) => i.id === globalindex.bannereditindex
+          (i) => i.id === globalindex.bannereditindex,
         );
         allbanner[idx] = banner;
         setalldata({ banner: allbanner });
@@ -214,15 +213,15 @@ export const BannerModal = memo(function BannerModal({
             value === "product"
               ? value
               : value === "category"
-              ? "parent"
-              : undefined,
+                ? "parent"
+                : undefined,
           [name]: value,
         }));
       } else {
         setbanner((prev) => ({ ...prev, [name]: value }));
       }
     },
-    [setbanner]
+    [setbanner],
   );
 
   const handleSelectProduct = useCallback(
@@ -239,7 +238,7 @@ export const BannerModal = memo(function BannerModal({
           [type]: value,
         }));
     },
-    [setbanner]
+    [setbanner],
   );
 
   return (
@@ -396,7 +395,7 @@ export const BannerModal = memo(function BannerModal({
                           return i.value !== "product";
                         }
                       }),
-                    [banner.type, Linktype]
+                    [banner.type, Linktype],
                   )}
                   name="linktype"
                   value={banner.linktype}
@@ -447,7 +446,7 @@ export const BannerModal = memo(function BannerModal({
                       getCategory(
                         "child",
                         value,
-                        parseInt(banner.parentcate?.value.toString() ?? "0")
+                        parseInt(banner.parentcate?.value.toString() ?? "0"),
                       )
                     }
                     onSelect={(value) =>
