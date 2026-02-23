@@ -9,7 +9,7 @@ import { LoadingState, useGlobalContext } from "./GlobalContext";
 import Error from "next/error";
 import { useRouter, useSearchParams } from "next/navigation";
 
-type RequestMethod = "GET" | "POST" | "PUT" | "DELETE"; // Add other request methods as needed
+type RequestMethod = "HEAD" | "GET" | "POST" | "PUT" | "DELETE"; // Add other request methods as needed
 
 export const useRequest = (
   url: string,
@@ -72,6 +72,7 @@ export const ApiRequest = async (
   datatype: "JSON" | "FILE" = "JSON",
   data?: any,
   revalidate?: string,
+  retry: number = 0,
 ): Promise<{
   success: boolean;
   error?: string;
@@ -85,50 +86,78 @@ export const ApiRequest = async (
   message?: string;
   isLimit?: boolean;
 }> => {
-  try {
-    setloading && setloading((prev) => ({ ...prev, [method]: true }));
-    const requestOptions: RequestInit = {
-      method,
-      next: { tags: [revalidate ?? ""] },
-    };
-    if (data) {
-      requestOptions.body = datatype === "JSON" ? JSON.stringify(data) : data;
-    }
+  const maxRetries = retry;
+  let lastError: any = null;
 
-    const response = await fetch(url, requestOptions);
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      // Set loading state on first attempt
+      if (attempt === 0) {
+        setloading && setloading((prev) => ({ ...prev, [method]: true }));
+      }
 
-    const responseJson = await response.json();
-
-    if (!response.ok) {
-      throw new Error(responseJson.message ?? "Error Occured");
-    }
-    setloading && setloading((prev) => ({ ...prev, [method]: false }));
-
-    if (method === "GET" || method === "POST" || method === "PUT") {
-      return {
-        success: true,
-        data: responseJson.data,
-        total: method === "GET" && responseJson?.total,
-        lowstock: method === "GET" && responseJson?.lowstock,
-        totalpage: method === "GET" && responseJson?.totalpage,
-        totalfilter: method === "GET" && responseJson?.totalfilter,
-        valid: responseJson.valid ?? undefined,
-        isLimit: method === "GET" && responseJson?.isLimit,
-        expirecount: method === "GET" && responseJson?.expirecount,
-        ...responseJson,
+      const requestOptions: RequestInit = {
+        method,
+        next: { tags: [revalidate ?? ""] },
       };
-    } else {
-      return { success: true, message: responseJson.message };
-    }
-  } catch (error: any) {
-    setloading && setloading((prev) => ({ ...prev, [method]: false }));
+      if (data) {
+        requestOptions.body = datatype === "JSON" ? JSON.stringify(data) : data;
+      }
 
-    return {
-      success: false,
-      error: error.props ?? "Error Occured",
-      message: error.message ?? "Error Occured",
-    };
+      const response = await fetch(url, requestOptions);
+
+      const responseJson = method === "HEAD" ? {} : await response.json();
+
+      if (!response.ok) {
+        throw new Error(responseJson.message ?? "Error Occured");
+      }
+
+      // Success - clear loading state
+      setloading && setloading((prev) => ({ ...prev, [method]: false }));
+
+      if (method === "GET" || method === "POST" || method === "PUT") {
+        return {
+          success: true,
+          data: responseJson.data,
+          total: method === "GET" && responseJson?.total,
+          lowstock: method === "GET" && responseJson?.lowstock,
+          totalpage: method === "GET" && responseJson?.totalpage,
+          totalfilter: method === "GET" && responseJson?.totalfilter,
+          valid: responseJson.valid ?? undefined,
+          isLimit: method === "GET" && responseJson?.isLimit,
+          expirecount: method === "GET" && responseJson?.expirecount,
+          ...responseJson,
+        };
+      } else {
+        return { success: true, message: responseJson.message };
+      }
+    } catch (error: any) {
+      lastError = error;
+
+      // If this was the last attempt, handle failure
+      if (attempt >= maxRetries) {
+        setloading && setloading((prev) => ({ ...prev, [method]: false }));
+        return {
+          success: false,
+          error: error.props ?? "Error Occured",
+          message: error.message ?? "Error Occured",
+        };
+      }
+
+      // Wait before retrying with exponential backoff
+      const delayMs = Math.min(1000 * Math.pow(2, attempt), 10000);
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+      console.log(`Retrying request (${attempt + 1}/${maxRetries})...`);
+    }
   }
+
+  // Fallback (should never reach here)
+  setloading && setloading((prev) => ({ ...prev, [method]: false }));
+  return {
+    success: false,
+    error: lastError?.props ?? "Error Occured",
+    message: lastError?.message ?? "Error Occured",
+  };
 };
 
 export function useDebounceEffect(

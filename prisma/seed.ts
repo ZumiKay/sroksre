@@ -47,8 +47,6 @@ async function main() {
     console.log("⚠️  Please change the password after first login!");
   }
 
-  console.log();
-
   // ===== PRODUCTS & CATEGORIES SEEDING =====
   // Check if we should seed products (optional)
   const shouldSeedProducts =

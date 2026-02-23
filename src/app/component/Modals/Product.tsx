@@ -186,7 +186,7 @@ export function CreateProducts({
       successToast(`${product.name} Updated`);
     }
 
-    setopenmodal((prev) => ({ ...prev, createProduct: false }));
+    setproduct(Productinitailizestate);
     setreloaddata(true);
   };
 
@@ -283,7 +283,7 @@ export function CreateProducts({
             <div
               className="image__container flex flex-col items-center 
               lg:sticky relative top-0 gap-y-3 
-              w-full sm:w-[450px] md:w-[480px] lg:w-[420px] xl:w-[480px]
+              w-full sm:w-112.5 md:w-120 lg:w-105 xl:w-120
               mx-auto lg:mx-0 h-fit
               bg-white rounded-xl shadow-lg p-4 sm:p-5 border border-gray-200"
             >

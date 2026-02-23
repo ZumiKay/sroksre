@@ -224,7 +224,7 @@ const VariantSectionEditor = ({
     // Update local state
     setproduct((prev) => ({
       ...prev,
-      VariantSection: prev.Variantsection?.map((section) =>
+      Variantsection: prev.Variantsection?.map((section) =>
         section.id === editSectionId
           ? {
               ...section,

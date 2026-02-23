@@ -12,7 +12,6 @@ import {
   infoToast,
   successToast,
 } from "../Loading";
-import Image from "next/image";
 import { InputFileUpload } from "../Button";
 import CropImage from "../Cropimage";
 import { upload } from "@vercel/blob/client";
@@ -48,31 +47,40 @@ const filetourl = (file: File[]) => {
   return file.map((obj) => URL.createObjectURL(obj));
 };
 
+// Generate unique filename with timestamp and random string
+const generateUniqueFileName = (originalName: string): string => {
+  const timestamp = Date.now();
+  const randomStr = Math.random().toString(36).substring(2, 8);
+  const extension = originalName.substring(originalName.lastIndexOf("."));
+  const nameWithoutExt = originalName.substring(
+    0,
+    originalName.lastIndexOf("."),
+  );
+  return `${nameWithoutExt}_${timestamp}_${randomStr}${extension}`;
+};
+
 // Verify URL is accessible with retry logic
-const verifyBlobUrl = async (
-  url: string,
-  maxRetries = 5,
-  delay = 1000,
-): Promise<boolean> => {
-  for (let i = 0; i < maxRetries; i++) {
-    try {
-      const response = await fetch(url, { method: "HEAD" });
-      if (response.ok) {
-        return true;
-      }
-    } catch (error) {
-      console.log(`URL verification attempt ${i + 1} failed for ${url}`);
-    }
-    // Wait before retry
-    if (i < maxRetries - 1) {
-      await new Promise((resolve) => setTimeout(resolve, delay));
-    }
+const verifyBlobUrl = async (url: string): Promise<boolean> => {
+  const response = await ApiRequest(
+    url,
+    undefined,
+    "HEAD",
+    undefined,
+    undefined,
+    undefined,
+    3,
+  );
+  console.log({ "Verify uploaded image": response });
+  if (response.success) {
+    return true;
   }
+
   return false;
 };
 
 const uploadToVercel = async (
   file: File,
+  uniqueFileName: string,
   onProgress?: (percentage: number) => void,
 ): Promise<{
   success: boolean;
@@ -96,7 +104,7 @@ const uploadToVercel = async (
       };
     }
 
-    const Blob = await upload(file.name, file, {
+    const Blob = await upload(uniqueFileName, file, {
       access: "public",
       handleUploadUrl: "/api/products/cover",
       onUploadProgress: ({ percentage }) => {
@@ -208,7 +216,7 @@ export const ImageUpload = (props: imageuploadprops) => {
         ...Imgurl,
         ...filteredFileUrl.map((obj, index) => ({
           url: obj,
-          name: filteredFile[index].name,
+          name: generateUniqueFileName(filteredFile[index].name),
           type: filteredFile[index].type,
         })),
       ];
@@ -298,15 +306,16 @@ export const ImageUpload = (props: imageuploadprops) => {
         return;
       }
 
-      //Upload Multiple Files in Parallel
-      const uploadPromises = Files.map((file, index) =>
-        uploadToVercel(file, (percentage) => {
+      //Upload Multiple Files in Parallel with unique names
+      const uploadPromises = Files.map((file, index) => {
+        const uniqueFileName = generateUniqueFileName(file.name);
+        return uploadToVercel(file, uniqueFileName, (percentage) => {
           setUploadProgress((prev) => ({
             ...prev,
             [file.name]: percentage,
           }));
-        }),
-      );
+        });
+      });
 
       const results = await Promise.allSettled(uploadPromises);
 
@@ -534,15 +543,13 @@ export const ImageUpload = (props: imageuploadprops) => {
                         )} bg-gray-100`}
                       >
                         (
-                        <Image
+                        <img
                           src={file.url}
-                          fill
                           className="transition-all duration-300 group-hover:scale-105"
                           style={{
                             objectFit: "cover",
                           }}
                           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                          quality={80}
                           alt={`Preview of Image ${file.name}`}
                           onLoad={(e) => handleImageLoad(index, e)}
                         />

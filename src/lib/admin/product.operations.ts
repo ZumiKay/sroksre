@@ -338,7 +338,7 @@ export const EditProduct = async (
             return { success: true, id: createdVariantSection.id };
           }
           const existingSection = await Prisma.variantSection.findUnique({
-            where: { id: sectionId, name: sectionName },
+            where: { id: sectionId },
           });
 
           if (!existingSection) {
