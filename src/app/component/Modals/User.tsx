@@ -1,6 +1,13 @@
 import { useGlobalContext, Userinitialize } from "@/src/context/GlobalContext";
 import React, { ChangeEvent, FormEvent, useEffect, useState } from "react";
 import { errorToast, successToast } from "../Loading";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faUserPlus,
+  faTrash,
+  faPlus,
+  faSave,
+} from "@fortawesome/free-solid-svg-icons";
 import {
   ApiRequest,
   useDetectKeyboardOpen,
@@ -69,7 +76,7 @@ export const Createusermodal = ({
     }
 
     successToast(
-      `User ${editindex === -1 ? "Created" : "Updated"} Successfully`
+      `User ${editindex === -1 ? "Created" : "Updated"} Successfully`,
     );
     editindex === -1 && setdata(Userinitialize);
     setglobalindex((prev) => ({ ...prev, useredit: -1 }));
@@ -114,7 +121,7 @@ export const Createusermodal = ({
       header={() => (
         <div className="flex items-center gap-3 px-2">
           <div className="w-10 h-10 rounded-lg bg-linear-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-            <i className="fa-solid fa-user-plus text-white text-lg"></i>
+            <FontAwesomeIcon icon={faUserPlus} className="text-white text-lg" />
           </div>
           <div>
             <h3 className="text-xl font-bold text-gray-800">
@@ -182,7 +189,7 @@ export const Createusermodal = ({
               name="role"
               value={data.role || "USER"}
               onChange={(e) =>
-                setdata((prev) => ({ ...prev, role: e.target.value } as never))
+                setdata((prev) => ({ ...prev, role: e.target.value }) as never)
               }
               className="w-full h-[50px] px-4 py-2 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-hidden transition-all bg-white text-gray-800 font-medium"
               required
@@ -277,11 +284,10 @@ export const Createusermodal = ({
               radius="12px"
               textcolor="white"
               Icon={
-                <i
-                  className={`fa-solid ${
-                    globalindex.useredit === -1 ? "fa-plus" : "fa-save"
-                  } text-base`}
-                ></i>
+                <FontAwesomeIcon
+                  icon={globalindex.useredit === -1 ? faPlus : faSave}
+                  className="text-base"
+                />
               }
             />
             {globalindex.useredit !== -1 && (
@@ -299,7 +305,7 @@ export const Createusermodal = ({
                 width="100%"
                 height="54px"
                 radius="12px"
-                Icon={<i className="fa-solid fa-trash text-base"></i>}
+                Icon={<FontAwesomeIcon icon={faTrash} className="text-base" />}
               />
             )}
             <button
@@ -378,7 +384,7 @@ export const EditProfile = ({
         "GET",
         undefined,
         undefined,
-        "userinfo"
+        "userinfo",
       );
       setloading((prev) => ({ ...prev, get: false }));
       if (request.success) {
@@ -417,7 +423,7 @@ export const EditProfile = ({
     Object.entries(data).forEach(([key, val]) =>
       key === "name" || key === "password"
         ? formeddata.set(key, JSON.stringify(val))
-        : formeddata.set(key, val)
+        : formeddata.set(key, val),
     );
     const updaterequest = Editprofileaction.bind(null, formeddata, type);
     const update = await updaterequest();
@@ -457,7 +463,7 @@ export const EditProfile = ({
       null,
       data.email.newemail,
       data.email.verify,
-      data.email.code
+      data.email.code,
     );
 
     if (!data.email.verify) {

@@ -56,7 +56,7 @@ export const LoadingState: React.FC<LoadingStateProps> = ({
 }) => {
   return (
     <div className="col-span-full w-full h-fit flex flex-col gap-6 items-center py-10">
-      <div className="w-16 h-16 rounded-full bg-linear-to-br from-blue-500 to-purple-600 flex items-center justify-center animate-pulse">
+      <div className="w-16 h-16 rounded-full bg-linear-to-br from-blue-500 to-purple-600 flex items-center justify-center animate-spinner-linear-spin">
         <FontAwesomeIcon icon={faSpinner} className="text-2xl text-white" />
       </div>
       <p className="text-lg font-semibold text-gray-600">Loading {type}...</p>

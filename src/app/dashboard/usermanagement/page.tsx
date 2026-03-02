@@ -14,6 +14,15 @@ import { useRouter, useSearchParams } from "next/navigation";
 import PaginationCustom from "../../component/Pagination_Component";
 import { UserState } from "@/src/types/user.type";
 import useCheckSession from "@/src/hooks/useCheckSession";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faSearch,
+  faPlus,
+  faDownload,
+  faUsers,
+  faPhone,
+  faEdit,
+} from "@fortawesome/free-solid-svg-icons";
 
 interface usermangementFilterType {
   search?: string;
@@ -376,7 +385,10 @@ export default function UsermanagementPage() {
             {/* Search Input */}
             <div className="flex-1 flex gap-2">
               <div className="relative flex-1">
-                <i className="fa-solid fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                <FontAwesomeIcon
+                  icon={faSearch}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                />
                 <input
                   type="text"
                   placeholder="Search by name or email..."
@@ -429,7 +441,12 @@ export default function UsermanagementPage() {
               onClick={() => handleAdd()}
               color="#3B82F6"
               hoverColor="#2563EB"
-              Icon={<i className="fa-solid fa-plus font-bold text-base"></i>}
+              Icon={
+                <FontAwesomeIcon
+                  icon={faPlus}
+                  className="font-bold text-base"
+                />
+              }
               width="160px"
               radius="12px"
               textcolor="white"
@@ -440,7 +457,7 @@ export default function UsermanagementPage() {
               onClick={handleExportUsers}
               color="#10B981"
               hoverColor="#059669"
-              Icon={<i className="fa-solid fa-download text-base"></i>}
+              Icon={<FontAwesomeIcon icon={faDownload} className="text-base" />}
               width="160px"
               radius="12px"
               textcolor="white"
@@ -493,7 +510,10 @@ export default function UsermanagementPage() {
           {!allData || !allData.user || allData.user.length === 0 ? (
             <div className="w-full flex flex-col items-center justify-center py-20 bg-white rounded-xl shadow-xs border border-gray-200">
               <div className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center mb-4">
-                <i className="fa-solid fa-users text-gray-400 text-4xl"></i>
+                <FontAwesomeIcon
+                  icon={faUsers}
+                  className="text-gray-400 text-4xl"
+                />
               </div>
               <p className="text-xl font-semibold text-gray-600 mb-2">
                 No Users Found
@@ -691,7 +711,7 @@ const EnhancedUserCard = memo(
               </span>
               {phonenumber && (
                 <span className="text-sm text-gray-600 hidden lg:block">
-                  <i className="fa-solid fa-phone mr-1"></i>
+                  <FontAwesomeIcon icon={faPhone} className="mr-1" />
                   {phonenumber}
                 </span>
               )}
@@ -705,7 +725,7 @@ const EnhancedUserCard = memo(
                 }}
                 className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
               >
-                <i className="fa-solid fa-edit text-gray-600"></i>
+                <FontAwesomeIcon icon={faEdit} className="text-gray-600" />
               </button>
             </div>
           </div>
@@ -741,7 +761,7 @@ const EnhancedUserCard = memo(
           {phonenumber && (
             <div className="w-full pt-3 border-t border-gray-100">
               <p className="text-xs text-gray-600 text-center">
-                <i className="fa-solid fa-phone mr-1"></i>
+                <FontAwesomeIcon icon={faPhone} className="mr-1" />
                 {phonenumber}
               </p>
             </div>
@@ -755,7 +775,7 @@ const EnhancedUserCard = memo(
               }}
               className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
             >
-              <i className="fa-solid fa-edit text-gray-600"></i>
+              <FontAwesomeIcon icon={faEdit} className="text-gray-600" />
             </button>
           </div>
         </div>

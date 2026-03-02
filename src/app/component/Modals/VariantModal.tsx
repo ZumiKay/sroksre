@@ -261,6 +261,7 @@ export const Variantcontainer = ({
 
           if (!response.success) {
             errorToast("Can't Create Variant");
+            setLoading?.(false);
             return;
           }
 
@@ -278,6 +279,7 @@ export const Variantcontainer = ({
           }
         } catch (error) {
           errorToast("Network error occurred");
+          setLoading?.(false);
           return;
         } finally {
           setLoading?.(false);

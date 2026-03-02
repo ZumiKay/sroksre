@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useSearchParams, useRouter } from "next/navigation";
 import PrimaryButton, { Selection } from "../component/Button";
 import { SecondaryModal } from "../component/Modals";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faTrash } from "@fortawesome/free-solid-svg-icons";
 import { TextField } from "@mui/material";
 
 import { useGlobalContext } from "@/src/context/GlobalContext";
@@ -195,7 +197,7 @@ export const AddPolicyModal = ({ qa, plc, edit, openstate }: Policydata) => {
     Paragraph: [{ content: "" }],
   });
   const [question, setquestion] = useState<Array<Addquestiontype> | undefined>(
-    undefined
+    undefined,
   );
   const [type, settype] = useState<"Policy" | "Question">("Policy");
 
@@ -221,7 +223,7 @@ export const AddPolicyModal = ({ qa, plc, edit, openstate }: Policydata) => {
 
   const handleParagraphChange = (
     e: ChangeEvent<HTMLTextAreaElement> | string,
-    idx: number
+    idx: number,
   ) => {
     const updateparagraph = [...state.Paragraph];
 
@@ -237,7 +239,7 @@ export const AddPolicyModal = ({ qa, plc, edit, openstate }: Policydata) => {
   const handleDelete = async (
     idx: number,
     id?: number,
-    deltype?: Typeofpolicy
+    deltype?: Typeofpolicy,
   ) => {
     const updatestate =
       type === "Policy" ? [...state.Paragraph] : question ? [...question] : [];
@@ -254,7 +256,7 @@ export const AddPolicyModal = ({ qa, plc, edit, openstate }: Policydata) => {
       setloading((prev) => ({ ...prev, delete: true }));
     }
     if (type === "Policy") {
-      setstate((prev) => ({ ...prev, Paragraph: updatestate } as any));
+      setstate((prev) => ({ ...prev, Paragraph: updatestate }) as any);
     } else {
       setquestion(updatestate as any);
     }
@@ -271,7 +273,7 @@ export const AddPolicyModal = ({ qa, plc, edit, openstate }: Policydata) => {
 
   const handleChangeQuestion = (
     e: ChangeEvent<HTMLTextAreaElement | HTMLInputElement>,
-    idx: number
+    idx: number,
   ) => {
     const { value, name } = e.target;
 
@@ -387,10 +389,11 @@ export const AddPolicyModal = ({ qa, plc, edit, openstate }: Policydata) => {
                     >
                       {isEdit[`input${idx}`] ? "Done" : "Edit"}
                     </Chip>
-                    <i
+                    <FontAwesomeIcon
                       onClick={() => handleDelete(idx, par.id, "paragraph")}
-                      className={`fa-solid fa-trash relative transition duration-300 active:text-white`}
-                    ></i>
+                      icon={faTrash}
+                      className={`relative transition duration-300 active:text-white`}
+                    />
                   </div>
                   <TextField
                     name={`sub${idx + 1}`}
@@ -451,10 +454,11 @@ export const AddPolicyModal = ({ qa, plc, edit, openstate }: Policydata) => {
                   fullWidth
                   required
                 />
-                <i
+                <FontAwesomeIcon
                   onClick={() => handleDelete(idx)}
-                  className={`fa-solid fa-trash relative transition duration-300 active:text-white left-[90%]`}
-                ></i>
+                  icon={faTrash}
+                  className={`relative transition duration-300 active:text-white left-[90%]`}
+                />
               </div>
             ))}
             {!edit && (

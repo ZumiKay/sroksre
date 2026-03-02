@@ -2,7 +2,9 @@
 import Image, { StaticImageData } from "next/image";
 import PrimaryButton from "./Button";
 import "../globals.css";
-import { useRef, useState, useCallback, useMemo, memo } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faTrash } from "@fortawesome/free-solid-svg-icons";
+import { useRef, useState, useCallback, useMemo, memo, useEffect } from "react";
 import { ImageWithLoader } from "./ImageWithLoader";
 import { PrimaryPhoto } from "./PhotoComponent";
 import { useGlobalContext } from "@/src/context/GlobalContext";
@@ -75,6 +77,7 @@ const Card = memo(function Card(props: cardprops) {
     [promotion.Products, props.id],
   );
   const [previewphoto, setpreviewphoto] = useState(false);
+  const [previewHover, setpreviewHover] = useState(false);
   const [hover, sethover] = useState(false);
   const { isMobile, isTablet } = useScreenSize();
 
@@ -175,7 +178,7 @@ const Card = memo(function Card(props: cardprops) {
         alt="checkmark"
         width={50}
         height={50}
-        className="w-[30px] h-[30px] object-contain"
+        className="w-7.5 h-7.5 object-contain"
       />
     ),
     [],
@@ -254,13 +257,13 @@ const Card = memo(function Card(props: cardprops) {
         onMouseLeave={handleMouseLeave}
         onTouchStart={handleMouseEnter}
         onTouchCancel={handleMouseLeave}
-        className={`card__container w-[500px] h-fit flex flex-col
+        className={`card__container w-125 h-fit flex flex-col
        border border-gray-200 rounded-lg shadow-xs
        hover:border-gray-400 hover:shadow-md transition-all duration-300 ${
          isProduct ? "border-2 border-blue-400 shadow-md" : ""
        } 
-        max-smaller_screen:w-[350px] 
-        max-large_tablet:w-[280px]
+        max-smaller_screen:w-87.5 
+        max-large_tablet:w-70
         animate-fade-in
         `}
       >
@@ -269,7 +272,9 @@ const Card = memo(function Card(props: cardprops) {
             if (promotion.selectproduct) {
               handleSelectDiscount(props.id as number, "create");
             } else if (!props.isAdmin) {
-              !previewphoto && route.push(`/product/detail/${props.id}`);
+              !previewHover &&
+                !previewphoto &&
+                route.push(`/product/detail/${props.id}`);
             }
           }}
           className="cardimage__container flex flex-col justify-center items-center relative w-full h-full bg-gray-50"
@@ -278,6 +283,7 @@ const Card = memo(function Card(props: cardprops) {
             showcount={false}
             data={props.img}
             hover={hover}
+            setPreviewHover={setpreviewHover}
             setclick={setpreviewphoto}
             isMobile={isMobile}
             isTablet={isTablet}
@@ -309,7 +315,7 @@ const Card = memo(function Card(props: cardprops) {
           </span>
         </div>
         <div className="card_detail w-full h-fit font-semibold flex flex-col justify-center gap-y-3  pl-2 rounded-b-md text-sm">
-          <p className="card_info w-full max-w-[400px] h-fit text-lg">
+          <p className="card_info w-full max-w-100 h-fit text-lg">
             {props.name.length > 0 ? props.name : "No Product Created"}
           </p>
 
@@ -363,20 +369,17 @@ interface SecondayCardprops {
 }
 export const Selecteddetailcard = ({
   text,
-  key,
 }: {
   text: string | VariantValueObjType;
-  key: number;
 }) => (
   <Chip
-    key={key}
     variant="bordered"
     size="lg"
     startContent={
       typeof text !== "string" && (
         <div
           style={{ backgroundColor: text.val }}
-          className="w-[25px] h-[25px] rounded-full"
+          className="w-6.25 h-6.25 rounded-full"
         ></div>
       )
     }
@@ -389,6 +392,10 @@ export function SecondayCard(props: SecondayCardprops) {
   const [editqty, seteditqty] = useState(props.selectedqty);
   const [loading, setloading] = useState(false);
   const price = parseFloat(props.price.price.toString()).toFixed(2);
+
+  useEffect(() => {
+    console.log("Props of Secondary Card", { props });
+  }, [props]);
 
   const showprice = () => {
     const hasdiscount = (
@@ -449,7 +456,7 @@ export function SecondayCard(props: SecondayCardprops) {
         <Image
           src={props.img}
           alt="cover"
-          className="cardimage w-[250px] max-large_phone:w-[200px] h-auto object-contain rounded-lg"
+          className="cardimage w-62.5 max-large_phone:w-50 h-auto object-contain rounded-lg"
           width={600}
           height={600}
           quality={50}
@@ -461,12 +468,12 @@ export function SecondayCard(props: SecondayCardprops) {
             {showprice()}
           </div>
 
-          <div className="selecteddetails flex flex-row items-center flex-wrap gap-3 w-full h-fit max-h-[200px]">
+          <div className="selecteddetails flex flex-row items-center flex-wrap gap-3 w-full h-fit max-h-50">
             {props.selecteddetail?.map((selected, idx) => (
               <Selecteddetailcard key={idx} text={selected} />
             ))}
           </div>
-          <div className="qty flex flex-col gap-y-1 w-[200px] max-large_phone:[10%] h-fit">
+          <div className="qty flex flex-col gap-y-1 w-50 max-large_phone:[10%] h-fit">
             <label className="text-lg font-bold">Quantity</label>
             <SelectionCustom
               label="QTY"
@@ -483,12 +490,13 @@ export function SecondayCard(props: SecondayCardprops) {
             />
           </div>
         </div>
-        <i
+        <FontAwesomeIcon
           onClick={() => handleDelete()}
-          className={`fa-solid fa-trash absolute bottom-2 right-1 transition duration-300 active:text-white ${
+          icon={faTrash}
+          className={`absolute bottom-2 right-1 transition duration-300 active:text-white ${
             loading ? "animate-spin" : ""
           }`}
-        ></i>
+        />
       </div>
       {props.action && (
         <div className="actions w-[75%] flex flex-row items-center justify-start gap-x-5">
@@ -521,8 +529,8 @@ export function SecondayCard(props: SecondayCardprops) {
 export const CardSkeleton = () => {
   return (
     <div className=" w-full flex items-start gap-3 h-fit">
-      <Skeleton className="flex rounded-lg w-[250px] h-[150px]" />
-      <Skeleton className="h-[150px] w-full rounded-lg" />
+      <Skeleton className="flex rounded-lg w-62.5 h-37.5" />
+      <Skeleton className="h-37.5 w-full rounded-lg" />
     </div>
   );
 };
@@ -677,7 +685,7 @@ export const UserCard = ({
     <div
       key={index}
       onClick={() => handleEdit()}
-      className="usercard_container max-smallest_phone:w-[275px] w-[330px] h-[100px] rounded-lg border-2 border-black flex flex-col justify-center items-center gap-y-5 p-2 transition hover:bg-black hover:text-white"
+      className="usercard_container max-smallest_phone:w-68.75 w-82.5 h-25 rounded-lg border-2 border-black flex flex-col justify-center items-center gap-y-5 p-2 transition hover:bg-black hover:text-white"
     >
       <h3 className="text-md font-bold w-full text-center wrap-break-word">
         {`${firstname} ${lastname}`} #{uid}

@@ -35,7 +35,7 @@ export function CartMenu({ img, setcart, setcarttotal }: CartMenuProps) {
   });
 
   const [totalprice, settotal] = useState<totalpricetype | undefined>(
-    undefined
+    undefined,
   );
 
   useEffect(() => {
@@ -58,7 +58,7 @@ export function CartMenu({ img, setcart, setcarttotal }: CartMenuProps) {
     await Delayloading(
       asyncfetchcart,
       (value) => setloading((prev) => ({ ...prev, fetch: value })),
-      500
+      500,
     );
 
     setreloaddata(false);
@@ -76,7 +76,7 @@ export function CartMenu({ img, setcart, setcarttotal }: CartMenuProps) {
       "JSON",
       {
         id,
-      }
+      },
     );
     if (!deletereq.success) {
       errorToast("Can't Delete Cart");
@@ -127,7 +127,7 @@ export function CartMenu({ img, setcart, setcarttotal }: CartMenuProps) {
         document.body.style.overflow = "auto";
         setcart(false);
       }}
-      className="Cart__Sidemenu fixed h-full w-[700px] max-large_tablet:w-[550px] max-large_phone:w-screen right-0 bg-white z-40 flex flex-col items-center gap-y-5 transition-all"
+      className="Cart__Sidemenu fixed h-full w-175 max-large_tablet:w-137.5 max-large_phone:w-screen right-0 bg-white z-40 flex flex-col items-center gap-y-5 transition-all"
     >
       <div
         onClick={() => setcart(false)}
@@ -160,7 +160,7 @@ export function CartMenu({ img, setcart, setcarttotal }: CartMenuProps) {
               name={i.product?.name ?? ""}
               maxqty={i.maxqty}
               selectedqty={i.quantity}
-              selecteddetail={i.selectedvariant}
+              selecteddetail={i.selectedvariant as never}
               price={i.price}
               removecart={() => removecart(i.id)}
               settotal={settotal}

@@ -3,6 +3,8 @@ import ReactDOMServer from "react-dom/server";
 import { ChangeEvent, useEffect, useState } from "react";
 import PrimaryButton, { Selection } from "../../component/Button";
 import Modal, { SecondaryModal } from "../../component/Modals";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faDownload } from "@fortawesome/free-solid-svg-icons";
 import { useGlobalContext } from "@/src/context/GlobalContext";
 import { DateTimePicker, LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
@@ -170,7 +172,7 @@ export const DownloadButton = () => {
         text="Export"
         style={{ padding: "10px" }}
         color="#9B7D85"
-        Icon={<i className="fa-solid fa-download"></i>}
+        Icon={<FontAwesomeIcon icon={faDownload} />}
         radius="10px"
       />
 

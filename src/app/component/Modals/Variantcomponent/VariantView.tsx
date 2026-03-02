@@ -64,10 +64,8 @@ export const VariantView: React.FC<VariantViewProps> = ({
     return variantSections.find((section) => section.id === variant.sectionId);
   };
 
-  // Check if variant is in the current section being edited
   const isInCurrentSection = (variant: Varianttype) => {
     if (!accessFromSection || !variantSectionId) return false;
-    // Only check for variants in current section when in section mode
     if (
       accessFromSection !== "section-list" &&
       accessFromSection !== "secion-create"
@@ -75,8 +73,6 @@ export const VariantView: React.FC<VariantViewProps> = ({
       return false;
     return variant?.sectionId === variantSectionId;
   };
-
-  // Show all variants when creating from section
 
   const handleVariantToggle = (variantId: number, variant: Varianttype) => {
     // Don't allow selection if variant already belongs to any section

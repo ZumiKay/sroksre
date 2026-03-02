@@ -1,4 +1,4 @@
-import { CSSProperties, useEffect, useState } from "react";
+import { CSSProperties, useCallback, useEffect, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faMagnifyingGlassPlus,
@@ -24,6 +24,7 @@ interface Primaryphotoprops {
   showcount: boolean;
   isMobile?: boolean;
   isTablet?: boolean;
+  setPreviewHover?: React.Dispatch<React.SetStateAction<boolean>>;
 }
 type indextype = {
   start: number;
@@ -140,6 +141,10 @@ export const PrimaryPhoto = (props: Primaryphotoprops) => {
     }
   };
 
+  const handlePhotoPreview = useCallback((val: boolean) => {
+    props?.setPreviewHover?.(val);
+  }, []);
+
   return (
     <div
       style={props.style}
@@ -162,7 +167,7 @@ export const PrimaryPhoto = (props: Primaryphotoprops) => {
           return (
             <div
               key={idx}
-              className="shrink-0 h-full w-full flex items-center justify-center relative bg-white"
+              className="shrink-0 h-full w-full flex items-center justify-center relative"
             >
               {/* Loading Skeleton */}
               {isImageLoading?.[obj.url] && (
@@ -183,6 +188,10 @@ export const PrimaryPhoto = (props: Primaryphotoprops) => {
               <div
                 className="cursor-zoom-in relative group"
                 onClick={() => handleImageClick(obj.url)}
+                //Avoid click to details when previewing
+                onMouseEnter={() => handlePhotoPreview(true)}
+                onMouseLeave={() => handlePhotoPreview(false)}
+                //
               >
                 <Image
                   src={obj.url}
@@ -224,8 +233,14 @@ export const PrimaryPhoto = (props: Primaryphotoprops) => {
         props.data.length > 1 && (
           <>
             <button
-              onMouseEnter={() => props.setclick && props.setclick(true)}
-              onMouseLeave={() => props.setclick && props.setclick(false)}
+              onMouseEnter={() => {
+                props.setclick && props.setclick(true);
+                handlePhotoPreview(true);
+              }}
+              onMouseLeave={() => {
+                props.setclick && props.setclick(false);
+                handlePhotoPreview(false);
+              }}
               onClick={() => handleClick("left")}
               className="absolute top-1/2 -translate-y-1/2 left-2 z-10
                 w-10 h-10 flex items-center justify-center
@@ -245,8 +260,14 @@ export const PrimaryPhoto = (props: Primaryphotoprops) => {
             </button>
 
             <button
-              onMouseEnter={() => props.setclick && props.setclick(true)}
-              onMouseLeave={() => props.setclick && props.setclick(false)}
+              onMouseEnter={() => {
+                props.setclick && props.setclick(true);
+                handlePhotoPreview(true);
+              }}
+              onMouseLeave={() => {
+                props.setclick && props.setclick(false);
+                handlePhotoPreview(false);
+              }}
               onClick={() => handleClick("right")}
               className="absolute top-1/2 -translate-y-1/2 right-2 z-10
                 w-10 h-10 flex items-center justify-center
@@ -269,7 +290,13 @@ export const PrimaryPhoto = (props: Primaryphotoprops) => {
 
       {/* Dot Indicators */}
       {props.data && props.data.length > 1 && (
-        <div className="absolute bottom-12 left-1/2 -translate-x-1/2 flex gap-2 z-10">
+        <div
+          //Avoid click to details when previewing
+          onMouseEnter={() => handlePhotoPreview(true)}
+          onMouseLeave={() => handlePhotoPreview(false)}
+          //
+          className="absolute bottom-12 left-1/2 -translate-x-1/2 flex gap-2 z-10"
+        >
           {props.data.map((_, idx) => (
             <button
               key={idx}

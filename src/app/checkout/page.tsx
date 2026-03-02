@@ -14,7 +14,12 @@ import {
 import { Shippingservice } from "@/src/context/Checkoutcontext";
 import { notFound, redirect } from "next/navigation";
 import Prisma from "@/src/lib/prisma";
-import { Allstatus, Ordertype, totalpricetype } from "@/src/types/order.type";
+import {
+  Allstatus,
+  Ordertype,
+  totalpricetype,
+  OrderSelectedVariantType,
+} from "@/src/types/order.type";
 import { decrypt } from "@/src/lib/utilities";
 import { checkOrder } from "./action";
 import { SuccessVector } from "../component/Asset";
@@ -219,9 +224,107 @@ const getOrderTotal = async (orderID: string) => {
     return null;
   }
 };
+
+interface VariantPriceBreakdown {
+  productName: string;
+  variantOptions: Array<{
+    name: string;
+    price: number;
+  }>;
+}
+
+const getVariantPriceBreakdown = async (
+  orderID: string,
+): Promise<VariantPriceBreakdown[]> => {
+  const orderData = await getCheckoutdata(orderID);
+  if (!orderData) return [];
+
+  const breakdown: VariantPriceBreakdown[] = [];
+
+  orderData.Orderproduct.forEach((orderProduct) => {
+    if (!orderProduct.product || !orderProduct.selectedvariant) return;
+
+    const variantOptions: Array<{ name: string; price: number }> = [];
+
+    const selectedVariant = orderProduct.selectedvariant;
+
+    // Handle OrderSelectedVariantType (with sections)
+    if (
+      typeof selectedVariant === "object" &&
+      !Array.isArray(selectedVariant)
+    ) {
+      const typedVariant = selectedVariant as OrderSelectedVariantType;
+
+      // Process variant sections
+      if (typedVariant.variantsection) {
+        typedVariant.variantsection.forEach((section) => {
+          section.variants.forEach((variant) => {
+            if (typeof variant === "object" && variant.price) {
+              const price = parseFloat(variant.price);
+              if (!isNaN(price) && price > 0) {
+                variantOptions.push({
+                  name: variant.name || variant.val,
+                  price: price,
+                });
+              }
+            }
+          });
+        });
+      }
+
+      // Process standalone variants
+      if (typedVariant.variant) {
+        typedVariant.variant.forEach((variant) => {
+          if (typeof variant === "object" && variant.price) {
+            const price = parseFloat(variant.price);
+            if (!isNaN(price) && price > 0) {
+              variantOptions.push({
+                name: variant.name || variant.val,
+                price: price,
+              });
+            }
+          }
+        });
+      }
+    }
+    // Handle Array<string | VariantValueObjType>
+    else if (Array.isArray(selectedVariant)) {
+      selectedVariant.forEach((variant) => {
+        if (typeof variant === "object" && variant.price) {
+          const price = parseFloat(variant.price);
+          if (!isNaN(price) && price > 0) {
+            variantOptions.push({
+              name: variant.name || variant.val,
+              price: price,
+            });
+          }
+        }
+      });
+    }
+
+    if (variantOptions.length > 0) {
+      breakdown.push({
+        productName: orderProduct.product.name,
+        variantOptions,
+      });
+    }
+  });
+
+  return breakdown;
+};
+
 const convertprice = (price: number) => `$${price.toFixed(2)}`;
+
 async function Totalprice({ orderID }: { orderID: string }) {
   const total = await getOrderTotal(orderID);
+  const variantBreakdown = await getVariantPriceBreakdown(orderID);
+
+  const totalVariantPrice = variantBreakdown.reduce(
+    (sum, product) =>
+      sum +
+      product.variantOptions.reduce((pSum, option) => pSum + option.price, 0),
+    0,
+  );
 
   return (
     <div className="price_container w-full max-w-4xl mx-auto bg-white rounded-2xl shadow-lg border border-gray-100 p-8 max-smaller_screen:p-6">
@@ -232,6 +335,38 @@ async function Totalprice({ orderID }: { orderID: string }) {
             {total?.subtotal ? convertprice(total.subtotal) : "$0.00"}
           </span>
         </div>
+
+        {variantBreakdown.length > 0 && (
+          <div className="variant-breakdown py-3 border-b border-gray-200">
+            <div className="flex justify-between items-center mb-3">
+              <span className="text-gray-600 font-medium">Variant Options</span>
+              <span className="text-lg font-semibold text-gray-800">
+                {convertprice(totalVariantPrice)}
+              </span>
+            </div>
+            <div className="ml-4 space-y-2">
+              {variantBreakdown.map((product, pIdx) => (
+                <div key={pIdx} className="space-y-1">
+                  <div className="text-sm text-gray-500 font-medium">
+                    {product.productName}
+                  </div>
+                  {product.variantOptions.map((option, oIdx) => (
+                    <div
+                      key={oIdx}
+                      className="flex justify-between items-center text-sm pl-4"
+                    >
+                      <span className="text-gray-500">• {option.name}</span>
+                      <span className="text-gray-600">
+                        {convertprice(option.price)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="flex justify-between items-center py-3 border-b border-gray-200">
           <span className="text-gray-600 font-medium">Shipping Fee</span>
           <span className="text-lg font-semibold text-gray-800">

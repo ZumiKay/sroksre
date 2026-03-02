@@ -2,7 +2,11 @@
 
 import Prisma from "@/src/lib/prisma";
 import { getUser } from "@/src/lib/session";
-import { createUniqueSessionId, hashToken } from "@/src/lib/userlib";
+import {
+  createUniqueSessionId,
+  generateExpirationDate,
+  hashToken,
+} from "@/src/lib/userlib";
 
 export const RenewAccessToken = async () => {
   const token = await getUser();
@@ -38,12 +42,13 @@ export const RenewAccessToken = async () => {
     //Generate new token
     const newSessionId = await createUniqueSessionId();
 
-    //Update usersession
+    //Update usersession with sliding expiration
     await Prisma.usersession.update({
       where: { sessionid: isSession.sessionid },
       data: {
         refresh_token_hash: hashToken(newSessionId),
         lastUsed: new Date(),
+        expireAt: generateExpirationDate(7, "days"), // Extend session by 7 days
       },
     });
 

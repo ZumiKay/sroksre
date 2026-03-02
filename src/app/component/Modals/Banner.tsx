@@ -4,6 +4,18 @@ import {
   useGlobalContext,
 } from "@/src/context/GlobalContext";
 import { ChangeEvent, useCallback, useState, useMemo, memo } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faFlag,
+  faLayerGroup,
+  faExpand,
+  faBox,
+  faLink,
+  faFolderTree,
+  faFolder,
+  faFolderOpen,
+  faImage,
+} from "@fortawesome/free-solid-svg-icons";
 import {
   getChildCategoryForBanner,
   getParentCategoryForBanner,
@@ -312,7 +324,7 @@ export const BannerModal = memo(function BannerModal({
           <div className="w-full h-fit flex flex-col gap-y-6 bg-white rounded-2xl p-6 shadow-lg border-2 border-gray-200">
             <div className="space-y-2">
               <h4 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                <i className="fa-solid fa-flag text-blue-500"></i>
+                <FontAwesomeIcon icon={faFlag} className="text-blue-500" />
                 Banner Details
               </h4>
               <p className="text-sm text-gray-500">
@@ -339,7 +351,10 @@ export const BannerModal = memo(function BannerModal({
             <div className="grid grid-cols-2 gap-4 max-small_phone:grid-cols-1">
               <div className="h-fit flex flex-col gap-y-3">
                 <label className="font-semibold text-base text-gray-700 flex items-center gap-2">
-                  <i className="fa-solid fa-layer-group text-purple-500"></i>
+                  <FontAwesomeIcon
+                    icon={faLayerGroup}
+                    className="text-purple-500"
+                  />
                   Banner Type
                 </label>
                 <Selection
@@ -351,7 +366,7 @@ export const BannerModal = memo(function BannerModal({
               </div>
               <div className="h-fit flex flex-col gap-y-3">
                 <label className="font-semibold text-base text-gray-700 flex items-center gap-2">
-                  <i className="fa-solid fa-expand text-green-500"></i>
+                  <FontAwesomeIcon icon={faExpand} className="text-green-500" />
                   Banner Size
                 </label>
                 <Selection
@@ -367,7 +382,7 @@ export const BannerModal = memo(function BannerModal({
             {banner.linktype === "product" && (
               <div className="w-full h-fit flex flex-col gap-y-4 bg-blue-50 rounded-2xl p-6 shadow-md border-2 border-blue-200">
                 <label className="w-full h-fit text-lg font-bold text-gray-800 flex items-center gap-2">
-                  <i className="fa-solid fa-box text-blue-500"></i>
+                  <FontAwesomeIcon icon={faBox} className="text-blue-500" />
                   Select Products
                 </label>
                 <SelectAndSearchProduct
@@ -382,7 +397,7 @@ export const BannerModal = memo(function BannerModal({
             {banner.type !== "normal" && (
               <div className="w-full h-fit flex flex-col gap-y-4 bg-orange-50 rounded-2xl p-6 shadow-md border-2 border-orange-200">
                 <label className="font-bold text-lg text-gray-800 flex items-center gap-2">
-                  <i className="fa-solid fa-link text-orange-500"></i>
+                  <FontAwesomeIcon icon={faLink} className="text-orange-500" />
                   Link Type
                 </label>
                 <Selection
@@ -408,7 +423,10 @@ export const BannerModal = memo(function BannerModal({
           {banner.linktype === "parent" && (
             <div className="w-full h-fit flex flex-col gap-y-4 bg-green-50 rounded-2xl p-6 shadow-md border-2 border-green-200">
               <label className="w-full h-fit text-lg font-bold text-gray-800 flex items-center gap-2">
-                <i className="fa-solid fa-folder-tree text-green-500"></i>
+                <FontAwesomeIcon
+                  icon={faFolderTree}
+                  className="text-green-500"
+                />
                 Parent Category
               </label>
               <SelectAndSearchProduct
@@ -424,7 +442,10 @@ export const BannerModal = memo(function BannerModal({
             <div className="w-full h-fit flex flex-col gap-5 bg-indigo-50 rounded-2xl p-6 shadow-md border-2 border-indigo-200">
               <div className="w-full h-fit flex flex-col gap-y-4">
                 <label className="w-full h-fit text-lg font-bold text-gray-800 flex items-center gap-2">
-                  <i className="fa-solid fa-folder text-indigo-500"></i>
+                  <FontAwesomeIcon
+                    icon={faFolder}
+                    className="text-indigo-500"
+                  />
                   Parent Category
                 </label>
                 <SelectAndSearchProduct
@@ -438,7 +459,10 @@ export const BannerModal = memo(function BannerModal({
               {banner.parentcate && (
                 <div className="w-full h-fit flex flex-col gap-y-4 animate-fade-in">
                   <label className="w-full h-fit text-lg font-bold text-gray-800 flex items-center gap-2">
-                    <i className="fa-solid fa-folder-open text-purple-500"></i>
+                    <FontAwesomeIcon
+                      icon={faFolderOpen}
+                      className="text-purple-500"
+                    />
                     Child Category
                   </label>
                   <SelectAndSearchProduct
@@ -465,7 +489,7 @@ export const BannerModal = memo(function BannerModal({
             onClick={() => setopenmodal({ ...openmodal, imageupload: true })}
             className="w-full h-16 rounded-2xl font-bold text-lg shadow-lg bg-blue-600 text-white hover:bg-blue-700 flex items-center justify-center gap-3 transition-colors duration-200"
           >
-            <i className="fa-regular fa-image text-2xl"></i>
+            <FontAwesomeIcon icon={faImage} className="text-2xl" />
             <span>
               {banner.image?.url.length > 0
                 ? "Change Banner Image"

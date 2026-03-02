@@ -25,8 +25,7 @@ export default function DeviceManagement() {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState(false);
-  const router = useRouter();
-  const { handleCheckSession } = useCheckSession();
+  const { handleCheckSession, data } = useCheckSession();
 
   // Prevent hydration mismatch for date formatting
   useEffect(() => {
@@ -54,7 +53,7 @@ export default function DeviceManagement() {
 
   useEffect(() => {
     fetchSessions();
-  }, []);
+  }, [data]);
 
   const handleLogoutDevice = async (sessionId: string) => {
     if (!confirm("Are you sure you want to logout this device?")) return;

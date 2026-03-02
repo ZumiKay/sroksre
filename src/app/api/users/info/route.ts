@@ -35,6 +35,7 @@ export async function GET(request: NextRequest) {
         },
       });
     } else if (ty === "userinfo") {
+      console.log("Get userInfo", user);
       const info = await Prisma.user.findUnique({
         where: {
           id: user.userId,

@@ -7,10 +7,9 @@ import { Role } from "@/prisma/generated/prisma/enums";
  * Middleware - runs on Edge Runtime
  */
 
-// Helper to check if token is expired
 const isTokenExpired = (token: any | null): boolean => {
-  if (!token?.cexp) return true;
-  return token.cexp <= Math.floor(Date.now() / 1000);
+  if (!token) return true;
+  return token.isExpired === true;
 };
 
 // Helper to add default pagination params
@@ -34,7 +33,7 @@ export default async function middleware(req: NextRequest) {
     // Redirect to account if no token or expired
     if (!token || isTokenExpired(token)) {
       req.nextUrl.pathname = "/account";
-      return NextResponse.rewrite(req.nextUrl);
+      return NextResponse.redirect(req.nextUrl);
     }
 
     // Allow access to order pages for all authenticated users

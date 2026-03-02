@@ -8,7 +8,11 @@ import {
 import { getToken } from "next-auth/jwt";
 import { JwtType } from "@/src/types/user.type";
 import Prisma from "@/src/lib/prisma";
-import { createUniqueSessionId, hashToken } from "@/src/lib/userlib";
+import {
+  createUniqueSessionId,
+  generateExpirationDate,
+  hashToken,
+} from "@/src/lib/userlib";
 
 /**
  * POST /api/session/cleanup - Clean up expired sessions
@@ -55,13 +59,14 @@ export async function POST(req: NextRequest) {
           );
         }
 
-        //Renew access token
+        //Renew access token with sliding expiration
         const newSession = await createUniqueSessionId();
         await Prisma.usersession.update({
           where: { sessionid: isValidSession.sessionid },
           data: {
             refresh_token_hash: hashToken(newSession),
             lastUsed: new Date(),
+            expireAt: generateExpirationDate(7, "days"), // Extend session by 7 days
           },
         });
         return NextResponse.json(

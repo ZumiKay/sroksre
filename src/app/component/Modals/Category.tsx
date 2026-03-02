@@ -5,6 +5,27 @@ import {
   useGlobalContext,
 } from "@/src/context/GlobalContext";
 import React, { ChangeEvent, useCallback, useEffect, useState } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faLayerGroup,
+  faInfoCircle,
+  faTags,
+  faCalendarDays,
+  faFolderTree,
+  faSpinner,
+  faCheckCircle,
+  faList,
+  faFolderOpen,
+  faFolder,
+  faTrash,
+  faPenToSquare,
+  faCheck,
+  faArrowLeft,
+  faExclamationTriangle,
+  faTrashCan,
+  faRotateLeft,
+  faPlus,
+} from "@fortawesome/free-solid-svg-icons";
 import { errorToast, successToast } from "../Loading";
 import {
   ApiRequest,
@@ -144,11 +165,10 @@ export const Category = () => {
                   : "bg-white text-gray-600 hover:bg-gray-50 hover:text-gray-800 hover:shadow-md"
               }`}
             >
-              <i
-                className={`fa-solid ${
-                  mode === "Create" ? "fa-plus" : "fa-pen-to-square"
-                } text-sm`}
-              ></i>
+              <FontAwesomeIcon
+                icon={mode === "Create" ? faPlus : faPenToSquare}
+                className="text-sm"
+              />
               <span>{mode}</span>
             </button>
           ))}
@@ -173,7 +193,10 @@ export const Category = () => {
             <div className="w-full h-fit bg-white rounded-2xl p-6 shadow-lg border-2 border-gray-200">
               <div className="space-y-2 mb-4">
                 <h4 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-                  <i className="fa-solid fa-layer-group text-blue-500"></i>
+                  <FontAwesomeIcon
+                    icon={faLayerGroup}
+                    className="text-blue-500"
+                  />
                   Category Type
                 </h4>
                 <p className="text-sm text-gray-500">
@@ -191,7 +214,10 @@ export const Category = () => {
             <div className="w-full h-fit flex flex-col gap-y-5 bg-white rounded-2xl p-6 shadow-lg border-2 border-gray-200">
               <div className="space-y-2">
                 <h4 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-                  <i className="fa-solid fa-info-circle text-purple-500"></i>
+                  <FontAwesomeIcon
+                    icon={faInfoCircle}
+                    className="text-purple-500"
+                  />
                   Basic Information
                 </h4>
                 <p className="text-sm text-gray-500">Enter category details</p>
@@ -229,7 +255,10 @@ export const Category = () => {
               <div className="w-full h-fit bg-linear-to-br from-orange-50 to-red-50 rounded-2xl p-6 shadow-lg border-2 border-orange-200">
                 <div className="space-y-2 mb-4">
                   <h4 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-                    <i className="fa-solid fa-tags text-orange-500"></i>
+                    <FontAwesomeIcon
+                      icon={faTags}
+                      className="text-orange-500"
+                    />
                     Promotion Selection
                   </h4>
                   <p className="text-sm text-gray-500">
@@ -254,7 +283,10 @@ export const Category = () => {
               <div className="w-full h-fit bg-linear-to-br from-green-50 to-teal-50 rounded-2xl p-6 shadow-lg border-2 border-green-200">
                 <div className="space-y-2 mb-4">
                   <h4 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-                    <i className="fa-solid fa-calendar-days text-green-500"></i>
+                    <FontAwesomeIcon
+                      icon={faCalendarDays}
+                      className="text-green-500"
+                    />
                     Date Range
                   </h4>
                   <p className="text-sm text-gray-500">
@@ -306,7 +338,7 @@ export const Category = () => {
                       : "bg-linear-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700 hover:shadow-xl hover:scale-105"
                   }`}
                 >
-                  <i className="fa-solid fa-folder-tree text-lg"></i>
+                  <FontAwesomeIcon icon={faFolderTree} className="text-lg" />
                   <span>
                     {category.subcategories.length > 0
                       ? "Manage Subcategories"
@@ -332,12 +364,12 @@ export const Category = () => {
             >
               {loading ? (
                 <>
-                  <i className="fa-solid fa-spinner fa-spin"></i>
+                  <FontAwesomeIcon icon={faSpinner} spin />
                   <span>Creating...</span>
                 </>
               ) : (
                 <>
-                  <i className="fa-solid fa-check-circle"></i>
+                  <FontAwesomeIcon icon={faCheckCircle} />
                   <span>Create Category</span>
                 </>
               )}
@@ -480,7 +512,10 @@ const EditCategory = ({
           <>
             <div className="w-full flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
-                <i className="fa-solid fa-list text-xl text-indigo-500"></i>
+                <FontAwesomeIcon
+                  icon={faList}
+                  className="text-xl text-indigo-500"
+                />
                 <h3 className="text-lg font-bold text-gray-800">
                   All Categories
                 </h3>
@@ -514,7 +549,10 @@ const EditCategory = ({
               <div className="w-full h-[300px] flex flex-col items-center justify-center bg-linear-to-br from-gray-50 to-indigo-50 rounded-2xl border-2 border-dashed border-gray-300">
                 <div className="text-center space-y-4">
                   <div className="w-20 h-20 mx-auto rounded-full bg-linear-to-br from-gray-200 to-gray-300 flex items-center justify-center">
-                    <i className="fa-solid fa-folder-open text-3xl text-gray-400"></i>
+                    <FontAwesomeIcon
+                      icon={faFolderOpen}
+                      className="text-3xl text-gray-400"
+                    />
                   </div>
                   <div>
                     <h3 className="text-xl font-bold text-gray-600 mb-2">
@@ -542,7 +580,7 @@ const EditCategory = ({
                     onClick={() => handleClick(idx)}
                     className="parentcateogry text-base font-bold w-full h-full break-all flex items-center justify-start gap-2 cursor-pointer px-4 py-2 rounded-lg bg-gray-50 text-gray-800 hover:bg-linear-to-r hover:from-blue-500 hover:to-purple-600 hover:text-white transition-all duration-300 group-hover:scale-105"
                   >
-                    <i className="fa-solid fa-folder text-lg"></i>
+                    <FontAwesomeIcon icon={faFolder} className="text-lg" />
                     <span>{obj.name}</span>
                   </button>
                   <button
@@ -562,7 +600,7 @@ const EditCategory = ({
                     }}
                     className="actions text-white font-bold text-sm cursor-pointer min-w-[100px] h-full transition-all duration-300 rounded-lg flex items-center justify-center gap-2 bg-linear-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 hover:shadow-lg px-4 py-2"
                   >
-                    <i className="fa-solid fa-trash"></i>
+                    <FontAwesomeIcon icon={faTrash} />
                     <span>Delete</span>
                   </button>
                 </motion.div>
@@ -580,7 +618,11 @@ const EditCategory = ({
               <div className="absolute inset-0 bg-white/80 backdrop-blur-xs rounded-2xl flex items-center justify-center z-10">
                 <div className="text-center space-y-3">
                   <div className="w-16 h-16 mx-auto rounded-full bg-linear-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                    <i className="fa-solid fa-spinner fa-spin text-2xl text-white"></i>
+                    <FontAwesomeIcon
+                      icon={faSpinner}
+                      spin
+                      className="text-2xl text-white"
+                    />
                   </div>
                   <p className="text-base font-semibold text-gray-700">
                     Processing...
@@ -592,7 +634,10 @@ const EditCategory = ({
             <div className="w-full space-y-2 pb-4 border-b-2 border-blue-200">
               <h4 className="text-2xl font-bold text-gray-800 flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-linear-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                  <i className="fa-solid fa-pen-to-square text-white"></i>
+                  <FontAwesomeIcon
+                    icon={faPenToSquare}
+                    className="text-white"
+                  />
                 </div>
                 Edit Category
               </h4>
@@ -604,7 +649,10 @@ const EditCategory = ({
             <div className="space-y-5">
               <div className="bg-white rounded-xl p-5 border-2 border-gray-200 shadow-xs space-y-4">
                 <div className="flex items-center gap-2 mb-3">
-                  <i className="fa-solid fa-info-circle text-lg text-blue-500"></i>
+                  <FontAwesomeIcon
+                    icon={faInfoCircle}
+                    className="text-lg text-blue-500"
+                  />
                   <h5 className="font-bold text-gray-800">Basic Information</h5>
                 </div>
                 <Input
@@ -650,7 +698,10 @@ const EditCategory = ({
                 <div className="w-full bg-linear-to-br from-orange-50 to-red-50 rounded-xl p-4 border-2 border-orange-200">
                   <div className="space-y-2 mb-4">
                     <h5 className="font-semibold text-gray-800 flex items-center gap-2">
-                      <i className="fa-solid fa-tags text-orange-500"></i>
+                      <FontAwesomeIcon
+                        icon={faTags}
+                        className="text-orange-500"
+                      />
                       Promotion
                     </h5>
                   </div>
@@ -679,7 +730,10 @@ const EditCategory = ({
                 <div className="w-full bg-linear-to-br from-green-50 to-teal-50 rounded-xl p-4 border-2 border-green-200">
                   <div className="space-y-2 mb-4">
                     <h5 className="font-semibold text-gray-800 flex items-center gap-2">
-                      <i className="fa-solid fa-calendar-days text-green-500"></i>
+                      <FontAwesomeIcon
+                        icon={faCalendarDays}
+                        className="text-green-500"
+                      />
                       Date Range
                     </h5>
                   </div>
@@ -723,12 +777,12 @@ const EditCategory = ({
               >
                 {loading ? (
                   <>
-                    <i className="fa-solid fa-spinner fa-spin"></i>
+                    <FontAwesomeIcon icon={faSpinner} spin />
                     <span>Updating...</span>
                   </>
                 ) : (
                   <>
-                    <i className="fa-solid fa-check"></i>
+                    <FontAwesomeIcon icon={faCheck} />
                     <span>Confirm</span>
                   </>
                 )}
@@ -741,7 +795,7 @@ const EditCategory = ({
                 }}
                 className="w-full h-12 rounded-xl font-bold text-base transition-all duration-300 shadow-lg flex items-center justify-center gap-2 bg-linear-to-r from-pink-500 to-red-600 text-white hover:from-pink-600 hover:to-red-700 hover:shadow-xl"
               >
-                <i className="fa-solid fa-arrow-left"></i>
+                <FontAwesomeIcon icon={faArrowLeft} />
                 <span>Back</span>
               </button>
             </div>
@@ -755,7 +809,10 @@ const EditCategory = ({
           className="flex flex-col gap-4 w-full h-fit bg-linear-to-r from-red-50 to-pink-50 p-5 rounded-2xl border-2 border-red-300 shadow-lg"
         >
           <div className="flex items-center gap-2 pb-2 border-b border-red-200">
-            <i className="fa-solid fa-exclamation-triangle text-red-500"></i>
+            <FontAwesomeIcon
+              icon={faExclamationTriangle}
+              className="text-red-500"
+            />
             <h4 className="font-bold text-gray-800">Pending Deletions</h4>
             <span className="ml-auto text-sm font-semibold px-3 py-1 rounded-full bg-red-500 text-white">
               {globalindex.categoryeditindex.length}
@@ -781,12 +838,12 @@ const EditCategory = ({
             >
               {loading ? (
                 <>
-                  <i className="fa-solid fa-spinner fa-spin"></i>
+                  <FontAwesomeIcon icon={faSpinner} spin />
                   <span>Deleting...</span>
                 </>
               ) : (
                 <>
-                  <i className="fa-solid fa-trash-can"></i>
+                  <FontAwesomeIcon icon={faTrashCan} />
                   <span>
                     Confirm Delete ({globalindex.categoryeditindex.length})
                   </span>
@@ -805,7 +862,7 @@ const EditCategory = ({
                   : "bg-linear-to-r from-gray-500 to-gray-700 text-white hover:from-gray-600 hover:to-gray-800 hover:shadow-2xl hover:scale-105"
               }`}
             >
-              <i className="fa-solid fa-rotate-left"></i>
+              <FontAwesomeIcon icon={faRotateLeft} />
               <span>Undo All</span>
             </button>
           </div>

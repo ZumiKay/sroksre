@@ -43,7 +43,6 @@ import {
   transformBannerData,
   transformPromotionData,
 } from "./utils/apiBuilder";
-import { useSession } from "next-auth/react";
 import useCheckSession from "@/src/hooks/useCheckSession";
 
 // Constants
@@ -94,6 +93,8 @@ export default function Inventory() {
   const [ty, settype] = useState(type);
   const [promoexpire, setpromoexpire] = useState(0);
   const [viewMode, setViewMode] = useState<"card" | "list">("card");
+  const [isSelectMode, setIsSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [filtervalue, setfiltervalue] = useState<InventoryParamType>({
     parentcate,
     childcate,
@@ -106,7 +107,6 @@ export default function Inventory() {
     promoids,
   });
 
-  // Memoized values
   const hasActiveFilters = useMemo(
     () => Object.values(filtervalue).some((value) => value !== undefined),
     [filtervalue],
@@ -122,7 +122,7 @@ export default function Inventory() {
     handleCheckSession();
   }, [reloaddata, ty, page, viewMode, filtervalue, openmodal]);
 
-  // Validation effect
+  // Validation searchParams
   useEffect(() => {
     if (!type) {
       return redirect(
@@ -155,7 +155,6 @@ export default function Inventory() {
     promotion.id,
   ]);
 
-  // Fetch data function
   const fetchdata = useCallback(
     async (pid?: number) => {
       try {
@@ -265,7 +264,6 @@ export default function Inventory() {
     ],
   );
 
-  // Handler functions
   const handleShowPerPage = useCallback(
     (value: number | string) => {
       const param = new URLSearchParams(searchParam);
@@ -370,39 +368,177 @@ export default function Inventory() {
     [searchParam, filtervalue, router, handleCheckSession],
   );
 
-  // Render card view items
+  // ── Multi-select helpers ──────────────────────────────────────────────────
+  const exitSelectMode = useCallback(() => {
+    setIsSelectMode(false);
+    setSelectedIds(new Set());
+  }, []);
+
+  const toggleSelectId = useCallback((id: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const toggleSelectAll = useCallback(() => {
+    const ids: number[] = (currentData as any[])
+      .map((item) => item.id)
+      .filter(Boolean);
+    setSelectedIds((prev) =>
+      prev.size === ids.length ? new Set() : new Set(ids),
+    );
+  }, [currentData]);
+
+  const handleBulkDelete = useCallback(async () => {
+    const ids = Array.from(selectedIds);
+
+    console.log({ ids });
+
+    const URL =
+      type === "product"
+        ? "/api/products/crud"
+        : type === "banner"
+          ? "/api/banner"
+          : "/api/promotion";
+
+    for (const id of ids) {
+      const res = await ApiRequest(URL, setisLoading, "DELETE", "JSON", { id });
+      if (!res.success) {
+        errorToast(`Failed to delete item ${id}`);
+      }
+    }
+    exitSelectMode();
+    setreloaddata(true);
+  }, [selectedIds, type, setisLoading, exitSelectMode]);
+
+  const openBulkDeleteConfirm = useCallback(() => {
+    setopenmodal((prev) => ({
+      ...prev,
+      confirmmodal: {
+        open: true,
+        confirm: false,
+        closecon: "",
+        Warn: `Delete ${selectedIds.size} selected item${selectedIds.size > 1 ? "s" : ""}?`,
+        onAsyncDelete: handleBulkDelete,
+      },
+    }));
+  }, [selectedIds, setopenmodal, handleBulkDelete]);
+
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [currentData]);
+
   const renderCardView = () => {
     if (type === "product") {
       return allData?.product?.map((obj, index) => (
-        <Card
-          key={index}
-          index={index}
-          img={obj.covers}
-          name={obj.name}
-          hover={true}
-          price={parseFloat(obj.price.toString()).toFixed(2)}
-          id={obj.id ?? 0}
-          discount={obj.discount as Orderpricetype}
-          stock={obj.stock}
-          stocktype={obj.stocktype}
-          isAdmin={true}
-          lowstock={obj.lowstock}
-          reloaddata={() => setreloaddata(true)}
-        />
+        <div key={index} className="relative">
+          {isSelectMode && (
+            <>
+              <div
+                className="absolute inset-0 z-20 cursor-pointer rounded-xl"
+                onClick={() => toggleSelectId(obj.id ?? 0)}
+              />
+              {/* Selection ring */}
+              {selectedIds.has(obj.id ?? 0) && (
+                <div className="absolute inset-0 z-10 rounded-xl ring-2 ring-indigo-500 bg-indigo-500/10 pointer-events-none" />
+              )}
+              {/* Checkbox */}
+              <div className="absolute top-2 left-2 z-30 pointer-events-none">
+                <div
+                  className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
+                    selectedIds.has(obj.id ?? 0)
+                      ? "bg-indigo-600 border-indigo-600"
+                      : "bg-white border-gray-400"
+                  }`}
+                >
+                  {selectedIds.has(obj.id ?? 0) && (
+                    <svg
+                      className="w-3 h-3 text-white"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={3}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M5 13l4 4L19 7"
+                      />
+                    </svg>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+          <Card
+            index={index}
+            img={obj.covers}
+            name={obj.name}
+            hover={true}
+            price={parseFloat(obj.price.toString()).toFixed(2)}
+            id={obj.id ?? 0}
+            discount={obj.discount as Orderpricetype}
+            stock={obj.stock}
+            stocktype={obj.stocktype}
+            isAdmin={true}
+            lowstock={obj.lowstock}
+            reloaddata={() => setreloaddata(true)}
+          />
+        </div>
       ));
     }
 
     if (type === "banner") {
       return allData?.banner?.map((obj, idx) => (
-        <BannerCard
-          key={obj.name}
-          data={{ name: obj.name, url: obj.image.url }}
-          bannersize={obj.size as any}
-          index={idx}
-          id={obj.id ?? 0}
-          type="banner"
-          reloaddata={() => setreloaddata(true)}
-        />
+        <div key={obj.name} className="relative">
+          {isSelectMode && (
+            <>
+              <div
+                className="absolute inset-0 z-20 cursor-pointer rounded-xl"
+                onClick={() => toggleSelectId(obj.id ?? 0)}
+              />
+              {selectedIds.has(obj.id ?? 0) && (
+                <div className="absolute inset-0 z-10 rounded-xl ring-2 ring-indigo-500 bg-indigo-500/10 pointer-events-none" />
+              )}
+              <div className="absolute top-2 left-2 z-30 pointer-events-none">
+                <div
+                  className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
+                    selectedIds.has(obj.id ?? 0)
+                      ? "bg-indigo-600 border-indigo-600"
+                      : "bg-white border-gray-400"
+                  }`}
+                >
+                  {selectedIds.has(obj.id ?? 0) && (
+                    <svg
+                      className="w-3 h-3 text-white"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={3}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M5 13l4 4L19 7"
+                      />
+                    </svg>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+          <BannerCard
+            data={{ name: obj.name, url: obj.image.url }}
+            bannersize={obj.size as any}
+            index={idx}
+            id={obj.id ?? 0}
+            type="banner"
+            reloaddata={() => setreloaddata(true)}
+          />
+        </div>
       ));
     }
 
@@ -410,13 +546,49 @@ export default function Inventory() {
       return allData?.promotion?.map((obj, idx) => (
         <div
           key={idx}
-          className="banner-card w-125 h-75
+          className="relative banner-card w-125 h-75
               max-smaller_screen:w-100
               max-smaller_screen:h-62.5
               max-smallest_screen1:w-75
               max-smallest_screen1:h-37.5
               max-smallest_phone:w-62.5"
         >
+          {isSelectMode && (
+            <>
+              <div
+                className="absolute inset-0 z-20 cursor-pointer rounded-xl"
+                onClick={() => toggleSelectId(obj.id ?? 0)}
+              />
+              {selectedIds.has(obj.id ?? 0) && (
+                <div className="absolute inset-0 z-10 rounded-xl ring-2 ring-indigo-500 bg-indigo-500/10 pointer-events-none" />
+              )}
+              <div className="absolute top-2 left-2 z-30 pointer-events-none">
+                <div
+                  className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
+                    selectedIds.has(obj.id ?? 0)
+                      ? "bg-indigo-600 border-indigo-600"
+                      : "bg-white border-gray-400"
+                  }`}
+                >
+                  {selectedIds.has(obj.id ?? 0) && (
+                    <svg
+                      className="w-3 h-3 text-white"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={3}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M5 13l4 4L19 7"
+                      />
+                    </svg>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
           <BannerCard
             key={obj.name}
             data={{ name: obj.name, url: obj.banner?.image.url ?? "" }}
@@ -433,7 +605,6 @@ export default function Inventory() {
     return null;
   };
 
-  // Render list view items
   const renderListView = () => {
     if (type === "product") {
       return allData?.product?.map((obj, index) => (
@@ -441,6 +612,9 @@ export default function Inventory() {
           key={index}
           product={obj}
           index={index}
+          isSelectMode={isSelectMode}
+          isSelected={selectedIds.has(obj.id ?? 0)}
+          onToggleSelect={() => toggleSelectId(obj.id ?? 0)}
           reloaddata={() => setreloaddata(true)}
         />
       ));
@@ -452,6 +626,9 @@ export default function Inventory() {
           key={idx}
           banner={obj}
           index={idx}
+          isSelectMode={isSelectMode}
+          isSelected={selectedIds.has(obj.id ?? 0)}
+          onToggleSelect={() => toggleSelectId(obj.id ?? 0)}
           reloaddata={() => setreloaddata(true)}
         />
       ));
@@ -463,6 +640,9 @@ export default function Inventory() {
           key={idx}
           promotion={obj}
           index={idx}
+          isSelectMode={isSelectMode}
+          isSelected={selectedIds.has(obj.id ?? 0)}
+          onToggleSelect={() => toggleSelectId(obj.id ?? 0)}
           reloaddata={() => setreloaddata(true)}
         />
       ));
@@ -572,6 +752,53 @@ export default function Inventory() {
               <LoadingState type={ty} />
             ) : (
               <>
+                {/* Select mode toolbar */}
+                {!loaded && currentData.length > 0 && (
+                  <div
+                    className={`col-span-full w-full flex items-center gap-3 flex-wrap px-1 pb-2 ${
+                      viewMode === "list" ? "" : ""
+                    }`}
+                  >
+                    {isSelectMode ? (
+                      <>
+                        <button
+                          onClick={toggleSelectAll}
+                          className="px-3 py-1.5 text-sm font-medium rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors"
+                        >
+                          {selectedIds.size === currentData.length
+                            ? "Deselect All"
+                            : "Select All"}
+                        </button>
+                        <span className="text-sm text-gray-500">
+                          {selectedIds.size} selected
+                        </span>
+                        <button
+                          disabled={selectedIds.size === 0 || isLoading.DELETE}
+                          onClick={openBulkDeleteConfirm}
+                          className="px-3 py-1.5 text-sm font-medium rounded-lg bg-red-500 hover:bg-red-600 disabled:opacity-40 disabled:cursor-not-allowed text-white transition-colors"
+                        >
+                          {isLoading.DELETE
+                            ? "Deleting…"
+                            : `Delete (${selectedIds.size})`}
+                        </button>
+                        <button
+                          onClick={exitSelectMode}
+                          className="px-3 py-1.5 text-sm font-medium rounded-lg bg-white border border-gray-300 hover:bg-gray-50 text-gray-600 transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        onClick={() => setIsSelectMode(true)}
+                        className="px-3 py-1.5 text-sm font-medium rounded-lg bg-white border border-gray-300 hover:bg-gray-50 text-gray-600 transition-colors"
+                      >
+                        Select
+                      </button>
+                    )}
+                  </div>
+                )}
+
                 {viewMode === "card" ? renderCardView() : renderListView()}
                 {currentData.length === 0 && <EmptyState type={type} />}
               </>

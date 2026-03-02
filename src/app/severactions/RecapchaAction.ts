@@ -39,8 +39,6 @@ export async function CheckAndGetUserInfo({ nodata }: { nodata?: boolean }) {
     const checkSession = await Prisma.usersession.findUnique({
       where: {
         refresh_token_hash: hashToken(isSession.sessionid),
-        userId: isSession.userId,
-        expireAt: { gt: new Date() },
       },
       select: {
         expireAt: true,
@@ -54,8 +52,7 @@ export async function CheckAndGetUserInfo({ nodata }: { nodata?: boolean }) {
       },
     });
 
-    if (!checkSession)
-      return { success: false, message: "Invalid session", isExpire: true };
+    if (!checkSession) return { success: false, message: "Invalid session" };
 
     return { success: true, data: nodata ? undefined : checkSession.user };
   } catch (error) {

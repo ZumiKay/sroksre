@@ -44,7 +44,7 @@ export default function Multiselect({
             key={idx}
             startContent={
               <div
-                className="w-[15px] h-[15px] rounded-full"
+                className="w-3.75 h-3.75 rounded-full"
                 style={{ backgroundColor: `${String(data.key) ?? "white"}` }}
               ></div>
             }
@@ -80,20 +80,22 @@ export default function Multiselect({
         selectionMode="multiple"
         selectedKeys={values}
         size="lg"
-        className="w-full h-fit min-h-[50px]"
+        className="w-full h-fit min-h-12.5"
         onChange={handleSelectionChange}
         renderValue={type === "COLOR" ? renderValue : undefined}
       >
         {type === "TEXT"
           ? data.map((data) => (
-              <SelectItem key={data.value}>{data.label}</SelectItem>
+              <SelectItem key={data.value} textValue={data.value}>
+                {data.label}
+              </SelectItem>
             ))
           : data.map((data) => (
               <SelectItem key={data.value} textValue={data.label}>
                 <Chip
                   startContent={
                     <div
-                      className="w-[15px] h-[15px] rounded-full"
+                      className="w-3.75 h-3.75 rounded-full"
                       style={{ backgroundColor: data.value }}
                     ></div>
                   }

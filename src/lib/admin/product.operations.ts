@@ -14,7 +14,6 @@ import {
 } from "../../types/product.type";
 import { handleUpdateProductVariant } from "./variant.operations";
 import { updateProductVariantStock } from "./stock.operations";
-import { JsonArray } from "@/prisma/generated/prisma/internal/prismaNamespace";
 
 interface ReturnType {
   success: boolean;
@@ -173,7 +172,7 @@ export const CreateProduct = async (
                   Variants: {
                     createMany: {
                       data: data.Variant?.filter(
-                        (V) => V.sectionId === section.id,
+                        (variant) => variant.tempId === section.tempId,
                       ).map((i) => ({
                         option_title: i.option_title,
                         option_type: i.option_type,
@@ -193,7 +192,7 @@ export const CreateProduct = async (
 
         if (data.Variant && data.Variant?.length > 0) {
           await Promise.all(
-            data.Variant.filter((v) => !v.sectionId).map((i) =>
+            data.Variant.filter((variant) => !variant.tempId).map((i) =>
               tx.variant.create({
                 data: {
                   product_id: created.id,

@@ -1,14 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
-import { signOut, useSession } from "next-auth/react";
 import Navbar from "./Navbar";
 import { ApiRequest } from "@/src/context/CustomHook";
 import { Usersessiontype } from "@/src/types/user.type";
 import { CheckAndGetUserInfo } from "../severactions/RecapchaAction";
-import { errorToast } from "./Loading";
 import { ToastContainer } from "react-toastify";
 import useCheckSession from "@/src/hooks/useCheckSession";
+import TopModal from "../dashboard/TopModal";
 
 // API endpoint constants
 const API_ENDPOINTS = {
@@ -17,8 +16,7 @@ const API_ENDPOINTS = {
 } as const;
 
 export default function NavbarWrapper() {
-  const { data: session, status } = useSession();
-  const { handleCheckSession } = useCheckSession();
+  const { handleCheckSession, data, status } = useCheckSession();
   const [initialCartCount, setInitialCartCount] = useState(0);
   const [initialNotificationCount, setInitialNotificationCount] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -27,10 +25,7 @@ export default function NavbarWrapper() {
   const isFetchingRef = useRef(false);
   const hasFetchedRef = useRef(false);
 
-  const userSession = useMemo(
-    () => session as unknown as Usersessiontype,
-    [session],
-  );
+  const userSession = useMemo(() => data as unknown as Usersessiontype, [data]);
 
   // Memoized fetch function to prevent recreating on every render
   const fetchInitialData = useCallback(async () => {
@@ -42,7 +37,7 @@ export default function NavbarWrapper() {
 
     try {
       // Check for invalid session with expires "0" - handleCheckSession shows toast and signs out internally
-      if (session?.expires === "0") {
+      if (data?.expires === "0") {
         await handleCheckSession();
         return;
       }
@@ -52,23 +47,6 @@ export default function NavbarWrapper() {
       const isValid = await checkReq();
 
       if (!isValid.success) {
-        // Show expired session toast before signing out
-        if (isValid.isExpire) {
-          errorToast(isValid.message ?? "Session Expired", {
-            autoClose: 2000,
-            closeOnClick: true,
-          });
-
-          // Wait for toast to be visible before signing out
-          await new Promise((resolve) => setTimeout(resolve, 200));
-
-          await signOut({ redirect: false });
-
-          // Reload after sign out
-          setTimeout(() => window.location.reload(), 100);
-        } else {
-          errorToast(isValid.message ?? "Error occurred");
-        }
         return;
       }
 
@@ -104,10 +82,10 @@ export default function NavbarWrapper() {
       setLoading(false);
       isFetchingRef.current = false;
     }
-  }, [session, userSession, handleCheckSession]);
+  }, [data, userSession, handleCheckSession]);
 
   useEffect(() => {
-    if (status === "authenticated" && session) {
+    if (status === "authenticated" && data) {
       fetchInitialData();
     }
 
@@ -118,7 +96,7 @@ export default function NavbarWrapper() {
         isFetchingRef.current = false;
       }
     };
-  }, [status, session, fetchInitialData]);
+  }, [status, data, fetchInitialData]);
 
   // Memoize Navbar props to prevent unnecessary re-renders
   const navbarProps = useMemo(
@@ -133,6 +111,7 @@ export default function NavbarWrapper() {
 
   return (
     <>
+      <TopModal />
       <ToastContainer />
       <Navbar {...navbarProps} />
     </>

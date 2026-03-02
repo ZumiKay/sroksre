@@ -169,7 +169,6 @@ export const InventoryHeader: React.FC<InventoryHeaderProps> = ({
             </>
           ) : (
             <>
-              <i className="fa-solid fa-check text-sm md:text-base"></i>
               <FontAwesomeIcon
                 icon={faCheck}
                 className="text-sm md:text-base"

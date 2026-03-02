@@ -10,6 +10,15 @@ import { getFilterOrder, GetOrder } from "./action";
 import { Productordertype, totalpricetype } from "@/src/types/order.type";
 import { getUser } from "@/src/lib/session";
 import { notFound, redirect } from "next/navigation";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faExclamationTriangle,
+  faShoppingBag,
+  faShoppingCart,
+  faClock,
+  faSpinner,
+  faCheckCircle,
+} from "@fortawesome/free-solid-svg-icons";
 import {
   AllOrderStatusColor,
   AllorderType,
@@ -156,7 +165,10 @@ export default async function OrderManagement({
       <main className="order__container w-full min-h-screen bg-linear-to-br from-gray-50 to-gray-100 p-6 md:p-8">
         <div className="flex flex-col items-center justify-center h-[60vh]">
           <div className="w-20 h-20 rounded-full bg-red-100 flex items-center justify-center mb-4">
-            <i className="fa-solid fa-exclamation-triangle text-red-500 text-3xl"></i>
+            <FontAwesomeIcon
+              icon={faExclamationTriangle}
+              className="text-red-500 text-3xl"
+            />
           </div>
           <h2 className="text-2xl font-bold text-gray-800 mb-2">
             Error Loading Orders
@@ -191,25 +203,25 @@ function calculateOrderStats(
 function OrderHeader({ stats }: { stats: OrderStats }) {
   const statisticsCards = [
     {
-      icon: "fa-shopping-cart",
+      icon: faShoppingCart,
       gradient: "from-blue-500 to-purple-600",
       label: "Total Orders",
       value: stats.total,
     },
     {
-      icon: "fa-clock",
+      icon: faClock,
       gradient: "from-yellow-500 to-orange-600",
       label: "Pending",
       value: stats.pending,
     },
     {
-      icon: "fa-spinner",
+      icon: faSpinner,
       gradient: "from-indigo-500 to-blue-600",
       label: "Processing",
       value: stats.processing,
     },
     {
-      icon: "fa-check-circle",
+      icon: faCheckCircle,
       gradient: "from-green-500 to-emerald-600",
       label: "Completed",
       value: stats.completed,
@@ -239,7 +251,10 @@ function OrderHeader({ stats }: { stats: OrderStats }) {
               <div
                 className={`w-12 h-12 rounded-lg bg-linear-to-br ${card.gradient} flex items-center justify-center`}
               >
-                <i className={`fa-solid ${card.icon} text-white text-xl`}></i>
+                <FontAwesomeIcon
+                  icon={card.icon}
+                  className="text-white text-xl"
+                />
               </div>
             </div>
             <p className="text-sm text-gray-500 font-medium">{card.label}</p>
@@ -311,7 +326,10 @@ function OrdersTable({
                   <td colSpan={isAdmin ? 7 : 6} className="py-20">
                     <div className="flex flex-col items-center justify-center">
                       <div className="w-20 h-20 rounded-full bg-gray-200 flex items-center justify-center mb-4">
-                        <i className="fa-solid fa-shopping-bag text-gray-400 text-3xl"></i>
+                        <FontAwesomeIcon
+                          icon={faShoppingBag}
+                          className="text-gray-400 text-3xl"
+                        />
                       </div>
                       <p className="text-xl font-semibold text-gray-600 mb-2">
                         No Orders Yet

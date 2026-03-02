@@ -374,7 +374,7 @@ export function ManageStockContainer({
                 variant="flat"
                 size="sm"
                 startContent={<BackArrowIcon />}
-                onClick={() => handleBackEditSubStock()}
+                onPress={() => handleBackEditSubStock()}
               >
                 Back
               </Button>
@@ -437,7 +437,7 @@ export function ManageStockContainer({
                 </div>
               )
             )}
-            <div className="w-[60%] min-w-[300px] flex flex-col gap-x-4">
+            <div className="w-[60%] min-w-75 flex flex-col gap-x-4">
               {(edit === -1 || isAddNew || editsubidx !== -1) && (
                 <Input
                   label="Quantity"
@@ -464,7 +464,7 @@ export function ManageStockContainer({
                   isLoading={loading}
                   variant="shadow"
                   color={isAddNew ? "success" : "primary"}
-                  onClick={() =>
+                  onPress={() =>
                     editsubidx === -1
                       ? handleAddNewSubStock()
                       : handleUpdateSubStock(editsubidx)
@@ -509,7 +509,7 @@ export function ManageStockContainer({
                   return (
                     <div
                       key={idx}
-                      className={`stockcard relative w-[260px] h-[100px] flex flex-col items-start justify-center p-5 rounded-2xl transition-all duration-300 cursor-pointer shadow-lg hover:shadow-2xl transform hover:scale-[1.05] hover:-translate-y-1 group ${
+                      className={`stockcard relative w-65 h-25 flex flex-col items-start justify-center p-5 rounded-2xl transition-all duration-300 cursor-pointer shadow-lg hover:shadow-2xl transform hover:scale-[1.05] hover:-translate-y-1 group ${
                         i.isLowStock
                           ? "bg-linear-to-br from-red-100 via-orange-50 to-red-50 border-2 border-red-400 hover:border-red-500 ring-2 ring-red-200"
                           : "bg-linear-to-br from-white via-blue-50/30 to-purple-50/30 border-2 border-gray-300 hover:border-blue-400"
@@ -869,7 +869,7 @@ export const ColorSelectModal = React.memo(
                     </div>
 
                     <Input
-                      className="w-full h-[40px] max-small_phone:text-2xl text-lg"
+                      className="w-full h-10 max-small_phone:text-2xl text-lg"
                       type="text"
                       label="Hex Code"
                       value={color.hex}

@@ -9,9 +9,9 @@ import { revalidatePath } from "next/cache";
 import { totalpricetype } from "@/src/types/order.type";
 import { SendOrderEmail } from "../../checkout/action";
 import { Filterdatatype } from "./OrderComponent";
-import { getCheckoutdata } from "../../checkout/page";
 import { Orderproduct, Orders } from "@/prisma/generated/prisma/client";
 import { OrdersWhereInput } from "@/prisma/generated/prisma/models";
+import { getCheckoutdata } from "../../checkout/fetchaction";
 
 const AllorderType = {
   orderdetail: "orderdetail",

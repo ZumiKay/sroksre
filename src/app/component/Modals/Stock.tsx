@@ -6,6 +6,15 @@ import { errorToast, successToast } from "../Loading";
 import Modal from "../Modals";
 import { ApiRequest } from "@/src/context/CustomHook";
 import { motion } from "framer-motion";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faBoxesStacked,
+  faWarehouse,
+  faInfoCircle,
+  faSpinner,
+  faCheck,
+  faTimes,
+} from "@fortawesome/free-solid-svg-icons";
 import {
   Box,
   Chip,
@@ -90,7 +99,7 @@ export const UpdateStockModal = ({
         <div className="w-full space-y-2 pb-4 border-b-2 border-blue-200">
           <h4 className="text-2xl font-bold text-gray-800 flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-linear-to-br from-blue-500 to-cyan-600 flex items-center justify-center">
-              <i className="fa-solid fa-boxes-stacked text-white"></i>
+              <FontAwesomeIcon icon={faBoxesStacked} className="text-white" />
             </div>
             Update Stock
           </h4>
@@ -101,7 +110,10 @@ export const UpdateStockModal = ({
 
         <div className="w-full bg-white rounded-xl p-5 border-2 border-gray-200 shadow-xs space-y-3">
           <div className="flex items-center gap-2">
-            <i className="fa-solid fa-warehouse text-lg text-blue-500"></i>
+            <FontAwesomeIcon
+              icon={faWarehouse}
+              className="text-lg text-blue-500"
+            />
             <h5 className="font-bold text-gray-800">Stock Quantity</h5>
           </div>
           <input
@@ -120,7 +132,7 @@ export const UpdateStockModal = ({
             className="w-full h-14 text-lg px-4 font-bold rounded-xl border-2 border-gray-300 focus:border-blue-500 focus:outline-hidden transition-colors"
           />
           <p className="text-xs text-gray-500 flex items-center gap-1">
-            <i className="fa-solid fa-info-circle"></i>
+            <FontAwesomeIcon icon={faInfoCircle} />
             Maximum allowed: 1000 units
           </p>
         </div>
@@ -138,12 +150,12 @@ export const UpdateStockModal = ({
           >
             {loading?.PUT ? (
               <>
-                <i className="fa-solid fa-spinner fa-spin"></i>
+                <FontAwesomeIcon icon={faSpinner} spin />
                 <span>Updating...</span>
               </>
             ) : (
               <>
-                <i className="fa-solid fa-check"></i>
+                <FontAwesomeIcon icon={faCheck} />
                 <span>Update Stock</span>
               </>
             )}
@@ -160,7 +172,7 @@ export const UpdateStockModal = ({
                 : "bg-linear-to-r from-pink-500 to-red-600 text-white hover:from-pink-600 hover:to-red-700 hover:shadow-xl hover:scale-[1.02]"
             }`}
           >
-            <i className="fa-solid fa-times"></i>
+            <FontAwesomeIcon icon={faTimes} />
             <span>Cancel</span>
           </button>
         </div>

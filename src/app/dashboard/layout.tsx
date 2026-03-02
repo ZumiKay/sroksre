@@ -1,7 +1,7 @@
 "use server";
+
 import { getUser } from "@/src/lib/session";
 import { Metadata } from "next";
-import Prisma from "@/src/lib/prisma";
 import { Role } from "@/prisma/generated/prisma/enums";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -10,6 +10,8 @@ export async function generateMetadata(): Promise<Metadata> {
       select: {
         id: true,
         role: true,
+        firstname: true,
+        lastname: true,
       },
     },
   });
@@ -18,13 +20,12 @@ export async function generateMetadata(): Promise<Metadata> {
     return { title: "", description: "" };
   }
 
-  const data = await Prisma.user.findUnique({ where: { id: user.user.id } });
   let title = "";
-  if (data) {
+  if (user.user) {
     title =
       user.user.role === Role.ADMIN
         ? `Admin Dashboard | SrokSre`
-        : `${data.firstname} ${data.lastname ?? ""} Dashboard | SrokSre`;
+        : `${user.user.firstname} ${user.user.lastname ?? ""} Dashboard | SrokSre`;
   }
   return {
     title: title,
@@ -43,10 +44,7 @@ const DashboardLayout = async ({ children }: { children: React.ReactNode }) => {
       </div>
 
       {/* Main Content Container */}
-      <div className="relative z-10 w-full h-full">
-        {/* Content Wrapper with max-width and centering */}
-        {children}
-      </div>
+      <div className="relative z-10 w-full h-full">{children}</div>
     </section>
   );
 };

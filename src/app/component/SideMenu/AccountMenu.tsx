@@ -95,17 +95,14 @@ export default function AccountMenu({ setProfile }: AccountMenuProps) {
 
   //Verify User Session
   const verifyUserSession = useCallback(async () => {
-    let toastId = "SessionError";
     setloading(true);
     try {
       const makeReq = CheckAndGetUserInfo.bind(null, {});
       const isSession = await makeReq();
 
       if (!isSession.success) {
-        if (isSession.isExpire) {
-          const isRenew = await handleCheckSession();
-          if (!isRenew) return;
-        }
+        const isRenew = await handleCheckSession();
+        if (!isRenew) return;
         return;
       }
 

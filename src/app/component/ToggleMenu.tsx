@@ -18,8 +18,26 @@ import { Button, Input } from "@heroui/react";
 import React from "react";
 import { ProductInfo, VariantValueObjType } from "@/src/types/product.type";
 import { SelectType } from "@/src/types/productAction.type";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faCheck,
+  faCheckCircle,
+  faCircleInfo,
+  faFolder,
+  faFolderOpen,
+  faFolderTree,
+  faList,
+  faMinus,
+  faMinusCircle,
+  faPalette,
+  faPen,
+  faPlus,
+  faPlusCircle,
+  faTrash,
+  faXmark,
+} from "@fortawesome/free-solid-svg-icons";
 
-interface toggleprops {
+export interface ToggleMenuProps {
   name: string;
   isAdmin: boolean;
   type?: string;
@@ -32,7 +50,7 @@ interface toggleprops {
   }[];
 }
 
-export default function ToggleMenu(props: toggleprops) {
+function ToggleMenu(props: ToggleMenuProps) {
   const { openmodal, product, setproduct, setopenmodal, setglobalindex } =
     useGlobalContext();
   const [open, setopen] = useState(false);
@@ -62,17 +80,45 @@ export default function ToggleMenu(props: toggleprops) {
           <strong className="font-bold text-2xl text-gray-800">
             {props.name}
           </strong>
-          <button
+          <motion.button
+            type="button"
             onClick={() => setopen(!open)}
-            className={`ml-2 fa-solid ${
-              open ? "fa-minus" : "fa-plus"
-            } rounded-xl text-base p-3 no-underline transition-all duration-300 shadow-md hover:shadow-lg active:scale-95 ${
-              open
-                ? "bg-linear-to-r from-red-500 to-pink-600 text-white hover:from-red-600 hover:to-pink-700"
-                : "bg-linear-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-600 hover:to-purple-700"
-            }`}
+            className={`ml-2 rounded-xl text-base p-3 no-underline shadow-md hover:shadow-lg`}
             aria-label={open ? "Collapse section" : "Expand section"}
-          ></button>{" "}
+            whileHover={{
+              scale: 1.1,
+              rotate: [0, -10, 10, -10, 0],
+              transition: {
+                rotate: {
+                  repeat: Infinity,
+                  duration: 0.5,
+                },
+                scale: { duration: 0.2 },
+              },
+            }}
+            whileTap={{
+              scale: 0.9,
+              rotate: 0,
+              transition: {
+                type: "spring",
+                stiffness: 400,
+                damping: 10,
+              },
+            }}
+            animate={open ? {} : {}}
+            transition={{
+              type: "spring",
+              stiffness: 260,
+              damping: 20,
+            }}
+          >
+            {" "}
+            {open ? (
+              <FontAwesomeIcon icon={faMinusCircle} size="lg" />
+            ) : (
+              <FontAwesomeIcon icon={faPlusCircle} size="lg" />
+            )}{" "}
+          </motion.button>{" "}
         </h3>
       </div>
       <AnimatePresence>
@@ -95,7 +141,10 @@ export default function ToggleMenu(props: toggleprops) {
                   >
                     {i.title && (
                       <h3 className="w-full text-xl font-bold wrap-break-word text-gray-800 flex items-center gap-2">
-                        <i className="fa-solid fa-circle-info text-indigo-500 text-base"></i>
+                        <FontAwesomeIcon
+                          icon={faCircleInfo}
+                          className="text-indigo-500 text-base"
+                        />
                         {i.title}
                       </h3>
                     )}
@@ -126,14 +175,14 @@ export default function ToggleMenu(props: toggleprops) {
                           onClick={() => handleEdit(index)}
                           className="px-3 py-1.5 rounded-lg bg-linear-to-r from-blue-500 to-indigo-600 text-white text-sm font-semibold transition-all duration-300 hover:from-blue-600 hover:to-indigo-700 hover:scale-105 shadow-md hover:shadow-lg flex items-center gap-1.5"
                         >
-                          <i className="fa-solid fa-pen text-xs"></i>
+                          <FontAwesomeIcon icon={faPen} className="text-xs" />
                           Edit
                         </button>
                         <button
                           onClick={() => handleDelete(index)}
                           className="px-3 py-1.5 rounded-lg bg-linear-to-r from-red-500 to-pink-600 text-white text-sm font-semibold transition-all duration-300 hover:from-red-600 hover:to-pink-700 hover:scale-105 shadow-md hover:shadow-lg flex items-center gap-1.5"
                         >
-                          <i className="fa-solid fa-trash text-xs"></i>
+                          <FontAwesomeIcon icon={faTrash} className="text-xs" />
                           Delete
                         </button>
                       </div>
@@ -146,12 +195,22 @@ export default function ToggleMenu(props: toggleprops) {
     </motion.div>
   );
 }
-interface toggledownmenuprops {
+
+// Named export with memoization
+export const ToggleMenuComponent = React.memo(ToggleMenu);
+
+// Default export for backward compatibility
+export default ToggleMenuComponent;
+
+export interface ToggleDownMenuProps {
   style?: CSSProperties;
   children: ReactNode;
   open: boolean;
 }
-export function ToggleDownMenu(props: toggledownmenuprops) {
+
+export const ToggleDownMenu = React.memo(function ToggleDownMenu(
+  props: ToggleDownMenuProps,
+) {
   return (
     <div
       style={{ ...props.style, display: !props.open ? "none" : "" }}
@@ -160,9 +219,15 @@ export function ToggleDownMenu(props: toggledownmenuprops) {
       {props.children}
     </div>
   );
+});
+
+export interface AddSubCategoryMenuProps {
+  index: number;
 }
 
-export function AddSubCategoryMenu({ index }: { index: number }) {
+export const AddSubCategoryMenu = React.memo(function AddSubCategoryMenu({
+  index,
+}: AddSubCategoryMenuProps) {
   const { category, setcategory, setopenmodal, allData } = useGlobalContext();
   const [name, setname] = useState("");
   const [editIdx, setedit] = useState(-1);
@@ -205,7 +270,10 @@ export function AddSubCategoryMenu({ index }: { index: number }) {
   return (
     <div className="AddSubCategory_menu w-full h-fit p-6 flex flex-col justify-center gap-y-6 transition rounded-2xl bg-linear-to-br from-white to-indigo-50 border-2 border-indigo-200 shadow-lg">
       <div className="flex items-center gap-3 pb-2 border-b-2 border-indigo-200">
-        <i className="fa-solid fa-folder-tree text-2xl text-indigo-500"></i>
+        <FontAwesomeIcon
+          icon={faFolderTree}
+          className="text-2xl text-indigo-500"
+        />
         <h2 className="text-xl font-bold text-gray-800">Subcategories</h2>
         {category.subcategories?.length > 0 && (
           <span className="ml-auto text-sm font-semibold px-3 py-1 rounded-full bg-indigo-500 text-white">
@@ -218,7 +286,7 @@ export function AddSubCategoryMenu({ index }: { index: number }) {
         {category.subcategories?.length === 0 ? (
           <div className="w-full h-20 flex items-center justify-center text-gray-400 text-sm">
             <div className="flex flex-col items-center gap-2">
-              <i className="fa-solid fa-folder-open text-3xl"></i>
+              <FontAwesomeIcon icon={faFolderOpen} className="text-3xl" />
               <p>No subcategories yet</p>
             </div>
           </div>
@@ -245,11 +313,12 @@ export function AddSubCategoryMenu({ index }: { index: number }) {
                 }}
                 className="subcategory__name text-sm font-semibold flex items-center gap-2"
               >
-                <i
-                  className={`fa-solid fa-folder ${
+                <FontAwesomeIcon
+                  icon={faFolder}
+                  className={
                     editIdx === index ? "text-white" : "text-indigo-500"
-                  }`}
-                ></i>
+                  }
+                />
                 {cat.name}
               </h3>
               <button
@@ -258,7 +327,7 @@ export function AddSubCategoryMenu({ index }: { index: number }) {
                 }}
                 className="absolute -right-2 -top-2 w-6 h-6 rounded-full bg-linear-to-r from-red-500 to-pink-600 text-white flex items-center justify-center transition-all duration-200 hover:from-red-600 hover:to-pink-700 hover:scale-110 shadow-md opacity-0 group-hover:opacity-100"
               >
-                <i className="fa-solid fa-xmark text-xs"></i>
+                <FontAwesomeIcon icon={faXmark} className="text-xs" />
               </button>
             </motion.div>
           ))
@@ -270,11 +339,10 @@ export function AddSubCategoryMenu({ index }: { index: number }) {
         className="subcategoryform w-full h-full flex flex-col gap-y-4 bg-white rounded-xl p-4 border-2 border-gray-200 shadow-md"
       >
         <div className="flex items-center gap-2 mb-2">
-          <i
-            className={`fa-solid ${
-              editIdx < 0 ? "fa-plus" : "fa-pen"
-            } text-lg text-indigo-500`}
-          ></i>
+          <FontAwesomeIcon
+            icon={editIdx < 0 ? faPlus : faPen}
+            className="text-lg text-indigo-500"
+          />
           <h3 className="text-base font-bold text-gray-800">
             {editIdx < 0 ? "Add New Subcategory" : "Edit Subcategory"}
           </h3>
@@ -308,9 +376,7 @@ export function AddSubCategoryMenu({ index }: { index: number }) {
                   : "bg-linear-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700 hover:shadow-lg hover:scale-105"
             }`}
           >
-            <i
-              className={`fa-solid ${editIdx < 0 ? "fa-plus" : "fa-check"}`}
-            ></i>
+            <FontAwesomeIcon icon={editIdx < 0 ? faPlus : faCheck} />
             <span>{editIdx < 0 ? "Add" : "Update"}</span>
           </button>
           <button
@@ -318,15 +384,16 @@ export function AddSubCategoryMenu({ index }: { index: number }) {
             onClick={() => handleCancel()}
             className="w-full h-10 rounded-xl font-bold text-sm transition-all duration-300 shadow-md flex items-center justify-center gap-2 bg-linear-to-r from-gray-500 to-gray-700 text-white hover:from-gray-600 hover:to-gray-800 hover:shadow-lg hover:scale-105"
           >
-            <i className="fa-solid fa-xmark"></i>
+            <FontAwesomeIcon icon={faXmark} />
             <span>Clear All</span>
           </button>
         </div>
       </form>
     </div>
   );
-}
-interface Toggleselectprops {
+});
+
+export interface ToggleSelectProps {
   type: "color" | "size" | "text" | "pcate" | "ccate";
   title: string;
   data: Array<string> | VariantValueObjType[];
@@ -340,7 +407,8 @@ interface Toggleselectprops {
     type?: string,
   ) => void;
 }
-export function ToggleSelect({
+
+export const ToggleSelect = React.memo(function ToggleSelect({
   type,
   data,
   title,
@@ -348,7 +416,7 @@ export function ToggleSelect({
   selected,
   onClear,
   promo,
-}: Toggleselectprops) {
+}: ToggleSelectProps) {
   const [open, setopen] = useState(false);
   return (
     <motion.div
@@ -367,19 +435,22 @@ export function ToggleSelect({
           {type === "color" ? (
             selected ? (
               <>
-                <i className="fa-solid fa-palette text-indigo-500"></i>
+                <FontAwesomeIcon icon={faPalette} className="text-indigo-500" />
                 <span>Clear Color</span>
               </>
             ) : (
               <>
-                <i className="fa-solid fa-palette text-indigo-500"></i>
+                <FontAwesomeIcon icon={faPalette} className="text-indigo-500" />
                 <span>Color</span>
               </>
             )
           ) : selected ? (
             data.some((i) => selected.includes(i as string)) ? (
               <div className="w-fit h-fit flex items-center gap-2">
-                <i className="fa-solid fa-check-circle text-green-500"></i>
+                <FontAwesomeIcon
+                  icon={faCheckCircle}
+                  className="text-green-500"
+                />
                 <div>
                   <p className="font-bold text-green-600 text-sm">Selected</p>
                   <p className="text-gray-700">{title}</p>
@@ -387,13 +458,13 @@ export function ToggleSelect({
               </div>
             ) : (
               <>
-                <i className="fa-solid fa-list text-indigo-500"></i>
+                <FontAwesomeIcon icon={faList} className="text-indigo-500" />
                 <span>{title}</span>
               </>
             )
           ) : (
             <>
-              <i className="fa-solid fa-list text-indigo-500"></i>
+              <FontAwesomeIcon icon={faList} className="text-indigo-500" />
               <span>{title}</span>
             </>
           )}
@@ -412,7 +483,7 @@ export function ToggleSelect({
               color="danger"
               className="hover:scale-105 transition-transform duration-200"
             >
-              <i className="fa-solid fa-xmark"></i>
+              <FontAwesomeIcon icon={faXmark} />
               Clear
             </Button>
           )}
@@ -470,7 +541,7 @@ export function ToggleSelect({
                   </h3>
                 )}
                 {selected?.includes(typeof i === "string" ? i : i.val) && (
-                  <i className="fa-solid fa-check text-xs ml-1"></i>
+                  <FontAwesomeIcon icon={faCheck} className="text-xs ml-1" />
                 )}
               </motion.div>
             ))}
@@ -479,7 +550,7 @@ export function ToggleSelect({
       )}
     </motion.div>
   );
-}
+});
 
 const animatedComponents = makeAnimated();
 
@@ -498,7 +569,8 @@ const getOptions = async (value: string, selectedvalue?: string[]) => {
 
   return result;
 };
-export const SearchAndMultiSelect = () => {
+
+export const SearchAndMultiSelect = React.memo(function SearchAndMultiSelect() {
   const { product, setproduct } = useGlobalContext();
 
   const [selected, setselected] = useState<SelectType[] | undefined>(undefined);
@@ -537,4 +609,4 @@ export const SearchAndMultiSelect = () => {
       isMulti
     />
   );
-};
+});

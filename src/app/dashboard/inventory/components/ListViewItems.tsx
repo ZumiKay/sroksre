@@ -8,20 +8,28 @@ import { SubInventoryMenu } from "@/src/app/component/Navbar";
 import Checkmark from "../../../../../public/Image/Checkmark.svg";
 import { ProductState } from "@/src/types/product.type";
 import { errorToast } from "@/src/app/component/Loading";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faImage, faClock, faCheck } from "@fortawesome/free-solid-svg-icons";
 
-interface ProductListItemProps {
+interface SelectionProps {
+  isSelectMode?: boolean;
+  isSelected?: boolean;
+  onToggleSelect?: () => void;
+}
+
+interface ProductListItemProps extends SelectionProps {
   product: ProductState;
   index: number;
   reloaddata?: () => void;
 }
 
-interface BannerListItemProps {
+interface BannerListItemProps extends SelectionProps {
   banner: any;
   index: number;
   reloaddata?: () => void;
 }
 
-interface PromotionListItemProps {
+interface PromotionListItemProps extends SelectionProps {
   promotion: any;
   index: number;
   reloaddata?: () => void;
@@ -33,10 +41,33 @@ const editActionMenu = [
   { value: "Delete", opencon: "" },
 ];
 
+const SelectCheckbox = ({ checked }: { checked: boolean }) => (
+  <div
+    className={`shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
+      checked ? "bg-indigo-600 border-indigo-600" : "bg-white border-gray-400"
+    }`}
+  >
+    {checked && (
+      <svg
+        className="w-3 h-3 text-white"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        strokeWidth={3}
+      >
+        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+      </svg>
+    )}
+  </div>
+);
+
 export const ProductListItem: React.FC<ProductListItemProps> = ({
   product,
   index,
   reloaddata,
+  isSelectMode,
+  isSelected = false,
+  onToggleSelect,
 }) => {
   const {
     promotion,
@@ -123,13 +154,26 @@ export const ProductListItem: React.FC<ProductListItemProps> = ({
       transition={{ duration: 0.3, delay: index * 0.05 }}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
-      onClick={handleSelectProduct}
+      onClick={isSelectMode ? onToggleSelect : handleSelectProduct}
       className={`relative w-full bg-white rounded-xl shadow-md hover:shadow-xl transition-all p-4 flex items-center gap-4 border-2 cursor-pointer ${
-        isProduct && promotion.selectproduct
-          ? "border-blue-500 ring-2 ring-blue-200"
-          : "border-gray-200"
+        isSelectMode && isSelected
+          ? "border-indigo-500 ring-2 ring-indigo-200"
+          : isProduct && promotion.selectproduct
+            ? "border-blue-500 ring-2 ring-blue-200"
+            : "border-gray-200"
       }`}
     >
+      {isSelectMode && (
+        <div
+          className="shrink-0"
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleSelect?.();
+          }}
+        >
+          <SelectCheckbox checked={isSelected} />
+        </div>
+      )}
       <div className="w-24 h-24 shrink-0 rounded-lg overflow-hidden bg-gray-100 relative">
         {product.covers && product.covers[0] ? (
           <>
@@ -150,7 +194,7 @@ export const ProductListItem: React.FC<ProductListItemProps> = ({
           </>
         ) : (
           <div className="w-full h-full flex items-center justify-center text-gray-400">
-            <i className="fa-solid fa-image text-3xl"></i>
+            <FontAwesomeIcon icon={faImage} className="text-3xl" />
           </div>
         )}
         {isProduct && promotion.selectproduct && (
@@ -195,11 +239,8 @@ export const ProductListItem: React.FC<ProductListItemProps> = ({
         </div>
       </div>
 
-      {hover && !promotion.selectproduct && (
-        <div
-          className="shrink-0 z-10"
-          onClick={(e) => e.stopPropagation()}
-        >
+      {hover && !promotion.selectproduct && !isSelectMode && (
+        <div className="shrink-0 z-10" onClick={(e) => e.stopPropagation()}>
           <SubInventoryMenu
             data={editActionMenu}
             type="product"
@@ -221,6 +262,9 @@ export const BannerListItem: React.FC<BannerListItemProps> = ({
   banner,
   index,
   reloaddata,
+  isSelectMode,
+  isSelected = false,
+  onToggleSelect,
 }) => {
   const { promotion, setpromotion, openmodal } = useGlobalContext();
   const [hover, setHover] = useState(false);
@@ -255,13 +299,26 @@ export const BannerListItem: React.FC<BannerListItemProps> = ({
       transition={{ duration: 0.3, delay: index * 0.05 }}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
-      onClick={handleSelectBanner}
+      onClick={isSelectMode ? onToggleSelect : handleSelectBanner}
       className={`relative w-full bg-white rounded-xl shadow-md hover:shadow-xl transition-all p-4 flex items-center gap-4 border-2 cursor-pointer ${
-        isBanner && promotion.selectbanner
-          ? "border-blue-500 ring-2 ring-blue-200"
-          : "border-gray-200"
+        isSelectMode && isSelected
+          ? "border-indigo-500 ring-2 ring-indigo-200"
+          : isBanner && promotion.selectbanner
+            ? "border-blue-500 ring-2 ring-blue-200"
+            : "border-gray-200"
       }`}
     >
+      {isSelectMode && (
+        <div
+          className="shrink-0"
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleSelect?.();
+          }}
+        >
+          <SelectCheckbox checked={isSelected} />
+        </div>
+      )}
       <div className="w-32 h-20 shrink-0 rounded-lg overflow-hidden bg-gray-100 relative">
         <Image
           src={banner.image.url}
@@ -295,19 +352,19 @@ export const BannerListItem: React.FC<BannerListItemProps> = ({
         </div>
       </div>
 
-      {hover && !promotion.selectbanner && !openmodal.managebanner && (
-        <div
-          className="shrink-0 z-10"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <SubInventoryMenu
-            data={actionMenu}
-            type="banner"
-            index={banner.id}
-            reloaddata={reloaddata}
-          />
-        </div>
-      )}
+      {hover &&
+        !promotion.selectbanner &&
+        !openmodal.managebanner &&
+        !isSelectMode && (
+          <div className="shrink-0 z-10" onClick={(e) => e.stopPropagation()}>
+            <SubInventoryMenu
+              data={actionMenu}
+              type="banner"
+              index={banner.id}
+              reloaddata={reloaddata}
+            />
+          </div>
+        )}
     </motion.div>
   );
 };
@@ -316,6 +373,9 @@ export const PromotionListItem: React.FC<PromotionListItemProps> = ({
   promotion,
   index,
   reloaddata,
+  isSelectMode,
+  isSelected = false,
+  onToggleSelect,
 }) => {
   const { openmodal } = useGlobalContext();
   const [hover, setHover] = useState(false);
@@ -335,8 +395,26 @@ export const PromotionListItem: React.FC<PromotionListItemProps> = ({
       transition={{ duration: 0.3, delay: index * 0.05 }}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
-      className="relative w-full bg-white rounded-xl shadow-md hover:shadow-xl transition-all p-4 flex items-center gap-4 border border-gray-200"
+      onClick={isSelectMode ? onToggleSelect : undefined}
+      className={`relative w-full bg-white rounded-xl shadow-md hover:shadow-xl transition-all p-4 flex items-center gap-4 border-2 ${
+        isSelectMode && isSelected
+          ? "border-indigo-500 ring-2 ring-indigo-200 cursor-pointer"
+          : isSelectMode
+            ? "border-gray-200 cursor-pointer"
+            : "border-gray-200"
+      }`}
     >
+      {isSelectMode && (
+        <div
+          className={`shrink-0 ${promotion.isExpired ? "mt-6" : ""}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleSelect?.();
+          }}
+        >
+          <SelectCheckbox checked={isSelected} />
+        </div>
+      )}
       {promotion.isExpired && (
         <div className="absolute top-0 left-0 right-0 bg-linear-to-r from-red-500 to-red-600 px-3 py-1 rounded-t-xl">
           <p className="font-bold text-xs text-white text-center flex items-center justify-center gap-1">
@@ -362,7 +440,7 @@ export const PromotionListItem: React.FC<PromotionListItemProps> = ({
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-gray-400">
-            <i className="fa-solid fa-image text-3xl"></i>
+            <FontAwesomeIcon icon={faImage} className="text-3xl" />
           </div>
         )}
       </div>
@@ -374,19 +452,19 @@ export const PromotionListItem: React.FC<PromotionListItemProps> = ({
         <div className="flex items-center gap-2 mt-2">
           {promotion.isExpired ? (
             <span className="px-2 py-1 bg-red-100 text-red-600 rounded-full text-xs font-bold">
-              <i className="fa-solid fa-clock mr-1"></i>
+              <FontAwesomeIcon icon={faClock} className="mr-1" />
               Expired
             </span>
           ) : (
             <span className="px-2 py-1 bg-green-100 text-green-600 rounded-full text-xs font-bold">
-              <i className="fa-solid fa-check mr-1"></i>
+              <FontAwesomeIcon icon={faCheck} className="mr-1" />
               Active
             </span>
           )}
         </div>
       </div>
 
-      {hover && !openmodal.managebanner && (
+      {hover && !openmodal.managebanner && !isSelectMode && (
         <div
           className={`shrink-0 z-10 ${promotion.isExpired ? "mt-6" : ""}`}
           onClick={(e) => e.stopPropagation()}

@@ -1,14 +1,18 @@
 "use server";
 import { notFound } from "next/navigation";
 import { GetProductDetailById } from "./detail_action";
-import { ButtonForSimilarProd, OptionSection, ShowPrice } from "./Component";
+import {
+  ButtonForSimilarProd,
+  OptionSection,
+  ShowPrice,
+  ShowPriceWithOptions,
+} from "./Component";
 import Link from "next/link";
 import ToggleMenu from "@/src/app/component/ToggleMenu";
 import { getRelatedProduct } from "./action";
 import Card from "@/src/app/component/Card";
 import { getUser } from "@/src/lib/session";
 import Prisma from "@/src/lib/prisma";
-import { Props } from "../../page";
 import { Metadata } from "next";
 import Image from "next/image";
 import { Suspense } from "react";
@@ -98,8 +102,8 @@ export default async function ProductDetailPage({
                 key={idx}
                 src={img.url}
                 alt={`${data.data.name} - Image ${idx + 1}`}
-                className="w-[400px] h-[500px] object-cover rounded-lg
-                max-medium_screen:w-[350px] max-medium_screen:h-[450px]
+                className="w-100 h-125 object-cover rounded-lg
+                max-medium_screen:w-87.5 max-medium_screen:h-112.5
                 "
                 width={400}
                 height={500}
@@ -122,10 +126,18 @@ export default async function ProductDetailPage({
           <p className="product_description text-lg font-normal w-full">
             {data?.data.description ?? "No Description"}
           </p>
-          <ShowPrice
-            price={data?.data.price ?? 0}
-            discount={data?.data.discount}
-          />
+          {data?.data.Variant && data?.data.Variant.length > 0 ? (
+            <ShowPriceWithOptions
+              price={data?.data.price ?? 0}
+              discount={data?.data.discount}
+              Variant={data?.data.Variant}
+            />
+          ) : (
+            <ShowPrice
+              price={data?.data.price ?? 0}
+              discount={data?.data.discount}
+            />
+          )}
 
           {data?.data.relatedproduct && data.data.relatedproduct.length > 0 && (
             <>
@@ -205,11 +217,11 @@ const ShowRelated = ({ data }: { data: Relatedproducttype[] }) => {
     <div className="w-full h-fit grid grid-cols-3 gap-y-5">
       {data.map((related) => (
         <Link key={related.id} href={`/product/detail/${related.id}`}>
-          <div className="w-[200px] h-fit flex flex-col gap-y-3 items-center justify-center p-2 rounded-lg border-2 border-black transition-all duration-200 hover:bg-black hover:text-white cursor-pointer">
+          <div className="w-50 h-fit flex flex-col gap-y-3 items-center justify-center p-2 rounded-lg border-2 border-black transition-all duration-200 hover:bg-black hover:text-white cursor-pointer">
             <Image
               src={related.covers[0].url}
               alt={related.name}
-              className="w-[100px] h-[100px] object-cover rounded-lg"
+              className="w-25 h-25 object-cover rounded-lg"
               width={100}
               height={100}
               loading="lazy"

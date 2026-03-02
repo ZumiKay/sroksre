@@ -306,19 +306,18 @@ export const VariantInfoEditor: React.FC<VariantInfoEditorProps> = ({
         />
       )}
 
-      <div className="flex flex-row gap-x-3 w-full h-[35px]">
+      <div className="flex flex-row gap-x-3 w-full h-8.75">
         <PrimaryButton
           text={`${variantManager.added === -1 ? "Create" : "Update"}`}
           type="button"
           disable={
             variantManager.name === "" ||
-            variantManager.temp?.value.length === 0
+            variantManager.temp?.value.length === 0 ||
+            loading
           }
           textsize="12px"
           status={loading ? "loading" : "authenticated"}
-          onClick={() =>
-            onCreate(variantManager.added === -1 ? {} : { setloading })
-          }
+          onClick={() => onCreate({ setloading })}
           radius="10px"
           width="100%"
           height="100%"

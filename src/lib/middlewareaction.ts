@@ -10,12 +10,11 @@ const allAdminRoute: Map<string, methodtype[]> = new Map([
   ["/image", ["DELETE"]],
   ["/categories", ["POST", "PUT", "DELETE"]],
   ["/users", ["GET", "DELETE", "POST", "PUT"]],
-  ["/users/info", ["GET", "DELETE"]],
   ["/products", ["POST", "PUT", "DELETE"]],
   ["/products/cover", ["POST", "PUT", "DELETE", "GET"]],
   ["/products/variant/template", ["POST", "PUT", "GET", "DELETE"]],
   ["/promotion", ["POST", "PUT", "DELETE", "GET"]],
-  ["/policy", ["POST", "PUT", "DELETE", "GET"]],
+  ["/policy", ["POST", "PUT", "DELETE"]],
   ["/users/notification", ["POST", "GET", "DELETE"]],
   ["/order", ["POST", "PUT", "GET", "DELETE"]],
   ["/home/product", ["GET"]],
@@ -27,6 +26,7 @@ const allAdminRoute: Map<string, methodtype[]> = new Map([
 const allPublicRoute: Map<string, methodtype[]> = new Map([
   ["/products", ["GET"]],
   ["/products/relatedproduct", ["GET"]],
+  ["/products/stock/available", ["POST"]],
   ["/categories", ["GET"]],
   ["/categories/select", ["GET"]],
   ["/auth/register", ["POST"]],
@@ -71,7 +71,7 @@ export const VerifyApiRoute = (
   // Check user routes (accessible by authenticated users)
   const isUserRoute = userRoute.get(normalizedUrl)?.includes(method);
   if (isUserRoute) {
-    return { success: true };
+    return { success: role === Role.ADMIN || role === Role.USER };
   }
 
   // Default: allow if not explicitly restricted

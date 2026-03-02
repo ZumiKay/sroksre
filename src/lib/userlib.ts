@@ -5,7 +5,7 @@ import { checkpassword, getOneWeekFromToday } from "./utilities";
 import Prisma from "./prisma";
 import { Role } from "@/prisma/generated/prisma/enums";
 import { userdata, Usersessiontype } from "../types/user.type";
-import { createHash } from "crypto";
+import { createHash, randomBytes } from "crypto";
 
 export interface RegisterUser {
   id?: number;
@@ -38,9 +38,7 @@ export const secretkey = new TextEncoder().encode(
 
 /**@requires For Usersession ONLY */
 const generateSessionId = (): string => {
-  return createHash("sha256")
-    .update(`${Date.now()}-${Math.random()}-${process.env.NEXTAUTH_SECRET}`)
-    .digest("hex");
+  return randomBytes(32).toString("hex");
 };
 
 /**Method only for create a unique token usersession model
@@ -189,11 +187,36 @@ export const hashToken = (token: string): string => {
   return createHash("sha256").update(token).digest("hex");
 };
 
+const MAX_SESSIONS_PER_USER = 5;
+
 // Helper function to create user session
-const createUserSession = async (
+export const createUserSession = async (
   userId: number,
   deviceInfo: DeviceInfo,
 ): Promise<string> => {
+  // Enforce session concurrency limit
+  const activeSessions = await Prisma.usersession.count({
+    where: { userId, revoked: false },
+  });
+
+  if (activeSessions >= MAX_SESSIONS_PER_USER) {
+    // Delete the oldest session(s) to make room
+    const oldestSessions = await Prisma.usersession.findMany({
+      where: { userId, revoked: false },
+      orderBy: { createdAt: "asc" },
+      take: activeSessions - MAX_SESSIONS_PER_USER + 1,
+      select: { sessionid: true },
+    });
+
+    if (oldestSessions.length > 0) {
+      await Prisma.usersession.deleteMany({
+        where: {
+          sessionid: { in: oldestSessions.map((s) => s.sessionid) },
+        },
+      });
+    }
+  }
+
   const refreshToken = await createUniqueSessionId();
 
   await Prisma.usersession.create({
@@ -238,7 +261,6 @@ export const checkAccountLockStatus = async (
       return { isLocked: false, attempts: 0 };
     }
 
-    // Check if account is locked and lock hasn't expired
     if (attempt.isLocked && attempt.lockedUntil) {
       const now = new Date();
       if (now < attempt.lockedUntil) {
@@ -435,16 +457,11 @@ export const userlogin = async (
     // Successful login - clear any failed attempts
     await clearLoginAttempts(identifier);
 
-    const deviceInfo = extractDeviceInfo(req);
-    const sessionid = await createUserSession(user.id, deviceInfo);
-
     return {
       success: true,
       data: {
         userId: user.id,
-        sessionid,
         role: user.role,
-        ...deviceInfo,
       },
     };
   } catch (error: unknown) {

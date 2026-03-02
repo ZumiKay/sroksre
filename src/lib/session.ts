@@ -20,18 +20,38 @@ export async function verifySessionInDB(
   try {
     const dbSession = (await Prisma.usersession.findUnique({
       where: { refresh_token_hash: hashToken(session_id) },
-      select,
-    })) as Usersessiontype;
+      select: {
+        ...select,
+        sessionid: true,
+        expireAt: true,
+        revoked: true,
+      },
+    })) as unknown as Usersessiontype;
 
-    // Check if session exists and hasn't expired
-    if (dbSession && dbSession.expireAt && dbSession.expireAt <= new Date()) {
-      //Session cleanup and ignore if session is not found
+    // Check if session exists
+    if (!dbSession) {
+      return { success: false };
+    }
+
+    // Check if session has been revoked
+    if (dbSession.revoked) {
+      // Cleanup revoked session
       await Prisma.usersession
         .delete({
           where: { sessionid: dbSession.sessionid },
         })
         .catch(() => {});
+      return { success: false };
+    }
 
+    // Check if session has expired
+    if (dbSession.expireAt && dbSession.expireAt <= new Date()) {
+      // Session cleanup
+      await Prisma.usersession
+        .delete({
+          where: { sessionid: dbSession.sessionid },
+        })
+        .catch(() => {});
       return { success: false };
     }
 
@@ -45,7 +65,6 @@ export async function verifySessionInDB(
 /**
  * Get authenticated user from session with DB verification
  * Returns user object or null if not authenticated or session invalid
- * Uses NextAuth's getServerSession for optimal performance and security
  * Verifies session against database on every call for auto-logout capability
  */
 export async function getUser(

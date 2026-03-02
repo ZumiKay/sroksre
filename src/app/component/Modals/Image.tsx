@@ -17,6 +17,7 @@ import CropImage from "../Cropimage";
 import { upload } from "@vercel/blob/client";
 import { type PutBlobResult } from "@vercel/blob";
 import { SecondaryModal } from "../Modals";
+import Image from "next/image";
 
 // Constants
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -70,7 +71,6 @@ const verifyBlobUrl = async (url: string): Promise<boolean> => {
     undefined,
     3,
   );
-  console.log({ "Verify uploaded image": response });
   if (response.success) {
     return true;
   }
@@ -543,12 +543,14 @@ export const ImageUpload = (props: imageuploadprops) => {
                         )} bg-gray-100`}
                       >
                         (
-                        <img
+                        <Image
                           src={file.url}
                           className="transition-all duration-300 group-hover:scale-105"
                           style={{
                             objectFit: "cover",
                           }}
+                          fill
+                          quality={80}
                           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                           alt={`Preview of Image ${file.name}`}
                           onLoad={(e) => handleImageLoad(index, e)}

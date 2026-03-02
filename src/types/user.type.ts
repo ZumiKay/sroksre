@@ -1,4 +1,5 @@
 import { Role } from "@/prisma/generated/prisma/enums";
+import { DeviceInfo } from "../lib/userlib";
 
 /**To be used in for usesession status associate with next-auth */
 export enum UserSessionStatusEnum {
@@ -102,4 +103,5 @@ export interface JwtType {
   cexp: number;
   jti: string;
   isExpired?: boolean;
+  deviceInfo?: DeviceInfo;
 }

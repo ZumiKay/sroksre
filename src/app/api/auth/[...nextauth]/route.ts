@@ -4,7 +4,10 @@ import DiscordProvider from "next-auth/providers/discord";
 import CredentialProvider from "next-auth/providers/credentials";
 import {
   createUniqueSessionId,
+  createUserSession,
+  extractDeviceInfo,
   generateExpiration,
+  generateExpirationDate,
   getOAuthInfo,
   handleCheckandRegisterUser,
   hashToken,
@@ -72,8 +75,8 @@ export const authOptions: NextAuthOptions = {
 
         return {
           id: login.data.userId,
-          sessionid: login.data.sessionid,
           role: login.data.role,
+          deviceInfo: extractDeviceInfo(req),
         };
       },
     }),
@@ -131,7 +134,7 @@ export const authOptions: NextAuthOptions = {
     },
 
     async jwt({ token, user, account, trigger }): Promise<any> {
-      // Initial sign in - user object is available
+      // Initial sign in
       if (trigger === "signIn" && user) {
         const sessionData = user as unknown as JwtType;
 
@@ -161,17 +164,22 @@ export const authOptions: NextAuthOptions = {
         }
 
         // Handle credentials provider
-        if (sessionData.sessionid) {
-          return {
-            ...token,
-            sessionid: sessionData.sessionid,
-            id: sessionData.id || Number(user.id),
-            role: sessionData.role,
-            email: user.email,
-            name: user.name,
-            cexp: generateExpiration(15, "minutes"),
-          };
-        }
+        const createdSession = await createUserSession(
+          sessionData.id,
+          sessionData.deviceInfo ?? {
+            device: "unkown",
+            userAgent: "unknown",
+            ipAddress: "unkown",
+          },
+        );
+
+        return {
+          ...token,
+          sessionid: createdSession,
+          id: sessionData.id || Number(user.id),
+          role: sessionData.role,
+          cexp: generateExpiration(15, "minutes"), //access token exp
+        };
       }
 
       // Subsequent requests - verify session is still valid
@@ -180,32 +188,46 @@ export const authOptions: NextAuthOptions = {
         return { ...token, isExpired: true };
       }
 
-      // Check if token is expired and needs renewal
-      if (userToken.cexp && userToken.cexp * 1000 <= Date.now()) {
+      // Force renewal when explicitly called via update() (e.g., from useCheckSession)
+      // Also renew if cexp is expired or expiring within 3 minutes
+      const needsRenewal =
+        trigger === "update" ||
+        (userToken.cexp && userToken.cexp * 1000 <= Date.now() + 3 * 60 * 1000);
+
+      if (needsRenewal) {
         try {
           const dbSession = await Prisma.usersession.findUnique({
             where: { refresh_token_hash: hashToken(userToken.sessionid) },
-            select: { expireAt: true, sessionid: true },
-          });
-
-          if (!dbSession || dbSession.expireAt < new Date()) {
-            return { ...token, isExpired: true };
-          }
-
-          // Generate new session ID and update
-          const newSessionId = await createUniqueSessionId();
-          await Prisma.usersession.update({
-            where: { sessionid: dbSession.sessionid },
-            data: {
-              refresh_token_hash: hashToken(newSessionId),
-              lastUsed: new Date(),
+            select: {
+              expireAt: true,
+              sessionid: true,
+              revoked: true,
+              refresh_token_hash: true,
             },
           });
 
+          if (
+            !dbSession ||
+            dbSession.revoked ||
+            dbSession.expireAt <= new Date()
+          ) {
+            return { ...token, isExpired: true };
+          }
+
+          // Generate new session ID and update with sliding expiration
+          const newSessionId = await createUniqueSessionId();
+          await Prisma.usersession.update({
+            where: { refresh_token_hash: hashToken(userToken.sessionid) },
+            data: {
+              refresh_token_hash: hashToken(newSessionId),
+              lastUsed: new Date(),
+              expireAt: generateExpirationDate(7, "days"), // Extend session by 7 days
+            },
+          });
           return {
             ...token,
-            cexp: generateExpiration(15, "minutes"),
             sessionid: newSessionId,
+            cexp: generateExpiration(15, "minutes"), //access token exp
           };
         } catch (error) {
           console.log("Token renewal error:", error);
@@ -218,12 +240,12 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }): Promise<any> {
       const userToken = token as unknown as JwtType;
 
-      if (userToken.isExpired) {
+      if (userToken.isExpired || !userToken.id) {
         session.expires = "0";
         return session;
       }
 
-      if (userToken.sessionid && userToken.id !== undefined) {
+      if (userToken.sessionid && userToken.id) {
         return {
           ...session,
           sessionid: userToken.sessionid,

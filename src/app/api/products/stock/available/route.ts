@@ -38,9 +38,8 @@ const calculateAvailableQuantity = (
 
   // Pre-create Set for O(1) lookup
   const selectedValuesSet = new Set(selectedValues);
-  const selectedCount = selectedValues.length;
+  const selectedCount = selectedValuesSet.size;
 
-  let exactMatchQty = 0;
   let partialMatchQtySum = 0;
 
   // Flatten stock values for single iteration

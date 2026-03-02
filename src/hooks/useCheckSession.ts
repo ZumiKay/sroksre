@@ -15,12 +15,15 @@ const useCheckSession = () => {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const isSigningOutRef = useRef(false);
 
-  // Cleanup timer on unmount
+  // Cleanup unmount
   useEffect(() => {
     return () => {
       if (timerRef.current) {
         clearTimeout(timerRef.current);
         timerRef.current = null;
+      }
+      if (isSigningOutRef.current) {
+        isSigningOutRef.current = false;
       }
     };
   }, []);
@@ -47,7 +50,7 @@ const useCheckSession = () => {
     });
   }, []);
 
-  const handleCheckSession = useCallback(async () => {
+  const handleCheckSession = async () => {
     if (status === "loading" || isSigningOutRef.current) return false;
 
     const usersession = data as unknown as Usersessiontype;
@@ -61,8 +64,8 @@ const useCheckSession = () => {
       return false;
     }
 
-    // Check JWT token expiration (cexp is in seconds)
-    if (usersession.cexp && usersession.cexp <= nowInSeconds) {
+    // Renew if expired or expiring within 3 minutes (180 seconds)
+    if (usersession.cexp && usersession.cexp < nowInSeconds + 180) {
       try {
         const renewedSession = await update();
 
@@ -77,7 +80,7 @@ const useCheckSession = () => {
 
         return true;
       } catch (error) {
-        console.error("Session renewal failed:", error);
+        console.log("Session renewal failed:", error);
         handleSignOut();
         return false;
       }
@@ -92,9 +95,9 @@ const useCheckSession = () => {
     }
 
     return true;
-  }, [status, data, update, handleSignOut]);
+  };
 
-  return { handleCheckSession };
+  return { handleCheckSession, data, status };
 };
 
 export default useCheckSession;

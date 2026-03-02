@@ -12,6 +12,20 @@ import { DateTimePicker } from "@mui/x-date-pickers";
 import dayjs from "dayjs";
 import { ImageUpload } from "./Image";
 import { Switch } from "@heroui/react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faTags,
+  faInfoCircle,
+  faClock,
+  faLayerGroup,
+  faImage,
+  faBox,
+  faSpinner,
+  faCheck,
+  faTimes,
+  faPercent,
+  faTag,
+} from "@fortawesome/free-solid-svg-icons";
 
 interface InventoryParamType {
   ty?: string;
@@ -206,7 +220,7 @@ export const CreatePromotionModal = ({
         <div className="w-full space-y-2 pb-5 border-b-2 border-orange-200 mb-6">
           <h4 className="text-2xl font-bold text-gray-800 flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-linear-to-br from-orange-500 to-red-600 flex items-center justify-center">
-              <i className="fa-solid fa-tags text-white"></i>
+              <FontAwesomeIcon icon={faTags} className="text-white" />
             </div>
             {globalindex.promotioneditindex === -1
               ? "Create Promotion"
@@ -223,7 +237,10 @@ export const CreatePromotionModal = ({
         >
           <div className="w-full bg-white rounded-xl p-5 border-2 border-gray-200 shadow-xs space-y-4">
             <div className="flex items-center gap-2 mb-3">
-              <i className="fa-solid fa-info-circle text-lg text-orange-500"></i>
+              <FontAwesomeIcon
+                icon={faInfoCircle}
+                className="text-lg text-orange-500"
+              />
               <h5 className="font-bold text-gray-800">Basic Information</h5>
             </div>
             <input
@@ -246,7 +263,10 @@ export const CreatePromotionModal = ({
           </div>
           <div className="w-full bg-linear-to-br from-red-50 to-pink-50 rounded-xl p-5 border-2 border-red-200 space-y-3">
             <div className="flex items-center gap-2">
-              <i className="fa-solid fa-clock text-lg text-red-500"></i>
+              <FontAwesomeIcon
+                icon={faClock}
+                className="text-lg text-red-500"
+              />
               <h5 className="font-bold text-gray-800">Expiration</h5>
               <span className="text-xs text-red-600 font-semibold bg-red-100 px-2 py-1 rounded-full">
                 Required
@@ -266,7 +286,10 @@ export const CreatePromotionModal = ({
           </div>
           <div className="w-full bg-linear-to-br from-blue-50 to-indigo-50 rounded-xl p-5 border-2 border-blue-200">
             <div className="flex items-center gap-3">
-              <i className="fa-solid fa-layer-group text-lg text-blue-500"></i>
+              <FontAwesomeIcon
+                icon={faLayerGroup}
+                className="text-lg text-blue-500"
+              />
               <Switch
                 isSelected={promotion.autocate}
                 onValueChange={(val) => {
@@ -284,7 +307,7 @@ export const CreatePromotionModal = ({
             onClick={() => handleSelectProductAndBanner("banner")}
             className="w-full h-14 rounded-xl font-bold text-base transition-all duration-300 shadow-lg flex items-center justify-center gap-2 bg-linear-to-r from-purple-500 to-indigo-600 text-white hover:from-purple-600 hover:to-indigo-700 hover:shadow-xl hover:scale-[1.02]"
           >
-            <i className="fa-solid fa-image text-lg"></i>
+            <FontAwesomeIcon icon={faImage} className="text-lg" />
             <span>
               {promotion.banner?.id || promotion.banner_id
                 ? "Edit Banner"
@@ -296,7 +319,7 @@ export const CreatePromotionModal = ({
             onClick={() => handleSelectProductAndBanner("product")}
             className="w-full h-14 rounded-xl font-bold text-base transition-all duration-300 shadow-lg flex items-center justify-center gap-2 bg-linear-to-r from-blue-500 to-cyan-600 text-white hover:from-blue-600 hover:to-cyan-700 hover:shadow-xl hover:scale-[1.02]"
           >
-            <i className="fa-solid fa-box text-lg"></i>
+            <FontAwesomeIcon icon={faBox} className="text-lg" />
             <span>
               {promotion.Products?.filter((i) => i.id !== 0).length > 0
                 ? `Edit Products (${
@@ -317,7 +340,7 @@ export const CreatePromotionModal = ({
             >
               {isLoading.POST || isLoading.PUT ? (
                 <>
-                  <i className="fa-solid fa-spinner fa-spin"></i>
+                  <FontAwesomeIcon icon={faSpinner} spin />
                   <span>
                     {globalindex.promotioneditindex === -1
                       ? "Creating..."
@@ -326,7 +349,7 @@ export const CreatePromotionModal = ({
                 </>
               ) : (
                 <>
-                  <i className="fa-solid fa-check"></i>
+                  <FontAwesomeIcon icon={faCheck} />
                   <span>
                     {globalindex.promotioneditindex === -1
                       ? "Create Promotion"
@@ -345,7 +368,7 @@ export const CreatePromotionModal = ({
                   : "bg-linear-to-r from-pink-500 to-red-600 text-white hover:from-pink-600 hover:to-red-700 hover:shadow-xl hover:scale-[1.02]"
               }`}
             >
-              <i className="fa-solid fa-times"></i>
+              <FontAwesomeIcon icon={faTimes} />
               <span>Cancel</span>
             </button>
           </div>
@@ -464,7 +487,7 @@ export const DiscountModals = ({
         <div className="w-full space-y-2 pb-4 border-b-2 border-purple-200">
           <h4 className="text-2xl font-bold text-gray-800 flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-linear-to-br from-purple-500 to-pink-600 flex items-center justify-center">
-              <i className="fa-solid fa-percent text-white"></i>
+              <FontAwesomeIcon icon={faPercent} className="text-white" />
             </div>
             Set Discount
           </h4>
@@ -477,7 +500,7 @@ export const DiscountModals = ({
 
         <div className="w-full bg-white rounded-xl p-5 border-2 border-gray-200 shadow-xs space-y-3">
           <div className="flex items-center gap-2">
-            <i className="fa-solid fa-tag text-lg text-purple-500"></i>
+            <FontAwesomeIcon icon={faTag} className="text-lg text-purple-500" />
             <h5 className="font-bold text-gray-800">Discount Percentage</h5>
           </div>
           <input
@@ -492,7 +515,7 @@ export const DiscountModals = ({
             required
           />
           <p className="text-xs text-gray-500 flex items-center gap-1">
-            <i className="fa-solid fa-info-circle"></i>
+            <FontAwesomeIcon icon={faInfoCircle} />
             Enter a value between 1% and 100%
           </p>
         </div>
@@ -501,7 +524,7 @@ export const DiscountModals = ({
           type="submit"
           className="w-full h-14 rounded-xl font-bold text-base transition-all duration-300 shadow-lg flex items-center justify-center gap-2 bg-linear-to-r from-purple-500 to-pink-600 text-white hover:from-purple-600 hover:to-pink-700 hover:shadow-xl hover:scale-[1.02]"
         >
-          <i className="fa-solid fa-check"></i>
+          <FontAwesomeIcon icon={faCheck} />
           <span>Apply Discount</span>
         </button>
       </motion.form>

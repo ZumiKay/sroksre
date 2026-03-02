@@ -71,6 +71,7 @@ export default function AuthenticatePage() {
         }
       })
       .catch((err) => {
+        console.log("Client Signin", err);
         setloading("authenticated");
         errorToast("An error occurred during login");
       });
@@ -538,7 +539,7 @@ export default function AuthenticatePage() {
                     type="button"
                     className="w-full bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold shadow-lg shadow-blue-500/30"
                     size="lg"
-                    onClick={() => handleConfirm("email")}
+                    onPress={() => handleConfirm("email")}
                     isLoading={loading === "loading"}
                   >
                     Send Reset Link
@@ -548,7 +549,7 @@ export default function AuthenticatePage() {
                     className="w-full border-2 border-gray-300 hover:border-gray-400 text-gray-700 font-semibold bg-white"
                     size="lg"
                     isDisabled={loading === "loading"}
-                    onClick={() => settype("login")}
+                    onPress={() => settype("login")}
                   >
                     Back to Login
                   </Button>

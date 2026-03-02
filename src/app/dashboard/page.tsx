@@ -5,11 +5,7 @@ import PrimaryButton from "../component/Button";
 import { ToggleDownMenu } from "../component/ToggleMenu";
 import Card from "../component/Card";
 import { useGlobalContext } from "@/src/context/GlobalContext";
-import {
-  ApiRequest,
-  Delayloading,
-  useEffectOnce,
-} from "@/src/context/CustomHook";
+import { ApiRequest, Delayloading } from "@/src/context/CustomHook";
 import { ContainerLoading } from "../component/Loading";
 import { EditProfile } from "../component/Modals/User";
 import { signOut } from "next-auth/react";
@@ -39,7 +35,7 @@ export default function UserDashboard() {
   });
   const [wishlist, setwishlist] = useState<ProductState[] | null>(null);
   const [loading, setloading] = useState(false);
-  const { handleCheckSession } = useCheckSession();
+  const { handleCheckSession, data } = useCheckSession();
   const fetchuser = async (type: "userinfo" | "wishlist") => {
     const isValidSession = await handleCheckSession();
     if (!isValidSession) return;
@@ -63,15 +59,15 @@ export default function UserDashboard() {
     await Delayloading(asyncfetch, setloading, 1000);
   };
 
-  useEffectOnce(() => {
+  useEffect(() => {
     fetchuser("userinfo");
-  });
+  }, [data]);
 
   useEffect(() => {
     if (userdata.open.whilist) {
       fetchuser("wishlist");
     }
-  }, [userdata.open.whilist]);
+  }, [userdata.open.whilist, data]);
 
   const handleEdit = (type: typeof userdata.open.edittype) => {
     setdata((prev) => ({ ...prev, open: { ...prev.open, edittype: type } }));
