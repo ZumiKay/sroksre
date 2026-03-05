@@ -1,10 +1,19 @@
 import {
   Orderpricetype,
+  OrderSelectedVariantType,
   Ordertype,
   Productordertype,
   totalpricetype,
 } from "@/src/types/order.type";
 import { VariantValueObjType } from "@/src/types/product.type";
+
+const isOrderSelectedVariantType = (
+  details: unknown,
+): details is OrderSelectedVariantType =>
+  !!details &&
+  !Array.isArray(details) &&
+  typeof details === "object" &&
+  ("variantsection" in (details as object) || "variant" in (details as object));
 
 interface OerderEmailProps {
   order: Ordertype;
@@ -47,13 +56,9 @@ export function formatDate(date: Date) {
 
 const ShowCard = ({ orderProduct }: { orderProduct: Productordertype }) => {
   const price = orderProduct.price;
-  const isDiscount = price.discount;
-
-  const Totalprice =
-    orderProduct.quantity *
-    (!isDiscount
-      ? (orderProduct.product?.price ?? 0)
-      : (price.discount?.newprice as number));
+  // Use stored price data — avoids depending on live product price
+  const total =
+    orderProduct.quantity * (price.discount?.newprice ?? price.price);
 
   return (
     <OrderProductEmailCard
@@ -61,9 +66,9 @@ const ShowCard = ({ orderProduct }: { orderProduct: Productordertype }) => {
         cover: orderProduct.product?.covers[0].url as string,
         name: orderProduct.product?.name as string,
         quantity: orderProduct.quantity,
-        details: orderProduct.selectedvariant as any,
-        price: price,
-        total: Totalprice,
+        details: orderProduct.selectedvariant,
+        price,
+        total,
       }}
     />
   );
@@ -479,29 +484,40 @@ export function OrderReceiptTemplate({ order, isAdmin }: OerderEmailProps) {
 }
 
 const TotalPrice = ({ data }: { data: totalpricetype }) => {
+  const rowStyle = {
+    label: {
+      padding: "7px 0",
+      fontSize: "14px",
+      color: "#666666",
+      textAlign: "left" as const,
+    },
+    value: {
+      padding: "7px 0",
+      fontSize: "14px",
+      color: "#333333",
+      textAlign: "right" as const,
+      fontWeight: "500" as const,
+    },
+  };
+
   return (
     <>
+      {/* Divider */}
       <tr>
         <td
           colSpan={2}
-          style={{
-            padding: "0 30px",
-            backgroundColor: "#ffffff",
-          }}
+          style={{ padding: "4px 30px", backgroundColor: "#ffffff" }}
         >
-          <div
-            style={{
-              borderTop: "2px solid #e0e0e0",
-              margin: "20px 0",
-            }}
-          ></div>
+          <div style={{ borderTop: "1px solid #e0e0e0", margin: "16px 0 0" }} />
         </td>
       </tr>
+
+      {/* Summary table */}
       <tr>
         <td
           colSpan={2}
           style={{
-            padding: "0 30px 20px",
+            padding: "0 30px 24px",
             backgroundColor: "#ffffff",
           }}
         >
@@ -509,75 +525,57 @@ const TotalPrice = ({ data }: { data: totalpricetype }) => {
             cellPadding="0"
             cellSpacing="0"
             border={0}
-            style={{ width: "100%" }}
+            style={{
+              width: "100%",
+              maxWidth: "320px",
+              marginLeft: "auto",
+            }}
           >
             <tbody>
+              {/* Subtotal */}
               <tr>
-                <td
-                  style={{
-                    padding: "8px 0",
-                    fontSize: "15px",
-                    color: "#666666",
-                    textAlign: "left",
-                  }}
-                >
-                  Subtotal:
-                </td>
-                <td
-                  style={{
-                    padding: "8px 0",
-                    fontSize: "15px",
-                    color: "#333333",
-                    textAlign: "right",
-                    fontWeight: "500",
-                  }}
-                >
-                  ${data.subtotal.toFixed(2)}
+                <td style={rowStyle.label}>Subtotal</td>
+                <td style={rowStyle.value}>${data.subtotal.toFixed(2)}</td>
+              </tr>
+
+              {/* Shipping */}
+              <tr>
+                <td style={rowStyle.label}>Shipping</td>
+                <td style={rowStyle.value}>
+                  {data.shipping && data.shipping > 0
+                    ? `$${data.shipping.toFixed(2)}`
+                    : "Free"}
                 </td>
               </tr>
-              <tr>
-                <td
-                  style={{
-                    padding: "8px 0",
-                    fontSize: "15px",
-                    color: "#666666",
-                    textAlign: "left",
-                  }}
-                >
-                  Shipping:
-                </td>
-                <td
-                  style={{
-                    padding: "8px 0",
-                    fontSize: "15px",
-                    color: "#333333",
-                    textAlign: "right",
-                    fontWeight: "500",
-                  }}
-                >
-                  ${data.shipping?.toFixed(2) ?? "0.00"}
-                </td>
-              </tr>
+
+              {/* VAT (only if present) */}
+              {data.vat !== undefined && data.vat > 0 && (
+                <tr>
+                  <td style={rowStyle.label}>VAT</td>
+                  <td style={rowStyle.value}>${data.vat.toFixed(2)}</td>
+                </tr>
+              )}
+
+              {/* Total */}
               <tr>
                 <td
                   style={{
                     padding: "12px 0 0",
-                    fontSize: "18px",
-                    color: "#333333",
-                    fontWeight: "700",
-                    textAlign: "left",
+                    fontSize: "17px",
+                    fontWeight: "800",
+                    color: "#1a1a1a",
                     borderTop: "2px solid #333333",
                   }}
                 >
-                  Total:
+                  Total
                 </td>
                 <td
                   style={{
                     padding: "12px 0 0",
-                    fontSize: "18px",
-                    color: "#495464",
-                    fontWeight: "700",
-                    textAlign: "right",
+                    fontSize: "17px",
+                    fontWeight: "800",
+                    color: "#0097FA",
+                    textAlign: "right" as const,
                     borderTop: "2px solid #333333",
                   }}
                 >
@@ -596,21 +594,129 @@ interface ProductEmailCardProps {
   cover: string;
   name: string;
   quantity: number;
-  details: (string | VariantValueObjType)[];
+  details?: Array<string | VariantValueObjType> | OrderSelectedVariantType;
   price: Orderpricetype;
   total: number;
 }
+
+/** Renders a single variant chip (string or colour object) for email */
+const EmailVariantChip = ({
+  info,
+  idx,
+}: {
+  info: string | VariantValueObjType;
+  idx: number;
+}) => (
+  <span
+    key={idx}
+    style={{
+      display: "inline-block",
+      backgroundColor: "#ffffff",
+      padding: "3px 10px",
+      borderRadius: "20px",
+      fontSize: "12px",
+      color: "#555555",
+      marginRight: "6px",
+      marginBottom: "6px",
+      border: "1px solid #d0d0d0",
+      whiteSpace: "nowrap" as const,
+    }}
+  >
+    {typeof info !== "string" && info.val && (
+      <span
+        style={{
+          display: "inline-block",
+          width: "12px",
+          height: "12px",
+          borderRadius: "50%",
+          backgroundColor: info.val,
+          border: "1px solid #bbbbbb",
+          verticalAlign: "middle",
+          marginRight: "5px",
+        }}
+      />
+    )}
+    <span style={{ verticalAlign: "middle" }}>
+      {typeof info === "string" ? info : info.name}
+    </span>
+  </span>
+);
+
+/** Renders variant details supporting both flat array and sectioned OrderSelectedVariantType */
+const EmailVariantDetails = ({
+  details,
+}: {
+  details?: Array<string | VariantValueObjType> | OrderSelectedVariantType;
+}) => {
+  if (!details) return null;
+
+  if (isOrderSelectedVariantType(details)) {
+    const hasSections =
+      details.variantsection && details.variantsection.length > 0;
+    const hasFlat = details.variant && details.variant.length > 0;
+    if (!hasSections && !hasFlat) return null;
+
+    return (
+      <>
+        {details.variantsection?.map((section, sIdx) => (
+          <div key={sIdx} style={{ marginBottom: "8px" }}>
+            {section.variantSection?.name && (
+              <div
+                style={{
+                  fontSize: "11px",
+                  fontWeight: "700",
+                  color: "#888888",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
+                  marginBottom: "4px",
+                }}
+              >
+                {section.variantSection.name}
+              </div>
+            )}
+            <div>
+              {section.variants.map((item, idx) => (
+                <EmailVariantChip key={idx} info={item} idx={idx} />
+              ))}
+            </div>
+          </div>
+        ))}
+        {hasFlat && (
+          <div style={{ marginBottom: "8px" }}>
+            {details.variant!.map((item, idx) => (
+              <EmailVariantChip key={idx} info={item} idx={idx} />
+            ))}
+          </div>
+        )}
+      </>
+    );
+  }
+
+  if (Array.isArray(details) && details.length > 0) {
+    return (
+      <div style={{ marginBottom: "8px" }}>
+        {details.map((item, idx) => (
+          <EmailVariantChip key={idx} info={item} idx={idx} />
+        ))}
+      </div>
+    );
+  }
+
+  return null;
+};
+
 const OrderProductEmailCard = ({ data }: { data: ProductEmailCardProps }) => {
-  const isDiscount = data.price.discount;
+  const discount = data.price.discount;
+  const basePrice = parseFloat(data.price.price.toString()).toFixed(2);
+  const effectivePrice = discount
+    ? parseFloat((discount.newprice ?? data.price.price).toString()).toFixed(2)
+    : basePrice;
 
   return (
     <tr>
       <td
         colSpan={2}
-        style={{
-          padding: "15px 30px",
-          backgroundColor: "#ffffff",
-        }}
+        style={{ padding: "6px 30px", backgroundColor: "#ffffff" }}
       >
         <table
           cellPadding="0"
@@ -618,171 +724,147 @@ const OrderProductEmailCard = ({ data }: { data: ProductEmailCardProps }) => {
           border={0}
           style={{
             width: "100%",
-            backgroundColor: "#f9f9f9",
-            borderRadius: "8px",
+            backgroundColor: "#f8f9fa",
+            borderRadius: "10px",
+            border: "1px solid #e8e8e8",
             overflow: "hidden",
           }}
         >
           <tbody>
             <tr>
+              {/* Product image */}
               <td
                 style={{
-                  width: "140px",
-                  padding: "15px",
-                  verticalAlign: "top",
+                  width: "110px",
+                  padding: "16px",
+                  verticalAlign: "middle",
                 }}
               >
-                <img
-                  alt={data.name}
-                  title={data.name}
-                  width="120"
-                  height="120"
+                <div
                   style={{
-                    width: "120px",
-                    height: "120px",
-                    objectFit: "cover",
+                    width: "90px",
+                    height: "90px",
+                    backgroundColor: "#ffffff",
                     borderRadius: "8px",
+                    border: "1px solid #e0e0e0",
+                    overflow: "hidden",
                     display: "block",
                   }}
-                  src={data.cover}
-                />
+                >
+                  <img
+                    alt={data.name}
+                    title={data.name}
+                    width="90"
+                    height="90"
+                    style={{
+                      width: "90px",
+                      height: "90px",
+                      objectFit: "contain",
+                      display: "block",
+                    }}
+                    src={data.cover}
+                  />
+                </div>
               </td>
+
+              {/* Product details */}
               <td
                 style={{
-                  padding: "15px 15px 15px 0",
+                  padding: "16px 16px 16px 0",
                   verticalAlign: "top",
                 }}
               >
+                {/* Name */}
                 <h4
                   style={{
-                    fontSize: "16px",
+                    fontSize: "15px",
                     fontWeight: "700",
-                    color: "#333333",
-                    margin: "0 0 10px",
+                    color: "#1a1a1a",
+                    margin: "0 0 8px",
                     lineHeight: "1.4",
                   }}
                 >
                   {data.name}
                 </h4>
-                {data.details.map((info, idx) =>
-                  typeof info === "string" ? (
-                    <div
-                      key={idx}
-                      style={{
-                        display: "inline-block",
-                        backgroundColor: "#ffffff",
-                        padding: "4px 10px",
-                        borderRadius: "4px",
-                        fontSize: "13px",
-                        color: "#666666",
-                        marginRight: "8px",
-                        marginBottom: "8px",
-                        border: "1px solid #e0e0e0",
-                      }}
-                    >
-                      {info}
-                    </div>
-                  ) : (
-                    <div
-                      key={idx}
-                      style={{
-                        display: "inline-block",
-                        backgroundColor: "#ffffff",
-                        padding: "4px 10px",
-                        borderRadius: "4px",
-                        marginRight: "8px",
-                        marginBottom: "8px",
-                        border: "1px solid #e0e0e0",
-                      }}
-                    >
-                      <span
-                        style={{
-                          display: "inline-block",
-                          width: "16px",
-                          height: "16px",
-                          borderRadius: "50%",
-                          backgroundColor: info.val,
-                          border: "1px solid #cccccc",
-                          verticalAlign: "middle",
-                          marginRight: "6px",
-                        }}
-                      ></span>
-                      {info.name && (
-                        <span
-                          style={{
-                            fontSize: "13px",
-                            color: "#666666",
-                            verticalAlign: "middle",
-                          }}
-                        >
-                          {info.name}
-                        </span>
-                      )}
-                    </div>
-                  ),
-                )}
-                <div style={{ marginTop: "12px" }}>
-                  <table
-                    cellPadding="0"
-                    cellSpacing="0"
-                    border={0}
-                    style={{ width: "100%" }}
-                  >
-                    <tbody>
-                      <tr>
-                        <td style={{ fontSize: "14px", color: "#666666" }}>
+
+                {/* Variant chips */}
+                <EmailVariantDetails details={data.details} />
+
+                {/* Price row */}
+                <table
+                  cellPadding="0"
+                  cellSpacing="0"
+                  border={0}
+                  style={{
+                    width: "100%",
+                    marginTop: "10px",
+                    borderTop: "1px solid #e0e0e0",
+                    paddingTop: "10px",
+                  }}
+                >
+                  <tbody>
+                    <tr>
+                      <td style={{ verticalAlign: "middle" }}>
+                        {/* Original price (strikethrough if discounted) */}
+                        {discount && (
                           <span
                             style={{
-                              textDecoration: isDiscount
-                                ? "line-through"
-                                : "none",
-                              color: isDiscount ? "#999999" : "#333333",
-                              marginRight: "8px",
+                              fontSize: "12px",
+                              color: "#aaaaaa",
+                              textDecoration: "line-through",
+                              marginRight: "6px",
                             }}
                           >
-                            ${data.price.price}
+                            ${basePrice}
                           </span>
-                          {isDiscount && (
-                            <>
-                              <span
-                                style={{
-                                  color: "#EB5757",
-                                  fontWeight: "600",
-                                  marginRight: "8px",
-                                  fontSize: "13px",
-                                }}
-                              >
-                                -{isDiscount.percent ?? 0}%
-                              </span>
-                              <span
-                                style={{
-                                  color: "#333333",
-                                  fontWeight: "600",
-                                  marginRight: "8px",
-                                }}
-                              >
-                                ${isDiscount.newprice?.toFixed(2)}
-                              </span>
-                            </>
-                          )}
-                          <span style={{ color: "#666666" }}>
-                            × {data.quantity}
+                        )}
+                        {/* Discount badge */}
+                        {discount && (
+                          <span
+                            style={{
+                              fontSize: "11px",
+                              fontWeight: "700",
+                              color: "#ffffff",
+                              backgroundColor: "#EB5757",
+                              padding: "2px 6px",
+                              borderRadius: "4px",
+                              marginRight: "6px",
+                            }}
+                          >
+                            -{discount.percent ?? 0}%
                           </span>
-                        </td>
-                        <td
+                        )}
+                        {/* Effective unit price */}
+                        <span
+                          style={{
+                            fontSize: "14px",
+                            fontWeight: "600",
+                            color: "#333333",
+                            marginRight: "4px",
+                          }}
+                        >
+                          ${effectivePrice}
+                        </span>
+                        <span style={{ fontSize: "13px", color: "#888888" }}>
+                          × {data.quantity}
+                        </span>
+                      </td>
+                      <td
+                        style={{ textAlign: "right", verticalAlign: "middle" }}
+                      >
+                        <span
                           style={{
                             fontSize: "16px",
-                            fontWeight: "700",
-                            color: "#333333",
-                            textAlign: "right",
+                            fontWeight: "800",
+                            color: "#0097FA",
                           }}
                         >
                           ${data.total.toFixed(2)}
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
+                        </span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
               </td>
             </tr>
           </tbody>

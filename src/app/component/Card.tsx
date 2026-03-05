@@ -1,10 +1,10 @@
 "use client";
+
 import Image, { StaticImageData } from "next/image";
 import PrimaryButton from "./Button";
-import "../globals.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTrash } from "@fortawesome/free-solid-svg-icons";
-import { useRef, useState, useCallback, useMemo, memo, useEffect } from "react";
+import { useRef, useState, useCallback, useMemo, memo } from "react";
 import { ImageWithLoader } from "./ImageWithLoader";
 import { PrimaryPhoto } from "./PhotoComponent";
 import { useGlobalContext } from "@/src/context/GlobalContext";
@@ -67,7 +67,6 @@ const Card = memo(function Card(props: cardprops) {
     setglobalindex,
     openmodal,
     setopenmodal,
-    globalindex,
     allData,
     setalldata,
   } = useGlobalContext();
@@ -76,8 +75,6 @@ const Card = memo(function Card(props: cardprops) {
     () => promotion.Products.find((i) => i.id === props.id),
     [promotion.Products, props.id],
   );
-  const [previewphoto, setpreviewphoto] = useState(false);
-  const [previewHover, setpreviewHover] = useState(false);
   const [hover, sethover] = useState(false);
   const { isMobile, isTablet } = useScreenSize();
 
@@ -165,7 +162,7 @@ const Card = memo(function Card(props: cardprops) {
     ],
   );
 
-  ///JSX CONDITIONS - Memoized for performance
+  // Condition
   const shouldShowCheckmark = useMemo(
     () => promotion.selectproduct && isProduct?.discount,
     [promotion.selectproduct, isProduct?.discount],
@@ -271,10 +268,6 @@ const Card = memo(function Card(props: cardprops) {
           onClick={() => {
             if (promotion.selectproduct) {
               handleSelectDiscount(props.id as number, "create");
-            } else if (!props.isAdmin) {
-              !previewHover &&
-                !previewphoto &&
-                route.push(`/product/detail/${props.id}`);
             }
           }}
           className="cardimage__container flex flex-col justify-center items-center relative w-full h-full bg-gray-50"
@@ -283,8 +276,6 @@ const Card = memo(function Card(props: cardprops) {
             showcount={false}
             data={props.img}
             hover={hover}
-            setPreviewHover={setpreviewHover}
-            setclick={setpreviewphoto}
             isMobile={isMobile}
             isTablet={isTablet}
           />
@@ -314,7 +305,10 @@ const Card = memo(function Card(props: cardprops) {
             )}
           </span>
         </div>
-        <div className="card_detail w-full h-fit font-semibold flex flex-col justify-center gap-y-3  pl-2 rounded-b-md text-sm">
+        <div
+          onClick={() => route.push(`/product/detail/${props.id}`)}
+          className="card_detail w-full h-fit font-semibold flex flex-col justify-center gap-y-3  pl-2 rounded-b-md text-sm"
+        >
           <p className="card_info w-full max-w-100 h-fit text-lg">
             {props.name.length > 0 ? props.name : "No Product Created"}
           </p>
@@ -388,124 +382,153 @@ export const Selecteddetailcard = ({
   </Chip>
 );
 
-export function SecondayCard(props: SecondayCardprops) {
+export const SecondayCard = memo(function SecondayCard(
+  props: SecondayCardprops,
+) {
   const [editqty, seteditqty] = useState(props.selectedqty);
   const [loading, setloading] = useState(false);
-  const price = parseFloat(props.price.price.toString()).toFixed(2);
 
-  useEffect(() => {
-    console.log("Props of Secondary Card", { props });
-  }, [props]);
+  const price = useMemo(
+    () => parseFloat(props.price.price.toString()).toFixed(2),
+    [props.price.price],
+  );
 
-  const showprice = () => {
-    const hasdiscount = (
-      <div className="w-fit h-full flex flex-row gap-x-5">
-        <h3 className="text-lg font-medium"> ${price} </h3>
-        <h3 className="text-lg font-bold text-red-500">
-          {" "}
-          {`- ${props.price.discount?.percent}%`}{" "}
-        </h3>
-        <h3 className="text-lg font-bold">
-          {" "}
-          {`$${parseFloat(
-            props.price.discount?.newprice?.toString() ?? `0.00`,
-          ).toFixed(2)}`}{" "}
-        </h3>
+  const priceDisplay = useMemo(() => {
+    if (!props.price.discount) {
+      return <span className="text-xl font-bold text-gray-900">${price}</span>;
+    }
+    const newPrice = parseFloat(
+      props.price.discount.newprice?.toString() ?? "0",
+    ).toFixed(2);
+    return (
+      <div className="flex flex-row items-center gap-x-3">
+        <span className="text-base font-medium text-gray-400 line-through">
+          ${price}
+        </span>
+        <span className="text-sm font-semibold text-red-500 bg-red-50 px-2 py-0.5 rounded-full">
+          -{props.price.discount.percent}%
+        </span>
+        <span className="text-xl font-bold text-gray-900">${newPrice}</span>
       </div>
     );
+  }, [price, props.price.discount]);
 
-    return !props.price.discount ? (
-      <h3 className="text-lg font-bold w-full h-full"> ${price} </h3>
-    ) : (
-      hasdiscount
-    );
-  };
+  const qtyOptions = useMemo(
+    () =>
+      Array.from({ length: props.maxqty ?? 0 }).map((_, idx) => ({
+        label: (idx + 1).toString(),
+        value: (idx + 1).toString(),
+      })),
+    [props.maxqty],
+  );
 
-  const handleEditQty = async (value: string) => {
-    //update cartitem
-    const val = parseInt(`${value}`);
-    setloading(true);
-    const updatereq = await ApiRequest(
-      "/api/order/cart",
-      undefined,
-      "PUT",
-      "JSON",
-      { id: props.id, qty: val },
-    );
-    setloading(false);
+  const handleEditQty = useCallback(
+    async (value: string) => {
+      const val = parseInt(`${value}`);
+      setloading(true);
+      const updatereq = await ApiRequest(
+        "/api/order/cart",
+        undefined,
+        "PUT",
+        "JSON",
+        { id: props.id, qty: val },
+      );
+      setloading(false);
 
-    if (!updatereq.success) {
-      errorToast("Can't update quantity");
-      return;
-    }
-    seteditqty(value !== "" ? val : 0);
-    props.setreloadcart(true);
-  };
+      if (!updatereq.success) {
+        errorToast("Can't update quantity");
+        return;
+      }
+      seteditqty(value !== "" ? val : 0);
+      props.setreloadcart(true);
+    },
+    [props.id, props.setreloadcart],
+  );
 
-  const handleDelete = async () => {
+  const handleDelete = useCallback(async () => {
     setloading(true);
     await props.removecart();
     setloading(false);
-  };
+  }, [props.removecart]);
+
   return (
-    <div className="w-full h-full flex flex-col items-end gap-y-5 p-2">
+    <div className="w-full flex flex-col gap-y-3 p-2">
       <div
         style={{ width: props.width }}
-        className="secondarycard__container flex flex-row items-center bg-[#F4FAFF] justify-between w-full gap-x-2 gap-y-3 relative max-small_phone:flex-col "
+        className="secondarycard__container group flex flex-row items-stretch bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-200 w-full overflow-hidden max-small_phone:flex-col"
       >
-        <Image
-          src={props.img}
-          alt="cover"
-          className="cardimage w-62.5 max-large_phone:w-50 h-auto object-contain rounded-lg"
-          width={600}
-          height={600}
-          quality={50}
-          loading="lazy"
-        />
-        <div className="product_detail flex flex-col items-start gap-y-5 w-full">
-          <div className="product_info flex flex-col gap-y-5 w-[90%] wrap-break-word">
-            <h3 className="text-lg font-bold w-fit"> {props.name}</h3>
-            {showprice()}
+        <div className="relative shrink-0 w-44 max-large_phone:w-32 max-small_phone:w-full max-small_phone:h-48 bg-gray-50">
+          <Image
+            src={props.img}
+            alt={props.name}
+            className="object-contain w-full h-full"
+            fill
+            sizes="(max-width: 480px) 100vw, (max-width: 768px) 128px, 176px"
+            quality={60}
+            loading="lazy"
+          />
+        </div>
+
+        {/* Content */}
+        <div className="flex flex-col justify-between gap-y-3 p-4 w-full min-w-0">
+          {/* Product info */}
+          <div className="flex flex-col gap-y-1 min-w-0">
+            <h3 className="text-base font-semibold text-gray-900 truncate">
+              {props.name}
+            </h3>
+            {priceDisplay}
           </div>
 
-          <div className="selecteddetails flex flex-row items-center flex-wrap gap-3 w-full h-fit max-h-50">
-            {props.selecteddetail?.map((selected, idx) => (
-              <Selecteddetailcard key={idx} text={selected} />
-            ))}
-          </div>
-          <div className="qty flex flex-col gap-y-1 w-50 max-large_phone:[10%] h-fit">
-            <label className="text-lg font-bold">Quantity</label>
-            <SelectionCustom
-              label="QTY"
-              placeholder="Select"
-              size="sm"
-              style={{ width: "150px" }}
-              value={editqty.toString()}
-              isLoading={loading}
-              onChange={(value) => handleEditQty(value as string)}
-              data={Array.from({ length: props.maxqty ?? 0 }).map((_, idx) => ({
-                label: (idx + 1).toString(),
-                value: (idx + 1).toString(),
-              }))}
-            />
+          {/* Selected Variants */}
+          {props.selecteddetail && props.selecteddetail.length > 0 && (
+            <div className="flex flex-row flex-wrap gap-2 max-h-24 overflow-y-auto">
+              {props.selecteddetail.map((selected, idx) => (
+                <Selecteddetailcard key={idx} text={selected} />
+              ))}
+            </div>
+          )}
+
+          {/* Quantity + Delete row */}
+          <div className="flex flex-row items-end justify-between gap-x-3 mt-auto">
+            <div className="flex flex-col gap-y-1">
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                Quantity
+              </label>
+              <SelectionCustom
+                label="QTY"
+                placeholder="Select"
+                size="sm"
+                style={{ width: "130px" }}
+                value={editqty.toString()}
+                isLoading={loading}
+                onChange={(value) => handleEditQty(value as string)}
+                data={qtyOptions}
+              />
+            </div>
+
+            <button
+              onClick={handleDelete}
+              disabled={loading}
+              aria-label="Remove item"
+              className="flex items-center justify-center w-9 h-9 rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50 active:scale-90 transition-all duration-150 disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+            >
+              <FontAwesomeIcon
+                icon={faTrash}
+                className={loading ? "animate-pulse" : ""}
+              />
+            </button>
           </div>
         </div>
-        <FontAwesomeIcon
-          onClick={() => handleDelete()}
-          icon={faTrash}
-          className={`absolute bottom-2 right-1 transition duration-300 active:text-white ${
-            loading ? "animate-spin" : ""
-          }`}
-        />
       </div>
+
       {props.action && (
-        <div className="actions w-[75%] flex flex-row items-center justify-start gap-x-5">
+        <div className="flex flex-row items-center gap-x-3 px-2">
           <PrimaryButton
             type="button"
             text="Returns"
-            width="20%"
-            height="30px"
-            radius="5px"
+            width="110px"
+            height="32px"
+            radius="8px"
             color="#0097FA"
             textcolor="white"
             hoverColor="black"
@@ -513,9 +536,9 @@ export function SecondayCard(props: SecondayCardprops) {
           <PrimaryButton
             type="button"
             text="Delete"
-            width="20%"
-            height="30px"
-            radius="5px"
+            width="110px"
+            height="32px"
+            radius="8px"
             color="#F08080"
             textcolor="white"
             hoverColor="black"
@@ -524,7 +547,7 @@ export function SecondayCard(props: SecondayCardprops) {
       )}
     </div>
   );
-}
+});
 
 export const CardSkeleton = () => {
   return (

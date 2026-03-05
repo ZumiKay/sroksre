@@ -188,13 +188,8 @@ export const authOptions: NextAuthOptions = {
         return { ...token, isExpired: true };
       }
 
-      // Force renewal when explicitly called via update() (e.g., from useCheckSession)
-      // Also renew if cexp is expired or expiring within 3 minutes
-      const needsRenewal =
-        trigger === "update" ||
-        (userToken.cexp && userToken.cexp * 1000 <= Date.now() + 3 * 60 * 1000);
-
-      if (needsRenewal) {
+      // Explicit update() call from useCheckSession — full session rotation
+      if (trigger === "update") {
         try {
           const dbSession = await Prisma.usersession.findUnique({
             where: { refresh_token_hash: hashToken(userToken.sessionid) },
@@ -214,23 +209,62 @@ export const authOptions: NextAuthOptions = {
             return { ...token, isExpired: true };
           }
 
-          // Generate new session ID and update with sliding expiration
+          // Rotate session ID on explicit renewal for security
           const newSessionId = await createUniqueSessionId();
           await Prisma.usersession.update({
             where: { refresh_token_hash: hashToken(userToken.sessionid) },
             data: {
               refresh_token_hash: hashToken(newSessionId),
               lastUsed: new Date(),
-              expireAt: generateExpirationDate(7, "days"), // Extend session by 7 days
+              expireAt: generateExpirationDate(7, "days"),
             },
           });
           return {
             ...token,
             sessionid: newSessionId,
-            cexp: generateExpiration(15, "minutes"), //access token exp
+            cexp: generateExpiration(15, "minutes"),
           };
         } catch (error) {
-          console.log("Token renewal error:", error);
+          console.log("Token rotation error:", error);
+          return { ...token, isExpired: true };
+        }
+      }
+
+      // Auto-check on normal requests: refresh cexp if expired/expiring WITHOUT rotating sessionid.
+      // This avoids a race condition where a concurrent update() call would look up the old
+      // sessionid after it had already been rotated by this path, producing isExpired: true.
+      const cexpNeedsRefresh =
+        userToken.cexp && userToken.cexp * 1000 <= Date.now() + 3 * 60 * 1000;
+
+      if (cexpNeedsRefresh) {
+        try {
+          const dbSession = await Prisma.usersession.findUnique({
+            where: { refresh_token_hash: hashToken(userToken.sessionid) },
+            select: { expireAt: true, revoked: true },
+          });
+
+          if (
+            !dbSession ||
+            dbSession.revoked ||
+            dbSession.expireAt <= new Date()
+          ) {
+            return { ...token, isExpired: true };
+          }
+
+          // Extend sliding expiration but keep the same sessionid to prevent race conditions
+          await Prisma.usersession.update({
+            where: { refresh_token_hash: hashToken(userToken.sessionid) },
+            data: {
+              lastUsed: new Date(),
+              expireAt: generateExpirationDate(7, "days"),
+            },
+          });
+          return {
+            ...token,
+            cexp: generateExpiration(15, "minutes"),
+          };
+        } catch (error) {
+          console.log("Token auto-refresh error:", error);
           return { ...token, isExpired: true };
         }
       }

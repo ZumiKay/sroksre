@@ -69,11 +69,10 @@ const useCheckSession = () => {
       try {
         const renewedSession = await update();
 
-        // Renewal failed or returned null/undefined
-        if (
-          (renewedSession?.expires && renewedSession.expires === "0") ||
-          !renewedSession
-        ) {
+        // Only sign out when the server explicitly marks the session as expired.
+        // A null/undefined response means the request failed transiently (e.g. server cold-start,
+        // network blip) — in that case keep the user logged in rather than force-logging them out.
+        if (renewedSession?.expires && renewedSession.expires === "0") {
           handleSignOut();
           return false;
         }

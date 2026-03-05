@@ -237,6 +237,8 @@ interface Selectcontainerprops {
   type: "TEXT" | "COLOR";
   onSelect: (value: string) => void;
   isSelected?: string;
+  /** When true, clicking an out-of-stock option is still allowed (used for optional variants) */
+  allowOutOfStock?: boolean;
 }
 const isSelectedStyle: CSSProperties = {
   outline: "2px solid black",
@@ -253,6 +255,8 @@ export const SelectContainer = (props: Selectcontainerprops) => {
           typeof i !== "string" &&
           i.qty !== undefined &&
           (typeof i.qty === "number" ? i.qty : parseInt(i.qty || "0")) <= 0;
+        // For optional variants, out-of-stock options are still clickable
+        const isClickable = !isOutOfStock || props.allowOutOfStock;
 
         return (
           <div key={idx} className="w-fit h-fit relative">
@@ -273,19 +277,21 @@ export const SelectContainer = (props: Selectcontainerprops) => {
                   ...(props.isSelected === i.val ? isSelectedStyle : {}),
                   ...(isOutOfStock
                     ? {
-                        opacity: 0.4,
-                        cursor: "not-allowed",
+                        opacity: props.allowOutOfStock ? 0.65 : 0.4,
+                        cursor: props.allowOutOfStock
+                          ? "pointer"
+                          : "not-allowed",
                         position: "relative",
                       }
                     : {}),
                 }}
                 onClick={() => {
-                  if (!isOutOfStock) {
+                  if (isClickable) {
                     props.onSelect(i.val);
                   }
                 }}
                 className={`w-fit h-fit flex flex-row gap-x-3 p-2 items-center rounded-lg ${
-                  isOutOfStock
+                  !isClickable
                     ? "cursor-not-allowed"
                     : "cursor-pointer hover:outline-2 hover:outline-solid hover:outline-gray-500 hover:outline-offset-2 active:outline-1 active:outline-solid active:outline-gray-300 active:outline-offset-2"
                 } justify-center`}

@@ -1,6 +1,13 @@
 "use client";
 
-import { CSSProperties, ReactNode, useEffect, useRef } from "react";
+import {
+  CSSProperties,
+  FormHTMLAttributes,
+  JSX,
+  ReactNode,
+  useEffect,
+  useRef,
+} from "react";
 import {
   GlobalIndexState,
   useGlobalContext,
@@ -110,6 +117,7 @@ interface SecondaryModalInterface {
   closebtn?: boolean;
   style?: CSSProperties;
   scroll?: "normal" | "inside" | "outside";
+  isForm?: FormHTMLAttributes<HTMLFormElement>;
   placement?:
     | "center"
     | "auto"
@@ -140,6 +148,7 @@ export function SecondaryModal({
   style,
   scroll,
   placement,
+  isForm,
 }: SecondaryModalInterface) {
   return (
     <Modals
@@ -163,8 +172,17 @@ export function SecondaryModal({
                 {header()}
               </ModalHeader>
             )}
-            <ModalBody className="overflow-y-auto">{children}</ModalBody>
-            {footer && <ModalFooter>{footer(onClose)}</ModalFooter>}
+            {isForm ? (
+              <form {...isForm}>
+                <ModalBody className="overflow-y-auto">{children}</ModalBody>
+                {footer && <ModalFooter>{footer(onClose)}</ModalFooter>}
+              </form>
+            ) : (
+              <>
+                <ModalBody className="overflow-y-auto">{children}</ModalBody>
+                {footer && <ModalFooter>{footer(onClose)}</ModalFooter>}
+              </>
+            )}
           </>
         )}
       </ModalContent>

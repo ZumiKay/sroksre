@@ -27,7 +27,6 @@ import {
   faFolderOpen,
   faFolderTree,
   faList,
-  faMinus,
   faMinusCircle,
   faPalette,
   faPen,
@@ -173,6 +172,7 @@ function ToggleMenu(props: ToggleMenuProps) {
                       <div className="flex flex-row items-center gap-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                         <button
                           onClick={() => handleEdit(index)}
+                          type="button"
                           className="px-3 py-1.5 rounded-lg bg-linear-to-r from-blue-500 to-indigo-600 text-white text-sm font-semibold transition-all duration-300 hover:from-blue-600 hover:to-indigo-700 hover:scale-105 shadow-md hover:shadow-lg flex items-center gap-1.5"
                         >
                           <FontAwesomeIcon icon={faPen} className="text-xs" />
@@ -180,6 +180,7 @@ function ToggleMenu(props: ToggleMenuProps) {
                         </button>
                         <button
                           onClick={() => handleDelete(index)}
+                          type="button"
                           className="px-3 py-1.5 rounded-lg bg-linear-to-r from-red-500 to-pink-600 text-white text-sm font-semibold transition-all duration-300 hover:from-red-600 hover:to-pink-700 hover:scale-105 shadow-md hover:shadow-lg flex items-center gap-1.5"
                         >
                           <FontAwesomeIcon icon={faTrash} className="text-xs" />
@@ -196,10 +197,8 @@ function ToggleMenu(props: ToggleMenuProps) {
   );
 }
 
-// Named export with memoization
 export const ToggleMenuComponent = React.memo(ToggleMenu);
 
-// Default export for backward compatibility
 export default ToggleMenuComponent;
 
 export interface ToggleDownMenuProps {
@@ -282,7 +281,7 @@ export const AddSubCategoryMenu = React.memo(function AddSubCategoryMenu({
         )}
       </div>
 
-      <div className="subcategory_list flex flex-row flex-wrap gap-3 p-4 place-content-start h-full max-h-[160px] overflow-y-auto bg-white rounded-xl border-2 border-gray-200 shadow-inner">
+      <div className="subcategory_list flex flex-row flex-wrap gap-3 p-4 place-content-start h-full max-h-40 overflow-y-auto bg-white rounded-xl border-2 border-gray-200 shadow-inner">
         {category.subcategories?.length === 0 ? (
           <div className="w-full h-20 flex items-center justify-center text-gray-400 text-sm">
             <div className="flex flex-col items-center gap-2">
@@ -298,7 +297,7 @@ export const AddSubCategoryMenu = React.memo(function AddSubCategoryMenu({
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.8, opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className={`subcategory relative text-sm font-bold p-3 rounded-xl w-fit h-fit max-w-[140px] wrap-break-word cursor-pointer transition-all duration-200 shadow-md hover:shadow-lg group ${
+              className={`subcategory relative text-sm font-bold p-3 rounded-xl w-fit h-fit max-w-35 wrap-break-word cursor-pointer transition-all duration-200 shadow-md hover:shadow-lg group ${
                 editIdx === index
                   ? "bg-linear-to-r from-indigo-500 to-purple-600 text-white scale-105"
                   : "bg-linear-to-r from-gray-50 to-gray-100 text-gray-800 hover:from-indigo-100 hover:to-purple-100"
@@ -474,8 +473,7 @@ export const ToggleSelect = React.memo(function ToggleSelect({
             selected.includes(typeof i === "string" ? i : i.val),
           ) && (
             <Button
-              onClick={(e) => {
-                e.stopPropagation();
+              onPress={() => {
                 onClear && onClear(data, selected, promo, type);
               }}
               size="sm"
@@ -490,7 +488,7 @@ export const ToggleSelect = React.memo(function ToggleSelect({
       </div>
 
       {open && (
-        <div className="w-full max-h-[200px] overflow-y-auto scrollbar-thin scrollbar-thumb-indigo-500 scrollbar-track-gray-200 bg-gray-50 p-2">
+        <div className="w-full max-h-50 overflow-y-auto scrollbar-thin scrollbar-thumb-indigo-500 scrollbar-track-gray-200 bg-gray-50 p-2">
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -505,7 +503,7 @@ export const ToggleSelect = React.memo(function ToggleSelect({
                 transition={{ duration: 0.2, delay: idx * 0.03 }}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className={`selectitem min-w-[50px] rounded-xl cursor-pointer w-fit h-fit wrap-break-word border-2 p-2 transition-all duration-300 shadow-xs hover:shadow-md ${
+                className={`selectitem min-w-12.5 rounded-xl cursor-pointer w-fit h-fit wrap-break-word border-2 p-2 transition-all duration-300 shadow-xs hover:shadow-md ${
                   selected?.includes(typeof i === "string" ? i : i.val)
                     ? "bg-linear-to-r from-indigo-500 to-purple-600 border-indigo-600 text-white scale-105"
                     : "bg-white border-gray-300 hover:border-indigo-400"
@@ -518,7 +516,7 @@ export const ToggleSelect = React.memo(function ToggleSelect({
                 {type === "color" && typeof i !== "string" ? (
                   <div className="w-fit h-fit flex flex-row gap-x-2 p-2 items-center justify-center rounded-lg">
                     <div
-                      className={`colorplattet w-[32px] h-[32px] rounded-full border-2 border-white shadow-md`}
+                      className={`colorplattet w-8 h-8 rounded-full border-2 border-white shadow-md`}
                       style={
                         i
                           ? {

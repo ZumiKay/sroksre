@@ -25,10 +25,10 @@ import {
   removeSpaceAndToLowerCase,
 } from "@/src/lib/utilities";
 import { OrderUserType } from "../../checkout/action";
-import { getCheckoutdata } from "../../checkout/page";
 import React, { Suspense, cache } from "react";
 import type { Metadata } from "next";
 import { Role } from "@/prisma/generated/prisma/enums";
+import { getCheckoutdata } from "../../checkout/fetchaction";
 
 export const metadata: Metadata = {
   title: "Order Management | SrokSre Dashboard",

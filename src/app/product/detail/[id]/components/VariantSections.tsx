@@ -138,16 +138,19 @@ export const ShowVariantSections = (props: VariantSectionProps) => {
         </div>
       )}
 
-      {/* Show stock/quantity selector */}
-      {prob.Stock && prob.Stock.length !== 0 ? (
+      {/* Show stock/quantity selector.
+           When there are no DB Stock records (no-stock-tracking products)
+           qty is auto-defaulted to 1 in fetchAndUpdateQuantity once all
+           required options are selected, so this naturally becomes visible.
+           "Product Unavailable" for a truly OOS combination is surfaced via
+           setmess → currentErrorMessage in OptionSection, not rendered here. */}
+      {qty > 0 ? (
         <StockSelector
           max={qty}
           errormess={errormess}
           setmess={setmess}
           isloading={isloading}
         />
-      ) : qty === 0 ? (
-        <ProductUnavailable />
       ) : null}
     </>
   );
