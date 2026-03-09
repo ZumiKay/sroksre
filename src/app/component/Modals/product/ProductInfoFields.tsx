@@ -1,7 +1,7 @@
 "use client";
 
 import { ChangeEvent } from "react";
-import { Input } from "@heroui/react";
+import { Input, Textarea } from "@heroui/react";
 import { useGlobalContext } from "@/src/context/GlobalContext";
 
 const inputClasses = {
@@ -38,8 +38,7 @@ export const ProductInfoFields = ({
         isDisabled={loading}
         classNames={inputClasses}
       />
-      <Input
-        type="text"
+      <Textarea
         label="Short Description"
         placeholder="Enter a brief description"
         labelPlacement="outside"
@@ -47,7 +46,8 @@ export const ProductInfoFields = ({
         onChange={handleChange}
         value={product.description}
         required
-        size="lg"
+        minRows={3}
+        maxRows={6}
         variant="bordered"
         isDisabled={loading}
         classNames={inputClasses}

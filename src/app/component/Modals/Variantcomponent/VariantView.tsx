@@ -74,6 +74,8 @@ export const VariantView: React.FC<VariantViewProps> = ({
     return variant?.sectionId === variantSectionId;
   };
 
+
+  /** Method for handle Selection Variant For Variant Section */
   const handleVariantToggle = (variantId: number, variant: Varianttype) => {
     // Don't allow selection if variant already belongs to any section
     const belongsToSection = getVariantSection(variant);

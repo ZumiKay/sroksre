@@ -1,10 +1,15 @@
 /**Create Seed For Product */
 
-import { ProductState } from "@/src/types/product.type";
 import {
+  ProductState,
   StockTypeEnum,
   ProductInfo,
   productcoverstype,
+  Varianttype,
+  VariantTypeEnum,
+  VariantValueObjType,
+  Stocktype,
+  VariantSectionType,
 } from "@/src/types/product.type";
 
 /**
@@ -320,6 +325,300 @@ export const createRandomNormalStockProduct = ({
     };
 
     products.push(product);
+  }
+
+  return products;
+};
+
+// ─── Shared seed fixtures ─────────────────────────────────────────────────────
+
+const SEED_COLORS: VariantValueObjType[] = [
+  { val: "#C62828", name: "Red" },
+  { val: "#1565C0", name: "Blue" },
+  { val: "#2E7D32", name: "Green" },
+  { val: "#212121", name: "Black" },
+  { val: "#F9A825", name: "Yellow" },
+  { val: "#6A1B9A", name: "Purple" },
+];
+
+const SEED_SIZES = ["XS", "S", "M", "L", "XL", "2XL"];
+
+// ─── Private seed helpers ─────────────────────────────────────────────────────
+
+/** Cartesian product: [["A","B"],["1","2"]] → [["A","1"],["A","2"],["B","1"],["B","2"]] */
+function cartesian(arrays: string[][]): string[][] {
+  return arrays.reduce<string[][]>(
+    (acc, arr) => acc.flatMap((combo) => arr.map((v) => [...combo, v])),
+    [[]],
+  );
+}
+
+/** Randomly pick `n` items from an array (without repeats). */
+function pick<T>(arr: T[], n: number): T[] {
+  return [...arr].sort(() => Math.random() - 0.5).slice(0, n);
+}
+
+/**
+ * Build one Stock entry whose Stockvalue rows cover every cartesian
+ * combination of the provided variant value lists.
+ */
+function buildVariantStock(variantValueLists: string[][]): Stocktype[] {
+  return [
+    {
+      qty: 0,
+      Stockvalue: cartesian(variantValueLists).map((combo) => ({
+        qty: Math.floor(Math.random() * 46) + 5, // 5–50
+        variant_val: combo,
+      })),
+    },
+  ];
+}
+
+function makeCovers(productName: string, count: number): productcoverstype[] {
+  return generateSimplePlaceholderSVGs(count).map((svg, idx) => ({
+    url: svg,
+    type: "image",
+    name: `${productName.replace(/\s+/g, "-").toLowerCase()}-${idx + 1}.svg`,
+    isSaved: true,
+  }));
+}
+
+function randomCategoryIndexes() {
+  const catIdx = Math.floor(Math.random() * defaultCategories.length);
+  const subIdx = Math.floor(
+    Math.random() * defaultCategories[catIdx].subcategories.length,
+  );
+  return { catIdx, subIdx };
+}
+
+// ─── Type 2: Variant stock ─────────────────────────────────────────────────────
+
+/**
+ * Products with COLOR + SIZE variants and auto-generated stock combinations.
+ * No price or qty overrides on the variants themselves.
+ */
+export const createVariantStockProduct = ({
+  count = 1,
+}: {
+  count?: number;
+}): Array<ProductState> => {
+  const products: ProductState[] = [];
+
+  for (let i = 0; i < count; i++) {
+    const { catIdx, subIdx } = randomCategoryIndexes();
+    const name = generateProductName(defaultCategories[catIdx].name);
+    const colors = pick(SEED_COLORS, 3);
+    const sizes = pick(SEED_SIZES, 3);
+
+    const Variant: Varianttype[] = [
+      {
+        option_title: "Color",
+        option_type: VariantTypeEnum.color,
+        option_value: colors,
+        optional: false,
+      },
+      {
+        option_title: "Size",
+        option_type: VariantTypeEnum.text,
+        option_value: sizes,
+        optional: false,
+      },
+    ];
+
+    products.push({
+      name,
+      price: parseFloat((Math.random() * 500 + 10).toFixed(2)),
+      description: generateDescription(name),
+      stocktype: StockTypeEnum.variants,
+      covers: makeCovers(name, Math.floor(Math.random() * 3) + 2),
+      category: { parent_id: catIdx + 1, child_id: subIdx + 1 },
+      details: generateProductDetails(),
+      Variant,
+      Stock: buildVariantStock([colors.map((c) => c.val), sizes]),
+      amount_sold: Math.floor(Math.random() * 50),
+      amount_incart: Math.floor(Math.random() * 10),
+      amount_wishlist: Math.floor(Math.random() * 20),
+    });
+  }
+
+  return products;
+};
+
+// ─── Type 3: Variant stock with price and qty ─────────────────────────────────
+
+/**
+ * Same as Type 2 but each variant carries a price add-on and a
+ * per-variant quantity cap.
+ */
+export const createVariantStockWithPriceQtyProduct = ({
+  count = 1,
+}: {
+  count?: number;
+}): Array<ProductState> => {
+  const products: ProductState[] = [];
+
+  for (let i = 0; i < count; i++) {
+    const { catIdx, subIdx } = randomCategoryIndexes();
+    const name = generateProductName(defaultCategories[catIdx].name);
+    const colors = pick(SEED_COLORS, 3);
+    const sizes = pick(SEED_SIZES, 3);
+
+    const Variant: Varianttype[] = [
+      {
+        option_title: "Color",
+        option_type: VariantTypeEnum.color,
+        option_value: colors,
+        optional: false,
+        price: parseFloat((Math.random() * 20).toFixed(2)),
+        qty: Math.floor(Math.random() * 46) + 5,
+      },
+      {
+        option_title: "Size",
+        option_type: VariantTypeEnum.text,
+        option_value: sizes,
+        optional: false,
+        price: parseFloat((Math.random() * 5).toFixed(2)),
+        qty: Math.floor(Math.random() * 46) + 5,
+      },
+    ];
+
+    products.push({
+      name,
+      price: parseFloat((Math.random() * 500 + 10).toFixed(2)),
+      description: generateDescription(name),
+      stocktype: StockTypeEnum.variants,
+      covers: makeCovers(name, Math.floor(Math.random() * 3) + 2),
+      category: { parent_id: catIdx + 1, child_id: subIdx + 1 },
+      details: generateProductDetails(),
+      Variant,
+      Stock: buildVariantStock([colors.map((c) => c.val), sizes]),
+      amount_sold: Math.floor(Math.random() * 50),
+      amount_incart: Math.floor(Math.random() * 10),
+      amount_wishlist: Math.floor(Math.random() * 20),
+    });
+  }
+
+  return products;
+};
+
+// ─── Type 4: Variant stock with section ───────────────────────────────────────
+
+/**
+ * Products where variants are grouped into named VariantSections.
+ * Section "Style" holds COLOR; Section "Size" holds TEXT.
+ * No price or qty overrides.
+ */
+export const createVariantWithSectionProduct = ({
+  count = 1,
+}: {
+  count?: number;
+}): Array<ProductState> => {
+  const products: ProductState[] = [];
+
+  for (let i = 0; i < count; i++) {
+    const { catIdx, subIdx } = randomCategoryIndexes();
+    const name = generateProductName(defaultCategories[catIdx].name);
+    const colors = pick(SEED_COLORS, 3);
+    const sizes = pick(SEED_SIZES, 3);
+
+    const colorVariant: Varianttype = {
+      option_title: "Color",
+      option_type: VariantTypeEnum.color,
+      option_value: colors,
+      optional: false,
+      sectionId: 1,
+    };
+    const sizeVariant: Varianttype = {
+      option_title: "Size",
+      option_type: VariantTypeEnum.text,
+      option_value: sizes,
+      optional: false,
+      sectionId: 2,
+    };
+
+    const Variantsection: VariantSectionType[] = [
+      { tempId: 1, name: "Style", Variants: [colorVariant] },
+      { tempId: 2, name: "Size", Variants: [sizeVariant] },
+    ];
+
+    products.push({
+      name,
+      price: parseFloat((Math.random() * 500 + 10).toFixed(2)),
+      description: generateDescription(name),
+      stocktype: StockTypeEnum.variants,
+      covers: makeCovers(name, Math.floor(Math.random() * 3) + 2),
+      category: { parent_id: catIdx + 1, child_id: subIdx + 1 },
+      details: generateProductDetails(),
+      Variant: [colorVariant, sizeVariant],
+      Variantsection,
+      Stock: buildVariantStock([colors.map((c) => c.val), sizes]),
+      amount_sold: Math.floor(Math.random() * 50),
+      amount_incart: Math.floor(Math.random() * 10),
+      amount_wishlist: Math.floor(Math.random() * 20),
+    });
+  }
+
+  return products;
+};
+
+// ─── Type 5: Variant stock with section, price and qty ────────────────────────
+
+/**
+ * Same as Type 4 but each variant also carries a price add-on and a
+ * per-variant quantity cap.
+ */
+export const createVariantWithSectionPriceQtyProduct = ({
+  count = 1,
+}: {
+  count?: number;
+}): Array<ProductState> => {
+  const products: ProductState[] = [];
+
+  for (let i = 0; i < count; i++) {
+    const { catIdx, subIdx } = randomCategoryIndexes();
+    const name = generateProductName(defaultCategories[catIdx].name);
+    const colors = pick(SEED_COLORS, 3);
+    const sizes = pick(SEED_SIZES, 3);
+
+    const colorVariant: Varianttype = {
+      option_title: "Color",
+      option_type: VariantTypeEnum.color,
+      option_value: colors,
+      optional: false,
+      price: parseFloat((Math.random() * 20).toFixed(2)),
+      qty: Math.floor(Math.random() * 46) + 5,
+      sectionId: 1,
+    };
+    const sizeVariant: Varianttype = {
+      option_title: "Size",
+      option_type: VariantTypeEnum.text,
+      option_value: sizes,
+      optional: false,
+      price: parseFloat((Math.random() * 5).toFixed(2)),
+      qty: Math.floor(Math.random() * 46) + 5,
+      sectionId: 2,
+    };
+
+    const Variantsection: VariantSectionType[] = [
+      { tempId: 1, name: "Style", Variants: [colorVariant] },
+      { tempId: 2, name: "Size", Variants: [sizeVariant] },
+    ];
+
+    products.push({
+      name,
+      price: parseFloat((Math.random() * 500 + 10).toFixed(2)),
+      description: generateDescription(name),
+      stocktype: StockTypeEnum.variants,
+      covers: makeCovers(name, Math.floor(Math.random() * 3) + 2),
+      category: { parent_id: catIdx + 1, child_id: subIdx + 1 },
+      details: generateProductDetails(),
+      Variant: [colorVariant, sizeVariant],
+      Variantsection,
+      Stock: buildVariantStock([colors.map((c) => c.val), sizes]),
+      amount_sold: Math.floor(Math.random() * 50),
+      amount_incart: Math.floor(Math.random() * 10),
+      amount_wishlist: Math.floor(Math.random() * 20),
+    });
   }
 
   return products;

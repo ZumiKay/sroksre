@@ -3,7 +3,124 @@
  */
 
 import Prisma from "@/src/lib/prisma";
-import { createRandomNormalStockProduct, getDefaultCategories } from "./index";
+import {
+  createRandomNormalStockProduct,
+  createVariantStockProduct,
+  createVariantStockWithPriceQtyProduct,
+  createVariantWithSectionProduct,
+  createVariantWithSectionPriceQtyProduct,
+  getDefaultCategories,
+} from "./index";
+import { ProductState } from "@/src/types/product.type";
+
+/**
+ * Write a single ProductState record (with all relations) to the database.
+ * Handles all 5 stock flavours: normal, variant, variant+price/qty,
+ * variant+section, and variant+section+price/qty.
+ */
+async function createProductInDb(
+  productData: ProductState,
+  parentCategoryId: number,
+  childCategoryId: number,
+): Promise<{ id: number; name: string }> {
+  const product = await Prisma.products.create({
+    data: {
+      name: productData.name,
+      price: productData.price,
+      description: productData.description,
+      stocktype: productData.stocktype,
+      stock: productData.stock ?? null,
+      parentcategory_id: parentCategoryId,
+      childcategory_id: childCategoryId,
+      amount_sold: productData.amount_sold,
+      amount_incart: productData.amount_incart,
+      amount_wishlist: productData.amount_wishlist,
+      covers: {
+        create: productData.covers.map((cover) => ({
+          url: cover.url,
+          name: cover.name,
+          type: cover.type,
+        })),
+      },
+      details: {
+        create: productData.details.map(
+          (detail) =>
+            ({
+              info_title: detail.info_title,
+              info_value: detail.info_value,
+              info_type: detail.info_type,
+            }) as never,
+        ),
+      },
+    },
+  });
+
+  // Variant sections — each section carries its own Variants list.
+  if (productData.Variantsection?.length) {
+    await Promise.all(
+      productData.Variantsection.map((section) =>
+        Prisma.variantSection.create({
+          data: {
+            name: section.name,
+            productsId: product.id,
+            Variants: {
+              createMany: {
+                data: (section.Variants ?? []).map((v) => ({
+                  option_title: v.option_title,
+                  option_type: v.option_type,
+                  option_value: v.option_value as never,
+                  optional: v.optional ?? false,
+                  product_id: product.id,
+                  price: v.price ?? null,
+                  qty: v.qty ?? null,
+                })),
+              },
+            },
+          },
+        }),
+      ),
+    );
+  }
+
+  // Standalone variants (not belonging to any section).
+  const standalone = (productData.Variant ?? []).filter((v) => !v.sectionId);
+  if (standalone.length > 0) {
+    await Prisma.variant.createMany({
+      data: standalone.map((v) => ({
+        product_id: product.id,
+        option_title: v.option_title,
+        option_type: v.option_type,
+        option_value: v.option_value as never,
+        optional: v.optional ?? false,
+        price: v.price ?? null,
+        qty: v.qty ?? null,
+      })),
+    });
+  }
+
+  // Stock entries with per-combination Stockvalue rows.
+  if (productData.Stock?.length) {
+    await Promise.all(
+      productData.Stock.map((stock) =>
+        Prisma.stock.create({
+          data: {
+            product_id: product.id,
+            Stockvalue: {
+              createMany: {
+                data: stock.Stockvalue.map((sv) => ({
+                  qty: sv.qty ?? 0,
+                  variant_val: sv.variant_val as never,
+                })),
+              },
+            },
+          },
+        }),
+      ),
+    );
+  }
+
+  return { id: product.id, name: product.name };
+}
 
 /**
  * Seed categories into the database
@@ -102,14 +219,26 @@ export async function seedProducts(
     throw new Error("No categories found. Please seed categories first.");
   }
 
-  // Generate product data
-  const products = createRandomNormalStockProduct({ count });
+  // Cycle through all 5 product types for even coverage.
+  const TYPE_LABELS = [
+    "Normal Stock",
+    "Variant Stock",
+    "Variant + Price & Qty",
+    "Variant + Section",
+    "Variant + Section (Price & Qty)",
+  ] as const;
+
+  const generators = [
+    () => createRandomNormalStockProduct({ count: 1 })[0],
+    () => createVariantStockProduct({ count: 1 })[0],
+    () => createVariantStockWithPriceQtyProduct({ count: 1 })[0],
+    () => createVariantWithSectionProduct({ count: 1 })[0],
+    () => createVariantWithSectionPriceQtyProduct({ count: 1 })[0],
+  ];
 
   let createdCount = 0;
 
-  // Create products in database
-  for (const productData of products) {
-    // Randomly select a category
+  for (let i = 0; i < count; i++) {
     const randomCategory =
       categories[Math.floor(Math.random() * categories.length)];
     const randomSubcategory =
@@ -117,42 +246,18 @@ export async function seedProducts(
         Math.floor(Math.random() * randomCategory.subcategories.length)
       ];
 
-    try {
-      const product = await Prisma.products.create({
-        data: {
-          name: productData.name,
-          price: productData.price,
-          description: productData.description,
-          stocktype: productData.stocktype,
-          stock: productData.stock,
-          parentcategory_id: randomCategory.parent.id,
-          childcategory_id: randomSubcategory.id,
-          amount_sold: productData.amount_sold,
-          amount_incart: productData.amount_incart,
-          amount_wishlist: productData.amount_wishlist,
-          covers: {
-            create: productData.covers.map((cover, idx) => ({
-              url: cover.url,
-              name: cover.name,
-              type: cover.type,
-            })),
-          },
-          details: {
-            create: productData.details.map(
-              (detail) =>
-                ({
-                  info_title: detail.info_title,
-                  info_value: detail.info_value,
-                  info_type: detail.info_type,
-                }) as never,
-            ),
-          },
-        },
-      });
+    const typeIndex = i % generators.length;
+    const productData = generators[typeIndex]();
 
+    try {
+      const created = await createProductInDb(
+        productData,
+        randomCategory.parent.id,
+        randomSubcategory.id,
+      );
       createdCount++;
       console.log(
-        `  ✅ Created product: ${product.name} (${randomCategory.parent.name} > ${randomSubcategory.name})`,
+        `  ✅ [${TYPE_LABELS[typeIndex]}] ${created.name} (${randomCategory.parent.name} > ${randomSubcategory.name})`,
       );
     } catch (error) {
       console.error(

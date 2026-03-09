@@ -159,32 +159,37 @@ export function Selection(props: selectprops) {
         } h-full p-2 bg-white`}
         onChange={props.onChange}
         required={props.required}
-        value={props.value}
+        value={props.value ?? ""}
         name={props.name}
       >
-        {props.default && (
+        {props.default ? (
           <option
             value={
               typeof props.defaultValue === "string"
                 ? (props.defaultValue?.toLowerCase() ?? "")
-                : props.defaultValue
+                : (props.defaultValue ?? "")
             }
           >
             {props.default}
           </option>
+        ) : (
+          <option value="">-- None --</option>
         )}
         {props.type
           ? (props.type === "category" && props.category
               ? props.category
               : (props.subcategory ?? [])
             ).map((obj) => (
-              <option key={obj.id} value={obj.id}>
+              <option key={obj.id ?? obj.name} value={obj.id ?? ""}>
                 {obj.name}{" "}
               </option>
             ))
           : props.data?.map((data, index) => (
-              <option key={index} value={data.value ? data.value : data}>
-                {data.label ? data.label : data}
+              <option
+                key={index}
+                value={data.value !== undefined ? data.value : data}
+              >
+                {data.label ?? data}
               </option>
             ))}
       </select>

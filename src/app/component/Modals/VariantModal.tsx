@@ -470,7 +470,7 @@ export const Variantcontainer = ({
       setproduct((prev) => ({
         ...prev,
         Variant: prev.Variant?.map((v) =>
-          (v.id ?? v.tempId) === variantId ? { ...v, sectionId: sectionId } : v,
+          (v.id ?? v.tempId) === variantId ? { ...v, sectionId } : v,
         ),
       }));
     },

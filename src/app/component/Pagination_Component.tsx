@@ -113,6 +113,8 @@ interface SelectionCustomProps {
   textplacement?: "outside" | "outside-left" | "inside";
   isLoading?: boolean;
   size?: "sm" | "md" | "lg";
+  defaultValue?: string;
+  popoverProps?: Record<string, unknown>;
 }
 
 export const SelectionCustom = ({
@@ -126,6 +128,7 @@ export const SelectionCustom = ({
   textplacement,
   isLoading,
   size,
+  popoverProps,
 }: SelectionCustomProps) => {
   return (
     <Select
@@ -135,16 +138,19 @@ export const SelectionCustom = ({
       value={value}
       size={size ?? "md"}
       labelPlacement={textplacement}
-      selectedKeys={value ? [value] : undefined}
+      selectedKeys={[
+        value !== undefined && value !== "" ? value.toString() : "",
+      ]}
       style={style}
       isLoading={!!isLoading}
+      popoverProps={popoverProps as any}
       onChange={(e) => {
         const { value } = e.target;
         setvalue && setvalue(value);
         onChange && onChange(IsNumber(value) ? parseInt(value) : value);
       }}
     >
-      {data.map((animal) => (
+      {[{ label: "-- None --", value: "" }, ...data].map((animal) => (
         <SelectItem key={animal.value.toString()}>{animal.label}</SelectItem>
       ))}
     </Select>

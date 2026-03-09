@@ -21,14 +21,14 @@ export function OptionSectionSkeleton() {
         {/* Quantity selector */}
         <div className="flex flex-col gap-y-3">
           <Skeleton className="w-24 h-6 rounded-lg" />
-          <Skeleton className="w-[200px] h-[50px] rounded-lg" />
+          <Skeleton className="w-50 h-12.5 rounded-lg" />
         </div>
       </div>
 
       {/* Buttons skeleton */}
       <div className="product_action w-full pt-2 flex flex-col items-center gap-y-2">
-        <Skeleton className="w-full h-[50px] rounded-lg" />
-        <Skeleton className="w-full h-[50px] rounded-lg" />
+        <Skeleton className="w-full h-12.5 rounded-lg" />
+        <Skeleton className="w-full h-12.5 rounded-lg" />
       </div>
     </div>
   );

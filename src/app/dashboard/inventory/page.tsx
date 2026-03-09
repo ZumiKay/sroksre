@@ -368,6 +368,15 @@ export default function Inventory() {
     [searchParam, filtervalue, router, handleCheckSession],
   );
 
+  const handleLowStockFilter = useCallback(() => {
+    const params = new URLSearchParams(searchParam);
+    params.set("status", "Low");
+    params.set("p", "1");
+    setfiltervalue((prev) => ({ ...prev, status: "Low" }));
+    router.push(`?${params}`, { scroll: false });
+    setreloaddata(true);
+  }, [searchParam, router]);
+
   // ── Multi-select helpers ──────────────────────────────────────────────────
   const exitSelectMode = useCallback(() => {
     setIsSelectMode(false);
@@ -691,6 +700,7 @@ export default function Inventory() {
             expiredAt={expiredate ? dayjs(expiredate).toISOString() : undefined}
             type={ty}
             expired={expired}
+            param={filtervalue}
             reloadData={() => setreloaddata(true)}
             setfilterdata={setfiltervalue as any}
             isSetPromotion={promotion.selectproduct}
@@ -724,6 +734,7 @@ export default function Inventory() {
               onFilterClick={() =>
                 setopenmodal((prev) => ({ ...prev, filteroption: true }))
               }
+              onLowStockClick={handleLowStockFilter}
               onDiscountClick={() =>
                 setopenmodal((prev) => ({ ...prev, discount: true }))
               }
@@ -742,8 +753,10 @@ export default function Inventory() {
             transition={{ duration: 0.5, delay: 0.2 }}
             className={`productlist w-[95%] max-smallest_phone:w-full h-fit mt-10 ${
               viewMode === "card"
-                ? `grid grid-cols-3 max-small_screen:grid-cols-2 gap-x-5 gap-y-32 max-small_phone:gap-x-0 max-smallest_tablet:grid-cols-1 ${
-                    type === "product" ? "max-smallest_tablet:grid-cols-2 " : ""
+                ? `grid grid-cols-3 max-small_screen:grid-cols-2 gap-x-5 gap-y-5 max-small_phone:gap-x-2 max-smallest_tablet:grid-cols-1 ${
+                    type === "product"
+                      ? "max-smallest_tablet:grid-cols-2 max-large_phone:grid-cols-1"
+                      : ""
                   } place-items-center place-content-center`
                 : "flex flex-col gap-4"
             }`}

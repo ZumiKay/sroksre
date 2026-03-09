@@ -81,7 +81,10 @@ export const useSectionManagement = ({
           ...prev,
           Variant: prev.Variant?.map((variant) =>
             variant.sectionId === tempVariantSectionId
-              ? { ...variant, sectionId: newVariantSection.id }
+              ? {
+                  ...variant,
+                  sectionId: newVariantSection.id ?? newVariantSection.tempId,
+                }
               : variant,
           ), //Assign created SectionId to selected variant
           Variantsection: prev.Variantsection
@@ -93,6 +96,7 @@ export const useSectionManagement = ({
     setSectionName("");
     // Increment tempVariantSectionId for next section creation
     settempVariantSectionId(tempVariantSectionId + 1);
+    //Auto close success message
     setTimeout(() => setSuccessMessage(""), 3000);
   }, [
     currentVariants,

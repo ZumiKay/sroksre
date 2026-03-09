@@ -3,6 +3,7 @@ import Prisma from "@/src/lib/prisma";
 import { handleUpload, HandleUploadBody } from "@vercel/blob/client";
 import { getUser } from "@/src/lib/session";
 import { del } from "@vercel/blob";
+import { DeleteImageTempForCurrentUser } from "./helper/Cleanup";
 
 interface DataCoverType {
   url: string;
@@ -32,8 +33,7 @@ export async function POST(request: Request) {
           throw new Error("Unauthorized");
         }
 
-        //Save To Temp DB
-
+        //Save To Temp DB For Clean up
         await Prisma.tempimage.create({
           data: {
             name: pathname,
@@ -66,7 +66,7 @@ export async function POST(request: Request) {
 }
 interface DeleteCoverData {
   covers: Array<DataCoverType>;
-  type: "createproduct" | "createbanner" | "createpromotion";
+  type: "createproduct" | "createbanner" | "createpromotion" | "cleanuptemp";
 }
 
 export async function DELETE(request: NextRequest) {
@@ -96,10 +96,19 @@ export async function DELETE(request: NextRequest) {
       }
     } else if (data.type === "createbanner") {
       await Promise.all(data.covers.map((i) => del(i.url)));
+    } else if (data.type === "cleanuptemp") {
+      //
+      const cleanupReq = await DeleteImageTempForCurrentUser(true);
+      if (!cleanupReq?.success) {
+        return Response.json({ message: "Error Occured" }, { status: 500 });
+      }
     }
     return Response.json({ message: "Image Deleted" }, { status: 200 });
   } catch (error) {
     console.log("Delete Cover", error);
-    return Response.json({ message: "Failed To Delete Cover=" });
+    return Response.json(
+      { message: "Failed To Delete Cover" },
+      { status: 500 },
+    );
   }
 }

@@ -1,3 +1,4 @@
+import { ApiRequest } from "@/src/context/CustomHook";
 import { IsNumber } from "@/src/lib/utilities";
 
 export interface ProductParam {
@@ -145,4 +146,21 @@ export const getPageTitle = (
 
   const parts = [parentCateName, childCateName].filter(Boolean);
   return parts.join(" - ") || "";
+};
+
+export const CleanUpTempImage = async () => {
+  const delReq = await ApiRequest(
+    "/api/products/cover",
+    undefined,
+    "DELETE",
+    "JSON",
+    {
+      type: "cleanuptemp",
+    },
+  );
+  if (!delReq.success) {
+    throw Error("Error Occured");
+  }
+
+  return true;
 };

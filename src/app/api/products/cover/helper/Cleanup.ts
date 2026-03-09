@@ -4,12 +4,15 @@ import { getUser } from "@/src/lib/session";
 import Prisma from "@/src/lib/prisma";
 import { del } from "@vercel/blob";
 
-/**Clean up image temp */
-
+/**Clean up image temp
+ * @description Delete Temp Image Of User which also included Tempimage, product cover, and cloud storage
+ * @param delStorage
+ */
 export const DeleteImageTempForCurrentUser = async (delStorage?: boolean) => {
   const user = await getUser();
   if (!user) return null;
 
+  //Delete process
   try {
     const deletedRecords = await Prisma.$transaction(async (tx) => {
       const records = await tx.tempimage.findMany({
@@ -26,7 +29,11 @@ export const DeleteImageTempForCurrentUser = async (delStorage?: boolean) => {
       return records;
     });
 
-    if (deletedRecords.length === 0) return null;
+    if (deletedRecords.length === 0)
+      return {
+        success: true,
+        deletedCount: 0,
+      };
 
     let storageCleanup = true;
     if (delStorage) {

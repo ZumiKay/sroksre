@@ -207,11 +207,11 @@ model Productcover {
 
 model Tempimage {
   id      Int    @id @default(autoincrement())
-  name    String
+  name    String @unique
   user_id Int
   user    User   @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
-  @@index([user_id])
+  @@index([user_id, name])
 }
 
 model Producttype {

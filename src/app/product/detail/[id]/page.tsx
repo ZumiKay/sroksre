@@ -20,6 +20,7 @@ import {
   RelatedProductSkeleton,
   SimilarProductCardSkeleton,
 } from "./LoadingSkeleton";
+import { ProductCoverImage } from "./ProductCoverImage";
 import { Relatedproducttype } from "@/src/types/product.type";
 import { Orderpricetype } from "@/src/types/order.type";
 
@@ -98,20 +99,11 @@ export default async function ProductDetailPage({
         <div className="w-full h-fit overflow-x-auto">
           <div className="w-full grid grid-cols-2 gap-3 max-small_screen:flex max-small_screen:flex-row max-small_screen:justify-start max-small_screen:items-center">
             {data?.data.covers.map((img, idx) => (
-              <Image
+              <ProductCoverImage
                 key={idx}
                 src={img.url}
                 alt={`${data.data.name} - Image ${idx + 1}`}
-                className="w-100 h-125 object-cover rounded-lg
-                max-medium_screen:w-87.5 max-medium_screen:h-112.5
-                "
-                width={400}
-                height={500}
-                priority={idx === 0} // Load first image with priority
-                loading={idx === 0 ? undefined : "lazy"}
-                quality={85}
-                placeholder="blur"
-                blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mN8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=="
+                priority={idx === 0}
               />
             ))}
           </div>

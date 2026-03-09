@@ -76,6 +76,7 @@ export const FilterMenu = ({
   totalproduct,
   categories,
   expiredAt,
+  name,
   param,
   setisFilter,
   expired,
@@ -96,13 +97,17 @@ export const FilterMenu = ({
   const [filtervalue, setfilter] = useState<FilterValue>({
     parentcate: categories?.parentid ?? undefined,
     childcate: categories?.childid ?? undefined,
-    name: param?.name,
-    expiredate: expiredAt ? dayjs(expiredAt).toISOString() : undefined,
-    bannersize: param?.bannersize ?? undefined,
-    bannertype: param?.bannertype ?? undefined,
-    search: param?.search,
-    status: param?.status,
-    expired: expired,
+    name: name ?? param?.name ?? "",
+    expiredate: expiredAt
+      ? dayjs(expiredAt).toISOString()
+      : param?.expiredate
+        ? dayjs(param.expiredate).toISOString()
+        : undefined,
+    bannersize: param?.bannersize ?? "",
+    bannertype: param?.bannertype ?? "",
+    search: param?.search ?? "",
+    status: param?.status ?? "",
+    expired: expired ?? param?.expired ?? "",
     promoids: param?.promoids?.split(",").map((i) => parseInt(i, 10)),
   });
 

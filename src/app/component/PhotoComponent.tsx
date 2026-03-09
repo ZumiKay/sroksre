@@ -11,6 +11,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import "../globals.css";
 import Image from "next/image";
+import { Skeleton } from "@heroui/react";
 
 interface Primaryphotoprops {
   data: {
@@ -171,17 +172,7 @@ export const PrimaryPhoto = (props: Primaryphotoprops) => {
             >
               {/* Loading Skeleton */}
               {isImageLoading?.[obj.url] && (
-                <div className="absolute inset-0 flex items-center justify-center bg-linear-to-br from-gray-100 to-gray-200 rounded-lg">
-                  <div className="flex flex-col items-center gap-3">
-                    <div className="relative">
-                      <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-300 border-t-blue-500"></div>
-                      <div className="absolute inset-0 rounded-full bg-blue-50 opacity-20 animate-pulse"></div>
-                    </div>
-                    <span className="text-sm text-gray-600 font-medium animate-pulse">
-                      Loading image...
-                    </span>
-                  </div>
-                </div>
+                <Skeleton className="absolute inset-0 rounded-lg" />
               )}
 
               {/* Image with fade-in animation */}

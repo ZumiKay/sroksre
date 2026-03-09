@@ -153,14 +153,11 @@ export const OptionSection = ({
     return hasQty || hasDetails;
   }, [productorderdetail]);
 
-  // Compute the appropriate error message based on current state
   const currentErrorMessage = useMemo(() => {
-    // Prioritize explicit error messages from errormess state
     if (errormess?.qty || errormess?.option) {
       return errormess.qty || errormess.option || "";
     }
 
-    // Fall back to computed validation messages
     const { stocktype } = data;
     const { details, quantity } = productorderdetail ?? {};
     const hasQty = quantity && quantity > 0;
@@ -201,7 +198,7 @@ export const OptionSection = ({
           </button>
         )}
       </div>
-      <div className="w-full h-fit overflow-x-hidden overflow-y-auto flex flex-col gap-y-5 pl-2">
+      <div className="w-full h-fit overflow-x-hidden overflow-y-auto flex flex-col gap-y-5 pl-2 pb-5">
         {data.Variantsection && data.Variantsection.length > 0 ? (
           <ShowVariantSections
             prob={data}

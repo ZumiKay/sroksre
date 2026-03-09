@@ -32,6 +32,7 @@ interface InventoryHeaderProps {
   viewMode: "card" | "list";
   onFilterChange: (value: string) => void;
   onFilterClick: () => void;
+  onLowStockClick: () => void;
   onDiscountClick: () => void;
   onAddBannerClick: () => void;
   onDoneClick: () => void;
@@ -65,6 +66,7 @@ export const InventoryHeader: React.FC<InventoryHeaderProps> = ({
   viewMode,
   onFilterChange,
   onFilterClick,
+  onLowStockClick,
   onDiscountClick,
   onAddBannerClick,
   onDoneClick,
@@ -114,6 +116,7 @@ export const InventoryHeader: React.FC<InventoryHeaderProps> = ({
               label="Low"
               value={lowstock}
               gradient="from-red-500 to-pink-600"
+              onClick={onLowStockClick}
             />
           )}
 
@@ -197,9 +200,14 @@ const StatBadge: React.FC<{
   label: string;
   value: number;
   gradient: string;
-}> = ({ icon, label, value, gradient }) => (
+  onClick?: () => void;
+}> = ({ icon, label, value, gradient, onClick }) => (
   <div
-    className={`shrink-0 flex items-center gap-1.5 md:gap-2 px-2.5 md:px-4 py-1.5 md:py-2.5 bg-linear-to-r ${gradient} text-white rounded-lg md:rounded-xl shadow-md hover:shadow-lg transition-all`}
+    role={onClick ? "button" : undefined}
+    onClick={onClick}
+    className={`shrink-0 flex items-center gap-1.5 md:gap-2 px-2.5 md:px-4 py-1.5 md:py-2.5 bg-linear-to-r ${gradient} text-white rounded-lg md:rounded-xl shadow-md hover:shadow-lg transition-all ${
+      onClick ? "cursor-pointer hover:scale-105 active:scale-95" : ""
+    }`}
   >
     <FontAwesomeIcon icon={icon} className={`text-sm md:text-lg`} />
     <span className="font-bold text-xs md:text-sm whitespace-nowrap">

@@ -10,7 +10,7 @@ import {
 import { errorToast } from "../Loading";
 import { SecondaryModal } from "../Modals";
 import { CirclePicker, ChromePicker } from "react-color";
-import { Button, Input } from "@heroui/react";
+import { Button, Chip, Input } from "@heroui/react";
 import { HasPartialOverlap } from "@/src/lib/utilities";
 import { ApiRequest, useScreenSize } from "@/src/context/CustomHook";
 import Multiselect from "../MutiSelect";
@@ -815,7 +815,17 @@ export const ColorSelectModal = React.memo(
                   className="w-full h-full transition-transform duration-300 group-hover:scale-110"
                   style={{ backgroundColor: color.hex }}
                 ></div>
-                <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-300">
+                <Chip
+                  className="absolute top-1"
+                  hidden={!color.hex}
+                  title={color.hex}
+                  size="sm"
+                >
+                  {color.hex}
+                </Chip>
+                <div
+                  className={`absolute inset-0 flex items-center justify-center bg-opacity-0 ${color.hex ? `bg-[${color.hex}]` : ""} group-hover:bg-opacity-30 transition-all duration-300`}
+                >
                   <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 shadow-lg">
                     <svg
                       className="w-7 h-7 text-blue-600"

@@ -51,40 +51,36 @@ export async function GET(request: NextRequest) {
       ty,
       limit,
       q,
-      pc,
-      sk,
-      cc,
-      p,
-      pid,
-      po,
-      dc,
-      ds,
-      dt,
-      vr,
-      vs,
-      sp,
-      pids,
+      pc: parent_cate,
+      sk: stock,
+      cc: child_cate,
+      p: page,
+      pid: promotionid,
+      po: priceOrder,
+      dc: detailColor,
+      dt: detailText,
+      sp: selectPromotion,
+      pids: promotionIds,
     } = extractQueryParams(url) as unknown as paramsType;
 
-    const productId = pid ? parseInt(pid, 10) : undefined;
+    const productId = promotionid ? parseInt(promotionid, 10) : undefined;
 
     let response;
     if (ty === "all" || ty === "filter" || ty === "detail") {
       const allProduct = await GetAllProduct(
         limit,
         ty,
-        p as number,
+        page as number,
         q,
-        pc,
-        sk,
-        cc,
+        parent_cate,
+        stock,
+        child_cate,
         productId,
-        po,
-        dc,
-        ds,
-        dt,
-        sp,
-        pids?.toString(),
+        priceOrder,
+        detailColor,
+        detailText,
+        selectPromotion,
+        promotionIds?.toString(),
       );
 
       const total = await Prisma.products.count();
@@ -109,8 +105,8 @@ export async function GET(request: NextRequest) {
     } else if (ty === "getfilval") {
       const allfilter = await Prisma.products.findMany({
         where: {
-          parentcategory_id: pc,
-          childcategory_id: cc,
+          parentcategory_id: parent_cate,
+          childcategory_id: child_cate,
         },
         select: {
           Variant: true,

@@ -216,13 +216,13 @@ export type TempimageOrderByWithRelationInput = {
 
 export type TempimageWhereUniqueInput = Prisma.AtLeast<{
   id?: number
+  name?: string
   AND?: Prisma.TempimageWhereInput | Prisma.TempimageWhereInput[]
   OR?: Prisma.TempimageWhereInput[]
   NOT?: Prisma.TempimageWhereInput | Prisma.TempimageWhereInput[]
-  name?: Prisma.StringFilter<"Tempimage"> | string
   user_id?: Prisma.IntFilter<"Tempimage"> | number
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
-}, "id">
+}, "id" | "name">
 
 export type TempimageOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
