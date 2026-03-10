@@ -233,6 +233,7 @@ export const PrimaryPhoto = (props: Primaryphotoprops) => {
                 handlePhotoPreview(false);
               }}
               onClick={() => handleClick("left")}
+              type="button"
               className="absolute top-1/2 -translate-y-1/2 left-2 z-10
                 w-10 h-10 flex items-center justify-center
                 bg-white/90 hover:bg-white
@@ -260,6 +261,7 @@ export const PrimaryPhoto = (props: Primaryphotoprops) => {
                 handlePhotoPreview(false);
               }}
               onClick={() => handleClick("right")}
+              type="button"
               className="absolute top-1/2 -translate-y-1/2 right-2 z-10
                 w-10 h-10 flex items-center justify-center
                 bg-white/90 hover:bg-white

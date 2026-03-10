@@ -40,7 +40,7 @@ async function HomeContent() {
 
   if (!items || items.length === 0) {
     return (
-      <div className="w-full min-h-[400px] flex flex-col items-center justify-center gap-4 p-8">
+      <div className="w-full min-h-100 flex flex-col items-center justify-center gap-4 p-8">
         <svg
           className="w-20 h-20 text-gray-300"
           fill="none"

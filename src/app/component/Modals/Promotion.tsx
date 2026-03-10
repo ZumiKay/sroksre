@@ -1,10 +1,12 @@
-import { ApiRequest, useEffectOnce } from "@/src/context/CustomHook";
+"use client";
+
+import { ApiRequest } from "@/src/context/CustomHook";
 import {
   PromotionInitialize,
   useGlobalContext,
 } from "@/src/context/GlobalContext";
 import { useRouter, useSearchParams } from "next/navigation";
-import React, { ChangeEvent, FormEvent, useEffect, useState } from "react";
+import React, { ChangeEvent, SubmitEvent, useEffect, useState } from "react";
 import { BlurLoading, errorToast, infoToast, successToast } from "../Loading";
 import { SecondaryModal } from "../Modals";
 import { motion } from "framer-motion";
@@ -86,7 +88,7 @@ export const CreatePromotionModal = ({
     }
   }, []);
 
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     const param = new URLSearchParams(searchParams);
     const promo = { ...promotion };
@@ -209,6 +211,55 @@ export const CreatePromotionModal = ({
       open={openmodal.createPromotion}
       size="xl"
       placement="top"
+      isForm={{
+        className:
+          "promotionform w-full h-full flex flex-col justify-start items-start gap-y-5 overflow-y-auto pr-2",
+        onSubmit: handleSubmit,
+      }}
+      footer={() => (
+        <div className="w-full bg-linear-to-r from-white to-orange-50 px-5 py-4 flex flex-row gap-3 border-t border-orange-200 shadow-[0_-4px_12px_rgba(0,0,0,0.05)]">
+          <button
+            type="submit"
+            disabled={isLoading.POST || isLoading.PUT}
+            className={`relative w-full h-11 rounded-xl p-3 font-bold text-sm transition-all duration-200 flex items-center justify-center gap-2 overflow-hidden ${
+              isLoading.POST || isLoading.PUT
+                ? "bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200"
+                : "bg-linear-to-br from-orange-500 to-rose-500 text-white shadow-md shadow-orange-200 hover:shadow-lg hover:shadow-orange-300 hover:scale-[1.02] active:scale-[0.98]"
+            }`}
+          >
+            {isLoading.POST || isLoading.PUT ? (
+              <>
+                <FontAwesomeIcon icon={faSpinner} spin className="text-xs" />
+                <span>
+                  {globalindex.promotioneditindex === -1
+                    ? "Creating..."
+                    : "Updating..."}
+                </span>
+              </>
+            ) : (
+              <>
+                <FontAwesomeIcon icon={faCheck} className="text-xs" />
+                <span>
+                  {globalindex.promotioneditindex === -1 ? "Create" : "Update"}
+                </span>
+              </>
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={() => handleCancel()}
+            disabled={isLoading.POST || isLoading.PUT}
+            className={`w-full h-11 rounded-xl p-5 font-bold text-sm transition-all duration-200 flex items-center justify-center gap-2 border ${
+              isLoading.POST || isLoading.PUT
+                ? "bg-gray-100 text-gray-400 cursor-not-allowed border-gray-200"
+                : "bg-white text-gray-600 border-gray-300 hover:border-red-400 hover:text-red-500 hover:bg-red-50 hover:shadow-sm active:scale-[0.98]"
+            }`}
+          >
+            <FontAwesomeIcon icon={faTimes} className="text-xs" />
+            <span>Cancel</span>
+          </button>
+        </div>
+      )}
     >
       {loading && <BlurLoading />}
       <motion.div
@@ -231,10 +282,7 @@ export const CreatePromotionModal = ({
           </p>
         </div>
 
-        <form
-          onSubmit={handleSubmit}
-          className="promotionform w-full h-full flex flex-col justify-start items-start gap-y-5 overflow-y-auto pr-2"
-        >
+        <div className="w-full h-fit flex flex-col gap-y-5 items-center">
           <div className="w-full bg-white rounded-xl p-5 border-2 border-gray-200 shadow-xs space-y-4">
             <div className="flex items-center gap-2 mb-3">
               <FontAwesomeIcon
@@ -284,6 +332,7 @@ export const CreatePromotionModal = ({
               sx={{ width: "100%", height: "56px" }}
             />
           </div>
+
           <div className="w-full bg-linear-to-br from-blue-50 to-indigo-50 rounded-xl p-5 border-2 border-blue-200">
             <div className="flex items-center gap-3">
               <FontAwesomeIcon
@@ -328,51 +377,7 @@ export const CreatePromotionModal = ({
                 : "Select Product"}
             </span>
           </button>
-          <div className="w-full h-fit flex flex-row gap-4 pt-4 border-t-2 border-orange-200">
-            <button
-              type="submit"
-              disabled={isLoading.POST || isLoading.PUT}
-              className={`w-full h-14 rounded-xl font-bold text-base transition-all duration-300 shadow-lg flex items-center justify-center gap-2 ${
-                isLoading.POST || isLoading.PUT
-                  ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                  : "bg-linear-to-r from-green-500 to-emerald-600 text-white hover:from-green-600 hover:to-emerald-700 hover:shadow-xl hover:scale-[1.02]"
-              }`}
-            >
-              {isLoading.POST || isLoading.PUT ? (
-                <>
-                  <FontAwesomeIcon icon={faSpinner} spin />
-                  <span>
-                    {globalindex.promotioneditindex === -1
-                      ? "Creating..."
-                      : "Updating..."}
-                  </span>
-                </>
-              ) : (
-                <>
-                  <FontAwesomeIcon icon={faCheck} />
-                  <span>
-                    {globalindex.promotioneditindex === -1
-                      ? "Create Promotion"
-                      : "Update Promotion"}
-                  </span>
-                </>
-              )}
-            </button>
-            <button
-              type="button"
-              onClick={() => handleCancel()}
-              disabled={isLoading.POST || isLoading.PUT}
-              className={`w-full h-14 rounded-xl font-bold text-base transition-all duration-300 shadow-lg flex items-center justify-center gap-2 ${
-                isLoading.POST || isLoading.PUT
-                  ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                  : "bg-linear-to-r from-pink-500 to-red-600 text-white hover:from-pink-600 hover:to-red-700 hover:shadow-xl hover:scale-[1.02]"
-              }`}
-            >
-              <FontAwesomeIcon icon={faTimes} />
-              <span>Cancel</span>
-            </button>
-          </div>
-        </form>
+        </div>
       </motion.div>
       {openmodal.imageupload && (
         <ImageUpload
@@ -401,7 +406,7 @@ export const DiscountModals = ({
   } = useGlobalContext();
   const [discount, setdiscount] = useState<number>(0);
 
-  useEffectOnce(() => {
+  useEffect(() => {
     if (globalindex.promotionproductedit !== -1) {
       const idx = promotion.Products.findIndex(
         (i) => i.id === globalindex.promotionproductedit,
@@ -410,9 +415,9 @@ export const DiscountModals = ({
       const percent = promo?.percent;
       setdiscount(percent ?? 0);
     }
-  });
+  }, []);
 
-  const handleDiscount = (e: FormEvent<HTMLFormElement>) => {
+  const handleDiscount = (e: SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     let promoproduct = [...promotion.Products];
     let allproduct = [...(allData?.product ?? [])];

@@ -5,7 +5,7 @@ import {
 } from "@/src/context/GlobalContext";
 import { errorToast } from "../Loading";
 import {
-  FormEvent,
+  SubmitEvent,
   useEffect,
   useState,
   useCallback,
@@ -359,7 +359,7 @@ export const Variantcontainer = ({
   );
 
   const handleUpdateVariantOption = useCallback(
-    (e: FormEvent<HTMLFormElement>) => {
+    (e: SubmitEvent<HTMLFormElement>) => {
       e.preventDefault();
       const existingTextOptions =
         product.Variant?.filter((v) => v.option_type === "TEXT").flatMap(

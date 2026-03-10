@@ -1,7 +1,7 @@
 "use client";
 import {
   CSSProperties,
-  FormEvent,
+  SubmitEvent,
   ReactNode,
   useCallback,
   useEffect,
@@ -235,7 +235,7 @@ export const AddSubCategoryMenu = React.memo(function AddSubCategoryMenu({
     index !== -1 && allData?.category && setcategory(allData.category[index]);
   }, []);
 
-  const handleAdd = (e: FormEvent) => {
+  const handleAdd = (e: SubmitEvent) => {
     e.preventDefault();
     const updatecate = [...category.subcategories];
     const isExist = updatecate.some((i) => i.name === name);

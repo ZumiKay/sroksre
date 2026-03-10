@@ -22,11 +22,7 @@ import {
   getProductForBanner,
   getPromotionForBanner,
 } from "../../severactions/actions";
-import {
-  ApiRequest,
-  useEffectOnce,
-  useScreenSize,
-} from "@/src/context/CustomHook";
+import { ApiRequest, useEffectOnce } from "@/src/context/CustomHook";
 import { errorToast, successToast } from "../Loading";
 import { SecondaryModal } from "../Modals";
 import PrimaryButton, { Selection } from "../Button";
@@ -202,6 +198,7 @@ export const BannerModal = memo(function BannerModal({
       }
       setbanner(BannerInitialize);
     } else {
+      setloading(false);
       errorToast("Image is required");
     }
   }, [
@@ -215,7 +212,7 @@ export const BannerModal = memo(function BannerModal({
   ]);
 
   const handleChange = useCallback(
-    (event: ChangeEvent<any>) => {
+    (event: ChangeEvent<HTMLSelectElement | HTMLInputElement>) => {
       const { name, value } = event.target;
 
       if (name === "type" || name === "linktype") {
@@ -302,14 +299,14 @@ export const BannerModal = memo(function BannerModal({
             </div>
             <div
               style={banner.size === "normal" ? { width: "100%" } : {}}
-              className="flex flex-col w-full max-w-[80%] max-large_phone:max-w-full max-h-[80vh] min-h-[250px] rounded-2xl overflow-hidden border-2 border-gray-200 shadow-lg bg-white"
+              className="flex flex-col w-full max-w-[80%] max-large_phone:max-w-full max-h-[80vh] min-h-62.5 rounded-2xl overflow-hidden border-2 border-gray-200 shadow-lg bg-white"
             >
               <ImageWithLoader
                 src={banner.image.url}
                 alt={"Banner"}
                 width={600}
                 height={300}
-                className="w-full min-h-[250px] object-cover"
+                className="w-full min-h-62.5 object-cover"
                 containerClassName="w-full h-full"
                 loading="lazy"
                 quality={75}
@@ -401,17 +398,13 @@ export const BannerModal = memo(function BannerModal({
                   Link Type
                 </label>
                 <Selection
-                  data={useMemo(
-                    () =>
-                      Linktype.filter((i) => {
-                        if (banner.type === "product") {
-                          return i.value === "product";
-                        } else {
-                          return i.value !== "product";
-                        }
-                      }),
-                    [banner.type, Linktype],
-                  )}
+                  data={Linktype.filter((i) => {
+                    if (banner.type === "product") {
+                      return i.value === "product";
+                    } else {
+                      return i.value !== "product";
+                    }
+                  })}
                   name="linktype"
                   value={banner.linktype}
                   onChange={handleChange}
@@ -430,7 +423,7 @@ export const BannerModal = memo(function BannerModal({
                 Parent Category
               </label>
               <SelectAndSearchProduct
-                getdata={(take, value) => getCategory("parent", value, 0)}
+                getdata={(_, value) => getCategory("parent", value, 0)}
                 onSelect={(value) => handleSelectProduct("parentcate", value)}
                 value={banner.parentcate ? [banner.parentcate] : undefined}
                 placeholder="Select Parent Category"
@@ -466,7 +459,7 @@ export const BannerModal = memo(function BannerModal({
                     Child Category
                   </label>
                   <SelectAndSearchProduct
-                    getdata={(take, value) =>
+                    getdata={(_, value) =>
                       getCategory(
                         "child",
                         value,

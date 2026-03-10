@@ -19,7 +19,7 @@ interface VariantInfoEditorProps {
   setOpen: React.Dispatch<React.SetStateAction<ModalOpenState>>;
   setNew: React.Dispatch<React.SetStateAction<any>>;
   onColorSelect: (idx: number, selectType: "color" | "text") => void;
-  onUpdateOption: (e: React.FormEvent<HTMLFormElement>) => void;
+  onUpdateOption: (e: React.SubmitEvent<HTMLFormElement>) => void;
   onCreate: ({
     setloading,
   }: {

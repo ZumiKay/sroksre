@@ -364,7 +364,9 @@ export const SelectAndSearchProduct = ({
                       }`}
                     >
                       {!singleselect && selected
-                        ? (selectedIndex as number) + 1
+                        ? selectedIndex !== undefined && selectedIndex !== -1
+                          ? selectedIndex + 1
+                          : "✓"
                         : selected
                           ? "✓"
                           : ""}
@@ -394,6 +396,7 @@ export const SelectAndSearchProduct = ({
               >
                 <button
                   onClick={loadMore}
+                  type="button"
                   className="w-full h-10 rounded-lg font-semibold text-sm bg-linear-to-r from-teal-500 to-cyan-600 text-white hover:from-teal-600 hover:to-cyan-700 transition-all duration-200 shadow-md hover:shadow-lg"
                 >
                   Load More

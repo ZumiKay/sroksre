@@ -16,12 +16,12 @@ import PrimaryButton from "../Button";
 export const BannerSkeleton = () => {
   return (
     <Card
-      className="w-[350px] h-[270px] space-y-5 p-4 max-small_phone:w-[275px] bg-linear-to-br from-gray-100 to-gray-200 border border-gray-200 shadow-lg"
+      className="w-87.5 h-67.5 space-y-5 p-4 max-small_phone:w-68.75 bg-linear-to-br from-gray-100 to-gray-200 border border-gray-200 shadow-lg"
       style={{ backgroundColor: "transparent" }}
       radius="lg"
     >
       <Skeleton className="rounded-xl">
-        <div className="h-[200px] rounded-xl bg-linear-to-r from-gray-200 via-gray-300 to-gray-200 animate-pulse"></div>
+        <div className="h-50 rounded-xl bg-linear-to-r from-gray-200 via-gray-300 to-gray-200 animate-pulse"></div>
       </Skeleton>
       <div className="space-y-3">
         <Skeleton className="w-4/5 rounded-lg">
@@ -84,14 +84,14 @@ export const SlideShow = (props: bannerprops) => {
       setCurrentSlide((prev) => (prev + 1) % props.data.length);
     } else {
       setCurrentSlide((prev) =>
-        prev === 0 ? props.data.length - 1 : prev - 1
+        prev === 0 ? props.data.length - 1 : prev - 1,
       );
     }
   };
 
   return (
     <div className="banner__container w-full h-fit relative overflow-x-hidden shadow-2xl">
-      <div className="w-full h-auto max-h-[95vh] min-h-[500px] relative overflow-hidden">
+      <div className="w-full h-auto max-h-[95vh] min-h-125 relative overflow-hidden">
         <AnimatePresence initial={false} mode="wait">
           {props.data.map(
             (data, idx) =>
@@ -104,7 +104,7 @@ export const SlideShow = (props: bannerprops) => {
                     transition={{ duration: 1.2, ease: "easeOut" }}
                     alt={data.name}
                     src={data.img}
-                    className="w-full h-auto min-h-[500px] object-cover relative"
+                    className="w-full h-auto min-h-125 object-cover relative"
                     width={1000}
                     height={1000}
                     loading="lazy"
@@ -122,22 +122,22 @@ export const SlideShow = (props: bannerprops) => {
                     onClick={() =>
                       data.link && (window.location.href = data.link)
                     }
-                    className="title w-full h-[200px] max-small_phone:text-3xl cursor-pointer text-5xl text-white font-bold absolute top-[70%] left-5 drop-shadow-2xl hover:text-blue-300 transition-colors duration-300"
+                    className="title w-full h-50 max-small_phone:text-3xl cursor-pointer text-5xl text-white font-bold absolute top-[70%] left-5 drop-shadow-2xl hover:text-blue-300 transition-colors duration-300"
                   >
                     {data.name}
                   </motion.h3>
                 </div>
-              )
+              ),
           )}
         </AnimatePresence>
       </div>
 
-      <div className="control_item h-fit min-h-[60px] w-full flex flex-row justify-between items-center bg-linear-to-r from-gray-800 via-gray-700 to-gray-800 flex-wrap px-4 py-2 shadow-lg">
+      <div className="control_item h-fit min-h-15 w-full flex flex-row justify-between items-center bg-linear-to-r from-gray-800 via-gray-700 to-gray-800 flex-wrap px-4 py-2 shadow-lg">
         {props.data[currentSlide].link && (
           <Button
             className="bg-linear-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold max-w-md rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
             size="lg"
-            onClick={() =>
+            onPress={() =>
               router.replace(props.data[currentSlide].link as string)
             }
           >
@@ -164,10 +164,10 @@ export const SlideShow = (props: bannerprops) => {
             <div
               key={idx}
               onClick={() => handleIndicatorClick(idx)}
-              className="w-[50px] h-[50px] flex flex-col justify-center cursor-pointer group"
+              className="w-12.5 h-12.5 flex flex-col justify-center cursor-pointer group"
             >
               <Image
-                className={`object-cover w-[44px] h-[44px] rounded-lg transition-all duration-300 ${
+                className={`object-cover w-11 h-11 rounded-lg transition-all duration-300 ${
                   currentSlide === idx
                     ? "border-3 border-blue-400 ring-2 ring-blue-300 ring-offset-2 ring-offset-gray-800 shadow-lg scale-110"
                     : "border-2 border-gray-600 opacity-60 hover:opacity-100 hover:border-gray-400 hover:scale-105"
@@ -182,7 +182,7 @@ export const SlideShow = (props: bannerprops) => {
                   initial={{ width: 0 }}
                   animate={{ width: "44px" }}
                   transition={{ duration: 10, ease: "linear" }}
-                  className="h-[3px] bg-linear-to-r from-blue-400 via-blue-500 to-blue-400 rounded-full shadow-lg mt-1"
+                  className="h-0.75 bg-linear-to-r from-blue-400 via-blue-500 to-blue-400 rounded-full shadow-lg mt-1"
                 ></motion.span>
               )}
             </div>
@@ -213,7 +213,7 @@ export const SlideShow = (props: bannerprops) => {
         className="w-fit h-fit absolute top-[45%] cursor-pointer right-4 transition-all opacity-70 hover:scale-110 hover:opacity-100 active:scale-95 z-10"
         onClick={() => handleNavigate("next")}
       >
-        <div className="arrow text-[28px] grid place-content-center bg-linear-to-br from-gray-900 to-black backdrop-blur-xs border-2 border-white/30 w-[60px] h-[60px] rounded-full text-white shadow-2xl hover:shadow-blue-500/50 transition-all duration-300 hover:border-blue-400">
+        <div className="arrow text-[28px] grid place-content-center bg-linear-to-br from-gray-900 to-black backdrop-blur-xs border-2 border-white/30 w-15 h-15 rounded-full text-white shadow-2xl hover:shadow-blue-500/50 transition-all duration-300 hover:border-blue-400">
           <svg
             className="w-6 h-6"
             fill="none"
@@ -246,32 +246,54 @@ interface Categorycardprops {
 const CategoryCard = (props: Categorycardprops) => {
   const router = useRouter();
   return (
-    <div
+    <motion.div
       key={props.data.name}
-      className="cate_card w-[500px] h-[700px] max-smallest_tablet:w-full rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-500 group cursor-pointer"
+      initial={{ opacity: 0, y: 30 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-60px" }}
+      transition={{ duration: 0.6, ease: "easeOut" }}
+      className="cate_card relative w-85 max-smallest_tablet:w-full rounded-3xl overflow-hidden shadow-xl hover:shadow-2xl transition-shadow duration-500 group cursor-pointer select-none"
       onClick={() => props.data.link && router.push(props.data.link)}
     >
-      <div className="relative h-[600px] overflow-hidden">
+      {/* Image */}
+      <div className="relative h-115 overflow-hidden">
         <motion.img
-          initial={{ left: "-20px", opacity: 0.8 }}
-          whileInView={{ left: 0, opacity: 1 }}
-          transition={{ duration: 1, ease: "easeOut" }}
-          className="w-full h-[600px] object-cover relative transition-transform duration-700 group-hover:scale-110"
+          initial={{ scale: 1.08, opacity: 0 }}
+          whileInView={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 0.9, ease: "easeOut" }}
+          className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
           src={props.data.image.url}
           alt={props.data.image.name}
-          width={"auto"}
-          height={"auto"}
           loading="lazy"
         />
-        {/* Gradient overlay */}
-        <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+        <div className="absolute inset-0 bg-linear-to-t from-black/75 via-black/20 to-transparent" />
+
+        <div className="absolute bottom-0 left-0 right-0 px-6 pb-6 flex items-end justify-between gap-3">
+          <h3 className="text-2xl font-extrabold text-white leading-tight drop-shadow-md translate-y-1 group-hover:translate-y-0 transition-transform duration-300">
+            {props.data.name}
+          </h3>
+          <span className="shrink-0 w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 flex items-center justify-center opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0 transition-all duration-300 shadow-lg">
+            <svg
+              className="w-5 h-5 text-white"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2.5}
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M9 5l7 7-7 7"
+              />
+            </svg>
+          </span>
+        </div>
       </div>
-      <div className="name text-[32px] grid place-content-center font-bold text-white w-full min-h-[100px] h-fit bg-linear-to-r from-gray-800 via-gray-700 to-gray-800 p-4 text-center group-hover:bg-linear-to-r group-hover:from-blue-600 group-hover:via-blue-700 group-hover:to-blue-600 transition-all duration-500">
-        <span className="group-hover:scale-110 transition-transform duration-300">
-          {props.data.name}
-        </span>
+
+      <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-3xl">
+        <div className="absolute -inset-full top-0 h-full w-1/3 bg-linear-to-r from-transparent via-white/10 to-transparent skew-x-[-20deg] -translate-x-full group-hover:translate-x-[350%] transition-transform duration-700 ease-in-out" />
       </div>
-    </div>
+    </motion.div>
   );
 };
 
@@ -288,8 +310,6 @@ interface CategoryContainerProps {
 }
 
 export const CategoryContainer = ({ name, data }: CategoryContainerProps) => {
-  const router = useRouter();
-
   return (
     <div key={name} className="w-full h-fit">
       <h3 className="title w-full h-fit text-4xl text-left bg-linear-to-r from-gray-900 via-gray-800 to-gray-900 bg-clip-text text-transparent font-black mb-8 flex items-center gap-3">
@@ -297,7 +317,7 @@ export const CategoryContainer = ({ name, data }: CategoryContainerProps) => {
         {name}
       </h3>
 
-      <div className="categories mt-8 w-full h-fit flex flex-row flex-wrap justify-center gap-20">
+      <div className="categories mt-8 w-full h-fit flex flex-row flex-wrap justify-center gap-8">
         {data.map((cate, idx) => (
           <CategoryCard
             key={idx}
@@ -432,7 +452,7 @@ export const ProductCard = (props: ProductCardProps) => {
           </div>
         ) : (
           <h3 className="font-bold text-2xl w-full h-fit text-blue-600">{`$${props.price.price.toFixed(
-            2
+            2,
           )}`}</h3>
         )}
       </div>

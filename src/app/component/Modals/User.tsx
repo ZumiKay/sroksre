@@ -1,5 +1,5 @@
 import { useGlobalContext, Userinitialize } from "@/src/context/GlobalContext";
-import React, { ChangeEvent, FormEvent, useEffect, useState } from "react";
+import React, { ChangeEvent, SubmitEvent, useEffect, useState } from "react";
 import { errorToast, successToast } from "../Loading";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -54,7 +54,7 @@ export const Createusermodal = ({
     }
   }, []);
 
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     const editindex = globalindex.useredit;
 

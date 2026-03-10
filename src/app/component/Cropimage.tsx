@@ -90,6 +90,7 @@ export default function CropImage({
   index,
   type,
   open,
+  bannerSubtype,
 }: {
   open: boolean;
   img: string;
@@ -99,9 +100,10 @@ export default function CropImage({
   imgurl: Imgurl[];
   setimgurl: Dispatch<SetStateAction<Imgurl[]>>;
   setfile: Dispatch<SetStateAction<File[]>>;
-
   Files: File[];
   type: "createproduct" | "createbanner" | "createpromotion";
+  /** Banner size ("small" | "normal" | undefined for large/hero) — only used when type is "createbanner" */
+  bannerSubtype?: string;
 }) {
   const previewCanvasRef = useRef<HTMLCanvasElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
@@ -115,18 +117,40 @@ export default function CropImage({
   const [imageLoading, setImageLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
 
-  // Get recommended ratios based on type
+  // Get recommended ratios based on type (and banner sub-type when applicable)
   const getRecommendedRatios = useCallback(() => {
-    switch (type) {
-      case "createbanner":
+    if (type === "createbanner") {
+      if (bannerSubtype === "small") {
+        // Small banners: compact / square formats
+        return [
+          { label: "1:1 (Recommended)", value: 1, recommended: true },
+          { label: "4:3 (Recommended)", value: 4 / 3, recommended: true },
+          { label: "3:4", value: 3 / 4 },
+          { label: "16:9", value: 16 / 9 },
+          { label: "4:5", value: 4 / 5 },
+        ];
+      } else if (bannerSubtype === "normal") {
+        // Normal banners: standard web formats
         return [
           { label: "16:9 (Recommended)", value: 16 / 9, recommended: true },
-          { label: "21:9 (Ultrawide)", value: 21 / 9, recommended: true },
-          { label: "3:1 (Hero Banner)", value: 3 / 1, recommended: true },
+          { label: "4:3 (Recommended)", value: 4 / 3, recommended: true },
           { label: "16:10", value: 16 / 10 },
-          { label: "4:3", value: 4 / 3 },
+          { label: "3:2", value: 3 / 2 },
           { label: "1:1", value: 1 },
         ];
+      } else {
+        // Large / hero banners: wide cinematic formats
+        return [
+          { label: "3:1 (Recommended)", value: 3 / 1, recommended: true },
+          { label: "21:9 (Recommended)", value: 21 / 9, recommended: true },
+          { label: "16:9 (Recommended)", value: 16 / 9, recommended: true },
+          { label: "16:10", value: 16 / 10 },
+          { label: "4:3", value: 4 / 3 },
+        ];
+      }
+    }
+
+    switch (type) {
       case "createproduct":
         return [
           { label: "1:1 (Recommended)", value: 1, recommended: true },
@@ -152,7 +176,7 @@ export default function CropImage({
           { label: "1:1", value: 1 },
         ];
     }
-  }, [type]);
+  }, [type, bannerSubtype]);
 
   const apsectratio = getRecommendedRatios();
 
@@ -495,7 +519,12 @@ export default function CropImage({
               <div className="flex-1">
                 <h4 className="text-base font-bold text-gray-800 mb-2">
                   {type === "createproduct" && "Product Image Guidelines"}
-                  {type === "createbanner" && "Banner Image Guidelines"}
+                  {type === "createbanner" &&
+                    (bannerSubtype === "small"
+                      ? "Small Banner Guidelines"
+                      : bannerSubtype === "normal"
+                        ? "Normal Banner Guidelines"
+                        : "Large / Hero Banner Guidelines")}
                   {type === "createpromotion" && "Promotion Image Guidelines"}
                 </h4>
                 <div className="text-sm text-gray-700 space-y-1">
@@ -514,22 +543,54 @@ export default function CropImage({
                       </p>
                     </>
                   )}
-                  {type === "createbanner" && (
+                  {type === "createbanner" && bannerSubtype === "small" && (
                     <>
                       <p>
-                        • <strong>16:9 (Wide)</strong> - Standard for website
-                        headers and sliders
+                        • <strong>1:1 (Square)</strong> - Best fit for compact
+                        sidebar or inline banners
+                      </p>
+                      <p>
+                        • <strong>4:3</strong> - Slightly wider, still compact
+                        and clean
+                      </p>
+                      <p className="text-gray-600 italic mt-2">
+                        Keep the image tight — small banners don't need wide
+                        formats
+                      </p>
+                    </>
+                  )}
+                  {type === "createbanner" && bannerSubtype === "normal" && (
+                    <>
+                      <p>
+                        • <strong>16:9</strong> - Standard for website headers
+                        and sliders
+                      </p>
+                      <p>
+                        • <strong>4:3</strong> - Classic format, works across
+                        most layouts
+                      </p>
+                      <p className="text-gray-600 italic mt-2">
+                        16:9 ensures full coverage on desktop and mobile
+                      </p>
+                    </>
+                  )}
+                  {type === "createbanner" && !bannerSubtype && (
+                    <>
+                      <p>
+                        • <strong>3:1 (Hero Banner)</strong> - Large homepage
+                        full-width banners
                       </p>
                       <p>
                         • <strong>21:9 (Ultrawide)</strong> - Modern widescreen
-                        displays
+                        hero sections
                       </p>
                       <p>
-                        • <strong>3:1 (Hero Banner)</strong> - Large homepage
-                        banners
+                        • <strong>16:9 (Wide)</strong> - Safe wide format for
+                        all screens
                       </p>
                       <p className="text-gray-600 italic mt-2">
-                        Wide formats ensure full coverage on all screen sizes
+                        Wide formats ensure full coverage across all screen
+                        sizes
                       </p>
                     </>
                   )}

@@ -26,6 +26,7 @@ import Bell from "../../../public/Image/whitebell.svg";
 import {
   CSSProperties,
   forwardRef,
+  memo,
   useCallback,
   useEffect,
   useRef,
@@ -258,11 +259,7 @@ export default function Navbar({
         </AnimatePresence>
 
         {openmodal?.homecontainer && (
-          <Homecontainermodal
-            setprofile={setprofile}
-            isTablet={isTablet}
-            isPhone={isMobile}
-          />
+          <Homecontainermodal setprofile={setprofile} isPhone={isMobile} />
         )}
 
         <AnimatePresence>
@@ -529,74 +526,131 @@ enum actiontype {
   DELETE = "DELETE",
 }
 
-export const SubInventoryMenu = (props: Subinventorymenuprops) => {
-  const {
-    openmodal,
-    setopenmodal,
-    setglobalindex,
-    setproduct,
-    setbanner,
-    setpromotion,
-  } = useGlobalContext();
+const DROPDOWN_CLASSNAMES = {
+  base: "before:bg-white/10",
+  content:
+    "p-1.5 border border-gray-200 bg-white/95 backdrop-blur-xl shadow-xl rounded-xl",
+};
 
-  const handleClick = (obj: { value: string; opencon: string }) => {
-    const index = props.index as number;
+const ITEM_CLASSES = {
+  base: [
+    "rounded-lg",
+    "text-xs md:text-sm",
+    "transition-all",
+    "duration-200",
+    "data-[hover=true]:bg-linear-to-r",
+    "data-[hover=true]:from-indigo-50",
+    "data-[hover=true]:via-purple-50",
+    "data-[hover=true]:to-blue-50",
+    "data-[hover=true]:text-indigo-700",
+    "data-[hover=true]:scale-[1.02]",
+    "data-[hover=true]:shadow-xs",
+    "py-2.5 md:py-3",
+    "px-3 md:px-4",
+    "my-0.5",
+    "cursor-pointer",
+  ],
+};
 
-    if (
-      props.type === "product" ||
-      props.type === "banner" ||
-      props.type === "promotion"
-    ) {
-      if (obj.value === actiontype.EDIT) {
-        setglobalindex((previndex) => ({
-          ...previndex,
-          [props.type === "product"
-            ? "producteditindex"
-            : props.type === "banner"
-              ? "bannereditindex"
-              : "promotioneditindex"]: index,
-        }));
-        setopenmodal({ ...openmodal, [obj.opencon as string]: true });
-      } else if (obj.value === actiontype.STOCK && props.stockaction) {
-        props.stocktype?.includes("stock") &&
-          setproduct((prev) => ({ ...prev, stock: props.stock, id: index }));
-        props.stockaction();
-      } else {
-        setopenmodal((prev) => ({
-          ...prev,
-          confirmmodal: {
-            ...prev.confirmmodal,
-            index: index,
-            type: props.type,
-            open: true,
-            onDelete: () => {
-              props.reloaddata && props.reloaddata();
+const TRIGGER_STYLE_TYPE: CSSProperties = { minWidth: "20px" };
+
+const BUTTON_CLASS_TYPE =
+  "group relative overflow-hidden font-bold transition-all duration-300 bg-linear-to-br from-white to-gray-50 hover:from-gray-50 hover:to-gray-100 text-gray-700 border-2 border-gray-300 hover:border-indigo-500 hover:shadow-lg hover:shadow-indigo-100 min-w-9 md:min-w-11 h-9 md:h-11 px-1.5 md:px-2.5 shadow-md hover:scale-105 active:scale-95 rounded-xl md:rounded-2xl before:absolute before:inset-0 before:bg-linear-to-r before:from-transparent before:via-white/20 before:to-transparent before:translate-x-[-200%] hover:before:translate-x-[200%] before:transition-transform before:duration-700";
+
+const BUTTON_CLASS_CREATE =
+  "group relative overflow-hidden font-bold transition-all duration-300 bg-linear-to-br from-green-500 via-emerald-500 to-teal-600 hover:from-green-600 hover:via-emerald-600 hover:to-teal-700 text-white shadow-lg hover:shadow-2xl hover:shadow-emerald-500/50 hover:scale-105 active:scale-95 min-w-27.5 md:min-w-35 h-9 md:h-11 text-xs md:text-sm rounded-xl md:rounded-2xl before:absolute before:inset-0 before:bg-linear-to-r before:from-transparent before:via-white/20 before:to-transparent before:translate-x-[-200%] hover:before:translate-x-[200%] before:transition-transform before:duration-700";
+
+const ICON_MAP: Record<string, any> = {
+  Product: faBox,
+  Category: faFolder,
+  Banner: faImage,
+  Promotion: faTags,
+  Edit: faPenToSquare,
+  Stock: faBoxesStacked,
+  DELETE: faTrashCan,
+};
+
+const COLOR_MAP: Record<string, string> = {
+  Product: "text-blue-600",
+  Category: "text-purple-600",
+  Banner: "text-green-600",
+  Promotion: "text-orange-600",
+  Edit: "text-blue-600",
+  Stock: "text-emerald-600",
+  DELETE: "text-red-600",
+};
+
+export const SubInventoryMenu = memo((props: Subinventorymenuprops) => {
+  const { setopenmodal, setglobalindex, setproduct, setbanner, setpromotion } =
+    useGlobalContext();
+
+  const handleClick = useCallback(
+    (obj: { value: string; opencon: string }) => {
+      const index = props.index as number;
+
+      if (
+        props.type === "product" ||
+        props.type === "banner" ||
+        props.type === "promotion"
+      ) {
+        if (obj.value === actiontype.EDIT) {
+          setglobalindex((previndex) => ({
+            ...previndex,
+            [props.type === "product"
+              ? "producteditindex"
+              : props.type === "banner"
+                ? "bannereditindex"
+                : "promotioneditindex"]: index,
+          }));
+          setopenmodal((prev) => ({ ...prev, [obj.opencon]: true }));
+        } else if (obj.value === actiontype.STOCK && props.stockaction) {
+          props.stocktype?.includes("stock") &&
+            setproduct((prev) => ({ ...prev, stock: props.stock, id: index }));
+          props.stockaction();
+        } else {
+          setopenmodal((prev) => ({
+            ...prev,
+            confirmmodal: {
+              ...prev.confirmmodal,
+              index: index,
+              type: props.type,
+              open: true,
+              onDelete: () => {
+                props.reloaddata && props.reloaddata();
+              },
             },
-          },
-        }));
+          }));
+        }
+      } else {
+        if (obj.opencon === "createProduct") {
+          setproduct(Productinitailizestate);
+          setglobalindex((prev) => ({ ...prev, producteditindex: -1 }));
+        } else if (obj.opencon === "createBanner") {
+          setglobalindex((prev) => ({ ...prev, bannereditindex: -1 }));
+          setbanner(BannerInitialize);
+        } else if (obj.opencon === "createPromotion") {
+          setpromotion(PromotionInitialize);
+          setglobalindex((prev) => ({ ...prev, promotioneditindex: -1 }));
+        }
+        setopenmodal((prev) => ({ ...prev, [obj.opencon]: true }));
       }
-    } else {
-      if (obj.opencon === "createProduct") {
-        setproduct(Productinitailizestate);
-        setglobalindex((prev) => ({ ...prev, producteditindex: -1 }));
-      } else if (obj.opencon === "createBanner") {
-        setglobalindex((prev) => ({ ...prev, bannereditindex: -1 }));
-        setbanner(BannerInitialize);
-      } else if (obj.opencon === "createPromotion") {
-        setpromotion(PromotionInitialize);
-        setglobalindex((prev) => ({ ...prev, promotioneditindex: -1 }));
-      }
-      setopenmodal({ ...openmodal, [obj.opencon as string]: true });
-    }
-  };
+    },
+    [
+      props.index,
+      props.type,
+      props.stock,
+      props.stocktype,
+      props.stockaction,
+      props.reloaddata,
+      setglobalindex,
+      setopenmodal,
+      setproduct,
+      setbanner,
+      setpromotion,
+    ],
+  );
   return (
-    <Dropdown
-      classNames={{
-        base: "before:bg-white/10",
-        content:
-          "p-1.5 border border-gray-200 bg-white/95 backdrop-blur-xl shadow-xl rounded-xl",
-      }}
-    >
+    <Dropdown classNames={DROPDOWN_CLASSNAMES}>
       <DropdownTrigger>
         <Button
           color={props.type ? "default" : "success"}
@@ -609,12 +663,8 @@ export const SubInventoryMenu = (props: Subinventorymenuprops) => {
               />
             ) : undefined
           }
-          style={props.type ? { minWidth: "20px" } : {}}
-          className={`group relative overflow-hidden font-bold transition-all duration-300 ${
-            props.type
-              ? "bg-linear-to-br from-white to-gray-50 hover:from-gray-50 hover:to-gray-100 text-gray-700 border-2 border-gray-300 hover:border-indigo-500 hover:shadow-lg hover:shadow-indigo-100 min-w-9 md:min-w-11 h-9 md:h-11 px-1.5 md:px-2.5 shadow-md hover:scale-105 active:scale-95"
-              : "bg-linear-to-br from-green-500 via-emerald-500 to-teal-600 hover:from-green-600 hover:via-emerald-600 hover:to-teal-700 text-white shadow-lg hover:shadow-2xl hover:shadow-emerald-500/50 hover:scale-105 active:scale-95 min-w-27.5 md:min-w-35 h-9 md:h-11 text-xs md:text-sm"
-          } rounded-xl md:rounded-2xl before:absolute before:inset-0 before:bg-linear-to-r before:from-transparent before:via-white/20 before:to-transparent before:translate-x-[-200%] hover:before:translate-x-[200%] before:transition-transform before:duration-700`}
+          style={props.type ? TRIGGER_STYLE_TYPE : undefined}
+          className={props.type ? BUTTON_CLASS_TYPE : BUTTON_CLASS_CREATE}
         >
           {props.type ? (
             <FontAwesomeIcon
@@ -641,25 +691,7 @@ export const SubInventoryMenu = (props: Subinventorymenuprops) => {
         aria-label="Dynamic Actions"
         items={props.data}
         className="min-w-40 md:min-w-50"
-        itemClasses={{
-          base: [
-            "rounded-lg",
-            "text-xs md:text-sm",
-            "transition-all",
-            "duration-200",
-            "data-[hover=true]:bg-linear-to-r",
-            "data-[hover=true]:from-indigo-50",
-            "data-[hover=true]:via-purple-50",
-            "data-[hover=true]:to-blue-50",
-            "data-[hover=true]:text-indigo-700",
-            "data-[hover=true]:scale-[1.02]",
-            "data-[hover=true]:shadow-xs",
-            "py-2.5 md:py-3",
-            "px-3 md:px-4",
-            "my-0.5",
-            "cursor-pointer",
-          ],
-        }}
+        itemClasses={ITEM_CLASSES}
       >
         {(item) => (
           <DropdownItem
@@ -669,40 +701,8 @@ export const SubInventoryMenu = (props: Subinventorymenuprops) => {
             startContent={
               <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-linear-to-br transition-all duration-200">
                 <FontAwesomeIcon
-                  icon={
-                    item.value === "Product"
-                      ? faBox
-                      : item.value === "Category"
-                        ? faFolder
-                        : item.value === "Banner"
-                          ? faImage
-                          : item.value === "Promotion"
-                            ? faTags
-                            : item.value === "Edit"
-                              ? faPenToSquare
-                              : item.value === "Stock"
-                                ? faBoxesStacked
-                                : item.value === "DELETE"
-                                  ? faTrashCan
-                                  : faCircle
-                  }
-                  className={`text-sm md:text-base ${
-                    item.value === "Product"
-                      ? "text-blue-600"
-                      : item.value === "Category"
-                        ? "text-purple-600"
-                        : item.value === "Banner"
-                          ? "text-green-600"
-                          : item.value === "Promotion"
-                            ? "text-orange-600"
-                            : item.value === "Edit"
-                              ? "text-blue-600"
-                              : item.value === "Stock"
-                                ? "text-emerald-600"
-                                : item.value === "DELETE"
-                                  ? "text-red-600"
-                                  : "text-gray-500"
-                  }`}
+                  icon={ICON_MAP[item.value] ?? faCircle}
+                  className={`text-sm md:text-base ${COLOR_MAP[item.value] ?? "text-gray-500"}`}
                 />
               </div>
             }
@@ -718,7 +718,9 @@ export const SubInventoryMenu = (props: Subinventorymenuprops) => {
       </DropdownMenu>
     </Dropdown>
   );
-};
+});
+
+SubInventoryMenu.displayName = "SubInventoryMenu";
 
 export const NotificationMenu = forwardRef(
   (

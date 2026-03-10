@@ -208,8 +208,6 @@ export const getRelatedProduct = async (
 
     relatedProducts = relatedProducts.slice(0, limit);
 
-    console.log(relatedProducts);
-
     return {
       success: true,
       data: relatedProducts,

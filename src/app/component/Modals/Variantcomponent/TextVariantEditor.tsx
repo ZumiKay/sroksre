@@ -1,12 +1,11 @@
 "use client";
-import React, { FormEvent, useCallback, useMemo } from "react";
+import React, { SubmitEvent, useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Badge, Button, Input } from "@heroui/react";
 import Modal from "../../Modals";
 import { ModalOpenState } from "../types";
 import { PlusRoundSignIcon, TextBasedOptionIcon } from "../../svg/icons";
 import { UseVariantManagerReturn } from "./hooks/useVariantManager";
-import { VariantValueObjType } from "@/src/types/product.type";
 
 interface TextVariantEditorProps {
   variantManager: UseVariantManagerReturn;
@@ -14,7 +13,7 @@ interface TextVariantEditorProps {
   localGlobalPrice?: number;
   setOpen: React.Dispatch<React.SetStateAction<ModalOpenState>>;
   onTextSelect: (idx: number, selectType: "color" | "text") => void;
-  onUpdateOption: (e: FormEvent<HTMLFormElement>) => void;
+  onUpdateOption: (e: SubmitEvent<HTMLFormElement>) => void;
 }
 
 export const TextVariantEditor: React.FC<TextVariantEditorProps> = React.memo(
@@ -99,7 +98,7 @@ export const TextVariantEditor: React.FC<TextVariantEditorProps> = React.memo(
           <Modal closestate="none" customZIndex={150}>
             <form
               onSubmit={onUpdateOption}
-              className="addoption w-[340px] max-smallest_phone:w-[300px] h-fit bg-linear-to-br from-blue-50/50 via-white to-purple-50/50 p-6 flex flex-col gap-y-6 items-center justify-start rounded-2xl shadow-2xl border-2 border-gray-200/60 backdrop-blur-xs"
+              className="addoption w-85 max-smallest_phone:w-75 h-fit bg-linear-to-br from-blue-50/50 via-white to-purple-50/50 p-6 flex flex-col gap-y-6 items-center justify-start rounded-2xl shadow-2xl border-2 border-gray-200/60 backdrop-blur-xs"
             >
               <div className="w-full flex flex-col gap-2">
                 <h3 className="text-xl font-bold bg-linear-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
@@ -113,7 +112,7 @@ export const TextVariantEditor: React.FC<TextVariantEditorProps> = React.memo(
                 type="text"
                 value={variantManager.option}
                 onChange={handleOptionChange}
-                className="text-base font-semibold px-4 py-3 h-[56px] w-full border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 outline-hidden shadow-xs hover:shadow-md"
+                className="text-base font-semibold px-4 py-3 h-14 w-full border-2 border-gray-300 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 outline-hidden shadow-xs hover:shadow-md"
               />
               <div className="w-full flex flex-col gap-3">
                 <Input

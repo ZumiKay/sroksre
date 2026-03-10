@@ -8,7 +8,7 @@ import { faTrash } from "@fortawesome/free-solid-svg-icons";
 import { TextField } from "@mui/material";
 
 import { useGlobalContext } from "@/src/context/GlobalContext";
-import { ChangeEvent, FormEvent, useEffect, useState } from "react";
+import { ChangeEvent, SubmitEvent, useEffect, useState } from "react";
 import {
   AddPolicyOrQuestion,
   Addpolicytype,

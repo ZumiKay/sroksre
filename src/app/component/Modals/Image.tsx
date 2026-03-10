@@ -743,7 +743,8 @@ export const ImageUpload = (props: imageuploadprops) => {
             Files={Files}
             setfile={setfiles}
             setimgurl={seturl}
-            type={props.bannertype ? "createproduct" : props.type}
+            type={props.type}
+            bannerSubtype={props.bannertype}
           />
         )}
       </div>

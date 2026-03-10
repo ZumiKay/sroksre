@@ -17,23 +17,18 @@ export async function GET(req: NextRequest) {
     const takeInt = parseInt(take ?? "5");
     const banner = await Prisma.banner.findMany({
       where: {
-        name: q && {
-          contains: removeSpaceAndToLowerCase(q),
-          mode: "insensitive",
-        },
-
-        size:
-          ty && ty === "category"
-            ? { not: "normal" }
-            : ty === "banner" || ty === "slide"
-            ? { equals: "normal" }
-            : {},
+        name: q
+          ? {
+              contains: removeSpaceAndToLowerCase(q),
+              mode: "insensitive",
+            }
+          : {},
       },
-
       take: takeInt,
       select: {
         id: true,
         name: true,
+        type: true,
         image: true,
         size: true,
         Containeritems: { orderBy: { id: "asc" }, select: { id: true } },
@@ -53,12 +48,12 @@ export async function GET(req: NextRequest) {
           .filter((i) => i),
         isLimit: banner.length < takeInt,
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error) {
     return Response.json(
       { success: false, message: "Error Occured" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
