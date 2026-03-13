@@ -20,6 +20,7 @@ import {
   PromotionState,
 } from "../types/productAction.type";
 import { Role } from "@/prisma/generated/prisma/enums";
+import dayjs from "dayjs";
 
 type alerttype = {
   open: boolean;
@@ -201,7 +202,7 @@ export const PromotionInitialize: PromotionState = {
   Products: [PromotionProductInitialize],
   selectbanner: false,
   selectproduct: false,
-
+  expireAt: dayjs(new Date()),
   tempproduct: [],
 };
 
@@ -228,6 +229,7 @@ export const Userinitialize: userdata = {
   lastname: "",
   email: "",
   password: "",
+  phonenumber: "",
   confirmpassword: "",
   recapcha: null,
 };

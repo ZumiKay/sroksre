@@ -16,8 +16,13 @@ export interface BannerState {
     type: string;
   };
   linktype?: string;
+  parentcate_id?: number;
+  childcate_id?: number;
+  selectedproduct_id?: Array<number>;
   parentcate?: SelectType;
   childcate?: SelectType;
+  promotionId?: number;
+  promotion?: PromotionState;
   selectedproduct?: SelectType[];
   selectedpromotion?: SelectType;
   link?: string;

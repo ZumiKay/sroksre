@@ -40,6 +40,13 @@ const nextConfig = {
       "4dc0180d676e9ba23390ad6cdd3cdb62271273d23af1f4d2f411b97a1cf20af7",
   },
   webpack: (config, options) => {
+    if (options.dev) {
+      // Avoid flaky filesystem cache writes in development (ENOENT on pack rename).
+      config.cache = {
+        type: "memory",
+      };
+    }
+
     if (!options.dev) {
       config.devtool = options.isServer ? false : "source-map";
     }

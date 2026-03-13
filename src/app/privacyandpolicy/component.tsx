@@ -134,8 +134,8 @@ export const SidePolicyBar = ({
       <motion.aside
         ref={ref}
         style={open ? { display: "block" } : {}}
-        className="sidebar fixed bg-white  left-0 w-[250px] h-fit p-3 flex flex-col items-start gap-y-10 rounded-lg
-      max-smallest_screen:hidden max-smallest_screen:top-[130px] max-smallest_screen:left-[60%] max-small_phone:left-[40%] z-50
+        className="sidebar fixed bg-white  left-0 w-62.5 h-fit p-3 flex flex-col items-start gap-y-10 rounded-lg
+      max-smallest_screen:hidden max-smallest_screen:top-32.5 max-smallest_screen:left-[60%] max-small_phone:left-[40%] z-50
       "
       >
         {data.map((i, idx) => (
@@ -320,7 +320,7 @@ export const AddPolicyModal = ({ qa, plc, edit, openstate }: Policydata) => {
       placement="top"
       footer={() => {
         return (
-          <div className="w-full h-[40px] flex flex-row gap-x-5">
+          <div className="w-full h-10 flex flex-row gap-x-5">
             <PrimaryButton
               width="100%"
               type="button"
@@ -529,7 +529,7 @@ export const QuestionCard = ({
       >
         <div className="w-full h-fit flex flex-row justify-between items-center">
           <label className="text-lg font-medium w-full">{data.question}</label>
-          <div className="w-[50px] " onClick={() => setopen(!open)}>
+          <div className="w-12.5 " onClick={() => setopen(!open)}>
             <TabArrow width="30" height="30" type={open ? "up" : "down"} />
           </div>
         </div>

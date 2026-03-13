@@ -75,9 +75,15 @@ export async function Createorder(data: {
   price: totalpricetype;
   incartProduct: number[];
 }): Promise<Returntype<any>> {
-  const user = await getUser();
+  const user = await getUser({
+    user: {
+      select: {
+        buyer_id: true,
+      },
+    },
+  });
 
-  if (!user || !user.user.buyer_id)
+  if (!user || !user?.user?.buyer_id)
     return { success: false, message: "No Access" };
 
   let orderId = "";

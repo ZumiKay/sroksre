@@ -708,7 +708,7 @@ export default function Inventory() {
         )}
 
         {/**Discount edit modal */}
-        {openmodal.discount && <DiscountModals setreloaddata={setreloaddata} />}
+        {openmodal.discount && <DiscountModals />}
 
         <div className="inventory__container w-full h-full min-h-screen relative flex flex-col items-center pb-50 bg-linear-to-b from-gray-50 to-white">
           {/* Header */}

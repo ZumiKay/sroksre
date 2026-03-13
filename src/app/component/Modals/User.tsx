@@ -50,7 +50,19 @@ export const Createusermodal = ({
 
   useEffect(() => {
     if (globalindex.useredit !== -1) {
-      if (allData?.user) setdata(allData.user[globalindex.useredit]);
+      if (allData?.user) {
+        const data = Object.entries({
+          ...allData?.user?.[globalindex.useredit],
+        }).map(([i, value]) => {
+          if (!value) {
+            return [i, i === "id" ? 0 : ""];
+          }
+          return [i, value];
+        });
+        const dataObj = Object.fromEntries(data);
+
+        setdata(dataObj);
+      }
     }
   }, []);
 
@@ -191,7 +203,7 @@ export const Createusermodal = ({
               onChange={(e) =>
                 setdata((prev) => ({ ...prev, role: e.target.value }) as never)
               }
-              className="w-full h-[50px] px-4 py-2 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-hidden transition-all bg-white text-gray-800 font-medium"
+              className="w-full h-12.5 px-4 py-2 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-hidden transition-all bg-white text-gray-800 font-medium"
               required
             >
               <option value="USER">User - Regular Customer</option>

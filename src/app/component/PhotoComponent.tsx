@@ -26,6 +26,7 @@ interface Primaryphotoprops {
   isMobile?: boolean;
   isTablet?: boolean;
   setPreviewHover?: React.Dispatch<React.SetStateAction<boolean>>;
+  disablePreview?: boolean;
 }
 type indextype = {
   start: number;
@@ -177,9 +178,8 @@ export const PrimaryPhoto = (props: Primaryphotoprops) => {
 
               {/* Image with fade-in animation */}
               <div
-                className="cursor-zoom-in relative group"
+                className={`${props.disablePreview ? "" : "cursor-zoom-in"} relative group`}
                 onClick={() => handleImageClick(obj.url)}
-                //Avoid click to details when previewing
                 onMouseEnter={() => handlePhotoPreview(true)}
                 onMouseLeave={() => handlePhotoPreview(false)}
                 //
@@ -189,7 +189,7 @@ export const PrimaryPhoto = (props: Primaryphotoprops) => {
                   alt={`${obj.name}`}
                   className={`w-70 h-87.5 object-contain transition-all duration-300 ${
                     isImageLoading?.[obj.url] ? "opacity-0" : "opacity-100"
-                  } group-hover:scale-105`}
+                  } ${props.disablePreview ? "" : "group-hover:scale-105"}`}
                   width={400}
                   height={550}
                   quality={80}
@@ -202,14 +202,17 @@ export const PrimaryPhoto = (props: Primaryphotoprops) => {
                   }}
                 />
                 {/* Zoom indicator on hover */}
-                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-black/10">
-                  <div className="bg-white/90 backdrop-blur-xs rounded-full p-3 shadow-lg">
-                    <FontAwesomeIcon
-                      icon={faMagnifyingGlassPlus}
-                      className="text-gray-700 text-xl"
-                    />
+
+                {!props.disablePreview && (
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-black/10">
+                    <div className="bg-white/90 backdrop-blur-xs rounded-full p-3 shadow-lg">
+                      <FontAwesomeIcon
+                        icon={faMagnifyingGlassPlus}
+                        className="text-gray-700 text-xl"
+                      />
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             </div>
           );
@@ -319,7 +322,7 @@ export const PrimaryPhoto = (props: Primaryphotoprops) => {
       )}
 
       {/* Zoom Modal */}
-      {isZoomed && (
+      {!props.disablePreview && isZoomed && (
         <div
           className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center backdrop-blur-xs"
           onClick={handleZoomClose}

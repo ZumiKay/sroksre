@@ -49,6 +49,7 @@ export interface userdata {
   password?: string;
   confirmpassword?: string;
   firstname?: string;
+  phonenumber?: string;
   lastname?: string;
   sessionid?: string;
   role?: Role;

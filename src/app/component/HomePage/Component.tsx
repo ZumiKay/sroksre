@@ -193,7 +193,7 @@ export const SlideShow = (props: bannerprops) => {
         className="w-fit h-fit absolute top-[45%] cursor-pointer left-4 transition-all opacity-70 hover:scale-110 hover:opacity-100 active:scale-95 z-10"
         onClick={() => handleNavigate("prev")}
       >
-        <div className="arrow text-[28px] grid place-content-center bg-linear-to-br from-gray-900 to-black backdrop-blur-xs border-2 border-white/30 w-[60px] h-[60px] rounded-full text-white shadow-2xl hover:shadow-blue-500/50 transition-all duration-300 hover:border-blue-400">
+        <div className="arrow text-[28px] grid place-content-center bg-linear-to-br from-gray-900 to-black backdrop-blur-xs border-2 border-white/30 w-15 h-15 rounded-full text-white shadow-2xl hover:shadow-blue-500/50 transition-all duration-300 hover:border-blue-400">
           <svg
             className="w-6 h-6"
             fill="none"
@@ -366,7 +366,7 @@ export const Banner: React.FC<BannerProps> = (props) => {
         loading="lazy"
         width={600}
         height={600}
-        className="object-cover w-full h-auto max-h-[90vh] min-h-[600px]"
+        className="object-cover w-full h-auto max-h-[90vh] min-h-150"
       />
       {/* Gradient overlay for better text visibility */}
       <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/30 to-transparent pointer-events-none" />
@@ -382,7 +382,7 @@ export const Banner: React.FC<BannerProps> = (props) => {
         {props.data.name}
       </motion.h3>
       {props.data.link && (
-        <div className="absolute bottom-10 left-[50px]">
+        <div className="absolute bottom-10 left-12.5">
           <PrimaryButton
             text="Learn More"
             width="270px"
@@ -412,7 +412,7 @@ export const ProductCard = (props: ProductCardProps) => {
   return (
     <div
       key={props.id}
-      className="card w-[350px] h-fit flex flex-col bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden group cursor-pointer border border-gray-100"
+      className="card w-87.5 h-fit flex flex-col bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden group cursor-pointer border border-gray-100"
       onClick={() => (window.location.href = `/product/detail/${props.id}`)}
     >
       <div className="relative overflow-hidden bg-gray-50">
@@ -422,7 +422,7 @@ export const ProductCard = (props: ProductCardProps) => {
           width={"600"}
           height={"600"}
           loading="lazy"
-          className="w-full h-[500px] object-contain transition-transform duration-700 group-hover:scale-110"
+          className="w-full h-125 object-contain transition-transform duration-700 group-hover:scale-110"
         />
         {props.price.discount && (
           <div className="absolute top-4 right-4 bg-linear-to-r from-red-500 to-red-600 text-white px-4 py-2 rounded-full font-bold text-sm shadow-lg">
@@ -486,17 +486,17 @@ export const ScrollableContainer = (props: ScrollableContainerProps) => {
   };
   return (
     <div key={props.title} className="w-full h-fit">
-      <div className="header w-full h-[70px] flex flex-row items-center justify-between bg-linear-to-r from-gray-800 via-gray-700 to-gray-800 px-6 py-3 rounded-t-2xl shadow-lg">
+      <div className="header w-full h-17.5 flex flex-row items-center justify-between bg-linear-to-r from-gray-800 via-gray-700 to-gray-800 px-6 py-3 rounded-t-2xl shadow-lg">
         <h3 className="text-3xl text-white font-bold w-full text-left flex items-center gap-3">
           <div className="w-1.5 h-8 bg-linear-to-b from-blue-400 to-purple-600 rounded-full"></div>
           {props.title}
         </h3>
-        <div className="w-[200px] flex flex-row items-center justify-end gap-x-3 select-none">
+        <div className="w-50 flex flex-row items-center justify-end gap-x-3 select-none">
           <div
             onClick={() => handleScroll("left")}
             className="w-fit h-fit cursor-pointer transition-all hover:scale-110 active:scale-95 group"
           >
-            <div className="arrow text-[20px] flex items-center justify-center bg-linear-to-br from-white to-gray-100 hover:from-blue-500 hover:to-blue-600 text-gray-800 hover:text-white w-[48px] h-[48px] rounded-full shadow-lg hover:shadow-xl transition-all duration-300">
+            <div className="arrow text-[20px] flex items-center justify-center bg-linear-to-br from-white to-gray-100 hover:from-blue-500 hover:to-blue-600 text-gray-800 hover:text-white w-12 h-12 rounded-full shadow-lg hover:shadow-xl transition-all duration-300">
               <svg
                 className="w-5 h-5"
                 fill="none"
@@ -516,7 +516,7 @@ export const ScrollableContainer = (props: ScrollableContainerProps) => {
             onClick={() => handleScroll("right")}
             className="w-fit h-fit cursor-pointer transition-all hover:scale-110 active:scale-95 group"
           >
-            <div className="arrow text-[20px] flex items-center justify-center bg-linear-to-br from-white to-gray-100 hover:from-blue-500 hover:to-blue-600 text-gray-800 hover:text-white w-[48px] h-[48px] rounded-full shadow-lg hover:shadow-xl transition-all duration-300">
+            <div className="arrow text-[20px] flex items-center justify-center bg-linear-to-br from-white to-gray-100 hover:from-blue-500 hover:to-blue-600 text-gray-800 hover:text-white w-12 h-12 rounded-full shadow-lg hover:shadow-xl transition-all duration-300">
               <svg
                 className="w-5 h-5"
                 fill="none"

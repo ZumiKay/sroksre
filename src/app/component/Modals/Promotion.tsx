@@ -10,10 +10,10 @@ import React, { ChangeEvent, SubmitEvent, useEffect, useState } from "react";
 import { BlurLoading, errorToast, infoToast, successToast } from "../Loading";
 import { SecondaryModal } from "../Modals";
 import { motion } from "framer-motion";
-import { DateTimePicker } from "@mui/x-date-pickers";
 import dayjs from "dayjs";
+import { parseAbsoluteToLocal } from "@internationalized/date";
 import { ImageUpload } from "./Image";
-import { Switch } from "@heroui/react";
+import { DatePicker, NumberInput, Switch } from "@heroui/react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faTags,
@@ -25,8 +25,8 @@ import {
   faSpinner,
   faCheck,
   faTimes,
-  faPercent,
   faTag,
+  faPercentage,
 } from "@fortawesome/free-solid-svg-icons";
 
 interface InventoryParamType {
@@ -136,7 +136,7 @@ export const CreatePromotionModal = ({
     setopenmodal((prev) => ({ ...prev, createPromotion: false }));
     setreloaddata(true);
   };
-  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: ChangeEvent<any>) => {
     setpromotion((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
   const handleCancel = async () => {
@@ -300,13 +300,13 @@ export const CreatePromotionModal = ({
               onChange={handleChange}
               required
             />
-            <input
-              type="text"
+            <textarea
               name="description"
               value={promotion.description}
               onChange={handleChange}
               placeholder="Description (optional)"
-              className="w-full h-14 px-4 border-2 border-gray-300 rounded-xl text-base font-medium focus:border-orange-500 focus:outline-hidden transition-colors"
+              className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl text-base font-medium focus:border-orange-500 focus:outline-hidden transition-colors resize-none"
+              rows={3}
             />
           </div>
           <div className="w-full bg-linear-to-br from-red-50 to-pink-50 rounded-xl p-5 border-2 border-red-200 space-y-3">
@@ -320,16 +320,26 @@ export const CreatePromotionModal = ({
                 Required
               </span>
             </div>
-            <DateTimePicker
-              value={promotion.expireAt ? dayjs(promotion.expireAt) : null}
-              onOpen={() => setisPickDate(true)}
-              onClose={() => setisPickDate(false)}
-              onChange={(e) => {
-                if (e) {
-                  setpromotion((prev) => ({ ...prev, expireAt: e }));
-                }
+            <DatePicker
+              label="Expire Date"
+              granularity="minute"
+              value={
+                promotion.expireAt
+                  ? parseAbsoluteToLocal(
+                      dayjs(promotion.expireAt).toISOString(),
+                    )
+                  : null
+              }
+              onOpenChange={(open) => setisPickDate(open)}
+              onChange={(val) => {
+                setpromotion((prev) => ({
+                  ...prev,
+                  expireAt: val ? dayjs(val.toDate()) : undefined,
+                }));
               }}
-              sx={{ width: "100%", height: "56px" }}
+              classNames={{
+                base: "w-full",
+              }}
             />
           </div>
 
@@ -391,14 +401,11 @@ export const CreatePromotionModal = ({
   );
 };
 
-export const DiscountModals = ({
-  setreloaddata,
-}: {
-  setreloaddata: React.Dispatch<React.SetStateAction<boolean>>;
-}) => {
+export const DiscountModals = () => {
   const {
     promotion,
     allData,
+    setalldata,
     setpromotion,
     globalindex,
     openmodal,
@@ -447,18 +454,16 @@ export const DiscountModals = ({
 
       if (matchingPromoProduct) {
         const { percent, newprice } = matchingPromoProduct.discount || {};
+        const productPrice = parseFloat(product.price?.toString() ?? "0");
         return {
           ...product,
-          discount: (typeof product.discount === "object"
-            ? {
-                ...product.discount,
-                percent: percent as number,
-                newprice: newprice as string,
-              }
-            : {
-                percent: percent as number,
-                newprice: newprice as string,
-              }) as any,
+          discount: {
+            price: productPrice,
+            discount: {
+              percent: percent as number,
+              newprice: newprice as string,
+            },
+          } as any,
         };
       }
 
@@ -466,9 +471,8 @@ export const DiscountModals = ({
     });
 
     //update product
-
+    setalldata((prev) => ({ ...prev, product: allproduct }));
     setpromotion((prev) => ({ ...prev, Products: promoproduct }));
-    setreloaddata(true);
     setopenmodal((prev) => ({ ...prev, discount: false }));
   };
 
@@ -492,7 +496,7 @@ export const DiscountModals = ({
         <div className="w-full space-y-2 pb-4 border-b-2 border-purple-200">
           <h4 className="text-2xl font-bold text-gray-800 flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-linear-to-br from-purple-500 to-pink-600 flex items-center justify-center">
-              <FontAwesomeIcon icon={faPercent} className="text-white" />
+              <FontAwesomeIcon icon={faPercentage} className="text-white" />
             </div>
             Set Discount
           </h4>
@@ -508,16 +512,17 @@ export const DiscountModals = ({
             <FontAwesomeIcon icon={faTag} className="text-lg text-purple-500" />
             <h5 className="font-bold text-gray-800">Discount Percentage</h5>
           </div>
-          <input
+          <NumberInput
             type="number"
             placeholder="Enter discount (1-100)"
+            endContent={"%"}
             name="discount"
             value={discount}
-            min={1}
-            max={100}
+            minValue={1}
+            maxValue={100}
             className="w-full h-14 rounded-xl px-4 text-lg font-bold border-2 border-gray-300 focus:border-purple-500 focus:outline-hidden transition-colors"
-            onChange={(e) => setdiscount(parseFloat(e.target.value))}
-            required
+            onValueChange={(e) => setdiscount(e)}
+            isRequired
           />
           <p className="text-xs text-gray-500 flex items-center gap-1">
             <FontAwesomeIcon icon={faInfoCircle} />

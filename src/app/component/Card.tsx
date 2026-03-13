@@ -3,7 +3,7 @@
 import Image, { StaticImageData } from "next/image";
 import PrimaryButton from "./Button";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faTrash } from "@fortawesome/free-solid-svg-icons";
+import { faPercent, faTag, faTrash } from "@fortawesome/free-solid-svg-icons";
 import { useRef, useState, useCallback, useMemo, memo } from "react";
 import { ImageWithLoader } from "./ImageWithLoader";
 import { PrimaryPhoto } from "./PhotoComponent";
@@ -255,13 +255,15 @@ const Card = memo(function Card(props: cardprops) {
         onTouchStart={handleMouseEnter}
         onTouchCancel={handleMouseLeave}
         className={`card__container w-125 h-fit flex flex-col
-       border border-gray-200 rounded-lg shadow-xs
-       hover:border-gray-400 hover:shadow-md transition-all duration-300 ${
-         isProduct ? "border-2 border-blue-400 shadow-md" : ""
-       } 
-        max-smaller_screen:w-87.5 
-        max-large_tablet:w-70
-        animate-fade-in
+       rounded-xl shadow-xs transition-all duration-300 overflow-hidden animate-fade-in
+       max-smaller_screen:w-87.5 max-large_tablet:w-70
+       ${
+         promotion.selectproduct
+           ? isProduct
+             ? "border-2 border-blue-500 shadow-lg shadow-blue-100 ring-2 ring-blue-300 ring-offset-1 scale-[1.01]"
+             : "border-2 border-orange-300 hover:border-orange-500 hover:shadow-md hover:shadow-orange-100 cursor-pointer"
+           : "border border-gray-200 hover:border-gray-400 hover:shadow-md"
+       }
         `}
       >
         <div
@@ -270,7 +272,7 @@ const Card = memo(function Card(props: cardprops) {
               handleSelectDiscount(props.id as number, "create");
             }
           }}
-          className="cardimage__container flex flex-col justify-center items-center relative w-full h-full bg-gray-50"
+          className="cardimage__container flex flex-col justify-center items-center relative w-full h-full bg-gray-50 overflow-hidden"
         >
           <PrimaryPhoto
             showcount={false}
@@ -278,11 +280,24 @@ const Card = memo(function Card(props: cardprops) {
             hover={hover}
             isMobile={isMobile}
             isTablet={isTablet}
+            disablePreview
           />
 
+          {promotion.selectproduct && !isProduct && (
+            <div className="absolute inset-0 bg-orange-400/0 hover:bg-orange-400/10 transition-colors duration-200 flex items-center justify-center pointer-events-none">
+              <span className="opacity-0 group-hover:opacity-100 bg-orange-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-md">
+                Click to select
+              </span>
+            </div>
+          )}
+          {promotion.selectproduct && isProduct && (
+            <div className="absolute inset-0 bg-blue-500/10 pointer-events-none" />
+          )}
           <span className="absolute top-3 right-3">
             {shouldShowCheckmark ? (
-              showCheckmark
+              <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center shadow-md shadow-blue-300">
+                {showCheckmark}
+              </div>
             ) : showEditMenu && props.isAdmin ? (
               <SubInventoryMenu
                 data={editactionMenu}
@@ -306,8 +321,11 @@ const Card = memo(function Card(props: cardprops) {
           </span>
         </div>
         <div
-          onClick={() => route.push(`/product/detail/${props.id}`)}
-          className="card_detail w-full h-fit font-semibold flex flex-col justify-center gap-y-3  pl-2 rounded-b-md text-sm"
+          onClick={() =>
+            !promotion.selectproduct &&
+            route.push(`/product/detail/${props.id}`)
+          }
+          className="card_detail w-full h-fit font-semibold flex flex-col justify-center gap-y-2 px-3 py-3 rounded-b-md text-sm"
         >
           <p className="card_info w-full max-w-100 h-fit text-lg">
             {props.name.length > 0 ? props.name : "No Product Created"}
@@ -319,13 +337,25 @@ const Card = memo(function Card(props: cardprops) {
           <PrimaryButton type="button" text="Add To Cart" width={"100%"} />
         )}
         {promotion.selectproduct && isProduct?.discount && (
-          <PrimaryButton
-            onClick={() => handleSelectDiscount(isProduct.id ?? 0, "edit")}
-            type="button"
-            text={isProduct?.discount?.percent === 0 ? "Set Discount" : "Edit"}
-            width="150px"
-            radius="10px"
-          />
+          <div className="px-3 pb-3">
+            <button
+              onClick={() => handleSelectDiscount(isProduct.id ?? 0, "edit")}
+              type="button"
+              className={`w-full py-2.5 rounded-xl font-bold text-sm transition-all duration-200 flex items-center justify-center gap-2 shadow-md hover:scale-[1.02] active:scale-[0.98] ${
+                isProduct?.discount?.percent === 0
+                  ? "bg-linear-to-r from-orange-500 to-red-500 text-white hover:from-orange-600 hover:to-red-600 shadow-orange-200"
+                  : "bg-linear-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-600 hover:to-indigo-700 shadow-blue-200"
+              }`}
+            >
+              <FontAwesomeIcon
+                icon={isProduct?.discount?.percent === 0 ? faPercent : faTag}
+                className="text-xs"
+              />
+              {isProduct?.discount?.percent === 0
+                ? "Set Discount"
+                : `Edit · ${isProduct.discount.percent}% off`}
+            </button>
+          </div>
         )}
         {showLowStock}
       </div>

@@ -22,7 +22,7 @@ export const PageHeader = ({
   bannerImage,
 }: PageHeaderProps) => {
   return (
-    <div className="header_section w-full h-fit flex flex-col items-start gap-y-5">
+    <div className="header_section w-full h-fit flex flex-col items-start gap-y-2">
       {bannerImage && (
         <Banner
           data={{
@@ -36,23 +36,47 @@ export const PageHeader = ({
         />
       )}
 
-      <h2 className="category_name text-3xl w-fit font-normal text-black text-center pt-3 pl-5 italic">
-        {title}
-      </h2>
+      <div className="w-full px-6 pt-2 pb-4 space-y-3">
+        <nav aria-label="breadcrumb">
+          <ol className="flex flex-row flex-wrap items-center gap-1 text-sm text-gray-400">
+            {breadcrumbs.map((item, index) => (
+              <li key={index} className="flex items-center gap-1">
+                {index > 0 && (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="w-3.5 h-3.5 text-gray-300"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M9 5l7 7-7 7"
+                    />
+                  </svg>
+                )}
+                <Link
+                  href={item.href}
+                  className={`transition-colors hover:text-black ${
+                    index === breadcrumbs.length - 1
+                      ? "text-gray-900 font-medium pointer-events-none"
+                      : "hover:underline"
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              </li>
+            ))}
+          </ol>
+        </nav>
 
-      <div className="path_container h-full flex flex-row items-center max-smallest_phone:flex max-smallest_phone:flex-col gap-x-3 w-full pl-5 text-left text-lg font-light border-b-2 border-b-black p-2 max-smallest_phone:items-start">
-        {breadcrumbs.map((item, index) => (
-          <div key={index} className="flex flex-row items-center gap-x-3">
-            {index > 0 && (
-              <div className="w-[3px] h-[25px] bg-black rotate-190"></div>
-            )}
-            <Link href={item.href}>
-              <div className="transition hover:text-gray-300 cursor-pointer">
-                {item.label}
-              </div>
-            </Link>
-          </div>
-        ))}
+        <h2 className="category_name text-4xl font-bold text-gray-900 tracking-tight">
+          {title}
+        </h2>
+
+        <div className="w-16 h-1 bg-black rounded-full" />
       </div>
     </div>
   );

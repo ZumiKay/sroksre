@@ -22,6 +22,12 @@ export interface Promotion {
   createdAt?: Date;
 }
 
+export interface ProductParentCategory {
+  id: number;
+  name: string;
+  type: string | null;
+}
+
 /**
  * Fetch a single promotion with its products (paginated)
  */
@@ -35,7 +41,7 @@ export const fetchPromotion = async (
   const promotion = await Prisma.promotion.findUnique({
     where: {
       id,
-      expireAt: { lt: new Date() },
+      expireAt: { gt: new Date() },
     },
     select: {
       id: true,
@@ -104,7 +110,7 @@ const formatExpireAt = (date: Date): string => {
  */
 export const getAllPromotions = async (): Promise<Promotion[]> => {
   const promotions = await Prisma.promotion.findMany({
-    where: { expireAt: { lte: new Date() } },
+    where: { expireAt: { gte: new Date() } },
     select: {
       id: true,
       name: true,
@@ -214,8 +220,51 @@ export const fetchCategoryData = async (
 };
 
 /**
- * Generate JSON-LD structured data for products
+ * Fetch parent categories for top chip navigation in product listing
  */
+export const fetchProductParentCategories = async (): Promise<
+  ProductParentCategory[]
+> => {
+  return Prisma.parentcategories.findMany({
+    where: {
+      type: {
+        not: "sale",
+      },
+    },
+    select: {
+      id: true,
+      name: true,
+      type: true,
+    },
+    orderBy: {
+      name: "asc",
+    },
+  });
+};
+
+/**
+ * Fetch banner linked to a parent or child category
+ */
+export const fetchCategoryBanner = async (
+  pid?: string,
+  cid?: string,
+): Promise<{ url: string; name: string } | undefined> => {
+  if (!pid && !cid) return undefined;
+
+  const banner = await Prisma.banner.findFirst({
+    where: cid
+      ? { childcate_id: parseInt(cid) }
+      : { parentcate_id: parseInt(pid!) },
+    select: { image: true, name: true },
+  });
+
+  if (!banner) return undefined;
+
+  const image = banner.image as { url?: string; name?: string };
+  if (!image?.url) return undefined;
+
+  return { url: image.url, name: image.name ?? banner.name };
+};
 export const generateProductListSchema = async (
   products: any[],
   categoryName?: string,

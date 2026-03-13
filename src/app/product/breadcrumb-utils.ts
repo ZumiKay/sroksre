@@ -29,6 +29,7 @@ interface BuildBreadcrumbsParams {
   isAll?: boolean;
   pid?: string;
   cid?: string;
+  promoid?: string;
 }
 
 /**
@@ -41,6 +42,7 @@ export const buildBreadcrumbs = ({
   isAll,
   pid,
   cid,
+  promoid,
 }: BuildBreadcrumbsParams): BreadcrumbItem[] => {
   const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -80,7 +82,7 @@ export const buildBreadcrumbs = ({
   } else if (promotion) {
     breadcrumbs.push({
       label: promotion.name,
-      href: `/product?pid=${pid}&cid=${cid}`,
+      href: `/product?promoid=${promoid}`,
     });
   }
 

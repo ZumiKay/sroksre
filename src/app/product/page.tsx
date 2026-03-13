@@ -18,6 +18,8 @@ import {
   fetchPromotion,
   getAllPromotions,
   fetchCategoryData,
+  fetchProductParentCategories,
+  fetchCategoryBanner,
   fetchSaleCategory,
   fetchBanner,
   fetchCategoryMetadata,
@@ -27,6 +29,7 @@ import {
 import { GetListProduct } from "./action";
 import { PageHeader } from "./components/PageHeader";
 import { ProductGrid } from "./components/ProductGrid";
+import { ParentCategoryChips } from "./components/ParentCategoryChips";
 import { buildBreadcrumbs } from "./breadcrumb-utils";
 
 export type Props = {
@@ -70,7 +73,6 @@ export default async function ProductsPage({
     return notFound();
   }
 
-  // Parse parameters
   const parsed = parseSearchParams(params);
 
   /**
@@ -105,6 +107,9 @@ export default async function ProductsPage({
 
   const allPromotions = ppid ? await getAllPromotions() : undefined;
 
+  const parentCategories =
+    !promoid && !ppid ? await fetchProductParentCategories() : [];
+
   //Get products based on searchParams
   const productList = !ppid
     ? await GetListProduct(
@@ -135,6 +140,10 @@ export default async function ProductsPage({
 
   const banner = bid ? await fetchBanner(parseInt(bid, 10)) : undefined;
 
+  // Fetch category banner if viewing an individual category (not a promotion/banner page)
+  const categoryBanner =
+    !promoid && !bid ? await fetchCategoryBanner(pid, cid) : undefined;
+
   // Build page data
   const pageTitle = getPageTitle(
     categoryData?.name,
@@ -151,6 +160,7 @@ export default async function ProductsPage({
     isAll: Boolean(all),
     pid,
     cid,
+    promoid,
   });
 
   const bannerImage = promotion?.banner?.image
@@ -158,7 +168,7 @@ export default async function ProductsPage({
         url: promotion.banner.image.url,
         name: promotion.banner.image.name,
       }
-    : undefined;
+    : (categoryBanner ?? undefined);
 
   // Generate structured data for SEO
   const productListSchema =
@@ -169,7 +179,7 @@ export default async function ProductsPage({
   const breadcrumbSchema = generateBreadcrumbSchema(breadcrumbs);
 
   return (
-    <div className="products_page relative w-full min-h-screen h-full flex flex-col justify-center items-center gap-y-20">
+    <div className="products_page relative w-full min-h-screen h-full flex flex-col items-center gap-y-8 pb-16">
       {/* JSON-LD Structured Data for SEO */}
       {breadcrumbSchema && (
         <script
@@ -189,11 +199,11 @@ export default async function ProductsPage({
       <PageHeader
         title={pageTitle}
         breadcrumbs={breadcrumbs}
-        bannerImage={bannerImage}
+        bannerImage={bannerImage ?? productList?.promotion?.banner?.image}
       />
 
       {(all || pid) && (
-        <div className="filter_container w-full pr-2 pl-2 h-10 flex flex-row justify-center">
+        <div className="filter_container w-full px-4 md:px-6 h-10 flex flex-row justify-start items-center">
           <div className="w-full h-10 flex flex-row items-center gap-x-5">
             {(() => {
               return (
@@ -219,8 +229,24 @@ export default async function ProductsPage({
         </div>
       )}
 
+      {productList && parentCategories.length > 0 && (
+        <ParentCategoryChips
+          categories={parentCategories}
+          activePid={pid}
+          isAllActive={Boolean(all)}
+        />
+      )}
+
       {productList ? (
-        <ProductGrid products={productList.data ?? []} />
+        <ProductGrid
+          products={productList.data ?? []}
+          categoryName={
+            categoryData?.sub?.name ??
+            subcate?.name ??
+            categoryData?.name ??
+            promotion?.name
+          }
+        />
       ) : (
         allPromotions?.map((promo) => (
           <PromotionProductListContainer

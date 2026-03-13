@@ -16,6 +16,52 @@ import { extractQueryParams } from "../../banner/route";
 import { JsonObject } from "@/prisma/generated/prisma/internal/prismaNamespace";
 import { ProductState, VariantValueObjType } from "@/src/types/product.type";
 
+const getVariantExtraPrice = (
+  selectedVariant: Array<string | VariantValueObjType>,
+): number => {
+  return selectedVariant.reduce((total, variant) => {
+    if (typeof variant === "string") {
+      return total;
+    }
+
+    const variantPrice = variant.price
+      ? parseFloat(variant.price.toString())
+      : 0;
+    return !isNaN(variantPrice) && variantPrice > 0
+      ? total + variantPrice
+      : total;
+  }, 0);
+};
+
+const buildFinalCartPrice = (
+  basePrice: Productordertype["price"],
+  variantExtra: number,
+): Productordertype["price"] => {
+  if (variantExtra <= 0) {
+    return basePrice;
+  }
+
+  const originalPrice = parseFloat((basePrice.price + variantExtra).toFixed(2));
+  if (basePrice.discount) {
+    const discountedBase = basePrice.discount.newprice ?? basePrice.price;
+    const finalDiscounted = parseFloat(
+      (discountedBase + variantExtra).toFixed(2),
+    );
+
+    return {
+      price: originalPrice,
+      discount: {
+        ...basePrice.discount,
+        newprice: finalDiscounted,
+      },
+    };
+  }
+
+  return {
+    price: originalPrice,
+  };
+};
+
 export async function PUT(req: NextRequest) {
   try {
     const user = await getUser();
@@ -181,14 +227,23 @@ export async function GET(req: NextRequest) {
       const detail = item.details as Productorderdetailtype[];
       const selectedvariant = item.product.Variant?.filter(
         (variant, idx) => variant.id === detail[idx].variant_id,
-      ).map((selected, idx) => {
-        const val = selected.option_value as (string | VariantValueObjType)[];
-        return val.filter((j) =>
-          typeof j === "string"
-            ? detail[idx].value === j
-            : detail[idx].value === j.val,
-        );
-      });
+      );
+      const selectedvariantForDisplay = selectedvariant
+        .map((selected, idx) => {
+          const val = selected.option_value as (string | VariantValueObjType)[];
+          return val.filter((j) =>
+            typeof j === "string"
+              ? detail[idx].value === j
+              : detail[idx].value === j.val,
+          );
+        })
+        .flat();
+
+      const flatSelectedVariant = selectedvariant.flat();
+      const variantExtraPrice = getVariantExtraPrice(
+        flatSelectedVariant as never,
+      );
+      const finalCartPrice = buildFinalCartPrice(discount, variantExtraPrice);
 
       const maxqty = getmaxqtybaseStockType(
         item.product as unknown as ProductState,
@@ -196,11 +251,11 @@ export async function GET(req: NextRequest) {
       );
       return {
         id: item.id,
-        price: discount,
+        price: finalCartPrice,
         quantity: item.quantity,
         maxqty,
         product: item.product,
-        selectedvariant: selectedvariant.flat(),
+        selectedvariant: selectedvariantForDisplay,
       };
     });
 

@@ -94,7 +94,7 @@ export const ContactForm = ({
         placeholder="Message"
         value={contactdata?.message}
         name="message"
-        className="border-2 border-gray-400 min-h-[100px] p-1"
+        className="border-2 border-gray-400 min-h-25 p-1"
         onChange={handleChange}
         required
       />

@@ -75,7 +75,7 @@ const SortableItem = ({
       ref={setNodeRef}
       style={style}
       {...attributes}
-      className={`w-full min-h-[60px] h-fit p-4 rounded-xl flex flex-row justify-between items-center cursor-default border border-gray-200 bg-white ${
+      className={`w-full min-h-15 h-fit p-4 rounded-xl flex flex-row justify-between items-center cursor-default border border-gray-200 bg-white ${
         isDragging
           ? "shadow-2xl scale-105 border-blue-400 bg-blue-50 z-50"
           : "shadow-xs hover:shadow-md"
@@ -135,31 +135,31 @@ const SortableItem = ({
 const HomeitemsSkeleton = ({ delay = 0 }: { delay?: number }) => {
   return (
     <div
-      className="w-full min-h-[60px] p-4 rounded-xl border border-gray-100 bg-white shadow-xs flex items-center gap-4 animate-pulse"
+      className="w-full min-h-15 p-4 rounded-xl border border-gray-100 bg-white shadow-xs flex items-center gap-4 animate-pulse"
       style={{ animationDelay: `${delay}ms` }}
     >
       <Skeleton
-        className="flex rounded-lg w-[48px] h-[48px]"
+        className="flex rounded-lg w-12 h-12"
         classNames={{
           base: "bg-linear-to-r from-gray-200 via-gray-100 to-gray-200 bg-size-[200%_100%] animate-shimmer",
         }}
       />
       <div className="flex-1 flex flex-col gap-2">
         <Skeleton
-          className="h-[16px] w-3/4 rounded-lg"
+          className="h-4 w-3/4 rounded-lg"
           classNames={{
             base: "bg-linear-to-r from-gray-200 via-gray-100 to-gray-200 bg-size-[200%_100%] animate-shimmer",
           }}
         />
         <Skeleton
-          className="h-[12px] w-1/2 rounded-lg"
+          className="h-3 w-1/2 rounded-lg"
           classNames={{
             base: "bg-linear-to-r from-gray-200 via-gray-100 to-gray-200 bg-size-[200%_100%] animate-shimmer",
           }}
         />
       </div>
       <Skeleton
-        className="flex rounded-lg w-[32px] h-[32px]"
+        className="flex rounded-lg w-8 h-8"
         classNames={{
           base: "bg-linear-to-r from-gray-200 via-gray-100 to-gray-200 bg-size-[200%_100%] animate-shimmer",
         }}
@@ -187,7 +187,7 @@ export const Homeeditmenu = ({
         const response = await ApiRequest(
           "/api/home?ty=short",
           undefined,
-          "GET"
+          "GET",
         );
         if (response.success) {
           setItems(response.data);
@@ -216,7 +216,7 @@ export const Homeeditmenu = ({
       collisionDetection={closestCenter}
       onDragEnd={handleDragEnd}
     >
-      <div className="w-full h-fit max-h-[650px] flex flex-col justify-start gap-y-6 px-2">
+      <div className="w-full h-fit max-h-162.5 flex flex-col justify-start gap-y-6 px-2">
         <div className="flex flex-col gap-y-2">
           {loading ? (
             <>

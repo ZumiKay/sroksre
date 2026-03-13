@@ -22,6 +22,11 @@ import {
   faUsers,
   faPhone,
   faEdit,
+  faList,
+  faGrip,
+  faUserShield,
+  faUser,
+  faUserPlus,
 } from "@fortawesome/free-solid-svg-icons";
 
 interface usermangementFilterType {
@@ -117,13 +122,21 @@ export default function UsermanagementPage() {
   }, []);
 
   const fetchdata = useCallback(async () => {
-    const isValidSession = await handleCheckSession();
-    if (!isValidSession) return;
-
     const asyncfetch = async () => {
-      const URL = `/api/users?${search ? `ty=filter` : `ty=all`}${
-        search ? `&search=${search}` : ""
-      }${`&p=${page ?? 1}`}${`&lt=${showperpage}`}`;
+      const params = new URLSearchParams();
+      params.set("p", `${page ?? 1}`);
+      params.set("lt", `${showperpage}`);
+      if (search) {
+        params.set("search", search);
+      }
+      if (role) {
+        params.set("role", role);
+      }
+      if (sort) {
+        params.set("sort", sort);
+      }
+
+      const URL = `/api/users?${params.toString()}`;
       const user = await ApiRequest(URL, undefined, "GET");
       if (!user.success) {
         errorToast("Error Occured");
@@ -136,11 +149,13 @@ export default function UsermanagementPage() {
 
       setalldata({ user: user.data });
     };
-    await Delayloading(asyncfetch, setloading, 2000);
+    await Delayloading(asyncfetch, setloading, 150);
   }, [
     search,
     page,
     showperpage,
+    role,
+    sort,
     setitemlength,
     setalldata,
     handleCheckSession,
@@ -270,7 +285,7 @@ export default function UsermanagementPage() {
         u.email,
         u.role,
         u.phonenumber || "N/A",
-        u.createdAt?.toLocaleDateString(),
+        u.createdAt?.toLocaleString(),
       ]),
     ]
       .map((row) => row.join(","))
@@ -295,25 +310,25 @@ export default function UsermanagementPage() {
   const statisticsCards = useMemo(
     () => [
       {
-        icon: "fa-users",
+        icon: faUsers,
         gradient: "from-blue-500 to-purple-600",
         label: "Total Users",
         value: stats.totalUsers,
       },
       {
-        icon: "fa-user-shield",
+        icon: faUserShield,
         gradient: "from-green-500 to-emerald-600",
         label: "Admins",
         value: stats.adminUsers,
       },
       {
-        icon: "fa-user",
+        icon: faUser,
         gradient: "from-orange-500 to-red-600",
         label: "Regular Users",
         value: stats.regularUsers,
       },
       {
-        icon: "fa-user-plus",
+        icon: faUserPlus,
         gradient: "from-pink-500 to-purple-600",
         label: "New This Month",
         value: stats.newThisMonth,
@@ -345,11 +360,7 @@ export default function UsermanagementPage() {
                 className="px-4 py-2 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 transition-colors"
                 title="Toggle view mode"
               >
-                <i
-                  className={`fa-solid ${
-                    viewMode === "grid" ? "fa-list" : "fa-grip"
-                  } text-gray-700`}
-                ></i>
+                <FontAwesomeIcon icon={viewMode === "grid" ? faList : faGrip} />
               </button>
             </div>
           </div>
@@ -365,9 +376,10 @@ export default function UsermanagementPage() {
                   <div
                     className={`w-12 h-12 rounded-lg bg-linear-to-br ${card.gradient} flex items-center justify-center`}
                   >
-                    <i
-                      className={`fa-solid ${card.icon} text-white text-xl`}
-                    ></i>
+                    <FontAwesomeIcon
+                      icon={card.icon}
+                      className="text-white text-xl"
+                    />
                   </div>
                 </div>
                 <p className="text-sm text-gray-500 font-medium">

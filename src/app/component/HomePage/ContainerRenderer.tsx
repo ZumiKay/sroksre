@@ -5,6 +5,7 @@ import {
   ScrollableContainer,
   SlideShow,
 } from "./Component";
+import { GetChildCategoriesByPromotionId } from "./Actions";
 
 interface ContainerItem {
   type: string;
@@ -23,8 +24,17 @@ interface ContainerItem {
   }>;
 }
 
-function buildProductLink(item: ContainerItem["items"][0]["item"]) {
+async function buildProductLink(item: ContainerItem["items"][0]["item"]) {
   if (item.promotionId) {
+    const childCat = await GetChildCategoriesByPromotionId(
+      parseInt(item.promotionId),
+    );
+    if (childCat?.parentcategoriesId) {
+      const params = new URLSearchParams();
+      params.set("pid", childCat.parentcategoriesId.toString());
+      params.set("cid", childCat.id.toString());
+      return `/product?${params.toString()}`;
+    }
     return `/product?promoid=${item.promotionId}`;
   }
 
@@ -42,7 +52,7 @@ function buildProductLink(item: ContainerItem["items"][0]["item"]) {
   return undefined;
 }
 
-function renderBanner(container: ContainerItem, idx: number) {
+async function renderBanner(container: ContainerItem, idx: number) {
   const banner = container.items[0]?.item;
   if (!banner) return null;
 
@@ -55,40 +65,35 @@ function renderBanner(container: ContainerItem, idx: number) {
           name: banner.image?.name ?? "",
         },
         name: container.name,
-        link: buildProductLink(banner),
+        link: await buildProductLink(banner),
       }}
     />
   );
 }
 
-function renderSlideShow(container: ContainerItem, idx: number) {
-  return (
-    <SlideShow
-      key={idx}
-      data={container.items.map((data) => ({
-        img: data.item.image?.url ?? "",
-        name: data.item.name ?? "",
-        link: buildProductLink(data.item),
-      }))}
-    />
+async function renderSlideShow(container: ContainerItem, idx: number) {
+  const items = await Promise.all(
+    container.items.map(async (data) => ({
+      img: data.item.image?.url ?? "",
+      name: data.item.name ?? "",
+      link: await buildProductLink(data.item),
+    })),
   );
+  return <SlideShow key={idx} data={items} />;
 }
 
-function renderCategoryContainer(container: ContainerItem, idx: number) {
-  return (
-    <CategoryContainer
-      key={idx}
-      name={container.name}
-      data={container.items.map((i) => ({
-        image: {
-          url: i.item.image?.url ?? "",
-          name: i.item.image?.name ?? "",
-        },
-        name: i.item.name ?? "",
-        link: buildProductLink(i.item) ?? "",
-      }))}
-    />
+async function renderCategoryContainer(container: ContainerItem, idx: number) {
+  const data = await Promise.all(
+    container.items.map(async (i) => ({
+      image: {
+        url: i.item.image?.url ?? "",
+        name: i.item.image?.name ?? "",
+      },
+      name: i.item.name ?? "",
+      link: (await buildProductLink(i.item)) ?? "",
+    })),
   );
+  return <CategoryContainer key={idx} name={container.name} data={data} />;
 }
 
 function renderScrollableContainer(container: ContainerItem, idx: number) {
@@ -111,7 +116,7 @@ function renderScrollableContainer(container: ContainerItem, idx: number) {
   );
 }
 
-export function ContainerRenderer({
+export async function ContainerRenderer({
   container,
   idx,
 }: {

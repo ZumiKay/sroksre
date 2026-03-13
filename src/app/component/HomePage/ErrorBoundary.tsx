@@ -30,7 +30,7 @@ export class HomeErrorBoundary extends Component<Props, State> {
     if (this.state.hasError) {
       return (
         this.props.fallback || (
-          <div className="w-full min-h-[400px] flex flex-col items-center justify-center gap-4 p-8">
+          <div className="w-full min-h-100 flex flex-col items-center justify-center gap-4 p-8">
             <svg
               className="w-20 h-20 text-red-400"
               fill="none"
@@ -70,10 +70,7 @@ export function HomeContainerSkeleton() {
   return (
     <div className="w-[95vw] h-full flex flex-col items-center gap-y-5 animate-pulse">
       {[...Array(3)].map((_, idx) => (
-        <div
-          key={idx}
-          className="w-full h-[300px] bg-gray-200 rounded-lg"
-        ></div>
+        <div key={idx} className="w-full h-75 bg-gray-200 rounded-lg"></div>
       ))}
     </div>
   );

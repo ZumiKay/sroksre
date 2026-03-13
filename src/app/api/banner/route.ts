@@ -17,6 +17,7 @@ export async function POST(request: NextRequest) {
         image: data.image,
         type: data.type,
         size: data.size,
+        promotionId: data.promotionId,
         selectedproduct_id: data.selectedproduct?.map((i) => i.value),
         parentcate_id: data.parentcate?.value as number,
         childcate_id: data.childcate?.value as number,
@@ -75,6 +76,7 @@ export async function PUT(request: NextRequest) {
             image: updatedata.image,
             size: updatedata.size,
             linktype: updatedata.linktype,
+            promotionId: updatedata.promotionId,
             link: updatedata.link,
             parentcate_id: updatedata.parentcate?.value as number,
             childcate_id: updatedata.childcate?.value as number,
@@ -184,11 +186,11 @@ export async function GET(request: NextRequest) {
       param.p as number,
     );
 
-    let result;
+    let result: BannerState | undefined = undefined;
     if (param.ty === "edit") {
-      result = await Prisma.banner.findUnique({
+      result = (await Prisma.banner.findUnique({
         where: { id: param.p },
-      });
+      })) as unknown as BannerState;
 
       if (
         result?.childcate_id ||
@@ -200,6 +202,7 @@ export async function GET(request: NextRequest) {
           name: result.name,
           type: result.type as any,
           image: result.image as any,
+
           parentcate: result.parentcate_id
             ? (
                 await getBannerData(
@@ -225,7 +228,7 @@ export async function GET(request: NextRequest) {
         };
       }
     } else {
-      result = await Prisma.banner.findMany({
+      result = (await Prisma.banner.findMany({
         where: {
           type: param.bty,
           size: param.bs,
@@ -242,7 +245,7 @@ export async function GET(request: NextRequest) {
         },
         take: endIndex - startIndex + 1,
         skip: startIndex,
-      });
+      })) as never;
     }
 
     return Response.json(

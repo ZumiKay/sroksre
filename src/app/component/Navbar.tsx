@@ -381,6 +381,26 @@ const CategoriesContainer = (props: {
         </div>
       ) : (
         <>
+          <div
+            className="category flex flex-col w-55 max-small_phone:w-[90%] 
+            bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 
+            p-5 border border-gray-100"
+          >
+            <h3
+              onClick={() => {
+                router.push("/product?all=1");
+                router.refresh();
+                isMobile && props.setopen(false);
+              }}
+              className="category_header w-full bg-linear-to-r from-incart to-[#5a6575] 
+              text-white font-semibold text-base transition-all duration-300 cursor-pointer 
+              hover:scale-105 hover:shadow-lg active:scale-95 rounded-lg p-3.5 
+              wrap-break-word text-center"
+            >
+              All Categories
+            </h3>
+          </div>
+
           {allcate
             ?.filter((i) => i.type !== "latest")
             .map((i) => (
