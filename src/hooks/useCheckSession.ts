@@ -1,102 +1,111 @@
 "use client";
 
-import { signOut, useSession } from "next-auth/react";
-import { useCallback, useEffect, useRef } from "react";
+import { useSession } from "next-auth/react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Usersessiontype } from "../types/user.type";
-import { errorToast } from "../app/component/Loading";
 
 /**
- * Check for invalid session and auto sign out if expired
- * Optimized for performance with efficient state management and early returns
- * @returns handleCheckSession function to validate session
+ * Validates the user's session and exposes a `sessionExpired` flag.
+ *
+ * When the session is confirmed expired by the server, `sessionExpired` flips
+ * to `true`. The caller is responsible for rendering the <SessionExpiredModal>
+ * based on this flag — the hook never triggers a hard sign-out directly.
+ *
+ * Network/transient failures do NOT set `sessionExpired`; the user stays
+ * logged in and the failed action is simply blocked.
  */
 const useCheckSession = () => {
   const { status, data, update } = useSession();
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const isSigningOutRef = useRef(false);
+  const [sessionExpired, setSessionExpired] = useState(false);
+  const isHandlingRef = useRef(false);
 
-  // Cleanup unmount
+  // Expose for tests / consumers that need to reset the flag (e.g. after modal closes)
+  const clearSessionExpired = useCallback(() => {
+    setSessionExpired(false);
+  }, []);
+
+  // Immediately detect an already-expired session on mount / session data change
   useEffect(() => {
-    return () => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-        timerRef.current = null;
-      }
-      if (isSigningOutRef.current) {
-        isSigningOutRef.current = false;
-      }
-    };
-  }, []);
-
-  const handleSignOut = useCallback(() => {
-    // Prevent multiple simultaneous sign-out
-    if (isSigningOutRef.current) return;
-
-    isSigningOutRef.current = true;
-
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-      timerRef.current = null;
+    if (
+      status === "authenticated" &&
+      data?.expires === "0" &&
+      !isHandlingRef.current
+    ) {
+      isHandlingRef.current = true;
+      setSessionExpired(true);
     }
+  }, [status, data?.expires]);
 
-    errorToast("Invalid Session", {
-      autoClose: 5000,
-      closeOnClick: true,
-      onClose: () => {
-        timerRef.current = setTimeout(() => {
-          signOut().catch(console.error);
-        }, 150);
-      },
-    });
-  }, []);
+  // Reset the guard when a fresh authenticated session arrives
+  useEffect(() => {
+    if (status === "authenticated" && data?.expires !== "0") {
+      isHandlingRef.current = false;
+    }
+  }, [status, data?.expires]);
 
-  const handleCheckSession = async () => {
-    if (status === "loading" || isSigningOutRef.current) return false;
+  /**
+   * Call before any server action. Returns `true` if the session is valid,
+   * `false` (and sets `sessionExpired` when appropriate) if not.
+   */
+  const handleCheckSession = useCallback(async (): Promise<boolean> => {
+    if (status === "loading" || isHandlingRef.current) return false;
 
-    const usersession = data as unknown as Usersessiontype;
-
+    const usersession = data as unknown as Usersessiontype | null;
     if (!usersession) return false;
 
-    const nowInSeconds = Math.floor(Date.now() / 1000);
-
-    if (!usersession.cexp && !usersession.expireAt) {
-      handleSignOut();
+    // Session was already marked expired by the server
+    if ((data as any)?.expires === "0") {
+      if (!isHandlingRef.current) {
+        isHandlingRef.current = true;
+        setSessionExpired(true);
+      }
       return false;
     }
 
-    // Renew if expired or expiring within 3 minutes (180 seconds)
+    const nowInSeconds = Math.floor(Date.now() / 1000);
+
+    // No expiry info at all — treat as expired
+    if (!usersession.cexp && !usersession.expireAt) {
+      isHandlingRef.current = true;
+      setSessionExpired(true);
+      return false;
+    }
+
+    // Access token is expired or expiring within 3 minutes — rotate via update()
     if (usersession.cexp && usersession.cexp < nowInSeconds + 180) {
       try {
         const renewedSession = await update();
 
-        // Only sign out when the server explicitly marks the session as expired.
-        // A null/undefined response means the request failed transiently (e.g. server cold-start,
-        // network blip) — in that case keep the user logged in rather than force-logging them out.
-        if (renewedSession?.expires && renewedSession.expires === "0") {
-          handleSignOut();
+        // Server explicitly marks session as dead
+        if (renewedSession?.expires === "0") {
+          isHandlingRef.current = true;
+          setSessionExpired(true);
           return false;
         }
 
+        // null/undefined → transient failure (network blip, cold start). Keep user in.
         return true;
-      } catch (error) {
-        console.log("Session renewal failed:", error);
-        handleSignOut();
-        return false;
+      } catch {
+        // Network or unexpected error — do NOT sign out. Let the action proceed
+        // optimistically; if the session is truly dead the server action will fail.
+        return true;
       }
     }
 
+    // DB-level session expiry from expireAt
     if (usersession.expireAt) {
-      const expireDate = new Date(usersession.expireAt).getTime();
-      if (expireDate <= nowInSeconds * 1000) {
-        handleSignOut();
+      const expireMs = new Date(usersession.expireAt).getTime();
+      if (expireMs <= Date.now()) {
+        isHandlingRef.current = true;
+        setSessionExpired(true);
         return false;
       }
     }
 
     return true;
-  };
+  }, [status, data, update]);
 
-  return { handleCheckSession, data, status };
+  return { handleCheckSession, sessionExpired, clearSessionExpired, data, status };
 };
 
 export default useCheckSession;

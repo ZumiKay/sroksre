@@ -1,9 +1,13 @@
 import {
   Allstatus,
   Ordertype,
+  Productorderdetailtype,
   Productordertype,
   ShippingTypeEnum,
+  VariantOptionsType,
+  VariantPriceBreakdown,
 } from "@/src/types/order.type";
+import { Varianttype, VariantValueObjType } from "@/src/types/product.type";
 
 export function hasValidBuyer(order: Ordertype): boolean {
   return !!(order.buyer_id && order.user && order.user.email);
@@ -17,7 +21,7 @@ export function hasValidQuantities(order: Ordertype): boolean {
   if (!order.Orderproduct) return false;
   return order.Orderproduct.every(
     (product) =>
-      product.quantity > 0 && product.quantity <= (product.maxqty || Infinity)
+      product.quantity > 0 && product.quantity <= (product.maxqty || Infinity),
   );
 }
 
@@ -101,7 +105,7 @@ export function canPlaceOrder(order: Ordertype): boolean {
     hasValidStatus(order) &&
     order.Orderproduct.every(
       (product) =>
-        hasValidProductDetails(product) && hasValidProductPrice(product)
+        hasValidProductDetails(product) && hasValidProductPrice(product),
     )
   );
 }
@@ -202,3 +206,84 @@ export function sanitizeOrderData(order: Ordertype): Partial<Ordertype> {
     estimate: order.estimate,
   };
 }
+
+export const getVariantDetail = ({
+  val,
+  productvariant,
+}: {
+  val: string;
+  productvariant: Varianttype;
+}): VariantOptionsType | null => {
+  let finalPrice = 0;
+
+  //Verify
+  if (
+    !productvariant.price &&
+    typeof productvariant.option_value === "string" &&
+    (productvariant.option_value as Array<VariantValueObjType>).every(
+      (i) => !i.price || Number(i.price) === 0,
+    )
+  ) {
+    return null;
+  }
+
+  if (productvariant.price) finalPrice = productvariant.price;
+  else {
+    (productvariant.option_value as Array<VariantValueObjType>).forEach(
+      (variant) => {
+        if (variant.val === val && variant.price && Number(variant.price) !== 0)
+          finalPrice = parseFloat(variant.price);
+      },
+    );
+  }
+
+  return {
+    name: (typeof productvariant.option_value !== "string"
+      ? productvariant.option_value.find((i) =>
+          typeof i === "string" ? i === val : i.val === val,
+        )
+      : val) as never,
+    price: finalPrice,
+  };
+};
+
+export const getVariantPriceBreakDownByActiveCart = (
+  orderProduct: Productordertype[],
+  optionsPrice: VariantOptionsType[],
+): VariantPriceBreakdown => {
+  const productName =
+    orderProduct.length === 1
+      ? (orderProduct[0]?.product?.name ?? "Cart Item")
+      : "Cart Items";
+
+  if (optionsPrice.length > 0) {
+    return {
+      productName,
+      variantOptions: optionsPrice,
+    };
+  }
+
+  const variantOptions = orderProduct.flatMap((item) => {
+    if (!item.product || !item.details) return [];
+
+    const details = item.details as Productorderdetailtype[];
+    const variants = item.product.Variant ?? [];
+
+    return details
+      .map((detail) => {
+        const matchedVariant = variants.find((v) => v.id === detail.variant_id);
+        if (!matchedVariant) return null;
+
+        return getVariantDetail({
+          val: detail.value,
+          productvariant: matchedVariant as Varianttype,
+        });
+      })
+      .filter(Boolean) as VariantOptionsType[];
+  });
+
+  return {
+    productName,
+    variantOptions,
+  };
+};

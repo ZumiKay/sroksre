@@ -229,6 +229,7 @@ model Orders {
   shippingtype String         @default("Normal")
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
+  renewedAt    DateTime?
   shipping_id  Int?
   shipping     Address?       @relation(fields: [shipping_id], references: [id])
   user         User           @relation(fields: [buyer_id], references: [buyer_id], onDelete: Cascade)
@@ -248,8 +249,9 @@ model Orderproduct {
   quantity  Int
   details   Json?
   orderId   String?
+  createdAt DateTime @default(now())
   user      User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  order     Orders?  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  order     Orders?  @relation(fields: [orderId], references: [id], onDelete: SetNull)
   product   Products @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@index([productId])
@@ -257,6 +259,7 @@ model Orderproduct {
   @@index([orderId])
   @@index([status])
   @@index([user_id, status])
+  @@index([createdAt])
 }
 
 model Banner {

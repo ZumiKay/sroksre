@@ -12,7 +12,11 @@ import Checkmark from "../../../public/Image/Checkmark.svg";
 import { SubInventoryMenu } from "./Navbar";
 import { errorToast } from "./Loading";
 import { useRouter } from "next/navigation";
-import { Orderpricetype, totalpricetype } from "@/src/types/order.type";
+import {
+  Orderpricetype,
+  totalpricetype,
+  VariantOptionsType,
+} from "@/src/types/order.type";
 import { Variantcontainer } from "./Modals/VariantModal";
 import { UpdateStockModal } from "./Modals/Stock";
 import { Chip, Skeleton } from "@heroui/react";
@@ -33,6 +37,7 @@ interface cardprops {
   name: string;
   price: string;
   img: productcoverstype[];
+  selectedVariantOptions?: VariantOptionsType[];
   isAdmin?: boolean;
   button?: boolean;
   index?: number;
@@ -383,6 +388,7 @@ interface SecondayCardprops {
   name: string;
   price: Orderpricetype;
   selecteddetail?: (string | VariantValueObjType)[];
+  selectedVariantOptions?: VariantOptionsType[];
   selectedqty: number;
   maxqty?: number;
   width?: string;
@@ -391,26 +397,56 @@ interface SecondayCardprops {
   settotal: (param?: totalpricetype) => void;
   setreloadcart: (value: boolean) => void;
 }
-export const Selecteddetailcard = ({
-  text,
-}: {
-  text: string | VariantValueObjType;
-}) => (
-  <Chip
-    variant="bordered"
-    size="lg"
-    startContent={
-      typeof text !== "string" && (
-        <div
-          style={{ backgroundColor: text.val }}
-          className="w-6.25 h-6.25 rounded-full"
-        ></div>
-      )
-    }
-  >
-    {typeof text === "string" ? text : text.name}
-  </Chip>
-);
+type SelectedDetailItem = string | VariantValueObjType | VariantOptionsType;
+
+export const Selecteddetailcard = ({ text }: { text: SelectedDetailItem }) => {
+  const isVariantOption = (
+    value: SelectedDetailItem,
+  ): value is VariantOptionsType =>
+    typeof value !== "string" &&
+    typeof value.price === "number" &&
+    typeof value.name === "object" &&
+    value.name !== null;
+
+  const variantValue =
+    typeof text === "string"
+      ? undefined
+      : isVariantOption(text)
+        ? text.name
+        : text;
+  const label =
+    typeof text === "string"
+      ? text
+      : isVariantOption(text)
+        ? (text.name.name ?? text.name.val)
+        : (text.name ?? text.val);
+  const price = (text as VariantValueObjType).price
+    ? (text as VariantValueObjType).price
+    : undefined;
+
+  return (
+    <Chip
+      variant="bordered"
+      size="lg"
+      startContent={
+        variantValue &&
+        typeof variantValue !== "string" && (
+          <div
+            style={{ backgroundColor: variantValue.val }}
+            className="w-6.25 h-6.25 rounded-full"
+          ></div>
+        )
+      }
+    >
+      {label}
+      {typeof price === "number" && (
+        <span className="ml-1 font-semibold text-green-600">
+          (${(price as number).toFixed(2)})
+        </span>
+      )}
+    </Chip>
+  );
+};
 
 export const SecondayCard = memo(function SecondayCard(
   props: SecondayCardprops,
@@ -418,30 +454,79 @@ export const SecondayCard = memo(function SecondayCard(
   const [editqty, seteditqty] = useState(props.selectedqty);
   const [loading, setloading] = useState(false);
 
-  const price = useMemo(
-    () => parseFloat(props.price.price.toString()).toFixed(2),
+  const selectedDetails = useMemo<SelectedDetailItem[]>(() => {
+    if (props.selectedVariantOptions && props.selectedVariantOptions.length) {
+      return props.selectedVariantOptions;
+    }
+    return props.selecteddetail ?? [];
+  }, [props.selectedVariantOptions, props.selecteddetail]);
+
+  const basePrice = useMemo(
+    () => Number(props.price.price) || 0,
     [props.price.price],
+  );
+  const extraPrice = useMemo(
+    () => Number(props.price.extra) || 0,
+    [props.price.extra],
+  );
+  const totalBeforeDiscount = useMemo(
+    () => basePrice + extraPrice,
+    [basePrice, extraPrice],
   );
 
   const priceDisplay = useMemo(() => {
+    const format = (value: number) => `$${value.toFixed(2)}`;
+    const discountPercent = props.price.discount?.percent ?? 0;
+    const discountedTotal =
+      props.price.discount?.newprice ??
+      (discountPercent > 0
+        ? totalBeforeDiscount * (1 - discountPercent / 100)
+        : totalBeforeDiscount);
+
     if (!props.price.discount) {
-      return <span className="text-xl font-bold text-gray-900">${price}</span>;
+      return (
+        <div className="flex flex-col gap-y-1">
+          {extraPrice > 0 ? (
+            <div className="text-sm text-gray-500">
+              {format(basePrice)} + {format(extraPrice)}
+              <span className="mx-1">=</span>
+              <span className="font-semibold text-gray-700">
+                {format(totalBeforeDiscount)}
+              </span>
+            </div>
+          ) : null}
+          <span className="text-xl font-bold text-gray-900">
+            {format(totalBeforeDiscount)}
+          </span>
+        </div>
+      );
     }
-    const newPrice = parseFloat(
-      props.price.discount.newprice?.toString() ?? "0",
-    ).toFixed(2);
+
     return (
-      <div className="flex flex-row items-center gap-x-3">
-        <span className="text-base font-medium text-gray-400 line-through">
-          ${price}
-        </span>
-        <span className="text-sm font-semibold text-red-500 bg-red-50 px-2 py-0.5 rounded-full">
-          -{props.price.discount.percent}%
-        </span>
-        <span className="text-xl font-bold text-gray-900">${newPrice}</span>
+      <div className="flex flex-col gap-y-1">
+        {extraPrice > 0 ? (
+          <div className="text-sm text-gray-500">
+            {format(basePrice)} + {format(extraPrice)}
+            <span className="mx-1">=</span>
+            <span className="font-semibold text-gray-700">
+              {format(totalBeforeDiscount)}
+            </span>
+          </div>
+        ) : null}
+        <div className="flex flex-row items-center gap-x-3">
+          <span className="text-base font-medium text-gray-400 line-through">
+            {format(totalBeforeDiscount)}
+          </span>
+          <span className="text-sm font-semibold text-red-500 bg-red-50 px-2 py-0.5 rounded-full">
+            -{discountPercent}%
+          </span>
+          <span className="text-xl font-bold text-gray-900">
+            {format(discountedTotal)}
+          </span>
+        </div>
       </div>
     );
-  }, [price, props.price.discount]);
+  }, [basePrice, extraPrice, totalBeforeDiscount, props.price.discount]);
 
   const qtyOptions = useMemo(
     () =>
@@ -494,7 +579,7 @@ export const SecondayCard = memo(function SecondayCard(
             className="object-contain w-full h-full"
             fill
             sizes="(max-width: 480px) 100vw, (max-width: 768px) 128px, 176px"
-            quality={60}
+            quality={75}
             loading="lazy"
           />
         </div>
@@ -510,9 +595,9 @@ export const SecondayCard = memo(function SecondayCard(
           </div>
 
           {/* Selected Variants */}
-          {props.selecteddetail && props.selecteddetail.length > 0 && (
+          {selectedDetails.length > 0 && (
             <div className="flex flex-row flex-wrap gap-2 max-h-24 overflow-y-auto">
-              {props.selecteddetail.map((selected, idx) => (
+              {selectedDetails.map((selected, idx) => (
                 <Selecteddetailcard key={idx} text={selected} />
               ))}
             </div>

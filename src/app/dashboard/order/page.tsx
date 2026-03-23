@@ -6,7 +6,7 @@ import {
   PaginationSSR,
 } from "./OrderComponent";
 import { MultipleSelect } from "../../component/Button";
-import { getFilterOrder, GetOrder } from "./action";
+import { getFilterOrder, GetOrder, purgeExpiredUnpaidOrders } from "./action";
 import { Productordertype, totalpricetype } from "@/src/types/order.type";
 import { getUser } from "@/src/lib/session";
 import { notFound, redirect } from "next/navigation";
@@ -23,12 +23,15 @@ import {
   AllOrderStatusColor,
   AllorderType,
   removeSpaceAndToLowerCase,
+  encrypt,
 } from "@/src/lib/utilities";
 import { OrderUserType } from "../../checkout/action";
 import React, { Suspense, cache } from "react";
 import type { Metadata } from "next";
 import { Role } from "@/prisma/generated/prisma/enums";
 import { getCheckoutdata } from "../../checkout/fetchaction";
+import { Allstatus } from "@/src/types/order.type";
+import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Order Management | SrokSre Dashboard",
@@ -109,8 +112,11 @@ export default async function OrderManagement({
   const selectedStatus = status ? (status as string).split(",") : undefined;
   const isFilter = Boolean(q || fromdate || todate || startprice || endprice);
 
+  // Purge expired unpaid orders before loading the page
+  await purgeExpiredUnpaidOrders();
+
   // Parallel data fetching for better performance
-  const userId = getuser.user.role === Role.USER ? getuser.userId : undefined;
+  const userId = getuser.user.role === Role.USER ? getuser.user.buyer_id : undefined;
 
   try {
     const [ordersResult, filterResult] = await Promise.all([
@@ -474,6 +480,17 @@ export async function DataRow({
   // Fetch order data only if needed
   const orderData = param ? await getOrderData(data.id, isAdmin, param) : null;
 
+  // Build a checkout resume link for the order owner's unpaid orders
+  const checkoutUrl = (() => {
+    if (isAdmin || data.status !== Allstatus.unpaid) return null;
+    try {
+      const encrypted = encrypt(data.id, process.env.KEY as string);
+      return `/checkout?step=1&orderid=${encrypted}`;
+    } catch {
+      return null;
+    }
+  })();
+
   // Memoize date formatting
   const orderDate = new Date(data.createdAt).toLocaleDateString("en-US", {
     year: "numeric",
@@ -555,7 +572,16 @@ export async function DataRow({
           />
         </td>
       )}
-      <td className="pr-6"></td>
+      <td className="pr-6 py-4">
+        {checkoutUrl && (
+          <Link
+            href={checkoutUrl}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded-lg transition-colors whitespace-nowrap"
+          >
+            Resume Checkout
+          </Link>
+        )}
+      </td>
     </tr>
   );
 }

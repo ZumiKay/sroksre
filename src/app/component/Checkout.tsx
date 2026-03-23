@@ -12,3 +12,4 @@ export { ShippingForm, SelectionSSR } from "./checkout/ShippingForm";
 export { BackAndEdit, Proceedbutton, Navigatebutton } from "./checkout/Buttons";
 export { FormWrapper } from "./checkout/FormWrapper";
 export { Paypalbutton } from "./checkout/PaypalButton";
+export { CheckoutSessionTimer } from "./checkout/SessionTimer";

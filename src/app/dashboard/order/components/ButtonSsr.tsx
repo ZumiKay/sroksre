@@ -122,21 +122,22 @@ export const ButtonSsr = React.memo(
         <button
           type="button"
           onClick={handleClick}
-          className="relative min-w-25 px-4 py-2 rounded-xl font-medium text-white 
-                   bg-linear-to-r from-blue-600 to-purple-600 
-                   hover:from-blue-700 hover:to-purple-700 
-                   active:scale-95 
-                   shadow-md hover:shadow-lg 
+          className="relative min-w-25 px-4 py-2 rounded-xl font-medium text-white text-center
+                   bg-linear-to-r from-blue-600 to-purple-600
+                   hover:from-blue-700 hover:to-purple-700
+                   active:scale-95
+                   shadow-md hover:shadow-lg
                    transition-all duration-200 ease-in-out
                    focus:outline-hidden focus:ring-2 focus:ring-purple-500 focus:ring-offset-2
-                   disabled:opacity-50 disabled:cursor-not-allowed"
+                   disabled:opacity-50 disabled:cursor-not-allowed
+                   whitespace-normal wrap-break-words leading-tight"
           style={{
             width: width === "auto" ? undefined : width,
-            height: height === "auto" ? undefined : height,
+            minHeight: height === "auto" ? undefined : height,
             ...(color && { background: color }),
           }}
         >
-          <span className="relative z-10">{name}</span>
+          <span className="relative z-10 block">{name}</span>
           <div className="absolute inset-0 rounded-xl bg-linear-to-r from-blue-400 to-purple-400 opacity-0 hover:opacity-20 transition-opacity duration-200" />
         </button>
         {renderModal}

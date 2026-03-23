@@ -3,9 +3,7 @@
 import { ChangeEvent, useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Checkbox, FormControlLabel } from "@mui/material";
-import { getAddress } from "@/src/app/checkout/action";
 import { ApiRequest } from "@/src/context/CustomHook";
-import { SelectionCustom } from "../Pagination_Component";
 import { errorToast } from "../Loading";
 
 // -----------------------------------------------------------------------------
@@ -44,6 +42,9 @@ const ADDRESS_INITIAL: Addresstype = {
 const INPUT_CLASS =
   "w-full h-12 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 font-medium text-sm placeholder:text-gray-400";
 
+const SELECT_CLASS =
+  "w-full h-12 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 font-medium text-sm bg-white text-gray-700 appearance-none cursor-pointer";
+
 // -----------------------------------------------------------------------------
 // SelectionSSR – URL-driven address selector (server-side routing)
 // -----------------------------------------------------------------------------
@@ -61,8 +62,8 @@ export function SelectionSSR(props: {
       // onChange intentionally omitted: consumers should use SelectionCustom instead
     >
       <option value="">None</option>
-      {props.data.map((item, idx) => (
-        <option key={idx} value={item.value}>
+      {props.data.map((item) => (
+        <option key={item.value} value={item.value}>
           {item.label}
         </option>
       ))}
@@ -78,28 +79,48 @@ export function ShippingForm({ orderid }: { orderid: string }) {
   const [addresses, setAddresses] = useState<Addresstype[] | undefined>(
     undefined,
   );
-  const [loading, setLoading] = useState(false);
+  const [isHydrating, setIsHydrating] = useState(true);
+  const [isUpdatingAddress, setIsUpdatingAddress] = useState(false);
   const [selected, setSelected] = useState(0);
   const [save, setSave] = useState(0);
   const [selectedAddress, setSelectedAddress] =
     useState<Addresstype>(ADDRESS_INITIAL);
 
-  const fetchAddresses = async () => {
-    const fetch = await getAddress.bind(null, orderid)();
-    if (fetch.selectedaddress) {
-      setSelected(fetch.selectedaddress.shipping?.id ?? 0);
-      setSelectedAddress(
-        fetch.selectedaddress.shipping as unknown as Addresstype,
-      );
-    } else {
-      setSelected(0);
-    }
-    setAddresses(fetch.address as unknown as Addresstype[]);
-  };
-
   useEffect(() => {
+    const fetchAddresses = async () => {
+      try {
+        setIsHydrating(true);
+        const fetch = await ApiRequest(
+          `/api/order?ty=shipping&q=${orderid}`,
+          undefined,
+          "GET",
+        );
+
+        if (fetch.success && fetch.data) {
+          const shippingAddress = fetch.data
+            .shipping as unknown as Addresstype | null;
+          if (shippingAddress?.id) {
+            setSelected(shippingAddress.id);
+            setSelectedAddress(shippingAddress);
+          } else {
+            setSelected(0);
+            setSelectedAddress(ADDRESS_INITIAL);
+          }
+          setAddresses(fetch.data.addresses as unknown as Addresstype[]);
+        } else {
+          setSelected(0);
+          setSelectedAddress(ADDRESS_INITIAL);
+          setAddresses([]);
+        }
+      } catch (error) {
+        errorToast("Unable to load addresses");
+      } finally {
+        setIsHydrating(false);
+      }
+    };
+
     fetchAddresses();
-  }, []);
+  }, [orderid]);
 
   const handleFieldChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -108,25 +129,53 @@ export function ShippingForm({ orderid }: { orderid: string }) {
 
   const handleSelect = async (value: number) => {
     setSelected(value);
-    setSelectedAddress(ADDRESS_INITIAL);
+
+    if (value === -1) {
+      setSelectedAddress({ ...ADDRESS_INITIAL, id: -1 });
+      setSave(0);
+      return;
+    }
 
     if (value === 0) {
-      setLoading(true);
-      const res = await ApiRequest("/api/order", undefined, "PUT", "JSON", {
-        id: orderid,
-        ty: "removeAddress",
-      });
-      setLoading(false);
-      if (!res.success) {
+      setSelectedAddress(ADDRESS_INITIAL);
+      setSave(0);
+      try {
+        setIsUpdatingAddress(true);
+        const res = await ApiRequest("/api/order", undefined, "PUT", "JSON", {
+          id: orderid,
+          ty: "removeAddress",
+        });
+
+        if (!res.success) {
+          errorToast("Can't Update Address");
+        }
+      } catch (error) {
         errorToast("Can't Update Address");
+      } finally {
+        setIsUpdatingAddress(false);
       }
       return;
     }
 
-    if (value === -1) return;
-
     const found = addresses?.find((a) => a.id === value);
-    if (found) setSelectedAddress(found);
+    if (found) {
+      setSelectedAddress(found);
+      try {
+        setIsUpdatingAddress(true);
+        const res = await ApiRequest("/api/order", undefined, "PUT", "JSON", {
+          id: orderid,
+          ty: "setShipping",
+          addressId: value,
+        });
+        if (!res.success) {
+          errorToast("Can't Update Address");
+        }
+      } catch {
+        errorToast("Can't Update Address");
+      } finally {
+        setIsUpdatingAddress(false);
+      }
+    }
   };
 
   const addressOptions = [
@@ -138,10 +187,8 @@ export function ShippingForm({ orderid }: { orderid: string }) {
     { label: "Custom", value: -1 },
   ];
 
-  const addressPlaceholder =
-    addresses && selectedAddress
-      ? `Address ${addresses.findIndex((a) => a.id === selectedAddress.id) + 1}`
-      : "None";
+  const isLoading = isHydrating || isUpdatingAddress;
+  const inputDisabled = isLoading;
 
   return (
     <motion.div
@@ -158,14 +205,30 @@ export function ShippingForm({ orderid }: { orderid: string }) {
         </div>
 
         <div className="shippingform w-full space-y-6">
-          <SelectionCustom
-            label="Address"
-            placeholder={addressPlaceholder}
-            isLoading={loading}
-            data={addressOptions}
-            value={selected}
-            onChange={(value) => handleSelect(value as number)}
-          />
+          <div className="relative">
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Address
+            </label>
+            <select
+              value={selected}
+              onChange={(e) => handleSelect(parseInt(e.target.value, 10))}
+              disabled={isLoading}
+              className={`${SELECT_CLASS} ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
+              style={{
+                backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`,
+                backgroundRepeat: "no-repeat",
+                backgroundPosition: "right 0.5rem center",
+                backgroundSize: "1.5em 1.5em",
+                paddingRight: "2.5rem",
+              }}
+            >
+              {addressOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
 
           <input
             type="hidden"
@@ -173,7 +236,7 @@ export function ShippingForm({ orderid }: { orderid: string }) {
             value={selectedAddress?.id ?? 0}
           />
 
-          {selected !== 0 && (
+          {selected !== 0 ? (
             <div className="space-y-5 animate-in fade-in duration-300">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <input
@@ -182,6 +245,8 @@ export function ShippingForm({ orderid }: { orderid: string }) {
                   name="firstname"
                   value={selectedAddress?.firstname}
                   onChange={handleFieldChange}
+                  disabled={inputDisabled}
+                  autoComplete="given-name"
                   required
                 />
                 <input
@@ -190,6 +255,8 @@ export function ShippingForm({ orderid }: { orderid: string }) {
                   name="lastname"
                   value={selectedAddress?.lastname}
                   onChange={handleFieldChange}
+                  disabled={inputDisabled}
+                  autoComplete="family-name"
                   required
                 />
               </div>
@@ -200,6 +267,8 @@ export function ShippingForm({ orderid }: { orderid: string }) {
                 name="street"
                 value={selectedAddress?.street}
                 onChange={handleFieldChange}
+                disabled={inputDisabled}
+                autoComplete="address-line1"
                 required
               />
               <input
@@ -208,6 +277,8 @@ export function ShippingForm({ orderid }: { orderid: string }) {
                 name="houseId"
                 value={selectedAddress?.houseId}
                 onChange={handleFieldChange}
+                disabled={inputDisabled}
+                autoComplete="address-line2"
                 required
               />
 
@@ -218,6 +289,8 @@ export function ShippingForm({ orderid }: { orderid: string }) {
                   name="province"
                   value={selectedAddress?.province}
                   onChange={handleFieldChange}
+                  disabled={inputDisabled}
+                  autoComplete="address-level1"
                   required
                 />
                 <input
@@ -226,6 +299,8 @@ export function ShippingForm({ orderid }: { orderid: string }) {
                   name="district"
                   value={selectedAddress?.district}
                   onChange={handleFieldChange}
+                  disabled={inputDisabled}
+                  autoComplete="address-level2"
                   required
                 />
               </div>
@@ -236,6 +311,7 @@ export function ShippingForm({ orderid }: { orderid: string }) {
                 name="songkhat"
                 value={selectedAddress?.songkhat}
                 onChange={handleFieldChange}
+                disabled={inputDisabled}
                 required
               />
 
@@ -246,35 +322,45 @@ export function ShippingForm({ orderid }: { orderid: string }) {
                   name="postalcode"
                   value={selectedAddress?.postalcode}
                   onChange={handleFieldChange}
+                  disabled={inputDisabled}
+                  inputMode="numeric"
+                  autoComplete="postal-code"
                   required
                 />
                 <input
                   className={INPUT_CLASS}
                   placeholder="Phone number (optional)"
                   name="phonenumber"
+                  value={selectedAddress?.phonenumber ?? ""}
+                  onChange={handleFieldChange}
+                  disabled={inputDisabled}
+                  inputMode="tel"
+                  autoComplete="tel"
                 />
               </div>
 
               <input type="hidden" name="save" value={save} />
 
-              <div className="pt-4 border-t border-gray-200">
-                <FormControlLabel
-                  hidden={selected !== -1}
-                  control={
-                    <Checkbox
-                      onChange={(e) => setSave(e.target.checked ? 1 : 0)}
-                      style={{ color: "#3B82F6" }}
-                    />
-                  }
-                  label={
-                    <span className="text-gray-700 font-medium">
-                      Save address for future orders
-                    </span>
-                  }
-                />
-              </div>
+              {selected === -1 && (
+                <div className="pt-4 border-t border-gray-200">
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={save === 1}
+                        onChange={(e) => setSave(e.target.checked ? 1 : 0)}
+                        style={{ color: "#3B82F6" }}
+                      />
+                    }
+                    label={
+                      <span className="text-gray-700 font-medium">
+                        Save address for future orders
+                      </span>
+                    }
+                  />
+                </div>
+              )}
             </div>
-          )}
+          ) : null}
         </div>
       </div>
     </motion.div>

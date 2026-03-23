@@ -41,8 +41,8 @@ export async function PUT(req: NextRequest) {
                   policyId: policy?.id as number,
                   content: i.content,
                 },
-              })
-            )
+              }),
+            ),
           );
         }
       }
@@ -51,7 +51,7 @@ export async function PUT(req: NextRequest) {
     }
     return NextResponse.json(
       { message: "Updated Successfully" },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error) {
     console.log("Update Policy", error);

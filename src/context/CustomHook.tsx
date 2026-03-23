@@ -78,7 +78,9 @@ export const ApiRequest = async (
   success: boolean;
   error?: string;
   data?: any;
+  subtotal?: number;
   total?: number;
+  extra?: number;
   totalpage?: number;
   lowstock?: number;
   valid?: boolean;
@@ -120,7 +122,9 @@ export const ApiRequest = async (
         return {
           success: true,
           data: responseJson.data,
+          subtotal: method === "GET" && responseJson?.subtotal,
           total: method === "GET" && responseJson?.total,
+          extra: method === "GET" && responseJson?.extra,
           lowstock: method === "GET" && responseJson?.lowstock,
           totalpage: method === "GET" && responseJson?.totalpage,
           totalfilter: method === "GET" && responseJson?.totalfilter,

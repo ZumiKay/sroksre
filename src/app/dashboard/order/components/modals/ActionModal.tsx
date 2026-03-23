@@ -8,10 +8,12 @@ import { useGlobalContext } from "@/src/context/GlobalContext";
 import { Allstatus } from "@/src/types/order.type";
 import { useRouter, useSearchParams } from "next/navigation";
 import { OrderReceiptTemplate } from "@/src/app/component/EmailTemplate";
-import { deleteOrder, updateOrderStatus } from "../../action";
+import { deleteOrder, updateOrderSettings, updateOrderStatus } from "../../action";
 import { errorToast, successToast } from "@/src/app/component/Loading";
 import { OrderUserType } from "@/src/app/checkout/action";
 import useCheckSession from "@/src/hooks/useCheckSession";
+import { Shippingservice } from "@/src/context/Checkoutcontext";
+import { totalpricetype } from "@/src/types/order.type";
 
 // ---------- ActionModal ----------
 
@@ -54,29 +56,38 @@ export const ActionModal = ({
         {actiontype === "none" && (
           <>
             <h3 className="w-full text-center text-xl font-bold">Action</h3>
-            <div className="w-full h-fit flex flex-col gap-y-32 items-center">
-              <div className="flex flex-col w-full items-center gap-y-5">
-                <PrimaryButton
-                  type="button"
-                  text="Update Status"
-                  onClick={() => setactiontype("status")}
-                  radius="10px"
-                  width="90%"
-                />
-                <PrimaryButton
-                  type="button"
-                  text="Delete"
-                  width="90%"
-                  onClick={() => setactiontype("delete")}
-                  radius="10px"
-                  color="lightcoral"
-                />
-              </div>
+            <div className="w-full h-fit flex flex-col items-center gap-y-4">
+              <PrimaryButton
+                type="button"
+                text="Update Status"
+                onClick={() => setactiontype("status")}
+                radius="10px"
+                width="90%"
+              />
+              <PrimaryButton
+                type="button"
+                text="Edit Settings"
+                onClick={() => setactiontype("settings")}
+                radius="10px"
+                color="#7C3AED"
+                width="90%"
+              />
+              <PrimaryButton
+                type="button"
+                text="Delete"
+                width="90%"
+                onClick={() => setactiontype("delete")}
+                radius="10px"
+                color="lightcoral"
+              />
             </div>
           </>
         )}
         {actiontype === "status" && (
           <UpdateStatus setactiontype={setactiontype} oid={oid} order={order} />
+        )}
+        {actiontype === "settings" && (
+          <EditSettings setactiontype={setactiontype} oid={oid} order={order} />
         )}
         {actiontype === "delete" && (
           <OrderAlert settype={setactiontype} oid={oid} close={setclose} />
@@ -159,6 +170,124 @@ const UpdateStatus = ({ setactiontype, oid, order }: UpdateStatusProps) => {
           status={loading ? "loading" : "authenticated"}
           onClick={handleUpdate}
           color="#0097FA"
+          radius="10px"
+        />
+        <PrimaryButton
+          type="button"
+          text="Cancel"
+          radius="10px"
+          onClick={() => setactiontype("none")}
+          color="lightcoral"
+        />
+      </div>
+    </div>
+  );
+};
+
+// ---------- EditSettings ----------
+
+interface EditSettingsProps {
+  setactiontype: (type: string) => void;
+  oid: string;
+  order: OrderUserType;
+}
+
+const EditSettings = ({ setactiontype, oid, order }: EditSettingsProps) => {
+  const router = useRouter();
+  const [loading, setloading] = useState(false);
+  const { handleCheckSession } = useCheckSession();
+
+  const price = order?.price as unknown as totalpricetype;
+  const currentVatPercent =
+    price?.subtotal && price?.vat
+      ? parseFloat(((price.vat / price.subtotal) * 100).toFixed(2))
+      : 0;
+
+  const [vatPercent, setVatPercent] = useState(currentVatPercent);
+  const [shippingtype, setShippingtype] = useState<string>(order?.shippingtype ?? "");
+
+  const handleSave = async () => {
+    setloading(true);
+    const isValid = await handleCheckSession();
+    if (!isValid) {
+      errorToast("Can't Verify Session");
+      setloading(false);
+      return;
+    }
+
+    const result = await updateOrderSettings.bind(
+      null,
+      oid,
+      vatPercent,
+      shippingtype,
+    )();
+    setloading(false);
+
+    if (!result.success) {
+      errorToast(result.message);
+      return;
+    }
+    successToast(result.message);
+    router.refresh();
+  };
+
+  return (
+    <div className="w-full flex flex-col gap-y-6">
+      <h3 className="w-full text-center font-bold text-xl">Edit Settings</h3>
+
+      <div className="flex flex-col gap-y-2">
+        <label className="text-sm font-semibold text-gray-700">
+          VAT (%)
+        </label>
+        <input
+          type="number"
+          min={0}
+          max={100}
+          step={0.1}
+          value={vatPercent}
+          onChange={(e) => setVatPercent(parseFloat(e.target.value) || 0)}
+          className="w-full h-11 px-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm font-medium"
+          placeholder="e.g. 10 for 10%"
+        />
+        {price?.subtotal && vatPercent > 0 && (
+          <p className="text-xs text-gray-500">
+            VAT amount: ${((price.subtotal * vatPercent) / 100).toFixed(2)}
+          </p>
+        )}
+      </div>
+
+      <div className="flex flex-col gap-y-2">
+        <label className="text-sm font-semibold text-gray-700">
+          Shipping Service
+        </label>
+        <Selection
+          default="Select shipping"
+          value={shippingtype}
+          data={Shippingservice.map((s) => ({
+            label: `${s.type} — $${s.price.toFixed(2)}`,
+            value: s.value,
+          }))}
+          onChange={(e: ChangeEvent<HTMLSelectElement>) =>
+            setShippingtype(e.target.value)
+          }
+        />
+        {shippingtype && (
+          <p className="text-xs text-gray-500">
+            {(() => {
+              const s = Shippingservice.find((s) => s.value === shippingtype);
+              return s ? `$${s.price.toFixed(2)} · ${s.estimate}` : "";
+            })()}
+          </p>
+        )}
+      </div>
+
+      <div className="w-full flex gap-x-4">
+        <PrimaryButton
+          type="button"
+          text="Save"
+          status={loading ? "loading" : "authenticated"}
+          onClick={handleSave}
+          color="#7C3AED"
           radius="10px"
         />
         <PrimaryButton

@@ -8,6 +8,7 @@ import { CheckAndGetUserInfo } from "../severactions/RecapchaAction";
 import { ToastContainer } from "react-toastify";
 import useCheckSession from "@/src/hooks/useCheckSession";
 import TopModal from "../dashboard/TopModal";
+import { SessionExpiredModal } from "./SessionExpiredModal";
 
 // API endpoint constants
 const API_ENDPOINTS = {
@@ -16,7 +17,7 @@ const API_ENDPOINTS = {
 } as const;
 
 export default function NavbarWrapper() {
-  const { handleCheckSession, data, status } = useCheckSession();
+  const { handleCheckSession, sessionExpired, data, status } = useCheckSession();
   const [initialCartCount, setInitialCartCount] = useState(0);
   const [initialNotificationCount, setInitialNotificationCount] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -36,12 +37,6 @@ export default function NavbarWrapper() {
     setLoading(true);
 
     try {
-      // Check for invalid session with expires "0" - handleCheckSession shows toast and signs out internally
-      if (data?.expires === "0") {
-        await handleCheckSession();
-        return;
-      }
-
       // Verify active login session
       const checkReq = CheckAndGetUserInfo.bind(null, { nodata: true });
       const isValid = await checkReq();
@@ -111,6 +106,7 @@ export default function NavbarWrapper() {
 
   return (
     <>
+      {sessionExpired && <SessionExpiredModal />}
       <TopModal />
       <ToastContainer />
       <Navbar {...navbarProps} />

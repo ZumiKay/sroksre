@@ -42,6 +42,7 @@ export type OrdersMinAggregateOutputType = {
   shippingtype: string | null
   createdAt: Date | null
   updatedAt: Date | null
+  renewedAt: Date | null
   shipping_id: number | null
 }
 
@@ -53,6 +54,7 @@ export type OrdersMaxAggregateOutputType = {
   shippingtype: string | null
   createdAt: Date | null
   updatedAt: Date | null
+  renewedAt: Date | null
   shipping_id: number | null
 }
 
@@ -65,6 +67,7 @@ export type OrdersCountAggregateOutputType = {
   shippingtype: number
   createdAt: number
   updatedAt: number
+  renewedAt: number
   shipping_id: number
   _all: number
 }
@@ -86,6 +89,7 @@ export type OrdersMinAggregateInputType = {
   shippingtype?: true
   createdAt?: true
   updatedAt?: true
+  renewedAt?: true
   shipping_id?: true
 }
 
@@ -97,6 +101,7 @@ export type OrdersMaxAggregateInputType = {
   shippingtype?: true
   createdAt?: true
   updatedAt?: true
+  renewedAt?: true
   shipping_id?: true
 }
 
@@ -109,6 +114,7 @@ export type OrdersCountAggregateInputType = {
   shippingtype?: true
   createdAt?: true
   updatedAt?: true
+  renewedAt?: true
   shipping_id?: true
   _all?: true
 }
@@ -208,6 +214,7 @@ export type OrdersGroupByOutputType = {
   shippingtype: string
   createdAt: Date
   updatedAt: Date
+  renewedAt: Date | null
   shipping_id: number | null
   _count: OrdersCountAggregateOutputType | null
   _avg: OrdersAvgAggregateOutputType | null
@@ -243,6 +250,7 @@ export type OrdersWhereInput = {
   shippingtype?: Prisma.StringFilter<"Orders"> | string
   createdAt?: Prisma.DateTimeFilter<"Orders"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Orders"> | Date | string
+  renewedAt?: Prisma.DateTimeNullableFilter<"Orders"> | Date | string | null
   shipping_id?: Prisma.IntNullableFilter<"Orders"> | number | null
   shipping?: Prisma.XOR<Prisma.AddressNullableScalarRelationFilter, Prisma.AddressWhereInput> | null
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
@@ -258,6 +266,7 @@ export type OrdersOrderByWithRelationInput = {
   shippingtype?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  renewedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   shipping_id?: Prisma.SortOrderInput | Prisma.SortOrder
   shipping?: Prisma.AddressOrderByWithRelationInput
   user?: Prisma.UserOrderByWithRelationInput
@@ -276,6 +285,7 @@ export type OrdersWhereUniqueInput = Prisma.AtLeast<{
   shippingtype?: Prisma.StringFilter<"Orders"> | string
   createdAt?: Prisma.DateTimeFilter<"Orders"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Orders"> | Date | string
+  renewedAt?: Prisma.DateTimeNullableFilter<"Orders"> | Date | string | null
   shipping_id?: Prisma.IntNullableFilter<"Orders"> | number | null
   shipping?: Prisma.XOR<Prisma.AddressNullableScalarRelationFilter, Prisma.AddressWhereInput> | null
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
@@ -291,6 +301,7 @@ export type OrdersOrderByWithAggregationInput = {
   shippingtype?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  renewedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   shipping_id?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.OrdersCountOrderByAggregateInput
   _avg?: Prisma.OrdersAvgOrderByAggregateInput
@@ -311,6 +322,7 @@ export type OrdersScalarWhereWithAggregatesInput = {
   shippingtype?: Prisma.StringWithAggregatesFilter<"Orders"> | string
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Orders"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Orders"> | Date | string
+  renewedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"Orders"> | Date | string | null
   shipping_id?: Prisma.IntNullableWithAggregatesFilter<"Orders"> | number | null
 }
 
@@ -322,6 +334,7 @@ export type OrdersCreateInput = {
   shippingtype?: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  renewedAt?: Date | string | null
   shipping?: Prisma.AddressCreateNestedOneWithoutOrdersInput
   user: Prisma.UserCreateNestedOneWithoutOrdersInput
   Orderproduct?: Prisma.OrderproductCreateNestedManyWithoutOrderInput
@@ -336,6 +349,7 @@ export type OrdersUncheckedCreateInput = {
   shippingtype?: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  renewedAt?: Date | string | null
   shipping_id?: number | null
   Orderproduct?: Prisma.OrderproductUncheckedCreateNestedManyWithoutOrderInput
 }
@@ -348,6 +362,7 @@ export type OrdersUpdateInput = {
   shippingtype?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  renewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   shipping?: Prisma.AddressUpdateOneWithoutOrdersNestedInput
   user?: Prisma.UserUpdateOneRequiredWithoutOrdersNestedInput
   Orderproduct?: Prisma.OrderproductUpdateManyWithoutOrderNestedInput
@@ -362,6 +377,7 @@ export type OrdersUncheckedUpdateInput = {
   shippingtype?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  renewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   shipping_id?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   Orderproduct?: Prisma.OrderproductUncheckedUpdateManyWithoutOrderNestedInput
 }
@@ -375,6 +391,7 @@ export type OrdersCreateManyInput = {
   shippingtype?: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  renewedAt?: Date | string | null
   shipping_id?: number | null
 }
 
@@ -386,6 +403,7 @@ export type OrdersUpdateManyMutationInput = {
   shippingtype?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  renewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 export type OrdersUncheckedUpdateManyInput = {
@@ -397,6 +415,7 @@ export type OrdersUncheckedUpdateManyInput = {
   shippingtype?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  renewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   shipping_id?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
@@ -419,6 +438,7 @@ export type OrdersCountOrderByAggregateInput = {
   shippingtype?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  renewedAt?: Prisma.SortOrder
   shipping_id?: Prisma.SortOrder
 }
 
@@ -434,6 +454,7 @@ export type OrdersMaxOrderByAggregateInput = {
   shippingtype?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  renewedAt?: Prisma.SortOrder
   shipping_id?: Prisma.SortOrder
 }
 
@@ -445,6 +466,7 @@ export type OrdersMinOrderByAggregateInput = {
   shippingtype?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  renewedAt?: Prisma.SortOrder
   shipping_id?: Prisma.SortOrder
 }
 
@@ -565,6 +587,7 @@ export type OrdersCreateWithoutUserInput = {
   shippingtype?: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  renewedAt?: Date | string | null
   shipping?: Prisma.AddressCreateNestedOneWithoutOrdersInput
   Orderproduct?: Prisma.OrderproductCreateNestedManyWithoutOrderInput
 }
@@ -577,6 +600,7 @@ export type OrdersUncheckedCreateWithoutUserInput = {
   shippingtype?: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  renewedAt?: Date | string | null
   shipping_id?: number | null
   Orderproduct?: Prisma.OrderproductUncheckedCreateNestedManyWithoutOrderInput
 }
@@ -619,6 +643,7 @@ export type OrdersScalarWhereInput = {
   shippingtype?: Prisma.StringFilter<"Orders"> | string
   createdAt?: Prisma.DateTimeFilter<"Orders"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Orders"> | Date | string
+  renewedAt?: Prisma.DateTimeNullableFilter<"Orders"> | Date | string | null
   shipping_id?: Prisma.IntNullableFilter<"Orders"> | number | null
 }
 
@@ -630,6 +655,7 @@ export type OrdersCreateWithoutShippingInput = {
   shippingtype?: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  renewedAt?: Date | string | null
   user: Prisma.UserCreateNestedOneWithoutOrdersInput
   Orderproduct?: Prisma.OrderproductCreateNestedManyWithoutOrderInput
 }
@@ -643,6 +669,7 @@ export type OrdersUncheckedCreateWithoutShippingInput = {
   shippingtype?: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  renewedAt?: Date | string | null
   Orderproduct?: Prisma.OrderproductUncheckedCreateNestedManyWithoutOrderInput
 }
 
@@ -680,6 +707,7 @@ export type OrdersCreateWithoutOrderproductInput = {
   shippingtype?: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  renewedAt?: Date | string | null
   shipping?: Prisma.AddressCreateNestedOneWithoutOrdersInput
   user: Prisma.UserCreateNestedOneWithoutOrdersInput
 }
@@ -693,6 +721,7 @@ export type OrdersUncheckedCreateWithoutOrderproductInput = {
   shippingtype?: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  renewedAt?: Date | string | null
   shipping_id?: number | null
 }
 
@@ -720,6 +749,7 @@ export type OrdersUpdateWithoutOrderproductInput = {
   shippingtype?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  renewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   shipping?: Prisma.AddressUpdateOneWithoutOrdersNestedInput
   user?: Prisma.UserUpdateOneRequiredWithoutOrdersNestedInput
 }
@@ -733,6 +763,7 @@ export type OrdersUncheckedUpdateWithoutOrderproductInput = {
   shippingtype?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  renewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   shipping_id?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
@@ -744,6 +775,7 @@ export type OrdersCreateManyUserInput = {
   shippingtype?: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  renewedAt?: Date | string | null
   shipping_id?: number | null
 }
 
@@ -755,6 +787,7 @@ export type OrdersUpdateWithoutUserInput = {
   shippingtype?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  renewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   shipping?: Prisma.AddressUpdateOneWithoutOrdersNestedInput
   Orderproduct?: Prisma.OrderproductUpdateManyWithoutOrderNestedInput
 }
@@ -767,6 +800,7 @@ export type OrdersUncheckedUpdateWithoutUserInput = {
   shippingtype?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  renewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   shipping_id?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   Orderproduct?: Prisma.OrderproductUncheckedUpdateManyWithoutOrderNestedInput
 }
@@ -779,6 +813,7 @@ export type OrdersUncheckedUpdateManyWithoutUserInput = {
   shippingtype?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  renewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   shipping_id?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
@@ -791,6 +826,7 @@ export type OrdersCreateManyShippingInput = {
   shippingtype?: string
   createdAt?: Date | string
   updatedAt?: Date | string
+  renewedAt?: Date | string | null
 }
 
 export type OrdersUpdateWithoutShippingInput = {
@@ -801,6 +837,7 @@ export type OrdersUpdateWithoutShippingInput = {
   shippingtype?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  renewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   user?: Prisma.UserUpdateOneRequiredWithoutOrdersNestedInput
   Orderproduct?: Prisma.OrderproductUpdateManyWithoutOrderNestedInput
 }
@@ -814,6 +851,7 @@ export type OrdersUncheckedUpdateWithoutShippingInput = {
   shippingtype?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  renewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   Orderproduct?: Prisma.OrderproductUncheckedUpdateManyWithoutOrderNestedInput
 }
 
@@ -826,6 +864,7 @@ export type OrdersUncheckedUpdateManyWithoutShippingInput = {
   shippingtype?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  renewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
 }
 
 
@@ -868,6 +907,7 @@ export type OrdersSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   shippingtype?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  renewedAt?: boolean
   shipping_id?: boolean
   shipping?: boolean | Prisma.Orders$shippingArgs<ExtArgs>
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -884,6 +924,7 @@ export type OrdersSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extens
   shippingtype?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  renewedAt?: boolean
   shipping_id?: boolean
   shipping?: boolean | Prisma.Orders$shippingArgs<ExtArgs>
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -898,6 +939,7 @@ export type OrdersSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extens
   shippingtype?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  renewedAt?: boolean
   shipping_id?: boolean
   shipping?: boolean | Prisma.Orders$shippingArgs<ExtArgs>
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -912,10 +954,11 @@ export type OrdersSelectScalar = {
   shippingtype?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  renewedAt?: boolean
   shipping_id?: boolean
 }
 
-export type OrdersOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "buyer_id" | "status" | "estimate" | "price" | "shippingtype" | "createdAt" | "updatedAt" | "shipping_id", ExtArgs["result"]["orders"]>
+export type OrdersOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "buyer_id" | "status" | "estimate" | "price" | "shippingtype" | "createdAt" | "updatedAt" | "renewedAt" | "shipping_id", ExtArgs["result"]["orders"]>
 export type OrdersInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   shipping?: boolean | Prisma.Orders$shippingArgs<ExtArgs>
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -947,6 +990,7 @@ export type $OrdersPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs
     shippingtype: string
     createdAt: Date
     updatedAt: Date
+    renewedAt: Date | null
     shipping_id: number | null
   }, ExtArgs["result"]["orders"]>
   composites: {}
@@ -1382,6 +1426,7 @@ export interface OrdersFieldRefs {
   readonly shippingtype: Prisma.FieldRef<"Orders", 'String'>
   readonly createdAt: Prisma.FieldRef<"Orders", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"Orders", 'DateTime'>
+  readonly renewedAt: Prisma.FieldRef<"Orders", 'DateTime'>
   readonly shipping_id: Prisma.FieldRef<"Orders", 'Int'>
 }
     

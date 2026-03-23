@@ -27,7 +27,10 @@ export const getCheckoutdata = async (
   userid?: string,
 ): Promise<Ordertype | null> => {
   const result = await Prisma.orders.findFirst({
-    where: userid ? { user: { buyer_id: userid } } : { id: orderid },
+    where: {
+      ...(orderid ? { id: orderid } : {}),
+      ...(userid ? { user: { buyer_id: userid } } : {}),
+    },
     include: {
       user: {
         select: {
@@ -186,4 +189,41 @@ export const getCheckoutdata = async (
     shipping_id: result.shipping_id ?? undefined,
     Orderproduct: updatedOrderProducts,
   };
+};
+
+export const getVariantPriceBreakDown = async (orderId: string) => {
+  try {
+    const isOrder = await Prisma.orders.findUnique({
+      where: { id: orderId },
+      select: {
+        id: true,
+        status: true,
+        price: true,
+        shippingtype: true,
+        Orderproduct: {
+          select: {
+            quantity: true,
+            details: true,
+            product: {
+              select: {
+                id: true,
+                name: true,
+                Variant: true,
+                price: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!isOrder) {
+      return null;
+    }
+
+    return isOrder;
+  } catch (error) {
+    console.log("Get Variant Price Break Down", error);
+    return null;
+  }
 };

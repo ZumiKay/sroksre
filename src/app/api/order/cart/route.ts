@@ -1,11 +1,15 @@
 import {
   Allstatus,
+  Orderpricetype,
   Productorderdetailtype,
   Productordertype,
   totalpricetype,
+  VariantOptionsType,
+  VariantPriceBreakdown,
 } from "@/src/types/order.type";
 import { getUser } from "@/src/lib/session";
 import Prisma from "@/src/lib/prisma";
+import { CART_ITEM_EXPIRY_MS } from "@/src/app/checkout/constants";
 import {
   calculateCartTotalPrice,
   calculateDiscountProductPrice,
@@ -14,7 +18,19 @@ import {
 import { NextRequest } from "next/server";
 import { extractQueryParams } from "../../banner/route";
 import { JsonObject } from "@/prisma/generated/prisma/internal/prismaNamespace";
-import { ProductState, VariantValueObjType } from "@/src/types/product.type";
+import {
+  ProductState,
+  Varianttype,
+  VariantValueObjType,
+} from "@/src/types/product.type";
+import { getVariantDetail } from "@/src/app/checkout/helper";
+
+export const getVariantPriceBreakDownByActiveCart = (
+  orderProduct: Productordertype[],
+  optionsPrice: VariantOptionsType[],
+): VariantPriceBreakdown => {
+  return getVariantPriceBreakDownByActiveCart(orderProduct, optionsPrice);
+};
 
 const getVariantExtraPrice = (
   selectedVariant: Array<string | VariantValueObjType>,
@@ -36,12 +52,11 @@ const getVariantExtraPrice = (
 const buildFinalCartPrice = (
   basePrice: Productordertype["price"],
   variantExtra: number,
-): Productordertype["price"] => {
+): Orderpricetype => {
   if (variantExtra <= 0) {
     return basePrice;
   }
-
-  const originalPrice = parseFloat((basePrice.price + variantExtra).toFixed(2));
+  const originalPrice = parseFloat(basePrice.price.toFixed(2));
   if (basePrice.discount) {
     const discountedBase = basePrice.discount.newprice ?? basePrice.price;
     const finalDiscounted = parseFloat(
@@ -50,6 +65,7 @@ const buildFinalCartPrice = (
 
     return {
       price: originalPrice,
+      extra: variantExtra,
       discount: {
         ...basePrice.discount,
         newprice: finalDiscounted,
@@ -59,6 +75,7 @@ const buildFinalCartPrice = (
 
   return {
     price: originalPrice,
+    extra: variantExtra,
   };
 };
 
@@ -155,15 +172,13 @@ export async function GET(req: NextRequest) {
       if (count !== 1) {
         return Response.json({}, { status: 404 });
       }
+      const cartExpiryCutoff = new Date(Date.now() - CART_ITEM_EXPIRY_MS);
       const countCartIems = await Prisma.orderproduct.count({
         where: {
           AND: [
-            {
-              user_id: user.userId,
-            },
-            {
-              status: Allstatus.incart,
-            },
+            { user_id: user.userId },
+            { status: Allstatus.incart },
+            { createdAt: { gte: cartExpiryCutoff } },
           ],
         },
       });
@@ -171,15 +186,23 @@ export async function GET(req: NextRequest) {
       return Response.json({ data: countCartIems }, { status: 200 });
     }
 
+    const cartExpiryCutoff = new Date(Date.now() - CART_ITEM_EXPIRY_MS);
+
+    //Update expired cart status
+    await Prisma.orderproduct.updateMany({
+      where: {
+        user_id: user.userId,
+        createdAt: { lte: cartExpiryCutoff },
+      },
+      data: { status: Allstatus.abandoned },
+    });
+
     const orderproduct = await Prisma.orderproduct.findMany({
       where: {
         AND: [
-          {
-            user_id: user.userId,
-          },
-          {
-            status: Allstatus.incart,
-          },
+          { user_id: user.userId },
+          { status: Allstatus.incart },
+          { createdAt: { gte: cartExpiryCutoff } },
         ],
       },
       orderBy: { id: "asc" },
@@ -228,16 +251,17 @@ export async function GET(req: NextRequest) {
       const selectedvariant = item.product.Variant?.filter(
         (variant, idx) => variant.id === detail[idx].variant_id,
       );
-      const selectedvariantForDisplay = selectedvariant
-        .map((selected, idx) => {
-          const val = selected.option_value as (string | VariantValueObjType)[];
-          return val.filter((j) =>
-            typeof j === "string"
-              ? detail[idx].value === j
-              : detail[idx].value === j.val,
-          );
-        })
-        .flat();
+      const selectedvariantForDisplay: Array<VariantOptionsType | null> =
+        selectedvariant.map((variant) => {
+          const selectedVal = detail.find(
+            (i) => i.variant_id === variant.id,
+          )?.value;
+          if (!selectedVal) return null;
+          return getVariantDetail({
+            val: selectedVal,
+            productvariant: variant as Varianttype,
+          });
+        });
 
       const flatSelectedVariant = selectedvariant.flat();
       const variantExtraPrice = getVariantExtraPrice(
@@ -263,8 +287,30 @@ export async function GET(req: NextRequest) {
       cartItems as unknown as Productordertype[],
     );
 
+    // Subtotal includes only product price (discount-aware), without variant-option extra.
+    const subtotalPrice = parseFloat(
+      orderproduct
+        .reduce((sum, item) => {
+          const discountedPrice = calculateDiscountProductPrice({
+            price: item.product.price,
+            discount: item.product.discount ?? undefined,
+          });
+          const unitProductPrice =
+            discountedPrice.discount?.newprice ?? discountedPrice.price;
+
+          return sum + unitProductPrice * item.quantity;
+        }, 0)
+        .toFixed(2),
+    );
+    const extraPrice = parseFloat((totalPrice - subtotalPrice).toFixed(2));
+
     return Response.json(
-      { data: cartItems, total: totalPrice },
+      {
+        data: cartItems,
+        subtotal: subtotalPrice,
+        extra: extraPrice,
+        total: totalPrice,
+      },
       { status: 200 },
     );
   } catch (error) {

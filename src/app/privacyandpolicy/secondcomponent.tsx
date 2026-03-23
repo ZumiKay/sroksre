@@ -1,7 +1,7 @@
 "use client";
 import { Button, Select, SelectItem } from "@heroui/react";
 import Modal from "../component/Modals";
-import React, { ChangeEvent, useState } from "react";
+import React, { ChangeEvent, useState, useMemo } from "react";
 import { showtype } from "../api/policy/route";
 import { ApiRequest, useScreenSize } from "@/src/context/CustomHook";
 import { errorToast } from "../component/Loading";
@@ -51,6 +51,16 @@ export const Showtypemodal = ({
     router.refresh();
   };
 
+  const items = useMemo(() => showtypedata, []);
+
+  const selectItems = useMemo(
+    () =>
+      items.map((data) => (
+        <SelectItem key={data.value}>{data.label}</SelectItem>
+      )),
+    [items],
+  );
+
   return (
     <Modal
       customwidth={isMobile ? "100vw" : isTablet ? "90vw" : ""}
@@ -68,9 +78,7 @@ export const Showtypemodal = ({
           size="lg"
           onChange={handleSelectionChange}
         >
-          {showtypedata.map((data) => (
-            <SelectItem key={data.value}>{data.label}</SelectItem>
-          ))}
+          {selectItems}
         </Select>
         <Button
           fullWidth

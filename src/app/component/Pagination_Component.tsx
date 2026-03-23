@@ -1,6 +1,6 @@
 "use client";
 
-import React, { CSSProperties } from "react";
+import React, { CSSProperties, useMemo } from "react";
 import {
   Pagination,
   PaginationItemRenderProps,
@@ -130,17 +130,38 @@ export const SelectionCustom = ({
   size,
   popoverProps,
 }: SelectionCustomProps) => {
+  const items = useMemo(
+    () => [
+      { label: "-- None --", value: "" },
+      ...data.map((item) => ({
+        label: item.label,
+        value: item.value.toString(),
+      })),
+    ],
+    [data],
+  );
+
+  const selectedKeys = useMemo(
+    () => [value !== undefined && value !== "" ? value.toString() : ""],
+    [value],
+  );
+
+  const selectItems = useMemo(
+    () =>
+      items.map((item) => (
+        <SelectItem key={item.value}>{item.label}</SelectItem>
+      )),
+    [items],
+  );
+
   return (
     <Select
       label={label}
       placeholder={placeholder}
       className="w-full"
-      value={value}
       size={size ?? "md"}
       labelPlacement={textplacement}
-      selectedKeys={[
-        value !== undefined && value !== "" ? value.toString() : "",
-      ]}
+      selectedKeys={selectedKeys}
       style={style}
       isLoading={!!isLoading}
       popoverProps={popoverProps as any}
@@ -150,9 +171,7 @@ export const SelectionCustom = ({
         onChange && onChange(IsNumber(value) ? parseInt(value) : value);
       }}
     >
-      {[{ label: "-- None --", value: "" }, ...data].map((animal) => (
-        <SelectItem key={animal.value.toString()}>{animal.label}</SelectItem>
-      ))}
+      {selectItems}
     </Select>
   );
 };

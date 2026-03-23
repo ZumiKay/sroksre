@@ -1,7 +1,7 @@
 "use client";
 
 import { Chip, Select, SelectedItems, SelectItem } from "@heroui/react";
-import React, { ReactNode, useEffect } from "react";
+import React, { ReactNode, useEffect, useMemo } from "react";
 
 interface Multiselectprops {
   id?: number;
@@ -56,6 +56,41 @@ export default function Multiselect({
     );
   };
 
+  const items = useMemo(() => data, [data]);
+
+  const textSelectItems = useMemo(
+    () =>
+      type === "TEXT"
+        ? items.map((item) => (
+            <SelectItem key={item.value} textValue={item.value}>
+              {item.label}
+            </SelectItem>
+          ))
+        : [],
+    [items, type],
+  );
+
+  const colorSelectItems = useMemo(
+    () =>
+      type === "COLOR"
+        ? items.map((item) => (
+            <SelectItem key={item.value} textValue={item.label}>
+              <Chip
+                startContent={
+                  <div
+                    className="w-3.75 h-3.75 rounded-full"
+                    style={{ backgroundColor: item.value }}
+                  ></div>
+                }
+              >
+                {item.label}
+              </Chip>
+            </SelectItem>
+          ))
+        : [],
+    [items, type],
+  );
+
   return (
     <div key={id} className="w-full h-full">
       <Select
@@ -84,26 +119,7 @@ export default function Multiselect({
         onChange={handleSelectionChange}
         renderValue={type === "COLOR" ? renderValue : undefined}
       >
-        {type === "TEXT"
-          ? data.map((data) => (
-              <SelectItem key={data.value} textValue={data.value}>
-                {data.label}
-              </SelectItem>
-            ))
-          : data.map((data) => (
-              <SelectItem key={data.value} textValue={data.label}>
-                <Chip
-                  startContent={
-                    <div
-                      className="w-3.75 h-3.75 rounded-full"
-                      style={{ backgroundColor: data.value }}
-                    ></div>
-                  }
-                >
-                  {data.label}
-                </Chip>
-              </SelectItem>
-            ))}
+        {type === "TEXT" ? textSelectItems : colorSelectItems}
       </Select>
     </div>
   );

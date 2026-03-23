@@ -1,7 +1,6 @@
-"use server";
-
 import {
   BackAndEdit,
+  CheckoutSessionTimer,
   Checkoutproductcard,
   FormWrapper,
   Navigatebutton,
@@ -18,15 +17,20 @@ import {
   Allstatus,
   Ordertype,
   totalpricetype,
-  OrderSelectedVariantType,
+  Productorderdetailtype,
+  VariantOptionsType,
+  VariantPriceBreakdown,
 } from "@/src/types/order.type";
-import { decrypt } from "@/src/lib/utilities";
+import { calculateDiscountProductPrice, decrypt } from "@/src/lib/utilities";
 import { checkOrder } from "./action";
 import { SuccessVector } from "../component/Asset";
 import { getPolicesByPage } from "../api/policy/route";
 import Link from "next/link";
 import { Metadata } from "next";
-import { getCheckoutdata } from "./fetchaction";
+import { getCheckoutdata, getVariantPriceBreakDown } from "./fetchaction";
+import { Varianttype } from "@/src/types/product.type";
+import { Chip } from "@heroui/react";
+import { getVariantDetail } from "./helper";
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
@@ -34,51 +38,76 @@ export async function generateMetadata(): Promise<Metadata> {
     description: "Checkout page , payment with paypal",
   };
 }
+
+const STEPS = [1, 2, 3, 4];
+const ORDER_ID_PATTERN = /^[A-Za-z0-9_-]{6,64}$/;
 export default async function Checkoutpage({
   searchParams,
 }: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const resolvedSearchParams = await searchParams;
-  const step = resolvedSearchParams?.step
-    ? parseInt(resolvedSearchParams?.step as string)
-    : 0;
-  const orderid_param = resolvedSearchParams?.orderid;
-  if (!step || !orderid_param || orderid_param.length === 0) {
+  const rawStep = Array.isArray(resolvedSearchParams?.step)
+    ? resolvedSearchParams.step[0]
+    : resolvedSearchParams?.step;
+  const rawOrderParam = Array.isArray(resolvedSearchParams?.orderid)
+    ? resolvedSearchParams.orderid[0]
+    : resolvedSearchParams?.orderid;
+
+  const step = rawStep ? parseInt(rawStep, 10) : 0;
+  if (!Number.isInteger(step) || !STEPS.includes(step) || !rawOrderParam) {
     return redirect("/");
   }
 
-  let orderid = decrypt(orderid_param as string, process.env.KEY as string);
+  let orderid = "";
 
+  try {
+    orderid = decrypt(rawOrderParam, process.env.KEY as string);
+  } catch {
+    return redirect("/");
+  }
+
+  if (!ORDER_ID_PATTERN.test(orderid)) {
+    return redirect("/");
+  }
+
+  //Verify order validility
   const order = await checkOrder(orderid);
 
   if (!order) {
     return redirect("/");
   }
 
-  const ShowBody = () => {
-    return step === 1 ? (
+  if (step === 4 && order.status !== Allstatus.paid) {
+    return redirect("/notfound");
+  }
+
+  const bodyContent =
+    step === 1 ? (
       <OrderSummary orderId={orderid} />
     ) : step === 2 ? (
       <ShippingForm orderid={orderid} />
     ) : step === 3 ? (
-      <PaymentDetail orderId={orderid} encryptedId={orderid_param as string} />
-    ) : (
-      <></>
-    );
-  };
+      <PaymentDetail orderId={orderid} encryptedId={rawOrderParam} />
+    ) : undefined;
 
   return (
     <main className="check_page w-full min-h-screen bg-linear-to-br from-gray-50 via-white to-gray-50 py-8 px-4">
       {step !== 4 && order.status !== Allstatus.paid ? (
         <div className="max-w-7xl mx-auto space-y-8">
+          {order.status === Allstatus.unpaid && order.createdAt && (
+            <CheckoutSessionTimer
+              createdAt={order.createdAt.toISOString()}
+              renewedAt={order.renewedAt?.toISOString() ?? null}
+              orderId={orderid}
+            />
+          )}
           <div className="bg-white rounded-2xl shadow-sm p-6">
             <StepIndicator step={step} />
           </div>
-          <FormWrapper step={step} order_id={orderid}>
-            <BackAndEdit step={step} />
-            <ShowBody />
-            <div className="submit-btn w-full max-w-xs max-small_tablet:max-w-full">
+          <FormWrapper BodyContent={bodyContent} step={step} order_id={orderid}>
+            <BackAndEdit step={step} orderId={orderid} />
+            <div className="submit-btn w-full pt-1 border-t border-gray-100">
               <Proceedbutton step={step} />
             </div>
           </FormWrapper>
@@ -114,7 +143,9 @@ const OrderSummary = async ({ orderId }: { orderId: string }) => {
           const price = order.price;
           const total =
             order.quantity * (price.discount?.newprice ?? price.price);
-          return order.product ? (
+          if (!order.product) return null;
+
+          return (
             <Checkoutproductcard
               key={order.id}
               qty={order.quantity}
@@ -124,22 +155,11 @@ const OrderSummary = async ({ orderId }: { orderId: string }) => {
               name={order.product.name}
               details={order.selectedvariant}
             />
-          ) : (
-            <></>
           );
         })}
       </div>
     </div>
   );
-};
-
-const getShippingtype = async (orderId: string) => {
-  const order = await Prisma.orders.findUnique({
-    where: { id: orderId },
-    select: { shippingtype: true, status: true },
-  });
-
-  return order;
 };
 
 const PaymentDetail = async ({
@@ -149,10 +169,9 @@ const PaymentDetail = async ({
   orderId: string;
   encryptedId: string;
 }) => {
-  const shipping = await getShippingtype(orderId);
   const order = await getCheckoutdata(orderId);
 
-  if (shipping?.status !== Allstatus.unpaid) {
+  if (!order || order.status !== Allstatus.unpaid) {
     return notFound();
   }
 
@@ -176,16 +195,17 @@ const PaymentDetail = async ({
           </h3>
 
           <div className="shipping_service w-full h-fit grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {(order?.shipping_id
+            {(order.shipping_id
               ? Shippingservice
               : Shippingservice.filter((i) => i.value === "Pickup")
-            ).map((i, idx) => (
+            ).map((i) => (
               <Shippingservicecard
-                key={idx}
+                key={i.value}
                 orderId={orderId}
                 isSelected={
-                  shipping ? shipping.shippingtype === i.value : false
+                  !order.shipping_id ? true : order.shippingtype === i.value
                 }
+                disabled={!order.shipping_id}
                 {...i}
               />
             ))}
@@ -214,98 +234,84 @@ const PaymentDetail = async ({
 
 const getOrderTotal = async (orderID: string) => {
   try {
-    let result = await Prisma.orders.findUnique({
+    let result = (await Prisma.orders.findUnique({
       where: { id: orderID },
-      select: { price: true },
-    });
+      select: {
+        price: true,
+        Orderproduct: {
+          select: {
+            quantity: true,
+            product: {
+              select: {
+                price: true,
+                discount: true,
+              },
+            },
+          },
+        },
+      },
+    })) as unknown as Ordertype;
 
-    return result?.price as unknown as totalpricetype;
-  } catch (error) {
+    if (!result || !result.price) {
+      return null;
+    }
+
+    return {
+      ...result.price,
+      total: result?.price.total as never,
+      subtotal: result?.Orderproduct.reduce((subtotal, i) => {
+        const unitPrice = i?.product?.discount
+          ? calculateDiscountProductPrice({
+              price: i.product.price,
+              discount: i.product?.discount as never,
+            }).discount?.newprice
+          : i.product?.price;
+
+        return subtotal + (unitPrice ?? 0) * i.quantity;
+      }, 0),
+    } as totalpricetype;
+  } catch {
     return null;
   }
 };
 
-interface VariantPriceBreakdown {
-  productName: string;
-  variantOptions: Array<{
-    name: string;
-    price: number;
-  }>;
-}
-
-const getVariantPriceBreakdown = async (
-  orderID: string,
+/**
+ *
+ * @param orderId
+ * @returns
+ */
+const getVariantPriceBreakdownByOrderId = async (
+  orderId: string,
 ): Promise<VariantPriceBreakdown[]> => {
-  const orderData = await getCheckoutdata(orderID);
-  if (!orderData) return [];
+  const orderData = await getVariantPriceBreakDown(orderId);
+  if (!orderData || orderData.Orderproduct.length === 0) return [];
 
   const breakdown: VariantPriceBreakdown[] = [];
 
   orderData.Orderproduct.forEach((orderProduct) => {
-    if (!orderProduct.product || !orderProduct.selectedvariant) return;
+    if (!orderProduct.product || !orderProduct.details) return;
+    const selectedVariant = orderProduct.details as Productorderdetailtype[];
 
-    const variantOptions: Array<{ name: string; price: number }> = [];
+    if (selectedVariant.length) {
+      const pricebreakDownSelectedVariants: Array<VariantOptionsType | null> =
+        selectedVariant.map((i) => {
+          const isVariant = orderProduct.product.Variant.find(
+            (variant) => variant.id === i.variant_id,
+          );
 
-    const selectedVariant = orderProduct.selectedvariant;
+          if (!isVariant) return null;
 
-    // Handle OrderSelectedVariantType (with sections)
-    if (
-      typeof selectedVariant === "object" &&
-      !Array.isArray(selectedVariant)
-    ) {
-      const typedVariant = selectedVariant as OrderSelectedVariantType;
-
-      // Process variant sections
-      if (typedVariant.variantsection) {
-        typedVariant.variantsection.forEach((section) => {
-          section.variants.forEach((variant) => {
-            if (typeof variant === "object" && variant.price) {
-              const price = parseFloat(variant.price);
-              if (!isNaN(price) && price > 0) {
-                variantOptions.push({
-                  name: variant.name || variant.val,
-                  price: price,
-                });
-              }
-            }
+          return getVariantDetail({
+            val: i.value,
+            productvariant: isVariant as Varianttype,
           });
         });
-      }
 
-      // Process standalone variants
-      if (typedVariant.variant) {
-        typedVariant.variant.forEach((variant) => {
-          if (typeof variant === "object" && variant.price) {
-            const price = parseFloat(variant.price);
-            if (!isNaN(price) && price > 0) {
-              variantOptions.push({
-                name: variant.name || variant.val,
-                price: price,
-              });
-            }
-          }
-        });
-      }
-    }
-    // Handle Array<string | VariantValueObjType>
-    else if (Array.isArray(selectedVariant)) {
-      selectedVariant.forEach((variant) => {
-        if (typeof variant === "object" && variant.price) {
-          const price = parseFloat(variant.price);
-          if (!isNaN(price) && price > 0) {
-            variantOptions.push({
-              name: variant.name || variant.val,
-              price: price,
-            });
-          }
-        }
-      });
-    }
-
-    if (variantOptions.length > 0) {
       breakdown.push({
         productName: orderProduct.product.name,
-        variantOptions,
+        variantOptions: pricebreakDownSelectedVariants.filter(
+          Boolean,
+        ) as Array<VariantOptionsType>,
       });
     }
   });
@@ -316,8 +322,10 @@ const getVariantPriceBreakdown = async (
 const convertprice = (price: number) => `$${price.toFixed(2)}`;
 
 async function Totalprice({ orderID }: { orderID: string }) {
-  const total = await getOrderTotal(orderID);
-  const variantBreakdown = await getVariantPriceBreakdown(orderID);
+  const [total, variantBreakdown] = await Promise.all([
+    getOrderTotal(orderID),
+    getVariantPriceBreakdownByOrderId(orderID),
+  ]);
 
   const totalVariantPrice = variantBreakdown.reduce(
     (sum, product) =>
@@ -346,7 +354,7 @@ async function Totalprice({ orderID }: { orderID: string }) {
             </div>
             <div className="ml-4 space-y-2">
               {variantBreakdown.map((product, pIdx) => (
-                <div key={pIdx} className="space-y-1">
+                <div key={pIdx} className="space-y-3">
                   <div className="text-sm text-gray-500 font-medium">
                     {product.productName}
                   </div>
@@ -355,7 +363,28 @@ async function Totalprice({ orderID }: { orderID: string }) {
                       key={oIdx}
                       className="flex justify-between items-center text-sm pl-4"
                     >
-                      <span className="text-gray-500">• {option.name}</span>
+                      <span className="text-gray-500">
+                        •{" "}
+                        {typeof option.name === "string" ? (
+                          option.name
+                        ) : (
+                          <Chip
+                            color="default"
+                            variant="bordered"
+                            size="lg"
+                            startContent={
+                              <span
+                                className={`w-4.5 h-4.5 rounded-full`}
+                                style={{
+                                  backgroundColor: option.name.val,
+                                }}
+                              ></span>
+                            }
+                          >
+                            {option.name?.name || option.name?.val}
+                          </Chip>
+                        )}
+                      </span>
                       <span className="text-gray-600">
                         {convertprice(option.price)}
                       </span>

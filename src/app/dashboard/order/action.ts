@@ -6,7 +6,7 @@ import {
   removeSpaceAndToLowerCase,
 } from "@/src/lib/utilities";
 import { revalidatePath } from "next/cache";
-import { totalpricetype } from "@/src/types/order.type";
+import { Allstatus, totalpricetype } from "@/src/types/order.type";
 import { SendOrderEmail } from "../../checkout/action";
 import { Filterdatatype } from "./OrderComponent";
 import { Orderproduct, Orders } from "@/prisma/generated/prisma/client";
@@ -68,12 +68,10 @@ export const GetOrder = async (
   // Build where clause once
   const whereClause = userid ? { buyer_id: userid } : {};
 
-  // Calculate pagination params first
   const pageNum = page ?? 1;
   const limitNum = limit ?? 10;
   const skip = (pageNum - 1) * limitNum;
 
-  // Execute count and findMany in parallel for better performance
   const [total, order] = await Promise.all([
     Prisma.orders.count({ where: whereClause }),
     Prisma.orders.findMany({
@@ -108,7 +106,7 @@ interface filtertype {
   todate?: string;
   startprice?: number;
   endprice?: number;
-  userid?: number;
+  userid?: string;
 }
 
 export const getFilterOrder = async ({
@@ -249,6 +247,81 @@ export const updateOrderStatus = async (
   } catch (error) {
     console.log("Failed to update order status:", error);
     return { success: false, message: "Failed to update" };
+  }
+};
+
+export const updateOrderSettings = async (
+  id: string,
+  vatPercent: number,
+  shippingtype: string,
+): Promise<Returntype> => {
+  try {
+    const order = await Prisma.orders.findUnique({
+      where: { id },
+      select: { price: true },
+    });
+
+    if (!order) return { success: false, message: "Order not found" };
+
+    const price = order.price as unknown as totalpricetype;
+    const shippingAmount =
+      (await import("@/src/context/Checkoutcontext")).Shippingservice.find(
+        (s) => s.value === shippingtype,
+      )?.price ??
+      price.shipping ??
+      0;
+
+    const vatAmount =
+      vatPercent > 0
+        ? parseFloat((price.subtotal * (vatPercent / 100)).toFixed(2))
+        : 0;
+
+    const updatedPrice: totalpricetype = {
+      subtotal: price.subtotal,
+      shipping: shippingAmount,
+      vat: vatAmount,
+      total: parseFloat(
+        (price.subtotal + shippingAmount + vatAmount).toFixed(2),
+      ),
+    };
+
+    await Prisma.orders.update({
+      where: { id },
+      data: { price: updatedPrice as any, shippingtype },
+    });
+
+    revalidatePath("/dashboard/order");
+    return { success: true, message: "Settings updated" };
+  } catch (error) {
+    console.log("Update order settings:", error);
+    return { success: false, message: "Failed to update" };
+  }
+};
+
+/**
+ * Purge all Unpaid orders older than 24 hours.
+ * Orderproduct rows are kept (orderId set to null via onDelete: SetNull).
+ */
+export const purgeExpiredUnpaidOrders = async (): Promise<void> => {
+  try {
+    const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    await Prisma.orders.updateMany({
+      where: {
+        status: "Unpaid",
+        createdAt: { lt: cutoff },
+      },
+      data: {
+        status: Allstatus.abandoned,
+      },
+    });
+    await Prisma.orderproduct.updateMany({
+      where: {
+        status: { in: [Allstatus.incart, Allstatus.unpaid] },
+      },
+      data: { status: Allstatus.abandoned },
+    });
+  } catch (error) {
+    console.log("purgeExpiredUnpaidOrders error:", error);
   }
 };
 

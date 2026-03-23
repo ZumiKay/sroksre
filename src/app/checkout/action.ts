@@ -5,6 +5,7 @@ import {
   Allstatus,
   Ordertype,
   Productordertype,
+  ShippingTypeEnum,
   totalpricetype,
 } from "@/src/types/order.type";
 import { getUser } from "@/src/lib/session";
@@ -27,7 +28,7 @@ import {
 import nodemailer from "nodemailer";
 import { shippingtype } from "../component/Modals/User";
 import { formatDate } from "../component/EmailTemplate";
-import { ProductState, ProductStockType } from "@/src/types/product.type";
+import { ProductStockType } from "@/src/types/product.type";
 import {
   BatchPayload,
   PrismaPromise,
@@ -35,6 +36,7 @@ import {
 import { canPlaceOrder } from "./helper";
 import { getCheckoutdata } from "./fetchaction";
 import { generateInvoicePdf } from "../api/order/helper";
+import { CHECKOUT_SESSION_LIMIT_MS } from "./constants";
 
 interface Returntype<k = string> {
   success: boolean;
@@ -42,6 +44,131 @@ interface Returntype<k = string> {
   message?: k;
   status?: number;
 }
+
+const ORDER_ID_PATTERN = /^[A-Za-z0-9_-]{6,64}$/;
+
+const isValidOrderId = (id?: string) => !!id && ORDER_ID_PATTERN.test(id);
+
+const isCheckoutSessionExpired = (
+  createdAt: Date,
+  renewedAt?: Date | null,
+  now = Date.now(),
+) => {
+  const base = renewedAt ?? createdAt;
+  return now - base.getTime() >= CHECKOUT_SESSION_LIMIT_MS;
+};
+
+// ─── Stock hold / release helpers ────────────────────────────────────────────
+
+type StockableItem = {
+  quantity: number;
+  product: {
+    id: number;
+    stocktype: string;
+    Stock: Array<{ Stockvalue: Array<{ id: number }> }>;
+  };
+};
+
+function buildStockAdjustments(
+  items: StockableItem[],
+  direction: "decrement" | "increment",
+): PrismaPromise<BatchPayload>[] {
+  const ops: PrismaPromise<BatchPayload>[] = [];
+
+  for (const item of items) {
+    const { id, stocktype, Stock } = item.product;
+    const qty = item.quantity;
+
+    if (stocktype === ProductStockType.stock) {
+      if (direction === "decrement") {
+        ops.push(
+          Prisma.products.updateMany({
+            where: { AND: [{ id }, { stock: { gte: qty } }] },
+            data: { stock: { decrement: qty } },
+          }),
+        );
+      } else {
+        ops.push(
+          Prisma.products.updateMany({
+            where: { id },
+            data: { stock: { increment: qty } },
+          }),
+        );
+      }
+    } else if (Stock && Stock.length > 0) {
+      const svIds = Stock.flatMap((sk) => sk.Stockvalue.map((sv) => sv.id));
+      if (svIds.length > 0) {
+        if (direction === "decrement") {
+          ops.push(
+            Prisma.stockvalue.updateMany({
+              where: { AND: [{ id: { in: svIds } }, { qty: { gte: qty } }] },
+              data: { qty: { decrement: qty } },
+            }),
+          );
+        } else {
+          ops.push(
+            Prisma.stockvalue.updateMany({
+              where: { id: { in: svIds } },
+              data: { qty: { increment: qty } },
+            }),
+          );
+        }
+      }
+    }
+  }
+
+  return ops;
+}
+
+/** Hold stock for the given cart items (called at checkout start). */
+async function holdStockForItems(items: StockableItem[]) {
+  const ops = buildStockAdjustments(items, "decrement");
+  if (ops.length > 0) await Prisma.$transaction(ops);
+}
+
+/** Release all stock holds for an order (called on session termination/expiry). */
+async function releaseStock(orderId: string) {
+  const orderProducts = await Prisma.orderproduct.findMany({
+    where: { orderId },
+    select: {
+      quantity: true,
+      product: {
+        select: {
+          id: true,
+          stocktype: true,
+          Stock: { select: { Stockvalue: { select: { id: true } } } },
+        },
+      },
+    },
+  });
+
+  const ops = buildStockAdjustments(orderProducts, "increment");
+  if (ops.length > 0) await Prisma.$transaction(ops);
+}
+
+// ─── Session expiry ───────────────────────────────────────────────────────────
+
+const expireUnpaidOrderIfNeeded = async (order: {
+  id: string;
+  status: string;
+  createdAt: Date;
+  renewedAt?: Date | null;
+}) => {
+  if (order.status !== Allstatus.unpaid) {
+    return false;
+  }
+
+  if (!isCheckoutSessionExpired(order.createdAt, order.renewedAt)) {
+    return false;
+  }
+
+  // Release held stock before destroying the order.
+  // Orderproducts revert to incart (orderId → null) via the SetNull cascade.
+  await releaseStock(order.id);
+  await Prisma.orders.delete({ where: { id: order.id } });
+  revalidatePath("/checkout");
+  return true;
+};
 
 export async function getAddress(orderid?: string) {
   const user = await getUser();
@@ -86,20 +213,85 @@ export async function Createorder(data: {
   if (!user || !user?.user?.buyer_id)
     return { success: false, message: "No Access" };
 
+  const uniqueCartIds = Array.from(new Set(data.incartProduct)).filter(
+    (id) => Number.isInteger(id) && id > 0,
+  );
+
+  if (uniqueCartIds.length === 0) {
+    return { success: false, message: "No valid cart items" };
+  }
+
+  // We'll check for existing order first so we can also accept items
+  // already linked to it (handles the case where user navigates back
+  // without terminating the session and clicks checkout again).
+  let preCheckOrder = await Prisma.orders.findFirst({
+    where: {
+      AND: [{ buyer_id: user.user.buyer_id }, { status: Allstatus.unpaid }],
+    },
+  });
+
+  if (
+    preCheckOrder &&
+    isCheckoutSessionExpired(preCheckOrder.createdAt, preCheckOrder.renewedAt)
+  ) {
+    await releaseStock(preCheckOrder.id);
+    await Prisma.orders.delete({ where: { id: preCheckOrder.id } });
+    preCheckOrder = null;
+  }
+
+  const cartItems = await Prisma.orderproduct.findMany({
+    where: {
+      id: { in: uniqueCartIds },
+      user_id: user.userId,
+      status: Allstatus.incart,
+      // Accept items that are unlinked OR already linked to the existing
+      // checkout session (so re-clicking checkout doesn't fail).
+      ...(preCheckOrder
+        ? { OR: [{ orderId: null }, { orderId: preCheckOrder.id }] }
+        : { orderId: null }),
+    },
+    select: {
+      id: true,
+      orderId: true,
+      quantity: true,
+      product: {
+        select: {
+          id: true,
+          price: true,
+          discount: true,
+          stocktype: true,
+          Stock: { select: { Stockvalue: { select: { id: true } } } },
+        },
+      },
+    },
+  });
+
+  if (cartItems.length !== uniqueCartIds.length) {
+    return { success: false, message: "Invalid cart selection" };
+  }
+
+  const subtotal = cartItems.reduce((sum, item) => {
+    const unitPrice = item.product.discount
+      ? (calculateDiscountProductPrice({
+          price: item.product.price,
+          discount: item.product.discount,
+        }).discount?.newprice ?? 0)
+      : item.product.price;
+
+    return sum + unitPrice * item.quantity;
+  }, 0);
+
+  const pickupService = Shippingservice.find((s) => s.value === "Pickup");
+  const defaultShipping = pickupService?.price ?? 0;
+  const serverPrice: totalpricetype = {
+    subtotal,
+    shipping: defaultShipping,
+    total: subtotal + defaultShipping,
+  };
+
   let orderId = "";
   try {
-    const checkOrder = await Prisma.orders.findFirst({
-      where: {
-        AND: [
-          {
-            buyer_id: user.user.buyer_id,
-          },
-          {
-            status: Allstatus.unpaid,
-          },
-        ],
-      },
-    });
+    let checkOrder = preCheckOrder;
 
     if (!checkOrder) {
       let generateID = "SSC" + generateRandomNumber();
@@ -121,27 +313,45 @@ export async function Createorder(data: {
           id: generateID,
           buyer_id: user.user.buyer_id as string,
           status: Allstatus.unpaid,
-          price: data.price as any,
-          shippingtype: Shippingservice[2].value,
+          price: serverPrice as any,
+          shippingtype: ShippingTypeEnum.pickup,
         },
       });
       orderId = create.id;
     } else {
+      await Prisma.orders.update({
+        where: { id: checkOrder.id },
+        data: { price: serverPrice as any },
+      });
       orderId = checkOrder?.id as string;
     }
 
     //Update incart product
 
     await Promise.all(
-      data.incartProduct.map((i) =>
+      uniqueCartIds.map((i) =>
         Prisma.orderproduct.updateMany({
-          where: { id: i },
+          where: {
+            id: i,
+            user_id: user.userId,
+            status: Allstatus.incart,
+          },
           data: {
             orderId,
           },
         }),
       ),
     );
+
+    // Only hold stock for items newly entering this checkout session.
+    // Items already linked to the existing order (re-checkout scenario)
+    // already have their stock held — don't double-decrement.
+    const newlyLinkedItems = cartItems.filter(
+      (i) => i.orderId !== checkOrder?.id,
+    );
+    if (newlyLinkedItems.length > 0) {
+      await holdStockForItems(newlyLinkedItems as StockableItem[]);
+    }
 
     const encryptId = encrypt(orderId, process.env.KEY as string);
     return {
@@ -154,11 +364,99 @@ export async function Createorder(data: {
   }
 }
 
-export async function checkOrder(id: string) {
-  const isOrder = await Prisma.orders.findUnique({
-    where: { id },
-    select: { id: true, status: true },
+/**
+ * Renew the checkout session timer for an active unpaid order.
+ * Returns the new timer base so the client can update its countdown locally.
+ */
+export async function renewCheckoutSession(
+  orderId: string,
+): Promise<Returntype<string> & { renewedAt?: string }> {
+  if (!isValidOrderId(orderId)) {
+    return { success: false, message: "Invalid order" };
+  }
+
+  const order = await checkOrder(orderId);
+  if (!order || order.status !== Allstatus.unpaid) {
+    return { success: false, message: "Checkout session expired" };
+  }
+
+  const renewedAt = new Date();
+  await Prisma.orders.update({
+    where: { id: orderId },
+    data: { renewedAt },
   });
+
+  return { success: true, renewedAt: renewedAt.toISOString() };
+}
+
+/**
+ * Explicitly terminate a checkout session (user navigates away).
+ * Releases stock holds and reverts orderproducts to incart state.
+ */
+export async function terminateCheckoutSession(
+  orderId: string,
+): Promise<Returntype> {
+  if (!isValidOrderId(orderId)) {
+    return { success: false };
+  }
+
+  try {
+    const order = await Prisma.orders.findUnique({
+      where: { id: orderId },
+      select: { id: true, status: true },
+    });
+
+    if (!order || order.status !== Allstatus.unpaid) {
+      return { success: false, message: "Order not found or already paid" };
+    }
+
+    await releaseStock(orderId);
+    // Deleting the order sets orderId = null on orderproducts (SetNull cascade),
+    // reverting them to incart state without losing the user's cart.
+    await Prisma.orders.delete({ where: { id: orderId } });
+
+    return { success: true };
+  } catch (error) {
+    console.log("Terminate checkout session", error);
+    return { success: false };
+  }
+}
+
+export async function checkOrder(id: string) {
+  if (!isValidOrderId(id)) {
+    return null;
+  }
+
+  const user = await getUser({
+    user: {
+      select: {
+        buyer_id: true,
+      },
+    },
+  });
+
+  if (!user?.user?.buyer_id) {
+    return null;
+  }
+
+  const isOrder = await Prisma.orders.findUnique({
+    where: {
+      id,
+      buyer_id: user.user.buyer_id,
+    },
+    select: { id: true, status: true, createdAt: true, renewedAt: true },
+  });
+
+  if (!isOrder) {
+    return null;
+  }
+
+  //Check if the unpaid order is valid
+  const isExpired = await expireUnpaidOrderIfNeeded(isOrder);
+
+  if (isExpired) {
+    return null;
+  }
 
   return isOrder;
 }
@@ -200,53 +498,9 @@ export async function updateStatus(
       return { success: false, status: 400 };
     }
 
-    // Prepare updates
-    const productUpdates: Array<PrismaPromise<BatchPayload>> = [];
-    const stockUpdates: Array<PrismaPromise<BatchPayload>> = [];
-
-    order.Orderproduct.forEach((cart) => {
-      const { stocktype, Stock, id } = cart.product as ProductState;
-
-      if (stocktype === ProductStockType.stock) {
-        productUpdates.push(
-          Prisma.products.updateMany({
-            where: {
-              AND: [
-                {
-                  id,
-                },
-                {
-                  stock: { not: 0 },
-                },
-              ],
-            },
-            data: { stock: { decrement: cart.quantity } },
-          }),
-        );
-      } else if (Stock) {
-        const stockValueIds = Stock.flatMap((sk) =>
-          sk.Stockvalue.filter((i) => i.id).map((sv) => sv.id),
-        ) as Array<number>;
-        stockUpdates.push(
-          Prisma.stockvalue.updateMany({
-            where: {
-              AND: [
-                {
-                  id: { in: stockValueIds },
-                },
-                { qty: { not: 0 } },
-              ],
-            },
-            data: { qty: { decrement: cart.quantity } },
-          }),
-        );
-      }
-    });
-
-    // Execute all updates concurrently
+    // Stock was already decremented when the checkout session started (holdStockForItems).
+    // Here we only update order/product status and amount_sold.
     await Promise.all([
-      ...productUpdates,
-      ...stockUpdates,
       Prisma.products.updateMany({
         where: {
           id: {
@@ -323,7 +577,28 @@ export async function handleShippingAdddress(
       return { success: false, message: "No access" };
     }
 
-    if (!shipId && shippingdata && user && isSave) {
+    const order = await checkOrder(orderId);
+
+    if (!order) {
+      return { success: false, message: "Checkout session expired" };
+    }
+
+    if (order.status !== Allstatus.unpaid) {
+      return { success: false, message: "Order is no longer unpaid" };
+    }
+
+    if (shipId && shipId > 0 && !shippingdata) {
+      const selectedAddress = await Prisma.address.findUnique({
+        where: { id: shipId },
+        select: { id: true, userId: true },
+      });
+
+      if (!selectedAddress || selectedAddress.userId !== user.userId) {
+        return { success: false, message: "Invalid shipping address" };
+      }
+    }
+
+    if (!shipId && shippingdata && user) {
       //create shipping addresss
       const create = await Prisma.address.create({
         data: {
@@ -362,6 +637,7 @@ export async function handleShippingAdddress(
         status: Allstatus.unpaid,
       },
     });
+    revalidatePath("/checkout");
     return { success: true };
   } catch (error) {
     console.log("Shipping Address", error);
@@ -380,19 +656,32 @@ export async function updateShippingService(
       shipping: 0,
     };
 
-    const order = await Prisma.orders.findFirst({
-      where: {
-        id: orderId,
-      },
-    });
+    const orderState = await checkOrder(orderId);
+
+    if (!orderState) {
+      return { success: false, message: "Checkout session expired" };
+    }
+
+    if (orderState.status !== Allstatus.unpaid) {
+      return { success: false, message: "Order is no longer unpaid" };
+    }
+
+    const selectedShipping = Shippingservice.find(
+      (i) => i.value === shippingtype,
+    );
+
+    if (!selectedShipping) {
+      return { success: false, message: "Invalid shipping service" };
+    }
+
+    const order = await Prisma.orders.findFirst({ where: { id: orderId } });
 
     if (!order) {
       return { success: false, message: "Order not found" };
     }
 
     const subprice = order.price as unknown as totalpricetype;
-    const shippingPrice =
-      Shippingservice.find((i) => i.value === shippingtype)?.price ?? 0;
+    const shippingPrice = selectedShipping.price ?? 0;
 
     updatePrice = {
       subtotal: subprice.subtotal,
@@ -445,6 +734,24 @@ const generateAccessToken = async () => {
 
 export async function Createpaypalorder(orderId: string): Promise<Returntype> {
   try {
+    const orderState = await checkOrder(orderId);
+
+    if (!orderState) {
+      return {
+        success: false,
+        message: "Checkout session expired",
+        status: 410,
+      };
+    }
+
+    if (orderState.status !== Allstatus.unpaid) {
+      return {
+        success: false,
+        message: "Order is no longer unpaid",
+        status: 400,
+      };
+    }
+
     const accessToken = await generateAccessToken();
 
     const order = await Prisma.orders.findUnique({
@@ -515,9 +822,8 @@ export async function Createpaypalorder(orderId: string): Promise<Returntype> {
           }).discount?.newprice?.toFixed(2) ?? "0.00")
         : parseFloat(i.product.price.toString()).toFixed(2);
       return {
-        name: i.product.name,
+        name: i.product.name.slice(0, 127), // PayPal max 127 chars
         quantity: i.quantity.toString(),
-        url: `${process.env.NEXTAUTH_URL}/product/detail/${i.product.id}`,
         unit_amount: {
           currency_code,
           value: price,
@@ -525,29 +831,54 @@ export async function Createpaypalorder(orderId: string): Promise<Returntype> {
       };
     });
 
+    // Derive item_total from rounded unit prices so PayPal's validation passes:
+    // PayPal checks sum(unit_amount * quantity) == item_total exactly.
+    const computedItemTotal = orderItems
+      .reduce(
+        (sum, item) =>
+          sum + parseFloat(item.unit_amount.value) * parseInt(item.quantity),
+        0,
+      )
+      .toFixed(2);
+    const shippingValue = orderPrice.shipping?.toFixed(2) ?? "0.00";
+    const computedTotal = (
+      parseFloat(computedItemTotal) + parseFloat(shippingValue)
+    ).toFixed(2);
+
     let orderAmount: Paypalamounttype = {
       currency_code,
-      value: orderPrice.total.toFixed(2),
+      value: computedTotal,
       breakdown: {
         shipping: {
           currency_code,
-          value: orderPrice.shipping?.toFixed(2) ?? "0.00",
+          value: shippingValue,
         },
-        item_total: { currency_code, value: orderPrice.subtotal.toFixed(2) },
+        item_total: { currency_code, value: computedItemTotal },
       },
     };
 
+    const isPickup = shippingtype?.value === "Pickup";
+    const shipping = order.shipping;
+    // address_line_2: house ID and commune (songkhat) — secondary details
+    const address_line_2 = [shipping?.houseId, shipping?.songkhat]
+      .filter(Boolean)
+      .join(", ");
+
     let orderShipping: PaypalshippingType = {
-      type: shippingtype?.value !== "Pickup" ? "SHIPPING" : "NO_SHIPPING",
-      ...(order.shipping && {
-        address: {
-          address_line_1: `${order.shipping?.street}`,
-          address_line_2: `${order.shipping?.houseId} ${order.shipping?.songkhat} ${order.shipping?.district}`,
-          admin_area_2: order.shipping?.province,
-          postal_code: order.shipping?.postalcode ?? "",
-          country_code: CountryCode.cambodia,
-        },
-      }),
+      type: isPickup ? "PICKUP_IN_STORE" : "SHIPPING",
+      ...(!isPickup &&
+        shipping?.street && {
+          address: {
+            address_line_1: shipping.street,
+            ...(address_line_2 && { address_line_2 }),
+            // admin_area_2 = city (required by PayPal) → district
+            ...(shipping.district && { admin_area_2: shipping.district }),
+            // admin_area_1 = state/province
+            ...(shipping.province && { admin_area_1: shipping.province }),
+            ...(shipping.postalcode && { postal_code: shipping.postalcode }),
+            country_code: CountryCode.cambodia,
+          },
+        }),
     };
 
     const purchase_units: PurcahseUnitType = {
@@ -560,6 +891,8 @@ export async function Createpaypalorder(orderId: string): Promise<Returntype> {
       purchase_units: [purchase_units],
     };
 
+    console.log("[PayPal] payload:", JSON.stringify(payload, null, 2));
+
     const request = await fetch(url, {
       headers: header,
       method: "POST",
@@ -567,6 +900,13 @@ export async function Createpaypalorder(orderId: string): Promise<Returntype> {
     });
 
     const jsonResponse = await request.json();
+
+    if (!request.ok) {
+      console.error(
+        "[PayPal] error response:",
+        JSON.stringify(jsonResponse, null, 2),
+      );
+    }
 
     return { success: true, data: jsonResponse, status: request.status };
   } catch (error) {

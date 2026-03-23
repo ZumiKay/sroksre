@@ -135,10 +135,12 @@ export function Paypalbutton({
 
     if (request.data.id) return request.data.id;
 
-    const detail = request.data?.details?.[0];
+    const details = request.data?.details ?? [];
+    console.error("[PayPal] createOrder details:", JSON.stringify(details, null, 2));
+    const detail = details[0];
     const msg = detail
-      ? `${detail.issue} ${detail.description} (${request.data.debug_id})`
-      : JSON.stringify(request);
+      ? `${detail.issue}: ${detail.description}${detail.field ? ` [field: ${detail.field}]` : ""} (${request.data.debug_id})`
+      : JSON.stringify(request.data);
     errorToast(msg);
     throw new Error(msg);
   };

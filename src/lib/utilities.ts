@@ -136,9 +136,10 @@ export const calculateCartTotalPrice = (
   return cartItems.reduce((total, item) => {
     const { quantity, price } = item;
 
-    const effectivePrice = price.discount
-      ? price.discount.newprice
-      : price.price;
+    // If discount.newprice exists, it is treated as the final unit price.
+    // Otherwise, include any variant extra on top of the base product price.
+    const effectivePrice =
+      price.discount?.newprice ?? price.price + (price.extra ?? 0);
     return total + (effectivePrice ?? 0) * quantity;
   }, 0);
 };

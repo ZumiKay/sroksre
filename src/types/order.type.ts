@@ -6,6 +6,11 @@ import {
 } from "./product.type";
 import { userdata } from "./user.type";
 
+export type OrderInfoParamTyType =
+  | "all"
+  | "shipping"
+  | "shippingbyid"
+  | "ordermanagement";
 export type Orderstatus =
   | "Incart"
   | "Unpaid"
@@ -22,11 +27,14 @@ export enum Allstatus {
   prepareing = "Preparing",
   shipped = "Shipped",
   arrived = "Arrived",
+  abandoned = "Abandoned",
 }
 
 export enum ShippingTypeEnum {
+  economy = "Economy",
   standard = "Normal",
   express = "Express",
+  sameday = "SameDay",
   pickup = "Pickup",
 }
 
@@ -64,6 +72,7 @@ export interface Productordertype {
 
 export interface Orderpricetype {
   price: number;
+  extra?: number;
   discount?: {
     percent?: number;
     newprice?: number;
@@ -73,6 +82,7 @@ export interface Orderpricetype {
 export interface totalpricetype {
   vat?: number;
   shipping?: number;
+  extra?: number;
   subtotal: number;
   total: number;
 }
@@ -90,4 +100,13 @@ export interface Ordertype {
   shipping_id?: number;
   shipping?: Address;
   user: Partial<userdata>;
+}
+
+export type VariantOptionsType = {
+  name: VariantValueObjType;
+  price: number;
+};
+export interface VariantPriceBreakdown {
+  productName: string;
+  variantOptions: Array<VariantOptionsType>;
 }

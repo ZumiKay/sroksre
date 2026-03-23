@@ -11,6 +11,7 @@ export const Shippingservicecard = ({
   value,
   isSelected,
   orderId,
+  disabled,
 }: {
   type: string;
   price: number;
@@ -18,10 +19,12 @@ export const Shippingservicecard = ({
   value: string;
   isSelected: boolean;
   orderId: string;
+  disabled?: boolean;
 }) => {
   const [loading, setLoading] = useState(false);
 
   const handleClick = async () => {
+    if (disabled) return;
     setLoading(true);
     const request = await updateShippingService.bind(null, orderId, value)();
     setLoading(false);
@@ -37,7 +40,7 @@ export const Shippingservicecard = ({
       {loading && <LoadingText />}
       <div
         onClick={handleClick}
-        className={`group relative w-full h-40 p-6 flex flex-col justify-between bg-white rounded-xl border-2 transition-all duration-300 cursor-pointer ${
+        className={`group relative w-full h-40 p-6 flex flex-col justify-between bg-white rounded-xl border-2 transition-all duration-300 ${disabled ? "cursor-default" : "cursor-pointer"} ${
           isSelected
             ? "border-blue-500 shadow-lg shadow-blue-100 ring-2 ring-blue-200"
             : "border-gray-200 hover:border-blue-300 hover:shadow-md"
