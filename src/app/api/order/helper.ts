@@ -7,12 +7,16 @@ import { VariantValueObjType } from "@/src/types/product.type";
 import { shippingtype } from "../../component/Modals/User";
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 
-const getLogo = async () => {
+const getLogo = async (): Promise<ArrayBuffer | null> => {
   const url =
     "https://firebasestorage.googleapis.com/v0/b/sroksre-442c0.appspot.com/o/sideImage%2FLogo3.png?alt=media&token=e9bda37b-3cc7-400b-9680-01d3b2bf2064";
-  const jpgImageBytes = await fetch(url).then((res) => res.arrayBuffer());
-
-  return jpgImageBytes;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    return await res.arrayBuffer();
+  } catch {
+    return null;
+  }
 };
 
 interface GenerateInvoicePdf {
@@ -58,16 +62,21 @@ export const generateInvoicePdf = async (Order: GenerateInvoicePdf) => {
 
   // Draw the header section
 
-  const logoimage = await getLogo();
-  const jpgImage = await pdfDoc.embedPng(logoimage);
-  const jpgDims = jpgImage.scale(0.5);
-
-  page.drawImage(jpgImage, {
-    x: 30,
-    y: 800,
-    width: jpgDims.width,
-    height: jpgDims.height,
-  });
+  const logoBytes = await getLogo();
+  if (logoBytes) {
+    try {
+      const logoImage = await pdfDoc.embedPng(logoBytes);
+      const logoDims = logoImage.scale(0.5);
+      page.drawImage(logoImage, {
+        x: 30,
+        y: 800,
+        width: logoDims.width,
+        height: logoDims.height,
+      });
+    } catch {
+      // Logo unavailable or not a valid PNG — skip it, continue generating PDF
+    }
+  }
 
   page.drawText("TAX INVOICE / RECEIPT", {
     x: 30,
@@ -273,41 +282,33 @@ export const generateInvoicePdf = async (Order: GenerateInvoicePdf) => {
   y -= 30;
 
   // Helper function to format variant display
+  const formatVariantItem = (item: string | VariantValueObjType): string => {
+    if (typeof item === "string") return item;
+    const label = item.name || item.val;
+    const price = item.price ? parseFloat(item.price.toString()) : 0;
+    return price > 0 ? `${label} (+$${price.toFixed(2)})` : label;
+  };
+
   const formatVariantDisplay = (
     selectedVariant:
       | Array<string | VariantValueObjType>
       | OrderSelectedVariantType,
   ): string => {
     if (Array.isArray(selectedVariant)) {
-      // Handle flat array
-      return selectedVariant
-        .map((item) =>
-          typeof item === "string" ? item : item.name || item.val,
-        )
-        .join(" / ");
+      return selectedVariant.map(formatVariantItem).join(" / ");
     } else if (selectedVariant && typeof selectedVariant === "object") {
-      // Handle OrderSelectedVariantType with sections
       const parts: string[] = [];
 
       if (selectedVariant.variantsection) {
         selectedVariant.variantsection.forEach((section) => {
           const sectionName = section.variantSection?.name || "";
-          const values = section.variants
-            .map((v) => (typeof v === "string" ? v : v.name || v.val))
-            .join(", ");
-          if (sectionName) {
-            parts.push(`${sectionName}: ${values}`);
-          } else {
-            parts.push(values);
-          }
+          const values = section.variants.map(formatVariantItem).join(", ");
+          parts.push(sectionName ? `${sectionName}: ${values}` : values);
         });
       }
 
       if (selectedVariant.variant) {
-        const standaloneValues = selectedVariant.variant
-          .map((v) => (typeof v === "string" ? v : v.name || v.val))
-          .join(" / ");
-        parts.push(standaloneValues);
+        parts.push(selectedVariant.variant.map(formatVariantItem).join(" / "));
       }
 
       return parts.join(" | ");
@@ -428,9 +429,22 @@ export const generateInvoicePdf = async (Order: GenerateInvoicePdf) => {
     color: textColor,
   });
 
+  let priceOffsetY = 20;
+
+  if (Order.price.extra !== undefined && Order.price.extra > 0) {
+    page.drawText(`Variant Options USD +${Order.price.extra.toFixed(2)}`, {
+      x: 30,
+      y: y - priceOffsetY,
+      size: fontSize,
+      font,
+      color: textColor,
+    });
+    priceOffsetY += 20;
+  }
+
   page.drawText(`Shipping USD ${Order.price.shipping?.toFixed(2) ?? ""}`, {
     x: 30,
-    y: y - 20,
+    y: y - priceOffsetY,
     size: fontSize,
     font,
     color: textColor,
@@ -440,14 +454,14 @@ export const generateInvoicePdf = async (Order: GenerateInvoicePdf) => {
     width: 570,
     height: 20,
     x: 30,
-    y: y - 55,
+    y: y - priceOffsetY - 35,
     color: rgb(0.286, 0.329, 0.392),
     opacity: 1,
   });
 
   page.drawText(`Total USD ${Order.price.total.toFixed(2)}`, {
     x: 30,
-    y: y - 50,
+    y: y - priceOffsetY - 30,
     size: fontSize,
     font,
     color: rgb(1, 1, 1),

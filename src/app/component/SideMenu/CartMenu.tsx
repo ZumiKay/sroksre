@@ -118,7 +118,8 @@ export function CartMenu({ img, setcart, setcarttotal }: CartMenuProps) {
             "price" in option,
         );
 
-        return getVariantPriceBreakDownByActiveCart([item], optionsPrice);
+        const breakdown = getVariantPriceBreakDownByActiveCart([item], optionsPrice);
+        return { ...breakdown, quantity: item.quantity };
       })
       .filter((breakdown) => breakdown.variantOptions.length > 0);
   }, [cartItem]);
@@ -130,7 +131,7 @@ export function CartMenu({ img, setcart, setcarttotal }: CartMenuProps) {
         product.variantOptions.reduce(
           (optSum, option) => optSum + option.price,
           0,
-        ),
+        ) * (product.quantity ?? 1),
       0,
     );
   }, [cartVariantBreakDown]);
@@ -249,6 +250,11 @@ export function CartMenu({ img, setcart, setcarttotal }: CartMenuProps) {
                 <div key={pIdx} className="text-sm text-gray-600">
                   <p className="font-semibold text-gray-700">
                     {product.productName}
+                    {(product.quantity ?? 1) > 1 && (
+                      <span className="text-gray-400 font-normal ml-1">
+                        ×{product.quantity}
+                      </span>
+                    )}
                   </p>
                   {product.variantOptions.map((option, oIdx) => (
                     <p

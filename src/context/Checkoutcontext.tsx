@@ -42,6 +42,7 @@ type Paypalamount = {
 export interface Paypalitemtype {
   name: string;
   quantity: string;
+  description?: string;
   url?: string;
   image_url?: string;
   unit_amount: Paypalamount;

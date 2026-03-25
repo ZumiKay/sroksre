@@ -17,7 +17,7 @@ type OrderInfoParamType = {
 };
 
 export async function GET(req: NextRequest) {
-  const { ty } = req.nextUrl.searchParams as OrderInfoParamType;
+  const ty = req.nextUrl.searchParams.get("ty") as OrderInfoParamTyType | null;
 
   if (!ty) return Response.json({}, { status: 400 });
 
@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
       return Response.json({ message: "Unauthenticated" }, { status: 401 });
 
     if (ty === "shipping") {
-      const { q: orderid } = req.nextUrl.searchParams as OrderInfoParamType;
+      const orderid = req.nextUrl.searchParams.get("q");
 
       const [addresses, order] = await Promise.all([
         Prisma.address.findMany({ where: { userId: isUser.userId } }),
@@ -46,7 +46,10 @@ export async function GET(req: NextRequest) {
       ]);
 
       return Response.json(
-        { data: { addresses, shipping: order?.shipping ?? null }, success: true },
+        {
+          data: { addresses, shipping: order?.shipping ?? null },
+          success: true,
+        },
         { status: 200 },
       );
     }

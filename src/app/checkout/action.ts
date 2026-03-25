@@ -4,6 +4,7 @@ import Prisma from "@/src/lib/prisma";
 import {
   Allstatus,
   Ordertype,
+  Productorderdetailtype,
   Productordertype,
   ShippingTypeEnum,
   totalpricetype,
@@ -28,7 +29,10 @@ import {
 import nodemailer from "nodemailer";
 import { shippingtype } from "../component/Modals/User";
 import { formatDate } from "../component/EmailTemplate";
-import { ProductStockType } from "@/src/types/product.type";
+import {
+  ProductStockType,
+  VariantValueObjType,
+} from "@/src/types/product.type";
 import {
   BatchPayload,
   PrismaPromise,
@@ -162,10 +166,22 @@ const expireUnpaidOrderIfNeeded = async (order: {
     return false;
   }
 
-  // Release held stock before destroying the order.
-  // Orderproducts revert to incart (orderId → null) via the SetNull cascade.
+  // Release held stock, then mark the order and all its items as abandoned.
+  // We intentionally do NOT delete so that order history is preserved.
   await releaseStock(order.id);
-  await Prisma.orders.delete({ where: { id: order.id } });
+  await Promise.all([
+    Prisma.orders.update({
+      where: { id: order.id },
+      data: { status: Allstatus.abandoned },
+    }),
+    Prisma.orderproduct.updateMany({
+      where: {
+        orderId: order.id,
+        status: { in: [Allstatus.incart, Allstatus.unpaid] },
+      },
+      data: { status: Allstatus.abandoned },
+    }),
+  ]);
   revalidatePath("/checkout");
   return true;
 };
@@ -235,7 +251,19 @@ export async function Createorder(data: {
     isCheckoutSessionExpired(preCheckOrder.createdAt, preCheckOrder.renewedAt)
   ) {
     await releaseStock(preCheckOrder.id);
-    await Prisma.orders.delete({ where: { id: preCheckOrder.id } });
+    await Promise.all([
+      Prisma.orders.update({
+        where: { id: preCheckOrder.id },
+        data: { status: Allstatus.abandoned },
+      }),
+      Prisma.orderproduct.updateMany({
+        where: {
+          orderId: preCheckOrder.id,
+          status: { in: [Allstatus.incart, Allstatus.unpaid] },
+        },
+        data: { status: Allstatus.abandoned },
+      }),
+    ]);
     preCheckOrder = null;
   }
 
@@ -254,6 +282,7 @@ export async function Createorder(data: {
       id: true,
       orderId: true,
       quantity: true,
+      details: true,
       product: {
         select: {
           id: true,
@@ -261,6 +290,9 @@ export async function Createorder(data: {
           discount: true,
           stocktype: true,
           Stock: { select: { Stockvalue: { select: { id: true } } } },
+          Variant: {
+            select: { id: true, price: true, option_title: true, option_value: true },
+          },
         },
       },
     },
@@ -270,23 +302,48 @@ export async function Createorder(data: {
     return { success: false, message: "Invalid cart selection" };
   }
 
+  let totalVariantExtra = 0;
+
   const subtotal = cartItems.reduce((sum, item) => {
-    const unitPrice = item.product.discount
+    const basePrice = item.product.discount
       ? (calculateDiscountProductPrice({
           price: item.product.price,
           discount: item.product.discount,
         }).discount?.newprice ?? 0)
       : item.product.price;
 
-    return sum + unitPrice * item.quantity;
+    // Compute per-unit variant option extra
+    let variantExtra = 0;
+    const detail = (item.details ?? []) as Array<{ variant_id: number; value: string }>;
+    for (const d of detail) {
+      const variant = item.product.Variant?.find((v) => v.id === d.variant_id);
+      if (!variant) continue;
+      const variantPrice = variant.price ? parseFloat(variant.price.toString()) : 0;
+      if (variantPrice > 0) {
+        variantExtra += variantPrice;
+        continue;
+      }
+      const opts = (variant.option_value ?? []) as Array<string | VariantValueObjType>;
+      const opt = opts.find((o) =>
+        typeof o === "string" ? o === d.value : o.val === d.value,
+      );
+      if (opt && typeof opt !== "string" && opt.price) {
+        variantExtra += parseFloat(opt.price.toString());
+      }
+    }
+
+    totalVariantExtra += variantExtra * item.quantity;
+    return sum + basePrice * item.quantity;
   }, 0);
 
   const pickupService = Shippingservice.find((s) => s.value === "Pickup");
   const defaultShipping = pickupService?.price ?? 0;
+  const extra = totalVariantExtra > 0 ? parseFloat(totalVariantExtra.toFixed(2)) : 0;
   const serverPrice: totalpricetype = {
     subtotal,
     shipping: defaultShipping,
-    total: subtotal + defaultShipping,
+    total: subtotal + extra + defaultShipping,
+    ...(extra > 0 ? { extra } : {}),
   };
 
   let orderId = "";
@@ -391,7 +448,9 @@ export async function renewCheckoutSession(
 
 /**
  * Explicitly terminate a checkout session (user navigates away).
- * Releases stock holds and reverts orderproducts to incart state.
+ * Releases stock holds, unlinks orderproducts back to the cart (orderId → null,
+ * status kept as incart so the user can resume shopping), and marks the order
+ * as abandoned for history — without deleting any records.
  */
 export async function terminateCheckoutSession(
   orderId: string,
@@ -411,9 +470,18 @@ export async function terminateCheckoutSession(
     }
 
     await releaseStock(orderId);
-    // Deleting the order sets orderId = null on orderproducts (SetNull cascade),
-    // reverting them to incart state without losing the user's cart.
-    await Prisma.orders.delete({ where: { id: orderId } });
+    // Unlink orderproducts so they return to the user's cart (orderId = null),
+    // then mark the order itself as abandoned for history.
+    await Promise.all([
+      Prisma.orderproduct.updateMany({
+        where: { orderId },
+        data: { orderId: null },
+      }),
+      Prisma.orders.update({
+        where: { id: orderId },
+        data: { status: Allstatus.abandoned },
+      }),
+    ]);
 
     return { success: true };
   } catch (error) {
@@ -534,7 +602,9 @@ export async function updateStatus(
         selectedVariant: prob.selectedvariant as any,
         quantity: prob.quantity,
         totalprice:
-          prob.quantity * (prob.price.discount?.newprice ?? prob.price.price),
+          prob.quantity *
+          (prob.price.discount?.newprice ??
+            prob.price.price + (prob.price.extra ?? 0)),
       })),
       price: order.price as unknown as totalpricetype,
       shipping: order.shipping as any,
@@ -682,11 +752,13 @@ export async function updateShippingService(
 
     const subprice = order.price as unknown as totalpricetype;
     const shippingPrice = selectedShipping.price ?? 0;
+    const storedExtra = subprice.extra ?? 0;
 
     updatePrice = {
       subtotal: subprice.subtotal,
       shipping: shippingPrice,
-      total: subprice.subtotal + shippingPrice,
+      total: subprice.subtotal + storedExtra + shippingPrice,
+      ...(storedExtra > 0 ? { extra: storedExtra } : {}),
     };
 
     await Prisma.orders.update({
@@ -789,6 +861,14 @@ export async function Createpaypalorder(orderId: string): Promise<Returntype> {
                 name: true,
                 price: true,
                 discount: true,
+                Variant: {
+                  select: {
+                    id: true,
+                    price: true,
+                    option_title: true,
+                    option_value: true,
+                  },
+                },
               },
             },
           },
@@ -815,18 +895,76 @@ export async function Createpaypalorder(orderId: string): Promise<Returntype> {
     };
 
     let orderItems: Paypalitemtype[] = order.Orderproduct.map((i) => {
-      const price = i.product.discount
+      const baseDiscountedPrice = i.product.discount
         ? (calculateDiscountProductPrice({
             price: i.product.price,
             discount: i.product.discount,
-          }).discount?.newprice?.toFixed(2) ?? "0.00")
-        : parseFloat(i.product.price.toString()).toFixed(2);
+          }).discount?.newprice ?? i.product.price)
+        : i.product.price;
+
+      // Add variant option extra price
+      const details = (i.details as Productorderdetailtype[]) ?? [];
+      const variantExtra = details.reduce((sum, detail) => {
+        if (!detail.value) return sum;
+        const variant = (i.product.Variant ?? []).find(
+          (v) => v.id === detail.variant_id,
+        );
+        if (!variant) return sum;
+        const variantLevelPrice = (variant as any).price;
+        if (variantLevelPrice) {
+          return sum + parseFloat(variantLevelPrice.toString());
+        }
+        const option = (
+          variant.option_value as (string | VariantValueObjType)[]
+        ).find((opt) =>
+          typeof opt === "string"
+            ? opt === detail.value
+            : opt.val === detail.value,
+        );
+        if (option && typeof option !== "string" && option.price) {
+          return sum + parseFloat(option.price.toString());
+        }
+        return sum;
+      }, 0);
+
+      const unitPrice = parseFloat(
+        (baseDiscountedPrice + variantExtra).toFixed(2),
+      );
+
+      // Build variant description: "Title: value, Title: value"
+      const variantDescription = details
+        .map((detail) => {
+          if (!detail.value) return null;
+          const variant = (i.product.Variant ?? []).find(
+            (v) => v.id === detail.variant_id,
+          );
+          if (!variant) return null;
+          const option = (
+            variant.option_value as (string | VariantValueObjType)[]
+          ).find((opt) =>
+            typeof opt === "string"
+              ? opt === detail.value
+              : opt.val === detail.value,
+          );
+          const displayValue =
+            typeof option === "string"
+              ? option
+              : (option?.name ?? option?.val ?? detail.value);
+          const title = (variant as any).option_title;
+          return title ? `${title}: ${displayValue}` : displayValue;
+        })
+        .filter(Boolean)
+        .join(", ");
+
       return {
         name: i.product.name.slice(0, 127), // PayPal max 127 chars
         quantity: i.quantity.toString(),
+        ...(variantDescription && {
+          description: variantDescription.slice(0, 127),
+        }),
         unit_amount: {
           currency_code,
-          value: price,
+          value: unitPrice.toFixed(2),
         },
       };
     });
@@ -865,7 +1003,7 @@ export async function Createpaypalorder(orderId: string): Promise<Returntype> {
       .join(", ");
 
     let orderShipping: PaypalshippingType = {
-      type: isPickup ? "PICKUP_IN_STORE" : "SHIPPING",
+      type: isPickup ? undefined : "SHIPPING",
       ...(!isPickup &&
         shipping?.street && {
           address: {

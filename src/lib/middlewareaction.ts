@@ -62,16 +62,16 @@ export const VerifyApiRoute = (
     return { success: false };
   }
 
-  // Check admin-only routes
-  const isAdminRoute = allAdminRoute.get(normalizedUrl)?.includes(method);
-  if (isAdminRoute) {
-    return { success: role === Role.ADMIN };
-  }
-
-  // Check user routes (accessible by authenticated users)
+  // Check user routes before admin routes so shared routes allow both roles
   const isUserRoute = userRoute.get(normalizedUrl)?.includes(method);
   if (isUserRoute) {
     return { success: role === Role.ADMIN || role === Role.USER };
+  }
+
+  // Check admin-only routes (only reached when not in userRoute)
+  const isAdminRoute = allAdminRoute.get(normalizedUrl)?.includes(method);
+  if (isAdminRoute) {
+    return { success: role === Role.ADMIN };
   }
 
   // Default: allow if not explicitly restricted

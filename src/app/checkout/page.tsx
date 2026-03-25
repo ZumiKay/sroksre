@@ -309,6 +309,7 @@ const getVariantPriceBreakdownByOrderId = async (
 
       breakdown.push({
         productName: orderProduct.product.name,
+        quantity: orderProduct.quantity,
         variantOptions: pricebreakDownSelectedVariants.filter(
           Boolean,
         ) as Array<VariantOptionsType>,
@@ -330,7 +331,8 @@ async function Totalprice({ orderID }: { orderID: string }) {
   const totalVariantPrice = variantBreakdown.reduce(
     (sum, product) =>
       sum +
-      product.variantOptions.reduce((pSum, option) => pSum + option.price, 0),
+      product.variantOptions.reduce((pSum, option) => pSum + option.price, 0) *
+        (product.quantity ?? 1),
     0,
   );
 
@@ -357,6 +359,11 @@ async function Totalprice({ orderID }: { orderID: string }) {
                 <div key={pIdx} className="space-y-3">
                   <div className="text-sm text-gray-500 font-medium">
                     {product.productName}
+                    {(product.quantity ?? 1) > 1 && (
+                      <span className="text-gray-400 font-normal ml-1">
+                        ×{product.quantity}
+                      </span>
+                    )}
                   </div>
                   {product.variantOptions.map((option, oIdx) => (
                     <div

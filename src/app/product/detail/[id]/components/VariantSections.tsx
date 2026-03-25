@@ -198,16 +198,16 @@ export const ShowOptionandStock = (props: VariantSectionProps) => {
           setincart={setincart}
         />
       ))}
-      {prob.Stock && prob.Stock.length !== 0 ? (
+      {(prob.Stock && prob.Stock.length !== 0) || qty > 0 ? (
         <StockSelector
           max={qty}
           errormess={errormess}
           setmess={setmess}
           isloading={isloading}
         />
-      ) : qty === 0 ? (
+      ) : (
         <ProductUnavailable />
-      ) : null}
+      )}
     </>
   ) : null;
 };

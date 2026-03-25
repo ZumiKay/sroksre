@@ -18,6 +18,9 @@ import {
   faClock,
   faSpinner,
   faCheckCircle,
+  faDollarSign,
+  faFilter,
+  faTruck,
 } from "@fortawesome/free-solid-svg-icons";
 import {
   AllOrderStatusColor,
@@ -58,6 +61,7 @@ interface OrderStats {
   pending: number;
   processing: number;
   completed: number;
+  cancelled: number;
   totalRevenue: number;
 }
 
@@ -112,11 +116,11 @@ export default async function OrderManagement({
   const selectedStatus = status ? (status as string).split(",") : undefined;
   const isFilter = Boolean(q || fromdate || todate || startprice || endprice);
 
-  // Purge expired unpaid orders before loading the page
+  //Mark expired order
   await purgeExpiredUnpaidOrders();
 
-  // Parallel data fetching for better performance
-  const userId = getuser.user.role === Role.USER ? getuser.user.buyer_id : undefined;
+  const userId =
+    getuser.user.role === Role.USER ? getuser.user.buyer_id : undefined;
 
   try {
     const [ordersResult, filterResult] = await Promise.all([
@@ -149,7 +153,7 @@ export default async function OrderManagement({
     const stats = calculateOrderStats(orders || [], totalOrders);
 
     return (
-      <main className="order__container w-full min-h-screen bg-linear-to-br from-gray-50 to-gray-100 p-6 md:p-8">
+      <main className="order__container w-full min-h-screen bg-gray-50 p-5 md:p-8">
         <OrderHeader stats={stats} />
         <FilterSection
           isFilter={isFilter}
@@ -157,7 +161,7 @@ export default async function OrderManagement({
         />
         <OrdersTable
           orders={orders}
-          isAdmin={getuser.role === Role.ADMIN}
+          isAdmin={getuser.user.role === Role.ADMIN}
           searchParams={resolvedSearchParams}
         />
         {orders && orders.length > 0 && totalPages > 1 && (
@@ -168,18 +172,20 @@ export default async function OrderManagement({
   } catch (error) {
     console.log("Error fetching orders:", error);
     return (
-      <main className="order__container w-full min-h-screen bg-linear-to-br from-gray-50 to-gray-100 p-6 md:p-8">
-        <div className="flex flex-col items-center justify-center h-[60vh]">
-          <div className="w-20 h-20 rounded-full bg-red-100 flex items-center justify-center mb-4">
+      <main className="order__container w-full min-h-screen bg-gray-50 p-5 md:p-8">
+        <div className="flex flex-col items-center justify-center h-[60vh] gap-4">
+          <div className="w-16 h-16 rounded-2xl bg-red-50 flex items-center justify-center">
             <FontAwesomeIcon
               icon={faExclamationTriangle}
-              className="text-red-500 text-3xl"
+              className="text-red-400 text-2xl"
             />
           </div>
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">
-            Error Loading Orders
-          </h2>
-          <p className="text-gray-600">Please try again later</p>
+          <div className="text-center">
+            <h2 className="text-xl font-bold text-gray-800 mb-1">
+              Error Loading Orders
+            </h2>
+            <p className="text-sm text-gray-500">Please try again later</p>
+          </div>
         </div>
       </main>
     );
@@ -198,6 +204,8 @@ function calculateOrderStats(
       .length,
     completed: orders.filter((o) => o.status?.toLowerCase() === "completed")
       .length,
+    cancelled: orders.filter((o) => o.status?.toLowerCase() === "cancelled")
+      .length,
     totalRevenue: orders.reduce(
       (sum, o) => sum + ((o.price as totalpricetype)?.total ?? 0),
       0,
@@ -211,60 +219,83 @@ function OrderHeader({ stats }: { stats: OrderStats }) {
     {
       icon: faShoppingCart,
       gradient: "from-blue-500 to-purple-600",
+      bgLight: "bg-blue-50",
+      textColor: "text-blue-600",
       label: "Total Orders",
-      value: stats.total,
+      value: stats.total.toString(),
     },
     {
       icon: faClock,
-      gradient: "from-yellow-500 to-orange-600",
+      gradient: "from-amber-500 to-orange-500",
+      bgLight: "bg-amber-50",
+      textColor: "text-amber-600",
       label: "Pending",
-      value: stats.pending,
+      value: stats.pending.toString(),
     },
     {
       icon: faSpinner,
       gradient: "from-indigo-500 to-blue-600",
+      bgLight: "bg-indigo-50",
+      textColor: "text-indigo-600",
       label: "Processing",
-      value: stats.processing,
+      value: stats.processing.toString(),
     },
     {
       icon: faCheckCircle,
-      gradient: "from-green-500 to-emerald-600",
+      gradient: "from-emerald-500 to-green-600",
+      bgLight: "bg-emerald-50",
+      textColor: "text-emerald-600",
       label: "Completed",
-      value: stats.completed,
+      value: stats.completed.toString(),
+    },
+    {
+      icon: faDollarSign,
+      gradient: "from-teal-500 to-cyan-600",
+      bgLight: "bg-teal-50",
+      textColor: "text-teal-600",
+      label: "Revenue (page)",
+      value: `$${stats.totalRevenue.toFixed(2)}`,
     },
   ];
 
   return (
     <div className="w-full mb-8">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
+      {/* Page title bar */}
+      <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between mb-7">
         <div>
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-2">
+          <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1">
+            Dashboard / Orders
+          </p>
+          <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 leading-tight">
             Order Management
           </h1>
-          <p className="text-gray-600">
-            Track and manage all orders in your system
+          <p className="text-sm text-gray-500 mt-1">
+            Track, filter, and manage all customer orders
           </p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      {/* Stats grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-2">
         {statisticsCards.map((card, idx) => (
           <div
             key={idx}
-            className="bg-white p-5 rounded-xl shadow-xs border border-gray-200 hover:shadow-md transition-shadow"
+            className="bg-white p-4 rounded-2xl shadow-xs border border-gray-100 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
           >
-            <div className="flex items-center justify-between mb-3">
-              <div
-                className={`w-12 h-12 rounded-lg bg-linear-to-br ${card.gradient} flex items-center justify-center`}
-              >
-                <FontAwesomeIcon
-                  icon={card.icon}
-                  className="text-white text-xl"
-                />
-              </div>
+            <div
+              className={`w-10 h-10 rounded-xl bg-linear-to-br ${card.gradient} flex items-center justify-center mb-3 shadow-sm`}
+            >
+              <FontAwesomeIcon
+                icon={card.icon}
+                className="text-white text-base"
+              />
             </div>
-            <p className="text-sm text-gray-500 font-medium">{card.label}</p>
-            <p className="text-3xl font-bold text-gray-800">{card.value}</p>
+            <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-0.5">
+              {card.label}
+            </p>
+            <p className={`text-2xl font-extrabold ${card.textColor}`}>
+              {card.value}
+            </p>
           </div>
         ))}
       </div>
@@ -280,17 +311,55 @@ function FilterSection({
   isFilter: boolean;
   filterData: Partial<SearchParams>;
 }) {
+  const activeFilterCount = Object.values(filterData).filter(Boolean).length;
+
   return (
-    <div className="bg-white rounded-xl shadow-xs border border-gray-200 p-4 mb-6">
-      <div className="filter_container w-full flex flex-col md:flex-row items-start md:items-center gap-4">
-        <div className="w-full md:w-75">
+    <div className="bg-white rounded-2xl shadow-xs border border-gray-100 p-4 mb-6">
+      <div className="filter_container w-full flex flex-col md:flex-row items-start md:items-center gap-3">
+        {/* Status multi-select */}
+        <div className="w-full md:w-72 shrink-0">
           <MultipleSelect />
         </div>
 
-        <div className="w-full md:w-auto flex flex-row items-center gap-3">
-          <FilterButton isFilter={!isFilter} data={filterData} />
+        {/* Divider */}
+        <div className="hidden md:block h-10 w-px bg-gray-200" />
+
+        {/* Filter + Export buttons */}
+        <div className="flex flex-row flex-wrap items-center gap-2">
+          <div className="relative">
+            <FilterButton isFilter={!isFilter} data={filterData} />
+            {isFilter && activeFilterCount > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-blue-500 text-white text-[10px] font-bold flex items-center justify-center shadow-sm pointer-events-none">
+                {activeFilterCount}
+              </span>
+            )}
+          </div>
           <DownloadButton />
         </div>
+
+        {/* Active filter summary chips */}
+        {isFilter && (
+          <div className="flex flex-wrap gap-1.5 md:ml-auto">
+            {filterData.q && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-medium border border-blue-100">
+                <FontAwesomeIcon icon={faFilter} className="text-[10px]" />
+                {`"${filterData.q}"`}
+              </span>
+            )}
+            {(filterData.fromdate || filterData.todate) && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-purple-50 text-purple-700 text-xs font-medium border border-purple-100">
+                <FontAwesomeIcon icon={faClock} className="text-[10px]" />
+                {filterData.fromdate ?? "…"} → {filterData.todate ?? "…"}
+              </span>
+            )}
+            {(filterData.startprice || filterData.endprice) && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-medium border border-emerald-100">
+                <FontAwesomeIcon icon={faDollarSign} className="text-[10px]" />
+                {filterData.startprice ?? "0"} – {filterData.endprice ?? "∞"}
+              </span>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -306,43 +375,60 @@ function OrdersTable({
   isAdmin: boolean;
   searchParams?: SearchParams;
 }) {
+  const colSpan = isAdmin ? 8 : 7;
+
   return (
-    <div className="bg-white rounded-xl shadow-xs border border-gray-200 overflow-hidden">
+    <div className="bg-white rounded-2xl shadow-xs border border-gray-100 overflow-hidden">
       <div className="w-full overflow-x-auto">
         <div className="orderlist min-w-237.5 w-full">
           <table width="100%" className="ordertable">
             <thead>
-              <tr className="bg-linear-to-r from-gray-800 to-gray-700 text-white h-14">
-                <th className="text-left pl-6 font-semibold text-sm">
+              <tr className="bg-linear-to-r from-gray-900 to-gray-700 text-white h-12">
+                <th className="text-left pl-6 pr-3 font-semibold text-xs uppercase tracking-wider">
                   Order ID
                 </th>
-                <th className="text-left font-semibold text-sm">Details</th>
-                <th className="text-left font-semibold text-sm">Products</th>
-                <th className="text-left font-semibold text-sm">Amount</th>
-                <th className="text-left font-semibold text-sm">Status</th>
+                <th className="text-left px-3 font-semibold text-xs uppercase tracking-wider">
+                  Details
+                </th>
+                <th className="text-left px-3 font-semibold text-xs uppercase tracking-wider">
+                  Products
+                </th>
+                <th className="text-left px-3 font-semibold text-xs uppercase tracking-wider">
+                  Amount
+                </th>
+                <th className="text-left px-3 font-semibold text-xs uppercase tracking-wider">
+                  Shipping
+                </th>
+                <th className="text-left px-3 font-semibold text-xs uppercase tracking-wider">
+                  Status
+                </th>
                 {isAdmin && (
-                  <th className="text-left font-semibold text-sm">Actions</th>
+                  <th className="text-left px-3 font-semibold text-xs uppercase tracking-wider">
+                    Actions
+                  </th>
                 )}
                 <th className="pr-6"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-200">
+            <tbody className="divide-y divide-gray-100">
               {!orders || orders.length === 0 ? (
                 <tr>
-                  <td colSpan={isAdmin ? 7 : 6} className="py-20">
-                    <div className="flex flex-col items-center justify-center">
-                      <div className="w-20 h-20 rounded-full bg-gray-200 flex items-center justify-center mb-4">
+                  <td colSpan={colSpan} className="py-24">
+                    <div className="flex flex-col items-center justify-center gap-3">
+                      <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center">
                         <FontAwesomeIcon
                           icon={faShoppingBag}
-                          className="text-gray-400 text-3xl"
+                          className="text-gray-300 text-2xl"
                         />
                       </div>
-                      <p className="text-xl font-semibold text-gray-600 mb-2">
-                        No Orders Yet
-                      </p>
-                      <p className="text-sm text-gray-400">
-                        Orders will appear here once customers make purchases
-                      </p>
+                      <div className="text-center">
+                        <p className="text-base font-semibold text-gray-500">
+                          No orders found
+                        </p>
+                        <p className="text-xs text-gray-400 mt-0.5">
+                          Orders will appear here once customers make purchases
+                        </p>
+                      </div>
                     </div>
                   </td>
                 </tr>
@@ -373,24 +459,28 @@ function OrdersTable({
 function OrderRowSkeleton({ isAdmin }: { isAdmin: boolean }) {
   return (
     <tr className="animate-pulse">
-      <td className="pl-6 py-4">
-        <div className="h-4 bg-gray-200 rounded-sm w-24"></div>
+      <td className="pl-6 pr-3 py-4">
+        <div className="h-4 bg-gray-100 rounded-md w-20 mb-1.5"></div>
+        <div className="h-3 bg-gray-100 rounded-md w-14"></div>
       </td>
-      <td className="py-4">
-        <div className="h-8 bg-gray-200 rounded-sm w-28"></div>
+      <td className="px-3 py-4">
+        <div className="h-8 bg-gray-100 rounded-lg w-28"></div>
       </td>
-      <td className="py-4">
-        <div className="h-8 bg-gray-200 rounded-sm w-32"></div>
+      <td className="px-3 py-4">
+        <div className="h-8 bg-gray-100 rounded-lg w-28"></div>
       </td>
-      <td className="py-4">
-        <div className="h-4 bg-gray-200 rounded-sm w-20"></div>
+      <td className="px-3 py-4">
+        <div className="h-4 bg-gray-100 rounded-md w-16"></div>
       </td>
-      <td className="py-4">
-        <div className="h-6 bg-gray-200 rounded-full w-24"></div>
+      <td className="px-3 py-4">
+        <div className="h-5 bg-gray-100 rounded-full w-20"></div>
+      </td>
+      <td className="px-3 py-4">
+        <div className="h-6 bg-gray-100 rounded-full w-20"></div>
       </td>
       {isAdmin && (
-        <td className="py-4">
-          <div className="h-8 bg-gray-200 rounded-sm w-24"></div>
+        <td className="px-3 py-4">
+          <div className="h-8 bg-gray-100 rounded-lg w-20"></div>
         </td>
       )}
       <td className="pr-6"></td>
@@ -409,8 +499,12 @@ function PaginationSection({
   totalPages: number;
 }) {
   return (
-    <div className="w-full flex justify-center mt-8">
-      <div className="bg-white rounded-xl shadow-xs border border-gray-200 p-4">
+    <div className="w-full flex flex-col sm:flex-row items-center justify-between gap-3 mt-6 px-1">
+      <p className="text-xs text-gray-400 font-medium">
+        Page <span className="font-semibold text-gray-600">{page}</span> of{" "}
+        <span className="font-semibold text-gray-600">{totalPages}</span>
+      </p>
+      <div className="bg-white rounded-xl shadow-xs border border-gray-100 px-4 py-2">
         <PaginationSSR total={totalPages} pages={page} limit={show} />
       </div>
     </div>
@@ -449,12 +543,14 @@ const getOrderData = cache(
         redirect("/dashboard/order");
       }
 
+      const resultData = (data as any)?.data ?? data;
+
       if (ty === AllorderType.orderdetail) {
-        return data as unknown as OrderDetailType;
+        return resultData as unknown as OrderDetailType;
       } else if (ty === AllorderType.orderproduct) {
-        return data as unknown as Productordertype[];
+        return resultData as unknown as Productordertype[];
       } else if (isAdmin && ty === AllorderType.orderaction) {
-        return data as unknown as OrderUserType;
+        return resultData as unknown as OrderUserType;
       }
     } catch (error) {
       console.log(`Error fetching order data for ${oid}:`, error);
@@ -465,7 +561,6 @@ const getOrderData = cache(
   },
 );
 
-// Optimized DataRow component
 export async function DataRow({
   idx,
   data,
@@ -491,94 +586,127 @@ export async function DataRow({
     }
   })();
 
-  // Memoize date formatting
+  //Date Fomatter
   const orderDate = new Date(data.createdAt).toLocaleDateString("en-US", {
     year: "numeric",
     month: "short",
     day: "numeric",
   });
 
+  //Mapped status to its color
   const statusColor =
     AllOrderStatusColor[data.status.toLowerCase()] || "#6B7280";
 
+  const shippingLabel = data.shippingtype
+    ? data.shippingtype.replace(/_/g, " ")
+    : null;
+
   return (
-    <tr className="hover:bg-gray-50 transition-colors">
-      <td className="pl-6 py-4">
+    <tr className="hover:bg-gray-50/70 transition-colors group">
+      {/* Order ID + date */}
+      <td className="pl-6 pr-3 py-4">
         <div className="flex flex-col">
           <span
-            className="font-mono text-sm font-semibold text-gray-800 truncate"
+            className="font-mono text-sm font-bold text-gray-800 truncate"
             title={data.id}
           >
-            #{data.id.slice(0, 8)}
+            #{data.id.slice(0, 8).toUpperCase()}
           </span>
-          <span className="text-xs text-gray-500 mt-1">{orderDate}</span>
+          <span className="text-[11px] text-gray-400 mt-0.5">{orderDate}</span>
         </div>
       </td>
-      <td className="py-4">
+
+      {/* Details button */}
+      <td className="px-3 py-4">
         <ButtonSsr
           idx={idx}
           type={AllorderType.orderdetail}
-          name="View Details"
+          name="Details"
           color="#3B82F6"
-          height="40px"
-          width="120px"
+          height="36px"
+          width="110px"
           data={{ detail: orderData as OrderDetailType }}
           id={data.id}
           orderdata={data}
           isAdmin={isAdmin}
         />
       </td>
-      <td className="py-4">
+
+      {/* Products button */}
+      <td className="px-3 py-4">
         <ButtonSsr
           idx={idx}
           type={AllorderType.orderproduct}
-          name="View Products"
+          name="Products"
           color="#6366F1"
-          height="40px"
-          width="130px"
-          data={{ product: orderData as Array<Productordertype> }}
+          height="36px"
+          width="110px"
+          data={{
+            product: orderData as Array<Productordertype>,
+          }}
           id={data.id}
           isAdmin={isAdmin}
         />
       </td>
-      <td className="py-4">
-        <span className="font-semibold text-gray-800">
+
+      {/* Amount */}
+      <td className="px-3 py-4">
+        <span className="text-sm font-bold text-gray-900">
           ${(data.price?.total ?? 0).toFixed(2)}
         </span>
       </td>
-      <td className="py-4">
+
+      {/* Shipping type */}
+      <td className="px-3 py-4">
+        {shippingLabel ? (
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-100 text-gray-600 text-xs font-medium capitalize">
+            <FontAwesomeIcon icon={faTruck} className="text-[10px] shrink-0" />
+            {shippingLabel}
+          </span>
+        ) : (
+          <span className="text-xs text-gray-300">—</span>
+        )}
+      </td>
+
+      {/* Status badge */}
+      <td className="px-3 py-4">
         <span
           style={{
-            backgroundColor: statusColor + "20",
+            backgroundColor: statusColor + "18",
             color: statusColor,
+            borderColor: statusColor + "40",
           }}
-          className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold capitalize"
+          className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold capitalize border"
         >
           {data.status}
         </span>
       </td>
+
+      {/* Admin actions */}
       {isAdmin && (
-        <td className="py-4">
+        <td className="px-3 py-4">
           <ButtonSsr
             idx={idx}
             type={AllorderType.orderaction}
             name="Manage"
             color="#10B981"
-            height="40px"
-            width="100px"
+            height="36px"
+            width="90px"
             data={{ action: orderData as OrderUserType }}
             id={data.id}
             isAdmin={isAdmin}
           />
         </td>
       )}
+
+      {/* Resume checkout */}
       <td className="pr-6 py-4">
         {checkoutUrl && (
           <Link
             href={checkoutUrl}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded-lg transition-colors whitespace-nowrap"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white text-xs font-bold rounded-lg transition-colors whitespace-nowrap shadow-sm"
           >
-            Resume Checkout
+            Resume
           </Link>
         )}
       </td>

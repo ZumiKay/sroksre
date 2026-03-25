@@ -2,6 +2,7 @@
 
 import {
   Ordertype,
+  Orderpricetype,
   Productorderdetailtype,
   Productordertype,
   OrderSelectedVariantType,
@@ -58,6 +59,7 @@ export const getCheckoutdata = async (
                 orderBy: { id: "asc" },
                 select: {
                   id: true,
+                  price: true,
                   option_value: true,
                   variantSection: {
                     select: {
@@ -163,16 +165,58 @@ export const getCheckoutdata = async (
           ).filter(Boolean) as Array<string | VariantValueObjType>;
         }
 
+        // Compute extra price from variant options (per-value or variant-level)
+        const variantExtra = detail.reduce((extraSum, d) => {
+          if (!d.value) return extraSum;
+          const variant = orderProduct.product.Variant.find(
+            (v) => v.id === d.variant_id,
+          );
+          if (!variant) return extraSum;
+          const variantLevelPrice = (variant as any).price;
+          if (variantLevelPrice) {
+            return extraSum + parseFloat(variantLevelPrice.toString());
+          }
+          const option = (
+            variant.option_value as (string | VariantValueObjType)[]
+          ).find((opt) =>
+            typeof opt === "string" ? opt === d.value : opt.val === d.value,
+          );
+          if (option && typeof option !== "string" && option.price) {
+            return extraSum + parseFloat(option.price.toString());
+          }
+          return extraSum;
+        }, 0);
+
+        const basePrice = calculateDiscountProductPrice({
+          price: orderProduct.product.price,
+          discount: orderProduct.product.discount ?? undefined,
+        });
+
+        const finalProductPrice: Orderpricetype =
+          variantExtra > 0
+            ? {
+                ...basePrice,
+                extra: variantExtra,
+                ...(basePrice.discount
+                  ? {
+                      discount: {
+                        ...basePrice.discount,
+                        newprice: parseFloat(
+                          (
+                            (basePrice.discount.newprice ?? basePrice.price) +
+                            variantExtra
+                          ).toFixed(2),
+                        ),
+                      },
+                    }
+                  : {}),
+              }
+            : basePrice;
+
         return {
           ...orderProduct,
           selectedvariant: selectedVariantDetails,
-          price: calculateDiscountProductPrice({
-            price: orderProduct.product.price,
-            discount: orderProduct.product.discount ?? undefined,
-          }),
-          product: {
-            ...orderProduct.product,
-          },
+          price: finalProductPrice,
         } as unknown as Productordertype; //Ignore JSONValue type
       }
     },

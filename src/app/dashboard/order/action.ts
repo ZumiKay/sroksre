@@ -299,27 +299,61 @@ export const updateOrderSettings = async (
 };
 
 /**
- * Purge all Unpaid orders older than 24 hours.
- * Orderproduct rows are kept (orderId set to null via onDelete: SetNull).
+ * Purge all expired cart items and unpaid orders older than 24 hours.
+ *
+ * Three things happen in one pass:
+ *  1. Standalone cart items (orderId = null, status = Incart) older than 24 h
+ *     are marked abandoned — the user's cart entry has expired.
+ *  2. Unpaid orders older than 24 h are marked abandoned.
+ *  3. Orderproducts that belong to those expired orders are marked abandoned.
+ *
+ * Nothing is deleted; all records are preserved for history.
  */
 export const purgeExpiredUnpaidOrders = async (): Promise<void> => {
   try {
     const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    await Prisma.orders.updateMany({
+
+    // Find the specific orders that are expiring so we can scope the
+    // orderproduct update to only their rows.
+    const expiredOrders = await Prisma.orders.findMany({
       where: {
-        status: "Unpaid",
+        status: Allstatus.unpaid,
         createdAt: { lt: cutoff },
       },
-      data: {
-        status: Allstatus.abandoned,
-      },
+      select: { id: true },
     });
-    await Prisma.orderproduct.updateMany({
-      where: {
-        status: { in: [Allstatus.incart, Allstatus.unpaid] },
-      },
-      data: { status: Allstatus.abandoned },
-    });
+
+    const expiredOrderIds = expiredOrders.map((o) => o.id);
+
+    await Promise.all([
+      // 1. Expire standalone cart items (not yet in any checkout session)
+      Prisma.orderproduct.updateMany({
+        where: {
+          orderId: null,
+          status: Allstatus.incart,
+          createdAt: { lt: cutoff },
+        },
+        data: { status: Allstatus.abandoned },
+      }),
+
+      // 2. Expire the unpaid orders themselves
+      ...(expiredOrderIds.length > 0
+        ? [
+            Prisma.orders.updateMany({
+              where: { id: { in: expiredOrderIds } },
+              data: { status: Allstatus.abandoned },
+            }),
+            // 3. Expire orderproducts belonging to those orders
+            Prisma.orderproduct.updateMany({
+              where: {
+                orderId: { in: expiredOrderIds },
+                status: { in: [Allstatus.incart, Allstatus.unpaid] },
+              },
+              data: { status: Allstatus.abandoned },
+            }),
+          ]
+        : []),
+    ]);
   } catch (error) {
     console.log("purgeExpiredUnpaidOrders error:", error);
   }

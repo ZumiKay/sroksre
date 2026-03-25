@@ -109,4 +109,5 @@ export type VariantOptionsType = {
 export interface VariantPriceBreakdown {
   productName: string;
   variantOptions: Array<VariantOptionsType>;
+  quantity?: number;
 }

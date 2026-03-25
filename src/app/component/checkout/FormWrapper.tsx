@@ -1,6 +1,6 @@
 "use client";
 
-import { JSX, ReactNode, useState, FormEvent } from "react";
+import { JSX, ReactNode, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { SubmitEvent } from "react";
 import { handleShippingAdddress } from "@/src/app/checkout/action";
@@ -35,8 +35,8 @@ export const FormWrapper = ({
 
   const handleSubmit = async (event: SubmitEvent<HTMLFormElement>) => {
     event.preventDefault();
-    // Capture form reference BEFORE any await — event.currentTarget
-    // is nulled by the browser once event dispatch finishes.
+
+    //Capture all form's input field value
     const form = event.currentTarget;
     const isShipping = form.elements.namedItem(
       "shipping",
@@ -51,8 +51,6 @@ export const FormWrapper = ({
       setLoading(false);
       return;
     }
-
-    console.log({ isShipping, isSaved });
 
     if (isShipping) {
       const selectedIndex = parseInt(

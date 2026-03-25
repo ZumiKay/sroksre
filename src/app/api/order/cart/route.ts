@@ -32,23 +32,6 @@ export const getVariantPriceBreakDownByActiveCart = (
   return getVariantPriceBreakDownByActiveCart(orderProduct, optionsPrice);
 };
 
-const getVariantExtraPrice = (
-  selectedVariant: Array<string | VariantValueObjType>,
-): number => {
-  return selectedVariant.reduce((total, variant) => {
-    if (typeof variant === "string") {
-      return total;
-    }
-
-    const variantPrice = variant.price
-      ? parseFloat(variant.price.toString())
-      : 0;
-    return !isNaN(variantPrice) && variantPrice > 0
-      ? total + variantPrice
-      : total;
-  }, 0);
-};
-
 const buildFinalCartPrice = (
   basePrice: Productordertype["price"],
   variantExtra: number,
@@ -188,15 +171,6 @@ export async function GET(req: NextRequest) {
 
     const cartExpiryCutoff = new Date(Date.now() - CART_ITEM_EXPIRY_MS);
 
-    //Update expired cart status
-    await Prisma.orderproduct.updateMany({
-      where: {
-        user_id: user.userId,
-        createdAt: { lte: cartExpiryCutoff },
-      },
-      data: { status: Allstatus.abandoned },
-    });
-
     const orderproduct = await Prisma.orderproduct.findMany({
       where: {
         AND: [
@@ -263,16 +237,33 @@ export async function GET(req: NextRequest) {
           });
         });
 
-      const flatSelectedVariant = selectedvariant.flat();
-      const variantExtraPrice = getVariantExtraPrice(
-        flatSelectedVariant as never,
-      );
+      const variantExtraPrice = selectedvariantForDisplay
+        .filter((v): v is VariantOptionsType => v !== null)
+        .reduce((sum, v) => sum + (v.price ?? 0), 0);
       const finalCartPrice = buildFinalCartPrice(discount, variantExtraPrice);
 
-      const maxqty = getmaxqtybaseStockType(
+      let maxqty = getmaxqtybaseStockType(
         item.product as unknown as ProductState,
         detail.map((i) => i.value),
       );
+
+      // For products with no DB Stock records, derive maxqty from option-level qty fields.
+      if (maxqty === 0 && !item.product.Stock?.length) {
+        let optionQty = Infinity;
+        for (const d of detail) {
+          const variant = item.product.Variant?.find((v) => v.id === d.variant_id);
+          if (!variant) continue;
+          const option = (variant.option_value as (string | VariantValueObjType)[]).find(
+            (opt) => (typeof opt === "string" ? opt === d.value : opt.val === d.value),
+          );
+          if (option && typeof option !== "string" && option.qty !== undefined) {
+            const oQty =
+              typeof option.qty === "number" ? option.qty : parseInt(option.qty as string || "0");
+            optionQty = Math.min(optionQty, oQty);
+          }
+        }
+        maxqty = optionQty === Infinity ? 1 : optionQty;
+      }
       return {
         id: item.id,
         price: finalCartPrice,
