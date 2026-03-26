@@ -126,6 +126,7 @@ export default function AccountMenu({ setProfile }: AccountMenuProps) {
   const handleSignOut = useCallback(async () => {
     setloading(true);
     await signOut();
+    router.replace("/account");
     setloading(false);
   }, []);
 

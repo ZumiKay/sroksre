@@ -42,14 +42,21 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
-export async function SendNotification(data: NotificationType, socket: Socket) {
-  socket.emit("sendNotification", data);
-
+export async function SendNotification(
+  data: NotificationType,
+  socket?: Socket | null,
+) {
+  // Always persist to DB regardless of socket availability
   const savenoti = SaveNotification.bind(null, data);
   const makereq = await savenoti();
 
   if (!makereq.success) {
     return { success: false };
+  }
+
+  // Emit real-time event only when socket is connected
+  if (socket?.connected) {
+    socket.emit("sendNotification", data);
   }
 
   return { success: true };

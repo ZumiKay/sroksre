@@ -22,3 +22,4 @@ export { PaginationSSR } from "./components/PaginationSSR";
 export { DetailModal as DetailOrderModal } from "./components/modals/DetailModal";
 export { OrderProductDetailsModal } from "./components/modals/OrderProductDetailsModal";
 export { ActionModal, OrderAlert } from "./components/modals/ActionModal";
+export { OrderBulkSelectProvider, RowCheckbox } from "./components/OrderBulkSelect";

@@ -142,7 +142,8 @@ const OrderSummary = async ({ orderId }: { orderId: string }) => {
         {orderData.Orderproduct.map((order) => {
           const price = order.price;
           const total =
-            order.quantity * (price.discount?.newprice ?? price.price);
+            order.quantity *
+            (price.discount?.newprice ?? (price.price + (price.extra ?? 0)));
           if (!order.product) return null;
 
           return (

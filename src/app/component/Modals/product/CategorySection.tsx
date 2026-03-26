@@ -84,6 +84,14 @@ export const CategorySection = ({
     }
   }, []);
 
+  // Sync local state when parent passes updated category IDs (e.g. edit mode)
+  useEffect(() => {
+    setcategoriesState({
+      parent_id: parentId ? parentId.toString() : "",
+      child_id: childId ? childId.toString() : "",
+    });
+  }, [parentId, childId]);
+
   if (categoriesLoading) return <CategorySkeleton />;
 
   const handleSelect = (val: string, type: CateType) => {

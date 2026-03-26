@@ -74,7 +74,9 @@ export function hasValidProductPrice(product: Productordertype): boolean {
 
 export function calculateOrderTotal(products: Productordertype[]): number {
   return products.reduce((total, product) => {
-    const price = product.price.discount?.newprice || product.price.price;
+    const price =
+      product.price.discount?.newprice ??
+      (product.price.price + (product.price.extra ?? 0));
     return total + price * product.quantity;
   }, 0);
 }

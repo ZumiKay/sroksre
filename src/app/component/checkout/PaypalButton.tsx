@@ -191,17 +191,15 @@ export function Paypalbutton({
         return;
       }
 
-      if (socket) {
-        await SendNotification(
-          {
-            type: "New Order",
-            content: `Order #${orderId} has requested`,
-            checked: false,
-            link: `${process.env.NEXT_PUBLIC_BASE_URL}/dashboard/order?&q=${orderId}`,
-          },
-          socket,
-        );
-      }
+      await SendNotification(
+        {
+          type: "New Order",
+          content: `Order #${orderId} has requested`,
+          checked: false,
+          link: `${process.env.NEXT_PUBLIC_BASE_URL}/dashboard/order?&q=${orderId}`,
+        },
+        socket,
+      );
 
       successToast("Purchase Complete");
       router.replace(`/checkout?orderid=${encripyid}&step=4`);

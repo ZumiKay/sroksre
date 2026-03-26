@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState, useCallback, useMemo } from "react";
+import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { redirect, useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { LocalizationProvider } from "@mui/x-date-pickers";
@@ -26,7 +26,7 @@ import {
 import { EmptyState, LoadingState } from "./components/EmptyAndLoadingStates";
 
 // Contexts & Hooks
-import { useGlobalContext } from "@/src/context/GlobalContext";
+import { useGlobalContext, CateogoryState } from "@/src/context/GlobalContext";
 import { ApiRequest, Delayloading } from "@/src/context/CustomHook";
 
 // Utils & Types
@@ -44,9 +44,24 @@ import {
   transformPromotionData,
 } from "./utils/apiBuilder";
 import useCheckSession from "@/src/hooks/useCheckSession";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faSearch, faXmark, faFilterCircleXmark } from "@fortawesome/free-solid-svg-icons";
 
 // Constants
 const DEFAULT_PARAMS = (type: string) => `?ty=${type}&p=1&limit=1`;
+
+// Filter chip key → human-readable label mapping
+const FILTER_CHIP_LABELS: Record<string, string> = {
+  name: "Name",
+  status: "Status",
+  parentcate: "Category",
+  childcate: "Subcategory",
+  expiredate: "Expire before",
+  bannersize: "Size",
+  bannertype: "Type",
+  expired: "Expired only",
+  promoids: "Promotion",
+};
 
 export default function Inventory() {
   // Router hooks
@@ -107,6 +122,11 @@ export default function Inventory() {
     promoids,
   });
 
+  const [searchInput, setSearchInput] = useState(name ?? "");
+  // Maps category/subcategory IDs → names for chip display (kept separate to avoid ID collisions)
+  const [parentCateNameMap, setParentCateNameMap] = useState<Record<string, string>>({});
+  const [childCateNameMap, setChildCateNameMap] = useState<Record<string, string>>({});
+
   const hasActiveFilters = useMemo(
     () => Object.values(filtervalue).some((value) => value !== undefined),
     [filtervalue],
@@ -121,6 +141,24 @@ export default function Inventory() {
   useEffect(() => {
     handleCheckSession();
   }, [reloaddata, ty, page, viewMode, filtervalue, openmodal]);
+
+  // Fetch category names to display in filter chips
+  useEffect(() => {
+    if (!filtervalue.parentcate) return;
+    ApiRequest("/api/categories", undefined, "GET").then((res) => {
+      if (!res.success) return;
+      const parentMap: Record<string, string> = {};
+      const childMap: Record<string, string> = {};
+      (res.data as CateogoryState[]).forEach((cat) => {
+        if (cat.id !== undefined) parentMap[cat.id.toString()] = cat.name;
+        cat.subcategories.forEach((sub) => {
+          if (sub.id !== undefined) childMap[sub.id.toString()] = sub.name;
+        });
+      });
+      setParentCateNameMap(parentMap);
+      setChildCateNameMap(childMap);
+    });
+  }, [filtervalue.parentcate]);
 
   // Validation searchParams
   useEffect(() => {
@@ -377,6 +415,83 @@ export default function Inventory() {
     setreloaddata(true);
   }, [searchParam, router]);
 
+  const handleInlineSearch = useCallback(
+    (e: React.FormEvent) => {
+      e.preventDefault();
+      const params = new URLSearchParams(searchParam);
+      if (searchInput.trim()) {
+        params.set("name", searchInput.trim());
+      } else {
+        params.delete("name");
+      }
+      params.set("p", "1");
+      setfiltervalue((prev) => ({
+        ...prev,
+        name: searchInput.trim() || undefined,
+      }));
+      router.push(`?${params}`, { scroll: false });
+      setreloaddata(true);
+    },
+    [searchInput, searchParam, router],
+  );
+
+  const handleRemoveFilter = useCallback(
+    (key: string) => {
+      const params = new URLSearchParams(searchParam);
+      params.delete(key);
+      params.set("p", "1");
+      setfiltervalue((prev) => {
+        const next = { ...prev };
+        delete (next as any)[key];
+        return next;
+      });
+      if (key === "name") setSearchInput("");
+      router.push(`?${params}`, { scroll: false });
+      setreloaddata(true);
+    },
+    [searchParam, router],
+  );
+
+  const handleClearAllFilters = useCallback(() => {
+    const params = new URLSearchParams(searchParam);
+    Object.keys(filtervalue).forEach((key) => params.delete(key));
+    params.set("p", "1");
+    setfiltervalue({});
+    setSearchInput("");
+    router.push(`?${params}`, { scroll: false });
+    setreloaddata(true);
+  }, [searchParam, filtervalue, router]);
+
+  // Active chips: only keys that have a value and are relevant to current type
+  const activeFilterChips = useMemo(() => {
+    const relevantKeys: Record<string, string[]> = {
+      product: ["name", "status", "parentcate", "childcate", "promoids"],
+      banner: ["name", "bannersize", "bannertype"],
+      promotion: ["name", "expired", "expiredate"],
+    };
+    const keys = relevantKeys[type as string] ?? Object.keys(FILTER_CHIP_LABELS);
+    return keys
+      .filter((key) => {
+        const val = (filtervalue as any)[key];
+        return val !== undefined && val !== "" && val !== null;
+      })
+      .map((key) => {
+        const raw = (filtervalue as any)[key];
+        let displayVal = String(raw);
+        if (key === "parentcate") {
+          displayVal = parentCateNameMap[String(raw)] ?? String(raw);
+        } else if (key === "childcate") {
+          displayVal = childCateNameMap[String(raw)] ?? String(raw);
+        } else if (key === "expiredate") {
+          displayVal = dayjs(raw).format("MMM D, YYYY");
+        } else if (key === "expired" || key === "promoids") {
+          displayVal = "";
+        }
+        const label = FILTER_CHIP_LABELS[key] ?? key;
+        return { key, label, displayVal };
+      });
+  }, [filtervalue, type, parentCateNameMap, childCateNameMap]);
+
   // ── Multi-select helpers ──────────────────────────────────────────────────
   const exitSelectMode = useCallback(() => {
     setIsSelectMode(false);
@@ -403,8 +518,6 @@ export default function Inventory() {
 
   const handleBulkDelete = useCallback(async () => {
     const ids = Array.from(selectedIds);
-
-    console.log({ ids });
 
     const URL =
       type === "product"
@@ -493,7 +606,7 @@ export default function Inventory() {
             stock={obj.stock}
             stocktype={obj.stocktype}
             isAdmin={true}
-            lowstock={obj.lowstock}
+            lowstock={obj.Stock?.length ? obj.lowstock : undefined}
             reloaddata={() => setreloaddata(true)}
           />
         </div>
@@ -746,12 +859,74 @@ export default function Inventory() {
             />
           </motion.div>
 
+          {/* Search + Filter chips */}
+          <div className="w-[95%] max-smallest_phone:w-full mt-6 flex flex-col gap-3">
+            {/* Inline search bar */}
+            <form onSubmit={handleInlineSearch} className="flex items-center gap-2">
+              <div className="flex-1 flex items-center gap-2 bg-white border-2 border-gray-200 rounded-xl px-3 py-2 shadow-sm focus-within:border-indigo-400 transition-colors">
+                <FontAwesomeIcon icon={faSearch} className="text-gray-400 text-sm shrink-0" />
+                <input
+                  type="text"
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  placeholder={`Search ${type ?? "items"}...`}
+                  className="flex-1 text-sm outline-none bg-transparent text-gray-700 placeholder-gray-400"
+                />
+                {searchInput && (
+                  <button
+                    type="button"
+                    onClick={() => { setSearchInput(""); handleRemoveFilter("name"); }}
+                    className="text-gray-400 hover:text-gray-600 transition-colors"
+                  >
+                    <FontAwesomeIcon icon={faXmark} className="text-sm" />
+                  </button>
+                )}
+              </div>
+              <button
+                type="submit"
+                className="shrink-0 px-4 py-2 bg-linear-to-r from-indigo-500 to-purple-600 text-white text-sm font-semibold rounded-xl shadow-sm hover:shadow-md hover:scale-105 transition-all"
+              >
+                Search
+              </button>
+            </form>
+
+            {/* Active filter chips */}
+            {activeFilterChips.length > 0 && (
+              <div className="flex items-center gap-2 flex-wrap">
+                {activeFilterChips.map(({ key, label, displayVal }) => (
+                  <span
+                    key={key}
+                    className="inline-flex items-center gap-1.5 px-3 py-1 bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-medium rounded-full"
+                  >
+                    <span>{label}{displayVal ? `: ${displayVal}` : ""}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveFilter(key)}
+                      className="text-indigo-400 hover:text-indigo-700 transition-colors leading-none"
+                      aria-label={`Remove ${label} filter`}
+                    >
+                      <FontAwesomeIcon icon={faXmark} className="text-[10px]" />
+                    </button>
+                  </span>
+                ))}
+                <button
+                  type="button"
+                  onClick={handleClearAllFilters}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 bg-red-50 border border-red-200 text-red-600 text-xs font-medium rounded-full hover:bg-red-100 transition-colors"
+                >
+                  <FontAwesomeIcon icon={faFilterCircleXmark} className="text-[10px]" />
+                  Clear all
+                </button>
+              </div>
+            )}
+          </div>
+
           {/* Content */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className={`productlist w-[95%] max-smallest_phone:w-full h-fit mt-10 ${
+            className={`productlist w-[95%] max-smallest_phone:w-full h-fit mt-4 ${
               viewMode === "card"
                 ? `grid grid-cols-3 max-small_screen:grid-cols-2 gap-x-5 gap-y-5 max-small_phone:gap-x-2 max-smallest_tablet:grid-cols-1 ${
                     type === "product"

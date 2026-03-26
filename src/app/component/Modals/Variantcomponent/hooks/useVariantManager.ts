@@ -139,7 +139,11 @@ export const useVariantManager = (): UseVariantManagerReturn => {
 
   const addTextOption = useCallback(
     (existingOptions: string[]) => {
-      if (existingOptions.includes(option)) {
+      // Only check for duplicates when adding a new option, not when editing
+      if (edit === -1 && existingOptions.some((opt) => {
+        const val = typeof opt === "string" ? opt : (opt as unknown as { val: string }).val;
+        return val === option;
+      })) {
         errorToast("Option Exist");
         return false;
       }

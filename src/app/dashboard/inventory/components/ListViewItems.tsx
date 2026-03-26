@@ -6,10 +6,12 @@ import { Orderpricetype } from "@/src/types/order.type";
 import { useGlobalContext } from "@/src/context/GlobalContext";
 import { SubInventoryMenu } from "@/src/app/component/Navbar";
 import Checkmark from "../../../../../public/Image/Checkmark.svg";
-import { ProductState } from "@/src/types/product.type";
+import { ProductState, StockTypeEnum } from "@/src/types/product.type";
 import { errorToast } from "@/src/app/component/Loading";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faImage, faClock, faCheck } from "@fortawesome/free-solid-svg-icons";
+import { faImage, faClock, faCheck, faTriangleExclamation } from "@fortawesome/free-solid-svg-icons";
+import { Variantcontainer } from "@/src/app/component/Modals/VariantModal";
+import { UpdateStockModal } from "@/src/app/component/Modals/Stock";
 
 interface SelectionProps {
   isSelectMode?: boolean;
@@ -74,12 +76,41 @@ export const ProductListItem: React.FC<ProductListItemProps> = ({
     setpromotion,
     setglobalindex,
     setopenmodal,
+    setproduct,
+    openmodal,
     allData,
     setalldata,
   } = useGlobalContext();
 
   const [hover, setHover] = useState(false);
   const [isImageLoading, setIsImageLoading] = useState(true);
+
+  // Same closename pattern as Card component: opens inline Variantcontainer
+  const closename = useMemo(
+    () => (product.stocktype && product.id ? product.stocktype + product.id : ""),
+    [product.stocktype, product.id],
+  );
+
+  const hasVariantStock = !!product.Stock?.length;
+
+  const handleLowStockClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (hasVariantStock) {
+        // Open inline stock variant editor (same as Card)
+        setopenmodal((prev) => ({ ...prev, [closename]: true }));
+      } else {
+        // No variant stock — open variant editor so user can manage variants/stock
+        setproduct((prev) => ({ ...prev, ...product, id: product.id }));
+        setglobalindex((prev) => ({
+          ...prev,
+          producteditindex: product.id ?? -1,
+        }));
+        setopenmodal((prev) => ({ ...prev, addproductvariant: true }));
+      }
+    },
+    [hasVariantStock, closename, product, setopenmodal, setproduct, setglobalindex],
+  );
 
   const isProduct = useMemo(
     () => promotion.Products.find((i) => i.id === product.id),
@@ -225,7 +256,7 @@ export const ProductListItem: React.FC<ProductListItemProps> = ({
                 : "Discount Applied"}
             </span>
           )}
-          {product.stock && (
+          {product.stock !== undefined && (
             <span
               className={`px-2 py-1 rounded-full text-xs font-bold ${
                 !product.lowstock
@@ -235,6 +266,16 @@ export const ProductListItem: React.FC<ProductListItemProps> = ({
             >
               Stock: {product.stock}
             </span>
+          )}
+          {product.lowstock && !promotion.selectproduct && (
+            <button
+              type="button"
+              onClick={handleLowStockClick}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-orange-100 hover:bg-orange-200 text-orange-700 rounded-full text-xs font-bold transition-colors active:scale-95"
+            >
+              <FontAwesomeIcon icon={faTriangleExclamation} className="text-[10px]" />
+              Low Stock
+            </button>
           )}
         </div>
       </div>
@@ -248,12 +289,26 @@ export const ProductListItem: React.FC<ProductListItemProps> = ({
             stock={product.stock}
             stocktype={product.stocktype}
             stockaction={() => {
-              setopenmodal((prev) => ({ ...prev, updatestock: true }));
+              setopenmodal((prev) => ({ ...prev, [closename]: true }));
             }}
             reloaddata={reloaddata}
           />
         </div>
       )}
+
+      {/* Inline stock/variant modals — mirrors Card component behaviour */}
+      {openmodal?.[closename] &&
+      product.stocktype === StockTypeEnum.variants ? (
+        <Variantcontainer
+          type="stock"
+          editindex={product.id}
+          closename={closename}
+        />
+      ) : openmodal?.[closename] &&
+        product.stocktype === StockTypeEnum.normal &&
+        product.id ? (
+        <UpdateStockModal closename={closename} productId={product.id} />
+      ) : null}
     </motion.div>
   );
 };

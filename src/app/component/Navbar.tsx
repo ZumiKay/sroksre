@@ -105,6 +105,15 @@ export default function Navbar({
     endpoint: "/api/order/cart?count=1",
   });
 
+  // Poll for new admin notifications every 30 seconds
+  useDataRefresh({
+    onRefresh: (data: { id: number; checked: boolean }[]) =>
+      setchecknotify(data?.length ?? 0),
+    enabled: !!session && session.role === "ADMIN",
+    endpoint: "/api/users/notification?ty=check",
+    interval: 30000,
+  });
+
   // Expose getCartTotal for external components via context
   useEffect(() => {
     if (session && session.role !== "ADMIN") {

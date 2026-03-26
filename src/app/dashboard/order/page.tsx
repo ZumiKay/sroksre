@@ -3,6 +3,8 @@ import {
   DownloadButton,
   FilterButton,
   OrderDetailType,
+  OrderBulkSelectProvider,
+  RowCheckbox,
   PaginationSSR,
 } from "./OrderComponent";
 import { MultipleSelect } from "../../component/Button";
@@ -58,10 +60,10 @@ interface SearchParams {
 
 interface OrderStats {
   total: number;
-  pending: number;
-  processing: number;
-  completed: number;
-  cancelled: number;
+  unpaid: number;
+  preparing: number;
+  shipped: number;
+  arrived: number;
   totalRevenue: number;
 }
 
@@ -124,10 +126,10 @@ export default async function OrderManagement({
 
   try {
     const [ordersResult, filterResult] = await Promise.all([
-      GetOrder(undefined, undefined, page, limit, getuser.user.buyer_id),
+      GetOrder(undefined, undefined, page, limit, userId),
       isFilter || selectedStatus
         ? getFilterOrder({
-            status: selectedStatus ?? [""],
+            status: selectedStatus,
             page,
             limit,
             search: q ? removeSpaceAndToLowerCase(q.toString()) : undefined,
@@ -140,7 +142,11 @@ export default async function OrderManagement({
         : Promise.resolve({ data: [], total: 0 }),
     ]);
 
-    const orders = ordersResult?.data as AllorderStatus[] | undefined;
+    const orders = (
+      isFilter || selectedStatus
+        ? (filterResult as { data?: AllorderStatus[] }).data
+        : (ordersResult?.data as AllorderStatus[])
+    ) ?? undefined;
 
     const totalOrders =
       isFilter || selectedStatus
@@ -159,11 +165,16 @@ export default async function OrderManagement({
           isFilter={isFilter}
           filterData={{ todate, fromdate, q, startprice, endprice }}
         />
-        <OrdersTable
-          orders={orders}
+        <OrderBulkSelectProvider
+          orderIds={(orders ?? []).map((o) => o.id)}
           isAdmin={getuser.user.role === Role.ADMIN}
-          searchParams={resolvedSearchParams}
-        />
+        >
+          <OrdersTable
+            orders={orders}
+            isAdmin={getuser.user.role === Role.ADMIN}
+            searchParams={resolvedSearchParams}
+          />
+        </OrderBulkSelectProvider>
         {orders && orders.length > 0 && totalPages > 1 && (
           <PaginationSection page={page} show={show} totalPages={totalPages} />
         )}
@@ -199,13 +210,11 @@ function calculateOrderStats(
 ): OrderStats {
   return {
     total: totalOrders,
-    pending: orders.filter((o) => o.status?.toLowerCase() === "pending").length,
-    processing: orders.filter((o) => o.status?.toLowerCase() === "processing")
+    unpaid: orders.filter((o) => o.status?.toLowerCase() === "unpaid").length,
+    preparing: orders.filter((o) => o.status?.toLowerCase() === "preparing")
       .length,
-    completed: orders.filter((o) => o.status?.toLowerCase() === "completed")
-      .length,
-    cancelled: orders.filter((o) => o.status?.toLowerCase() === "cancelled")
-      .length,
+    shipped: orders.filter((o) => o.status?.toLowerCase() === "shipped").length,
+    arrived: orders.filter((o) => o.status?.toLowerCase() === "arrived").length,
     totalRevenue: orders.reduce(
       (sum, o) => sum + ((o.price as totalpricetype)?.total ?? 0),
       0,
@@ -219,42 +228,37 @@ function OrderHeader({ stats }: { stats: OrderStats }) {
     {
       icon: faShoppingCart,
       gradient: "from-blue-500 to-purple-600",
-      bgLight: "bg-blue-50",
       textColor: "text-blue-600",
       label: "Total Orders",
       value: stats.total.toString(),
     },
     {
       icon: faClock,
-      gradient: "from-amber-500 to-orange-500",
-      bgLight: "bg-amber-50",
-      textColor: "text-amber-600",
-      label: "Pending",
-      value: stats.pending.toString(),
+      gradient: "from-red-500 to-rose-600",
+      textColor: "text-red-600",
+      label: "Unpaid",
+      value: stats.unpaid.toString(),
     },
     {
       icon: faSpinner,
       gradient: "from-indigo-500 to-blue-600",
-      bgLight: "bg-indigo-50",
       textColor: "text-indigo-600",
-      label: "Processing",
-      value: stats.processing.toString(),
+      label: "Preparing",
+      value: stats.preparing.toString(),
+    },
+    {
+      icon: faTruck,
+      gradient: "from-amber-500 to-orange-500",
+      textColor: "text-amber-600",
+      label: "Shipped",
+      value: stats.shipped.toString(),
     },
     {
       icon: faCheckCircle,
       gradient: "from-emerald-500 to-green-600",
-      bgLight: "bg-emerald-50",
       textColor: "text-emerald-600",
-      label: "Completed",
-      value: stats.completed.toString(),
-    },
-    {
-      icon: faDollarSign,
-      gradient: "from-teal-500 to-cyan-600",
-      bgLight: "bg-teal-50",
-      textColor: "text-teal-600",
-      label: "Revenue (page)",
-      value: `$${stats.totalRevenue.toFixed(2)}`,
+      label: "Arrived",
+      value: stats.arrived.toString(),
     },
   ];
 
@@ -375,7 +379,7 @@ function OrdersTable({
   isAdmin: boolean;
   searchParams?: SearchParams;
 }) {
-  const colSpan = isAdmin ? 8 : 7;
+  const colSpan = isAdmin ? 9 : 7;
 
   return (
     <div className="bg-white rounded-2xl shadow-xs border border-gray-100 overflow-hidden">
@@ -384,6 +388,7 @@ function OrdersTable({
           <table width="100%" className="ordertable">
             <thead>
               <tr className="bg-linear-to-r from-gray-900 to-gray-700 text-white h-12">
+                {isAdmin && <th className="pl-6 pr-1 w-10" />}
                 <th className="text-left pl-6 pr-3 font-semibold text-xs uppercase tracking-wider">
                   Order ID
                 </th>
@@ -603,6 +608,12 @@ export async function DataRow({
 
   return (
     <tr className="hover:bg-gray-50/70 transition-colors group">
+      {/* Bulk select checkbox — admin only */}
+      {isAdmin && (
+        <td className="pl-6 pr-1 py-4">
+          <RowCheckbox id={data.id} />
+        </td>
+      )}
       {/* Order ID + date */}
       <td className="pl-6 pr-3 py-4">
         <div className="flex flex-col">

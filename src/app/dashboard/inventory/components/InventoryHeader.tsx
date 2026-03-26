@@ -184,8 +184,8 @@ export const InventoryHeader: React.FC<InventoryHeaderProps> = ({
 
       <ActionButton
         icon={faFilter}
-        label={hasActiveFilters ? "Clear" : "Filter"}
-        gradient="from-cyan-500 to-blue-600"
+        label="Filter"
+        gradient={hasActiveFilters ? "from-blue-600 to-indigo-700" : "from-cyan-500 to-blue-600"}
         onClick={onFilterClick}
       />
 

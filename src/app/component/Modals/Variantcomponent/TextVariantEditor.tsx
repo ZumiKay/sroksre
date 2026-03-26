@@ -172,6 +172,7 @@ export const TextVariantEditor: React.FC<TextVariantEditorProps> = React.memo(
                 <OptionItem
                   key={`${idx}-${typeof i === "string" ? i : i.val}`}
                   item={typeof i === "string" ? i : i.val}
+                  qty={typeof i === "string" ? undefined : i.qty}
                   idx={idx}
                   onDelete={variantManager.deleteValue}
                   onSelect={onTextSelect}
@@ -185,19 +186,23 @@ export const TextVariantEditor: React.FC<TextVariantEditorProps> = React.memo(
   },
 );
 
+const LOW_STOCK_THRESHOLD = 5;
+
 // Memoized option item component
 const OptionItem = React.memo<{
   item: any;
+  qty?: number;
   idx: number;
   onDelete: (idx: number) => void;
   onSelect: (idx: number, type: "text") => void;
-}>(({ item, idx, onDelete, onSelect }) => {
+}>(({ item, qty, idx, onDelete, onSelect }) => {
   const handleDelete = useCallback(() => onDelete(idx), [idx, onDelete]);
   const handleSelect = useCallback(
     () => onSelect(idx, "text"),
     [idx, onSelect],
   );
   const displayValue = useMemo(() => item.toString(), [item]);
+  const isLowStock = qty !== undefined && qty <= LOW_STOCK_THRESHOLD;
 
   return (
     <motion.div
@@ -213,9 +218,25 @@ const OptionItem = React.memo<{
       >
         <div
           onClick={handleSelect}
-          className="option text-sm cursor-pointer px-4 py-2.5 rounded-lg bg-linear-to-r from-blue-50 to-purple-50 border-2 border-blue-200 text-gray-700 font-medium transition-all duration-200 hover:shadow-md hover:border-blue-400 active:scale-95 w-fit h-fit"
+          className={`relative option text-sm cursor-pointer px-4 py-2.5 rounded-lg border-2 font-medium transition-all duration-200 hover:shadow-md active:scale-95 w-fit h-fit flex items-center gap-1.5 ${
+            isLowStock
+              ? "bg-orange-50 border-orange-300 text-orange-800 hover:border-orange-400"
+              : "bg-linear-to-r from-blue-50 to-purple-50 border-blue-200 text-gray-700 hover:border-blue-400"
+          }`}
         >
-          {displayValue}
+          <span>{displayValue}</span>
+          {qty !== undefined && (
+            <span
+              className={`text-xs font-semibold ${isLowStock ? "text-orange-500" : "text-gray-400"}`}
+            >
+              ×{qty}
+            </span>
+          )}
+          {isLowStock && (
+            <span className="absolute -top-2 -right-1 text-[10px] font-bold bg-orange-500 text-white px-1 rounded-full leading-4">
+              Low
+            </span>
+          )}
         </div>
       </Badge>
     </motion.div>

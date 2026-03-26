@@ -83,17 +83,39 @@ export const handleUpdateProductVariant = async (
     const buildVariantData = (
       val: Varianttype,
       pId?: number,
-      filterUsedValues = false,
+      preserveUsedValues = false,
     ) => {
       let optionValue = val.option_value;
 
-      // Filter out option_values that are in stockvalue variant_val
-      if (filterUsedValues && usedVariantValues.size > 0) {
-        optionValue = val.option_value.filter((v) => {
-          const valStr =
-            typeof v === "string" ? v : (v as VariantValueObjType).val;
-          return !usedVariantValues.has(valStr);
-        });
+      // When preserveUsedValues is true, ensure options used in stock entries
+      // are kept even if they were removed from the incoming update.
+      // This prevents orphaned stock entries while still allowing property
+      // updates (e.g. qty) on existing options.
+      if (preserveUsedValues && usedVariantValues.size > 0) {
+        const incomingVals = new Set(
+          val.option_value.map((v) =>
+            typeof v === "string" ? v : (v as VariantValueObjType).val,
+          ),
+        );
+        // Add back used options that were removed from the incoming data
+        const existingOpt = existingVariantsMap.get(
+          val.id as number,
+        );
+        if (existingOpt) {
+          (existingOpt.option_value as (string | VariantValueObjType)[]).forEach(
+            (existing) => {
+              const existVal =
+                typeof existing === "string" ? existing : existing.val;
+              if (
+                usedVariantValues.has(existVal) &&
+                !incomingVals.has(existVal)
+              ) {
+                // Preserve the existing option so stock entries remain valid
+                optionValue = [...optionValue, existing];
+              }
+            },
+          );
+        }
       }
 
       const data: Varianttype = {

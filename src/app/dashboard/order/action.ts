@@ -166,6 +166,7 @@ export const getFilterOrder = async ({
           id: true,
           price: true,
           status: true,
+          shippingtype: true,
           user: {
             select: {
               firstname: true,
@@ -238,10 +239,12 @@ export const updateOrderStatus = async (
       return { success: false, message: "Order not found" };
     }
 
-    // Prepare and send the email notification
-    const emailTemplate = OrderReciptEmail(email);
-    const subject = `Order #${id} receipt has been updated to ${status}`;
-    await SendOrderEmail(emailTemplate, updatedOrder.user.email, subject);
+    // Send email notification unless the order is being abandoned
+    if (status !== Allstatus.abandoned) {
+      const emailTemplate = OrderReciptEmail(email);
+      const subject = `Your order #${id.slice(0, 8).toUpperCase()} has been updated to ${status}`;
+      await SendOrderEmail(emailTemplate, updatedOrder.user.email, subject);
+    }
 
     return { success: true, message: "Update Successful" };
   } catch (error) {
@@ -356,6 +359,73 @@ export const purgeExpiredUnpaidOrders = async (): Promise<void> => {
     ]);
   } catch (error) {
     console.log("purgeExpiredUnpaidOrders error:", error);
+  }
+};
+
+export const bulkUpdateOrderStatus = async (
+  ids: string[],
+  status: string,
+): Promise<Returntype> => {
+  try {
+    await Prisma.orders.updateMany({
+      where: { id: { in: ids } },
+      data: { status },
+    });
+    revalidatePath("/dashboard/order");
+
+    // Send email notification to each affected user, except for Abandoned status
+    if (status !== Allstatus.abandoned) {
+      const orders = await Prisma.orders.findMany({
+        where: { id: { in: ids } },
+        select: {
+          id: true,
+          user: { select: { email: true, firstname: true } },
+        },
+      });
+
+      await Promise.allSettled(
+        orders.map((order) => {
+          const shortId = order.id.slice(0, 8).toUpperCase();
+          const html = OrderReciptEmail(`
+            <div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:32px 24px">
+              <h2 style="color:#1e293b;font-size:20px;margin-bottom:8px">Order Status Updated</h2>
+              <p style="color:#475569;font-size:15px;margin-bottom:24px">
+                Hi ${order.user.firstname ?? "there"},<br/>
+                Your order <strong>#${shortId}</strong> has been updated to
+                <strong style="color:#4f46e5">${status}</strong>.
+              </p>
+              <a href="${process.env.NEXT_PUBLIC_BASE_URL}/checkout?orderid=${order.id}&step=4"
+                style="display:inline-block;background:#4f46e5;color:#fff;padding:10px 24px;border-radius:8px;text-decoration:none;font-size:14px;font-weight:600">
+                View Order
+              </a>
+              <p style="color:#94a3b8;font-size:12px;margin-top:32px">
+                If you have any questions, contact us at ${process.env.NEXT_PUBLIC_ADMIN_EMAIL}.
+              </p>
+            </div>
+          `);
+          const subject = `Your order #${shortId} has been updated to ${status}`;
+          return SendOrderEmail(html, order.user.email, subject);
+        }),
+      );
+    }
+
+    return { success: true, message: `${ids.length} order(s) updated to ${status}` };
+  } catch (error) {
+    console.log("bulkUpdateOrderStatus", error);
+    return { success: false, message: "Failed to update orders" };
+  }
+};
+
+export const bulkDeleteOrders = async (
+  ids: string[],
+): Promise<Returntype> => {
+  try {
+    await Prisma.orders.deleteMany({ where: { id: { in: ids } } });
+    revalidatePath("/dashboard/order");
+    return { success: true, message: `${ids.length} order(s) deleted` };
+  } catch (error) {
+    console.log("bulkDeleteOrders", error);
+    return { success: false, message: "Failed to delete orders" };
   }
 };
 
