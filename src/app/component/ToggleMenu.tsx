@@ -132,7 +132,7 @@ function ToggleMenu(props: ToggleMenuProps) {
             {props.paragraph
               ? props.paragraph.map((i) => (
                   <motion.div
-                    key={i.id}
+                    key={i.title}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.3 }}

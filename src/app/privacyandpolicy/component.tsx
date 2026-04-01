@@ -455,7 +455,7 @@ export const AddPolicyModal = ({ qa, plc, edit, openstate }: Policydata) => {
                       fullWidth
                       type="text"
                       label={`Sub Title (optional)`}
-                      value={par.title}
+                      value={par.title ?? ""}
                       onChange={({ target }) =>
                         handleParagraphChange(target.value as string, idx)
                       }

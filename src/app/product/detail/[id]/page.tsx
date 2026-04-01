@@ -168,6 +168,7 @@ export default async function ProductDetailPage({
 
             {data?.policy.map((pol) => (
               <ToggleMenu
+                key={pol.id}
                 name={pol.title}
                 isAdmin={false}
                 paragraph={pol.Paragraph}

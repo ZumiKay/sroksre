@@ -77,7 +77,7 @@ export const ParagraphModal = ({
             fullWidth
             type="text"
             label={`Sub Title #${idx + 1}`}
-            value={paragraph ? paragraph.title : par && par.title}
+            value={paragraph ? (paragraph.title ?? "") : (par?.title ?? "")}
             onChange={({ target }) =>
               setparagraph
                 ? setparagraph((prev) => ({ ...prev, title: target.value }))
