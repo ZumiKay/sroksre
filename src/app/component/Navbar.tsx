@@ -44,7 +44,7 @@ import {
   useGlobalContext,
 } from "@/src/context/GlobalContext";
 import { ApiRequest, useScreenSize } from "@/src/context/CustomHook";
-import { errorToast } from "./Loading";
+import { errorToast, infoToast } from "./Loading";
 import { useDataRefresh } from "@/src/hooks/useDataRefresh";
 import { CheckedNotification } from "../severactions/notification_action";
 import { Box, CircularProgress } from "@mui/material";
@@ -122,22 +122,21 @@ export default function Navbar({
     }
   }, [session, refreshCart]);
 
-  // useEffect(() => {
-  //   if (session?.role === "ADMIN") {
-  //     if (!socket) return;
+  useEffect(() => {
+    if (session?.role === "ADMIN") {
+      if (!socket) return;
 
-  //     const handleNotification = (data: NotificationType) => {
-  //       infoToast("New Notification");
-  //       setchecknotify(1);
-  //       // Handle the notification (e.g., update state, show a toast, etc.)
-  //     };
+      const handleNotification = (data: NotificationType) => {
+        infoToast("New Notification");
+        setchecknotify((prev) => (prev ?? 0) + 1);
+      };
 
-  //     socket.on("receiveNotification", handleNotification);
-  //     return () => {
-  //       socket.off("receiveNotification", handleNotification);
-  //     };
-  //   }
-  // }, [socket, session]);
+      socket.on("receiveNotification", handleNotification);
+      return () => {
+        socket.off("receiveNotification", handleNotification);
+      };
+    }
+  }, [socket, session]);
 
   useEffect(() => {
     const handleEventClick = (e: globalThis.MouseEvent) => {
@@ -771,6 +770,7 @@ export const NotificationMenu = forwardRef(
     const [loadmore, setloadmore] = useState(true);
     const router = useRouter();
     const notioffset = 3;
+    const checkedIds = useRef<Set<number>>(new Set());
 
     useEffect(() => {
       const getAllNotification = async () => {
@@ -781,22 +781,16 @@ export const NotificationMenu = forwardRef(
           "GET",
         );
         if (result.success) {
-          if (notification) {
-            setnotifydata([...result.data, ...notification]);
-          }
-
           if (result.data?.length === 0) {
             setloadmore(false);
           }
-
-          if (notifydata) {
-            setnotifydata((prev) => [
-              ...(prev as any),
-              ...(result.data as any),
-            ]);
-          } else {
-            setnotifydata(result.data as any);
-          }
+          setnotifydata((prev) => {
+            const incoming: NotificationType[] = result.data ?? [];
+            if (page === 1) {
+              return notification ? [...incoming, ...notification] : incoming;
+            }
+            return prev ? [...prev, ...incoming] : incoming;
+          });
         }
         setloading(false);
       };
@@ -822,6 +816,11 @@ export const NotificationMenu = forwardRef(
     };
 
     const handleChecked = async (id: number) => {
+      if (checkedIds.current.has(id)) return;
+      checkedIds.current.add(id);
+      setnotifydata((prev) =>
+        prev?.map((n) => (n.id === id ? { ...n, checked: true } : n)),
+      );
       const checkednotify = CheckedNotification.bind(null, id);
       await checkednotify();
       router.refresh();
@@ -836,7 +835,8 @@ export const NotificationMenu = forwardRef(
         { id },
       );
       if (makereq.success) {
-        setnotifydata((prev) => prev?.filter((i) => i.id === id));
+        checkedIds.current.delete(id);
+        setnotifydata((prev) => prev?.filter((i) => i.id !== id));
       } else {
         errorToast(makereq.message as string);
       }

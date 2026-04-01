@@ -39,6 +39,10 @@ import {
 } from "@/prisma/generated/prisma/internal/prismaNamespace";
 import { canPlaceOrder } from "./helper";
 import { getCheckoutdata } from "./fetchaction";
+import {
+  SaveNotification,
+  SaveUserNotification,
+} from "@/src/app/severactions/notification_action";
 import { generateInvoicePdf } from "../api/order/helper";
 import { CHECKOUT_SESSION_LIMIT_MS } from "./constants";
 
@@ -548,6 +552,75 @@ export async function getOrderProduct(
   return { success: true, data: getProduct };
 }
 
+// ─── Out-of-stock check ───────────────────────────────────────────────────────
+
+async function getOutOfStockProducts(productIds: number[]) {
+  if (productIds.length === 0) return [];
+
+  const products = await Prisma.products.findMany({
+    where: { id: { in: productIds } },
+    select: {
+      id: true,
+      name: true,
+      stocktype: true,
+      stock: true,
+      Stock: {
+        select: {
+          Stockvalue: { select: { id: true, qty: true } },
+        },
+      },
+      Variant: {
+        select: { id: true, qty: true, option_value: true },
+      },
+    },
+  });
+
+  const outOfStock: Array<{ id: number; name: string }> = [];
+
+  for (const product of products) {
+    let isOOS = false;
+
+    if (product.stocktype === ProductStockType.stock) {
+      // Normal stock: Products.stock
+      if ((product.stock ?? 0) <= 0) isOOS = true;
+    } else {
+      // Variant stock: Stock → Stockvalue.qty
+      const hasOOSStockvalue = product.Stock.some((s) =>
+        s.Stockvalue.some((sv) => sv.qty <= 0),
+      );
+      if (hasOOSStockvalue) isOOS = true;
+    }
+
+    // Variant with qty field, and option_value items with qty
+    if (!isOOS) {
+      for (const variant of product.Variant) {
+        if (variant.qty !== null && variant.qty !== undefined && variant.qty <= 0) {
+          isOOS = true;
+          break;
+        }
+        const opts = (variant.option_value ?? []) as (
+          | string
+          | VariantValueObjType
+        )[];
+        const hasOOSOption = opts.some(
+          (opt) =>
+            typeof opt !== "string" &&
+            opt.qty !== undefined &&
+            opt.qty <= 0,
+        );
+        if (hasOOSOption) {
+          isOOS = true;
+          break;
+        }
+      }
+    }
+
+    if (isOOS) outOfStock.push({ id: product.id, name: product.name });
+  }
+
+  return outOfStock;
+}
+
 export interface OrderUserType extends Ordertype {
   Orderproduct: Productordertype[];
   createdAt: Date;
@@ -625,6 +698,45 @@ export async function updateStatus(
         createInvoice,
       ),
     ]);
+
+    // ── Order notifications ──────────────────────────────────────────────────
+    const notifPromises: Promise<any>[] = [
+      SaveNotification({
+        type: "order",
+        content: `New order #${order.id} has been placed`,
+        link: `/dashboard/order/${order.id}`,
+        checked: false,
+      }),
+    ];
+    if (order.user?.id) {
+      notifPromises.push(
+        SaveUserNotification(order.user.id, {
+          type: "order",
+          content: `Your order #${order.id} has been confirmed and is being processed`,
+          link: `/account/orders`,
+          checked: false,
+        }),
+      );
+    }
+    await Promise.all(notifPromises);
+
+    // ── Out-of-stock notifications for admin ─────────────────────────────────
+    const productIds = order.Orderproduct.filter((i) => i.productId).map(
+      (i) => i.productId as number,
+    );
+    const oosProducts = await getOutOfStockProducts(productIds);
+    if (oosProducts.length > 0) {
+      await Promise.all(
+        oosProducts.map((p) =>
+          SaveNotification({
+            type: "stock",
+            content: `"${p.name}" is out of stock`,
+            link: `/dashboard/products/${p.id}`,
+            checked: false,
+          }),
+        ),
+      );
+    }
 
     return { success: true, message: "Payment completed" };
   } catch (error) {

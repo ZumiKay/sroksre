@@ -1,6 +1,7 @@
 import Prisma from "@/src/lib/prisma";
 import bcrypt from "bcryptjs";
 import { seedAll } from "./seed/product/seed";
+import { createPromotion } from "./seed/promotion/seed";
 
 async function main() {
   console.log("🌱 Starting database seeding...\n");
@@ -51,6 +52,7 @@ async function main() {
   // Check if we should seed products (optional)
   const shouldSeedProducts =
     process.env.SEED_PRODUCTS === "true" || process.env.SEED_PRODUCTS === "1";
+
   const productCount = parseInt(process.env.SEED_PRODUCT_COUNT || "20");
 
   if (shouldSeedProducts) {
@@ -59,6 +61,29 @@ async function main() {
   } else {
     console.log(
       "ℹ️  Skipping product seeding (set SEED_PRODUCTS=true to enable)",
+    );
+  }
+
+  // ===== PROMOTIONS SEEDING =====
+  // Check if we should seed promotions (optional)
+  const shouldSeedPromotions =
+    process.env.SEED_PROMOTIONS === "true" ||
+    process.env.SEED_PROMOTIONS === "1";
+
+  const promotionCount = parseInt(process.env.SEED_PROMOTION_COUNT || "5");
+  const promotionProductCount = parseInt(
+    process.env.SEED_PROMOTION_PRODUCT_COUNT || "3",
+  );
+
+  if (shouldSeedPromotions) {
+    console.log("🏷️  Seeding Promotions...");
+    await createPromotion({
+      count: promotionCount,
+      productCount: promotionProductCount,
+    });
+  } else {
+    console.log(
+      "ℹ️  Skipping promotion seeding (set SEED_PROMOTIONS=true to enable)",
     );
   }
 

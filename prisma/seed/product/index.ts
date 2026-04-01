@@ -391,10 +391,7 @@ function randomCategoryIndexes() {
   return { catIdx, subIdx };
 }
 
-// ─── Type 2: Variant stock ─────────────────────────────────────────────────────
-
 /**
- * Products with COLOR + SIZE variants and auto-generated stock combinations.
  * No price or qty overrides on the variants themselves.
  */
 export const createVariantStockProduct = ({
@@ -444,11 +441,8 @@ export const createVariantStockProduct = ({
   return products;
 };
 
-// ─── Type 3: Variant stock with price and qty ─────────────────────────────────
-
 /**
- * Same as Type 2 but each variant carries a price add-on and a
- * per-variant quantity cap.
+ * per-variant quantity .
  */
 export const createVariantStockWithPriceQtyProduct = ({
   count = 1,
@@ -501,11 +495,8 @@ export const createVariantStockWithPriceQtyProduct = ({
   return products;
 };
 
-// ─── Type 4: Variant stock with section ───────────────────────────────────────
-
 /**
  * Products where variants are grouped into named VariantSections.
- * Section "Style" holds COLOR; Section "Size" holds TEXT.
  * No price or qty overrides.
  */
 export const createVariantWithSectionProduct = ({
@@ -561,11 +552,8 @@ export const createVariantWithSectionProduct = ({
   return products;
 };
 
-// ─── Type 5: Variant stock with section, price and qty ────────────────────────
-
 /**
- * Same as Type 4 but each variant also carries a price add-on and a
- * per-variant quantity cap.
+ * per-variant quantity.
  */
 export const createVariantWithSectionPriceQtyProduct = ({
   count = 1,

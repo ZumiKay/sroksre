@@ -72,7 +72,12 @@ const rx = (text: string, rightEdge: number, size: number, font: PDFFont) =>
   rightEdge - font.widthOfTextAtSize(text, size);
 
 /** Wrap text into lines no wider than maxWidth (in points). */
-const wrapText = (text: string, maxWidth: number, size: number, font: PDFFont): string[] => {
+const wrapText = (
+  text: string,
+  maxWidth: number,
+  size: number,
+  font: PDFFont,
+): string[] => {
   if (!text) return [""];
   const words = text.split(" ");
   const lines: string[] = [];
@@ -99,7 +104,9 @@ const formatVariantItem = (item: string | VariantValueObjType): string => {
 };
 
 const formatVariantDisplay = (
-  selectedVariant: Array<string | VariantValueObjType> | OrderSelectedVariantType,
+  selectedVariant:
+    | Array<string | VariantValueObjType>
+    | OrderSelectedVariantType,
 ): string => {
   if (!selectedVariant) return "";
   if (Array.isArray(selectedVariant)) {
@@ -144,10 +151,22 @@ export const generateInvoicePdf = async (Order: GenerateInvoicePdf) => {
   // ── 1. Header band ──────────────────────────────────────────────────────────
 
   const HEADER_H = 70;
-  page.drawRectangle({ x: 0, y: PAGE_H - HEADER_H, width: PAGE_W, height: HEADER_H, color: C_DARK });
+  page.drawRectangle({
+    x: 0,
+    y: PAGE_H - HEADER_H,
+    width: PAGE_W,
+    height: HEADER_H,
+    color: C_DARK,
+  });
 
   // Accent stripe at top edge of band
-  page.drawRectangle({ x: 0, y: PAGE_H - 4, width: PAGE_W, height: 4, color: C_ACCENT });
+  page.drawRectangle({
+    x: 0,
+    y: PAGE_H - 4,
+    width: PAGE_W,
+    height: 4,
+    color: C_ACCENT,
+  });
 
   // Logo (left side of band)
   const logoBytes = await getLogo();
@@ -163,7 +182,9 @@ export const generateInvoicePdf = async (Order: GenerateInvoicePdf) => {
         width: scaled.width,
         height: scaled.height,
       });
-    } catch { /* skip broken logo */ }
+    } catch {
+      /* skip broken logo */
+    }
   }
 
   const titleX = ML + logoWidth;
@@ -190,7 +211,13 @@ export const generateInvoicePdf = async (Order: GenerateInvoicePdf) => {
   const infoLineH = 14;
 
   // Left: company contact
-  page.drawText("SrokSre", { x: ML, y, size: 11, font: fontBold, color: C_BLACK });
+  page.drawText("SrokSre", {
+    x: ML,
+    y,
+    size: 11,
+    font: fontBold,
+    color: C_BLACK,
+  });
   y -= infoLineH;
 
   const phone = process.env.NEXT_PUBLIC_ADMIN_PHONENUMBER ?? "-";
@@ -202,7 +229,13 @@ export const generateInvoicePdf = async (Order: GenerateInvoicePdf) => {
     ["Email", email],
     ["Web  ", siteUrl],
   ]) {
-    page.drawText(`${label}:`, { x: ML, y, size: 9, font: fontBold, color: C_GRAY });
+    page.drawText(`${label}:`, {
+      x: ML,
+      y,
+      size: 9,
+      font: fontBold,
+      color: C_GRAY,
+    });
     page.drawText(value, { x: ML + 38, y, size: 9, font, color: C_BLACK });
     y -= infoLineH;
   }
@@ -220,7 +253,13 @@ export const generateInvoicePdf = async (Order: GenerateInvoicePdf) => {
   ];
 
   for (const [label, value] of metaRows) {
-    page.drawText(label, { x: metaX, y: metaY, size: 9, font: fontBold, color: C_GRAY });
+    page.drawText(label, {
+      x: metaX,
+      y: metaY,
+      size: 9,
+      font: fontBold,
+      color: C_GRAY,
+    });
     const valLines = wrapText(value, MR - metaX - metaLabelW - 4, 9, font);
     page.drawText(valLines[0], {
       x: rx(valLines[0], MR, 9, font),
@@ -249,11 +288,35 @@ export const generateInvoicePdf = async (Order: GenerateInvoicePdf) => {
     let addrY = y;
 
     // Section labels
-    page.drawRectangle({ x: addrLeftX, y: addrY - 2, width: 56, height: 14, color: C_DARK });
-    page.drawText("BILL TO", { x: addrLeftX + 4, y: addrY, size: 8, font: fontBold, color: C_WHITE });
+    page.drawRectangle({
+      x: addrLeftX,
+      y: addrY - 2,
+      width: 56,
+      height: 14,
+      color: C_DARK,
+    });
+    page.drawText("BILL TO", {
+      x: addrLeftX + 4,
+      y: addrY,
+      size: 8,
+      font: fontBold,
+      color: C_WHITE,
+    });
 
-    page.drawRectangle({ x: addrRightX, y: addrY - 2, width: 62, height: 14, color: C_DARK });
-    page.drawText("SHIP TO", { x: addrRightX + 4, y: addrY, size: 8, font: fontBold, color: C_WHITE });
+    page.drawRectangle({
+      x: addrRightX,
+      y: addrY - 2,
+      width: 62,
+      height: 14,
+      color: C_DARK,
+    });
+    page.drawText("SHIP TO", {
+      x: addrRightX + 4,
+      y: addrY,
+      size: 8,
+      font: fontBold,
+      color: C_WHITE,
+    });
 
     addrY -= 16;
 
@@ -265,15 +328,33 @@ export const generateInvoicePdf = async (Order: GenerateInvoicePdf) => {
     ];
 
     for (const line of addrLines) {
-      page.drawText(line, { x: addrLeftX, y: addrY, size: 9, font, color: C_BLACK });
-      page.drawText(line, { x: addrRightX, y: addrY, size: 9, font, color: C_BLACK });
+      page.drawText(line, {
+        x: addrLeftX,
+        y: addrY,
+        size: 9,
+        font,
+        color: C_BLACK,
+      });
+      page.drawText(line, {
+        x: addrRightX,
+        y: addrY,
+        size: 9,
+        font,
+        color: C_BLACK,
+      });
       addrY -= 13;
     }
 
     y = addrY - 10;
 
     // Divider below addresses
-    page.drawRectangle({ x: ML, y, width: MR - ML, height: 1, color: C_BORDER });
+    page.drawRectangle({
+      x: ML,
+      y,
+      width: MR - ML,
+      height: 1,
+      color: C_BORDER,
+    });
     y -= 14;
   }
 
@@ -283,15 +364,51 @@ export const generateInvoicePdf = async (Order: GenerateInvoicePdf) => {
 
   const TABLE_ROW_H = 22;
 
-  page.drawRectangle({ x: ML, y: y - TABLE_ROW_H + 6, width: MR - ML, height: TABLE_ROW_H, color: C_DARK });
+  page.drawRectangle({
+    x: ML,
+    y: y - TABLE_ROW_H + 6,
+    width: MR - ML,
+    height: TABLE_ROW_H,
+    color: C_DARK,
+  });
 
   const thY = y - TABLE_ROW_H + 14; // vertical centre of header row
 
-  page.drawText("#",          { x: COL_NUM_X + 2, y: thY, size: 9, font: fontBold, color: C_WHITE });
-  page.drawText("Description",{ x: COL_DESC_X,    y: thY, size: 9, font: fontBold, color: C_WHITE });
-  page.drawText("Unit Price", { x: rx("Unit Price", COL_UNIT_R, 9, fontBold), y: thY, size: 9, font: fontBold, color: C_WHITE });
-  page.drawText("Qty",        { x: rx("Qty", COL_QTY_R, 9, fontBold),         y: thY, size: 9, font: fontBold, color: C_WHITE });
-  page.drawText("Amount",     { x: rx("Amount", COL_AMT_R, 9, fontBold),       y: thY, size: 9, font: fontBold, color: C_WHITE });
+  page.drawText("#", {
+    x: COL_NUM_X + 2,
+    y: thY,
+    size: 9,
+    font: fontBold,
+    color: C_WHITE,
+  });
+  page.drawText("Description", {
+    x: COL_DESC_X,
+    y: thY,
+    size: 9,
+    font: fontBold,
+    color: C_WHITE,
+  });
+  page.drawText("Unit Price", {
+    x: rx("Unit Price", COL_UNIT_R, 9, fontBold),
+    y: thY,
+    size: 9,
+    font: fontBold,
+    color: C_WHITE,
+  });
+  page.drawText("Qty", {
+    x: rx("Qty", COL_QTY_R, 9, fontBold),
+    y: thY,
+    size: 9,
+    font: fontBold,
+    color: C_WHITE,
+  });
+  page.drawText("Amount", {
+    x: rx("Amount", COL_AMT_R, 9, fontBold),
+    y: thY,
+    size: 9,
+    font: fontBold,
+    color: C_WHITE,
+  });
 
   y -= TABLE_ROW_H + 2;
 
@@ -302,25 +419,32 @@ export const generateInvoicePdf = async (Order: GenerateInvoicePdf) => {
     const discount = prod.price.discount;
     const basePrice = prod.price.price;
     const variantExtra = prod.price.extra ?? 0;
-    const unitPrice =
-      discount?.newprice ??
-      (basePrice + variantExtra);
+    const unitPrice = discount?.newprice ?? basePrice + variantExtra;
 
     const nameLines = wrapText(prod.name, COL_UNIT_R - COL_DESC_X - 8, 9, font);
     const variantStr = formatVariantDisplay(prod.selectedVariant);
-    const variantLines = variantStr ? wrapText(variantStr, COL_UNIT_R - COL_DESC_X - 8, 8, font) : [];
+    const variantLines = variantStr
+      ? wrapText(variantStr, COL_UNIT_R - COL_DESC_X - 8, 8, font)
+      : [];
     const discountLine = discount
       ? `Was $${basePrice.toFixed(2)}  –${discount.percent ?? 0}% off`
       : null;
 
-    const lineCount = nameLines.length + variantLines.length + (discountLine ? 1 : 0);
+    const lineCount =
+      nameLines.length + variantLines.length + (discountLine ? 1 : 0);
     const rowH = Math.max(TABLE_ROW_H, lineCount * 12 + 10);
 
     ensureSpace(rowH + 4);
 
     // Alternating row background
     if (rowIndex % 2 === 0) {
-      page.drawRectangle({ x: ML, y: y - rowH + 6, width: MR - ML, height: rowH, color: C_LIGHT_ROW });
+      page.drawRectangle({
+        x: ML,
+        y: y - rowH + 6,
+        width: MR - ML,
+        height: rowH,
+        color: C_LIGHT_ROW,
+      });
     }
 
     // Vertical centre for single-value columns
@@ -328,39 +452,87 @@ export const generateInvoicePdf = async (Order: GenerateInvoicePdf) => {
 
     // # column
     const numStr = (rowIndex + 1).toString();
-    page.drawText(numStr, { x: rx(numStr, COL_NUM_X + 22, 9, font), y: midY, size: 9, font, color: C_GRAY });
+    page.drawText(numStr, {
+      x: rx(numStr, COL_NUM_X + 22, 9, font),
+      y: midY,
+      size: 9,
+      font,
+      color: C_GRAY,
+    });
 
     // Description: name lines
     let descY = y - 10;
     for (const line of nameLines) {
-      page.drawText(line, { x: COL_DESC_X, y: descY, size: 9, font, color: C_BLACK });
+      page.drawText(line, {
+        x: COL_DESC_X,
+        y: descY,
+        size: 9,
+        font,
+        color: C_BLACK,
+      });
       descY -= 12;
     }
     // Variant lines (smaller, gray)
     for (const line of variantLines) {
-      page.drawText(line, { x: COL_DESC_X + 4, y: descY, size: 8, font, color: C_GRAY });
+      page.drawText(line, {
+        x: COL_DESC_X + 4,
+        y: descY,
+        size: 8,
+        font,
+        color: C_GRAY,
+      });
       descY -= 11;
     }
     // Discount line (red, smaller)
     if (discountLine) {
-      page.drawText(discountLine, { x: COL_DESC_X + 4, y: descY, size: 7.5, font, color: C_RED });
+      page.drawText(discountLine, {
+        x: COL_DESC_X + 4,
+        y: descY,
+        size: 7.5,
+        font,
+        color: C_RED,
+      });
     }
 
     // Unit Price (right-aligned)
     const unitStr = `$${unitPrice.toFixed(2)}`;
-    page.drawText(unitStr, { x: rx(unitStr, COL_UNIT_R, 9, font), y: midY, size: 9, font, color: C_BLACK });
+    page.drawText(unitStr, {
+      x: rx(unitStr, COL_UNIT_R, 9, font),
+      y: midY,
+      size: 9,
+      font,
+      color: C_BLACK,
+    });
 
     // Qty (right-aligned)
     const qtyStr = prod.quantity.toString();
-    page.drawText(qtyStr, { x: rx(qtyStr, COL_QTY_R, 9, font), y: midY, size: 9, font, color: C_BLACK });
+    page.drawText(qtyStr, {
+      x: rx(qtyStr, COL_QTY_R, 9, font),
+      y: midY,
+      size: 9,
+      font,
+      color: C_BLACK,
+    });
 
     // Amount (right-aligned, bold)
     const amtStr = `$${prod.totalprice.toFixed(2)}`;
-    page.drawText(amtStr, { x: rx(amtStr, COL_AMT_R, 9, fontBold), y: midY, size: 9, font: fontBold, color: C_BLACK });
+    page.drawText(amtStr, {
+      x: rx(amtStr, COL_AMT_R, 9, fontBold),
+      y: midY,
+      size: 9,
+      font: fontBold,
+      color: C_BLACK,
+    });
 
     // Bottom border for row
     y -= rowH;
-    page.drawRectangle({ x: ML, y, width: MR - ML, height: 0.5, color: C_BORDER });
+    page.drawRectangle({
+      x: ML,
+      y,
+      width: MR - ML,
+      height: 0.5,
+      color: C_BORDER,
+    });
     y -= 2;
 
     rowIndex++;
@@ -375,7 +547,12 @@ export const generateInvoicePdf = async (Order: GenerateInvoicePdf) => {
   y -= 10;
   ensureSpace(120);
 
-  const drawTotalRow = (label: string, value: string, bold = false, color = C_BLACK) => {
+  const drawTotalRow = (
+    label: string,
+    value: string,
+    bold = false,
+    color = C_BLACK,
+  ) => {
     page.drawText(label, {
       x: TOTALS_LABEL_X,
       y,
@@ -396,7 +573,12 @@ export const generateInvoicePdf = async (Order: GenerateInvoicePdf) => {
   drawTotalRow("Subtotal", `$${Order.price.subtotal.toFixed(2)}`);
 
   if (Order.price.extra && Order.price.extra > 0) {
-    drawTotalRow("Variant Options", `+$${Order.price.extra.toFixed(2)}`, false, C_GREEN);
+    drawTotalRow(
+      "Variant Options",
+      `+$${Order.price.extra.toFixed(2)}`,
+      false,
+      C_GREEN,
+    );
   }
 
   const shippingAmt = Order.price.shipping ?? 0;
@@ -413,11 +595,23 @@ export const generateInvoicePdf = async (Order: GenerateInvoicePdf) => {
 
   // Divider above total
   y -= 4;
-  page.drawRectangle({ x: TOTALS_LABEL_X - 4, y, width: MR - TOTALS_LABEL_X + 4, height: 1, color: C_BORDER });
+  page.drawRectangle({
+    x: TOTALS_LABEL_X - 4,
+    y,
+    width: MR - TOTALS_LABEL_X + 4,
+    height: 1,
+    color: C_BORDER,
+  });
   y -= 6;
 
   // Total row — highlighted background
-  page.drawRectangle({ x: TOTALS_LABEL_X - 8, y: y - 4, width: MR - TOTALS_LABEL_X + 8 + 4, height: 20, color: C_DARK });
+  page.drawRectangle({
+    x: TOTALS_LABEL_X - 8,
+    y: y - 4,
+    width: MR - TOTALS_LABEL_X + 8 + 4,
+    height: 20,
+    color: C_DARK,
+  });
   page.drawText("TOTAL", {
     x: TOTALS_LABEL_X,
     y: y + 2,
@@ -451,7 +645,13 @@ export const generateInvoicePdf = async (Order: GenerateInvoicePdf) => {
 
   // Footer is always drawn at a fixed position near the bottom of the LAST page
   const footerY = 80;
-  page.drawRectangle({ x: ML, y: footerY + 18, width: MR - ML, height: 0.75, color: C_BORDER });
+  page.drawRectangle({
+    x: ML,
+    y: footerY + 18,
+    width: MR - ML,
+    height: 0.75,
+    color: C_BORDER,
+  });
 
   const footerLines = [
     "Returns & Cancellations: You may cancel or return your order within 30 days of receipt.",

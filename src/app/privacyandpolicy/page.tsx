@@ -72,7 +72,7 @@ export default async function PrivacyandPolicy({
   const ShowTitle = () => {
     const title =
       pageId === 0
-        ? "FAQs (Frequent Ask Question)"
+        ? "FAQs"
         : policy
           ? "title" in policy
             ? policy.title
@@ -80,14 +80,26 @@ export default async function PrivacyandPolicy({
           : undefined;
 
     return (
-      <h3 className="font-bold text-5xl w-[95%] max-small_phone:w-[90%] wrap-break-word">
-        {title}
-      </h3>
+      <div className="flex flex-col gap-y-1">
+        {pageId === 0 && (
+          <span className="text-sm font-semibold uppercase tracking-widest text-sky-600">
+            Support
+          </span>
+        )}
+        <h3 className="font-bold text-4xl text-gray-900 wrap-break-word">
+          {title}
+        </h3>
+        {pageId === 0 && (
+          <p className="text-gray-500 text-base mt-1">
+            Answers to the most common questions from our customers.
+          </p>
+        )}
+      </div>
     );
   };
 
   return (
-    <div className="w-full min-h-screen">
+    <div className="w-full min-h-screen bg-gray-50">
       <SidePolicyBar
         isAdmin={user?.user.role === Role.ADMIN}
         data={[
@@ -95,37 +107,61 @@ export default async function PrivacyandPolicy({
           ...allpolicy.map((i) => ({ id: i.id, content: i.title })),
         ]}
       />
-      <div className="w-full content max-smallest_screen:pl-[5%] pl-[25%] pr-[10%] pt-5">
+      <div className="w-full content max-smallest_screen:pl-[5%] pl-[25%] pr-[10%] pt-10 pb-16">
         {!params?.p ? (
-          <>
-            <h2 className="text-5xl font-bold w-full">
-              Policies and More Informations
+          <div className="w-full flex flex-col gap-y-4 py-8">
+            <span className="text-sm font-semibold uppercase tracking-widest text-sky-600">
+              Legal & Help
+            </span>
+            <h2 className="text-4xl font-bold text-gray-900">
+              Policies & Information
             </h2>
-          </>
+            <p className="text-gray-500 text-lg max-w-xl leading-relaxed">
+              Everything you need to know about how we operate — from shipping
+              and returns to frequently asked questions.
+            </p>
+            <div className="mt-4 grid grid-cols-1 gap-4 max-w-2xl">
+              {allpolicy.map((p) => (
+                <div
+                  key={p.id}
+                  className="p-4 bg-white rounded-xl border border-gray-200 shadow-sm"
+                >
+                  <p className="font-semibold text-gray-800">{p.title}</p>
+                </div>
+              ))}
+              <div className="p-4 bg-white rounded-xl border border-gray-200 shadow-sm">
+                <p className="font-semibold text-gray-800">
+                  FAQs — Frequently Asked Questions
+                </p>
+              </div>
+            </div>
+          </div>
         ) : (
-          <>
-            <div className="w-full h-fit flex flex-col items-start gap-y-5 mb-10">
+          <div className="w-full flex flex-col gap-y-8">
+            <div className="w-full flex flex-col gap-y-4">
               <ShowTitle />
               {pageId !== 0 && user && user.role === "ADMIN" && (
                 <div className="w-full overflow-x-auto">
-                  <div className="w-full min-w-[280px] h-[40px] flex flex-row gap-6 items-center justify-start">
+                  <div className="w-fit min-w-[280px] flex flex-row gap-3 items-center px-4 py-2.5 bg-white rounded-xl border border-gray-200 shadow-sm">
                     <PolicyButton
                       title="Edit"
                       ty="edit"
                       color="#4688A0"
                       policydata={policy as Addpolicytype}
                     />
+                    <div className="w-px h-5 bg-gray-200" />
                     <PolicyButton
-                      title="Show"
+                      title="Visibility"
                       ty="showtype"
-                      color="black"
+                      color="#6b7280"
                       showtype={(policy as Addpolicytype).showtype}
                       pid={pageId}
                     />
+                    <div className="w-px h-5 bg-gray-200" />
                     <PolicyButton
                       title="Delete"
                       ty="delete"
-                      color="lightcoral"
+                      color="#ef4444"
                       pid={pageId}
                     />
                   </div>
@@ -146,7 +182,7 @@ export default async function PrivacyandPolicy({
                 />
               )}
             </Suspense>
-          </>
+          </div>
         )}
       </div>
     </div>
@@ -161,15 +197,17 @@ interface Policycontent {
 
 const PolicyContent = ({ paragrah, question, isAdmin }: Policycontent) => {
   return (
-    <div className="w-full h-fit flex flex-col gap-y-5">
+    <div className="w-full h-fit flex flex-col gap-y-4">
       {paragrah ? (
         paragrah.Paragraph.map((i) => (
-          <div className="w-full h-fit flex flex-col gap-5">
-            {i.title && <h3 className="text-xl font-bold">{i.title}</h3>}
-            <p
-              key={i.id}
-              className="w-full font-normal text-lg h-fit wrap-break-word"
-            >
+          <div
+            key={i.id}
+            className="w-full bg-white rounded-xl border border-gray-200 shadow-sm p-6 flex flex-col gap-3"
+          >
+            {i.title && (
+              <h3 className="text-lg font-semibold text-gray-800">{i.title}</h3>
+            )}
+            <p className="text-gray-600 text-base leading-relaxed wrap-break-word">
               {i.content}
             </p>
           </div>
@@ -177,17 +215,26 @@ const PolicyContent = ({ paragrah, question, isAdmin }: Policycontent) => {
       ) : (
         <>
           {!question?.length && (
-            <h3 className="font-bold text-lg text-red-500">No question</h3>
+            <div className="w-full py-12 flex flex-col items-center gap-2 text-center">
+              <p className="text-gray-400 font-medium">No questions yet</p>
+              <p className="text-gray-300 text-sm">
+                {isAdmin
+                  ? 'Add FAQs using the "Add New" button in the sidebar.'
+                  : "Check back later for answers to common questions."}
+              </p>
+            </div>
           )}
-          {question?.map((q, idx) => (
-            <QuestionCard
-              key={idx}
-              isAdmin={isAdmin}
-              isEdit={true}
-              idx={idx}
-              data={q}
-            />
-          ))}
+          <div className="w-full flex flex-col divide-y divide-gray-200 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+            {question?.map((q, idx) => (
+              <QuestionCard
+                key={idx}
+                isAdmin={isAdmin}
+                isEdit={true}
+                idx={idx}
+                data={q}
+              />
+            ))}
+          </div>
         </>
       )}
     </div>

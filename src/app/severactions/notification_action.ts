@@ -30,6 +30,26 @@ export const SaveNotification = async (
   }
 };
 
+export const SaveUserNotification = async (
+  userId: number,
+  data: NotificationType,
+): Promise<ActionReturnType> => {
+  try {
+    await Prisma.notification.create({
+      data: {
+        type: data.type,
+        content: data.content,
+        userid: userId,
+        link: data.link,
+      },
+    });
+    return { success: true };
+  } catch (error) {
+    console.log("Notify", error);
+    return { success: false, message: "Error Occured" };
+  }
+};
+
 export const CheckedNotification = async (
   id: number,
 ): Promise<ActionReturnType> => {
