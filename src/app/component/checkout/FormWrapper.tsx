@@ -3,7 +3,7 @@
 import { JSX, ReactNode, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { SubmitEvent } from "react";
-import { handleShippingAdddress } from "@/src/app/checkout/action";
+import { handleShippingAddress } from "@/src/app/checkout/action";
 import { errorToast, LoadingText } from "../Loading";
 import { shippingtype } from "../Modals/User";
 import useCheckSession from "@/src/hooks/useCheckSession";
@@ -59,7 +59,7 @@ export const FormWrapper = ({
       );
 
       if (selectedIndex !== -1) {
-        const request = await handleShippingAdddress.bind(
+        const request = await handleShippingAddress.bind(
           null,
           order_id,
           selectedIndex,
@@ -83,7 +83,7 @@ export const FormWrapper = ({
         }
 
         const modifiedData = Object.fromEntries(entries);
-        const request = await handleShippingAdddress.bind(
+        const request = await handleShippingAddress.bind(
           null,
           order_id,
           undefined,

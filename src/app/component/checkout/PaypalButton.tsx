@@ -10,8 +10,8 @@ import {
 } from "@paypal/react-paypal-js";
 import { Allstatus, Ordertype } from "@/src/types/order.type";
 import {
-  CaptureOrder,
-  Createpaypalorder,
+  captureOrder,
+  createPaypalOrder,
   updateStatus,
 } from "@/src/app/checkout/action";
 import { ApiRequest } from "@/src/context/CustomHook";
@@ -126,7 +126,7 @@ export function Paypalbutton({
     const isValid = await handleCheckSession();
     if (!isValid) throw new Error("Session validation failed");
 
-    const request = await Createpaypalorder.bind(null, orderId)();
+    const request = await createPaypalOrder.bind(null, orderId)();
     if (!request.success) {
       const msg = request.message ?? "Server error";
       errorToast(msg);
@@ -147,7 +147,7 @@ export function Paypalbutton({
 
   const handleApprove = async (data: any, actions: any) => {
     try {
-      const request = await CaptureOrder.bind(null, data.orderID)();
+      const request = await captureOrder.bind(null, data.orderID)();
       if (!request.success) {
         errorToast(request.message ?? "Server error");
         return;

@@ -10,6 +10,7 @@ jest.mock("@/src/lib/prisma", () => ({
   default: {
     products: {
       updateMany: jest.fn(),
+      findMany: jest.fn().mockResolvedValue([]),
     },
     stockvalue: {
       updateMany: jest.fn(),
@@ -23,7 +24,7 @@ jest.mock("@/src/lib/prisma", () => ({
   },
 }));
 
-jest.mock("@/src/app/checkout/page", () => ({
+jest.mock("@/src/app/checkout/fetchaction", () => ({
   getCheckoutdata: jest.fn(),
 }));
 
@@ -31,7 +32,7 @@ jest.mock("@/src/app/checkout/helper", () => ({
   canPlaceOrder: jest.fn(),
 }));
 
-jest.mock("@/src/app/api/order/route", () => ({
+jest.mock("@/src/app/api/order/helper", () => ({
   generateInvoicePdf: jest.fn(),
 }));
 
@@ -44,6 +45,19 @@ jest.mock("nodemailer", () => ({
   createTransport: jest.fn(() => ({
     sendMail: jest.fn().mockResolvedValue(true),
   })),
+}));
+
+jest.mock("@/src/app/severactions/notification_action", () => ({
+  SaveNotification: jest.fn().mockResolvedValue(undefined),
+  SaveUserNotification: jest.fn().mockResolvedValue(undefined),
+}));
+
+jest.mock("@/src/app/component/EmailTemplate", () => ({
+  formatDate: jest.fn(() => "2024-01-01"),
+}));
+
+jest.mock("next/cache", () => ({
+  revalidatePath: jest.fn(),
 }));
 
 // Import types first
@@ -60,7 +74,7 @@ import { getCheckoutdata } from "@/src/app/checkout/fetchaction";
 import { generateInvoicePdf } from "@/src/app/api/order/helper";
 const mockSendOrderEmail = jest.spyOn(checkoutActions, "SendOrderEmail");
 
-describe.skip("updateStatus", () => {
+describe("updateStatus", () => {
   const mockOrderId = "SSC123456";
   const mockHtml = "<html>User Receipt</html>";
   const mockAdminHtml = "<html>Admin Order</html>";
@@ -69,20 +83,23 @@ describe.skip("updateStatus", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     (generateInvoicePdf as jest.Mock).mockResolvedValue(mockInvoicePdf);
+    (Prisma.products.findMany as jest.Mock).mockResolvedValue([]);
     mockSendOrderEmail.mockResolvedValue(undefined);
   });
 
   describe("Success scenarios", () => {
-    it("should successfully update order status for products with stock type", async () => {
+    it("should successfully update order status and increment amount_sold", async () => {
       const mockOrder = {
         id: mockOrderId,
         user: {
+          id: 1,
           email: "user@example.com",
         },
         price: {
           price: 100,
           shipping: 10,
           total: 110,
+          subtotal: 100,
         },
         shipping: {
           id: 1,
@@ -113,13 +130,9 @@ describe.skip("updateStatus", () => {
 
       (getCheckoutdata as jest.Mock).mockResolvedValue(mockOrder);
       (canPlaceOrder as jest.Mock).mockReturnValue(true);
-      (Prisma.products.updateMany as jest.Mock).mockResolvedValue({
-        count: 1,
-      });
+      (Prisma.products.updateMany as jest.Mock).mockResolvedValue({ count: 1 });
       (Prisma.orders.update as jest.Mock).mockResolvedValue({});
-      (Prisma.orderproduct.updateMany as jest.Mock).mockResolvedValue({
-        count: 1,
-      });
+      (Prisma.orderproduct.updateMany as jest.Mock).mockResolvedValue({ count: 1 });
 
       const result = await checkoutActions.updateStatus(
         mockOrderId,
@@ -130,13 +143,11 @@ describe.skip("updateStatus", () => {
       expect(result.success).toBe(true);
       expect(result.message).toBe("Payment completed");
 
-      // Verify product stock was decremented
+      // Verify amount_sold was incremented (stock decrement is handled at session start)
       expect(Prisma.products.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: expect.objectContaining({
-            AND: [{ id: 1 }, { stock: { not: 0 } }],
-          }),
-          data: { stock: { decrement: 2 } },
+          where: { id: { in: [1] } },
+          data: { amount_sold: { increment: 1 } },
         }),
       );
 
@@ -146,7 +157,7 @@ describe.skip("updateStatus", () => {
         data: { status: Allstatus.paid },
       });
 
-      // Verify emails were sent
+      // Verify emails were sent to user and admin
       expect(mockSendOrderEmail).toHaveBeenCalledTimes(2);
       expect(mockSendOrderEmail).toHaveBeenCalledWith(
         mockHtml,
@@ -160,12 +171,14 @@ describe.skip("updateStatus", () => {
       const mockOrder = {
         id: mockOrderId,
         user: {
+          id: 2,
           email: "user@example.com",
         },
         price: {
           price: 100,
           shipping: 10,
           total: 110,
+          subtotal: 100,
         },
         shipping: {
           id: 1,
@@ -202,14 +215,9 @@ describe.skip("updateStatus", () => {
 
       (getCheckoutdata as jest.Mock).mockResolvedValue(mockOrder);
       (canPlaceOrder as jest.Mock).mockReturnValue(true);
-      (Prisma.stockvalue.updateMany as jest.Mock).mockResolvedValue({
-        count: 2,
-      });
       (Prisma.products.updateMany as jest.Mock).mockResolvedValue({ count: 1 });
       (Prisma.orders.update as jest.Mock).mockResolvedValue({});
-      (Prisma.orderproduct.updateMany as jest.Mock).mockResolvedValue({
-        count: 1,
-      });
+      (Prisma.orderproduct.updateMany as jest.Mock).mockResolvedValue({ count: 1 });
 
       const result = await checkoutActions.updateStatus(
         mockOrderId,
@@ -220,27 +228,27 @@ describe.skip("updateStatus", () => {
       expect(result.success).toBe(true);
       expect(result.message).toBe("Payment completed");
 
-      // Verify stock values were decremented
-      expect(Prisma.stockvalue.updateMany).toHaveBeenCalledWith(
+      // Verify amount_sold was incremented for the variant product
+      expect(Prisma.products.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: expect.objectContaining({
-            AND: [{ id: { in: [10, 11] } }, { qty: { not: 0 } }],
-          }),
-          data: { qty: { decrement: 1 } },
+          where: { id: { in: [2] } },
+          data: { amount_sold: { increment: 1 } },
         }),
       );
     });
 
-    it("should handle products with discount pricing correctly", async () => {
+    it("should generate invoice with discounted price in totalprice", async () => {
       const mockOrder = {
         id: mockOrderId,
         user: {
+          id: 3,
           email: "user@example.com",
         },
         price: {
           price: 80,
           shipping: 10,
           total: 90,
+          subtotal: 80,
         },
         shipping: {
           id: 1,
@@ -275,9 +283,7 @@ describe.skip("updateStatus", () => {
       (canPlaceOrder as jest.Mock).mockReturnValue(true);
       (Prisma.products.updateMany as jest.Mock).mockResolvedValue({ count: 1 });
       (Prisma.orders.update as jest.Mock).mockResolvedValue({});
-      (Prisma.orderproduct.updateMany as jest.Mock).mockResolvedValue({
-        count: 1,
-      });
+      (Prisma.orderproduct.updateMany as jest.Mock).mockResolvedValue({ count: 1 });
 
       const result = await checkoutActions.updateStatus(
         mockOrderId,
@@ -287,12 +293,12 @@ describe.skip("updateStatus", () => {
 
       expect(result.success).toBe(true);
 
-      // Verify invoice includes discounted price
+      // Verify invoice includes discounted price: 2 * 40 = 80
       expect(generateInvoicePdf).toHaveBeenCalledWith(
         expect.objectContaining({
           product: expect.arrayContaining([
             expect.objectContaining({
-              totalprice: 80, // 2 * 40 (discounted price)
+              totalprice: 80,
             }),
           ]),
         }),
@@ -388,6 +394,7 @@ describe.skip("updateStatus", () => {
           price: 100,
           shipping: 10,
           total: 110,
+          subtotal: 100,
         },
         shipping: {
           id: 1,
@@ -439,6 +446,7 @@ describe.skip("updateStatus", () => {
           price: 100,
           shipping: 10,
           total: 110,
+          subtotal: 100,
         },
         shipping: {
           id: 1,
@@ -468,9 +476,7 @@ describe.skip("updateStatus", () => {
       (canPlaceOrder as jest.Mock).mockReturnValue(true);
       (Prisma.products.updateMany as jest.Mock).mockResolvedValue({ count: 1 });
       (Prisma.orders.update as jest.Mock).mockResolvedValue({});
-      (Prisma.orderproduct.updateMany as jest.Mock).mockResolvedValue({
-        count: 1,
-      });
+      (Prisma.orderproduct.updateMany as jest.Mock).mockResolvedValue({ count: 1 });
       mockSendOrderEmail.mockRejectedValue(new Error("Email service error"));
 
       const result = await checkoutActions.updateStatus(
@@ -485,16 +491,18 @@ describe.skip("updateStatus", () => {
   });
 
   describe("Edge cases", () => {
-    it("should handle products with null Stock array", async () => {
+    it("should not touch stockvalue when product uses simple stock type", async () => {
       const mockOrder = {
         id: mockOrderId,
         user: {
+          id: 4,
           email: "user@example.com",
         },
         price: {
           price: 50,
           shipping: 10,
           total: 60,
+          subtotal: 50,
         },
         shipping: {
           id: 1,
@@ -524,9 +532,7 @@ describe.skip("updateStatus", () => {
       (canPlaceOrder as jest.Mock).mockReturnValue(true);
       (Prisma.products.updateMany as jest.Mock).mockResolvedValue({ count: 1 });
       (Prisma.orders.update as jest.Mock).mockResolvedValue({});
-      (Prisma.orderproduct.updateMany as jest.Mock).mockResolvedValue({
-        count: 1,
-      });
+      (Prisma.orderproduct.updateMany as jest.Mock).mockResolvedValue({ count: 1 });
 
       const result = await checkoutActions.updateStatus(
         mockOrderId,
@@ -538,16 +544,18 @@ describe.skip("updateStatus", () => {
       expect(Prisma.stockvalue.updateMany).not.toHaveBeenCalled();
     });
 
-    it("should filter out products without productId", async () => {
+    it("should filter out products without productId when incrementing amount_sold", async () => {
       const mockOrder = {
         id: mockOrderId,
         user: {
+          id: 5,
           email: "user@example.com",
         },
         price: {
           price: 50,
           shipping: 10,
           total: 60,
+          subtotal: 50,
         },
         shipping: {
           id: 1,
@@ -585,9 +593,7 @@ describe.skip("updateStatus", () => {
       (canPlaceOrder as jest.Mock).mockReturnValue(true);
       (Prisma.products.updateMany as jest.Mock).mockResolvedValue({ count: 1 });
       (Prisma.orders.update as jest.Mock).mockResolvedValue({});
-      (Prisma.orderproduct.updateMany as jest.Mock).mockResolvedValue({
-        count: 2,
-      });
+      (Prisma.orderproduct.updateMany as jest.Mock).mockResolvedValue({ count: 2 });
 
       const result = await checkoutActions.updateStatus(
         mockOrderId,
@@ -597,7 +603,7 @@ describe.skip("updateStatus", () => {
 
       expect(result.success).toBe(true);
 
-      // Verify amount_sold incremented for only valid products
+      // Only productId=1 should be included (null productId is filtered out)
       expect(Prisma.products.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: { in: [1] } },

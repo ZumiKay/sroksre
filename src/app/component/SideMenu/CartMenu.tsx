@@ -17,7 +17,7 @@ import {
   VariantOptionsType,
   VariantPriceBreakdown,
 } from "@/src/types/order.type";
-import { Createorder } from "../../checkout/action";
+import { createOrder as createOrderAction } from "../../checkout/action";
 import { CloseVector } from "../Asset";
 import { getVariantPriceBreakDownByActiveCart } from "../../checkout/helper";
 
@@ -146,7 +146,7 @@ export function CartMenu({ img, setcart, setcarttotal }: CartMenuProps) {
 
     if (totalprice && cartItem.length !== 0) {
       const cartitem_id = cartItem.map((i) => i.id);
-      const makereq = Createorder.bind(null, {
+      const makereq = createOrderAction.bind(null, {
         price: totalprice,
         incartProduct: cartitem_id,
       });

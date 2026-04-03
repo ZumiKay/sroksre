@@ -31,6 +31,7 @@ import { shippingtype } from "../component/Modals/User";
 import { formatDate } from "../component/EmailTemplate";
 import {
   ProductStockType,
+  StockTypeEnum,
   VariantValueObjType,
 } from "@/src/types/product.type";
 import {
@@ -87,7 +88,7 @@ function buildStockAdjustments(
     const { id, stocktype, Stock } = item.product;
     const qty = item.quantity;
 
-    if (stocktype === ProductStockType.stock) {
+    if (stocktype === StockTypeEnum.normal) {
       if (direction === "decrement") {
         ops.push(
           Prisma.products.updateMany({
@@ -218,7 +219,7 @@ export async function getOrderAddress(orderId: string) {
   return address;
 }
 
-export async function Createorder(data: {
+export async function createOrder(data: {
   price: totalpricetype;
   incartProduct: number[];
 }): Promise<Returntype<any>> {
@@ -250,25 +251,9 @@ export async function Createorder(data: {
     },
   });
 
-  if (
-    preCheckOrder &&
-    isCheckoutSessionExpired(preCheckOrder.createdAt, preCheckOrder.renewedAt)
-  ) {
-    await releaseStock(preCheckOrder.id);
-    await Promise.all([
-      Prisma.orders.update({
-        where: { id: preCheckOrder.id },
-        data: { status: Allstatus.abandoned },
-      }),
-      Prisma.orderproduct.updateMany({
-        where: {
-          orderId: preCheckOrder.id,
-          status: { in: [Allstatus.incart, Allstatus.unpaid] },
-        },
-        data: { status: Allstatus.abandoned },
-      }),
-    ]);
-    preCheckOrder = null;
+  if (preCheckOrder) {
+    const expired = await expireUnpaidOrderIfNeeded(preCheckOrder);
+    if (expired) preCheckOrder = null;
   }
 
   const cartItems = await Prisma.orderproduct.findMany({
@@ -295,7 +280,12 @@ export async function Createorder(data: {
           stocktype: true,
           Stock: { select: { Stockvalue: { select: { id: true } } } },
           Variant: {
-            select: { id: true, price: true, option_title: true, option_value: true },
+            select: {
+              id: true,
+              price: true,
+              option_title: true,
+              option_value: true,
+            },
           },
         },
       },
@@ -318,16 +308,23 @@ export async function Createorder(data: {
 
     // Compute per-unit variant option extra
     let variantExtra = 0;
-    const detail = (item.details ?? []) as Array<{ variant_id: number; value: string }>;
+    const detail = (item.details ?? []) as Array<{
+      variant_id: number;
+      value: string;
+    }>;
     for (const d of detail) {
       const variant = item.product.Variant?.find((v) => v.id === d.variant_id);
       if (!variant) continue;
-      const variantPrice = variant.price ? parseFloat(variant.price.toString()) : 0;
+      const variantPrice = variant.price
+        ? parseFloat(variant.price.toString())
+        : 0;
       if (variantPrice > 0) {
         variantExtra += variantPrice;
         continue;
       }
-      const opts = (variant.option_value ?? []) as Array<string | VariantValueObjType>;
+      const opts = (variant.option_value ?? []) as Array<
+        string | VariantValueObjType
+      >;
       const opt = opts.find((o) =>
         typeof o === "string" ? o === d.value : o.val === d.value,
       );
@@ -342,7 +339,8 @@ export async function Createorder(data: {
 
   const pickupService = Shippingservice.find((s) => s.value === "Pickup");
   const defaultShipping = pickupService?.price ?? 0;
-  const extra = totalVariantExtra > 0 ? parseFloat(totalVariantExtra.toFixed(2)) : 0;
+  const extra =
+    totalVariantExtra > 0 ? parseFloat(totalVariantExtra.toFixed(2)) : 0;
   const serverPrice: totalpricetype = {
     subtotal,
     shipping: defaultShipping,
@@ -594,7 +592,11 @@ async function getOutOfStockProducts(productIds: number[]) {
     // Variant with qty field, and option_value items with qty
     if (!isOOS) {
       for (const variant of product.Variant) {
-        if (variant.qty !== null && variant.qty !== undefined && variant.qty <= 0) {
+        if (
+          variant.qty !== null &&
+          variant.qty !== undefined &&
+          variant.qty <= 0
+        ) {
           isOOS = true;
           break;
         }
@@ -604,9 +606,7 @@ async function getOutOfStockProducts(productIds: number[]) {
         )[];
         const hasOOSOption = opts.some(
           (opt) =>
-            typeof opt !== "string" &&
-            opt.qty !== undefined &&
-            opt.qty <= 0,
+            typeof opt !== "string" && opt.qty !== undefined && opt.qty <= 0,
         );
         if (hasOOSOption) {
           isOOS = true;
@@ -745,7 +745,7 @@ export async function updateStatus(
   }
 }
 
-export async function handleShippingAdddress(
+export async function handleShippingAddress(
   orderId: string,
   selected?: number,
   shippingdata?: shippingtype,
@@ -832,12 +832,6 @@ export async function updateShippingService(
   shippingtype: string,
 ): Promise<Returntype> {
   try {
-    let updatePrice: totalpricetype = {
-      subtotal: 0,
-      total: 0,
-      shipping: 0,
-    };
-
     const orderState = await checkOrder(orderId);
 
     if (!orderState) {
@@ -866,7 +860,7 @@ export async function updateShippingService(
     const shippingPrice = selectedShipping.price ?? 0;
     const storedExtra = subprice.extra ?? 0;
 
-    updatePrice = {
+    const updatePrice: totalpricetype = {
       subtotal: subprice.subtotal,
       shipping: shippingPrice,
       total: subprice.subtotal + storedExtra + shippingPrice,
@@ -916,7 +910,7 @@ const generateAccessToken = async () => {
   }
 };
 
-export async function Createpaypalorder(orderId: string): Promise<Returntype> {
+export async function createPaypalOrder(orderId: string): Promise<Returntype> {
   try {
     const orderState = await checkOrder(orderId);
 
@@ -1165,7 +1159,7 @@ export async function Createpaypalorder(orderId: string): Promise<Returntype> {
   }
 }
 
-export async function CaptureOrder(orderId: string): Promise<Returntype> {
+export async function captureOrder(orderId: string): Promise<Returntype> {
   try {
     const accessToken = await generateAccessToken();
     const url = `${process.env.PAYPAL_BASE}/v2/checkout/orders/${orderId}/capture`;
@@ -1188,6 +1182,15 @@ export async function CaptureOrder(orderId: string): Promise<Returntype> {
 
 //helper function
 
+const createMailTransporter = () =>
+  nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: process.env.EMAIL,
+      pass: process.env.EMAIL_APPKEY,
+    },
+  });
+
 export const SendOrderEmail = async (
   html: string,
   to: string,
@@ -1195,13 +1198,7 @@ export const SendOrderEmail = async (
   attachment?: Uint8Array,
 ) => {
   try {
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: process.env.EMAIL,
-        pass: process.env.EMAIL_APPKEY,
-      },
-    });
+    const transporter = createMailTransporter();
     const mailoptions = {
       from: `SrokSre <${process.env.EMAIL}>`,
       to: `<${to}>`,
@@ -1237,13 +1234,7 @@ interface Emaildata {
   title?: string;
 }
 export const handleEmail = async (data: Emaildata) => {
-  const transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-      user: process.env.EMAIL,
-      pass: process.env.EMAIL_APPKEY,
-    },
-  });
+  const transporter = createMailTransporter();
 
   const mailoptions = {
     from: data.from ? data.from : `SrokSre <${process.env.EMAIL}>`,

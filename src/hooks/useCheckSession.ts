@@ -105,7 +105,13 @@ const useCheckSession = () => {
     return true;
   }, [status, data, update]);
 
-  return { handleCheckSession, sessionExpired, clearSessionExpired, data, status };
+  return {
+    handleCheckSession,
+    sessionExpired,
+    clearSessionExpired,
+    data,
+    status,
+  };
 };
 
 export default useCheckSession;
