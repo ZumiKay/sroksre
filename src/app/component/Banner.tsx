@@ -10,9 +10,9 @@ import {
   useMemo,
   useCallback,
 } from "react";
-import { getSelectCategory } from "../action";
 import { Selection } from "./Button";
 import { getSubCategories } from "../dashboard/inventory/varaint_action";
+import { getSelectCategory } from "../action";
 import SelectArrow from "../../../public/Image/Arrow_down.svg";
 import { AnimatePresence, motion } from "framer-motion";
 import { DeleteIcon } from "./Asset";

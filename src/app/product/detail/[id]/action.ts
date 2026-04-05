@@ -27,6 +27,8 @@ interface returntype {
 export async function Addtocart(data: Productordertype): Promise<returntype> {
   try {
     const { details, quantity, id } = data;
+
+    console.log(JSON.stringify(details));
     const user = await getUser();
 
     if (!user) {

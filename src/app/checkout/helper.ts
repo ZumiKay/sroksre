@@ -76,7 +76,7 @@ export function calculateOrderTotal(products: Productordertype[]): number {
   return products.reduce((total, product) => {
     const price =
       product.price.discount?.newprice ??
-      (product.price.price + (product.price.extra ?? 0));
+      product.price.price + (product.price.extra ?? 0);
     return total + price * product.quantity;
   }, 0);
 }
@@ -97,19 +97,51 @@ export function isPricingConsistent(order: Ordertype): boolean {
  * Check if order can be placed (all validations pass)
  */
 export function canPlaceOrder(order: Ordertype): boolean {
-  return (
-    hasValidBuyer(order) &&
-    hasProducts(order) &&
-    hasValidQuantities(order) &&
-    hasValidPrice(order) &&
-    hasValidShipping(order) &&
-    hasShippingAddress(order) &&
-    hasValidStatus(order) &&
-    order.Orderproduct.every(
-      (product) =>
-        hasValidProductDetails(product) && hasValidProductPrice(product),
-    )
-  );
+  const invalidReasons: string[] = [];
+
+  if (!hasValidBuyer(order)) {
+    invalidReasons.push("Invalid buyer information");
+  }
+
+  if (!hasProducts(order)) {
+    invalidReasons.push("Order must have at least one product");
+  }
+
+  if (!hasValidQuantities(order)) {
+    invalidReasons.push("Invalid product quantities");
+  }
+
+  if (!hasValidPrice(order)) {
+    invalidReasons.push("Invalid order price");
+  }
+
+  if (!hasValidShipping(order)) {
+    invalidReasons.push("Invalid shipping type");
+  }
+
+  if (!hasShippingAddress(order)) {
+    invalidReasons.push("Missing shipping address");
+  }
+
+  if (!hasValidStatus(order)) {
+    invalidReasons.push("Invalid order status");
+  }
+
+  order.Orderproduct.forEach((product, index) => {
+    if (!hasValidProductDetails(product)) {
+      invalidReasons.push(`Invalid details for product ${index + 1}`);
+    }
+    if (!hasValidProductPrice(product)) {
+      invalidReasons.push(`Invalid price for product ${index + 1}`);
+    }
+  });
+
+  if (invalidReasons.length > 0) {
+    console.log("canPlaceOrder validation failed:", invalidReasons);
+    return false;
+  }
+
+  return true;
 }
 
 /**

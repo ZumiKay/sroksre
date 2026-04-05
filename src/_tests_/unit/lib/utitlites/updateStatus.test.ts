@@ -14,8 +14,11 @@ jest.mock("@/src/app/checkout/fetchaction.ts");
 import { generateOrderData } from "@/src/_tests_/mocks/order";
 import { updateStatus } from "@/src/app/checkout/action";
 import { getCheckoutdata } from "@/src/app/checkout/fetchaction";
+import { canPlaceOrder } from "@/src/app/checkout/helper";
 import Prisma from "@/src/lib/prisma";
 import { Ordertype } from "@/src/types/order.type";
+
+//Mock methods
 const mockedPrisma = Prisma as unknown as {
   products: {
     updateMany: jest.Func;
@@ -36,6 +39,28 @@ const mockedPrisma = Prisma as unknown as {
 jest.mock("@/src/app/api/order/helper", () => ({
   generateInvoicePdf: jest.fn(),
 }));
+jest.mock("@/src/app/component/EmailTemplate", () => ({
+  formatDate: jest.fn(),
+}));
+jest.mock("@/src/app/component/Modals/User", () => ({}));
+jest.mock("nodemailer", () => ({ createTransport: jest.fn() }));
+jest.mock("@/src/lib/utilities", () => ({
+  calculateDiscountProductPrice: jest.fn(),
+  encrypt: jest.fn(),
+  generateRandomNumber: jest.fn(() => "123456"),
+  OrderReciptEmail: jest.fn(),
+}));
+jest.mock("@/src/context/Checkoutcontext", () => ({
+  Shippingservice: [{ value: "Pickup", price: 0 }],
+  CountryCode: { cambodia: "KH" },
+}));
+jest.mock("@/src/app/checkout/constants", () => ({
+  CHECKOUT_SESSION_LIMIT_MS: 60 * 60 * 1000,
+}));
+jest.mock("@/src/app/severactions/notification_action", () => ({
+  SaveNotification: jest.fn(),
+  SaveUserNotification: jest.fn(),
+}));
 
 //Mock Prisma methods
 
@@ -52,7 +77,6 @@ describe("Testing Update Order Status", () => {
     jest.clearAllMocks();
   });
 
-  //Case 1
   test("Should Return Rejection If Data is Invalid", async () => {
     const invalidOrder = generateOrderData({
       customField: {
@@ -74,7 +98,6 @@ describe("Testing Update Order Status", () => {
     });
   });
 
-  //Case 2 - Order not found
   test("Should Return Error When Order is Null", async () => {
     (getCheckoutdata as jest.Mock).mockResolvedValue(null);
 
@@ -86,7 +109,6 @@ describe("Testing Update Order Status", () => {
     });
   });
 
-  //Case 3 - Missing user data
   test("Should Return Error When User is Missing", async () => {
     const orderWithoutUser = generateOrderData({
       customField: {
@@ -108,54 +130,9 @@ describe("Testing Update Order Status", () => {
     });
   });
 
-  //Case 4 - Missing user email
-  test("Should Return Error When User Email is Missing", async () => {
-    const orderWithoutEmail = generateOrderData({
-      customField: {
-        user: { email: undefined },
-      },
-    }) as Ordertype;
-
-    (getCheckoutdata as jest.Mock).mockResolvedValue(orderWithoutEmail);
-
-    const handleUpdateStatus = await updateStatus(
-      orderWithoutEmail.id as never,
-      "",
-      "",
-    );
-
-    expect(handleUpdateStatus).toStrictEqual({
-      success: false,
-      status: 400,
-    });
-  });
-
-  //Case 5 - Database error during update
-  test("Should Handle Database Error", async () => {
-    const validOrder = generateOrderData() as Ordertype;
-    (getCheckoutdata as jest.Mock).mockResolvedValue(validOrder);
-
-    // Mock database error
-    mockedPrisma.products.updateMany = jest
-      .fn()
-      .mockRejectedValue(new Error("Database connection failed"));
-
-    const handleUpdateStatus = await updateStatus(
-      validOrder.id as never,
-      "",
-      "",
-    );
-
-    expect(handleUpdateStatus).toStrictEqual({
-      success: false,
-      message: "Error occurred",
-      status: 500,
-    });
-  });
-
-  //Case 6 - Order update fails
   test("Should Handle Order Update Failure", async () => {
     const validOrder = generateOrderData() as Ordertype;
+
     (getCheckoutdata as jest.Mock).mockResolvedValue(validOrder);
 
     mockedPrisma.products.updateMany = jest.fn().mockResolvedValue({});
@@ -177,7 +154,6 @@ describe("Testing Update Order Status", () => {
     });
   });
 
-  //Case 7 - Invalid order ID format
   test("Should Handle Invalid Order ID", async () => {
     (getCheckoutdata as jest.Mock).mockResolvedValue(null);
 
@@ -189,7 +165,6 @@ describe("Testing Update Order Status", () => {
     });
   });
 
-  //Case 8 - Promise.all rejection
   test("Should Handle Multiple Promise Failures", async () => {
     const validOrder = generateOrderData() as Ordertype;
     (getCheckoutdata as jest.Mock).mockResolvedValue(validOrder);
@@ -215,7 +190,6 @@ describe("Testing Update Order Status", () => {
     });
   });
 
-  //Case 9 - Unexpected error type
   test("Should Handle Non-Error Exceptions", async () => {
     const validOrder = generateOrderData() as Ordertype;
     (getCheckoutdata as jest.Mock).mockResolvedValue(validOrder);

@@ -96,8 +96,6 @@ mockPrisma.products = { updateMany: jest.fn() };
 mockPrisma.stockvalue = { updateMany: jest.fn() };
 mockPrisma.$transaction = jest.fn();
 
-// ─── Test data helpers ────────────────────────────────────────────────────────
-
 const makeUser = (overrides: Record<string, any> = {}) => ({
   userId: 1,
   user: { buyer_id: "buyer-001" },
@@ -127,7 +125,7 @@ const DEFAULT_ENCRYPT = "enc-abc";
 beforeEach(() => {
   jest.clearAllMocks();
 
-  // Defaults that lead to a successful new-order creation
+  // For create new order on default
   mockGetUser.mockResolvedValue(makeUser());
   mockPrisma.orders.findFirst.mockResolvedValue(null); // no existing unpaid order
   mockPrisma.orders.findUnique.mockResolvedValue(null); // generated ID is available
@@ -181,7 +179,7 @@ describe("createOrder", () => {
       });
     });
 
-    it("filters out zero and negative IDs before validating", async () => {
+    it("filters out invalid IDs before validating", async () => {
       const result = await createOrder({
         price: {} as any,
         incartProduct: [0, -1, -99],

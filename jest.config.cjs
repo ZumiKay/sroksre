@@ -18,6 +18,9 @@ const config = {
     // Project aliases
     "^jose$": "<rootDir>/node_modules/jose/dist/node/cjs/index.js",
     "^@panva/hkdf$": "<rootDir>/__mocks__/@panva/hkdf.js",
+    // Force prisma singleton to always resolve to the same file (with .ts)
+    // so relative imports in src files and alias imports in tests share one cache entry
+    "^@/src/lib/prisma$": "<rootDir>/src/lib/prisma.ts",
     "^@/(.*)$": "<rootDir>/$1",
     "\\.mjs$": "<rootDir>/jest.setup.ts",
   },

@@ -1,8 +1,13 @@
 // Mock definitions (hoisted by Jest)
-jest.mock("@/prisma/generated/prisma/client");
-jest.mock("@/src/lib/prisma");
+jest.mock("@/prisma/generated/prisma/client", () => ({
+  PrismaClient: jest.fn().mockImplementation(() => ({})),
+}));
+jest.mock("@/src/lib/prisma.ts");
 jest.mock("bcryptjs");
 jest.mock("@/src/lib/utilities");
+jest.mock("@/prisma/generated/prisma/enums", () => ({
+  Role: { USER: "USER", ADMIN: "ADMIN" },
+}));
 jest.mock("zod", () => {
   const createZodChain = () => ({
     max: jest.fn().mockReturnThis(),
@@ -41,7 +46,7 @@ import {
 } from "@/src/lib/userlib";
 import * as bcryptjs from "bcryptjs";
 import * as utilities from "@/src/lib/utilities";
-import Prisma from "@/src/lib/prisma";
+import Prisma from "@/src/lib/prisma.ts";
 import { Role } from "@/prisma/generated/prisma/enums";
 
 // Create mock types

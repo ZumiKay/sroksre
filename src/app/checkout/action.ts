@@ -632,15 +632,15 @@ export async function updateStatus(
   html: string,
   adminhtml: string,
 ): Promise<Returntype> {
+  const order = await getCheckoutdata(orderid);
+
+  if (!order || !canPlaceOrder(order) || !order.user || !order.user.email) {
+    return { success: false, status: 400 };
+  }
   try {
-    const order = await getCheckoutdata(orderid);
-
-    if (!order || !canPlaceOrder(order) || !order.user || !order.user.email) {
-      return { success: false, status: 400 };
-    }
-
     // Stock was already decremented when the checkout session started (holdStockForItems).
     // Here we only update order/product status and amount_sold.
+
     await Promise.all([
       Prisma.products.updateMany({
         where: {
@@ -1016,7 +1016,7 @@ export async function createPaypalOrder(orderId: string): Promise<Returntype> {
           (v) => v.id === detail.variant_id,
         );
         if (!variant) return sum;
-        const variantLevelPrice = (variant as any).price;
+        const variantLevelPrice = variant.price;
         if (variantLevelPrice) {
           return sum + parseFloat(variantLevelPrice.toString());
         }
