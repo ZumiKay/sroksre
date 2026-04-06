@@ -73,7 +73,7 @@ export async function PUT() {
       },
     );
   } catch (error) {
-    console.lgo("Error checking expired promotions:", error);
+    console.log("Error checking expired promotions:", error);
     return Response.json(
       {
         message: "An error occurred while updating promotions",

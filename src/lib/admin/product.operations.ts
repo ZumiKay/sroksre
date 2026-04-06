@@ -15,8 +15,6 @@ import {
 import { handleUpdateProductVariant } from "./variant.operations";
 import { updateProductVariantStock } from "./stock.operations";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
 interface ReturnType {
   success: boolean;
   error?: string;

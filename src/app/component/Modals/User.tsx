@@ -356,7 +356,7 @@ export interface shippingtype {
   lastname: string;
   street?: string;
   province: string;
-  houseId: number;
+  houseId: string;
   district: string;
   songkhat: string;
   postalcode: string;

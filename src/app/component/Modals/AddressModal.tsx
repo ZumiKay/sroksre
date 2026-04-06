@@ -197,7 +197,7 @@ const AddressItem = memo(
                       name="houseId"
                       type="text"
                       onChange={(e) => onChange(e, index)}
-                      value={address.houseId === 0 ? "" : address.houseId}
+                      value={address.houseId}
                       placeholder="e.g., House 73 or Apt 13, Floor 2"
                     />
                   </div>
@@ -275,7 +275,7 @@ const AddressItem = memo(
         </AnimatePresence>
       </motion.div>
     );
-  }
+  },
 );
 
 AddressItem.displayName = "AddressItem";
@@ -303,7 +303,7 @@ export const AddressModal = memo(
           return updated;
         });
       },
-      []
+      [],
     );
 
     const handleSave = useCallback(
@@ -314,7 +314,7 @@ export const AddressModal = memo(
           ([key, val]) => {
             if (key === "isSaved" || key === "id") return false;
             return val?.toString().trim() !== "";
-          }
+          },
         );
 
         if (!isNotEmpty) {
@@ -337,7 +337,7 @@ export const AddressModal = memo(
           null,
           formData,
           selectedAddress.isSaved,
-          selectedAddress.id
+          selectedAddress.id,
         );
 
         const result = await address();
@@ -359,7 +359,7 @@ export const AddressModal = memo(
           errorToast(result.message as string);
         }
       },
-      [localAddresses, onUpdate]
+      [localAddresses, onUpdate],
     );
 
     const handleDelete = useCallback(
@@ -369,7 +369,7 @@ export const AddressModal = memo(
         if (addressToDelete.id) {
           const deleteAddress = Deleteaddress.bind(
             null,
-            addressToDelete.id as number
+            addressToDelete.id as number,
           );
           const result = await deleteAddress();
           if (!result.success) {
@@ -384,7 +384,7 @@ export const AddressModal = memo(
         onUpdate(updated);
         setOpenIndex(-1);
       },
-      [localAddresses, onUpdate]
+      [localAddresses, onUpdate],
     );
 
     const handleAddNew = useCallback(() => {
@@ -400,7 +400,7 @@ export const AddressModal = memo(
         province: "",
         district: "",
         songkhat: "",
-        houseId: 0,
+        houseId: "",
         postalcode: "",
         isSaved: false,
       };
@@ -478,7 +478,7 @@ export const AddressModal = memo(
         )}
       </div>
     );
-  }
+  },
 );
 
 AddressModal.displayName = "AddressModal";

@@ -2,10 +2,10 @@
 import Textarea from "@mui/joy/Textarea";
 import { TextField } from "@mui/material";
 import { SecondaryModal } from "../component/Modals";
-import { Paragraph } from "@prisma/client";
 import React, { ChangeEvent } from "react";
 import { Addpolicytype, Addquestiontype, ParagraphType } from "./action";
 import PrimaryButton from "../component/Button";
+import { Paragraph } from "@/prisma/generated/prisma/client";
 
 export const ParagraphModal = ({
   open,
@@ -30,12 +30,12 @@ export const ParagraphModal = ({
   setopen: (val: boolean) => void;
   onChange?: (
     value: ChangeEvent<HTMLTextAreaElement> | string,
-    idx: number
+    idx: number,
   ) => void;
   handleAddParagraph?: () => void;
   handleChangeQuestion?: (
     e: ChangeEvent<HTMLTextAreaElement | HTMLInputElement>,
-    idx: number
+    idx: number,
   ) => void;
   paragraph?: ParagraphType;
   setparagraph?: React.Dispatch<React.SetStateAction<ParagraphType>>;

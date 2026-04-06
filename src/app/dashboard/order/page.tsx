@@ -142,11 +142,10 @@ export default async function OrderManagement({
         : Promise.resolve({ data: [], total: 0 }),
     ]);
 
-    const orders = (
-      isFilter || selectedStatus
+    const orders =
+      (isFilter || selectedStatus
         ? (filterResult as { data?: AllorderStatus[] }).data
-        : (ordersResult?.data as AllorderStatus[])
-    ) ?? undefined;
+        : (ordersResult?.data as unknown as AllorderStatus[])) ?? undefined;
 
     const totalOrders =
       isFilter || selectedStatus

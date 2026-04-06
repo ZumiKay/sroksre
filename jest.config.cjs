@@ -21,6 +21,9 @@ const config = {
     // Force prisma singleton to always resolve to the same file (with .ts)
     // so relative imports in src files and alias imports in tests share one cache entry
     "^@/src/lib/prisma$": "<rootDir>/src/lib/prisma.ts",
+    // Redirect generated Prisma ESM client to a CJS-compatible mock so Jest
+    // doesn't choke on import.meta.url inside the generated files
+    "^@/prisma/generated/prisma/(.*)$": "<rootDir>/__mocks__/prismaGeneratedMock.cjs",
     "^@/(.*)$": "<rootDir>/$1",
     "\\.mjs$": "<rootDir>/jest.setup.ts",
   },

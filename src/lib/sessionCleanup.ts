@@ -34,7 +34,7 @@ export async function invalidateUserSession(
 ): Promise<boolean> {
   try {
     await Prisma.usersession.delete({
-      where: { session_id },
+      where: { sessionid: session_id },
     });
     console.log(`Session ${session_id} invalidated`);
     return true;
@@ -53,7 +53,7 @@ export async function invalidateAllUserSessions(
 ): Promise<number> {
   try {
     const result = await Prisma.usersession.deleteMany({
-      where: { user_id },
+      where: { userId: user_id },
     });
     console.log(`Invalidated ${result.count} sessions for user ${user_id}`);
     return result.count;
@@ -71,7 +71,7 @@ export async function getUserActiveSessions(user_id: number) {
   try {
     const sessions = await Prisma.usersession.findMany({
       where: {
-        user_id,
+        userId: user_id,
         expireAt: {
           gt: new Date(),
         },
@@ -84,30 +84,5 @@ export async function getUserActiveSessions(user_id: number) {
   } catch (error) {
     console.log("Error fetching user sessions:", error);
     return [];
-  }
-}
-
-/**
- * Extend/refresh a session expiration time
- * Useful for "remember me" functionality
- */
-export async function extendSessionExpiration(
-  session_id: string,
-  daysToExtend: number = 7,
-): Promise<boolean> {
-  try {
-    const newExpireDate = new Date();
-    newExpireDate.setDate(newExpireDate.getDate() + daysToExtend);
-
-    await Prisma.usersession.update({
-      where: { session_id },
-      data: { expireAt: newExpireDate },
-    });
-
-    console.log(`Extended session ${session_id} to ${newExpireDate}`);
-    return true;
-  } catch (error) {
-    console.log("Error extending session:", error);
-    return false;
   }
 }
