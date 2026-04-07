@@ -48,7 +48,7 @@ export interface productcoverstype {
 //Variant value as object
 export type VariantValueObjType = {
   val: string;
-  name?: string;
+  name?: string
   price?: string;
   qty?: number;
 };
