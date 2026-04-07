@@ -13,7 +13,7 @@ export default async function Footer() {
           alt="logo"
           src={Logo}
         />
-        <hr className="h-line w-[90vw] h-[10px] bg-[#495464]" />
+        <hr className="h-line w-[90vw] h-[10px] bg-incart" />
       </section>
       <section className="footer__body w-[95vw] flex flex-row justify-start flex-wrap gap-x-56 gap-y-10">
         <ul className="help__container list-none h-fit flex flex-col gap-y-5 w-fit">

@@ -22,12 +22,12 @@ export async function PUT() {
         JSON.stringify({ message: "No Expired Promotions Found" }),
         {
           status: 200,
-        }
+        },
       );
     }
 
     const productIds = expiredPromotions.flatMap((promo) =>
-      promo.Products.map((product) => product.id)
+      promo.Products.map((product) => product.id),
     );
 
     const promotionIds = expiredPromotions.map((promo) => promo.id);
@@ -43,7 +43,7 @@ export async function PUT() {
         Prisma.banner.updateMany({
           where: { id: { in: bannerIds } },
           data: { promotionId: null },
-        })
+        }),
       );
     }
 
@@ -52,7 +52,7 @@ export async function PUT() {
         Prisma.products.updateMany({
           where: { id: { in: productIds } },
           data: { discount: null },
-        })
+        }),
       );
     }
 
@@ -60,7 +60,7 @@ export async function PUT() {
       tasks.push(
         Prisma.childcategories.deleteMany({
           where: { pid: { in: promotionIds } },
-        })
+        }),
       );
     }
 
@@ -70,15 +70,15 @@ export async function PUT() {
       { message: "Updated Expired Promotions" },
       {
         status: 200,
-      }
+      },
     );
   } catch (error) {
-    console.error("Error checking expired promotions:", error);
+    console.log("Error checking expired promotions:", error);
     return Response.json(
       {
         message: "An error occurred while updating promotions",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

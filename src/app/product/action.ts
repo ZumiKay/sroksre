@@ -2,9 +2,9 @@
 
 import {
   ProductState,
-  SelectType,
-  VariantColorValueType,
-} from "@/src/context/GlobalContext";
+  VariantValueObjType as VariantColorValueType,
+} from "@/src/types/product.type";
+import { PromotionState, SelectType } from "@/src/types/productAction.type";
 import Prisma from "@/src/lib/prisma";
 import {
   caculateArrayPagination,
@@ -13,6 +13,14 @@ import {
   removeSpaceAndToLowerCase,
 } from "@/src/lib/utilities";
 import { cache } from "react";
+
+interface GetListProductReturnType {
+  success: boolean;
+  data?: Array<ProductState>;
+  promotion?: PromotionState;
+  count?: number;
+  error?: string;
+}
 
 export const GetListProduct = async (
   page: string,
@@ -32,8 +40,8 @@ export const GetListProduct = async (
   },
   all?: string,
   sort?: number,
-  promoid?: string
-) => {
+  promoid?: string,
+): Promise<GetListProductReturnType> => {
   let data = {
     parentcate_id: parseInt(parentcate_id),
     childcate_id: childcate_id ? parseInt(childcate_id) : undefined,
@@ -63,27 +71,27 @@ export const GetListProduct = async (
       where: promoid
         ? { promotion_id: data.promoid }
         : !latestcate
-        ? !data.parentcate_id && data.childcate_id
-          ? {
-              childcategory_id: data.childcate_id,
-            }
-          : data.parentcate_id !== 0 && !childcate_id
-          ? {
-              parentcategory_id: data.parentcate_id,
-            }
-          : data.parentcate_id !== 0 && childcate_id
-          ? {
-              AND: {
-                parentcategory_id: data.parentcate_id,
+          ? !data.parentcate_id && data.childcate_id
+            ? {
                 childcategory_id: data.childcate_id,
-              },
-            }
-          : all && all === "1"
-          ? {}
-          : {}
-        : {
-            createdAt: { gte: GetOneWeekAgoDate() },
-          },
+              }
+            : data.parentcate_id !== 0 && !childcate_id
+              ? {
+                  parentcategory_id: data.parentcate_id,
+                }
+              : data.parentcate_id !== 0 && childcate_id
+                ? {
+                    AND: {
+                      parentcategory_id: data.parentcate_id,
+                      childcategory_id: data.childcate_id,
+                    },
+                  }
+                : all && all === "1"
+                  ? {}
+                  : {}
+          : {
+              createdAt: { gte: GetOneWeekAgoDate() },
+            },
 
       orderBy: {
         price: sort ? (sort === 1 ? "asc" : "desc") : "asc",
@@ -97,13 +105,7 @@ export const GetListProduct = async (
         price: true,
         stock: true,
         stocktype: true,
-        promotion: {
-          select: {
-            id: true,
-            name: true,
-            banner: true,
-          },
-        },
+        promotion_id: true,
         Variant: {
           select: {
             option_type: true,
@@ -158,22 +160,10 @@ export const GetListProduct = async (
                   stock: true,
                   stocktype: true,
                   promotion_id: true,
-                  promotion: {
-                    select: {
-                      id: true,
-                      name: true,
-                    },
-                  },
                   Variant: {
                     select: {
                       option_type: true,
                       option_value: true,
-                    },
-                  },
-                  details: {
-                    select: {
-                      info_type: true,
-                      info_value: true,
                     },
                   },
                   covers: {
@@ -191,12 +181,17 @@ export const GetListProduct = async (
         },
       });
 
-      products = (product?.autocategories.map((i) => i.product) as any) ?? [];
+      products =
+        (product?.autocategories
+          .map((i) => i.product)
+          .filter((prod): prod is NonNullable<typeof prod> =>
+            Boolean(prod),
+          ) as any) ?? [];
       totalproduct = products.length;
       products = caculateArrayPagination(
         products,
         parseInt(page),
-        parseInt(show)
+        parseInt(show),
       );
     }
 
@@ -223,12 +218,12 @@ export const GetListProduct = async (
         const isParent =
           filtervalue.parent_id &&
           filtervalue.parent_id.some(
-            (i) => prod.parentcategory_id === parseInt(i)
+            (i) => prod.parentcategory_id === parseInt(i),
           );
         const isChild =
           filtervalue.child_id &&
           filtervalue.child_id.some(
-            (i) => prod.childcategory_id === parseInt(i)
+            (i) => prod.childcategory_id === parseInt(i),
           );
         const isColor = filtervalue.color
           ? matchesVariant("COLOR", filtervalue.color)
@@ -237,19 +232,23 @@ export const GetListProduct = async (
           ? matchesVariant("TEXT", filtervalue.other)
           : false;
 
+        const prodPromotion = (prod as any).promotion as
+          | { name: string }
+          | null
+          | undefined;
         const isPromo = filtervalue.promo
-          ? prod.promotion &&
+          ? prodPromotion &&
             filtervalue.promo.some(
               (i) =>
-                prod.promotion?.name &&
+                prodPromotion?.name &&
                 removeSpaceAndToLowerCase(i) ===
-                  removeSpaceAndToLowerCase(prod.promotion?.name)
+                  removeSpaceAndToLowerCase(prodPromotion?.name),
             )
           : false;
 
         const isName = filtervalue.search
           ? removeSpaceAndToLowerCase(prod.name).includes(
-              removeSpaceAndToLowerCase(filtervalue.search)
+              removeSpaceAndToLowerCase(filtervalue.search),
             )
           : false;
 
@@ -274,46 +273,50 @@ export const GetListProduct = async (
       filterproduct = caculateArrayPagination(
         products,
         parseInt(page),
-        parseInt(show)
+        parseInt(show),
       );
     }
 
     const countproduct = totalproduct
       ? totalproduct
       : isFilter
-      ? products.length
-      : await Prisma.products.count(
-          all
-            ? { where: {} }
-            : {
-                where: promoid
-                  ? { promotion_id: data.promoid }
-                  : !latestcate
-                  ? parentcate_id && !childcate_id
-                    ? {
-                        parentcategory_id: data.parentcate_id,
-                      }
-                    : parentcate_id && childcate_id
-                    ? {
-                        AND: {
-                          parentcategory_id: data.parentcate_id,
-                          childcategory_id: data.childcate_id,
+        ? products.length
+        : await Prisma.products.count(
+            all
+              ? { where: {} }
+              : {
+                  where: promoid
+                    ? { promotion_id: data.promoid }
+                    : !latestcate
+                      ? parentcate_id && !childcate_id
+                        ? {
+                            parentcategory_id: data.parentcate_id,
+                          }
+                        : parentcate_id && childcate_id
+                          ? {
+                              AND: {
+                                parentcategory_id: data.parentcate_id,
+                                childcategory_id: data.childcate_id,
+                              },
+                            }
+                          : {}
+                      : {
+                          createdAt: {
+                            gte: GetOneWeekAgoDate(),
+                          },
                         },
-                      }
-                    : {}
-                  : {
-                      createdAt: {
-                        gte: GetOneWeekAgoDate(),
-                      },
-                    },
-              }
-        );
+                },
+          );
 
     isFilter && (products = filterproduct);
 
+    const safeProducts = products.filter(
+      (prod): prod is NonNullable<typeof prod> => Boolean(prod),
+    );
+
     let result =
-      products.length > 0
-        ? (products.map((prod) => {
+      safeProducts.length > 0
+        ? (safeProducts.map((prod) => {
             if (prod.discount) {
               const discount = calculateDiscountProductPrice({
                 price: prod.price,
@@ -321,20 +324,46 @@ export const GetListProduct = async (
               });
               return {
                 ...prod,
-                discount: discount.discount,
+                discount,
               };
             }
             return { ...prod };
           }) as unknown as ProductState[])
         : [];
 
+    //If the child categories promotion category Fetch related promotion
+    let promotion: PromotionState | undefined = undefined;
+    const firstPromotionId = safeProducts[0]?.promotion_id;
+    if (
+      safeProducts.length > 0 &&
+      firstPromotionId &&
+      safeProducts.every((i) => i?.promotion_id === firstPromotionId)
+    ) {
+      promotion = (await Prisma.promotion.findUnique({
+        where: { id: firstPromotionId as number },
+        select: {
+          id: true,
+          name: true,
+          expireAt: true,
+          banner: {
+            select: {
+              id: true,
+              name: true,
+              image: true,
+            },
+          },
+        },
+      })) as unknown as PromotionState;
+    }
+
     return {
       success: true,
       data: result,
+      promotion,
       count: Math.ceil(countproduct / parseInt(show)),
     };
   } catch (error) {
-    console.error("Error fetching products:", error);
+    console.log("Error fetching products:", error);
     return { success: false, error: "Problem Occured" };
   }
 };
@@ -397,7 +426,7 @@ function getUniqueOptionValues(options: string[]) {
   return uniqueValuesArray;
 }
 function getUniqueColor(
-  options: VariantColorValueType[]
+  options: VariantColorValueType[],
 ): VariantColorValueType[] {
   const uniqueValuesSet = new Set<string>();
   const uniqueOptions: VariantColorValueType[] = [];
@@ -436,7 +465,7 @@ export interface filtervaluetype {
 export const getFilterValue = async (
   parent_id: number,
   child_id?: number,
-  latest?: boolean
+  latest?: boolean,
 ) => {
   try {
     let filtervalues: filtervaluetype = {
@@ -454,13 +483,13 @@ export const getFilterValue = async (
               parentcategory_id: parent_id,
             }
           : parent_id && child_id
-          ? {
-              AND: [
-                { parentcategory_id: parent_id },
-                { childcategory_id: child_id },
-              ],
-            }
-          : {}
+            ? {
+                AND: [
+                  { parentcategory_id: parent_id },
+                  { childcategory_id: child_id },
+                ],
+              }
+            : {}
         : {
             createdAt: {
               gte: GetOneWeekAgoDate(),
@@ -470,14 +499,14 @@ export const getFilterValue = async (
       select: {
         stocktype: true,
         stock: true,
-        Variant: true,
-        details: true,
-        promotion: {
-          select: {
-            id: true,
-            name: true,
+        Variant: {
+          where: {
+            sectionId: null,
+            optional: null,
           },
         },
+        details: true,
+        promotion_id: true,
       },
     });
 
@@ -488,7 +517,7 @@ export const getFilterValue = async (
     result.forEach((i) => {
       if (i.stocktype === "variant") {
         const color = i.Variant.filter(
-          (j) => j.option_type === "COLOR"
+          (j) => j.option_type === "COLOR",
         ).flatMap((j) => j.option_value) as VariantColorValueType[];
         const text = i.Variant.filter((j) => j.option_type === "TEXT");
 
@@ -501,10 +530,6 @@ export const getFilterValue = async (
             option_value: i.option_value as string[],
           })),
         ];
-      }
-
-      if (i.promotion) {
-        filtervalues.promotion?.push(i.promotion.name);
       }
     });
 
@@ -519,17 +544,21 @@ export const getFilterValue = async (
       }));
     }
 
-    if (filtervalues.promotion) {
-      filtervalues.promotion = getUniqueOptionValues(filtervalues.promotion);
-
-      result.forEach((prod) => {
-        if (
-          prod.promotion &&
-          filtervalues.promotion?.includes(prod.promotion.name)
-        ) {
-          filtervalues.promo?.push(prod.promotion);
-        }
+    // Fetch unique promotions once instead of per-product
+    const uniquePromoIds = [
+      ...new Set(
+        result
+          .map((i) => (i as any).promotion_id)
+          .filter((id): id is number => id != null),
+      ),
+    ];
+    if (uniquePromoIds.length > 0) {
+      const promotions = await Prisma.promotion.findMany({
+        where: { id: { in: uniquePromoIds } },
+        select: { id: true, name: true },
       });
+      filtervalues.promotion = promotions.map((p) => p.name);
+      filtervalues.promo = promotions;
     }
 
     return filtervalues;

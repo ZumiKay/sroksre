@@ -1,6 +1,6 @@
-"use server";
 import {
   BackAndEdit,
+  CheckoutSessionTimer,
   Checkoutproductcard,
   FormWrapper,
   Navigatebutton,
@@ -15,16 +15,22 @@ import { notFound, redirect } from "next/navigation";
 import Prisma from "@/src/lib/prisma";
 import {
   Allstatus,
-  Productorderdetailtype,
+  Ordertype,
   totalpricetype,
-} from "@/src/context/OrderContext";
+  Productorderdetailtype,
+  VariantOptionsType,
+  VariantPriceBreakdown,
+} from "@/src/types/order.type";
 import { calculateDiscountProductPrice, decrypt } from "@/src/lib/utilities";
-import { checkOrder, OrderUserType } from "./action";
+import { checkOrder } from "./action";
 import { SuccessVector } from "../component/Asset";
-import { VariantColorValueType } from "@/src/context/GlobalContext";
 import { getPolicesByPage } from "../api/policy/route";
 import Link from "next/link";
 import { Metadata } from "next";
+import { getCheckoutdata, getVariantPriceBreakDown } from "./fetchaction";
+import { Varianttype } from "@/src/types/product.type";
+import { Chip } from "@heroui/react";
+import { getVariantDetail } from "./helper";
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
@@ -32,51 +38,81 @@ export async function generateMetadata(): Promise<Metadata> {
     description: "Checkout page , payment with paypal",
   };
 }
+
+const STEPS = [1, 2, 3, 4];
+const ORDER_ID_PATTERN = /^[A-Za-z0-9_-]{6,64}$/;
 export default async function Checkoutpage({
   searchParams,
 }: {
-  searchParams?: { [key: string]: string | string[] | undefined };
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-  const step = searchParams?.step ? parseInt(searchParams?.step as string) : 0;
-  const orderid_param = searchParams?.orderid;
-  if (!step || !orderid_param || orderid_param.length === 0) {
+  const resolvedSearchParams = await searchParams;
+  const rawStep = Array.isArray(resolvedSearchParams?.step)
+    ? resolvedSearchParams.step[0]
+    : resolvedSearchParams?.step;
+  const rawOrderParam = Array.isArray(resolvedSearchParams?.orderid)
+    ? resolvedSearchParams.orderid[0]
+    : resolvedSearchParams?.orderid;
+
+  const step = rawStep ? parseInt(rawStep, 10) : 0;
+  if (!Number.isInteger(step) || !STEPS.includes(step) || !rawOrderParam) {
     return redirect("/");
   }
 
-  let orderid = decrypt(orderid_param as string, process.env.KEY as string);
+  let orderid = "";
 
+  try {
+    orderid = decrypt(rawOrderParam, process.env.KEY as string);
+  } catch {
+    return redirect("/");
+  }
+
+  if (!ORDER_ID_PATTERN.test(orderid)) {
+    return redirect("/");
+  }
+
+  //Verify order validility
   const order = await checkOrder(orderid);
 
   if (!order) {
     return redirect("/");
   }
 
-  const ShowBody = () => {
-    return step === 1 ? (
+  if (step === 4 && order.status !== Allstatus.paid) {
+    return redirect("/notfound");
+  }
+
+  const bodyContent =
+    step === 1 ? (
       <OrderSummary orderId={orderid} />
     ) : step === 2 ? (
       <ShippingForm orderid={orderid} />
     ) : step === 3 ? (
-      <PaymentDetail orderId={orderid} encryptedId={orderid_param as string} />
-    ) : (
-      <></>
-    );
-  };
+      <PaymentDetail orderId={orderid} encryptedId={rawOrderParam} />
+    ) : undefined;
 
   return (
-    <main className="check_page w-full min-h-screen m-0 flex flex-col gap-y-10 items-center">
+    <main className="check_page w-full min-h-screen bg-linear-to-br from-gray-50 via-white to-gray-50 py-8 px-4">
       {step !== 4 && order.status !== Allstatus.paid ? (
-        <>
-          <StepIndicator step={step} />
-          <FormWrapper step={step} order_id={orderid}>
-            <BackAndEdit step={step} />
-            <ShowBody />
-            <div className="submit-btn w-[150px] max-small_tablet:w-full h-fit">
+        <div className="max-w-7xl mx-auto space-y-8">
+          {order.status === Allstatus.unpaid && order.createdAt && (
+            <CheckoutSessionTimer
+              createdAt={order.createdAt.toISOString()}
+              renewedAt={order.renewedAt?.toISOString() ?? null}
+              orderId={orderid}
+            />
+          )}
+          <div className="bg-white rounded-2xl shadow-sm p-6">
+            <StepIndicator step={step} />
+          </div>
+          <FormWrapper BodyContent={bodyContent} step={step} order_id={orderid}>
+            <BackAndEdit step={step} orderId={orderid} />
+            <div className="submit-btn w-full pt-1 border-t border-gray-100">
               <Proceedbutton step={step} />
             </div>
           </FormWrapper>
           <Totalprice orderID={orderid as string} />
-        </>
+        </div>
       ) : (
         <SuccessPage orderid={orderid} />
       )}
@@ -84,80 +120,7 @@ export default async function Checkoutpage({
   );
 }
 
-//Component
-
-export const getCheckoutdata = async (orderid?: string, userid?: number) => {
-  const result = await Prisma.orders.findFirst({
-    where: userid ? { user: { id: userid } } : { id: orderid },
-    include: {
-      user: {
-        select: { id: true, firstname: true, lastname: true, email: true },
-      },
-      shipping: true,
-      Orderproduct: {
-        include: {
-          product: {
-            select: {
-              id: true,
-              covers: true,
-              discount: true,
-              name: true,
-              price: true,
-              stocktype: true,
-              Stock: { select: { Stockvalue: true } },
-              Variant: {
-                orderBy: { id: "asc" },
-                select: { id: true, option_value: true },
-              },
-            },
-          },
-        },
-      },
-    },
-  });
-
-  if (!result) return null;
-
-  const updatedOrderProducts = result.Orderproduct.map((orderProduct) => {
-    {
-      const detail = orderProduct.details as Productorderdetailtype[];
-      const selectedVariantDetails = orderProduct.product.Variant.map(
-        (variant, idx) => {
-          const detailValue = detail[idx].value;
-          const optionValues = variant.option_value as (
-            | string
-            | VariantColorValueType
-          )[];
-
-          return optionValues.find((val) =>
-            typeof val === "string"
-              ? val === detailValue
-              : val.val === detailValue
-          );
-        }
-      ).filter(Boolean);
-
-      return {
-        ...orderProduct,
-        selectedvariant: selectedVariantDetails,
-        price: calculateDiscountProductPrice({
-          price: orderProduct.product.price,
-          discount: orderProduct.product.discount ?? undefined,
-        }),
-        product: {
-          ...orderProduct.product,
-        },
-      };
-    }
-  });
-
-  return {
-    ...result,
-    Orderproduct: updatedOrderProducts,
-  };
-};
-
-export const calculatePrice = (price: number, percent: number) =>
+export const calculatePrice = async (price: number, percent: number) =>
   price - (price * percent) / 100;
 
 const OrderSummary = async ({ orderId }: { orderId: string }) => {
@@ -168,20 +131,21 @@ const OrderSummary = async ({ orderId }: { orderId: string }) => {
   }
 
   return (
-    <div
-      className={`checkout_container bg-[#F1F1F1] w-[50vw] h-fit p-2 
-    max-smaller_screen:w-full
-    rounded-lg shadow-lg 
-    animate-fade-in`}
-    >
+    <div className="checkout_container bg-white w-full max-w-4xl mx-auto rounded-2xl shadow-lg border border-gray-100 p-8 max-smaller_screen:p-6 animate-fade-in transition-all duration-300">
       <input type="hidden" name="summary" value={"summary"} />
-      <h3 className="title text-2xl font-bold pb-5">Order Summary</h3>
+      <div className="flex items-center gap-3 mb-8">
+        <div className="w-1 h-8 bg-linear-to-b from-blue-600 to-blue-400 rounded-full"></div>
+        <h3 className="text-3xl font-bold text-gray-800">Order Summary</h3>
+      </div>
 
-      <div className="productlist w-full h-full flex flex-col gap-y-5 p-2">
+      <div className="productlist w-full h-full flex flex-col gap-y-6">
         {orderData.Orderproduct.map((order) => {
           const price = order.price;
           const total =
-            order.quantity * (price.discount?.newprice ?? price.price);
+            order.quantity *
+            (price.discount?.newprice ?? (price.price + (price.extra ?? 0)));
+          if (!order.product) return null;
+
           return (
             <Checkoutproductcard
               key={order.id}
@@ -190,22 +154,13 @@ const OrderSummary = async ({ orderId }: { orderId: string }) => {
               price={price}
               total={total}
               name={order.product.name}
-              details={order.selectedvariant as any}
+              details={order.selectedvariant}
             />
           );
         })}
       </div>
     </div>
   );
-};
-
-const getShippingtype = async (orderId: string) => {
-  const order = await Prisma.orders.findUnique({
-    where: { id: orderId },
-    select: { shippingtype: true, status: true },
-  });
-
-  return order;
 };
 
 const PaymentDetail = async ({
@@ -215,49 +170,62 @@ const PaymentDetail = async ({
   orderId: string;
   encryptedId: string;
 }) => {
-  const shipping = await getShippingtype(orderId);
   const order = await getCheckoutdata(orderId);
 
-  if (shipping?.status !== Allstatus.unpaid) {
+  if (!order || order.status !== Allstatus.unpaid) {
     return notFound();
   }
 
   return (
-    <div className="checkout_container bg-[#F1F1F1] w-[50vw] max-smaller_screen:w-full h-fit p-2 rounded-lg shadow-lg animate-fade-in">
+    <div className="checkout_container bg-white w-full max-w-4xl mx-auto rounded-2xl shadow-lg border border-gray-100 p-8 max-smaller_screen:p-6 animate-fade-in transition-all duration-300">
       <input type="hidden" value={"payment"} name="payment" />
-      <div className="w-full h-fit bg-white flex flex-col gap-y-5 items-center p-2">
-        <h1 className="text-3xl font-medium w-full text-start h-fit">
-          Payment Information
-        </h1>
-
-        <h3 className="text-xl w-full font-normal h-fit text-left">
-          Shipping Services
-        </h3>
-
-        <div className="shipping_service w-full h-fit flex flex-row gap-3 flex-wrap justify-center">
-          {(order?.shipping_id
-            ? Shippingservice
-            : Shippingservice.filter((i) => i.value === "Pickup")
-          ).map((i, idx) => (
-            <Shippingservicecard
-              key={idx}
-              orderId={orderId}
-              isSelected={shipping ? shipping.shippingtype === i.value : false}
-              {...i}
-            />
-          ))}
+      <div className="w-full h-fit flex flex-col gap-y-8">
+        <div className="flex items-center gap-3">
+          <div className="w-1 h-8 bg-linear-to-b from-green-600 to-green-400 rounded-full"></div>
+          <h1 className="text-3xl font-bold text-gray-800">
+            Payment Information
+          </h1>
         </div>
 
-        <div className="Payment_method w-full flex flex-col items-center gap-y-5">
-          <h3 className="text-xl w-full h-fit font-normal text-left">
-            Payment Method
+        <div className="space-y-6">
+          <h3 className="text-xl font-semibold text-gray-700 flex items-center gap-2">
+            <span className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 text-sm font-bold">
+              1
+            </span>
+            Shipping Services
           </h3>
-          <div className="paypal_button w-[80%] h-fit relative">
-            <Paypalbutton
-              encripyid={encryptedId}
-              order={order as unknown as OrderUserType}
-              orderId={orderId}
-            />
+
+          <div className="shipping_service w-full h-fit grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {(order.shipping_id
+              ? Shippingservice
+              : Shippingservice.filter((i) => i.value === "Pickup")
+            ).map((i) => (
+              <Shippingservicecard
+                key={i.value}
+                orderId={orderId}
+                isSelected={
+                  !order.shipping_id ? true : order.shippingtype === i.value
+                }
+                disabled={!order.shipping_id}
+                {...i}
+              />
+            ))}
+          </div>
+
+          <div className="Payment_method w-full flex flex-col gap-y-6 mt-8">
+            <h3 className="text-xl font-semibold text-gray-700 flex items-center gap-2">
+              <span className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center text-green-600 text-sm font-bold">
+                2
+              </span>
+              Payment Method
+            </h3>
+            <div className="paypal_button w-full max-w-2xl mx-auto bg-gray-50 p-6 rounded-xl border-2 border-dashed border-gray-200">
+              <Paypalbutton
+                encripyid={encryptedId}
+                order={order as Ordertype}
+                orderId={orderId}
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -267,34 +235,188 @@ const PaymentDetail = async ({
 
 const getOrderTotal = async (orderID: string) => {
   try {
-    let result = await Prisma.orders.findUnique({
+    let result = (await Prisma.orders.findUnique({
       where: { id: orderID },
-      select: { price: true },
-    });
+      select: {
+        price: true,
+        Orderproduct: {
+          select: {
+            quantity: true,
+            product: {
+              select: {
+                price: true,
+                discount: true,
+              },
+            },
+          },
+        },
+      },
+    })) as unknown as Ordertype;
 
-    return result?.price as unknown as totalpricetype;
-  } catch (error) {
+    if (!result || !result.price) {
+      return null;
+    }
+
+    return {
+      ...result.price,
+      total: result?.price.total as never,
+      subtotal: result?.Orderproduct.reduce((subtotal, i) => {
+        const unitPrice = i?.product?.discount
+          ? calculateDiscountProductPrice({
+              price: i.product.price,
+              discount: i.product?.discount as never,
+            }).discount?.newprice
+          : i.product?.price;
+
+        return subtotal + (unitPrice ?? 0) * i.quantity;
+      }, 0),
+    } as totalpricetype;
+  } catch {
     return null;
   }
 };
+
+/**
+ *
+ * @param orderId
+ * @returns
+ */
+const getVariantPriceBreakdownByOrderId = async (
+  orderId: string,
+): Promise<VariantPriceBreakdown[]> => {
+  const orderData = await getVariantPriceBreakDown(orderId);
+  if (!orderData || orderData.Orderproduct.length === 0) return [];
+
+  const breakdown: VariantPriceBreakdown[] = [];
+
+  orderData.Orderproduct.forEach((orderProduct) => {
+    if (!orderProduct.product || !orderProduct.details) return;
+    const selectedVariant = orderProduct.details as Productorderdetailtype[];
+
+    if (selectedVariant.length) {
+      const pricebreakDownSelectedVariants: Array<VariantOptionsType | null> =
+        selectedVariant.map((i) => {
+          const isVariant = orderProduct.product.Variant.find(
+            (variant) => variant.id === i.variant_id,
+          );
+
+          if (!isVariant) return null;
+
+          return getVariantDetail({
+            val: i.value,
+            productvariant: isVariant as Varianttype,
+          });
+        });
+
+      breakdown.push({
+        productName: orderProduct.product.name,
+        quantity: orderProduct.quantity,
+        variantOptions: pricebreakDownSelectedVariants.filter(
+          Boolean,
+        ) as Array<VariantOptionsType>,
+      });
+    }
+  });
+
+  return breakdown;
+};
+
 const convertprice = (price: number) => `$${price.toFixed(2)}`;
+
 async function Totalprice({ orderID }: { orderID: string }) {
-  const total = await getOrderTotal(orderID);
+  const [total, variantBreakdown] = await Promise.all([
+    getOrderTotal(orderID),
+    getVariantPriceBreakdownByOrderId(orderID),
+  ]);
+
+  const totalVariantPrice = variantBreakdown.reduce(
+    (sum, product) =>
+      sum +
+      product.variantOptions.reduce((pSum, option) => pSum + option.price, 0) *
+        (product.quantity ?? 1),
+    0,
+  );
 
   return (
-    <div className="price_container w-[50vw] max-smaller_screen:w-[80%] p-2 h-[200px] flex flex-row justify-between items-center  mt-10 border-t-2 border-dashed border-t-black">
-      <ul className="price-tag list-none w-fit h-fit flex flex-col gap-y-5 self-end">
-        <li>Subtotal</li>
-        <li>Shipping Fee</li>
-        <li className="mt-5 font-bold">Total</li>
-      </ul>
-      <ul className="value list-none w-fit h-fit flex flex-col gap-y-5 self-end">
-        <li>{total?.subtotal ? convertprice(total.subtotal) : "0.00"}</li>
-        <li>{total?.shipping ? convertprice(total.shipping) : "0.00"}</li>
-        <li className="mt-5 font-bold">
-          {total?.total ? convertprice(total.total) : "0.00"}
-        </li>
-      </ul>
+    <div className="price_container w-full max-w-4xl mx-auto bg-white rounded-2xl shadow-lg border border-gray-100 p-8 max-smaller_screen:p-6">
+      <div className="space-y-4">
+        <div className="flex justify-between items-center py-3 border-b border-gray-200">
+          <span className="text-gray-600 font-medium">Subtotal</span>
+          <span className="text-lg font-semibold text-gray-800">
+            {total?.subtotal ? convertprice(total.subtotal) : "$0.00"}
+          </span>
+        </div>
+
+        {variantBreakdown.length > 0 && (
+          <div className="variant-breakdown py-3 border-b border-gray-200">
+            <div className="flex justify-between items-center mb-3">
+              <span className="text-gray-600 font-medium">Variant Options</span>
+              <span className="text-lg font-semibold text-gray-800">
+                {convertprice(totalVariantPrice)}
+              </span>
+            </div>
+            <div className="ml-4 space-y-2">
+              {variantBreakdown.map((product, pIdx) => (
+                <div key={pIdx} className="space-y-3">
+                  <div className="text-sm text-gray-500 font-medium">
+                    {product.productName}
+                    {(product.quantity ?? 1) > 1 && (
+                      <span className="text-gray-400 font-normal ml-1">
+                        ×{product.quantity}
+                      </span>
+                    )}
+                  </div>
+                  {product.variantOptions.map((option, oIdx) => (
+                    <div
+                      key={oIdx}
+                      className="flex justify-between items-center text-sm pl-4"
+                    >
+                      <span className="text-gray-500">
+                        •{" "}
+                        {typeof option.name === "string" ? (
+                          option.name
+                        ) : (
+                          <Chip
+                            color="default"
+                            variant="bordered"
+                            size="lg"
+                            startContent={
+                              <span
+                                className={`w-4.5 h-4.5 rounded-full`}
+                                style={{
+                                  backgroundColor: option.name.val,
+                                }}
+                              ></span>
+                            }
+                          >
+                            {option.name?.name || option.name?.val}
+                          </Chip>
+                        )}
+                      </span>
+                      <span className="text-gray-600">
+                        {convertprice(option.price)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="flex justify-between items-center py-3 border-b border-gray-200">
+          <span className="text-gray-600 font-medium">Shipping Fee</span>
+          <span className="text-lg font-semibold text-gray-800">
+            {total?.shipping ? convertprice(total.shipping) : "$0.00"}
+          </span>
+        </div>
+        <div className="flex justify-between items-center py-4 mt-4 bg-linear-to-r from-blue-50 to-purple-50 rounded-xl px-6">
+          <span className="text-xl font-bold text-gray-900">Total</span>
+          <span className="text-2xl font-bold bg-linear-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            {total?.total ? convertprice(total.total) : "$0.00"}
+          </span>
+        </div>
+      </div>
     </div>
   );
 }
@@ -303,52 +425,70 @@ const SuccessPage = async ({ orderid }: { orderid: string }) => {
   const policy = await getPolicesByPage("checkout");
 
   return (
-    <div className="success_page w-full h-full mt-5 flex flex-col items-center gap-y-20">
-      <div className="header w-full h-[50px] flex flex-row items-center justify-start">
-        <div className="line1 w-[50%] h-[10px] bg-[#495464] text-[#495464]"></div>
-        <div className="content w-[50%] max-large_tablet:w-[80%] max-large_phone:w-full max-small_phone:mt-10 p-4 bg-[#495464] text-white rounded-lg text-xl font-bold text-center">
-          Thank for your purchase
+    <div className="success_page w-full max-w-5xl mx-auto mt-8 flex flex-col items-center gap-y-12 px-4">
+      <div className="header w-full flex flex-row items-center justify-center">
+        <div className="hidden md:block flex-1 h-1 bg-linear-to-r from-transparent to-green-500 rounded-full"></div>
+        <div className="content px-8 py-6 bg-linear-to-r from-green-500 to-emerald-500 text-white rounded-2xl shadow-lg transform hover:scale-105 transition-transform duration-300">
+          <h2 className="text-2xl md:text-3xl font-bold text-center whitespace-nowrap">
+            Thank you for your purchase! 🎉
+          </h2>
         </div>
-        <div className="line1 w-1/2 h-[10px] bg-[#495464] text-xs text-[#495464]"></div>
+        <div className="hidden md:block flex-1 h-1 bg-linear-to-l from-transparent to-green-500 rounded-full"></div>
       </div>
-      <div className="order_detail w-[80%] h-fit flex flex-col gap-y-10 items-center">
-        <SuccessVector />
+      <div className="order_detail w-full bg-white rounded-2xl shadow-lg border border-gray-100 p-8 md:p-12 flex flex-col gap-y-8 items-center">
+        <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center">
+          <SuccessVector />
+        </div>
 
-        <div className="w-full h-fit flex flex-col gap-y-5">
-          <h3 className="text-2xl font-bold w-full h-fit">
-            {`Order #${orderid} is paid and prepare for shipping`}
+        <div className="w-full flex flex-col gap-y-6 text-center">
+          <h3 className="text-2xl md:text-3xl font-bold text-gray-800">
+            {`Order #${orderid}`}
           </h3>
-          <p className="text-lg font-medium w-full h-fit">
+          <div className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-green-50 rounded-full w-fit mx-auto">
+            <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+            <p className="text-lg font-semibold text-green-700">
+              Paid and preparing for shipping
+            </p>
+          </div>
+          <p className="text-base text-gray-600">
             Receipt sent to your registered email.
           </p>
-          <h3 className="text-2xl font-bold">Need Help ?</h3>
-          <div className="w-full h-fit flex flex-row items-center gap-5 flex-wrap">
-            <Link
-              className="text-lg font-bold underline"
-              href={`/privacyandpolicy?p=0`}
-            >
-              Questions
-            </Link>
-            {policy.map((pol) => (
+
+          <div className="mt-8 pt-8 border-t border-gray-200">
+            <h3 className="text-xl font-bold text-gray-800 mb-4">Need Help?</h3>
+            <div className="flex flex-wrap items-center justify-center gap-4">
               <Link
-                key={pol.id}
-                className="text-lg font-bold hover:text-gray-300 active:text-gray-300 underline"
-                href={`/privacyandpolicy?p=${pol.id}`}
+                className="px-5 py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold rounded-lg transition-colors duration-200"
+                href={`/privacyandpolicy?p=0`}
               >
-                {pol.title}
+                Questions
               </Link>
-            ))}
+              {policy.map((pol) => (
+                <Link
+                  key={pol.id}
+                  className="px-5 py-2.5 bg-gray-50 hover:bg-gray-100 text-gray-700 font-semibold rounded-lg transition-colors duration-200"
+                  href={`/privacyandpolicy?p=${pol.id}`}
+                >
+                  {pol.title}
+                </Link>
+              ))}
+            </div>
           </div>
         </div>
       </div>
-      <div className="footer_detail flex flex-col gap-y-5 w-[80%]">
-        <p className="text-lg font-medium text-blue-500 cursor-pointer transition hover:text-white">
-          Any Problem? Please contact us via email
+      <div className="footer_detail flex flex-col gap-y-6 w-full bg-linear-to-br from-blue-50 to-purple-50 rounded-2xl p-8">
+        <p className="text-lg font-medium text-gray-700 text-center">
+          Any Problem? Please{" "}
+          <span className="text-blue-600 font-semibold">
+            contact us via email
+          </span>
         </p>
-        <Navigatebutton
-          title="View Order"
-          to={`${process.env.NEXT_PUBLIC_BASE_URL}/dashboard/order?&q=${orderid}`}
-        />
+        <div className="max-w-md mx-auto w-full">
+          <Navigatebutton
+            title="View Order Details"
+            to={`${process.env.NEXT_PUBLIC_BASE_URL}/dashboard/order?&q=${orderid}`}
+          />
+        </div>
       </div>
     </div>
   );

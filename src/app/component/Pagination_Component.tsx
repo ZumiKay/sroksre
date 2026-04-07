@@ -1,6 +1,6 @@
 "use client";
 
-import React, { CSSProperties } from "react";
+import React, { CSSProperties, useMemo } from "react";
 import {
   Pagination,
   PaginationItemRenderProps,
@@ -8,10 +8,10 @@ import {
   cn,
   Select,
   SelectItem,
-} from "@nextui-org/react";
+} from "@heroui/react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { SelectType } from "@/src/context/GlobalContext";
 import { IsNumber } from "@/src/lib/utilities";
+import { SelectType } from "@/src/types/productAction.type";
 
 interface PaginationCustomProps {
   page?: number;
@@ -84,7 +84,7 @@ export default function PaginationCustom({
         variant="light"
       />
       {count && (
-        <div className="w-[280px]">
+        <div className="w-70">
           <SelectionCustom
             data={numberperpage.map((i) => ({
               label: `${i === 1 ? "1 item" : `${i} item`}`,
@@ -113,6 +113,8 @@ interface SelectionCustomProps {
   textplacement?: "outside" | "outside-left" | "inside";
   isLoading?: boolean;
   size?: "sm" | "md" | "lg";
+  defaultValue?: string;
+  popoverProps?: Record<string, unknown>;
 }
 
 export const SelectionCustom = ({
@@ -126,27 +128,50 @@ export const SelectionCustom = ({
   textplacement,
   isLoading,
   size,
+  popoverProps,
 }: SelectionCustomProps) => {
+  const items = useMemo(
+    () => [
+      { label: "-- None --", value: "" },
+      ...data.map((item) => ({
+        label: item.label,
+        value: item.value.toString(),
+      })),
+    ],
+    [data],
+  );
+
+  const selectedKeys = useMemo(
+    () => [value !== undefined && value !== "" ? value.toString() : ""],
+    [value],
+  );
+
+  const selectItems = useMemo(
+    () =>
+      items.map((item) => (
+        <SelectItem key={item.value}>{item.label}</SelectItem>
+      )),
+    [items],
+  );
+
   return (
     <Select
       label={label}
       placeholder={placeholder}
       className="w-full"
-      value={value}
       size={size ?? "md"}
       labelPlacement={textplacement}
-      selectedKeys={value ? [value] : undefined}
+      selectedKeys={selectedKeys}
       style={style}
       isLoading={!!isLoading}
+      popoverProps={popoverProps as any}
       onChange={(e) => {
         const { value } = e.target;
         setvalue && setvalue(value);
         onChange && onChange(IsNumber(value) ? parseInt(value) : value);
       }}
     >
-      {data.map((animal) => (
-        <SelectItem key={animal.value.toString()}>{animal.label}</SelectItem>
-      ))}
+      {selectItems}
     </Select>
   );
 };

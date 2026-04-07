@@ -1,14 +1,12 @@
 "use server";
 
-import {
-  ActionReturnType,
-  NotificationType,
-} from "@/src/context/GlobalContext";
-import { getUser } from "@/src/context/OrderContext";
+import { getUser } from "@/src/lib/session";
 import Prisma from "@/src/lib/prisma";
+import { NotificationType } from "@/src/types/user.type";
+import { ActionReturnType } from "@/src/types/global.type";
 
 export const SaveNotification = async (
-  data: NotificationType
+  data: NotificationType,
 ): Promise<ActionReturnType> => {
   const user = await Prisma.user.findFirst({ where: { role: "ADMIN" } });
 
@@ -32,8 +30,28 @@ export const SaveNotification = async (
   }
 };
 
+export const SaveUserNotification = async (
+  userId: number,
+  data: NotificationType,
+): Promise<ActionReturnType> => {
+  try {
+    await Prisma.notification.create({
+      data: {
+        type: data.type,
+        content: data.content,
+        userid: userId,
+        link: data.link,
+      },
+    });
+    return { success: true };
+  } catch (error) {
+    console.log("Notify", error);
+    return { success: false, message: "Error Occured" };
+  }
+};
+
 export const CheckedNotification = async (
-  id: number
+  id: number,
 ): Promise<ActionReturnType> => {
   try {
     await Prisma.notification.update({
@@ -57,7 +75,7 @@ export const CheckNotification = async () => {
     where: {
       AND: [
         {
-          userid: user.id,
+          userid: user.userId,
         },
         {
           checked: false,

@@ -1,19 +1,33 @@
-import { ApiRequest, useEffectOnce } from "@/src/context/CustomHook";
+"use client";
+
+import { ApiRequest } from "@/src/context/CustomHook";
 import {
   PromotionInitialize,
   useGlobalContext,
 } from "@/src/context/GlobalContext";
 import { useRouter, useSearchParams } from "next/navigation";
-import React, { ChangeEvent, FormEvent, useEffect, useState } from "react";
+import React, { ChangeEvent, SubmitEvent, useEffect, useState } from "react";
 import { BlurLoading, errorToast, infoToast, successToast } from "../Loading";
 import { SecondaryModal } from "../Modals";
 import { motion } from "framer-motion";
-import { DateTimePicker } from "@mui/x-date-pickers";
 import dayjs from "dayjs";
-import PrimaryButton from "../Button";
+import { parseAbsoluteToLocal } from "@internationalized/date";
 import { ImageUpload } from "./Image";
-import { Progress, Switch } from "@nextui-org/react";
-import { Backdrop } from "@mui/material";
+import { DatePicker, NumberInput, Switch } from "@heroui/react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faTags,
+  faInfoCircle,
+  faClock,
+  faLayerGroup,
+  faImage,
+  faBox,
+  faSpinner,
+  faCheck,
+  faTimes,
+  faTag,
+  faPercentage,
+} from "@fortawesome/free-solid-svg-icons";
 
 interface InventoryParamType {
   ty?: string;
@@ -57,7 +71,7 @@ export const CreatePromotionModal = ({
     const request = await ApiRequest(
       `/api/promotion?ty=edit&p=${id}`,
       undefined,
-      "GET"
+      "GET",
     );
     setloading(false);
     if (request.success) {
@@ -74,14 +88,14 @@ export const CreatePromotionModal = ({
     }
   }, []);
 
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     const param = new URLSearchParams(searchParams);
     const promo = { ...promotion };
     const isProduct = promo.Products.filter((i) => i.id !== 0).length;
     if (isProduct === 0 || !promo.expireAt) {
       errorToast(
-        !promo.expireAt ? "Please Fill Expire Date" : "Please Select Product"
+        !promo.expireAt ? "Please Fill Expire Date" : "Please Select Product",
       );
       return;
     }
@@ -93,7 +107,7 @@ export const CreatePromotionModal = ({
       setisLoading,
       method,
       "JSON",
-      { ...promo, type: "edit" }
+      { ...promo, type: "edit" },
     );
     if (!createpromo.success) {
       errorToast(createpromo.error ?? "Error Occured");
@@ -105,7 +119,7 @@ export const CreatePromotionModal = ({
     successToast(
       `Promotion ${
         globalindex.promotioneditindex === -1 ? "Created" : "Updated"
-      }`
+      }`,
     );
     Object.keys(searchparams).forEach((key) => {
       if (key === "ty") {
@@ -122,7 +136,7 @@ export const CreatePromotionModal = ({
     setopenmodal((prev) => ({ ...prev, createPromotion: false }));
     setreloaddata(true);
   };
-  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: ChangeEvent<any>) => {
     setpromotion((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
   const handleCancel = async () => {
@@ -133,7 +147,7 @@ export const CreatePromotionModal = ({
       setisLoading,
       "PUT",
       "JSON",
-      { type: "cancelproduct" }
+      { type: "cancelproduct" },
     );
 
     if (!deletepromoproduct.success) {
@@ -197,106 +211,184 @@ export const CreatePromotionModal = ({
       open={openmodal.createPromotion}
       size="xl"
       placement="top"
+      isForm={{
+        className:
+          "promotionform w-full h-full flex flex-col justify-start items-start gap-y-5 overflow-y-auto pr-2",
+        onSubmit: handleSubmit,
+      }}
+      footer={() => (
+        <div className="w-full bg-linear-to-r from-white to-orange-50 px-5 py-4 flex flex-row gap-3 border-t border-orange-200 shadow-[0_-4px_12px_rgba(0,0,0,0.05)]">
+          <button
+            type="submit"
+            disabled={isLoading.POST || isLoading.PUT}
+            className={`relative w-full h-11 rounded-xl p-3 font-bold text-sm transition-all duration-200 flex items-center justify-center gap-2 overflow-hidden ${
+              isLoading.POST || isLoading.PUT
+                ? "bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200"
+                : "bg-linear-to-br from-orange-500 to-rose-500 text-white shadow-md shadow-orange-200 hover:shadow-lg hover:shadow-orange-300 hover:scale-[1.02] active:scale-[0.98]"
+            }`}
+          >
+            {isLoading.POST || isLoading.PUT ? (
+              <>
+                <FontAwesomeIcon icon={faSpinner} spin className="text-xs" />
+                <span>
+                  {globalindex.promotioneditindex === -1
+                    ? "Creating..."
+                    : "Updating..."}
+                </span>
+              </>
+            ) : (
+              <>
+                <FontAwesomeIcon icon={faCheck} className="text-xs" />
+                <span>
+                  {globalindex.promotioneditindex === -1 ? "Create" : "Update"}
+                </span>
+              </>
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={() => handleCancel()}
+            disabled={isLoading.POST || isLoading.PUT}
+            className={`w-full h-11 rounded-xl p-5 font-bold text-sm transition-all duration-200 flex items-center justify-center gap-2 border ${
+              isLoading.POST || isLoading.PUT
+                ? "bg-gray-100 text-gray-400 cursor-not-allowed border-gray-200"
+                : "bg-white text-gray-600 border-gray-300 hover:border-red-400 hover:text-red-500 hover:bg-red-50 hover:shadow-sm active:scale-[0.98]"
+            }`}
+          >
+            <FontAwesomeIcon icon={faTimes} className="text-xs" />
+            <span>Cancel</span>
+          </button>
+        </div>
+      )}
     >
       {loading && <BlurLoading />}
-      <div className="createPromotion__container relative rounded-lg w-full h-full bg-white p-3 flex flex-col items-center">
-        <form
-          onSubmit={handleSubmit}
-          className="promotionform w-full h-full flex flex-col justify-start items-center gap-y-5"
-        >
-          <input
-            type="text"
-            name="name"
-            placeholder="Name"
-            value={promotion.name}
-            className="w-full h-[50px] pl-2 border border-gray-200 text-lg font-medium"
-            onChange={handleChange}
-            required
-          />
-          <input
-            type="text"
-            name="description"
-            value={promotion.description}
-            onChange={handleChange}
-            placeholder="Description"
-            className="w-full h-[50px] pl-2 border border-gray-200 text-lg font-medium"
-          />
-          <label className="w-full text-lg font-bold text-left">
-            Expire Date*
-          </label>
-          <DateTimePicker
-            value={promotion.expireAt ? dayjs(promotion.expireAt) : null}
-            onOpen={() => setisPickDate(true)}
-            onClose={() => setisPickDate(false)}
-            onChange={(e) => {
-              if (e) {
-                setpromotion((prev) => ({ ...prev, expireAt: e }));
-              }
-            }}
-            sx={{ width: "100%", height: "50px" }}
-          />
-          <div className="w-full flex justify-start">
-            <Switch
-              isSelected={promotion.autocate}
-              onValueChange={(val) => {
-                setpromotion((prev) => ({ ...prev, autocate: val }));
-              }}
-            >
-              Auto List at Sale Category
-            </Switch>
-          </div>
-          <PrimaryButton
-            text={
-              promotion.banner?.id || promotion.banner_id
-                ? "Edit Banner"
-                : "Select Banner"
-            }
-            onClick={() => {
-              handleSelectProductAndBanner("banner");
-            }}
-            type="button"
-            color="#3D788E"
-            radius="10px"
-            width="100%"
-            height="50px"
-          />
-          <PrimaryButton
-            text={
-              promotion.Products?.filter((i) => i.id !== 0).length > 0
-                ? "Edit Products"
-                : "Select Product"
-            }
-            onClick={() => handleSelectProductAndBanner("product")}
-            type="button"
-            radius="10px"
-            width="100%"
-            height="50px"
-          />
-          <div className="w-full h-fit flex flex-row gap-x-5">
-            <PrimaryButton
-              color="#44C3A0"
-              text={globalindex.promotioneditindex === -1 ? "Create" : "Update"}
-              type="submit"
-              status={
-                isLoading.POST || isLoading.PUT ? "loading" : "authenticated"
-              }
-              radius="10px"
-              width="100%"
-              height="50px"
-            />{" "}
-            <PrimaryButton
-              color="#F08080"
-              text="Cancel"
-              type="button"
-              disable={isLoading.POST || isLoading.PUT}
-              radius="10px"
-              width="100%"
-              height="50px"
-              onClick={() => handleCancel()}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.3 }}
+        className="createPromotion__container relative rounded-2xl w-full h-full bg-linear-to-br from-white to-orange-50 p-6 flex flex-col shadow-xl border-2 border-orange-200"
+      >
+        <div className="w-full space-y-2 pb-5 border-b-2 border-orange-200 mb-6">
+          <h4 className="text-2xl font-bold text-gray-800 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-linear-to-br from-orange-500 to-red-600 flex items-center justify-center">
+              <FontAwesomeIcon icon={faTags} className="text-white" />
+            </div>
+            {globalindex.promotioneditindex === -1
+              ? "Create Promotion"
+              : "Edit Promotion"}
+          </h4>
+          <p className="text-sm text-gray-500 ml-13">
+            Set up promotional offers with discounts and banners
+          </p>
+        </div>
+
+        <div className="w-full h-fit flex flex-col gap-y-5 items-center">
+          <div className="w-full bg-white rounded-xl p-5 border-2 border-gray-200 shadow-xs space-y-4">
+            <div className="flex items-center gap-2 mb-3">
+              <FontAwesomeIcon
+                icon={faInfoCircle}
+                className="text-lg text-orange-500"
+              />
+              <h5 className="font-bold text-gray-800">Basic Information</h5>
+            </div>
+            <input
+              type="text"
+              name="name"
+              placeholder="Promotion Name"
+              value={promotion.name}
+              className="w-full h-14 px-4 border-2 border-gray-300 rounded-xl text-base font-medium focus:border-orange-500 focus:outline-hidden transition-colors"
+              onChange={handleChange}
+              required
+            />
+            <textarea
+              name="description"
+              value={promotion.description}
+              onChange={handleChange}
+              placeholder="Description (optional)"
+              className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl text-base font-medium focus:border-orange-500 focus:outline-hidden transition-colors resize-none"
+              rows={3}
             />
           </div>
-        </form>
-      </div>
+          <div className="w-full bg-linear-to-br from-red-50 to-pink-50 rounded-xl p-5 border-2 border-red-200 space-y-3">
+            <div className="flex items-center gap-2">
+              <FontAwesomeIcon
+                icon={faClock}
+                className="text-lg text-red-500"
+              />
+              <h5 className="font-bold text-gray-800">Expiration</h5>
+              <span className="text-xs text-red-600 font-semibold bg-red-100 px-2 py-1 rounded-full">
+                Required
+              </span>
+            </div>
+            <DatePicker
+              label="Expire Date"
+              granularity="minute"
+              value={
+                promotion.expireAt
+                  ? parseAbsoluteToLocal(
+                      dayjs(promotion.expireAt).toISOString(),
+                    )
+                  : null
+              }
+              onOpenChange={(open) => setisPickDate(open)}
+              onChange={(val) => {
+                setpromotion((prev) => ({
+                  ...prev,
+                  expireAt: val ? dayjs(val.toDate()) : undefined,
+                }));
+              }}
+              classNames={{
+                base: "w-full",
+              }}
+            />
+          </div>
+
+          <div className="w-full bg-linear-to-br from-blue-50 to-indigo-50 rounded-xl p-5 border-2 border-blue-200">
+            <div className="flex items-center gap-3">
+              <FontAwesomeIcon
+                icon={faLayerGroup}
+                className="text-lg text-blue-500"
+              />
+              <Switch
+                isSelected={promotion.autocate}
+                onValueChange={(val) => {
+                  setpromotion((prev) => ({ ...prev, autocate: val }));
+                }}
+              >
+                <span className="font-semibold text-gray-700">
+                  Auto List at Sale Category
+                </span>
+              </Switch>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => handleSelectProductAndBanner("banner")}
+            className="w-full h-14 rounded-xl font-bold text-base transition-all duration-300 shadow-lg flex items-center justify-center gap-2 bg-linear-to-r from-purple-500 to-indigo-600 text-white hover:from-purple-600 hover:to-indigo-700 hover:shadow-xl hover:scale-[1.02]"
+          >
+            <FontAwesomeIcon icon={faImage} className="text-lg" />
+            <span>
+              {promotion.banner?.id || promotion.banner_id
+                ? "Edit Banner"
+                : "Select Banner"}
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => handleSelectProductAndBanner("product")}
+            className="w-full h-14 rounded-xl font-bold text-base transition-all duration-300 shadow-lg flex items-center justify-center gap-2 bg-linear-to-r from-blue-500 to-cyan-600 text-white hover:from-blue-600 hover:to-cyan-700 hover:shadow-xl hover:scale-[1.02]"
+          >
+            <FontAwesomeIcon icon={faBox} className="text-lg" />
+            <span>
+              {promotion.Products?.filter((i) => i.id !== 0).length > 0
+                ? `Edit Products (${
+                    promotion.Products.filter((i) => i.id !== 0).length
+                  })`
+                : "Select Product"}
+            </span>
+          </button>
+        </div>
+      </motion.div>
       {openmodal.imageupload && (
         <ImageUpload
           mutitlple={false}
@@ -309,14 +401,11 @@ export const CreatePromotionModal = ({
   );
 };
 
-export const DiscountModals = ({
-  setreloaddata,
-}: {
-  setreloaddata: React.Dispatch<React.SetStateAction<boolean>>;
-}) => {
+export const DiscountModals = () => {
   const {
     promotion,
     allData,
+    setalldata,
     setpromotion,
     globalindex,
     openmodal,
@@ -324,18 +413,18 @@ export const DiscountModals = ({
   } = useGlobalContext();
   const [discount, setdiscount] = useState<number>(0);
 
-  useEffectOnce(() => {
+  useEffect(() => {
     if (globalindex.promotionproductedit !== -1) {
       const idx = promotion.Products.findIndex(
-        (i) => i.id === globalindex.promotionproductedit
+        (i) => i.id === globalindex.promotionproductedit,
       );
       const promo = promotion.Products[idx].discount;
       const percent = promo?.percent;
       setdiscount(percent ?? 0);
     }
-  });
+  }, []);
 
-  const handleDiscount = (e: FormEvent<HTMLFormElement>) => {
+  const handleDiscount = (e: SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     let promoproduct = [...promotion.Products];
     let allproduct = [...(allData?.product ?? [])];
@@ -360,18 +449,21 @@ export const DiscountModals = ({
     //update product discount
     allproduct = allproduct.map((product) => {
       const matchingPromoProduct = promoproduct.find(
-        (promoProduct) => promoProduct.id === product.id
+        (promoProduct) => promoProduct.id === product.id,
       );
 
       if (matchingPromoProduct) {
         const { percent, newprice } = matchingPromoProduct.discount || {};
+        const productPrice = parseFloat(product.price?.toString() ?? "0");
         return {
           ...product,
           discount: {
-            ...product.discount,
-            percent: percent as number,
-            newprice: newprice as string,
-          },
+            price: productPrice,
+            discount: {
+              percent: percent as number,
+              newprice: newprice as string,
+            },
+          } as any,
         };
       }
 
@@ -379,9 +471,8 @@ export const DiscountModals = ({
     });
 
     //update product
-
+    setalldata((prev) => ({ ...prev, product: allproduct }));
     setpromotion((prev) => ({ ...prev, Products: promoproduct }));
-    setreloaddata(true);
     setopenmodal((prev) => ({ ...prev, discount: false }));
   };
 
@@ -395,34 +486,57 @@ export const DiscountModals = ({
       closebtn
     >
       <motion.form
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0 }}
+        transition={{ duration: 0.3 }}
         onSubmit={handleDiscount}
-        className="discount_content rounded-lg w-full h-full p-3 bg-white flex flex-col gap-y-5 justify-center items-center"
+        className="discount_content rounded-2xl w-full h-full p-6 bg-linear-to-br from-white to-purple-50 flex flex-col gap-y-6 shadow-xl border-2 border-purple-200"
       >
-        {globalindex.promotionproductedit === -1 && (
-          <h3 className="text-lg font-bold">
-            Set Discount For All Selected Product
-          </h3>
-        )}
-        <input
-          type="number"
-          placeholder="Discount Percentage EX: 20"
-          name="discount"
-          value={discount}
-          min={1}
-          max={100}
-          className="w-full h-[50px] rounded-lg pl-3 text-lg font-bold round-lg border border-gray-300"
-          onChange={(e) => setdiscount(parseFloat(e.target.value))}
-          required
-        />
-        <PrimaryButton
+        <div className="w-full space-y-2 pb-4 border-b-2 border-purple-200">
+          <h4 className="text-2xl font-bold text-gray-800 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-linear-to-br from-purple-500 to-pink-600 flex items-center justify-center">
+              <FontAwesomeIcon icon={faPercentage} className="text-white" />
+            </div>
+            Set Discount
+          </h4>
+          {globalindex.promotionproductedit === -1 && (
+            <p className="text-sm text-gray-500 ml-13">
+              Apply discount percentage to all selected products
+            </p>
+          )}
+        </div>
+
+        <div className="w-full bg-white rounded-xl p-5 border-2 border-gray-200 shadow-xs space-y-3">
+          <div className="flex items-center gap-2">
+            <FontAwesomeIcon icon={faTag} className="text-lg text-purple-500" />
+            <h5 className="font-bold text-gray-800">Discount Percentage</h5>
+          </div>
+          <NumberInput
+            type="number"
+            placeholder="Enter discount (1-100)"
+            endContent={"%"}
+            name="discount"
+            value={discount}
+            minValue={1}
+            maxValue={100}
+            className="w-full h-14 rounded-xl px-4 text-lg font-bold border-2 border-gray-300 focus:border-purple-500 focus:outline-hidden transition-colors"
+            onValueChange={(e) => setdiscount(e)}
+            isRequired
+          />
+          <p className="text-xs text-gray-500 flex items-center gap-1">
+            <FontAwesomeIcon icon={faInfoCircle} />
+            Enter a value between 1% and 100%
+          </p>
+        </div>
+
+        <button
           type="submit"
-          text="Confirm"
-          width="100%"
-          radius="10px"
-        />
+          className="w-full h-14 rounded-xl font-bold text-base transition-all duration-300 shadow-lg flex items-center justify-center gap-2 bg-linear-to-r from-purple-500 to-pink-600 text-white hover:from-purple-600 hover:to-pink-700 hover:shadow-xl hover:scale-[1.02]"
+        >
+          <FontAwesomeIcon icon={faCheck} />
+          <span>Apply Discount</span>
+        </button>
       </motion.form>
     </SecondaryModal>
   );

@@ -8,8 +8,8 @@ import {
   useState,
 } from "react";
 import { io, Socket } from "socket.io-client";
-import { NotificationType } from "./GlobalContext";
 import { SaveNotification } from "../app/severactions/notification_action";
+import { NotificationType } from "../types/user.type";
 
 const SocketContext = createContext<Socket | null>(null);
 
@@ -21,20 +21,20 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
   const [sockset, setsocket] = useState<Socket | null>(null);
 
   useEffect(() => {
-    const socketIo = io(process.env.NEXT_PUBLIC_SOCKET_URL as string);
-    socketIo.on("connect", () => {
-      console.log("Connected to socket server");
-    });
-    socketIo.on("connect_error", (err) => {
-      console.error("Connection error:", err);
-    });
-    socketIo.on("disconnect", () => {
-      console.log("Disconnected from socket server");
-    });
-    setsocket(socketIo);
-    return () => {
-      socketIo.disconnect();
-    };
+    // const socketIo = io(process.env.NEXT_PUBLIC_SOCKET_URL as string);
+    // socketIo.on("connect", () => {
+    //   console.log("Connected to socket server");
+    // });
+    // socketIo.on("connect_error", (err) => {
+    //   console.log("Connection error:", err);
+    // });
+    // socketIo.on("disconnect", () => {
+    //   console.log("Disconnected from socket server");
+    // });
+    // setsocket(socketIo);
+    // return () => {
+    //   socketIo.disconnect();
+    // };
   }, []);
 
   return (
@@ -42,14 +42,21 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
-export async function SendNotification(data: NotificationType, socket: Socket) {
-  socket.emit("sendNotification", data);
-
+export async function SendNotification(
+  data: NotificationType,
+  socket?: Socket | null,
+) {
+  // Always persist to DB regardless of socket availability
   const savenoti = SaveNotification.bind(null, data);
   const makereq = await savenoti();
 
   if (!makereq.success) {
     return { success: false };
+  }
+
+  // Emit real-time event only when socket is connected
+  if (socket?.connected) {
+    socket.emit("sendNotification", data);
   }
 
   return { success: true };

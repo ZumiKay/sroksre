@@ -1,6 +1,6 @@
 "use server";
 
-import { Role } from "@prisma/client";
+import { Role } from "@/prisma/generated/prisma/enums";
 
 export type methodtype = "POST" | "PUT" | "GET" | "DELETE";
 
@@ -10,12 +10,11 @@ const allAdminRoute: Map<string, methodtype[]> = new Map([
   ["/image", ["DELETE"]],
   ["/categories", ["POST", "PUT", "DELETE"]],
   ["/users", ["GET", "DELETE", "POST", "PUT"]],
-  ["/users/info", ["GET", "DELETE"]],
   ["/products", ["POST", "PUT", "DELETE"]],
   ["/products/cover", ["POST", "PUT", "DELETE", "GET"]],
   ["/products/variant/template", ["POST", "PUT", "GET", "DELETE"]],
   ["/promotion", ["POST", "PUT", "DELETE", "GET"]],
-  ["/policy", ["POST", "PUT", "DELETE", "GET"]],
+  ["/policy", ["POST", "PUT", "DELETE"]],
   ["/users/notification", ["POST", "GET", "DELETE"]],
   ["/order", ["POST", "PUT", "GET", "DELETE"]],
   ["/home/product", ["GET"]],
@@ -27,6 +26,7 @@ const allAdminRoute: Map<string, methodtype[]> = new Map([
 const allPublicRoute: Map<string, methodtype[]> = new Map([
   ["/products", ["GET"]],
   ["/products/relatedproduct", ["GET"]],
+  ["/products/stock/available", ["POST"]],
   ["/categories", ["GET"]],
   ["/categories/select", ["GET"]],
   ["/auth/register", ["POST"]],
@@ -47,34 +47,33 @@ const userRoute: Map<string, methodtype[]> = new Map([
 export const VerifyApiRoute = (
   url: string,
   method: methodtype,
-  role: Role | null
+  role: Role | null,
 ): { success: boolean } => {
   const normalizedUrl = url.toLowerCase();
 
-  if (!Role) {
+  // Check public routes first (no auth required)
+  const isPublicRoute = allPublicRoute.get(normalizedUrl)?.includes(method);
+  if (isPublicRoute) {
+    return { success: true };
+  }
+
+  // Require authentication for protected routes
+  if (!role) {
     return { success: false };
   }
 
+  // Check user routes before admin routes so shared routes allow both roles
   const isUserRoute = userRoute.get(normalizedUrl)?.includes(method);
-
-  // Check if it's a valid user route
-  if (isUserRoute && role === Role.USER) {
-    return { success: true };
+  if (isUserRoute) {
+    return { success: role === Role.ADMIN || role === Role.USER };
   }
 
-  // Check if it's a valid admin route
+  // Check admin-only routes (only reached when not in userRoute)
   const isAdminRoute = allAdminRoute.get(normalizedUrl)?.includes(method);
-  if (isAdminRoute && role === Role.ADMIN) {
-    return { success: true };
+  if (isAdminRoute) {
+    return { success: role === Role.ADMIN };
   }
 
-  if (isAdminRoute && role !== Role.ADMIN) {
-    return { success: false };
-  }
-
-  if (!isAdminRoute && !isUserRoute) {
-    return { success: true };
-  }
-
-  return { success: false };
+  // Default: allow if not explicitly restricted
+  return { success: true };
 };

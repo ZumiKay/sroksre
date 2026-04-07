@@ -1,5 +1,5 @@
-import { userdata } from "@/src/context/GlobalContext";
 import { Createadmin } from "@/src/lib/adminlib";
+import { userdata } from "@/src/types/user.type";
 import { NextRequest } from "next/server";
 
 export async function POST(request: NextRequest) {
@@ -9,6 +9,6 @@ export async function POST(request: NextRequest) {
   if (createadmin) {
     return Response.json({ message: "Admin Created" }, { status: 200 });
   } else {
-    return Response.json({ message: "Error Occured" }, { status: 400 });
+    return Response.json({ message: "Error Occured" }, { status: 403 });
   }
 }

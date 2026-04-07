@@ -120,10 +120,10 @@ export async function GET(req: NextRequest) {
         })),
         isLimit: filteredProduct.length < lt,
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error) {
-    console.error("Error fetching products:", error);
+    console.log("Error fetching products:", error);
     return Response.json({ message: "Error Occurred" }, { status: 500 });
   }
 }

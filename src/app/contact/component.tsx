@@ -1,7 +1,7 @@
 "use client";
 import { TextField } from "@mui/material";
 import PrimaryButton from "../component/Button";
-import { ChangeEvent, FormEvent, useEffect, useState } from "react";
+import { ChangeEvent, SubmitEvent, useEffect, useState } from "react";
 import { contacttype, SendInquiry } from "./action";
 import { successToast } from "../component/Loading";
 
@@ -21,7 +21,7 @@ export const ContactForm = ({
   });
 
   const [loading, setloading] = useState(false);
-  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
     setloading(true);
 
@@ -40,11 +40,11 @@ export const ContactForm = ({
   };
 
   const handleChange = (
-    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     const { value, name } = e.target;
 
-    setcontact((prev) => ({ ...prev, [name]: value } as any));
+    setcontact((prev) => ({ ...prev, [name]: value }) as any);
   };
   return (
     <form onSubmit={handleSubmit} className="w-full h-fit grid gap-y-10">
@@ -94,7 +94,7 @@ export const ContactForm = ({
         placeholder="Message"
         value={contactdata?.message}
         name="message"
-        className="border-2 border-gray-400 min-h-[100px] p-1"
+        className="border-2 border-gray-400 min-h-25 p-1"
         onChange={handleChange}
         required
       />

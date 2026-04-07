@@ -6,9 +6,9 @@ import {
   calculateDiscountProductPrice,
   removeSpaceAndToLowerCase,
 } from "@/src/lib/utilities";
-import { Stocktype, VariantColorValueType } from "@/src/context/GlobalContext";
 import { extractQueryParams } from "../banner/route";
 import Prisma from "@/src/lib/prisma";
+import { Stocktype, VariantValueObjType } from "@/src/types/product.type";
 
 interface paramsType {
   ty: string;
@@ -29,7 +29,7 @@ interface paramsType {
   sp?: number;
 }
 
-const convertStockData = (stock: Stocktype[]) => {
+const convertStockData = (stock: Array<Stocktype>) => {
   const lowstock = parseInt(process.env.NEXT_PUBLIC_LOWSTOCK ?? "3");
 
   const Stock = stock.map((i) => {
@@ -51,40 +51,36 @@ export async function GET(request: NextRequest) {
       ty,
       limit,
       q,
-      pc,
-      sk,
-      cc,
-      p,
-      pid,
-      po,
-      dc,
-      ds,
-      dt,
-      vr,
-      vs,
-      sp,
-      pids,
+      pc: parent_cate,
+      sk: stock,
+      cc: child_cate,
+      p: page,
+      pid: promotionid,
+      po: priceOrder,
+      dc: detailColor,
+      dt: detailText,
+      sp: selectPromotion,
+      pids: promotionIds,
     } = extractQueryParams(url) as unknown as paramsType;
 
-    const productId = pid ? parseInt(pid, 10) : undefined;
+    const productId = promotionid ? parseInt(promotionid, 10) : undefined;
 
     let response;
     if (ty === "all" || ty === "filter" || ty === "detail") {
       const allProduct = await GetAllProduct(
         limit,
         ty,
-        p as number,
+        page as number,
         q,
-        pc,
-        sk,
-        cc,
+        parent_cate,
+        stock,
+        child_cate,
         productId,
-        po,
-        dc,
-        ds,
-        dt,
-        sp,
-        pids?.toString()
+        priceOrder,
+        detailColor,
+        detailText,
+        selectPromotion,
+        promotionIds?.toString(),
       );
 
       const total = await Prisma.products.count();
@@ -98,19 +94,19 @@ export async function GET(request: NextRequest) {
             lowstock: allProduct.lowstock,
             totalfilter: allProduct.totalfilter,
           },
-          { status: 200 }
+          { status: 200 },
         );
       } else {
         response = Response.json(
           { message: "Error Occurred" },
-          { status: 500 }
+          { status: 500 },
         );
       }
     } else if (ty === "getfilval") {
       const allfilter = await Prisma.products.findMany({
         where: {
-          parentcategory_id: pc,
-          childcategory_id: cc,
+          parentcategory_id: parent_cate,
+          childcategory_id: child_cate,
         },
         select: {
           Variant: true,
@@ -125,7 +121,7 @@ export async function GET(request: NextRequest) {
       allfilter.forEach((filval) => {
         filval.Variant.forEach((variant) => {
           if (variant.option_type === "COLOR") {
-            const opt_val = variant.option_value as VariantColorValueType[];
+            const opt_val = variant.option_value as Array<VariantValueObjType>;
             opt_val.map((i) => allval.color.add(i.val));
           } else if (variant.option_type === "TEXT") {
             const opt_val = variant.option_value as string[];
@@ -163,6 +159,16 @@ export async function GET(request: NextRequest) {
                   qty: true,
                   variant_val: true,
                 },
+              },
+            },
+          },
+          Variantsection: {
+            orderBy: { id: "asc" },
+            select: {
+              id: true,
+              name: true,
+              Variants: {
+                select: { id: true },
               },
             },
           },
@@ -213,7 +219,8 @@ export async function GET(request: NextRequest) {
             })
           : [];
 
-      const result: any = {
+      //Prepare data for get request
+      const result = {
         ...product,
         discount: product.promotion_id
           ? product.discount
@@ -227,14 +234,12 @@ export async function GET(request: NextRequest) {
           parent_id: product.parentcategory_id,
           child_id: product.childcategory_id,
         },
-        variants: product.Variant,
-        varaintstock: convertStockData(product.Stock as Stocktype[]),
+        Stock: convertStockData(product.Stock as Stocktype[]),
+
         relatedproduct: otherProduct.filter((i) => i.id !== product.id),
         // Remove properties that are no longer needed
         parentcategory_id: undefined,
         childcategory_id: undefined,
-        Variant: undefined,
-        Stock: undefined,
       };
 
       return Response.json({ data: result }, { status: 200 });
@@ -251,6 +256,7 @@ export async function GET(request: NextRequest) {
           option_title: true,
           option_type: true,
           option_value: true,
+          optional: true,
         },
       });
       const stock = await Prisma.stock.findMany({
@@ -273,11 +279,11 @@ export async function GET(request: NextRequest) {
       response = Response.json(
         {
           data: {
-            varaintstock: convertStockData(stock as unknown as Stocktype[]),
-            variants: variant,
+            Stock: convertStockData(stock as unknown as Stocktype[]),
+            Variant: variant,
           },
         },
-        { status: 200 }
+        { status: 200 },
       );
     } else if (ty === "search") {
       if (!q) {

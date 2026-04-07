@@ -1,8 +1,7 @@
 "use client";
 
-import { VariantColorValueType } from "@/src/context/GlobalContext";
-import { Chip, Select, SelectedItems, SelectItem } from "@nextui-org/react";
-import React, { ReactNode, useEffect } from "react";
+import { Chip, Select, SelectedItems, SelectItem } from "@heroui/react";
+import React, { ReactNode, useEffect, useMemo } from "react";
 
 interface Multiselectprops {
   id?: number;
@@ -11,6 +10,7 @@ interface Multiselectprops {
   value: string[];
   label: string;
   onSelect: (e: Set<string>) => void;
+  isOptional?: boolean;
 }
 
 export default function Multiselect({
@@ -20,6 +20,7 @@ export default function Multiselect({
   label,
   onSelect,
   type,
+  isOptional,
 }: Multiselectprops) {
   const [values, setValues] = React.useState(new Set([""]));
 
@@ -43,8 +44,8 @@ export default function Multiselect({
             key={idx}
             startContent={
               <div
-                className="w-[15px] h-[15px] rounded-full"
-                style={{ backgroundColor: `${data.key ?? "white"}` }}
+                className="w-3.75 h-3.75 rounded-full"
+                style={{ backgroundColor: `${String(data.key) ?? "white"}` }}
               ></div>
             }
           >
@@ -55,38 +56,70 @@ export default function Multiselect({
     );
   };
 
+  const items = useMemo(() => data, [data]);
+
+  const textSelectItems = useMemo(
+    () =>
+      type === "TEXT"
+        ? items.map((item) => (
+            <SelectItem key={item.value} textValue={item.value}>
+              {item.label}
+            </SelectItem>
+          ))
+        : [],
+    [items, type],
+  );
+
+  const colorSelectItems = useMemo(
+    () =>
+      type === "COLOR"
+        ? items.map((item) => (
+            <SelectItem key={item.value} textValue={item.label}>
+              <Chip
+                startContent={
+                  <div
+                    className="w-3.75 h-3.75 rounded-full"
+                    style={{ backgroundColor: item.value }}
+                  ></div>
+                }
+              >
+                {item.label}
+              </Chip>
+            </SelectItem>
+          ))
+        : [],
+    [items, type],
+  );
+
   return (
     <div key={id} className="w-full h-full">
       <Select
         key={label}
-        label={label}
+        label={
+          <div className="flex items-center gap-2">
+            <span>{label}</span>
+            {isOptional && (
+              <Chip
+                size="sm"
+                variant="flat"
+                color="default"
+                className="bg-blue-50 text-blue-600 border border-blue-200 text-xs font-medium px-2 py-0"
+              >
+                Optional
+              </Chip>
+            )}
+          </div>
+        }
         labelPlacement="inside"
         isMultiline={true}
         selectionMode="multiple"
         selectedKeys={values}
         size="lg"
-        className="w-full h-fit min-h-[50px]"
+        className="w-full h-fit min-h-12.5"
         onChange={handleSelectionChange}
         renderValue={type === "COLOR" ? renderValue : undefined}
       >
-        {type === "TEXT"
-          ? data.map((data) => (
-              <SelectItem key={data.value}>{data.label}</SelectItem>
-            ))
-          : data.map((data) => (
-              <SelectItem key={data.value} textValue={data.label}>
-                <Chip
-                  startContent={
-                    <div
-                      className="w-[15px] h-[15px] rounded-full"
-                      style={{ backgroundColor: data.value }}
-                    ></div>
-                  }
-                >
-                  {data.label}
-                </Chip>
-              </SelectItem>
-            ))}
+        {type === "TEXT" ? textSelectItems : colorSelectItems}
       </Select>
     </div>
   );

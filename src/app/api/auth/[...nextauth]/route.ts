@@ -3,34 +3,44 @@ import GoogleProvider from "next-auth/providers/google";
 import DiscordProvider from "next-auth/providers/discord";
 import CredentialProvider from "next-auth/providers/credentials";
 import {
+  createUniqueSessionId,
+  createUserSession,
+  extractDeviceInfo,
+  generateExpiration,
+  generateExpirationDate,
   getOAuthInfo,
   handleCheckandRegisterUser,
+  hashToken,
   userlogin,
 } from "@/src/lib/userlib";
 import { NextAuthOptions } from "next-auth";
 import { generateRandomPassword } from "@/src/lib/utilities";
+import Prisma from "@/src/lib/prisma";
+import { JwtType, userdata } from "@/src/types/user.type";
 
-interface JwtType {
-  name: string;
-  email: string;
-  session_id: string;
-  picture?: string;
-  image?: string;
-  id: number;
-  role: "ADMIN" | "USER" | "EDITOR";
-  iat: number;
-  exp: number;
-  jti: string;
-}
+/**Authentication Features
+ * [✓] Credentail / Oauth (Discord , Google)
+ * [✓] Email will be save for Oauth with unique OauthId (Oauth)
+ * [✓] Register user will be validate data before save (Crendtial)
+ * [✓] Session will manage using DB with expiration flag cexp for Client
+ * [✓] Session expire in 7 days with access token expired in 15min
+ * [✓] Forget password with verification of email address
+ * [✓] Login attempt lockdown (Prevent Brute Force)
+ *     - Max 5 failed attempts before 15-minute lockout
+ *     - Tracks attempts within 30-minute window
+ *     - Automatic unlock after lockout period
+ */
 
 export const authOptions: NextAuthOptions = {
+  secret: process.env.NEXTAUTH_SECRET,
+
   pages: {
-    signIn: "../../../account/page.tsx",
-    error: "/error.tsx",
+    signIn: "/account",
+    error: "/account",
   },
   session: {
     strategy: "jwt",
-    maxAge: 60 * 60 * 24 * 7,
+    maxAge: 60 * 60 * 24 * 7, // 7 days expiration
   },
 
   providers: [
@@ -44,87 +54,250 @@ export const authOptions: NextAuthOptions = {
     }),
 
     CredentialProvider({
-      name: "Credentials",
+      id: "credentials",
+      name: "credentials",
       credentials: {
-        email: { label: "Email", type: "text", placeholder: "Email" },
+        email: { label: "Email", type: "email" },
         password: {
           label: "Password",
           type: "password",
-          placeholder: "Password",
         },
       },
-      async authorize(credentails: any): Promise<any> {
-        if (!credentails.email || !credentails.password) {
+      async authorize(credentials, req: any): Promise<any> {
+        if (!credentials?.email || !credentials?.password) {
           return null;
         }
 
-        const login = await userlogin(credentails);
-        if (!login.success) {
+        const login = await userlogin(credentials as userdata, req);
+        if (!login.success || !login.data) {
           return null;
         }
 
-        return login.data;
+        return {
+          id: login.data.userId,
+          role: login.data.role,
+          deviceInfo: extractDeviceInfo(req),
+        };
       },
     }),
   ],
+
+  //Event
+  events: {
+    async signOut({ token }) {
+      // This runs when user signs out
+      const userToken = token as unknown as JwtType;
+
+      if (userToken?.sessionid) {
+        try {
+          // Delete the session from database
+          const isSession = await Prisma.usersession.findUnique({
+            where: { refresh_token_hash: hashToken(userToken.sessionid) },
+          });
+          if (isSession) {
+            await Prisma.usersession.delete({
+              where: {
+                refresh_token_hash: hashToken(userToken.sessionid),
+              },
+            });
+          }
+          console.log("Session deleted on signout:", userToken.sessionid);
+        } catch (error) {
+          console.log("Error deleting session on signout:", error);
+        }
+      }
+    },
+  },
+
+  //Callback
   callbacks: {
-    async signIn(param): Promise<any> {
-      if (param.account?.provider !== "credentials") {
-        const checkuser = await handleCheckandRegisterUser({
+    async signIn({ user, account }): Promise<boolean> {
+      // Handle OAuth authentication (Google, Discord)
+      if (account?.provider !== "credentials" && user.email && user.name) {
+        const result = await handleCheckandRegisterUser({
           data: {
-            firstname: param.user.name as string,
-            email: param.user.email as string,
+            firstname: user.name,
+            email: user.email,
             password: generateRandomPassword(),
-            type: param.account?.provider,
-            oauthId: param.user.id,
+            type: account?.provider,
+            oauthId: user.id,
           },
         });
-        if (!checkuser.success) {
+
+        if (!result.success) {
+          console.log("Failed to register OAuth user:", user.email);
           return false;
         }
       }
 
-      return param.user;
+      return true;
     },
 
-    async jwt(params): Promise<any> {
-      if (params.token) {
-        let user = params?.user as any;
-        const jwt = params.token as unknown as JwtType;
-        let token = {
-          email: user?.email ?? jwt.email,
-          session_id: user?.sessionid ?? jwt.session_id,
-          role: user?.role ?? jwt.role,
-          id: user?.id ?? jwt.id,
-        };
+    async jwt({ token, user, account, trigger }): Promise<any> {
+      // Initial sign in
+      if (trigger === "signIn" && user) {
+        const sessionData = user as unknown as JwtType;
 
-        if (
-          params.account?.provider &&
-          params.account.provider !== "credentials"
-        ) {
-          const oauthUser = await getOAuthInfo(user.id, user.email);
+        // Handle OAuth providers
+        if (account?.provider && account.provider !== "credentials") {
+          // For OAuth, device info is not available in this callback
+          const oauthUser = await getOAuthInfo(
+            user.id,
+            user.email as string,
+            null,
+          );
 
-          token = {
+          if (!oauthUser?.sessionid) {
+            console.log("Failed to create OAuth session for:", user.email);
+            return { ...token, isExpired: true };
+          }
+
+          return {
             ...token,
-            id: oauthUser?.id,
-            role: oauthUser?.role,
-            session_id: oauthUser.session_id,
+            sessionid: oauthUser.sessionid,
+            id: oauthUser.id,
+            role: oauthUser.role,
+            email: user.email,
+            name: user.name,
+            cexp: generateExpiration(15, "minutes"),
           };
         }
 
-        return token;
-      }
-      return null;
-    },
-    async session(params): Promise<any> {
-      //checksesstion
+        // Handle credentials provider
+        const createdSession = await createUserSession(
+          sessionData.id,
+          sessionData.deviceInfo ?? {
+            device: "unkown",
+            userAgent: "unknown",
+            ipAddress: "unkown",
+          },
+        );
 
-      let session = { ...params.session };
-      session.user = { ...params.token };
+        return {
+          ...token,
+          sessionid: createdSession,
+          id: sessionData.id || Number(user.id),
+          role: sessionData.role,
+          cexp: generateExpiration(15, "minutes"), //access token exp
+        };
+      }
+
+      // Subsequent requests - verify session is still valid
+      const userToken = token as unknown as JwtType;
+      if (!userToken) {
+        return { ...token, isExpired: true };
+      }
+
+      // Explicit update() call from useCheckSession — full session rotation
+      if (trigger === "update") {
+        try {
+          const dbSession = await Prisma.usersession.findUnique({
+            where: { refresh_token_hash: hashToken(userToken.sessionid) },
+            select: {
+              expireAt: true,
+              sessionid: true,
+              revoked: true,
+              refresh_token_hash: true,
+            },
+          });
+
+          if (
+            !dbSession ||
+            dbSession.revoked ||
+            dbSession.expireAt <= new Date()
+          ) {
+            return { ...token, isExpired: true };
+          }
+
+          // Rotate session ID on explicit renewal for security
+          const newSessionId = await createUniqueSessionId();
+          await Prisma.usersession.update({
+            where: { refresh_token_hash: hashToken(userToken.sessionid) },
+            data: {
+              refresh_token_hash: hashToken(newSessionId),
+              lastUsed: new Date(),
+              expireAt: generateExpirationDate(7, "days"),
+            },
+          });
+          return {
+            ...token,
+            sessionid: newSessionId,
+            cexp: generateExpiration(15, "minutes"),
+          };
+        } catch (error) {
+          console.log("Token rotation error:", error);
+          return { ...token, isExpired: true };
+        }
+      }
+
+      // Auto-check on normal requests: refresh cexp if expired/expiring WITHOUT rotating sessionid.
+      // This avoids a race condition where a concurrent update() call would look up the old
+      // sessionid after it had already been rotated by this path, producing isExpired: true.
+      const cexpNeedsRefresh =
+        userToken.cexp && userToken.cexp * 1000 <= Date.now() + 3 * 60 * 1000;
+
+      if (cexpNeedsRefresh) {
+        try {
+          const dbSession = await Prisma.usersession.findUnique({
+            where: { refresh_token_hash: hashToken(userToken.sessionid) },
+            select: { expireAt: true, revoked: true },
+          });
+
+          if (
+            !dbSession ||
+            dbSession.revoked ||
+            dbSession.expireAt <= new Date()
+          ) {
+            return { ...token, isExpired: true };
+          }
+
+          // Extend sliding expiration but keep the same sessionid to prevent race conditions
+          await Prisma.usersession.update({
+            where: { refresh_token_hash: hashToken(userToken.sessionid) },
+            data: {
+              lastUsed: new Date(),
+              expireAt: generateExpirationDate(7, "days"),
+            },
+          });
+          return {
+            ...token,
+            cexp: generateExpiration(15, "minutes"),
+          };
+        } catch (error) {
+          console.log("Token auto-refresh error:", error);
+          return { ...token, isExpired: true };
+        }
+      }
+
+      return token;
+    },
+    async session({ session, token }): Promise<any> {
+      const userToken = token as unknown as JwtType;
+
+      if (userToken.isExpired || !userToken.id) {
+        session.expires = "0";
+        return session;
+      }
+
+      if (userToken.sessionid && userToken.id) {
+        return {
+          ...session,
+          sessionid: userToken.sessionid,
+          userId: userToken.id,
+          role: userToken.role,
+          cexp: userToken.cexp,
+          user: {
+            ...session.user,
+            id: userToken.id,
+            role: userToken.role,
+          },
+        };
+      }
 
       return session;
     },
   },
 };
-const Nextauth = NextAuth(authOptions);
-export { Nextauth as GET, Nextauth as POST };
+const handler = NextAuth(authOptions);
+
+export { handler as GET, handler as POST };

@@ -1,4 +1,4 @@
-import { BannerState } from "@/src/context/GlobalContext";
+import { BannerState } from "@/src/types/productAction.type";
 import Prisma from "@/src/lib/prisma";
 import {
   DeleteImageFromStorage,
@@ -17,6 +17,7 @@ export async function POST(request: NextRequest) {
         image: data.image,
         type: data.type,
         size: data.size,
+        promotionId: data.promotionId,
         selectedproduct_id: data.selectedproduct?.map((i) => i.value),
         parentcate_id: data.parentcate?.value as number,
         childcate_id: data.childcate?.value as number,
@@ -32,7 +33,7 @@ export async function POST(request: NextRequest) {
     console.log("Create Banner", error);
     return Response.json(
       { message: "Failed To Create Banner" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -75,6 +76,7 @@ export async function PUT(request: NextRequest) {
             image: updatedata.image,
             size: updatedata.size,
             linktype: updatedata.linktype,
+            promotionId: updatedata.promotionId,
             link: updatedata.link,
             parentcate_id: updatedata.parentcate?.value as number,
             childcate_id: updatedata.childcate?.value as number,
@@ -181,14 +183,14 @@ export async function GET(request: NextRequest) {
     const { startIndex, endIndex } = calculatePagination(
       total,
       param.limit as number,
-      param.p as number
+      param.p as number,
     );
 
-    let result;
+    let result: BannerState | undefined = undefined;
     if (param.ty === "edit") {
-      result = await Prisma.banner.findUnique({
+      result = (await Prisma.banner.findUnique({
         where: { id: param.p },
-      });
+      })) as unknown as BannerState;
 
       if (
         result?.childcate_id ||
@@ -200,11 +202,12 @@ export async function GET(request: NextRequest) {
           name: result.name,
           type: result.type as any,
           image: result.image as any,
+
           parentcate: result.parentcate_id
             ? (
                 await getBannerData(
                   [result.parentcate_id],
-                  Prisma.parentcategories
+                  Prisma.parentcategories,
                 )
               )[0]
             : undefined,
@@ -212,20 +215,20 @@ export async function GET(request: NextRequest) {
             ? (
                 await getBannerData(
                   [result.childcate_id],
-                  Prisma.childcategories
+                  Prisma.childcategories,
                 )
               )[0]
             : undefined,
           selectedproduct: result.selectedproduct_id
             ? await getBannerData(
                 result.selectedproduct_id as Array<number>,
-                Prisma.products
+                Prisma.products,
               )
             : undefined,
         };
       }
     } else {
-      result = await Prisma.banner.findMany({
+      result = (await Prisma.banner.findMany({
         where: {
           type: param.bty,
           size: param.bs,
@@ -242,7 +245,7 @@ export async function GET(request: NextRequest) {
         },
         take: endIndex - startIndex + 1,
         skip: startIndex,
-      });
+      })) as never;
     }
 
     return Response.json(
@@ -251,13 +254,13 @@ export async function GET(request: NextRequest) {
         total: total,
         totalpage: Math.ceil(total / itemperpage),
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error) {
     console.log("Fetch Banner", error);
     return Response.json(
       { message: "Failed To Fetch Banner" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -1,10 +1,5 @@
-import { ContainerLoading } from "@/src/app/component/Loading";
+import { ProductDetailSkeleton } from "./LoadingSkeleton";
 
 export default function Loading() {
-  return (
-    <div className="min-h-screen h-fit">
-      {" "}
-      <ContainerLoading />{" "}
-    </div>
-  );
+  return <ProductDetailSkeleton />;
 }

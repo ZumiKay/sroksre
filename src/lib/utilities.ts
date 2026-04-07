@@ -1,13 +1,12 @@
-import { deleteObject, ref } from "firebase/storage";
-import { storage } from "./firebase";
-import { ProductState } from "../context/GlobalContext";
-import { Orderpricetype, Productordertype } from "../context/OrderContext";
+import { del } from "@vercel/blob";
+import { Orderpricetype, Productordertype } from "../types/order.type";
 import {
   CipherKey,
   createCipheriv,
   createDecipheriv,
   randomBytes,
 } from "crypto";
+import { ProductState } from "../types/product.type";
 
 export const AllorderType = {
   orderdetail: "orderdetail",
@@ -33,14 +32,19 @@ export const GetOneWeekAgoDate = () => {
 };
 
 export const DeleteImageFromStorage = async (
-  filename: string
+  filename: string,
 ): Promise<{ Sucess: boolean }> => {
   try {
-    const deseRef = ref(storage, `productcovers/${filename}`);
-    await deleteObject(deseRef);
+    // For Vercel Blob, we need the full URL, not just the filename
+    // If filename is already a URL, use it; otherwise construct it
+    const url = filename.startsWith("http")
+      ? filename
+      : `https://jrkeurxhiddg4zho.public.blob.vercel-storage.com/${filename}`;
+
+    await del(url);
     return { Sucess: true };
   } catch (error) {
-    console.error("Firebase Storage", error);
+    console.log("Vercel Blob Storage", error);
     return { Sucess: false };
   }
 };
@@ -51,7 +55,7 @@ export const removeSpaceAndToLowerCase = (str: String) =>
 export const calculatePagination = (
   totalItem: number,
   itemPerPage: number,
-  currentPage: number
+  currentPage: number,
 ) => {
   const startIndex = (currentPage - 1) * itemPerPage;
   const endIndex = Math.min(startIndex + itemPerPage - 1, totalItem - 1);
@@ -64,7 +68,7 @@ export const calculatePagination = (
 export const caculateArrayPagination = (
   arr: Array<any>,
   page: number,
-  limit: number
+  limit: number,
 ) => {
   const startIndex = (page - 1) * limit;
   const endIndex = startIndex + limit;
@@ -127,23 +131,24 @@ export function getOneWeekFromToday(): Date {
 }
 
 export const calculateCartTotalPrice = (
-  cartItems: Array<Productordertype>
+  cartItems: Array<Productordertype>,
 ): number => {
   return cartItems.reduce((total, item) => {
     const { quantity, price } = item;
 
-    const effectivePrice = price.discount
-      ? price.discount.newprice
-      : price.price;
+    // If discount.newprice exists, it is treated as the final unit price.
+    // Otherwise, include any variant extra on top of the base product price.
+    const effectivePrice =
+      price.discount?.newprice ?? price.price + (price.extra ?? 0);
     return total + (effectivePrice ?? 0) * quantity;
   }, 0);
 };
 
 export const getmaxqtybaseStockType = (
   product: ProductState,
-  selected_detail: Array<string>
+  selected_detail: Array<string>,
 ) => {
-  const { stocktype, varaintstock, stock } = product;
+  const { stocktype, stock, Stock } = product;
 
   let qty = 0;
 
@@ -151,7 +156,7 @@ export const getmaxqtybaseStockType = (
     qty = stock as number;
   } else if (stocktype === "variant") {
     const selectedvalueset = new Set(selected_detail.map((i) => i));
-    varaintstock?.forEach((variant) => {
+    Stock?.forEach((variant) => {
       variant.Stockvalue.forEach((stock) => {
         if (
           stock.variant_val.length === selectedvalueset.size &&
@@ -172,7 +177,7 @@ export const encrypt = (text: string, key: string) => {
   // Ensure the key is 32 bytes (256 bits)
   const keyBuffer = Buffer.from(
     key.padEnd(32, "0").slice(0, 32),
-    "utf-8"
+    "utf-8",
   ) as unknown as CipherKey;
 
   const iv = randomBytes(16); // Initialization vector
@@ -194,7 +199,7 @@ export const decrypt = (text: string, key: string) => {
   // Ensure the key is 32 bytes (256 bits)
   const keyBuffer = Buffer.from(
     key.padEnd(32, "0").slice(0, 32),
-    "utf-8"
+    "utf-8",
   ) as unknown as CipherKey;
 
   const decipher = createDecipheriv(algorithm, keyBuffer, iv as any);
@@ -217,7 +222,7 @@ export const calculateDiscountProductPrice = (data: {
       price: data.price,
       discount: {
         newprice: parseFloat(
-          (data.price - (data.price * data.discount) / 100).toFixed(2)
+          (data.price - (data.price * data.discount) / 100).toFixed(2),
         ),
         percent: data.discount,
       },
@@ -229,7 +234,7 @@ export const calculateDiscountProductPrice = (data: {
 
 export const HasPartialOverlap = (
   arr1: string[][],
-  arr2: string[][]
+  arr2: string[][],
 ): boolean => {
   const set1 = new Set(arr1.map((subArr) => subArr.join(",")));
   const set2 = new Set(arr2.map((subArr) => subArr.join(",")));

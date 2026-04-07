@@ -4,11 +4,13 @@ import Prisma from "@/src/lib/prisma";
 import {
   Allstatus,
   Ordertype,
+  Productorderdetailtype,
   Productordertype,
-  getUser,
+  ShippingTypeEnum,
   totalpricetype,
-} from "@/src/context/OrderContext";
-import { Orderproduct } from "@prisma/client";
+} from "@/src/types/order.type";
+import { getUser } from "@/src/lib/session";
+import { Orderproduct } from "@/prisma/generated/prisma/client";
 import { revalidatePath } from "next/cache";
 import {
   CountryCode,
@@ -18,19 +20,32 @@ import {
   PurcahseUnitType,
   Shippingservice,
 } from "@/src/context/Checkoutcontext";
-
 import {
   calculateDiscountProductPrice,
   encrypt,
   generateRandomNumber,
   OrderReciptEmail,
 } from "@/src/lib/utilities";
-import { ProductStockType } from "../component/ServerComponents";
 import nodemailer from "nodemailer";
 import { shippingtype } from "../component/Modals/User";
-import { getCheckoutdata } from "./page";
-import { generateInvoicePdf } from "../api/order/route";
 import { formatDate } from "../component/EmailTemplate";
+import {
+  ProductStockType,
+  StockTypeEnum,
+  VariantValueObjType,
+} from "@/src/types/product.type";
+import {
+  BatchPayload,
+  PrismaPromise,
+} from "@/prisma/generated/prisma/internal/prismaNamespace";
+import { canPlaceOrder } from "./helper";
+import { getCheckoutdata } from "./fetchaction";
+import {
+  SaveNotification,
+  SaveUserNotification,
+} from "@/src/app/severactions/notification_action";
+import { generateInvoicePdf } from "../api/order/helper";
+import { CHECKOUT_SESSION_LIMIT_MS } from "./constants";
 
 interface Returntype<k = string> {
   success: boolean;
@@ -39,11 +54,148 @@ interface Returntype<k = string> {
   status?: number;
 }
 
+const ORDER_ID_PATTERN = /^[A-Za-z0-9_-]{6,64}$/;
+
+const isValidOrderId = (id?: string) => !!id && ORDER_ID_PATTERN.test(id);
+
+const isCheckoutSessionExpired = (
+  createdAt: Date,
+  renewedAt?: Date | null,
+  now = Date.now(),
+) => {
+  const base = renewedAt ?? createdAt;
+  return now - base.getTime() >= CHECKOUT_SESSION_LIMIT_MS;
+};
+
+// ─── Stock hold / release helpers ────────────────────────────────────────────
+
+type StockableItem = {
+  quantity: number;
+  product: {
+    id: number;
+    stocktype: string;
+    Stock: Array<{ Stockvalue: Array<{ id: number }> }>;
+  };
+};
+
+function buildStockAdjustments(
+  items: StockableItem[],
+  direction: "decrement" | "increment",
+): PrismaPromise<BatchPayload>[] {
+  const ops: PrismaPromise<BatchPayload>[] = [];
+
+  for (const item of items) {
+    const { id, stocktype, Stock } = item.product;
+    const qty = item.quantity;
+
+    if (stocktype === StockTypeEnum.normal) {
+      if (direction === "decrement") {
+        ops.push(
+          Prisma.products.updateMany({
+            where: { AND: [{ id }, { stock: { gte: qty } }] },
+            data: { stock: { decrement: qty } },
+          }),
+        );
+      } else {
+        ops.push(
+          Prisma.products.updateMany({
+            where: { id },
+            data: { stock: { increment: qty } },
+          }),
+        );
+      }
+    } else if (Stock && Stock.length > 0) {
+      const svIds = Stock.flatMap((sk) => sk.Stockvalue.map((sv) => sv.id));
+      if (svIds.length > 0) {
+        if (direction === "decrement") {
+          ops.push(
+            Prisma.stockvalue.updateMany({
+              where: { AND: [{ id: { in: svIds } }, { qty: { gte: qty } }] },
+              data: { qty: { decrement: qty } },
+            }),
+          );
+        } else {
+          ops.push(
+            Prisma.stockvalue.updateMany({
+              where: { id: { in: svIds } },
+              data: { qty: { increment: qty } },
+            }),
+          );
+        }
+      }
+    }
+  }
+
+  return ops;
+}
+
+/** Hold stock for the given cart items (called at checkout start). */
+async function holdStockForItems(items: StockableItem[]) {
+  const ops = buildStockAdjustments(items, "decrement");
+  if (ops.length > 0) await Prisma.$transaction(ops);
+}
+
+/** Release all stock holds for an order (called on session termination/expiry). */
+async function releaseStock(orderId: string) {
+  const orderProducts = await Prisma.orderproduct.findMany({
+    where: { orderId },
+    select: {
+      quantity: true,
+      product: {
+        select: {
+          id: true,
+          stocktype: true,
+          Stock: { select: { Stockvalue: { select: { id: true } } } },
+        },
+      },
+    },
+  });
+
+  const ops = buildStockAdjustments(orderProducts, "increment");
+  if (ops.length > 0) await Prisma.$transaction(ops);
+}
+
+// ─── Session expiry ───────────────────────────────────────────────────────────
+
+const expireUnpaidOrderIfNeeded = async (order: {
+  id: string;
+  status: string;
+  createdAt: Date;
+  renewedAt?: Date | null;
+}) => {
+  if (order.status !== Allstatus.unpaid) {
+    return false;
+  }
+
+  if (!isCheckoutSessionExpired(order.createdAt, order.renewedAt)) {
+    return false;
+  }
+
+  // Release held stock, then mark the order and all its items as abandoned.
+  // We intentionally do NOT delete so that order history is preserved.
+  await releaseStock(order.id);
+  await Promise.all([
+    Prisma.orders.update({
+      where: { id: order.id },
+      data: { status: Allstatus.abandoned },
+    }),
+    Prisma.orderproduct.updateMany({
+      where: {
+        orderId: order.id,
+        status: { in: [Allstatus.incart, Allstatus.unpaid] },
+      },
+      data: { status: Allstatus.abandoned },
+    }),
+  ]);
+  revalidatePath("/checkout");
+  return true;
+};
+
 export async function getAddress(orderid?: string) {
   const user = await getUser();
 
   const address = await Prisma.address.findMany({
-    where: { userId: user?.id },
+    where: { userId: user?.userId },
   });
 
   let selectedaddress;
@@ -67,27 +219,138 @@ export async function getOrderAddress(orderId: string) {
   return address;
 }
 
-export async function Createorder(data: {
+export async function createOrder(data: {
   price: totalpricetype;
   incartProduct: number[];
 }): Promise<Returntype<any>> {
-  const user = await getUser();
+  const user = await getUser({
+    user: {
+      select: {
+        buyer_id: true,
+      },
+    },
+  });
 
-  const userid = user?.id;
+  if (!user || !user?.user?.buyer_id)
+    return { success: false, message: "No Access" };
+
+  const uniqueCartIds = Array.from(new Set(data.incartProduct)).filter(
+    (id) => Number.isInteger(id) && id > 0,
+  );
+
+  if (uniqueCartIds.length === 0) {
+    return { success: false, message: "No valid cart items" };
+  }
+
+  // We'll check for existing order first so we can also accept items
+  // already linked to it (handles the case where user navigates back
+  // without terminating the session and clicks checkout again).
+  let preCheckOrder = await Prisma.orders.findFirst({
+    where: {
+      AND: [{ buyer_id: user.user.buyer_id }, { status: Allstatus.unpaid }],
+    },
+  });
+
+  if (preCheckOrder) {
+    const expired = await expireUnpaidOrderIfNeeded(preCheckOrder);
+    if (expired) preCheckOrder = null;
+  }
+
+  const cartItems = await Prisma.orderproduct.findMany({
+    where: {
+      id: { in: uniqueCartIds },
+      user_id: user.userId,
+      status: Allstatus.incart,
+      // Accept items that are unlinked OR already linked to the existing
+      // checkout session (so re-clicking checkout doesn't fail).
+      ...(preCheckOrder
+        ? { OR: [{ orderId: null }, { orderId: preCheckOrder.id }] }
+        : { orderId: null }),
+    },
+    select: {
+      id: true,
+      orderId: true,
+      quantity: true,
+      details: true,
+      product: {
+        select: {
+          id: true,
+          price: true,
+          discount: true,
+          stocktype: true,
+          Stock: { select: { Stockvalue: { select: { id: true } } } },
+          Variant: {
+            select: {
+              id: true,
+              price: true,
+              option_title: true,
+              option_value: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (cartItems.length !== uniqueCartIds.length) {
+    return { success: false, message: "Invalid cart selection" };
+  }
+
+  let totalVariantExtra = 0;
+
+  const subtotal = cartItems.reduce((sum, item) => {
+    const basePrice = item.product.discount
+      ? (calculateDiscountProductPrice({
+          price: item.product.price,
+          discount: item.product.discount,
+        }).discount?.newprice ?? 0)
+      : item.product.price;
+
+    // Compute per-unit variant option extra
+    let variantExtra = 0;
+    const detail = (item.details ?? []) as Array<{
+      variant_id: number;
+      value: string;
+    }>;
+    for (const d of detail) {
+      const variant = item.product.Variant?.find((v) => v.id === d.variant_id);
+      if (!variant) continue;
+      const variantPrice = variant.price
+        ? parseFloat(variant.price.toString())
+        : 0;
+      if (variantPrice > 0) {
+        variantExtra += variantPrice;
+        continue;
+      }
+      const opts = (variant.option_value ?? []) as Array<
+        string | VariantValueObjType
+      >;
+      const opt = opts.find((o) =>
+        typeof o === "string" ? o === d.value : o.val === d.value,
+      );
+      if (opt && typeof opt !== "string" && opt.price) {
+        variantExtra += parseFloat(opt.price.toString());
+      }
+    }
+
+    totalVariantExtra += variantExtra * item.quantity;
+    return sum + basePrice * item.quantity;
+  }, 0);
+
+  const pickupService = Shippingservice.find((s) => s.value === "Pickup");
+  const defaultShipping = pickupService?.price ?? 0;
+  const extra =
+    totalVariantExtra > 0 ? parseFloat(totalVariantExtra.toFixed(2)) : 0;
+  const serverPrice: totalpricetype = {
+    subtotal,
+    shipping: defaultShipping,
+    total: subtotal + extra + defaultShipping,
+    ...(extra > 0 ? { extra } : {}),
+  };
+
   let orderId = "";
   try {
-    const checkOrder = await Prisma.orders.findFirst({
-      where: {
-        AND: [
-          {
-            buyer_id: userid,
-          },
-          {
-            status: Allstatus.unpaid,
-          },
-        ],
-      },
-    });
+    let checkOrder = preCheckOrder;
 
     if (!checkOrder) {
       let generateID = "SSC" + generateRandomNumber();
@@ -107,29 +370,47 @@ export async function Createorder(data: {
       const create = await Prisma.orders.create({
         data: {
           id: generateID,
-          buyer_id: userid as any,
+          buyer_id: user.user.buyer_id as string,
           status: Allstatus.unpaid,
-          price: data.price as any,
-          shippingtype: Shippingservice[2].value,
+          price: serverPrice as any,
+          shippingtype: ShippingTypeEnum.pickup,
         },
       });
       orderId = create.id;
     } else {
+      await Prisma.orders.update({
+        where: { id: checkOrder.id },
+        data: { price: serverPrice as any },
+      });
       orderId = checkOrder?.id as string;
     }
 
     //Update incart product
 
     await Promise.all(
-      data.incartProduct.map((i) =>
+      uniqueCartIds.map((i) =>
         Prisma.orderproduct.updateMany({
-          where: { id: i },
+          where: {
+            id: i,
+            user_id: user.userId,
+            status: Allstatus.incart,
+          },
           data: {
             orderId,
           },
-        })
-      )
+        }),
+      ),
     );
+
+    // Only hold stock for items newly entering this checkout session.
+    // Items already linked to the existing order (re-checkout scenario)
+    // already have their stock held — don't double-decrement.
+    const newlyLinkedItems = cartItems.filter(
+      (i) => i.orderId !== checkOrder?.id,
+    );
+    if (newlyLinkedItems.length > 0) {
+      await holdStockForItems(newlyLinkedItems as StockableItem[]);
+    }
 
     const encryptId = encrypt(orderId, process.env.KEY as string);
     return {
@@ -142,17 +423,116 @@ export async function Createorder(data: {
   }
 }
 
-export async function checkOrder(id: string) {
-  const isOrder = await Prisma.orders.findUnique({
-    where: { id },
-    select: { id: true, status: true },
+/**
+ * Renew the checkout session timer for an active unpaid order.
+ * Returns the new timer base so the client can update its countdown locally.
+ */
+export async function renewCheckoutSession(
+  orderId: string,
+): Promise<Returntype<string> & { renewedAt?: string }> {
+  if (!isValidOrderId(orderId)) {
+    return { success: false, message: "Invalid order" };
+  }
+
+  const order = await checkOrder(orderId);
+  if (!order || order.status !== Allstatus.unpaid) {
+    return { success: false, message: "Checkout session expired" };
+  }
+
+  const renewedAt = new Date();
+  await Prisma.orders.update({
+    where: { id: orderId },
+    data: { renewedAt },
   });
+
+  return { success: true, renewedAt: renewedAt.toISOString() };
+}
+
+/**
+ * Explicitly terminate a checkout session (user navigates away).
+ * Releases stock holds, unlinks orderproducts back to the cart (orderId → null,
+ * status kept as incart so the user can resume shopping), and marks the order
+ * as abandoned for history — without deleting any records.
+ */
+export async function terminateCheckoutSession(
+  orderId: string,
+): Promise<Returntype> {
+  if (!isValidOrderId(orderId)) {
+    return { success: false };
+  }
+
+  try {
+    const order = await Prisma.orders.findUnique({
+      where: { id: orderId },
+      select: { id: true, status: true },
+    });
+
+    if (!order || order.status !== Allstatus.unpaid) {
+      return { success: false, message: "Order not found or already paid" };
+    }
+
+    await releaseStock(orderId);
+    // Unlink orderproducts so they return to the user's cart (orderId = null),
+    // then mark the order itself as abandoned for history.
+    await Promise.all([
+      Prisma.orderproduct.updateMany({
+        where: { orderId },
+        data: { orderId: null },
+      }),
+      Prisma.orders.update({
+        where: { id: orderId },
+        data: { status: Allstatus.abandoned },
+      }),
+    ]);
+
+    return { success: true };
+  } catch (error) {
+    console.log("Terminate checkout session", error);
+    return { success: false };
+  }
+}
+
+export async function checkOrder(id: string) {
+  if (!isValidOrderId(id)) {
+    return null;
+  }
+
+  const user = await getUser({
+    user: {
+      select: {
+        buyer_id: true,
+      },
+    },
+  });
+
+  if (!user?.user?.buyer_id) {
+    return null;
+  }
+
+  const isOrder = await Prisma.orders.findUnique({
+    where: {
+      id,
+      buyer_id: user.user.buyer_id,
+    },
+    select: { id: true, status: true, createdAt: true, renewedAt: true },
+  });
+
+  if (!isOrder) {
+    return null;
+  }
+
+  //Check if the unpaid order is valid
+  const isExpired = await expireUnpaidOrderIfNeeded(isOrder);
+
+  if (isExpired) {
+    return null;
+  }
 
   return isOrder;
 }
 
 export async function getOrderProduct(
-  orderId: string
+  orderId: string,
 ): Promise<Returntype<Array<Orderproduct>>> {
   const getProduct = await Prisma.orderproduct.findMany({
     where: { orderId },
@@ -170,80 +550,105 @@ export async function getOrderProduct(
   return { success: true, data: getProduct };
 }
 
+// ─── Out-of-stock check ───────────────────────────────────────────────────────
+
+async function getOutOfStockProducts(productIds: number[]) {
+  if (productIds.length === 0) return [];
+
+  const products = await Prisma.products.findMany({
+    where: { id: { in: productIds } },
+    select: {
+      id: true,
+      name: true,
+      stocktype: true,
+      stock: true,
+      Stock: {
+        select: {
+          Stockvalue: { select: { id: true, qty: true } },
+        },
+      },
+      Variant: {
+        select: { id: true, qty: true, option_value: true },
+      },
+    },
+  });
+
+  const outOfStock: Array<{ id: number; name: string }> = [];
+
+  for (const product of products) {
+    let isOOS = false;
+
+    if (product.stocktype === ProductStockType.stock) {
+      // Normal stock: Products.stock
+      if ((product.stock ?? 0) <= 0) isOOS = true;
+    } else {
+      // Variant stock: Stock → Stockvalue.qty
+      const hasOOSStockvalue = product.Stock.some((s) =>
+        s.Stockvalue.some((sv) => sv.qty <= 0),
+      );
+      if (hasOOSStockvalue) isOOS = true;
+    }
+
+    // Variant with qty field, and option_value items with qty
+    if (!isOOS) {
+      for (const variant of product.Variant) {
+        if (
+          variant.qty !== null &&
+          variant.qty !== undefined &&
+          variant.qty <= 0
+        ) {
+          isOOS = true;
+          break;
+        }
+        const opts = (variant.option_value ?? []) as (
+          | string
+          | VariantValueObjType
+        )[];
+        const hasOOSOption = opts.some(
+          (opt) =>
+            typeof opt !== "string" && opt.qty !== undefined && opt.qty <= 0,
+        );
+        if (hasOOSOption) {
+          isOOS = true;
+          break;
+        }
+      }
+    }
+
+    if (isOOS) outOfStock.push({ id: product.id, name: product.name });
+  }
+
+  return outOfStock;
+}
+
 export interface OrderUserType extends Ordertype {
-  user: {
-    id: number;
-    firstname: string;
-    lastname?: string;
-    email: string;
-  };
   Orderproduct: Productordertype[];
   createdAt: Date;
-  shipping?: shippingtype;
+  // shipping already defined in Ordertype
 }
 
 export async function updateStatus(
   orderid: string,
   html: string,
-  adminhtml: string
+  adminhtml: string,
 ): Promise<Returntype> {
+  const order = await getCheckoutdata(orderid);
+
+  if (!order || !canPlaceOrder(order) || !order.user || !order.user.email) {
+    return { success: false, status: 400 };
+  }
   try {
-    const order = await getCheckoutdata(orderid);
+    // Stock was already decremented when the checkout session started (holdStockForItems).
+    // Here we only update order/product status and amount_sold.
 
-    if (!order) {
-      return { success: false, status: 404 };
-    }
-
-    // Prepare updates
-    const productUpdates: Array<Promise<any>> = [];
-    const stockUpdates: Array<Promise<any>> = [];
-
-    order.Orderproduct.forEach((cart) => {
-      const { stocktype, Stock } = cart.product;
-
-      if (stocktype === ProductStockType.stock) {
-        productUpdates.push(
-          Prisma.products.updateMany({
-            where: {
-              AND: [
-                {
-                  id: cart.product.id,
-                },
-                {
-                  stock: { not: 0 },
-                },
-              ],
-            },
-            data: { stock: { decrement: cart.quantity } },
-          })
-        );
-      } else {
-        const stockValueIds = Stock.flatMap((sk) =>
-          sk.Stockvalue.map((sv) => sv.id)
-        );
-        stockUpdates.push(
-          Prisma.stockvalue.updateMany({
-            where: {
-              AND: [
-                {
-                  id: { in: stockValueIds },
-                },
-                { qty: { not: 0 } },
-              ],
-            },
-            data: { qty: { decrement: cart.quantity } },
-          })
-        );
-      }
-    });
-
-    // Execute all updates concurrently
     await Promise.all([
-      ...productUpdates,
-      ...stockUpdates,
       Prisma.products.updateMany({
         where: {
-          id: { in: order.Orderproduct.map((i) => i.productId) },
+          id: {
+            in: order.Orderproduct.filter((i) => i.productId).map(
+              (i) => i.productId,
+            ) as number[],
+          },
         },
         data: { amount_sold: { increment: 1 } },
       }),
@@ -262,60 +667,124 @@ export async function updateStatus(
     const htmltemplate = OrderReciptEmail(html);
 
     const createInvoice = await generateInvoicePdf({
-      id: order.id,
-      product: order.Orderproduct.map((prob) => ({
-        id: prob.product.id,
-        name: prob.product.name,
+      id: order.id as string,
+      product: order.Orderproduct.filter((i) => i.product).map((prob) => ({
+        id: prob.product?.id as number,
+        name: prob.product?.name as string,
         price: prob.price,
-        selectedVariant: prob.selectedvariant.map((i) =>
-          typeof i === "string" ? i : i?.name ?? ""
-        ),
+        selectedVariant: prob.selectedvariant as any,
         quantity: prob.quantity,
         totalprice:
-          prob.quantity * (prob.price.discount?.newprice ?? prob.price.price),
+          prob.quantity *
+          (prob.price.discount?.newprice ??
+            prob.price.price + (prob.price.extra ?? 0)),
       })),
       price: order.price as unknown as totalpricetype,
       shipping: order.shipping as any,
-      createdAt: formatDate(order.createdAt),
+      createdAt: formatDate(order.createdAt as Date),
     });
 
     await Promise.all([
       SendOrderEmail(
         htmltemplate,
-        order.user.email,
+        order.user.email as string,
         emailSubject,
-        createInvoice
+        createInvoice,
       ),
       SendOrderEmail(
         adminhtml,
         process.env.EMAIL as string,
         `Order #${order.id} request`,
-        createInvoice
+        createInvoice,
       ),
     ]);
 
+    // ── Order notifications ──────────────────────────────────────────────────
+    const notifPromises: Promise<any>[] = [
+      SaveNotification({
+        type: "order",
+        content: `New order #${order.id} has been placed`,
+        link: `/dashboard/order/${order.id}`,
+        checked: false,
+      }),
+    ];
+    if (order.user?.id) {
+      notifPromises.push(
+        SaveUserNotification(order.user.id, {
+          type: "order",
+          content: `Your order #${order.id} has been confirmed and is being processed`,
+          link: `/account/orders`,
+          checked: false,
+        }),
+      );
+    }
+    await Promise.all(notifPromises);
+
+    // ── Out-of-stock notifications for admin ─────────────────────────────────
+    const productIds = order.Orderproduct.filter((i) => i.productId).map(
+      (i) => i.productId as number,
+    );
+    const oosProducts = await getOutOfStockProducts(productIds);
+    if (oosProducts.length > 0) {
+      await Promise.all(
+        oosProducts.map((p) =>
+          SaveNotification({
+            type: "stock",
+            content: `"${p.name}" is out of stock`,
+            link: `/dashboard/products/${p.id}`,
+            checked: false,
+          }),
+        ),
+      );
+    }
+
     return { success: true, message: "Payment completed" };
   } catch (error) {
-    console.error("Update status error:", error);
-    return { success: false, message: "Error occurred" };
+    console.log("Update status error:", error);
+    return { success: false, message: "Error occurred", status: 500 };
   }
 }
 
-export async function handleShippingAdddress(
+export async function handleShippingAddress(
   orderId: string,
   selected?: number,
   shippingdata?: shippingtype,
-  isSave?: string
+  isSave?: string,
 ): Promise<Returntype> {
   try {
     let shipId = selected;
     const user = await getUser();
 
-    if (!shipId && shippingdata && user && isSave) {
+    if (!user) {
+      return { success: false, message: "No access" };
+    }
+
+    const order = await checkOrder(orderId);
+
+    if (!order) {
+      return { success: false, message: "Checkout session expired" };
+    }
+
+    if (order.status !== Allstatus.unpaid) {
+      return { success: false, message: "Order is no longer unpaid" };
+    }
+
+    if (shipId && shipId > 0 && !shippingdata) {
+      const selectedAddress = await Prisma.address.findUnique({
+        where: { id: shipId },
+        select: { id: true, userId: true },
+      });
+
+      if (!selectedAddress || selectedAddress.userId !== user.userId) {
+        return { success: false, message: "Invalid shipping address" };
+      }
+    }
+
+    if (!shipId && shippingdata && user) {
       //create shipping addresss
       const create = await Prisma.address.create({
         data: {
-          userId: isSave === "1" ? user.id : undefined,
+          userId: isSave === "1" ? user.userId : undefined,
           firstname: shippingdata.firstname,
           lastname: shippingdata.lastname,
           houseId: shippingdata.houseId.toString(),
@@ -337,7 +806,7 @@ export async function handleShippingAdddress(
       if (address && !address.userId && isSave === "1") {
         await Prisma.address.update({
           where: { id: shipId },
-          data: { userId: user?.id },
+          data: { userId: user.userId },
         });
       }
     }
@@ -350,6 +819,7 @@ export async function handleShippingAdddress(
         status: Allstatus.unpaid,
       },
     });
+    revalidatePath("/checkout");
     return { success: true };
   } catch (error) {
     console.log("Shipping Address", error);
@@ -359,33 +829,42 @@ export async function handleShippingAdddress(
 
 export async function updateShippingService(
   orderId: string,
-  shippingtype: string
+  shippingtype: string,
 ): Promise<Returntype> {
   try {
-    let updatePrice: totalpricetype = {
-      subtotal: 0,
-      total: 0,
-      shipping: 0,
-    };
+    const orderState = await checkOrder(orderId);
 
-    const order = await Prisma.orders.findFirst({
-      where: {
-        id: orderId,
-      },
-    });
+    if (!orderState) {
+      return { success: false, message: "Checkout session expired" };
+    }
+
+    if (orderState.status !== Allstatus.unpaid) {
+      return { success: false, message: "Order is no longer unpaid" };
+    }
+
+    const selectedShipping = Shippingservice.find(
+      (i) => i.value === shippingtype,
+    );
+
+    if (!selectedShipping) {
+      return { success: false, message: "Invalid shipping service" };
+    }
+
+    const order = await Prisma.orders.findFirst({ where: { id: orderId } });
 
     if (!order) {
       return { success: false, message: "Order not found" };
     }
 
     const subprice = order.price as unknown as totalpricetype;
-    const shippingPrice =
-      Shippingservice.find((i) => i.value === shippingtype)?.price ?? 0;
+    const shippingPrice = selectedShipping.price ?? 0;
+    const storedExtra = subprice.extra ?? 0;
 
-    updatePrice = {
+    const updatePrice: totalpricetype = {
       subtotal: subprice.subtotal,
       shipping: shippingPrice,
-      total: subprice.subtotal + shippingPrice,
+      total: subprice.subtotal + storedExtra + shippingPrice,
+      ...(storedExtra > 0 ? { extra: storedExtra } : {}),
     };
 
     await Prisma.orders.update({
@@ -414,7 +893,7 @@ const generateAccessToken = async () => {
 
   try {
     const auth = Buffer.from(paypal_id + ":" + paypal_secret).toString(
-      "base64"
+      "base64",
     );
     const response = await fetch(`${process.env.PAYPAL_BASE}/v1/oauth2/token`, {
       method: "POST",
@@ -426,13 +905,31 @@ const generateAccessToken = async () => {
     const data = await response.json();
     return data.access_token;
   } catch (error) {
-    console.error("Failed to generate Access Token:", error);
+    console.log("Failed to generate Access Token:", error);
     return null;
   }
 };
 
-export async function Createpaypalorder(orderId: string): Promise<Returntype> {
+export async function createPaypalOrder(orderId: string): Promise<Returntype> {
   try {
+    const orderState = await checkOrder(orderId);
+
+    if (!orderState) {
+      return {
+        success: false,
+        message: "Checkout session expired",
+        status: 410,
+      };
+    }
+
+    if (orderState.status !== Allstatus.unpaid) {
+      return {
+        success: false,
+        message: "Order is no longer unpaid",
+        status: 400,
+      };
+    }
+
     const accessToken = await generateAccessToken();
 
     const order = await Prisma.orders.findUnique({
@@ -470,6 +967,14 @@ export async function Createpaypalorder(orderId: string): Promise<Returntype> {
                 name: true,
                 price: true,
                 discount: true,
+                Variant: {
+                  select: {
+                    id: true,
+                    price: true,
+                    option_title: true,
+                    option_value: true,
+                  },
+                },
               },
             },
           },
@@ -487,7 +992,7 @@ export async function Createpaypalorder(orderId: string): Promise<Returntype> {
     const currency_code = "USD";
     const orderPrice = order.price as unknown as totalpricetype;
     const shippingtype = Shippingservice.find(
-      (i) => i.value === order.shippingtype
+      (i) => i.value === order.shippingtype,
     );
     const url = `${process.env.PAYPAL_BASE}/v2/checkout/orders`;
     const header = {
@@ -496,46 +1001,128 @@ export async function Createpaypalorder(orderId: string): Promise<Returntype> {
     };
 
     let orderItems: Paypalitemtype[] = order.Orderproduct.map((i) => {
-      const price = i.product.discount
-        ? calculateDiscountProductPrice({
+      const baseDiscountedPrice = i.product.discount
+        ? (calculateDiscountProductPrice({
             price: i.product.price,
             discount: i.product.discount,
-          }).discount?.newprice?.toFixed(2) ?? "0.00"
-        : parseFloat(i.product.price.toString()).toFixed(2);
+          }).discount?.newprice ?? i.product.price)
+        : i.product.price;
+
+      // Add variant option extra price
+      const details = (i.details as Productorderdetailtype[]) ?? [];
+      const variantExtra = details.reduce((sum, detail) => {
+        if (!detail.value) return sum;
+        const variant = (i.product.Variant ?? []).find(
+          (v) => v.id === detail.variant_id,
+        );
+        if (!variant) return sum;
+        const variantLevelPrice = variant.price;
+        if (variantLevelPrice) {
+          return sum + parseFloat(variantLevelPrice.toString());
+        }
+        const option = (
+          variant.option_value as (string | VariantValueObjType)[]
+        ).find((opt) =>
+          typeof opt === "string"
+            ? opt === detail.value
+            : opt.val === detail.value,
+        );
+        if (option && typeof option !== "string" && option.price) {
+          return sum + parseFloat(option.price.toString());
+        }
+        return sum;
+      }, 0);
+
+      const unitPrice = parseFloat(
+        (baseDiscountedPrice + variantExtra).toFixed(2),
+      );
+
+      // Build variant description: "Title: value, Title: value"
+      const variantDescription = details
+        .map((detail) => {
+          if (!detail.value) return null;
+          const variant = (i.product.Variant ?? []).find(
+            (v) => v.id === detail.variant_id,
+          );
+          if (!variant) return null;
+          const option = (
+            variant.option_value as (string | VariantValueObjType)[]
+          ).find((opt) =>
+            typeof opt === "string"
+              ? opt === detail.value
+              : opt.val === detail.value,
+          );
+          const displayValue =
+            typeof option === "string"
+              ? option
+              : (option?.name ?? option?.val ?? detail.value);
+          const title = (variant as any).option_title;
+          return title ? `${title}: ${displayValue}` : displayValue;
+        })
+        .filter(Boolean)
+        .join(", ");
+
       return {
-        name: i.product.name,
+        name: i.product.name.slice(0, 127), // PayPal max 127 chars
         quantity: i.quantity.toString(),
-        url: `${process.env.NEXTAUTH_URL}/product/detail/${i.product.id}`,
+        ...(variantDescription && {
+          description: variantDescription.slice(0, 127),
+        }),
         unit_amount: {
           currency_code,
-          value: price,
+          value: unitPrice.toFixed(2),
         },
       };
     });
 
+    // Derive item_total from rounded unit prices so PayPal's validation passes:
+    // PayPal checks sum(unit_amount * quantity) == item_total exactly.
+    const computedItemTotal = orderItems
+      .reduce(
+        (sum, item) =>
+          sum + parseFloat(item.unit_amount.value) * parseInt(item.quantity),
+        0,
+      )
+      .toFixed(2);
+    const shippingValue = orderPrice.shipping?.toFixed(2) ?? "0.00";
+    const computedTotal = (
+      parseFloat(computedItemTotal) + parseFloat(shippingValue)
+    ).toFixed(2);
+
     let orderAmount: Paypalamounttype = {
       currency_code,
-      value: orderPrice.total.toFixed(2),
+      value: computedTotal,
       breakdown: {
         shipping: {
           currency_code,
-          value: orderPrice.shipping?.toFixed(2) ?? "0.00",
+          value: shippingValue,
         },
-        item_total: { currency_code, value: orderPrice.subtotal.toFixed(2) },
+        item_total: { currency_code, value: computedItemTotal },
       },
     };
 
+    const isPickup = shippingtype?.value === "Pickup";
+    const shipping = order.shipping;
+    // address_line_2: house ID and commune (songkhat) — secondary details
+    const address_line_2 = [shipping?.houseId, shipping?.songkhat]
+      .filter(Boolean)
+      .join(", ");
+
     let orderShipping: PaypalshippingType = {
-      type: shippingtype?.value !== "Pickup" ? "SHIPPING" : "NO_SHIPPING",
-      ...(order.shipping && {
-        address: {
-          address_line_1: `${order.shipping?.street}`,
-          address_line_2: `${order.shipping?.houseId} ${order.shipping?.songkhat} ${order.shipping?.district}`,
-          admin_area_2: order.shipping?.province,
-          postal_code: order.shipping?.postalcode ?? "",
-          country_code: CountryCode.cambodia,
-        },
-      }),
+      type: isPickup ? undefined : "SHIPPING",
+      ...(!isPickup &&
+        shipping?.street && {
+          address: {
+            address_line_1: shipping.street,
+            ...(address_line_2 && { address_line_2 }),
+            // admin_area_2 = city (required by PayPal) → district
+            ...(shipping.district && { admin_area_2: shipping.district }),
+            // admin_area_1 = state/province
+            ...(shipping.province && { admin_area_1: shipping.province }),
+            ...(shipping.postalcode && { postal_code: shipping.postalcode }),
+            country_code: CountryCode.cambodia,
+          },
+        }),
     };
 
     const purchase_units: PurcahseUnitType = {
@@ -548,6 +1135,8 @@ export async function Createpaypalorder(orderId: string): Promise<Returntype> {
       purchase_units: [purchase_units],
     };
 
+    console.log("[PayPal] payload:", JSON.stringify(payload, null, 2));
+
     const request = await fetch(url, {
       headers: header,
       method: "POST",
@@ -556,6 +1145,13 @@ export async function Createpaypalorder(orderId: string): Promise<Returntype> {
 
     const jsonResponse = await request.json();
 
+    if (!request.ok) {
+      console.error(
+        "[PayPal] error response:",
+        JSON.stringify(jsonResponse, null, 2),
+      );
+    }
+
     return { success: true, data: jsonResponse, status: request.status };
   } catch (error) {
     console.log("Paypal Error", error);
@@ -563,7 +1159,7 @@ export async function Createpaypalorder(orderId: string): Promise<Returntype> {
   }
 }
 
-export async function CaptureOrder(orderId: string): Promise<Returntype> {
+export async function captureOrder(orderId: string): Promise<Returntype> {
   try {
     const accessToken = await generateAccessToken();
     const url = `${process.env.PAYPAL_BASE}/v2/checkout/orders/${orderId}/capture`;
@@ -586,20 +1182,23 @@ export async function CaptureOrder(orderId: string): Promise<Returntype> {
 
 //helper function
 
+const createMailTransporter = () =>
+  nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: process.env.EMAIL,
+      pass: process.env.EMAIL_APPKEY,
+    },
+  });
+
 export const SendOrderEmail = async (
   html: string,
   to: string,
   subject: string,
-  attachment?: Uint8Array
+  attachment?: Uint8Array,
 ) => {
   try {
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: process.env.EMAIL,
-        pass: process.env.EMAIL_APPKEY,
-      },
-    });
+    const transporter = createMailTransporter();
     const mailoptions = {
       from: `SrokSre <${process.env.EMAIL}>`,
       to: `<${to}>`,
@@ -635,13 +1234,7 @@ interface Emaildata {
   title?: string;
 }
 export const handleEmail = async (data: Emaildata) => {
-  const transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-      user: process.env.EMAIL,
-      pass: process.env.EMAIL_APPKEY,
-    },
-  });
+  const transporter = createMailTransporter();
 
   const mailoptions = {
     from: data.from ? data.from : `SrokSre <${process.env.EMAIL}>`,

@@ -1,6 +1,17 @@
-import { CSSProperties, useEffect, useState } from "react";
+import { CSSProperties, useCallback, useEffect, useState } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faMagnifyingGlassPlus,
+  faMagnifyingGlassMinus,
+  faChevronLeft,
+  faChevronRight,
+  faImages,
+  faXmark,
+  faMousePointer,
+} from "@fortawesome/free-solid-svg-icons";
 import "../globals.css";
 import Image from "next/image";
+import { Skeleton } from "@heroui/react";
 
 interface Primaryphotoprops {
   data: {
@@ -14,6 +25,8 @@ interface Primaryphotoprops {
   showcount: boolean;
   isMobile?: boolean;
   isTablet?: boolean;
+  setPreviewHover?: React.Dispatch<React.SetStateAction<boolean>>;
+  disablePreview?: boolean;
 }
 type indextype = {
   start: number;
@@ -31,6 +44,26 @@ export const PrimaryPhoto = (props: Primaryphotoprops) => {
   // Track touch positions for swipe detection
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
+
+  // Track loading state for images
+  const [isImageLoading, setIsImageLoading] =
+    useState<Record<string, boolean>>();
+
+  // Zoom modal state
+  const [isZoomed, setIsZoomed] = useState(false);
+  const [zoomedImageUrl, setZoomedImageUrl] = useState<string>("");
+  const [zoomScale, setZoomScale] = useState(1);
+  const [zoomPosition, setZoomPosition] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    const imgState: Record<string, boolean> = {};
+
+    props.data.forEach((data) => {
+      imgState[data.url] = true;
+    });
+
+    setIsImageLoading(imgState);
+  }, []);
 
   useEffect(() => {
     setindex({ ...index, end: props.data?.length - 1 });
@@ -79,18 +112,55 @@ export const PrimaryPhoto = (props: Primaryphotoprops) => {
     setTouchEnd(null);
   };
 
+  const handleImageClick = (url: string) => {
+    setZoomedImageUrl(url);
+    setIsZoomed(true);
+    setZoomScale(1);
+    setZoomPosition({ x: 0, y: 0 });
+  };
+
+  const handleZoomClose = () => {
+    setIsZoomed(false);
+    setZoomScale(1);
+    setZoomPosition({ x: 0, y: 0 });
+  };
+
+  const handleZoomIn = () => {
+    setZoomScale((prev) => Math.min(prev + 0.5, 3));
+  };
+
+  const handleZoomOut = () => {
+    setZoomScale((prev) => Math.max(prev - 0.5, 1));
+  };
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (zoomScale > 1) {
+      const { left, top, width, height } =
+        e.currentTarget.getBoundingClientRect();
+      const x = ((e.clientX - left) / width) * 100;
+      const y = ((e.clientY - top) / height) * 100;
+      setZoomPosition({ x, y });
+    }
+  };
+
+  const handlePhotoPreview = useCallback((val: boolean) => {
+    props?.setPreviewHover?.(val);
+  }, []);
+
   return (
     <div
       style={props.style}
-      className="primaryphoto__container flex flex-col gap-y-0 w-full
-      max-smaller_screen:w-[400px] 
-      max-large_tablet:w-[280px] 
+      className="primaryphoto__container relative flex flex-col gap-y-0 w-full
+      max-smaller_screen:w-100 
+      max-large_tablet:w-70 
       h-full 
-      overflow-hidden"
+      overflow-hidden
+      rounded-lg shadow-lg bg-gray-50"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
+      {/* Image Container */}
       <div
         style={{ transform: `translateX(-${index.current * 100}%)` }}
         className="imagecontainer flex w-full h-full transition-transform duration-500 ease-in-out"
@@ -99,47 +169,259 @@ export const PrimaryPhoto = (props: Primaryphotoprops) => {
           return (
             <div
               key={idx}
-              className="flex-shrink-0 h-full w-full flex items-center justify-center"
+              className="shrink-0 h-full w-full flex items-center justify-center relative"
             >
-              <Image
-                src={obj.url}
-                alt={`${obj.name}`}
-                className="w-[280px] h-[350px] object-contain"
-                width={400}
-                height={550}
-                quality={80}
-                priority={true}
-              />
+              {/* Loading Skeleton */}
+              {isImageLoading?.[obj.url] && (
+                <Skeleton className="absolute inset-0 rounded-lg" />
+              )}
+
+              {/* Image with fade-in animation */}
+              <div
+                className={`${props.disablePreview ? "" : "cursor-zoom-in"} relative group`}
+                onClick={() => handleImageClick(obj.url)}
+                onMouseEnter={() => handlePhotoPreview(true)}
+                onMouseLeave={() => handlePhotoPreview(false)}
+                //
+              >
+                <Image
+                  src={obj.url}
+                  alt={`${obj.name}`}
+                  className={`w-70 h-87.5 object-contain transition-all duration-300 ${
+                    isImageLoading?.[obj.url] ? "opacity-0" : "opacity-100"
+                  } ${props.disablePreview ? "" : "group-hover:scale-105"}`}
+                  width={400}
+                  height={550}
+                  quality={80}
+                  priority={idx === 0}
+                  onLoad={() => {
+                    setIsImageLoading((prev) => ({
+                      ...prev,
+                      [obj.url]: false,
+                    }));
+                  }}
+                />
+                {/* Zoom indicator on hover */}
+
+                {!props.disablePreview && (
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-black/10">
+                    <div className="bg-white/90 backdrop-blur-xs rounded-full p-3 shadow-lg">
+                      <FontAwesomeIcon
+                        icon={faMagnifyingGlassPlus}
+                        className="text-gray-700 text-xl"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           );
         })}
       </div>
+
+      {/* Navigation Arrows - Desktop */}
       {!props.isMobile &&
         !props.isTablet &&
         props.hover &&
         props.data &&
         props.data.length > 1 && (
           <>
-            <i
-              onMouseEnter={() => props.setclick && props.setclick(true)}
-              onMouseLeave={() => props.setclick && props.setclick(false)}
+            <button
+              onMouseEnter={() => {
+                props.setclick && props.setclick(true);
+                handlePhotoPreview(true);
+              }}
+              onMouseLeave={() => {
+                props.setclick && props.setclick(false);
+                handlePhotoPreview(false);
+              }}
               onClick={() => handleClick("left")}
-              className="fa-solid fa-chevron-left absolute top-[30%] left-1 w-fit h-fit pt-10 pb-10 pl-1 pr-1 transition  hover:bg-gray-300 text-3xl text-black"
-            ></i>
-            <i
-              onMouseEnter={() => props.setclick && props.setclick(true)}
-              onMouseLeave={() => props.setclick && props.setclick(false)}
+              type="button"
+              className="absolute top-1/2 -translate-y-1/2 left-2 z-10
+                w-10 h-10 flex items-center justify-center
+                bg-white/90 hover:bg-white
+                backdrop-blur-xs
+                rounded-full shadow-lg
+                transition-all duration-200
+                hover:scale-110 hover:shadow-xl
+                active:scale-95
+                group"
+              aria-label="Previous image"
+            >
+              <FontAwesomeIcon
+                icon={faChevronLeft}
+                className="text-lg text-gray-700 group-hover:text-gray-900 transition-colors"
+              />
+            </button>
+
+            <button
+              onMouseEnter={() => {
+                props.setclick && props.setclick(true);
+                handlePhotoPreview(true);
+              }}
+              onMouseLeave={() => {
+                props.setclick && props.setclick(false);
+                handlePhotoPreview(false);
+              }}
               onClick={() => handleClick("right")}
-              className="fa-solid fa-chevron-right absolute top-[30%] right-1  pt-10 pb-10 pl-1 pr-1 transition hover:bg-gray-300 text-3xl text-black"
-            ></i>{" "}
+              type="button"
+              className="absolute top-1/2 -translate-y-1/2 right-2 z-10
+                w-10 h-10 flex items-center justify-center
+                bg-white/90 hover:bg-white
+                backdrop-blur-xs
+                rounded-full shadow-lg
+                transition-all duration-200
+                hover:scale-110 hover:shadow-xl
+                active:scale-95
+                group"
+              aria-label="Next image"
+            >
+              <FontAwesomeIcon
+                icon={faChevronRight}
+                className="text-lg text-gray-700 group-hover:text-gray-900 transition-colors"
+              />
+            </button>
           </>
         )}
+
+      {/* Dot Indicators */}
+      {props.data && props.data.length > 1 && (
+        <div
+          //Avoid click to details when previewing
+          onMouseEnter={() => handlePhotoPreview(true)}
+          onMouseLeave={() => handlePhotoPreview(false)}
+          //
+          className="absolute bottom-12 left-1/2 -translate-x-1/2 flex gap-2 z-10"
+        >
+          {props.data.map((_, idx) => (
+            <button
+              key={idx}
+              onClick={() => setindex({ ...index, current: idx })}
+              className={`transition-all duration-300 rounded-full ${
+                idx === index.current
+                  ? "w-6 h-2 bg-blue-500"
+                  : "w-2 h-2 bg-gray-400 hover:bg-gray-500"
+              }`}
+              aria-label={`Go to image ${idx + 1}`}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Image Counter */}
       {props.showcount && (
-        <p className="w-full text-center text-white bg-[#495464] p-1 text-sm font-bold">
-          {" "}
-          {props.data?.length > 0 ? index.current + 1 : index.current} /{" "}
-          {props.data?.length}
-        </p>
+        <div className="w-full text-center text-white bg-linear-to-r from-gray-700 via-gray-800 to-gray-700 py-2 px-4 text-sm font-semibold shadow-md">
+          <span className="inline-flex items-center gap-2">
+            <FontAwesomeIcon icon={faImages} className="text-xs opacity-75" />
+            <span>
+              {props.data?.length > 0 ? index.current + 1 : index.current} /{" "}
+              {props.data?.length}
+            </span>
+          </span>
+        </div>
+      )}
+
+      {/* Zoom Modal */}
+      {!props.disablePreview && isZoomed && (
+        <div
+          className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center backdrop-blur-xs"
+          onClick={handleZoomClose}
+        >
+          {/* Close button */}
+          <button
+            onClick={handleZoomClose}
+            className="absolute top-4 right-4 w-12 h-12 flex items-center justify-center
+              bg-white/10 hover:bg-white/20 backdrop-blur-xs rounded-full
+              transition-all duration-200 hover:scale-110 group z-10"
+            aria-label="Close zoom view"
+          >
+            <FontAwesomeIcon
+              icon={faXmark}
+              className="text-white text-2xl group-hover:rotate-90 transition-transform duration-200"
+            />
+          </button>
+
+          {/* Zoom controls */}
+          <div className="absolute top-4 left-4 flex gap-2">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleZoomOut();
+              }}
+              disabled={zoomScale <= 1}
+              className="w-12 h-12 flex items-center justify-center
+                bg-white/10 hover:bg-white/20 backdrop-blur-xs rounded-full
+                transition-all duration-200 hover:scale-110
+                disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+              aria-label="Zoom out"
+            >
+              <FontAwesomeIcon
+                icon={faMagnifyingGlassMinus}
+                className="text-white text-lg"
+              />
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleZoomIn();
+              }}
+              disabled={zoomScale >= 3}
+              className="w-12 h-12 flex items-center justify-center
+                bg-white/10 hover:bg-white/20 backdrop-blur-xs rounded-full
+                transition-all duration-200 hover:scale-110
+                disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+              aria-label="Zoom in"
+            >
+              <FontAwesomeIcon
+                icon={faMagnifyingGlassPlus}
+                className="text-white text-lg"
+              />
+            </button>
+            <div
+              className="w-12 h-12 flex items-center justify-center
+              bg-white/10 backdrop-blur-xs rounded-full text-white text-sm font-semibold"
+            >
+              {zoomScale}x
+            </div>
+          </div>
+
+          {/* Zoomed image container */}
+          <div
+            className="relative w-full h-full flex items-center justify-center overflow-hidden cursor-move"
+            onClick={(e) => e.stopPropagation()}
+            onMouseMove={handleMouseMove}
+          >
+            <div
+              className="relative transition-transform duration-200 ease-out"
+              style={{
+                transform: `scale(${zoomScale}) translate(${
+                  zoomScale > 1 ? (50 - zoomPosition.x) * 0.5 : 0
+                }%, ${zoomScale > 1 ? (50 - zoomPosition.y) * 0.5 : 0}%)`,
+              }}
+            >
+              <Image
+                src={zoomedImageUrl}
+                alt="Zoomed view"
+                width={1200}
+                height={1200}
+                quality={100}
+                className="max-w-[90vw] max-h-[90vh] object-contain"
+                priority
+              />
+            </div>
+          </div>
+
+          {/* Instructions */}
+          <div
+            className="absolute bottom-4 left-1/2 -translate-x-1/2 
+            bg-white/10 backdrop-blur-xs rounded-full px-6 py-3 text-white text-sm"
+          >
+            <span className="flex items-center gap-2">
+              <FontAwesomeIcon icon={faMousePointer} className="text-xs" />
+              <span className="cursor-pointer">Move mouse to pan • Close</span>
+            </span>
+          </div>
+        </div>
       )}
     </div>
   );

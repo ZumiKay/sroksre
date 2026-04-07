@@ -1,4 +1,4 @@
-import { getUser } from "@/src/context/OrderContext";
+import { getUser } from "@/src/lib/session";
 import Prisma from "@/src/lib/prisma";
 import { NextRequest } from "next/server";
 import { extractQueryParams } from "../../banner/route";
@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
         where: {
           AND: [
             {
-              userid: user.id,
+              userid: user.userId,
             },
             {
               checked: false,
@@ -44,7 +44,7 @@ export async function GET(req: NextRequest) {
       const take = pageSize;
       const result = await Prisma.notification.findMany({
         where: {
-          userid: user?.id,
+          userid: user.userId,
         },
         select: {
           id: true,
@@ -67,7 +67,7 @@ export async function GET(req: NextRequest) {
             createdAt: formatDate(i.createdAt),
           })),
         },
-        { status: 200 }
+        { status: 200 },
       );
     }
   } catch (error) {

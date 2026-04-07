@@ -1,17 +1,17 @@
 "use server";
 
-import { ProductState } from "@/src/context/GlobalContext";
 import {
   Allstatus,
-  getUser,
   Productorderdetailtype,
   Productordertype,
   totalpricetype,
-} from "@/src/context/OrderContext";
+} from "@/src/types/order.type";
+import { getUser } from "@/src/lib/session";
 import Prisma from "@/src/lib/prisma";
 import { calculateDiscountProductPrice } from "@/src/lib/utilities";
 
 import { revalidatePath } from "next/cache";
+import { ProductState } from "@/src/types/product.type";
 
 interface returntype {
   success: boolean;
@@ -27,6 +27,8 @@ interface returntype {
 export async function Addtocart(data: Productordertype): Promise<returntype> {
   try {
     const { details, quantity, id } = data;
+
+    console.log(JSON.stringify(details));
     const user = await getUser();
 
     if (!user) {
@@ -51,7 +53,7 @@ export async function Addtocart(data: Productordertype): Promise<returntype> {
     await Prisma.orderproduct.create({
       data: {
         productId: id,
-        user_id: user.id,
+        user_id: user.userId,
         quantity: quantity,
         details: details ?? "",
         status: Allstatus.incart,
@@ -67,7 +69,7 @@ export async function Addtocart(data: Productordertype): Promise<returntype> {
 
 export async function CheckCart(
   selectedDetail?: Productorderdetailtype[],
-  product_id?: number
+  product_id?: number,
 ): Promise<returntype> {
   try {
     let isInCart = false;
@@ -81,7 +83,7 @@ export async function CheckCart(
       where: {
         AND: [
           {
-            user_id: user.id,
+            user_id: user.userId,
           },
           {
             status: Allstatus.incart || Allstatus.unpaid,
@@ -112,8 +114,8 @@ export async function CheckCart(
             detail?.length === selectedDetail.length &&
             detail?.every((obj, index) =>
               Object.entries(obj).every(
-                ([key, value]) => value === selectedDetail[index][key]
-              )
+                ([key, value]) => value === selectedDetail[index][key],
+              ),
             );
           return areArraysEqual;
         });
@@ -124,7 +126,7 @@ export async function CheckCart(
 
     return { success: true, incart: isInCart };
   } catch (error) {
-    console.error("Check cart", error);
+    console.log("Check cart", error);
     return { success: false, message: "Network error" };
   }
 }
@@ -134,7 +136,7 @@ export const getRelatedProduct = async (
   parent_id: number,
   limit: number,
   child_id?: number,
-  promoid?: number
+  promoid?: number,
 ) => {
   try {
     let maxprod = false;
@@ -208,8 +210,6 @@ export const getRelatedProduct = async (
 
     relatedProducts = relatedProducts.slice(0, limit);
 
-    console.log(relatedProducts);
-
     return {
       success: true,
       data: relatedProducts,
@@ -239,7 +239,7 @@ export const AddWishlist = async (pid: number) => {
     await Prisma.wishlist.create({
       data: {
         pid,
-        uid: user.id,
+        uid: user.userId,
       },
     });
 
@@ -269,7 +269,7 @@ export const Checkwishlist = async (pid: number) => {
       where: {
         AND: [
           {
-            uid: user.id,
+            uid: user.userId,
           },
           {
             pid: parseInt(pid.toString()),

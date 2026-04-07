@@ -1,15 +1,27 @@
 export const Shippingservice = [
   {
+    type: "Economy",
+    price: 5,
+    estimate: "2-3 weeks",
+    value: "Economy",
+  },
+  {
     type: "Standard",
     price: 10,
     estimate: "1-2 weeks",
     value: "Normal",
   },
   {
-    type: "Express Delivery",
-    price: 25,
+    type: "Express",
+    price: 20,
     estimate: "3-5 days",
     value: "Express",
+  },
+  {
+    type: "Same Day",
+    price: 45,
+    estimate: "By end of day",
+    value: "SameDay",
   },
   {
     type: "Store Pickup",
@@ -30,6 +42,7 @@ type Paypalamount = {
 export interface Paypalitemtype {
   name: string;
   quantity: string;
+  description?: string;
   url?: string;
   image_url?: string;
   unit_amount: Paypalamount;
@@ -44,13 +57,17 @@ export interface Paypalamounttype {
 }
 
 export interface PaypalshippingType {
-  type: "SHIPPING" | "NO_SHIPPING";
-
+  type?:
+    | "SHIPPING"
+    | "PICKUP_IN_PERSON"
+    | "PICKUP_IN_STORE"
+    | "PICKUP_FROM_PERSON";
   address?: {
     address_line_1: string;
     address_line_2?: string;
+    admin_area_1?: string;
     admin_area_2?: string;
-    postal_code: string;
+    postal_code?: string;
     country_code: string;
   };
 }

@@ -1,12 +1,12 @@
 "use server";
 
 import Prisma from "@/src/lib/prisma";
-import { hashedpassword } from "@/src/lib/userlib";
 import { compareSync } from "bcryptjs";
 import { generateRandomNumber } from "@/src/lib/utilities";
 import { revalidateTag } from "next/cache";
-import { getUser } from "@/src/context/OrderContext";
+import { getUser } from "@/src/lib/session";
 import { handleEmail } from "../checkout/action";
+import { hashPassword } from "@/src/lib/userlib";
 
 interface returntype {
   success: boolean;
@@ -16,7 +16,7 @@ interface returntype {
 
 export async function Editprofileaction(
   data: FormData,
-  type: "name" | "email" | "password" | "shipping" | "none"
+  type: "name" | "email" | "password" | "shipping" | "none",
 ): Promise<returntype> {
   try {
     const user = await getUser();
@@ -51,7 +51,7 @@ export async function Editprofileaction(
       }
 
       await Prisma.user.update({
-        where: { id: user.id },
+        where: { id: user.userId },
         data: {
           firstname: names.firstname as string,
           lastname: names.lastname as string,
@@ -61,33 +61,35 @@ export async function Editprofileaction(
       const email = data.get("email");
 
       await Prisma.user.update({
-        where: { id: user.id },
+        where: { id: user.userId },
         data: {
           email: email as string,
         },
       });
       await Prisma.usersession.deleteMany({
         where: {
-          user_id: user.id,
+          userId: user.userId,
         },
       });
     } else {
       let password = data.get("password")?.toString() as string;
       let pass = JSON.parse(password);
-      let User = await Prisma.user.findUnique({ where: { id: user.id } });
+      let User = await Prisma.user.findUnique({ where: { id: user.userId } });
       if (User) {
         const isValid = compareSync(pass.oldpassword as string, User?.password);
         if (isValid) {
           let newpassword = pass.newpassword as string;
           await Prisma.user.update({
             where: {
-              id: user.id,
+              id: user.userId,
             },
             data: {
-              password: hashedpassword(newpassword),
+              password: hashPassword(newpassword),
             },
           });
-          await Prisma.usersession.deleteMany({ where: { user_id: user.id } });
+          await Prisma.usersession.deleteMany({
+            where: { userId: user.userId },
+          });
         } else {
           return { success: false, message: "Invalid Password" };
         }
@@ -106,7 +108,7 @@ export async function Editprofileaction(
 export async function Addaddress(
   data: FormData,
   isEdit: boolean,
-  id?: number
+  id?: number,
 ): Promise<returntype> {
   try {
     const user = await getUser();
@@ -126,7 +128,7 @@ export async function Addaddress(
     if (!isEdit) {
       const created = await Prisma.address.create({
         data: {
-          userId: user.id,
+          userId: user.userId,
           ...address,
         },
       });
@@ -135,7 +137,7 @@ export async function Addaddress(
     } else {
       await Prisma.address.updateMany({
         where: {
-          userId: user.id,
+          userId: user.userId,
           id: id,
         },
         data: {
@@ -169,7 +171,7 @@ export const Deleteaddress = async (id: number): Promise<returntype> => {
 export const VerifyEmail = async (
   email: string,
   verified: boolean,
-  code?: string
+  code?: string,
 ): Promise<returntype> => {
   try {
     const user = await getUser();
@@ -187,7 +189,7 @@ export const VerifyEmail = async (
 
       await Prisma.user.update({
         where: {
-          id: user?.id,
+          id: user?.userId,
         },
         data: {
           vfy: otp,
@@ -224,7 +226,7 @@ export const checkloggedsession = async (sessionid: string) => {
   try {
     const usersession = await Prisma.usersession.findUnique({
       where: {
-        session_id: sessionid,
+        sessionid: sessionid,
       },
     });
 
@@ -234,7 +236,7 @@ export const checkloggedsession = async (sessionid: string) => {
 
     return { success: false };
   } catch (error) {
-    console.error("Error checking session:", error);
+    console.log("Error checking session:", error);
     return { success: false, error: "Error checking session" };
   }
 };

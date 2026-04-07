@@ -1,6 +1,13 @@
 "use client";
 
-import { CSSProperties, ReactNode, useEffect, useRef } from "react";
+import {
+  CSSProperties,
+  FormHTMLAttributes,
+  JSX,
+  ReactNode,
+  useEffect,
+  useRef,
+} from "react";
 import {
   GlobalIndexState,
   useGlobalContext,
@@ -11,7 +18,7 @@ import {
   ModalFooter,
   ModalHeader,
   Modal as Modals,
-} from "@nextui-org/react";
+} from "@heroui/react";
 import React from "react";
 
 export default function Modal({
@@ -19,6 +26,8 @@ export default function Modal({
   customZIndex,
   customwidth,
   customheight,
+  minheight,
+  minwidth,
   closestate,
   bgblur,
   action,
@@ -27,6 +36,8 @@ export default function Modal({
   customZIndex?: number;
   customwidth?: string;
   customheight?: string;
+  minwidth?: string;
+  minheight?: string;
   bgblur?: boolean;
   action?: () => void;
   closestate:
@@ -65,7 +76,7 @@ export default function Modal({
           closestate !== "none"
         ) {
           const updateIndex = Object.fromEntries(
-            Object.entries(globalindex).map(([key, _]) => [key, -1])
+            Object.entries(globalindex).map(([key, _]) => [key, -1]),
           ) as unknown as GlobalIndexState;
           action && action();
           setglobalindex(updateIndex);
@@ -83,7 +94,12 @@ export default function Modal({
     >
       <div
         ref={ref}
-        style={{ width: customwidth, height: customheight }}
+        style={{
+          width: customwidth,
+          height: customheight,
+          minHeight: minheight,
+          minWidth: minwidth,
+        }}
         className="w-1/2 h-1/2 max-small_phone:h-screen flex flex-col justify-center items-center"
       >
         {children}
@@ -101,6 +117,7 @@ interface SecondaryModalInterface {
   closebtn?: boolean;
   style?: CSSProperties;
   scroll?: "normal" | "inside" | "outside";
+  isForm?: FormHTMLAttributes<HTMLFormElement>;
   placement?:
     | "center"
     | "auto"
@@ -131,6 +148,7 @@ export function SecondaryModal({
   style,
   scroll,
   placement,
+  isForm,
 }: SecondaryModalInterface) {
   return (
     <Modals
@@ -140,7 +158,7 @@ export function SecondaryModal({
       placement={placement}
       closeButton
       style={style}
-      className="z-[200]"
+      className="z-200 aria-hidden:false"
       scrollBehavior={scroll}
       onOpenChange={(open) => {
         onPageChange && onPageChange(open);
@@ -154,8 +172,17 @@ export function SecondaryModal({
                 {header()}
               </ModalHeader>
             )}
-            <ModalBody className="overflow-y-auto">{children}</ModalBody>
-            {footer && <ModalFooter>{footer(onClose)}</ModalFooter>}
+            {isForm ? (
+              <form {...isForm}>
+                <ModalBody className="overflow-y-auto">{children}</ModalBody>
+                {footer && <ModalFooter>{footer(onClose)}</ModalFooter>}
+              </form>
+            ) : (
+              <>
+                <ModalBody className="overflow-y-auto">{children}</ModalBody>
+                {footer && <ModalFooter>{footer(onClose)}</ModalFooter>}
+              </>
+            )}
           </>
         )}
       </ModalContent>

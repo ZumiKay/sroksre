@@ -1,9 +1,9 @@
 import {
   Allstatus,
-  getUser,
   Productorderdetailtype,
   Productordertype,
-} from "@/src/context/OrderContext";
+} from "@/src/types/order.type";
+import { getUser } from "@/src/lib/session";
 import Prisma from "@/src/lib/prisma";
 import { NextRequest } from "next/server";
 
@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
       where: {
         AND: [
           {
-            user_id: user.id,
+            user_id: user.userId,
           },
           {
             status: Allstatus.incart || Allstatus.unpaid,
@@ -60,8 +60,8 @@ export async function POST(req: NextRequest) {
             detail?.length === selecteddetail.length &&
             detail?.every((obj, index) =>
               Object.entries(obj).every(
-                ([key, value]) => value === selecteddetail[index][key]
-              )
+                ([key, value]) => value === selecteddetail[index][key],
+              ),
             );
           return areArraysEqual;
         });
@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
 
     return Response.json({ data: { incart: isInCart } }, { status: 200 });
   } catch (error) {
-    console.error("Check cart", error);
+    console.log("Check cart", error);
     return Response.json({ message: "Error Occured" }, { status: 500 });
   }
 }

@@ -1,26 +1,92 @@
 import type { Metadata } from "next";
 import { Prompt } from "next/font/google";
-import "./globals.css";
-import Navbar from "./component/Navbar";
+import NavbarWrapper from "./component/NavbarWrapper";
 import Footer from "./component/Footer";
-import { ToastContainer } from "react-toastify";
-import "react-toastify/ReactToastify.css";
 import { GlobalContextProvider } from "../context/GlobalContext";
-import { getUser } from "../context/OrderContext";
-import { NextUIProvider } from "@nextui-org/react";
 import { Suspense } from "react";
 import { ContainerLoading } from "./component/Loading";
 import { SocketProvider } from "../context/SocketContext";
+import "../lib/fontawesome";
+import "./globals.css";
+import "react-toastify/ReactToastify.css";
+import Provider from "./provider";
 const prompt = Prompt({
   weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
   subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
-  title: "Srok Sre",
-  description: "Online Store",
-  icons:
-    "https://firebasestorage.googleapis.com/v0/b/sroksre-442c0.appspot.com/o/sideImage%2FLogo.svg?alt=media&token=5eb60253-4401-4fc9-a282-e635d132f050",
+  title: {
+    default: "Srok Sre - Online Store",
+    template: "%s | Srok Sre",
+  },
+  description:
+    "Srok Sre - Your trusted online store for quality products. Shop the latest collections and enjoy seamless shopping experience.",
+  keywords: ["online store", "e-commerce", "shopping", "products", "Srok Sre"],
+  authors: [{ name: "Zumi" }],
+  creator: "Zumi",
+  publisher: "Srok Sre",
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000",
+  ),
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    title: "Srok Sre - Online Store",
+    description:
+      "Your trusted online store for quality products. Shop the latest collections.",
+    url: "/",
+    siteName: "Srok Sre",
+    images: [
+      {
+        url: "https://firebasestorage.googleapis.com/v0/b/sroksre-442c0.appspot.com/o/sideImage%2FLogo.svg?alt=media&token=5eb60253-4401-4fc9-a282-e635d132f050",
+        width: 1200,
+        height: 630,
+        alt: "Srok Sre Logo",
+      },
+    ],
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Srok Sre - Online Store",
+    description:
+      "Your trusted online store for quality products. Shop the latest collections.",
+    images: [
+      "https://firebasestorage.googleapis.com/v0/b/sroksre-442c0.appspot.com/o/sideImage%2FLogo.svg?alt=media&token=5eb60253-4401-4fc9-a282-e635d132f050",
+    ],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
+  icons: {
+    icon: "https://firebasestorage.googleapis.com/v0/b/sroksre-442c0.appspot.com/o/sideImage%2FLogo.svg?alt=media&token=5eb60253-4401-4fc9-a282-e635d132f050",
+    shortcut:
+      "https://firebasestorage.googleapis.com/v0/b/sroksre-442c0.appspot.com/o/sideImage%2FLogo.svg?alt=media&token=5eb60253-4401-4fc9-a282-e635d132f050",
+    apple:
+      "https://firebasestorage.googleapis.com/v0/b/sroksre-442c0.appspot.com/o/sideImage%2FLogo.svg?alt=media&token=5eb60253-4401-4fc9-a282-e635d132f050",
+  },
+  verification: {
+    // Add your verification tokens here
+    // google: "google-site-verification-token",
+    // yandex: "yandex-verification-token",
+    // bing: "bing-verification-token",
+  },
 };
 
 export default async function RootLayout({
@@ -28,8 +94,6 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const session = await getUser();
-
   return (
     <html lang="en">
       <head>
@@ -46,21 +110,20 @@ export default async function RootLayout({
           width: "100%",
         }}
       >
-        <GlobalContextProvider>
-          {" "}
-          <NextUIProvider>
+        <Provider>
+          <GlobalContextProvider>
+            {/* NextUIProvider not needed for HeroUI */}
             <Suspense fallback={<ContainerLoading />}>
               <SocketProvider>
                 <div id="main" className="w-full h-full relative">
-                  <ToastContainer />
-                  <Navbar session={session as any} />
+                  <NavbarWrapper />
                   {children}
                   <Footer />
                 </div>
               </SocketProvider>
             </Suspense>
-          </NextUIProvider>
-        </GlobalContextProvider>
+          </GlobalContextProvider>
+        </Provider>
       </body>
     </html>
   );

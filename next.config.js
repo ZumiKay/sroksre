@@ -1,24 +1,37 @@
 /** @type {import('next').NextConfig} */
+import withBundleAnalyzer from "@next/bundle-analyzer";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const nextConfig = {
+  outputFileTracingRoot: __dirname,
   images: {
+    qualities: [50, 75, 80, 85, 90, 100],
     remotePatterns: [
       {
         protocol: "https",
-        hostname: "firebasestorage.googleapis.com",
+        hostname: "jrkeurxhiddg4zho.public.blob.vercel-storage.com",
+        pathname: "/**",
       },
       {
         protocol: "https",
-        hostname: "jrkeurxhiddg4zho.public.blob.vercel-storage.com",
+        hostname: "firebasestorage.googleapis.com",
+        pathname: "/**",
       },
       {
         protocol: "http",
         hostname: "localhost",
         port: "3000",
+        pathname: "/**",
       },
       {
         protocol: "http",
         hostname: "localhost",
         port: "8000",
+        pathname: "/**",
       },
     ],
   },
@@ -27,17 +40,37 @@ const nextConfig = {
       "4dc0180d676e9ba23390ad6cdd3cdb62271273d23af1f4d2f411b97a1cf20af7",
   },
   webpack: (config, options) => {
+    if (options.dev) {
+      // Avoid flaky filesystem cache writes in development (ENOENT on pack rename).
+      config.cache = {
+        type: "memory",
+      };
+    }
+
     if (!options.dev) {
       config.devtool = options.isServer ? false : "source-map";
     }
+
+    // Handle node: protocol imports (fixes UnhandledSchemeError for node:crypto)
+    config.resolve = config.resolve || {};
+    config.resolve.fallback = config.resolve.fallback || {};
+
+    if (!options.isServer) {
+      // For client-side bundles, provide fallbacks for Node.js built-ins
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        crypto: false,
+        stream: false,
+        buffer: false,
+        util: false,
+        fs: false,
+        path: false,
+        os: false,
+      };
+    }
+
     return config;
   },
 };
 
-module.exports = nextConfig;
-
-const withBundleAnalyzer = require("@next/bundle-analyzer")({
-  enabled: process.env.ANALYZE === "true",
-});
-
-module.exports = withBundleAnalyzer(nextConfig);
+export default nextConfig;

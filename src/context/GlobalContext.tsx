@@ -1,296 +1,26 @@
 "use client";
-import { Dayjs } from "dayjs";
 import React, { useContext, useState } from "react";
-
-import { Ordertype, Productordertype } from "./OrderContext";
-import { BannerType } from "../app/severactions/actions";
+import { Ordertype, Productordertype } from "../types/order.type";
 import { Categorytype } from "../app/api/categories/route";
-import { InventoryType } from "../app/dashboard/inventory/varaint_action";
-
-type Role = "ADMIN" | "USER" | "EDITOR";
-export interface ActionReturnType<t = string> {
-  success: boolean;
-  message?: string;
-  data?: t;
-
-  [x: string]: any;
-}
-export interface SelectType {
-  label: string;
-  value: string | number;
-}
-export interface userdata {
-  id?: number;
-  email?: string;
-  password?: string;
-  confirmpassword?: string;
-  firstname?: string;
-  lastname?: string;
-  sessionid?: string;
-  role?: Role;
-  agreement?: boolean;
-  cid?: string;
-  recapcha: string | null;
-}
-export interface infovaluetype {
-  qty: number;
-  val: string;
-}
-export interface ProductInfo {
-  id?: number;
-  info_title: string;
-  info_value: Array<string> | Array<infovaluetype>;
-  info_type: InventoryType;
-}
-
-export const DefaultSize: Array<infovaluetype> = [
-  {
-    val: "S",
-    qty: 1,
-  },
-  {
-    val: "M",
-    qty: 1,
-  },
-  {
-    val: "XL",
-    qty: 1,
-  },
-  {
-    val: "2XL",
-    qty: 1,
-  },
-];
-
-export interface productcoverstype {
-  url: string;
-  type: string;
-  name: string;
-  isSaved?: boolean;
-  id?: number;
-}
-
-export type VariantColorValueType = {
-  val: string;
-  name?: string;
-};
-export interface Varianttype {
-  id?: number;
-  option_title: string;
-  option_type: "COLOR" | "TEXT";
-  option_value: Array<string | VariantColorValueType>;
-  [key: string]: any;
-}
-
-export interface SubStockType {
-  id?: number;
-  qty: number;
-  variant_val: string[];
-}
-export interface Stocktype {
-  id?: number;
-  qty: number;
-  Stockvalue: SubStockType[];
-  isLowStock?: boolean;
-}
-
-export interface Relatedproducttype {
-  id: number;
-  name: string;
-  parentcategory_id: number;
-  childcategory_id: number;
-  covers: {
-    id: number;
-    url: string;
-  }[];
-}
-export interface ProductState {
-  id?: number;
-  name: string;
-  price: number;
-  description: string;
-  stocktype: string;
-  covers: productcoverstype[] | [];
-  category: { parent_id: number; child_id?: number };
-  details: ProductInfo[] | [];
-  stock?: number;
-  variantcount?: number;
-  variants?: Array<Varianttype>;
-  varaintstock?: Array<Stocktype>;
-  lowstock?: boolean;
-  incart?: boolean;
-  promotion_id?: number;
-  discount?: {
-    percent: number;
-    newprice: string;
-  };
-  relatedproductid?: Array<number>;
-  relatedproduct?: Array<Relatedproducttype>;
-  amount_sold?: number;
-  amount_incart?: number;
-  amount_wishlist?: number;
-  createdAt?: Date;
-}
-export interface FilterValue {
-  parentcate?: number;
-  childcate?: number;
-  status?: string;
-  name?: string;
-  firstname?: string;
-  lastname?: string;
-  email?: string;
-  expiredate?: string;
-  promotionid?: number;
-  promoselect?: boolean;
-  bannertype?: string;
-  bannersize?: string;
-  search?: string;
-  expired?: string;
-  promoids?: number[];
-}
-
-interface Listproductfilter {
-  size: Array<string>;
-  color: Array<string>;
-  text: Array<string>;
-  order?: string;
-}
-
-export interface NotificationType {
-  id?: number;
-  type: string;
-  content: string;
-  link?: string;
-  userid?: string;
-  createdAt?: string;
-  checked: boolean;
-}
-
-export const FiltervalueInitialize: FilterValue = {
-  parentcate: 0,
-  childcate: 0,
-  status: "",
-  name: "",
-  email: "",
-};
-
-export interface BannerState {
-  id?: number;
-  name: string;
-  type: BannerType;
-  size: string;
-  image: {
-    url: string;
-    name: string;
-    type: string;
-  };
-  linktype?: string;
-  parentcate?: SelectType;
-  childcate?: SelectType;
-  selectedproduct?: SelectType[];
-  selectedpromotion?: SelectType;
-  link?: string;
-}
-export interface UserState {
-  id?: number;
-  lastname?: string;
-  password?: string;
-  confirmpassword?: string;
-  newpassword?: string;
-  phonenumber?: string;
-  role?: Role;
-  firstname: string;
-  email: string;
-  createdAt?: Date;
-  updatedAt?: Date;
-}
-export interface Userdatastate {
-  firstname?: string;
-  lastname?: string;
-  email?: string;
-  role?: Role;
-  oldpassword?: string;
-  newpassword?: string;
-}
-export interface ItemLength {
-  total: number;
-  lowstock?: number;
-  totalpage: number;
-}
-
-export interface PromotionProductState {
-  id: number;
-  discount?: {
-    percent: number;
-    newprice: string;
-    oldprice: number;
-  };
-}
-export interface PromotionState {
-  id?: number;
-  name: string;
-  description: string;
-  selectproduct: boolean;
-  selectbanner: boolean;
-  Products: Array<PromotionProductState>;
-  expireAt?: Dayjs;
-  banner_id?: number;
-  banner?: BannerState;
-  tempproduct?: number[];
-  tempproductstate?: Array<PromotionProductState>;
-  type?: string;
-  isExpired?: boolean;
-  autocate?: boolean;
-}
-
-export type filterinventorytype =
-  | "product"
-  | "banner"
-  | "promotion"
-  | "usermanagement"
-  | string;
-
-export interface Allrefstate {
-  filterref: HTMLDivElement | null;
-}
-
-interface AllDataState {
-  product?: ProductState[];
-  banner?: BannerState[];
-  promotion?: PromotionState[];
-  category?: CateogoryState[];
-  filteredData?: ProductState[] | BannerState[] | PromotionState[];
-  user?: UserState[];
-  tempbanner?: {
-    id: number;
-    show: boolean;
-  }[];
-  [x: string]: any;
-}
-
-export interface Usersessiontype {
-  sub: number;
-  id: number;
-  role: Role;
-  session_id: string;
-}
-
-type confirmmodaltype = {
-  open: boolean;
-  confirm: boolean;
-  closecon: string;
-  index?: number | string;
-  Warn?: string;
-  type?:
-    | "product"
-    | "banner"
-    | "promotion"
-    | "promotioncancel"
-    | "user"
-    | "userinfo";
-  onDelete?: () => void;
-  onAsyncDelete?: () => Promise<void>;
-};
+import { confirmmodaltype, userdata, Userdatastate } from "../types/user.type";
+import {
+  Listproductfilter,
+  ProductState,
+  StockTypeEnum,
+} from "../types/product.type";
+import {
+  AllDataState,
+  Allrefstate,
+  filterinventorytype,
+  ItemLength,
+} from "../types/global.type";
+import {
+  BannerState,
+  PromotionProductState,
+  PromotionState,
+} from "../types/productAction.type";
+import { Role } from "@/prisma/generated/prisma/enums";
+import dayjs from "dayjs";
 
 type alerttype = {
   open: boolean;
@@ -341,10 +71,14 @@ export interface GlobalIndexState {
   homeeditindex?: number;
 }
 
-export interface AllFilterValueState {
-  page: "product" | "banner" | "promotion" | "usermanagement" | "listproduct";
-  filter: FilterValue;
+export interface SubcategoriesState {
+  id?: number;
+  type?: "normal" | "promo";
+  pid?: number;
+  name: string;
+  isExpired?: boolean;
 }
+
 export interface CateogoryState {
   id?: number;
   name: string;
@@ -356,13 +90,6 @@ export interface CateogoryState {
     start: string;
     end: string;
   };
-}
-export interface SubcategoriesState {
-  id?: number;
-  type?: "normal" | "promo";
-  pid?: number;
-  name: string;
-  isExpired?: boolean;
 }
 
 export interface LoadingState {
@@ -377,15 +104,9 @@ export interface Sessiontype {
   email?: string;
   name?: string;
   image?: string;
-  role?: "USER" | "ADMIN" | "EDITOR";
+  role?: Role;
   status?: string;
-}
-
-export interface ProductOrderType {
-  id: number;
-  quantity: number;
-  details: Array<ProductInfo>;
-  price: string;
+  sessionid?: string;
 }
 
 //Initail State
@@ -439,7 +160,7 @@ export const Productinitailizestate: ProductState = {
   name: "",
   price: 0.0,
   description: "",
-  stocktype: "stock",
+  stocktype: StockTypeEnum.normal,
   stock: 0,
   variantcount: 0,
   covers: [],
@@ -481,14 +202,10 @@ export const PromotionInitialize: PromotionState = {
   Products: [PromotionProductInitialize],
   selectbanner: false,
   selectproduct: false,
-
+  expireAt: dayjs(new Date()),
   tempproduct: [],
 };
 
-export const AllFilterValueInitialize: AllFilterValueState = {
-  page: "product",
-  filter: FiltervalueInitialize,
-};
 const GlobalIndexInitializeState: GlobalIndexState = {
   producteditindex: -1,
   productcovereditindex: -1,
@@ -512,6 +229,7 @@ export const Userinitialize: userdata = {
   lastname: "",
   email: "",
   password: "",
+  phonenumber: "",
   confirmpassword: "",
   recapcha: null,
 };
@@ -550,26 +268,18 @@ interface ContextType {
   setalldata: React.Dispatch<React.SetStateAction<AllDataState | undefined>>;
   isLoading: LoadingState;
   setisLoading: React.Dispatch<React.SetStateAction<LoadingState>>;
-  subcate: Array<SubcategoriesState>;
-  setsubcate: React.Dispatch<React.SetStateAction<Array<SubcategoriesState>>>;
   itemlength: ItemLength;
   setitemlength: React.Dispatch<React.SetStateAction<ItemLength>>;
   inventoryfilter: filterinventorytype;
   setinventoryfilter: React.Dispatch<React.SetStateAction<filterinventorytype>>;
-  allfiltervalue: Array<AllFilterValueState>;
   userinfo: Userdatastate;
   page: number;
   setpage: React.Dispatch<React.SetStateAction<number>>;
   setuserinfo: React.Dispatch<React.SetStateAction<Userdatastate>>;
-  setallfilterval: React.Dispatch<
-    React.SetStateAction<Array<AllFilterValueState>>
-  >;
   productorderdetail: Productordertype;
   setproductorderdetail: React.Dispatch<React.SetStateAction<Productordertype>>;
   user: userdata;
   setuser: React.Dispatch<React.SetStateAction<userdata>>;
-  listproductfilter: Listproductfilter;
-  setlistprodfil: React.Dispatch<React.SetStateAction<Listproductfilter>>;
   listproductfilval: Listproductfilter;
   setproductfilval: React.Dispatch<React.SetStateAction<Listproductfilter>>;
   error: boolean;
@@ -594,7 +304,6 @@ export const GlobalContextProvider = ({
 }) => {
   const [openmodal, setopenmodal] = useState(OpenmodalinitialState);
   const [category, setcategory] = useState(CateogoryInitailizestate);
-  const [subcate, setsubcate] = useState<SubcategoriesState[]>([]);
   const [globalindex, setglobalindex] = useState(GlobalIndexInitializeState);
   const [product, setproduct] = useState(Productinitailizestate);
   const [banner, setbanner] = useState(BannerInitialize);
@@ -614,11 +323,6 @@ export const GlobalContextProvider = ({
   const [productorderdetail, setproductorderdetail] =
     useState<Productordertype>(Productdetailinitialize);
 
-  const [listproductfilter, setlistprodfil] = useState<Listproductfilter>({
-    size: [],
-    color: [],
-    text: [],
-  });
   const [listproductfilval, setproductfilval] = useState<Listproductfilter>({
     size: [],
     color: [],
@@ -627,17 +331,12 @@ export const GlobalContextProvider = ({
   });
   const [inventoryfilter, setinventoryfilter] =
     useState<filterinventorytype>("product");
-  const [allfiltervalue, setallfilterval] = useState<AllFilterValueState[]>([
-    AllFilterValueInitialize,
-  ]);
 
   return (
     <GlobalContext.Provider
       value={{
         productorderdetail,
         setproductorderdetail,
-        listproductfilter,
-        setlistprodfil,
         listproductfilval,
         setproductfilval,
         error,
@@ -656,8 +355,6 @@ export const GlobalContextProvider = ({
         setuserinfo,
         page,
         setpage,
-        subcate,
-        setsubcate,
         banner,
         setbanner,
         openmodal,
@@ -676,8 +373,6 @@ export const GlobalContextProvider = ({
         setitemlength,
         inventoryfilter,
         setinventoryfilter,
-        allfiltervalue,
-        setallfilterval,
         user,
         setuser,
         carttotal,
@@ -708,7 +403,7 @@ export const SaveCheck = (
   closecon: closecontype,
   openmodal: OpenModalState,
   open?: boolean,
-  deletecallback?: any
+  deletecallback?: any,
 ) => {
   return {
     ...openmodal,

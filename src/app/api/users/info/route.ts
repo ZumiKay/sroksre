@@ -1,7 +1,7 @@
 import Prisma from "@/src/lib/prisma";
 import { NextRequest } from "next/server";
 import { extractQueryParams } from "../../banner/route";
-import { getUser } from "@/src/context/OrderContext";
+import { getUser } from "@/src/lib/session";
 import { calculateDiscountProductPrice } from "@/src/lib/utilities";
 
 export async function GET(request: NextRequest) {
@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     if (ty === "shipping") {
       result = await Prisma.address.findMany({
         where: {
-          userId: user.id,
+          userId: user.userId,
         },
         select: {
           id: true,
@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
     } else if (ty === "userinfo") {
       const info = await Prisma.user.findUnique({
         where: {
-          id: user.id,
+          id: user.userId,
         },
         select: {
           firstname: true,
@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
       result = info;
     } else if (ty === "wishlist") {
       const productwishlist = await Prisma.wishlist.findMany({
-        where: { uid: user.id },
+        where: { uid: user.userId },
         select: {
           product: {
             select: {
@@ -102,11 +102,7 @@ export async function DELETE() {
     return Response.json({}, { status: 401 });
   }
   try {
-    await Prisma.wishlist.deleteMany({ where: { uid: user.id } });
-    await Prisma.orderproduct.deleteMany({ where: { user_id: user.id } });
-    await Prisma.orders.deleteMany({ where: { buyer_id: user.id } });
-    await Prisma.usersession.deleteMany({ where: { user_id: user.id } });
-    await Prisma.user.delete({ where: { id: user.id } });
+    await Prisma.user.delete({ where: { id: user.userId } });
 
     return Response.json({}, { status: 200 });
   } catch (error) {

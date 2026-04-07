@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import Prisma from "@/src/lib/prisma";
 import { handleUpload, HandleUploadBody } from "@vercel/blob/client";
-import { getUser } from "@/src/context/OrderContext";
+import { getUser } from "@/src/lib/session";
 import { del } from "@vercel/blob";
+import { DeleteImageTempForCurrentUser } from "./helper/Cleanup";
 
 interface DataCoverType {
   url: string;
@@ -21,12 +22,10 @@ export async function POST(request: Request) {
       body,
       request,
       onBeforeGenerateToken: async (
-        pathname
+        pathname,
         /* clientPayload */
       ) => {
         // Generate a client token for the browser to upload the file
-        // ⚠️ Authenticate and authorize users before generating the token.
-        // Otherwise, you're allowing anonymous uploads.
 
         const user = await getUser();
 
@@ -34,12 +33,11 @@ export async function POST(request: Request) {
           throw new Error("Unauthorized");
         }
 
-        //Save To Temp DB
-
+        //Save To Temp DB For Clean up
         await Prisma.tempimage.create({
           data: {
             name: pathname,
-            user_id: user.id,
+            user_id: user.userId,
           },
         });
 
@@ -55,19 +53,6 @@ export async function POST(request: Request) {
           }),
         };
       },
-      onUploadCompleted: async ({ blob, tokenPayload }) => {
-        // Get notified of client upload completion
-        // ⚠️ This will not work on `localhost` websites,
-        // Use ngrok or similar to get the full upload flow
-
-        console.log("blob upload completed", blob, tokenPayload);
-
-        try {
-          console.log("Save Url To Database");
-        } catch (error) {
-          throw new Error("Could not update user");
-        }
-      },
     });
 
     return NextResponse.json(UploadImage);
@@ -75,13 +60,13 @@ export async function POST(request: Request) {
     console.log("Save Image", error);
     return NextResponse.json(
       { message: "Failed To Save" },
-      { status: 400 } // The webhook will retry 5 times waiting for a 200
+      { status: 400 }, // The webhook will retry 5 times waiting for a 200
     );
   }
 }
 interface DeleteCoverData {
   covers: Array<DataCoverType>;
-  type: "createproduct" | "createbanner" | "createpromotion";
+  type: "createproduct" | "createbanner" | "createpromotion" | "cleanuptemp";
 }
 
 export async function DELETE(request: NextRequest) {
@@ -103,18 +88,27 @@ export async function DELETE(request: NextRequest) {
         if (isExist.length > 0) {
           await Promise.all(
             isExist.map((i) =>
-              Prisma.productcover.delete({ where: { id: i?.id } })
-            )
+              Prisma.productcover.delete({ where: { id: i?.id } }),
+            ),
           );
           await Promise.all(isExist.map((cover) => del(cover.url)));
         }
       }
     } else if (data.type === "createbanner") {
       await Promise.all(data.covers.map((i) => del(i.url)));
+    } else if (data.type === "cleanuptemp") {
+      //
+      const cleanupReq = await DeleteImageTempForCurrentUser(true);
+      if (!cleanupReq?.success) {
+        return Response.json({ message: "Error Occured" }, { status: 500 });
+      }
     }
     return Response.json({ message: "Image Deleted" }, { status: 200 });
   } catch (error) {
     console.log("Delete Cover", error);
-    return Response.json({ message: "Failed To Delete Cover=" });
+    return Response.json(
+      { message: "Failed To Delete Cover" },
+      { status: 500 },
+    );
   }
 }

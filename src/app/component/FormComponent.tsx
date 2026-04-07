@@ -40,7 +40,7 @@ export const PasswordInput = ({
   const handleClickShowPassword = () => setShowPassword((show) => !show);
 
   const handleMouseDownPassword = (
-    event: React.MouseEvent<HTMLButtonElement>
+    event: React.MouseEvent<HTMLButtonElement>,
   ) => {
     event.preventDefault();
   };
@@ -98,7 +98,7 @@ export const TextInput = (props: textinputProps) => {
   return (
     <input
       {...props}
-      className="textinput w-full h-[50px] border border-gray-300 p-3 rounded-lg font-bold text-lg text-black"
+      className="textinput w-full h-12.5 border border-gray-300 p-3 rounded-lg font-bold text-lg text-black"
     />
   );
 };

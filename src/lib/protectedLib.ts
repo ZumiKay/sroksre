@@ -19,7 +19,7 @@ export const verifyToken = async (token: string) => {
 export const verifySession = async (sessionid: string) => {
   const session = await Prisma.usersession.findUnique({
     where: {
-      session_id: sessionid,
+      sessionid,
     },
   });
   if (session) {

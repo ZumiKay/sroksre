@@ -36,6 +36,13 @@ export const calculatePopularityScore = (data: {
   );
 };
 
+/**Create Auto Category
+ *
+ * Auto Categories:
+ *  - Latest
+ *  - List promotions under sale categories
+ */
+
 const CreateAutoCategory = async (data: Categorydata) => {
   if (!data.type) {
     return { success: false };
@@ -70,12 +77,12 @@ const CreateAutoCategory = async (data: Categorydata) => {
               promotion_id: { not: null },
             }
           : data.type === "popular"
-          ? {
-              amount_incart: { not: null },
-              amount_sold: { not: null },
-              amount_wishlist: { not: null },
-            }
-          : {},
+            ? {
+                amount_incart: { not: null },
+                amount_sold: { not: null },
+                amount_wishlist: { not: null },
+              }
+            : {},
       select: {
         id: true,
         amount_incart: true,
@@ -94,8 +101,8 @@ const CreateAutoCategory = async (data: Categorydata) => {
               product_id: prod.id,
               autocategory_id: created.id,
             },
-          })
-        )
+          }),
+        ),
       );
     } else if (data.type === "popular") {
       await Promise.all(
@@ -114,11 +121,11 @@ const CreateAutoCategory = async (data: Categorydata) => {
               },
             });
           }
-        })
+        }),
       );
     } else if (data.type === "latest") {
       const latestProducts = product.sort(
-        (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
+        (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
       );
       await Promise.all(
         latestProducts.map((product) => {
@@ -128,7 +135,7 @@ const CreateAutoCategory = async (data: Categorydata) => {
               product_id: product.id,
             },
           });
-        })
+        }),
       );
     }
 
@@ -153,7 +160,7 @@ export async function POST(req: NextRequest) {
       return Response.json({}, { status: 500 });
     }
   } catch (error) {
-    console.error("createCategory", error);
+    console.log("createCategory", error);
     return Response.json({ message: "Error Occurred" }, { status: 500 });
   }
 }
@@ -167,7 +174,7 @@ export async function PUT(req: NextRequest) {
       return Response.json({ message: update.message }, { status: 500 });
     }
   } catch (error) {
-    console.error("Category Error", error);
+    console.log("Category Error", error);
     return Response.json({ message: "Error Occured" }, { status: 500 });
   }
 }
@@ -176,8 +183,12 @@ export async function GET(req: NextRequest) {
   try {
     const url = req.url.toString();
     const { ty } = extractQueryParams(url);
+
+    const whereClause =
+      ty === "create" ? { type: categorytype.normal } : undefined;
+
     const allcat = await Prisma.parentcategories.findMany({
-      where: ty === "create" ? { type: categorytype.normal } : {},
+      where: whereClause,
       select: {
         id: true,
         name: true,
@@ -194,20 +205,26 @@ export async function GET(req: NextRequest) {
       },
     });
 
+    //Compare date using DayJs
     const now = dayjs(new Date());
 
     const checkpromotion = async (pid: number) => {
-      const promotion = await Prisma.promotion.findUnique({
-        where: { id: pid },
-        select: {
-          expireAt: true,
-        },
-      });
+      try {
+        const promotion = await Prisma.promotion.findUnique({
+          where: { id: pid },
+          select: {
+            expireAt: true,
+          },
+        });
 
-      return (
-        dayjs(promotion?.expireAt).isBefore(now) ||
-        dayjs(promotion?.expireAt).isSame(now)
-      );
+        return (
+          dayjs(promotion?.expireAt).isBefore(now) ||
+          dayjs(promotion?.expireAt).isSame(now)
+        );
+      } catch (error) {
+        console.log("Error checking promotion:", error);
+        return false;
+      }
     };
 
     const categories = await Promise.all(
@@ -219,7 +236,7 @@ export async function GET(req: NextRequest) {
                 obj.sub.map(async (i) => ({
                   ...i,
                   isExpired: i.pid ? await checkpromotion(i.pid) : undefined,
-                }))
+                })),
               );
         return {
           id: obj.id,
@@ -228,13 +245,20 @@ export async function GET(req: NextRequest) {
           type: obj.type,
           subcategories,
         };
-      })
+      }),
     );
 
     return Response.json({ data: categories }, { status: 200 });
   } catch (error) {
-    console.log("Fetch Categories");
-    return Response.json({ message: "Error Occured" }, { status: 500 });
+    console.log("Fetch Categories Error:", error);
+
+    return Response.json(
+      {
+        message: "Error Occurred",
+        error: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
   }
 }
 

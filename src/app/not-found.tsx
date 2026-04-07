@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { headers } from "next/headers";
 import Errorwheel from "../../public/Image/errorwheel.png";
 import Image from "next/image";
 

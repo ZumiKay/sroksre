@@ -1,40 +1,53 @@
 import {
   ApiRequest,
   Delayloading,
-  useEffectOnce,
   useScreenSize,
 } from "@/src/context/CustomHook";
 import {
   CateogoryState,
   Productinitailizestate,
-  ProductState,
   ProductStockType,
   SubcategoriesState,
   useGlobalContext,
 } from "@/src/context/GlobalContext";
-import React, { ChangeEvent, useEffect, useRef, useState } from "react";
+import React, {
+  ChangeEvent,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { ContainerLoading, errorToast, successToast } from "../Loading";
-import { PrimaryPhoto } from "../PhotoComponent";
-import PrimaryButton, { Selection } from "../Button";
+import PrimaryButton from "../Button";
 import ToggleMenu, { SearchAndMultiSelect } from "../ToggleMenu";
 import { Variantcontainer } from "./VariantModal";
 import { ImageUpload } from "./Image";
-import { Input, Textarea } from "@nextui-org/react";
-import { VariantIcon } from "../Asset";
-import { SelectionCustom } from "../Pagination_Component";
 import { SecondaryModal } from "../Modals";
-import { NormalSkeleton } from "../Banner";
+import { ProductState, StockTypeEnum } from "@/src/types/product.type";
+import { ImageSection } from "./product/ImageSection";
+import { ProductInfoFields } from "./product/ProductInfoFields";
+import { CategorySection } from "./product/CategorySection";
+import { StockSection } from "./product/StockSection";
+import { DetailsModal } from "./product/DetailsModal";
+import { LoadingOverlay } from "./product/LoadingOverlay";
+import { CleanUpTempImage } from "../../product/utils";
 
-const stockTypeData = [
-  {
-    label: "Normal",
-    value: "stock",
-  },
-  {
-    label: "Variants ( Product have multiple versions)",
-    value: "variant",
-  },
-];
+const CreateProductsInitailize = async (
+  asyncFunctions: Array<Promise<void | boolean> | boolean>,
+) => {
+  try {
+    const allreq = await Promise.allSettled(asyncFunctions.filter(Boolean));
+    if (allreq.some((req) => req.status === "rejected")) {
+      throw Error();
+    }
+    return true;
+  } catch (error) {
+    errorToast("Initialize Error Occured");
+
+    console.log("Intialize Error", error);
+    return false;
+  }
+};
 
 export function CreateProducts({
   setreloaddata,
@@ -52,86 +65,95 @@ export function CreateProducts({
     setisLoading,
   } = useGlobalContext();
 
-  const { isMobile, isTablet } = useScreenSize();
+  const { isMobile } = useScreenSize();
 
   const detailref = useRef<HTMLDivElement>(null);
-  const [loading, setloading] = useState(true);
+  const [loading, setloading] = useState(false);
+  const [categoriesLoading, setCategoriesLoading] = useState(false);
   const [stocktype, setstocktype] = useState<"stock" | "variant" | "size">(
-    "stock"
+    "stock",
   );
-
-  const [isInput, setisInput] = useState(true);
 
   const [subcate, setsubcate] = useState<Array<SubcategoriesState>>([]);
 
   const [cate, setcate] = useState<Array<CateogoryState> | undefined>(
-    undefined
+    undefined,
   );
 
-  const fetchcate = async (products?: ProductState) => {
-    const asyncfunc = async () => {
-      const categories = await ApiRequest(
-        "/api/categories?ty=create",
-        undefined,
-        "GET"
-      );
-      if (categories.success) {
-        setcate(categories.data);
-        const { parent_id } = products
-          ? { ...products.category }
-          : { ...product.category };
-
-        const subcates: CateogoryState = categories.data.find(
-          (i: CateogoryState) => i.id === parent_id
+  const fetchcate = useCallback(
+    async (products?: ProductState) => {
+      setCategoriesLoading(true);
+      const asyncfunc = async () => {
+        const categories = await ApiRequest(
+          "/api/categories?ty=create",
+          undefined,
+          "GET",
         );
+        if (categories.success) {
+          setcate(categories.data);
+          const { parent_id } = products
+            ? { ...products.category }
+            : { ...product.category };
 
-        setsubcate(subcates?.subcategories ?? []);
-      }
-    };
-    await Delayloading(asyncfunc, setloading, 1000);
-  };
+          const subcates: CateogoryState = categories.data.find(
+            (i: CateogoryState) => i.id === parent_id,
+          );
 
-  const fetchproductdata = async (id: number) => {
-    setloading(true);
-    const request = await ApiRequest(
-      `/api/products?ty=info&pid=${id}`,
-      undefined,
-      "GET",
-      undefined,
-      undefined,
-      "product"
-    );
-    if (!request.success) {
-      errorToast("Connection Problem");
-      return;
-    }
+          setsubcate(subcates?.subcategories ?? []);
+        }
+        setCategoriesLoading(false);
+      };
+      await Delayloading(asyncfunc, setloading, 1000);
+    },
+    [ApiRequest],
+  );
 
-    const data: ProductState = request.data;
-
-    const isExist = data.details.findIndex(
-      (i) => i.info_type === "COLOR" || i.info_type === "TEXT"
-    );
-    if (isExist !== -1) {
-      setstocktype("variant");
-    }
-
-    setproduct(request.data);
-
-    await fetchcate(request.data); //fetch categories
-
-    request.data.stocktype && setstocktype(request.data.stocktype);
-  };
-
-  //Fecth Product Info
-
-  useEffectOnce(() => {
-    fetchcate();
-  });
+  /**Initialize Process */
   useEffect(() => {
-    globalindex.producteditindex !== -1 &&
-      fetchproductdata(globalindex.producteditindex);
-    setloading(false);
-  }, []);
+    const fetchproductdata = async (id: number) => {
+      setloading(true);
+      const request = await ApiRequest(
+        `/api/products?ty=info&pid=${id}`,
+        undefined,
+        "GET",
+        undefined,
+        undefined,
+        "product",
+      );
+      if (!request.success) {
+        errorToast("Connection Problem");
+        return;
+      }
+
+      const data: ProductState = request.data;
+
+      const isExist = data.details.findIndex(
+        (i) => i.info_type === "COLOR" || i.info_type === "TEXT",
+      );
+      if (isExist !== -1) {
+        setstocktype("variant");
+      }
+
+      setproduct(request.data);
+
+      await fetchcate(request.data); //fetch categories
+
+      setloading(false);
+
+      request.data.stocktype && setstocktype(request.data.stocktype);
+    };
+    if (globalindex.producteditindex && globalindex.producteditindex !== -1) {
+      setloading(true);
+    }
+    CreateProductsInitailize([
+      globalindex.producteditindex === -1 && fetchcate(),
+      globalindex.producteditindex !== -1 &&
+        fetchproductdata(globalindex.producteditindex),
+      CleanUpTempImage(),
+    ]);
+
+    console.log("Create product useEffect Run");
+  }, [globalindex.producteditindex, fetchcate]);
 
   useEffect(() => {
     detailref.current &&
@@ -140,14 +162,47 @@ export function CreateProducts({
       });
   }, [openmodal.productdetail]);
 
+  // When the virtual keyboard opens it shrinks the visual viewport.
+  // Scroll the currently-focused input/textarea back into view so it
+  // is never hidden behind the keyboard.
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.visualViewport) return;
+
+    const handleViewportResize = () => {
+      const focused = document.activeElement as HTMLElement | null;
+      if (
+        focused &&
+        (focused.tagName === "INPUT" || focused.tagName === "TEXTAREA")
+      ) {
+        setTimeout(() => {
+          focused.scrollIntoView({ behavior: "smooth", block: "center" });
+        }, 100);
+      }
+    };
+
+    window.visualViewport.addEventListener("resize", handleViewportResize);
+
+    return () =>
+      window.visualViewport?.removeEventListener(
+        "resize",
+        handleViewportResize,
+      );
+  }, []);
+
   //Method
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (e: React.SubmitEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
     const createdproduct = { ...product };
     const URL = "/api/products/crud";
 
-    if (product.covers.length === 0) {
-      errorToast("Cover Image is Required");
+    if (product.covers.length === 0 || !product.category.parent_id) {
+      errorToast(
+        `${
+          !product.category.parent_id ? "Category" : "Cover Image"
+        } is Required`,
+      );
       return;
     }
 
@@ -182,7 +237,7 @@ export function CreateProducts({
       successToast(`${product.name} Updated`);
     }
 
-    setopenmodal((prev) => ({ ...prev, createProduct: false }));
+    setproduct(Productinitailizestate);
     setreloaddata(true);
   };
 
@@ -203,7 +258,7 @@ export function CreateProducts({
   const handleSelect = (value: string, name: "parent_id" | "child_id") => {
     if (name === "parent_id") {
       const subcates = cate?.find(
-        (i) => i.id?.toString() === value
+        (i) => i.id?.toString() === value,
       )?.subcategories;
       setsubcate(subcates ?? []);
     }
@@ -212,6 +267,33 @@ export function CreateProducts({
       ...product,
       category: { ...product.category, [name]: parseInt(value) },
     });
+  };
+
+  const handleStocktypeChange = (value: string) => {
+    const updated = { ...product };
+
+    if (
+      value === ProductStockType.size ||
+      value === ProductStockType.stock ||
+      value === ProductStockType.variant
+    ) {
+      updated.stock = 0;
+    }
+
+    if (
+      value === ProductStockType.stock ||
+      value === ProductStockType.variant
+    ) {
+      const idx = updated.details?.findIndex((i) => i.info_type === "SIZE");
+      if (idx !== undefined && idx !== -1) updated.details?.splice(idx, 1);
+    } else {
+      updated.Variant = undefined;
+      updated.Stock = undefined;
+    }
+
+    updated.stocktype = value as StockTypeEnum;
+    setproduct(updated);
+    setstocktype(value as "stock" | "variant" | "size");
   };
 
   const handleCancel = async () => {
@@ -224,27 +306,59 @@ export function CreateProducts({
     <>
       <SecondaryModal
         open={openmodal.createProduct}
-        size={isMobile ? "5xl" : "full"}
+        size="full"
         placement="top"
+        scroll="inside"
+        isForm={{
+          className: `createform w-full
+          overflow-y-auto overflow-x-hidden relative bg-linear-to-br from-gray-50 to-gray-100
+          p-2 sm:p-4 md:p-6 lg:p-8 rounded-lg`,
+
+          onSubmit: handleSubmit,
+        }}
+        header={() => {
+          return (
+            <>
+              {openmodal.imageupload && (
+                <ImageUpload
+                  limit={4}
+                  mutitlple={true}
+                  type="createproduct"
+                  setreloaddata={setreloaddata}
+                />
+              )}
+              {openmodal.addproductvariant && <Variantcontainer />}
+            </>
+          );
+        }}
         footer={() => {
           return (
-            <div className="w-full h-fit flex flex-row gap-x-5 justify-start">
+            <div className="w-full h-fit flex flex-row gap-2 sm:gap-4 md:gap-5 justify-between px-2 sm:px-4 md:px-6 py-2">
               <PrimaryButton
                 color="#44C3A0"
-                text={globalindex.producteditindex === -1 ? "Create" : "Update"}
-                type={"button"}
-                onClick={() => handleSubmit()}
+                text={
+                  loading
+                    ? "Loading..."
+                    : isLoading.POST || isLoading.PUT
+                      ? "Saving..."
+                      : globalindex.producteditindex === -1
+                        ? "Create"
+                        : "Update"
+                }
+                type={"submit"}
                 radius="10px"
-                width="90%"
-                height="40px"
-              />{" "}
+                width="100%"
+                height="45px"
+                disable={loading || isLoading.POST || isLoading.PUT}
+              />
               <PrimaryButton
                 color="#F08080"
                 text="Cancel"
                 type="button"
                 radius="10px"
-                width="90%"
-                height="40px"
+                width="100%"
+                height="45px"
+                disable={loading || isLoading.POST || isLoading.PUT}
                 onClick={() => {
                   handleCancel();
                 }}
@@ -254,383 +368,88 @@ export function CreateProducts({
         }}
       >
         {(loading || isLoading.PUT || isLoading.POST) && <ContainerLoading />}
-        <form
-          className={`createform  w-full max-small_phone:max-h-[50vh]
-          overflow-y-auto overflow-x-hidden relative`}
+
+        <div
+          className="product__form w-full
+          flex flex-col lg:flex-row gap-4 sm:gap-6 md:gap-8 lg:gap-12 xl:gap-16
+          h-fit overflow-y-auto overflow-x-hidden items-start justify-center
+          lg:items-start
+          "
         >
+          <ImageSection loading={loading} />
+
           <div
-            className="product__form w-[100%] 
-        flex flex-row gap-x-16 h-fit overflow-y-auto overflow-x-hidden items-start justify-center 
-        max-smallest_screen:flex-col max-smallest_screen:items-center max-smallest_screen:justify-start
-        max-smallest_screen:gap-y-10
-        "
+            className="productinfo flex flex-col justify-start items-stretch
+              w-full lg:w-1/2 lg:flex-1
+              h-fit gap-y-3 sm:gap-y-5 md:gap-y-6
+              bg-white rounded-xl shadow-sm sm:shadow-lg p-3 sm:p-4 md:p-6 lg:p-8 border border-gray-200
+              "
           >
-            <div className="image__contianer flex flex-col items-center sticky max-smallest_screen:relative top-0 gap-y-1 w-[400px] max-small_phone:w-[97vw] h-fit">
-              <PrimaryPhoto
-                data={product.covers}
-                showcount={true}
-                style={{ height: "fit-content" }}
-                hover={true}
-                isMobile={isMobile}
-                isTablet={isTablet}
-              />
-              <PrimaryButton
-                type="button"
-                text={product.covers.length > 0 ? "Edit Photo" : "Upload Photo"}
-                width="100%"
-                onClick={() => {
-                  setopenmodal({ ...openmodal, imageupload: true });
-                }}
-              />
-            </div>
+            {loading && <LoadingOverlay message="Loading product data..." />}
+
+            <ProductInfoFields handleChange={handleChange} loading={loading} />
 
             <div
-              className="productinfo flex flex-col justify-center items-end w-1/2 
-          h-fit gap-y-5
-          max-smallest_screen:w-[90%]  
-          "
+              className="w-full h-fit flex flex-col gap-y-3 z-50 
+                bg-linear-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200"
             >
-              <Input
-                type="text"
-                label="Product Name"
-                labelPlacement="outside"
-                placeholder="Name"
-                name="name"
-                onChange={handleChange}
-                value={product.name}
-                required
-                size="lg"
-                className="w-[100%] h-[40px]  font-bold rounded-md"
-              />
-              <Input
-                type="text"
-                label="Short Description"
-                placeholder="Description"
-                labelPlacement="outside"
-                name="description"
-                onChange={handleChange}
-                value={product.description}
-                required
-                size="lg"
-                className="w-[100%] h-[40px] text-lg pl-1 font-bold rounded-md "
-              />
-
-              <Input
-                type="number"
-                label="Price"
-                labelPlacement="outside"
-                placeholder="0.00"
-                step={".01"}
-                value={product.price === 0 ? "" : product.price.toString()}
-                name="price"
-                onChange={handleChange}
-                min={0}
-                max={10000}
-                startContent={
-                  <div className="pointer-events-none flex items-center">
-                    <span className="text-default-400 text-small">$</span>
-                  </div>
-                }
-                required
-                size="lg"
-                className="w-[100%] h-[40px] text-lg pl-1 font-bold rounded-md "
-              />
-              <div className="w-full h-fit flex flex-col gap-y-5 z-50">
-                <label className="font-bold text-lg">
-                  Add related product (Optional)
-                </label>
-                <SearchAndMultiSelect />
-              </div>
-
-              <div className="category_sec flex flex-col gap-y-5  w-full h-fit font-bold">
-                {loading ? (
-                  <NormalSkeleton count={2} width="100%" height="40px" />
-                ) : (
-                  <>
-                    <SelectionCustom
-                      textplacement="outside"
-                      label="Category"
-                      placeholder="Select"
-                      value={
-                        product.category.parent_id !== 0 &&
-                        product.category.parent_id
-                          ? `${product.category.parent_id}`
-                          : undefined
-                      }
-                      data={
-                        cate?.map((i) => ({
-                          label: i.name,
-                          value: `${i.id}`,
-                        })) ?? []
-                      }
-                      onChange={(val) =>
-                        handleSelect(val.toString(), "parent_id")
-                      }
-                    />
-                    {product.category.parent_id !== 0 &&
-                    product.category.parent_id ? (
-                      <SelectionCustom
-                        label="Sub Category"
-                        textplacement="outside"
-                        value={
-                          product.category.child_id &&
-                          product.category.child_id !== 0
-                            ? `${product.category.child_id}`
-                            : undefined
-                        }
-                        data={
-                          subcate.map((sub) => ({
-                            label: sub.name,
-                            value: `${sub.id}`,
-                          })) ?? []
-                        }
-                        placeholder="Select"
-                        onChange={(val) =>
-                          handleSelect(val.toString(), "child_id")
-                        }
-                      />
-                    ) : (
-                      ""
-                    )}{" "}
-                  </>
-                )}
-              </div>
-              <Selection
-                label="Stock Type"
-                value={product.stocktype}
-                data={stockTypeData}
-                onChange={(e) => {
-                  const { value } = e.target;
-                  let updateproducts = { ...product };
-
-                  if (
-                    value === ProductStockType.size ||
-                    value === ProductStockType.stock ||
-                    value === ProductStockType.variant
-                  ) {
-                    updateproducts.stock = 0;
-                  }
-
-                  if (
-                    value === ProductStockType.stock ||
-                    value === ProductStockType.variant
-                  ) {
-                    const idx = updateproducts.details?.findIndex(
-                      (i) => i.info_type === "SIZE"
-                    );
-                    idx !== undefined && updateproducts.details?.splice(idx, 1);
-                  } else {
-                    updateproducts.variants = undefined;
-                    updateproducts.varaintstock = undefined;
-                  }
-                  updateproducts.stocktype = value;
-                  setproduct(updateproducts);
-                  setstocktype(value as any);
-                }}
-                required
-              />
-              {stocktype === ProductStockType.stock ? (
-                <Input
-                  type="number"
-                  label="Stock"
-                  labelPlacement="outside"
-                  placeholder="0"
-                  name="stock"
-                  min={0}
-                  max={1000}
-                  onChange={handleChange}
-                  value={product.stock === 0 ? "" : product.stock?.toString()}
-                  required
-                  size="lg"
-                  onFocus={() => setisInput(true)}
-                  onBlur={() => setisInput(false)}
-                  className={`w-full h-[40px] text-lg pl-1 font-bold rounded-md`}
-                />
-              ) : (
-                <>
-                  <PrimaryButton
-                    radius="10px"
-                    hoverTextColor="lightblue"
-                    type="button"
-                    text={"Variants"}
-                    Icon={<VariantIcon />}
-                    width="100%"
-                    onClick={() => {
-                      setopenmodal((prev) => ({
-                        ...prev,
-                        addproductvariant: true,
-                      }));
-                    }}
-                    height="50px"
-                    color="black"
-                  />
-                </>
-              )}
-
-              <div
-                className={`toggleMenu_section w-full h-fit p-1 transition cursor-pointer rounded-md  hover:border border-gray-400`}
-              >
-                <ToggleMenu
-                  name="Product Details"
-                  data={product.details}
-                  isAdmin={true}
-                />
-              </div>
-              {!openmodal.productdetail ? (
-                <PrimaryButton
-                  color="#0097FA"
-                  text="Add more detail"
-                  onClick={() => {
-                    setglobalindex((prev) => ({
-                      ...prev,
-                      productdetailindex: -1,
-                    }));
-                    setopenmodal({ ...openmodal, productdetail: true });
-                  }}
-                  type="button"
-                  radius="10px"
-                  width="100%"
-                  height="35px"
-                />
-              ) : (
-                <div ref={detailref} className="w-full h-full">
-                  <DetailsModal isInput={(val) => setisInput(val)} />
-                </div>
-              )}
+              <label className="font-semibold text-sm text-gray-700">
+                Add related product (Optional)
+              </label>
+              <SearchAndMultiSelect />
             </div>
+
+            <CategorySection
+              cate={cate}
+              subcate={subcate}
+              parentId={product.category.parent_id || undefined}
+              childId={product.category.child_id || undefined}
+              categoriesLoading={categoriesLoading}
+              onSelect={handleSelect}
+            />
+
+            <StockSection
+              stocktype={stocktype}
+              loading={loading}
+              handleChange={handleChange}
+              onStocktypeChange={handleStocktypeChange}
+            />
+
+            <div
+              className="toggleMenu_section w-full h-fit p-4 transition cursor-pointer 
+                  rounded-lg bg-linear-to-r from-gray-50 to-slate-50 
+                  border-2 border-gray-300 hover:border-blue-400 hover:shadow-md"
+            >
+              <ToggleMenu
+                name="Product Details"
+                data={product.details}
+                isAdmin={true}
+              />
+            </div>
+            {!openmodal.productdetail ? (
+              <PrimaryButton
+                color="#0097FA"
+                text="Add more detail"
+                onClick={() => {
+                  setglobalindex((prev) => ({
+                    ...prev,
+                    productdetailindex: -1,
+                  }));
+                  setopenmodal({ ...openmodal, productdetail: true });
+                }}
+                type="button"
+                radius="10px"
+                width="100%"
+                height="35px"
+              />
+            ) : (
+              <div ref={detailref} className="w-full h-full">
+                <DetailsModal />
+              </div>
+            )}
           </div>
-        </form>
-        {openmodal.imageupload && (
-          <ImageUpload
-            limit={4}
-            mutitlple={true}
-            type="createproduct"
-            setreloaddata={setreloaddata}
-          />
-        )}
-        {openmodal.addproductvariant && <Variantcontainer />}
+        </div>
       </SecondaryModal>
     </>
   );
 }
-
-const NormalDetail = () => {
-  const { product, globalindex, setproduct, setglobalindex, setopenmodal } =
-    useGlobalContext();
-  const [index, setindex] = useState(-1);
-  const normaldetailinitialize = {
-    info_title: "",
-    info_value: "",
-  };
-  const [normaldetail, setnormal] = useState(normaldetailinitialize);
-  useEffect(() => {
-    const editindex = globalindex.productdetailindex === -1;
-    console.log(product.details[globalindex.productdetailindex]);
-    if (!editindex) {
-      setnormal({
-        info_title: product.details[globalindex.productdetailindex].info_title,
-        info_value: product.details[globalindex.productdetailindex]
-          .info_value[0] as string,
-      });
-    }
-    setindex(globalindex.productdetailindex);
-  }, [globalindex.productdetailindex]);
-  const handleAdd = () => {
-    const updatedetail = [...product.details];
-    const isExist = updatedetail.some(
-      (obj, idx) => idx !== index && obj.info_title === normaldetail.info_title
-    );
-    if (isExist) {
-      errorToast("Name Already Exist");
-      return;
-    }
-    if (index === -1) {
-      updatedetail.push({
-        info_title: normaldetail.info_title,
-        info_type: "NORMAL",
-        info_value: [normaldetail.info_value],
-      });
-    } else {
-      updatedetail[index].info_title = normaldetail.info_title;
-      updatedetail[index].info_value[0] = normaldetail.info_value;
-      updatedetail[index].info_type = "NORMAL";
-    }
-    setproduct({ ...product, details: updatedetail });
-    setglobalindex((prev) => ({ ...prev, productdetailindex: -1 }));
-    setnormal(normaldetailinitialize);
-    setopenmodal((prev) => ({ ...prev, productdetail: false }));
-    //save detail
-  };
-
-  const handleChange = (
-    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    setnormal({ ...normaldetail, [e.target.name]: e.target.value });
-  };
-
-  return (
-    <div className="normalDetail w-[80%] h-full flex flex-col justify-center gap-y-5">
-      <Input
-        type="text"
-        name="info_title"
-        label="Title"
-        value={normaldetail.info_title}
-        onChange={handleChange}
-        className="detailname w-full rounded-md text-center text-lg"
-        size="lg"
-      />
-
-      <Textarea
-        value={normaldetail.info_value}
-        size="lg"
-        className="w-full min-h-[100px] h-fit text-lg text-left overflow-y-auto rounded-lg p-2"
-        label="Description"
-        onChange={handleChange}
-        name="info_value"
-      />
-
-      <PrimaryButton
-        onClick={() => handleAdd()}
-        type="button"
-        text="Add Detail"
-        color="#35C191"
-        radius="10px"
-        width="100%"
-        height="50px"
-        disable={
-          normaldetail.info_value.length === 0 ||
-          normaldetail.info_title.length === 0
-        }
-      />
-    </div>
-  );
-};
-
-export const DetailsModal = ({
-  isInput,
-}: {
-  isInput: (val: boolean) => void;
-}) => {
-  const { setopenmodal } = useGlobalContext();
-
-  useEffect(() => {
-    isInput(false);
-  }, []);
-
-  return (
-    <div className="details_modal bg-[#CFDBEE] w-full h-full flex flex-col gap-y-5 items-center pr-1 pl-1 pt-5 pb-5">
-      <NormalDetail />
-      <PrimaryButton
-        width="80%"
-        height="50px"
-        radius="10px"
-        text="Back"
-        onClick={() => {
-          setopenmodal((prev) => ({ ...prev, productdetail: false }));
-        }}
-        color="#CE9EAD"
-        type="button"
-      />
-    </div>
-  );
-};

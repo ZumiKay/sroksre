@@ -1,13 +1,22 @@
 import {
   Orderpricetype,
+  OrderSelectedVariantType,
+  Ordertype,
   Productordertype,
   totalpricetype,
-} from "@/src/context/OrderContext";
-import { OrderUserType } from "../checkout/action";
-import { VariantColorValueType } from "@/src/context/GlobalContext";
+} from "@/src/types/order.type";
+import { VariantValueObjType } from "@/src/types/product.type";
+
+const isOrderSelectedVariantType = (
+  details: unknown,
+): details is OrderSelectedVariantType =>
+  !!details &&
+  !Array.isArray(details) &&
+  typeof details === "object" &&
+  ("variantsection" in (details as object) || "variant" in (details as object));
 
 interface OerderEmailProps {
-  order: OrderUserType;
+  order: Ordertype;
   isAdmin: boolean;
 }
 
@@ -47,13 +56,10 @@ export function formatDate(date: Date) {
 
 const ShowCard = ({ orderProduct }: { orderProduct: Productordertype }) => {
   const price = orderProduct.price;
-  const isDiscount = price.discount;
-
-  const Totalprice =
+  // Use stored price data — avoids depending on live product price
+  const total =
     orderProduct.quantity *
-    (!isDiscount
-      ? orderProduct.product?.price ?? 0
-      : (price.discount?.newprice as number));
+    (price.discount?.newprice ?? (price.price + (price.extra ?? 0)));
 
   return (
     <OrderProductEmailCard
@@ -61,9 +67,9 @@ const ShowCard = ({ orderProduct }: { orderProduct: Productordertype }) => {
         cover: orderProduct.product?.covers[0].url as string,
         name: orderProduct.product?.name as string,
         quantity: orderProduct.quantity,
-        details: orderProduct.selectedvariant as any,
-        price: price,
-        total: Totalprice,
+        details: orderProduct.selectedvariant,
+        price,
+        total,
       }}
     />
   );
@@ -73,211 +79,407 @@ export function OrderReceiptTemplate({ order, isAdmin }: OerderEmailProps) {
     <div
       style={{
         width: "100%",
-        height: "auto",
-        display: "grid",
-        placeItems: "center",
-        placeContent: "center",
+        minHeight: "100vh",
+        backgroundColor: "#f5f5f5",
+        padding: "20px 0",
+        fontFamily: "Arial, Helvetica, sans-serif",
       }}
     >
       <table
-        className="Reciept_Contianer"
+        cellPadding="0"
+        cellSpacing="0"
+        border={0}
         style={{
-          backgroundColor: "#f2f2f2",
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "center",
-          alignItems: "center",
+          maxWidth: "650px",
           width: "100%",
-          height: "100%",
-          border: 0,
+          margin: "0 auto",
+          backgroundColor: "#ffffff",
+          borderRadius: "12px",
+          overflow: "hidden",
+          boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
         }}
-        align="center"
       >
-        <tbody style={{ textAlign: "center", border: 0 }}>
-          <tr></tr>
+        <tbody>
+          {/* Logo Section */}
           <tr>
-            <td colSpan={2} align="center">
+            <td
+              colSpan={2}
+              align="center"
+              style={{
+                padding: "40px 20px 20px",
+                backgroundColor: "#495464",
+              }}
+            >
               <img
                 src="https://firebasestorage.googleapis.com/v0/b/sroksre-442c0.appspot.com/o/sideImage%2FLogo3.png?alt=media&token=e9bda37b-3cc7-400b-9680-01d3b2bf2064"
-                width={"100px"}
-                height={"auto"}
+                width="120"
+                height="auto"
                 title="Logo"
-                alt="Logo"
-                loading="eager"
-                style={{ display: "block", objectFit: "contain" }}
+                alt="SrokSre Logo"
+                style={{
+                  display: "block",
+                  margin: "0 auto",
+                  maxWidth: "120px",
+                  height: "auto",
+                }}
               />
             </td>
           </tr>
 
+          {/* Header Message */}
           <tr>
-            <td colSpan={2} height={"100px"} valign="middle">
-              <p style={{ fontSize: "20px", fontWeight: "700" }}>
+            <td
+              colSpan={2}
+              align="center"
+              style={{
+                padding: "30px 20px 20px",
+                backgroundColor: "#495464",
+              }}
+            >
+              <h1
+                style={{
+                  fontSize: "24px",
+                  fontWeight: "700",
+                  color: "#ffffff",
+                  margin: "0",
+                  lineHeight: "1.4",
+                }}
+              >
                 {isAdmin
-                  ? `Order for ${order.user.firstname}#${order.user.id}`
-                  : `Thank you for shopping with us`}
-              </p>
+                  ? `Order for ${order.user.firstname} #${order.user.id}`
+                  : `Thank you for your order!`}
+              </h1>
             </td>
           </tr>
 
+          {/* Order Summary Section */}
           <tr>
             <td
-              height={"50px"}
               colSpan={2}
-              style={{ textAlign: "left", paddingLeft: "5%", fontSize: "15px" }}
+              style={{
+                padding: "30px 30px 10px",
+                backgroundColor: "#ffffff",
+              }}
             >
               {!isAdmin && (
-                <p style={{ height: "50px" }}>
-                  <strong>{`Hi, ${order.user?.firstname ?? ""}`} </strong>
-                  {"we received your order."}
+                <p
+                  style={{
+                    fontSize: "16px",
+                    color: "#333333",
+                    margin: "0 0 20px",
+                    lineHeight: "1.6",
+                  }}
+                >
+                  <strong>Hi {order.user?.firstname ?? ""},</strong>
+                  <br />
+                  We've received your order and will process it shortly.
                 </p>
               )}
-              <p
+              <h2
                 style={{
-                  fontSize: "25px",
-                  fontWeight: 800,
-                  height: "50px",
+                  fontSize: "22px",
+                  fontWeight: "700",
+                  color: "#333333",
+                  margin: "0 0 20px",
+                  borderBottom: "2px solid #495464",
+                  paddingBottom: "10px",
                 }}
               >
                 Order Summary
-              </p>
-              <p style={{ fontWeight: "700" }}>Order #: {order.id}</p>
-              <p style={{ fontWeight: "700" }}>
-                Order on {formatDate(order.createdAt)}
-              </p>
-              <p
-                style={{
-                  fontWeight: "700",
-                  color: AllOrderStatusColor[order.status.toLowerCase()],
-                }}
+              </h2>
+              <table
+                cellPadding="0"
+                cellSpacing="0"
+                border={0}
+                style={{ width: "100%", marginBottom: "20px" }}
               >
-                {`Order status: ${order.status.toUpperCase()}`}
-              </p>
+                <tbody>
+                  <tr>
+                    <td
+                      style={{
+                        padding: "8px 0",
+                        fontSize: "15px",
+                        color: "#666666",
+                      }}
+                    >
+                      <strong style={{ color: "#333333" }}>Order #:</strong>
+                    </td>
+                    <td
+                      style={{
+                        padding: "8px 0",
+                        fontSize: "15px",
+                        color: "#333333",
+                        textAlign: "right",
+                      }}
+                    >
+                      {order.id}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td
+                      style={{
+                        padding: "8px 0",
+                        fontSize: "15px",
+                        color: "#666666",
+                      }}
+                    >
+                      <strong style={{ color: "#333333" }}>Order Date:</strong>
+                    </td>
+                    <td
+                      style={{
+                        padding: "8px 0",
+                        fontSize: "15px",
+                        color: "#333333",
+                        textAlign: "right",
+                      }}
+                    >
+                      {order.createdAt
+                        ? formatDate(order.createdAt)
+                        : "Unknown"}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td
+                      style={{
+                        padding: "8px 0",
+                        fontSize: "15px",
+                        color: "#666666",
+                      }}
+                    >
+                      <strong style={{ color: "#333333" }}>Status:</strong>
+                    </td>
+                    <td
+                      style={{
+                        padding: "8px 0",
+                        fontSize: "15px",
+                        fontWeight: "700",
+                        color: AllOrderStatusColor[order.status.toLowerCase()],
+                        textAlign: "right",
+                        textTransform: "uppercase",
+                      }}
+                    >
+                      {order.status}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
 
               {order.shipping && (
                 <>
-                  <p
+                  <h3
                     style={{
-                      fontSize: "25px",
-                      fontWeight: 800,
-                      height: "30px",
+                      fontSize: "18px",
+                      fontWeight: "700",
+                      color: "#333333",
+                      margin: "20px 0 10px",
                     }}
                   >
                     Shipping Address
-                  </p>
-                  <p
+                  </h3>
+                  <div
                     style={{
+                      padding: "15px",
+                      backgroundColor: "#f9f9f9",
+                      borderRadius: "8px",
                       fontSize: "15px",
-                      fontWeight: 500,
+                      color: "#555555",
+                      lineHeight: "1.6",
                     }}
                   >
-                    {" "}
-                    {`${order.shipping.firstname} ${order.shipping.lastname}`}
-                  </p>
-                  <p
-                    style={{
-                      fontSize: "15px",
-                      fontWeight: 500,
-                    }}
-                  >
-                    {" "}
-                    {`No${order.shipping.houseId}, Street ${order.shipping.street}`}{" "}
-                  </p>
-                  <p
-                    style={{
-                      fontSize: "15px",
-                      fontWeight: 500,
-                    }}
-                  >
-                    {`${order.shipping.district}, ${order.shipping.songkhat}`}{" "}
-                  </p>
-                  <p
-                    style={{
-                      fontSize: "15px",
-                      fontWeight: 500,
-                    }}
-                  >
-                    {" "}
-                    {`${order.shipping.province}, ${order.shipping.postalcode}`}{" "}
-                  </p>
+                    <p
+                      style={{
+                        margin: "0 0 5px",
+                        fontWeight: "600",
+                        color: "#333333",
+                      }}
+                    >
+                      {`${order.shipping.firstname} ${order.shipping.lastname}`}
+                    </p>
+                    <p style={{ margin: "0 0 5px" }}>
+                      {`No. ${order.shipping.houseId}, Street ${order.shipping.street}`}
+                    </p>
+                    <p style={{ margin: "0 0 5px" }}>
+                      {`${order.shipping.district}, ${order.shipping.songkhat}`}
+                    </p>
+                    <p style={{ margin: "0" }}>
+                      {`${order.shipping.province}, ${order.shipping.postalcode}`}
+                    </p>
+                  </div>
                 </>
               )}
             </td>
           </tr>
 
-          {order.Orderproduct.map((prob) => {
-            return <ShowCard orderProduct={prob} />;
-          })}
-
-          <tr style={{ height: "70px", width: "100%" }}>
-            <td colSpan={2} width={"95%"}>
-              <a
+          {/* Products Header */}
+          <tr>
+            <td
+              colSpan={2}
+              style={{
+                padding: "24px 30px 12px",
+                backgroundColor: "#ffffff",
+              }}
+            >
+              <h3
                 style={{
-                  width: "100%",
-                  padding: "10px",
-                  backgroundColor: "#495464",
-                  borderRadius: "10px",
-                  color: "white",
-                  fontWeight: "600",
-                  fontSize: "17px",
-                  border: "0px",
+                  fontSize: "16px",
+                  fontWeight: "700",
+                  color: "#495464",
+                  margin: "0",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.6px",
                 }}
-                href={`${process.env.NEXT_PUBLIC_BASE_URL}/dashboard/order?q=${order.id}`}
               >
-                View Order
-              </a>
+                Order Items ({order.Orderproduct.length})
+              </h3>
             </td>
           </tr>
+
+          {order.Orderproduct.map((prob, index) => (
+            <ShowCard key={index} orderProduct={prob} />
+          ))}
 
           <TotalPrice data={order.price} />
 
-          <tr style={{ width: "100%", height: "auto" }}>
-            <td colSpan={2} align="left">
-              <p style={{ fontWeight: 800, fontSize: "30px" }}>Need Help ?</p>
+          {/* View Order Button */}
+          <tr>
+            <td
+              colSpan={2}
+              align="center"
+              style={{
+                padding: "30px 30px 20px",
+                backgroundColor: "#ffffff",
+              }}
+            >
               <a
+                href={`${process.env.NEXT_PUBLIC_BASE_URL}/dashboard/order?q=${order.id}`}
                 style={{
-                  fontSize: "25px",
+                  display: "inline-block",
+                  padding: "14px 40px",
+                  backgroundColor: "#495464",
+                  borderRadius: "8px",
+                  color: "#ffffff",
                   fontWeight: "600",
-                  padding: "10px",
+                  fontSize: "16px",
+                  textDecoration: "none",
+                  textAlign: "center",
+                  transition: "background-color 0.3s ease",
                 }}
-                href={process.env.BASE_URL + "/contact"}
               >
-                Contact
+                View Full Order Details
               </a>
             </td>
           </tr>
 
+          {/* Footer Section */}
           <tr>
-            <td colSpan={2} align="left">
-              <a
+            <td
+              colSpan={2}
+              style={{
+                padding: "30px 30px 20px",
+                backgroundColor: "#f9f9f9",
+                borderTop: "1px solid #e0e0e0",
+              }}
+            >
+              <h3
                 style={{
-                  fontSize: "25px",
-                  fontWeight: "600",
-                  padding: "10px",
+                  fontSize: "18px",
+                  fontWeight: "700",
+                  color: "#333333",
+                  margin: "0 0 15px",
                 }}
-                href={process.env.NEXT_PUBLIC_BASE_URL + "/privacyandpolicy"}
               >
-                Policy and Terms
-              </a>
-            </td>
-          </tr>
-          <tr>
-            <td colSpan={2} align="left">
-              <a
+                Need Help?
+              </h3>
+              <p
                 style={{
-                  fontSize: "25px",
-                  fontWeight: "600",
-                  padding: "10px",
+                  fontSize: "14px",
+                  color: "#666666",
+                  margin: "0 0 15px",
+                  lineHeight: "1.6",
                 }}
-                href={
-                  process.env.NEXT_PUBLIC_BASE_URL + "/privacyandpolicy?p=0"
-                }
               >
-                FAQs
-              </a>
+                If you have any questions about your order, feel free to reach
+                out to us.
+              </p>
+              <table
+                cellPadding="0"
+                cellSpacing="0"
+                border={0}
+                style={{ width: "100%" }}
+              >
+                <tbody>
+                  <tr>
+                    <td style={{ padding: "5px 0" }}>
+                      <a
+                        href={process.env.NEXT_PUBLIC_BASE_URL + "/contact"}
+                        style={{
+                          fontSize: "15px",
+                          fontWeight: "600",
+                          color: "#495464",
+                          textDecoration: "none",
+                        }}
+                      >
+                        → Contact Support
+                      </a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style={{ padding: "5px 0" }}>
+                      <a
+                        href={
+                          process.env.NEXT_PUBLIC_BASE_URL +
+                          "/privacyandpolicy?p=0"
+                        }
+                        style={{
+                          fontSize: "15px",
+                          fontWeight: "600",
+                          color: "#495464",
+                          textDecoration: "none",
+                        }}
+                      >
+                        → FAQs
+                      </a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style={{ padding: "5px 0" }}>
+                      <a
+                        href={
+                          process.env.NEXT_PUBLIC_BASE_URL + "/privacyandpolicy"
+                        }
+                        style={{
+                          fontSize: "15px",
+                          fontWeight: "600",
+                          color: "#495464",
+                          textDecoration: "none",
+                        }}
+                      >
+                        → Privacy Policy & Terms
+                      </a>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </td>
           </tr>
 
-          <tr></tr>
+          {/* Copyright */}
+          <tr>
+            <td
+              colSpan={2}
+              align="center"
+              style={{
+                padding: "20px 30px",
+                backgroundColor: "#f9f9f9",
+                fontSize: "13px",
+                color: "#999999",
+              }}
+            >
+              <p style={{ margin: "0" }}>
+                © {new Date().getFullYear()} SrokSre. All rights reserved.
+              </p>
+            </td>
+          </tr>
         </tbody>
       </table>
     </div>
@@ -285,31 +487,114 @@ export function OrderReceiptTemplate({ order, isAdmin }: OerderEmailProps) {
 }
 
 const TotalPrice = ({ data }: { data: totalpricetype }) => {
+  const rowStyle = {
+    label: {
+      padding: "7px 0",
+      fontSize: "14px",
+      color: "#666666",
+      textAlign: "left" as const,
+    },
+    value: {
+      padding: "7px 0",
+      fontSize: "14px",
+      color: "#333333",
+      textAlign: "right" as const,
+      fontWeight: "500" as const,
+    },
+  };
+
   return (
     <>
+      {/* Divider */}
       <tr>
         <td
           colSpan={2}
-          width={"100%"}
-          style={{ borderTop: "2px dashed black" }}
-        ></td>
-      </tr>
-      <tr style={{ fontSize: "15px" }}>
-        <td style={{ textAlign: "left", paddingLeft: "10px" }}>Subtotal: </td>
-        <td style={{ textAlign: "right", paddingRight: "10px" }}>
-          ${data.subtotal.toFixed(2)}{" "}
+          style={{ padding: "4px 30px", backgroundColor: "#ffffff" }}
+        >
+          <div style={{ borderTop: "1px solid #e0e0e0", margin: "16px 0 0" }} />
         </td>
       </tr>
-      <tr style={{ fontSize: "15px" }}>
-        <td style={{ textAlign: "left", paddingLeft: "10px" }}>Shipping: </td>
-        <td style={{ textAlign: "right", paddingRight: "10px" }}>
-          ${data.shipping?.toFixed(2) ?? "0.00"}{" "}
-        </td>
-      </tr>
-      <tr style={{ fontSize: "20px", fontWeight: "700" }}>
-        <td style={{ textAlign: "left", paddingLeft: "10px" }}>Total: </td>
-        <td style={{ textAlign: "right", paddingRight: "10px" }}>
-          ${data.total.toFixed(2)}{" "}
+
+      {/* Summary table */}
+      <tr>
+        <td
+          colSpan={2}
+          style={{
+            padding: "0 30px 24px",
+            backgroundColor: "#ffffff",
+          }}
+        >
+          <table
+            cellPadding="0"
+            cellSpacing="0"
+            border={0}
+            style={{
+              width: "100%",
+              maxWidth: "320px",
+              marginLeft: "auto",
+            }}
+          >
+            <tbody>
+              {/* Subtotal */}
+              <tr>
+                <td style={rowStyle.label}>Subtotal</td>
+                <td style={rowStyle.value}>${data.subtotal.toFixed(2)}</td>
+              </tr>
+
+              {/* Shipping */}
+              <tr>
+                <td style={rowStyle.label}>Shipping</td>
+                <td style={rowStyle.value}>
+                  {data.shipping && data.shipping > 0
+                    ? `$${data.shipping.toFixed(2)}`
+                    : "Free"}
+                </td>
+              </tr>
+
+              {/* Variant Options extra (only if present) */}
+              {data.extra !== undefined && data.extra > 0 && (
+                <tr>
+                  <td style={rowStyle.label}>Variant Options</td>
+                  <td style={rowStyle.value}>+${data.extra.toFixed(2)}</td>
+                </tr>
+              )}
+
+              {/* VAT (only if present) */}
+              {data.vat !== undefined && data.vat > 0 && (
+                <tr>
+                  <td style={rowStyle.label}>VAT</td>
+                  <td style={rowStyle.value}>${data.vat.toFixed(2)}</td>
+                </tr>
+              )}
+
+              {/* Total */}
+              <tr>
+                <td
+                  style={{
+                    padding: "12px 0 0",
+                    fontSize: "17px",
+                    fontWeight: "800",
+                    color: "#1a1a1a",
+                    borderTop: "2px solid #333333",
+                  }}
+                >
+                  Total
+                </td>
+                <td
+                  style={{
+                    padding: "12px 0 0",
+                    fontSize: "17px",
+                    fontWeight: "800",
+                    color: "#0097FA",
+                    textAlign: "right" as const,
+                    borderTop: "2px solid #333333",
+                  }}
+                >
+                  ${data.total.toFixed(2)}
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </td>
       </tr>
     </>
@@ -320,138 +605,319 @@ interface ProductEmailCardProps {
   cover: string;
   name: string;
   quantity: number;
-  details: (string | VariantColorValueType)[];
+  details?: Array<string | VariantValueObjType> | OrderSelectedVariantType;
   price: Orderpricetype;
   total: number;
 }
-const OrderProductEmailCard = ({ data }: { data: ProductEmailCardProps }) => {
-  const isDiscount = data.price.discount;
 
-  const ShowPrice = () => {
-    return (
-      <p>
+/** Returns true when a string looks like a CSS colour (hex, rgb, named) */
+const isCssColor = (val: string) =>
+  /^#[0-9a-fA-F]{3,8}$/.test(val) ||
+  /^rgba?\(/.test(val) ||
+  /^hsl/.test(val);
+
+/** Renders a single variant chip (string or colour object) for email */
+const EmailVariantChip = ({
+  info,
+  idx,
+}: {
+  info: string | VariantValueObjType;
+  idx: number;
+}) => {
+  const label =
+    typeof info === "string" ? info : info.name || info.val;
+  const isColor =
+    typeof info !== "string" && info.val && isCssColor(info.val);
+  const extra =
+    typeof info !== "string" && info.price
+      ? parseFloat(info.price.toString())
+      : 0;
+
+  return (
+    <span
+      key={idx}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: "5px",
+        backgroundColor: "#ffffff",
+        padding: "3px 10px",
+        borderRadius: "20px",
+        fontSize: "12px",
+        color: "#444444",
+        marginRight: "6px",
+        marginBottom: "6px",
+        border: "1px solid #d0d0d0",
+        whiteSpace: "nowrap" as const,
+      }}
+    >
+      {isColor && (
         <span
           style={{
-            textDecoration: isDiscount ? "line-through" : "none",
-            color: "red",
-            marginRight: "10px",
+            display: "inline-block",
+            width: "12px",
+            height: "12px",
+            borderRadius: "50%",
+            backgroundColor: (info as VariantValueObjType).val,
+            border: "1px solid #bbbbbb",
+            flexShrink: 0,
+          }}
+        />
+      )}
+      <span>{label}</span>
+      {extra > 0 && (
+        <span
+          style={{
+            fontSize: "11px",
+            color: "#0097FA",
+            fontWeight: "600",
           }}
         >
-          ${data.price.price}
+          +${extra.toFixed(2)}
         </span>
-        {isDiscount && (
-          <>
-            <span style={{ color: "red", marginRight: "10px" }}>
-              -{isDiscount.percent ?? "0.00"}%
-            </span>
-            <span style={{ marginRight: "10px" }}>
-              ${isDiscount.newprice?.toFixed(2)}
-            </span>
-          </>
-        )}
+      )}
+    </span>
+  );
+};
 
-        <span>X {data.quantity}</span>
-      </p>
-    );
-  };
-  return (
-    <>
-      <tr
-        style={{
-          height: "100%",
-          backgroundColor: "white",
-          padding: "10px",
-          borderRadius: "10px",
-          width: "100%",
-          border: 0,
-        }}
-      >
-        <td style={{ verticalAlign: "middle", border: 0 }}>
-          <img
-            alt="cover"
-            title="cover"
-            width={"150px"}
-            style={{ objectFit: "cover", borderRadius: "10px" }}
-            src={data.cover}
-          />
-        </td>
-        <td style={{ verticalAlign: "top", textAlign: "left", border: 0 }}>
-          <p style={{ fontWeight: "700" }}>{data.name}</p>
-          {data.details.map((info, idx) =>
-            typeof info === "string" ? (
-              <p
-                key={idx}
+/** Renders variant details supporting both flat array and sectioned OrderSelectedVariantType */
+const EmailVariantDetails = ({
+  details,
+}: {
+  details?: Array<string | VariantValueObjType> | OrderSelectedVariantType;
+}) => {
+  if (!details) return null;
+
+  if (isOrderSelectedVariantType(details)) {
+    const hasSections =
+      details.variantsection && details.variantsection.length > 0;
+    const hasFlat = details.variant && details.variant.length > 0;
+    if (!hasSections && !hasFlat) return null;
+
+    return (
+      <>
+        {details.variantsection?.map((section, sIdx) => (
+          <div key={sIdx} style={{ marginBottom: "8px" }}>
+            {section.variantSection?.name && (
+              <div
                 style={{
-                  backgroundColor: "#f2f2f2",
-                  width: "150px",
-                  height: "fit-content",
-                  padding: "5px",
-                  borderRadius: "10px",
-                  wordBreak: "break-all",
-                  marginBottom: "10px",
+                  fontSize: "11px",
+                  fontWeight: "700",
+                  color: "#888888",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
+                  marginBottom: "4px",
                 }}
               >
-                {info}
-              </p>
-            ) : (
-              <div
-                key={idx}
+                {section.variantSection.name}
+              </div>
+            )}
+            <div>
+              {section.variants.map((item, idx) => (
+                <EmailVariantChip key={idx} info={item} idx={idx} />
+              ))}
+            </div>
+          </div>
+        ))}
+        {hasFlat && (
+          <div style={{ marginBottom: "8px" }}>
+            {details.variant!.map((item, idx) => (
+              <EmailVariantChip key={idx} info={item} idx={idx} />
+            ))}
+          </div>
+        )}
+      </>
+    );
+  }
+
+  if (Array.isArray(details) && details.length > 0) {
+    return (
+      <div style={{ marginBottom: "8px" }}>
+        {details.map((item, idx) => (
+          <EmailVariantChip key={idx} info={item} idx={idx} />
+        ))}
+      </div>
+    );
+  }
+
+  return null;
+};
+
+const OrderProductEmailCard = ({ data }: { data: ProductEmailCardProps }) => {
+  const discount = data.price.discount;
+  const basePrice = parseFloat(data.price.price.toString());
+  const variantExtra = data.price.extra ? parseFloat(data.price.extra.toString()) : 0;
+  // Unit price shown: discounted price (already includes extra) or base + extra
+  const unitPrice = discount
+    ? parseFloat((discount.newprice ?? basePrice).toString())
+    : basePrice;
+
+  return (
+    <tr>
+      <td
+        colSpan={2}
+        style={{ padding: "6px 30px", backgroundColor: "#ffffff" }}
+      >
+        <table
+          cellPadding="0"
+          cellSpacing="0"
+          border={0}
+          style={{
+            width: "100%",
+            backgroundColor: "#ffffff",
+            borderRadius: "12px",
+            border: "1px solid #e8e8e8",
+            overflow: "hidden",
+            boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+          }}
+        >
+          <tbody>
+            <tr>
+              {/* Product image */}
+              <td
                 style={{
-                  width: "150px",
-                  maxWidth: "100%",
-                  backgroundColor: "#f2f2f2",
-                  borderRadius: "10px",
-                  marginBottom: "10px",
-                  padding: "5px",
+                  width: "110px",
+                  padding: "14px",
+                  verticalAlign: "top",
+                  borderRight: "1px solid #f0f0f0",
                 }}
               >
                 <div
                   style={{
-                    width: "25px",
-                    height: "25px",
-                    borderRadius: "100%",
-                    backgroundColor: info.val,
-                    display: "inline-block",
-                    verticalAlign: "middle",
+                    width: "82px",
+                    height: "82px",
+                    backgroundColor: "#f8f9fa",
+                    borderRadius: "8px",
+                    border: "1px solid #eeeeee",
+                    overflow: "hidden",
                   }}
-                ></div>
-                {info.name && (
-                  <span
+                >
+                  <img
+                    alt={data.name}
+                    title={data.name}
+                    width="82"
+                    height="82"
                     style={{
-                      fontWeight: "normal",
-                      display: "inline-block",
-                      wordBreak: "break-all",
-                      paddingLeft: "5px",
+                      width: "82px",
+                      height: "82px",
+                      objectFit: "contain",
+                      display: "block",
                     }}
-                  >
-                    {info.name}
-                  </span>
-                )}
-              </div>
-            )
-          )}
-        </td>
-      </tr>
-      <tr
-        style={{
-          backgroundColor: "white",
-          width: "auto",
-          fontWeight: "600",
-          fontSize: "16px",
-          border: 0,
-        }}
-      >
-        <td align="left">
-          <ShowPrice />
-        </td>
-        <td align="right">
-          <p>${data.total.toFixed(2)}</p>
-        </td>
-      </tr>
-      <tr style={{ height: "20px" }}>
-        <td></td>
-      </tr>
-    </>
+                    src={data.cover}
+                  />
+                </div>
+              </td>
+
+              {/* Product details */}
+              <td style={{ padding: "14px 16px", verticalAlign: "top" }}>
+                {/* Name */}
+                <p
+                  style={{
+                    fontSize: "14px",
+                    fontWeight: "700",
+                    color: "#1a1a1a",
+                    margin: "0 0 6px",
+                    lineHeight: "1.4",
+                  }}
+                >
+                  {data.name}
+                </p>
+
+                {/* Variant chips */}
+                <EmailVariantDetails details={data.details} />
+
+                {/* Price breakdown */}
+                <table
+                  cellPadding="0"
+                  cellSpacing="0"
+                  border={0}
+                  style={{
+                    width: "100%",
+                    marginTop: "10px",
+                    borderTop: "1px solid #f0f0f0",
+                    paddingTop: "8px",
+                  }}
+                >
+                  <tbody>
+                    {/* Base price row */}
+                    <tr>
+                      <td style={{ verticalAlign: "middle", paddingBottom: "4px" }}>
+                        {discount && (
+                          <span
+                            style={{
+                              fontSize: "12px",
+                              color: "#aaaaaa",
+                              textDecoration: "line-through",
+                              marginRight: "6px",
+                            }}
+                          >
+                            ${basePrice.toFixed(2)}
+                          </span>
+                        )}
+                        {discount && (
+                          <span
+                            style={{
+                              fontSize: "11px",
+                              fontWeight: "700",
+                              color: "#ffffff",
+                              backgroundColor: "#EB5757",
+                              padding: "2px 6px",
+                              borderRadius: "4px",
+                              marginRight: "6px",
+                            }}
+                          >
+                            -{discount.percent ?? 0}%
+                          </span>
+                        )}
+                        <span
+                          style={{
+                            fontSize: "13px",
+                            fontWeight: "600",
+                            color: "#333333",
+                            marginRight: "4px",
+                          }}
+                        >
+                          ${unitPrice.toFixed(2)}
+                        </span>
+                        <span style={{ fontSize: "12px", color: "#999999" }}>
+                          × {data.quantity}
+                        </span>
+                      </td>
+                      <td style={{ textAlign: "right", verticalAlign: "middle" }}>
+                        <span
+                          style={{
+                            fontSize: "15px",
+                            fontWeight: "800",
+                            color: "#0097FA",
+                          }}
+                        >
+                          ${data.total.toFixed(2)}
+                        </span>
+                      </td>
+                    </tr>
+                    {/* Variant options extra row */}
+                    {variantExtra > 0 && (
+                      <tr>
+                        <td
+                          colSpan={2}
+                          style={{
+                            paddingTop: "2px",
+                            fontSize: "11px",
+                            color: "#0097FA",
+                          }}
+                        >
+                          +${variantExtra.toFixed(2)} variant options × {data.quantity}
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </td>
+    </tr>
   );
 };
 

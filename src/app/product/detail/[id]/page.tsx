@@ -1,19 +1,36 @@
+"use server";
 import { notFound } from "next/navigation";
 import { GetProductDetailById } from "./detail_action";
-import { ButtonForSimilarProd, OptionSection, ShowPrice } from "./Component";
-import { Relatedproducttype } from "@/src/context/GlobalContext";
+import {
+  ButtonForSimilarProd,
+  OptionSection,
+  ShowPrice,
+  ShowPriceWithOptions,
+} from "./Component";
 import Link from "next/link";
 import ToggleMenu from "@/src/app/component/ToggleMenu";
 import { getRelatedProduct } from "./action";
 import Card from "@/src/app/component/Card";
-import { getUser } from "@/src/context/OrderContext";
+import { getUser } from "@/src/lib/session";
 import Prisma from "@/src/lib/prisma";
-import { Props } from "../../page";
 import { Metadata } from "next";
 import Image from "next/image";
+import { Suspense } from "react";
+import {
+  RelatedProductSkeleton,
+  SimilarProductCardSkeleton,
+} from "./LoadingSkeleton";
+import { ProductCoverImage } from "./ProductCoverImage";
+import { Relatedproducttype } from "@/src/types/product.type";
+import { Orderpricetype } from "@/src/types/order.type";
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const id = parseInt(params.id);
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id: idString } = await params;
+  const id = parseInt(idString);
 
   const product = await Prisma.products.findUnique({
     where: { id },
@@ -41,6 +58,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title,
     description,
+    openGraph: {
+      title,
+      description,
+    },
   };
 }
 
@@ -51,17 +72,19 @@ export default async function ProductDetailPage({
   params,
   searchParams,
 }: {
-  params: { id: string };
-  searchParams?: { [key: string]: string | undefined };
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ [key: string]: string | undefined }>;
 }) {
   const user = await getUser();
-  if (!params.id) {
+  const { id } = await params;
+
+  if (!id) {
     return notFound();
   }
 
-  const searchparam = searchParams as SearchParamType;
+  const searchparam = (await searchParams) as SearchParamType;
 
-  const { success, data } = await GetProductDetailById(params.id);
+  const { success, data } = await GetProductDetailById(id);
 
   if (!success || !data?.data) {
     return notFound();
@@ -76,16 +99,11 @@ export default async function ProductDetailPage({
         <div className="w-full h-fit overflow-x-auto">
           <div className="w-full grid grid-cols-2 gap-3 max-small_screen:flex max-small_screen:flex-row max-small_screen:justify-start max-small_screen:items-center">
             {data?.data.covers.map((img, idx) => (
-              <Image
+              <ProductCoverImage
                 key={idx}
                 src={img.url}
-                alt={`Cover ${idx + 1}`}
-                className="w-[400px] h-[500px] object-cover
-                max-medium_screen:w-[350px] max-medium_screen:h-[450px]
-                "
-                width={777}
-                height={777}
-                loading="lazy"
+                alt={`${data.data.name} - Image ${idx + 1}`}
+                priority={idx === 0}
               />
             ))}
           </div>
@@ -94,21 +112,39 @@ export default async function ProductDetailPage({
           className="product_detail  w-3/4 max-smallest_tablet:w-[95vw] 
         max-smallest_tablet:pl-0 flex flex-col pl-4 gap-y-10 h-fit"
         >
-          <h3 className="product_name text-3xl font-bold h-fit pt-1 break-words">
+          <h3 className="product_name text-3xl font-bold h-fit pt-1 wrap-break-word">
             {data?.data.name}
           </h3>
           <p className="product_description text-lg font-normal w-full">
             {data?.data.description ?? "No Description"}
           </p>
-          <ShowPrice
-            price={data?.data.price ?? 0}
-            discount={data?.data.discount}
-          />
+          {data?.data.Variant && data?.data.Variant.length > 0 ? (
+            <ShowPriceWithOptions
+              price={data?.data.price ?? 0}
+              discount={data?.data.discount}
+              Variant={data?.data.Variant}
+            />
+          ) : (
+            <ShowPrice
+              price={data?.data.price ?? 0}
+              discount={data?.data.discount}
+            />
+          )}
 
           {data?.data.relatedproduct && data.data.relatedproduct.length > 0 && (
             <>
               <h3 className="text-lg font-bold">Other Version</h3>
-              <ShowRelated data={data.data.relatedproduct} />
+              <Suspense
+                fallback={
+                  <div className="w-full h-fit grid grid-cols-3 gap-y-5">
+                    {[...Array(3)].map((_, idx) => (
+                      <RelatedProductSkeleton key={idx} />
+                    ))}
+                  </div>
+                }
+              >
+                <ShowRelated data={data.data.relatedproduct} />
+              </Suspense>
             </>
           )}
 
@@ -132,6 +168,7 @@ export default async function ProductDetailPage({
 
             {data?.policy.map((pol) => (
               <ToggleMenu
+                key={pol.id}
                 name={pol.title}
                 isAdmin={false}
                 paragraph={pol.Paragraph}
@@ -142,13 +179,26 @@ export default async function ProductDetailPage({
       </div>
       {data.data.relatedproduct && (
         <div className="relatedproduct__section w-full h-full mt-10 flex flex-col gap-y-10">
-          <ShowSimilarProduct
-            pid={params.id}
-            parent_id={data?.data.category.parent_id ?? 0}
-            child_id={data?.data.category.child_id}
-            promoid={data?.data.promotion_id}
-            limit={searchparam.lt ? parseInt(searchparam.lt) : undefined}
-          />
+          <Suspense
+            fallback={
+              <div className="flex flex-col gap-y-5">
+                <div className="h-8 bg-gray-300 rounded-sm w-64 animate-pulse"></div>
+                <div className="w-full h-fit flex flex-row overflow-x-auto gap-x-5">
+                  {[...Array(3)].map((_, idx) => (
+                    <SimilarProductCardSkeleton key={idx} />
+                  ))}
+                </div>
+              </div>
+            }
+          >
+            <ShowSimilarProduct
+              pid={id}
+              parent_id={data?.data.category.parent_id ?? 0}
+              child_id={data?.data.category.child_id}
+              promoid={data?.data.promotion_id}
+              limit={searchparam.lt ? parseInt(searchparam.lt) : undefined}
+            />
+          </Suspense>
         </div>
       )}
     </div>
@@ -159,16 +209,16 @@ const ShowRelated = ({ data }: { data: Relatedproducttype[] }) => {
   return (
     <div className="w-full h-fit grid grid-cols-3 gap-y-5">
       {data.map((related) => (
-        <Link href={`/product/detail/${related.id}`}>
-          <div
-            key={related.id}
-            className="w-[200px] h-fit flex flex-col gap-y-3 items-center justify-center p-2 rounded-lg border-2 border-black transition-all duration-200 hover:bg-black hover:text-white cursor-pointer"
-          >
-            <img
+        <Link key={related.id} href={`/product/detail/${related.id}`}>
+          <div className="w-50 h-fit flex flex-col gap-y-3 items-center justify-center p-2 rounded-lg border-2 border-black transition-all duration-200 hover:bg-black hover:text-white cursor-pointer">
+            <Image
               src={related.covers[0].url}
-              alt="cover"
-              className="w-[100px] h-[100px] object-cover rounded-lg"
+              alt={related.name}
+              className="w-25 h-25 object-cover rounded-lg"
+              width={100}
+              height={100}
               loading="lazy"
+              quality={75}
             />
             <h3 className="w-full text-center">{related.name}</h3>
           </div>
@@ -198,7 +248,7 @@ const ShowSimilarProduct = async ({
     parent_id,
     limit,
     child_id,
-    promoid
+    promoid,
   );
 
   if (data.success) {
@@ -222,7 +272,7 @@ const ShowSimilarProduct = async ({
               price={prod.price.toFixed(2)}
               img={prod.covers}
               index={idx}
-              discount={prod.discount}
+              discount={prod.discount as Orderpricetype}
               id={prod.id}
             />
           ))}

@@ -1,17 +1,14 @@
 "use client";
-import PrimaryButton from "../../component/Button";
-import Card, { BannerCard } from "../../component/Card";
-import { PromotionState, useGlobalContext } from "@/src/context/GlobalContext";
-import { SubInventoryMenu } from "../../component/Navbar";
-import { useEffect, useState } from "react";
-import { ApiRequest, Delayloading } from "@/src/context/CustomHook";
-import { errorToast } from "../../component/Loading";
-import { FilterMenu } from "../../component/SideMenu";
-import dayjs from "dayjs";
+import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
+import { redirect, useRouter, useSearchParams } from "next/navigation";
+import { motion } from "framer-motion";
 import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
-import { redirect, useRouter, useSearchParams } from "next/navigation";
-import { InventoryParamType } from "./varaint_action";
+import dayjs from "dayjs";
+
+// Components
+import Card, { BannerCard } from "../../component/Card";
+import { FilterMenu } from "../../component/SideMenu";
 import { CreateProducts } from "../../component/Modals/Product";
 import { Category } from "../../component/Modals/Category";
 import { BannerModal } from "../../component/Modals/Banner";
@@ -19,52 +16,73 @@ import {
   CreatePromotionModal,
   DiscountModals,
 } from "../../component/Modals/Promotion";
-import PaginationCustom, {
-  SelectionCustom,
-} from "../../component/Pagination_Component";
+import PaginationCustom from "../../component/Pagination_Component";
+import { InventoryHeader } from "./components/InventoryHeader";
+import {
+  ProductListItem,
+  BannerListItem,
+  PromotionListItem,
+} from "./components/ListViewItems";
+import { EmptyState, LoadingState } from "./components/EmptyAndLoadingStates";
+
+// Contexts & Hooks
+import { useGlobalContext, CateogoryState } from "@/src/context/GlobalContext";
+import { ApiRequest, Delayloading } from "@/src/context/CustomHook";
+
+// Utils & Types
 import { IsNumber } from "@/src/lib/utilities";
-import { BannerSkeleton } from "../../component/HomePage/Component";
-import React from "react";
+import { errorToast } from "../../component/Loading";
+import { Orderpricetype } from "@/src/types/order.type";
+import { PromotionState } from "@/src/types/productAction.type";
+import { InventoryParamType } from "./varaint_action";
+import {
+  buildProductApiUrl,
+  buildBannerApiUrl,
+  buildPromotionApiUrl,
+  transformProductData,
+  transformBannerData,
+  transformPromotionData,
+} from "./utils/apiBuilder";
+import useCheckSession from "@/src/hooks/useCheckSession";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faSearch, faXmark, faFilterCircleXmark } from "@fortawesome/free-solid-svg-icons";
 
-const createmenu = [
-  {
-    value: "Product",
-    opencon: "createProduct",
-  },
-  {
-    value: "Category",
-    opencon: "createCategory",
-  },
-  {
-    value: "Banner",
-    opencon: "createBanner",
-  },
-  {
-    value: "Promotion",
-    opencon: "createPromotion",
-  },
-];
-const Filteroptions = [
-  {
-    value: "product",
-    label: "Product",
-  },
-  {
-    value: "banner",
-    label: "Banner",
-  },
-  {
-    value: "promotion",
-    label: "Promotion",
-  },
-];
+// Constants
+const DEFAULT_PARAMS = (type: string) => `?ty=${type}&p=1&limit=1`;
 
-const defaultparams = (type: string) => `?ty=${type}&p=1&limit=1`;
-export default function Inventory({
-  searchParams,
-}: {
-  searchParams?: { [key: string]: string | undefined };
-}) {
+// Filter chip key → human-readable label mapping
+const FILTER_CHIP_LABELS: Record<string, string> = {
+  name: "Name",
+  status: "Status",
+  parentcate: "Category",
+  childcate: "Subcategory",
+  expiredate: "Expire before",
+  bannersize: "Size",
+  bannertype: "Type",
+  expired: "Expired only",
+  promoids: "Promotion",
+};
+
+export default function Inventory() {
+  // Router hooks
+  const router = useRouter();
+  const searchParam = useSearchParams();
+
+  // URL parameters - Extract from useSearchParams hook
+  const type = searchParam.get("ty") ?? undefined;
+  const p = searchParam.get("p") ?? undefined;
+  const limit = searchParam.get("limit") ?? undefined;
+  const status = searchParam.get("status") ?? undefined;
+  const name = searchParam.get("name") ?? undefined;
+  const parentcate = searchParam.get("parentcate") ?? undefined;
+  const childcate = searchParam.get("childcate") ?? undefined;
+  const expiredate = searchParam.get("expiredate") ?? undefined;
+  const bannersize = searchParam.get("bannersize") ?? undefined;
+  const bannertype = searchParam.get("bannertype") ?? undefined;
+  const expired = searchParam.get("expired") ?? undefined;
+  const promoids = searchParam.get("promoids") ?? undefined;
+
+  // Global context
   const {
     openmodal,
     setopenmodal,
@@ -78,22 +96,9 @@ export default function Inventory({
     setitemlength,
     globalindex,
   } = useGlobalContext();
-  const {
-    ty: type,
-    p,
-    limit,
-    status,
-    name,
-    parentcate,
-    childcate,
-    expiredate,
-    bannersize,
-    bannertype,
-    expired,
-    promoids,
-  } = searchParams as InventoryParamType;
-  const router = useRouter();
-  const searchParam = useSearchParams();
+  const { handleCheckSession } = useCheckSession();
+
+  // Local state
   const [loaded, setloaded] = useState(false);
   const [show, setshow] = useState(limit ?? "1");
   const [page, setpage] = useState(p ? parseInt(p) : 1);
@@ -102,6 +107,9 @@ export default function Inventory({
   const [reloaddata, setreloaddata] = useState(true);
   const [ty, settype] = useState(type);
   const [promoexpire, setpromoexpire] = useState(0);
+  const [viewMode, setViewMode] = useState<"card" | "list">("card");
+  const [isSelectMode, setIsSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [filtervalue, setfiltervalue] = useState<InventoryParamType>({
     parentcate,
     childcate,
@@ -114,10 +122,49 @@ export default function Inventory({
     promoids,
   });
 
+  const [searchInput, setSearchInput] = useState(name ?? "");
+  // Maps category/subcategory IDs → names for chip display (kept separate to avoid ID collisions)
+  const [parentCateNameMap, setParentCateNameMap] = useState<Record<string, string>>({});
+  const [childCateNameMap, setChildCateNameMap] = useState<Record<string, string>>({});
+
+  const hasActiveFilters = useMemo(
+    () => Object.values(filtervalue).some((value) => value !== undefined),
+    [filtervalue],
+  );
+
+  const currentData = useMemo(
+    () => allData?.[type as string] || [],
+    [allData, type],
+  );
+
+  //Check user session
+  useEffect(() => {
+    handleCheckSession();
+  }, [reloaddata, ty, page, viewMode, filtervalue, openmodal]);
+
+  // Fetch category names to display in filter chips
+  useEffect(() => {
+    if (!filtervalue.parentcate) return;
+    ApiRequest("/api/categories", undefined, "GET").then((res) => {
+      if (!res.success) return;
+      const parentMap: Record<string, string> = {};
+      const childMap: Record<string, string> = {};
+      (res.data as CateogoryState[]).forEach((cat) => {
+        if (cat.id !== undefined) parentMap[cat.id.toString()] = cat.name;
+        cat.subcategories.forEach((sub) => {
+          if (sub.id !== undefined) childMap[sub.id.toString()] = sub.name;
+        });
+      });
+      setParentCateNameMap(parentMap);
+      setChildCateNameMap(childMap);
+    });
+  }, [filtervalue.parentcate]);
+
+  // Validation searchParams
   useEffect(() => {
     if (!type) {
       return redirect(
-        `/dashboard/inventory${defaultparams(type ?? "product")}`
+        `/dashboard/inventory${DEFAULT_PARAMS(type ?? "product")}`,
       );
     }
 
@@ -135,254 +182,603 @@ export default function Inventory({
     if (reloaddata) {
       fetchdata(promotion.id);
     }
-  }, [reloaddata]);
+  }, [
+    reloaddata,
+    type,
+    p,
+    limit,
+    parentcate,
+    childcate,
+    expired,
+    promotion.id,
+  ]);
 
-  const fetchdata = async (pid?: number) => {
-    try {
-      let apiUrl: string = "";
-      let transformFunction: (item: any) => any = () => {};
-      const {
-        status,
-        name,
-        childcate,
-        parentcate,
-        bannersize,
-        bannertype,
-        expired,
-        expiredate,
-        promoids,
-      } = filtervalue;
+  const fetchdata = useCallback(
+    async (pid?: number) => {
+      try {
+        let apiUrl: string = "";
+        let transformFunction: (item: any) => any = (item) => item;
 
-      if (ty === "product") {
-        apiUrl =
-          status ||
-          name ||
-          childcate ||
-          parentcate ||
-          promotion.selectproduct ||
-          promoids
-            ? `/api/products?ty=filter&p=${page}&limit=${show}${
-                status ? `&sk=${status}` : ""
-              }${name ? `&q=${name}` : ""}${
-                parentcate ? `&pc=${parentcate}` : ""
-              }${childcate ? `&cc=${childcate}` : ""}${
-                pid ? `&pid=${pid}` : ""
-              }${promotion.selectproduct ? "&sp=1" : ""}${
-                promoids ? `&pids=${promoids}` : ""
-              }`
-            : `/api/products?ty=all&limit=${show}&p=${page}`;
-        transformFunction = (item: any) => ({
-          ...item,
-          category: {
-            parent_id: item.parentcategory_id,
-            child_id: item.childcategory_id,
-          },
-          parentcategory_id: undefined,
-          childcategory_id: undefined,
-        });
-      } else if (ty === "banner") {
-        apiUrl =
-          name || bannersize || bannertype
-            ? `/api/banner?ty=filter&limit=${show}&p=${page}${
-                bannertype ? `&bty=${bannertype}` : ""
-              }${bannersize ? `&bs=${bannersize}` : ""}${
-                name ? `&q=${name}` : ""
-              }`
-            : promotion.selectbanner
-            ? `/api/banner?ty=filter&limit=${show}&p=${page}&bty=normal&promoselect=1`
-            : `/api/banner?ty=all&limit=${show}&p=${page}`;
+        // Build API URL based on type
+        if (ty === "product") {
+          apiUrl = buildProductApiUrl(
+            page,
+            show,
+            filtervalue,
+            !!promotion.selectproduct,
+            pid,
+            promoids,
+          );
+          transformFunction = transformProductData;
+        } else if (ty === "banner") {
+          apiUrl = buildBannerApiUrl(
+            page,
+            show,
+            filtervalue,
+            !!promotion.selectbanner,
+          );
+          transformFunction = transformBannerData;
+        } else if (ty === "promotion") {
+          apiUrl = buildPromotionApiUrl(page, show, filtervalue);
+          transformFunction = transformPromotionData;
+        }
 
-        transformFunction = (item: any) => ({
-          ...item,
-          createdAt: undefined,
-          updatedAt: undefined,
-        });
-      } else if (ty === "promotion") {
-        apiUrl =
-          name || expiredate || expired
-            ? `/api/promotion?ty=filter&lt=${show}&p=${page ?? "1"}${
-                name ? `&q=${name}` : ""
-              }${expiredate ? `&exp=${dayjs(expiredate).toISOString()}` : ""}${
-                expired ? `&expired=${expired}` : ""
-              }`
-            : `/api/promotion?ty=all&lt=${show}&p=${page ?? "1"}`;
-        transformFunction = (item: any) => ({
-          ...item,
-          products: item.Products,
-          expiredAt: dayjs(item.expireAt),
-          tempproduct: [],
+        const makerequest = async () => {
+          const response = await ApiRequest(
+            apiUrl,
+            undefined,
+            "GET",
+            undefined,
+            undefined,
+            ty,
+          );
 
-          createdAt: undefined,
-          updatedAt: undefined,
-          Products: undefined,
-        });
+          if (response.success) {
+            let modifieddata = response.data?.map(transformFunction);
+
+            // Handle product-specific data
+            if (ty === "product") {
+              setlowstock(response.lowstock as number);
+
+              // Merge discount data for promotion products
+              if (promotion.selectproduct && type === "product") {
+                const productMap = new Map(
+                  promotion.Products.map((product) => [
+                    product.id,
+                    product.discount,
+                  ]),
+                );
+
+                modifieddata = modifieddata.map((item: any) => {
+                  if (productMap.has(item.id)) {
+                    return { ...item, discount: productMap.get(item.id) };
+                  }
+                  return item;
+                });
+              }
+            }
+
+            // Handle promotion-specific data
+            if (ty === "promotion") {
+              setpromoexpire(response?.expirecount ?? 0);
+
+              let tempromoproduct = [...(promotion.tempproductstate ?? [])];
+              tempromoproduct = modifieddata.map((i: any) => i.products);
+              setpromotion((prev) => ({
+                ...prev,
+                tempproductstate: tempromoproduct,
+              }));
+            }
+
+            setalldata({ [ty as string]: modifieddata });
+            setitemlength({
+              total: response.total ?? 0,
+              lowstock: response.lowstock ?? 0,
+              totalpage: response.totalpage ?? 0,
+            });
+            setitemcount(response.totalpage ?? 0);
+          }
+        };
+
+        await Delayloading(makerequest, setloaded, 500);
+      } catch (error) {
+        console.log("Inventory Fetch Error", error);
+        errorToast("Error Occurred, Reload is Required");
+      } finally {
+        setreloaddata(false);
+      }
+    },
+    [
+      ty,
+      page,
+      show,
+      filtervalue,
+      promotion,
+      type,
+      promoids,
+      setalldata,
+      setitemlength,
+      setpromotion,
+    ],
+  );
+
+  const handleShowPerPage = useCallback(
+    (value: number | string) => {
+      const param = new URLSearchParams(searchParam);
+      param.set("p", "1");
+      param.set("limit", value.toString());
+      setpage(1);
+      router.push(`?${param}`);
+      setreloaddata(true);
+    },
+    [searchParam, router],
+  );
+
+  const handleUpdateProductBannerPromotion = useCallback(
+    async (promotionData: PromotionState, updateType: "product" | "banner") => {
+      const data =
+        updateType === "product"
+          ? {
+              id: promotionData.id,
+              Products: promotionData.Products,
+              tempproduct: promotionData?.tempproduct,
+              type: updateType,
+            }
+          : {
+              id: promotionData.id,
+              banner_id: promotionData.banner_id,
+              type: updateType,
+            };
+
+      const updatereq = await ApiRequest(
+        "/api/promotion",
+        setisLoading,
+        "PUT",
+        "JSON",
+        data,
+      );
+
+      if (updatereq.success) {
+        return true;
       }
 
-      const makerequest = async () => {
-        const allfetchdata = await ApiRequest(
-          apiUrl,
-          undefined,
-          "GET",
-          undefined,
-          undefined,
-          ty
-        );
+      console.log("Update request failed:", updatereq.error);
+      return false;
+    },
+    [setisLoading],
+  );
 
-        if (allfetchdata.success) {
-          let modifieddata = allfetchdata.data?.map(transformFunction);
-
-          if (ty === "product") {
-            setlowstock(allfetchdata.lowstock as number);
-          }
-
-          if (promotion.selectproduct && type === "product") {
-            const productMap = new Map(
-              promotion.Products.map((product) => [
-                product.id,
-                product.discount,
-              ])
-            );
-
-            modifieddata = modifieddata.map((item: any) => {
-              if (productMap.has(item.id)) {
-                return {
-                  ...item,
-                  discount: productMap.get(item.id),
-                };
-              }
-              return item;
-            });
-          }
-
-          setalldata({ [ty as string]: modifieddata });
-          setpromoexpire(allfetchdata?.expirecount ?? 0);
-
-          if (ty === "promotion") {
-            let tempromoproduct = [...(promotion.tempproductstate ?? [])];
-            tempromoproduct = modifieddata.map((i: any) => i.products);
-            setpromotion((prev) => ({
-              ...prev,
-              tempproductstate: tempromoproduct,
-            }));
-          }
-
-          setitemlength({
-            total: allfetchdata.total ?? 0,
-            lowstock: allfetchdata.lowstock ?? 0,
-            totalpage: allfetchdata.totalpage ?? 0,
-          });
-
-          setitemcount(allfetchdata.totalpage ?? 0);
-        }
-      };
-
-      await Delayloading(makerequest, setloaded, 500);
-
-      ///Make Request
-    } catch (error) {
-      console.log("Inventory Fetch Error", error);
-      errorToast("Error Occrued, Relaod is Required");
-    } finally {
-      setreloaddata(false);
-    }
-  };
-
-  const handleShowPerPage = (value: number | string) => {
-    const param = new URLSearchParams(searchParam);
-
-    param.set("p", "1");
-    param.set("limit", value.toString());
-    setpage(1);
-    router.push(`?${param}`);
-    setreloaddata(true);
-  };
-
-  const handleUpdateProductBannerPromotion = async (
-    promotion: PromotionState,
-    type: "product" | "banner"
-  ) => {
-    const data =
-      type === "product"
-        ? {
-            id: promotion.id,
-            Products: promotion.Products,
-            tempproduct: promotion?.tempproduct,
-            type: type,
-          }
-        : { id: promotion.id, banner_id: promotion.banner_id, type: type };
-
-    const updatereq = await ApiRequest(
-      "/api/promotion",
-      setisLoading,
-      "PUT",
-      "JSON",
-      data
-    );
-
-    if (updatereq.success) {
-      return true;
-    } else {
-      console.error("Update request failed:", updatereq.error);
-      return null;
-    }
-  };
-
-  const handleDoneButton = async () => {
+  const handleDoneButton = useCallback(async () => {
     if (promotion.selectbanner || promotion.selectproduct) {
       if (promotion.selectproduct && promotion.tempproduct) {
-        const updateproduct = await handleUpdateProductBannerPromotion(
+        const success = await handleUpdateProductBannerPromotion(
           promotion,
-          "product"
+          "product",
         );
-        if (!updateproduct) {
+        if (!success) {
           errorToast("Failed to update");
+          return;
         }
       } else if (
         promotion.selectbanner &&
         promotion.banner_id &&
         globalindex.promotioneditindex !== -1
       ) {
-        const updatebanner = await handleUpdateProductBannerPromotion(
+        const success = await handleUpdateProductBannerPromotion(
           promotion,
-          "banner"
+          "banner",
         );
-        if (!updatebanner) {
-          errorToast("Error Occured");
+        if (!success) {
+          errorToast("Error Occurred");
           return;
         }
       }
     }
-    setopenmodal((prev) => ({
-      ...prev,
-      createPromotion: true,
-    }));
-  };
+    setopenmodal((prev) => ({ ...prev, createPromotion: true }));
+  }, [
+    promotion,
+    globalindex,
+    handleUpdateProductBannerPromotion,
+    setopenmodal,
+  ]);
 
-  const handleFilter = (value: string) => {
+  const handleFilter = useCallback(
+    async (value: string) => {
+      const params = new URLSearchParams(searchParam);
+
+      // Reset filter params
+      Object.keys(filtervalue).forEach((key) => {
+        if (key !== "ty" && key !== "p" && key !== "limit") {
+          params.delete(key);
+        }
+      });
+
+      params.set("ty", value);
+      params.set("p", "1");
+      params.set("limit", "1");
+
+      setpage(1);
+      setshow("1");
+      settype(value);
+      router.push(`?${params}`, { scroll: false });
+      setreloaddata(true);
+    },
+    [searchParam, filtervalue, router, handleCheckSession],
+  );
+
+  const handleLowStockFilter = useCallback(() => {
     const params = new URLSearchParams(searchParam);
-
-    //Reset Search Params
-    Object.keys(filtervalue).map((key) => {
-      if (key !== "ty" && key !== "p" && key !== "limit") {
-        params.delete(key);
-      }
-    });
-
-    params.set("ty", value);
+    params.set("status", "Low");
     params.set("p", "1");
-    params.set("limit", "1");
-
-    setpage(1);
-    setshow("1");
-    settype(value);
+    setfiltervalue((prev) => ({ ...prev, status: "Low" }));
     router.push(`?${params}`, { scroll: false });
     setreloaddata(true);
+  }, [searchParam, router]);
+
+  const handleInlineSearch = useCallback(
+    (e: React.FormEvent) => {
+      e.preventDefault();
+      const params = new URLSearchParams(searchParam);
+      if (searchInput.trim()) {
+        params.set("name", searchInput.trim());
+      } else {
+        params.delete("name");
+      }
+      params.set("p", "1");
+      setfiltervalue((prev) => ({
+        ...prev,
+        name: searchInput.trim() || undefined,
+      }));
+      router.push(`?${params}`, { scroll: false });
+      setreloaddata(true);
+    },
+    [searchInput, searchParam, router],
+  );
+
+  const handleRemoveFilter = useCallback(
+    (key: string) => {
+      const params = new URLSearchParams(searchParam);
+      params.delete(key);
+      params.set("p", "1");
+      setfiltervalue((prev) => {
+        const next = { ...prev };
+        delete (next as any)[key];
+        return next;
+      });
+      if (key === "name") setSearchInput("");
+      router.push(`?${params}`, { scroll: false });
+      setreloaddata(true);
+    },
+    [searchParam, router],
+  );
+
+  const handleClearAllFilters = useCallback(() => {
+    const params = new URLSearchParams(searchParam);
+    Object.keys(filtervalue).forEach((key) => params.delete(key));
+    params.set("p", "1");
+    setfiltervalue({});
+    setSearchInput("");
+    router.push(`?${params}`, { scroll: false });
+    setreloaddata(true);
+  }, [searchParam, filtervalue, router]);
+
+  // Active chips: only keys that have a value and are relevant to current type
+  const activeFilterChips = useMemo(() => {
+    const relevantKeys: Record<string, string[]> = {
+      product: ["name", "status", "parentcate", "childcate", "promoids"],
+      banner: ["name", "bannersize", "bannertype"],
+      promotion: ["name", "expired", "expiredate"],
+    };
+    const keys = relevantKeys[type as string] ?? Object.keys(FILTER_CHIP_LABELS);
+    return keys
+      .filter((key) => {
+        const val = (filtervalue as any)[key];
+        return val !== undefined && val !== "" && val !== null;
+      })
+      .map((key) => {
+        const raw = (filtervalue as any)[key];
+        let displayVal = String(raw);
+        if (key === "parentcate") {
+          displayVal = parentCateNameMap[String(raw)] ?? String(raw);
+        } else if (key === "childcate") {
+          displayVal = childCateNameMap[String(raw)] ?? String(raw);
+        } else if (key === "expiredate") {
+          displayVal = dayjs(raw).format("MMM D, YYYY");
+        } else if (key === "expired" || key === "promoids") {
+          displayVal = "";
+        }
+        const label = FILTER_CHIP_LABELS[key] ?? key;
+        return { key, label, displayVal };
+      });
+  }, [filtervalue, type, parentCateNameMap, childCateNameMap]);
+
+  // ── Multi-select helpers ──────────────────────────────────────────────────
+  const exitSelectMode = useCallback(() => {
+    setIsSelectMode(false);
+    setSelectedIds(new Set());
+  }, []);
+
+  const toggleSelectId = useCallback((id: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const toggleSelectAll = useCallback(() => {
+    const ids: number[] = (currentData as any[])
+      .map((item) => item.id)
+      .filter(Boolean);
+    setSelectedIds((prev) =>
+      prev.size === ids.length ? new Set() : new Set(ids),
+    );
+  }, [currentData]);
+
+  const handleBulkDelete = useCallback(async () => {
+    const ids = Array.from(selectedIds);
+
+    const URL =
+      type === "product"
+        ? "/api/products/crud"
+        : type === "banner"
+          ? "/api/banner"
+          : "/api/promotion";
+
+    for (const id of ids) {
+      const res = await ApiRequest(URL, setisLoading, "DELETE", "JSON", { id });
+      if (!res.success) {
+        errorToast(`Failed to delete item ${id}`);
+      }
+    }
+    exitSelectMode();
+    setreloaddata(true);
+  }, [selectedIds, type, setisLoading, exitSelectMode]);
+
+  const openBulkDeleteConfirm = useCallback(() => {
+    setopenmodal((prev) => ({
+      ...prev,
+      confirmmodal: {
+        open: true,
+        confirm: false,
+        closecon: "",
+        Warn: `Delete ${selectedIds.size} selected item${selectedIds.size > 1 ? "s" : ""}?`,
+        onAsyncDelete: handleBulkDelete,
+      },
+    }));
+  }, [selectedIds, setopenmodal, handleBulkDelete]);
+
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [currentData]);
+
+  const renderCardView = () => {
+    if (type === "product") {
+      return allData?.product?.map((obj, index) => (
+        <div key={index} className="relative">
+          {isSelectMode && (
+            <>
+              <div
+                className="absolute inset-0 z-20 cursor-pointer rounded-xl"
+                onClick={() => toggleSelectId(obj.id ?? 0)}
+              />
+              {/* Selection ring */}
+              {selectedIds.has(obj.id ?? 0) && (
+                <div className="absolute inset-0 z-10 rounded-xl ring-2 ring-indigo-500 bg-indigo-500/10 pointer-events-none" />
+              )}
+              {/* Checkbox */}
+              <div className="absolute top-2 left-2 z-30 pointer-events-none">
+                <div
+                  className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
+                    selectedIds.has(obj.id ?? 0)
+                      ? "bg-indigo-600 border-indigo-600"
+                      : "bg-white border-gray-400"
+                  }`}
+                >
+                  {selectedIds.has(obj.id ?? 0) && (
+                    <svg
+                      className="w-3 h-3 text-white"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={3}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M5 13l4 4L19 7"
+                      />
+                    </svg>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+          <Card
+            index={index}
+            img={obj.covers}
+            name={obj.name}
+            hover={true}
+            price={parseFloat(obj.price.toString()).toFixed(2)}
+            id={obj.id ?? 0}
+            discount={obj.discount as Orderpricetype}
+            stock={obj.stock}
+            stocktype={obj.stocktype}
+            isAdmin={true}
+            lowstock={obj.Stock?.length ? obj.lowstock : undefined}
+            reloaddata={() => setreloaddata(true)}
+          />
+        </div>
+      ));
+    }
+
+    if (type === "banner") {
+      return allData?.banner?.map((obj, idx) => (
+        <div key={obj.name} className="relative">
+          {isSelectMode && (
+            <>
+              <div
+                className="absolute inset-0 z-20 cursor-pointer rounded-xl"
+                onClick={() => toggleSelectId(obj.id ?? 0)}
+              />
+              {selectedIds.has(obj.id ?? 0) && (
+                <div className="absolute inset-0 z-10 rounded-xl ring-2 ring-indigo-500 bg-indigo-500/10 pointer-events-none" />
+              )}
+              <div className="absolute top-2 left-2 z-30 pointer-events-none">
+                <div
+                  className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
+                    selectedIds.has(obj.id ?? 0)
+                      ? "bg-indigo-600 border-indigo-600"
+                      : "bg-white border-gray-400"
+                  }`}
+                >
+                  {selectedIds.has(obj.id ?? 0) && (
+                    <svg
+                      className="w-3 h-3 text-white"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={3}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M5 13l4 4L19 7"
+                      />
+                    </svg>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+          <BannerCard
+            data={{ name: obj.name, url: obj.image.url }}
+            bannersize={obj.size as any}
+            index={idx}
+            id={obj.id ?? 0}
+            type="banner"
+            reloaddata={() => setreloaddata(true)}
+          />
+        </div>
+      ));
+    }
+
+    if (type === "promotion") {
+      return allData?.promotion?.map((obj, idx) => (
+        <div
+          key={idx}
+          className="relative banner-card w-125 h-75
+              max-smaller_screen:w-100
+              max-smaller_screen:h-62.5
+              max-smallest_screen1:w-75
+              max-smallest_screen1:h-37.5
+              max-smallest_phone:w-62.5"
+        >
+          {isSelectMode && (
+            <>
+              <div
+                className="absolute inset-0 z-20 cursor-pointer rounded-xl"
+                onClick={() => toggleSelectId(obj.id ?? 0)}
+              />
+              {selectedIds.has(obj.id ?? 0) && (
+                <div className="absolute inset-0 z-10 rounded-xl ring-2 ring-indigo-500 bg-indigo-500/10 pointer-events-none" />
+              )}
+              <div className="absolute top-2 left-2 z-30 pointer-events-none">
+                <div
+                  className={`w-5 h-5 rounded border-2 flex items-center justify-center ${
+                    selectedIds.has(obj.id ?? 0)
+                      ? "bg-indigo-600 border-indigo-600"
+                      : "bg-white border-gray-400"
+                  }`}
+                >
+                  {selectedIds.has(obj.id ?? 0) && (
+                    <svg
+                      className="w-3 h-3 text-white"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={3}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M5 13l4 4L19 7"
+                      />
+                    </svg>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+          <BannerCard
+            key={obj.name}
+            data={{ name: obj.name, url: obj.banner?.image.url ?? "" }}
+            index={idx}
+            id={obj.id ?? 0}
+            type="promotion"
+            isExpired={obj.isExpired}
+            reloaddata={() => setreloaddata(true)}
+          />
+        </div>
+      ));
+    }
+
+    return null;
+  };
+
+  const renderListView = () => {
+    if (type === "product") {
+      return allData?.product?.map((obj, index) => (
+        <ProductListItem
+          key={index}
+          product={obj}
+          index={index}
+          isSelectMode={isSelectMode}
+          isSelected={selectedIds.has(obj.id ?? 0)}
+          onToggleSelect={() => toggleSelectId(obj.id ?? 0)}
+          reloaddata={() => setreloaddata(true)}
+        />
+      ));
+    }
+
+    if (type === "banner") {
+      return allData?.banner?.map((obj, idx) => (
+        <BannerListItem
+          key={idx}
+          banner={obj}
+          index={idx}
+          isSelectMode={isSelectMode}
+          isSelected={selectedIds.has(obj.id ?? 0)}
+          onToggleSelect={() => toggleSelectId(obj.id ?? 0)}
+          reloaddata={() => setreloaddata(true)}
+        />
+      ));
+    }
+
+    if (type === "promotion") {
+      return allData?.promotion?.map((obj, idx) => (
+        <PromotionListItem
+          key={idx}
+          promotion={obj}
+          index={idx}
+          isSelectMode={isSelectMode}
+          isSelected={selectedIds.has(obj.id ?? 0)}
+          onToggleSelect={() => toggleSelectId(obj.id ?? 0)}
+          reloaddata={() => setreloaddata(true)}
+        />
+      ));
+    }
+
+    return null;
   };
 
   return (
     <>
       <title>Inventory Management | SrokSre</title>
+      {/* Day JS Provider  */}
       <LocalizationProvider dateAdapter={AdapterDayjs}>
+        {/* Action modals */}
         {openmodal.createProduct && (
           <CreateProducts setreloaddata={setreloaddata} />
         )}
@@ -392,275 +788,210 @@ export default function Inventory({
         )}
         {openmodal.createPromotion && (
           <CreatePromotionModal
-            searchparams={searchParams as any}
+            searchparams={{
+              ty: type,
+              p,
+              limit,
+              status,
+              name,
+              parentcate,
+              childcate,
+              expiredate,
+            }}
             settype={settype}
             setreloaddata={setreloaddata}
           />
         )}
+        {/** Filter Modals */}
         {openmodal.filteroption && (
           <FilterMenu
             name={name}
             categories={{
-              parentid: parseInt(parentcate as string),
-              childid: parseInt(childcate as string),
+              parentid: parentcate ? parseInt(parentcate as string) : undefined,
+              childid: childcate ? parseInt(childcate as string) : undefined,
             }}
             expiredAt={expiredate ? dayjs(expiredate).toISOString() : undefined}
             type={ty}
-            param={searchParams}
             expired={expired}
+            param={filtervalue}
             reloadData={() => setreloaddata(true)}
             setfilterdata={setfiltervalue as any}
             isSetPromotion={promotion.selectproduct}
           />
         )}
-        {openmodal.discount && <DiscountModals setreloaddata={setreloaddata} />}
 
-        <div className="inventory__container w-full h-full min-h-screen relative flex flex-col items-center pb-[200px]">
-          <div className="inventory_header bg-white sticky z-30 top-[55px] w-full h-full p-2 border-b border-black">
-            <div className="w-full flex flex-row items-center overflow-x-auto gap-x-5 scrollbar-hide">
-              {!promotion.selectproduct &&
-              !promotion.selectbanner &&
-              !openmodal.managebanner ? (
-                <>
-                  <div className="w-fit h-full">
-                    <SelectionCustom
-                      label="Filter"
-                      data={Filteroptions}
-                      placeholder="Item"
-                      value={type}
-                      onChange={(val) =>
-                        handleFilter(val.toString().toLowerCase())
-                      }
-                      style={{ width: "275px" }}
-                    />
-                  </div>
+        {/**Discount edit modal */}
+        {openmodal.discount && <DiscountModals />}
 
-                  <SubInventoryMenu
-                    data={createmenu as any}
-                    open="subcreatemenu_ivt"
-                  />
-
-                  <PrimaryButton
-                    color="#60513C"
-                    width="150px"
-                    style={{ minWidth: "150px" }}
-                    radius="10px"
-                    type="button"
-                    text={"Total: " + itemlength.total}
-                  />
-                  {type === "product" ? (
-                    <PrimaryButton
-                      color="#F08080"
-                      style={{ minWidth: "150px" }}
-                      radius="10px"
-                      width="150px"
-                      type="button"
-                      text={`Low Stock: ${lowstock} `}
-                    />
-                  ) : (
-                    type === "promotion" && (
-                      <PrimaryButton
-                        text={`Expire: ${promoexpire} `}
-                        style={{ minWidth: "150px" }}
-                        onClick={() => {}}
-                        type="button"
-                        radius="10px"
-                      />
-                    )
-                  )}
-                </>
-              ) : (
-                <>
-                  {promotion.selectproduct &&
-                    promotion.Products.length !== 1 && (
-                      <>
-                        <PrimaryButton
-                          color="#6FCF97"
-                          radius="10px"
-                          type="button"
-                          style={{ minWidth: "150px" }}
-                          text="Set Discount"
-                          onClick={() => {
-                            setopenmodal((prev) => ({
-                              ...prev,
-                              discount: true,
-                            }));
-                          }}
-                        />
-                      </>
-                    )}
-                </>
-              )}
-              {promotion.selectbanner && (
-                <PrimaryButton
-                  type="button"
-                  text="Add New"
-                  style={{ minWidth: "150px" }}
-                  radius="10px"
-                  onClick={() =>
-                    setopenmodal((prev) => ({ ...prev, createBanner: true }))
-                  }
-                  color="#6FCF97"
-                />
-              )}
-              {(promotion.selectproduct || promotion.selectbanner) && (
-                <>
-                  <PrimaryButton
-                    text="Done"
-                    type="button"
-                    status={isLoading.PUT ? "loading" : "authenticated"}
-                    radius="10px"
-                    style={{ minWidth: "150px" }}
-                    onClick={() => handleDoneButton()}
-                  />
-                </>
-              )}
-
-              <PrimaryButton
-                color="#4688A0"
-                radius="10px"
-                style={{ minWidth: "150px" }}
-                type="button"
-                text={
-                  Object.values(filtervalue).some((i) => i !== undefined)
-                    ? "Clear Filter"
-                    : "Filter"
-                }
-                onClick={() =>
-                  setopenmodal((prev) => ({ ...prev, filteroption: true }))
-                }
-              />
-            </div>
-          </div>
-          <div
-            className={`productlist w-[95%] max-smallest_phone:w-full h-fit mt-10 grid grid-cols-3 
-        max-small_screen:grid-cols-2 gap-x-5 gap-y-32
-        max-small_phone:gap-x-0 max-smallest_tablet:grid-cols-1 
-        ${type === "product" ? "max-smallest_tablet:grid-cols-2 " : ""}
-        place-items-center place-content-center`}
+        <div className="inventory__container w-full h-full min-h-screen relative flex flex-col items-center pb-50 bg-linear-to-b from-gray-50 to-white">
+          {/* Header */}
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="inventory_header bg-white/95 backdrop-blur-xs sticky z-30 top-13.75 w-full h-full p-3 md:p-4 border-b-2 border-gray-200 shadow-md"
           >
-            {loaded ? (
-              <div className="w-full h-fit pl-1">
-                <BannerSkeleton />
+            <InventoryHeader
+              type={type}
+              itemTotal={itemlength.total}
+              lowstock={lowstock}
+              promoexpire={promoexpire}
+              hasActiveFilters={hasActiveFilters}
+              isPromotionSelection={!!promotion.selectproduct}
+              isBannerSelection={!!promotion.selectbanner}
+              isManagingBanner={!!openmodal.managebanner}
+              isMultipleProducts={promotion.Products.length > 1}
+              isLoadingUpdate={isLoading.PUT}
+              viewMode={viewMode}
+              onFilterChange={handleFilter}
+              onFilterClick={() =>
+                setopenmodal((prev) => ({ ...prev, filteroption: true }))
+              }
+              onLowStockClick={handleLowStockFilter}
+              onDiscountClick={() =>
+                setopenmodal((prev) => ({ ...prev, discount: true }))
+              }
+              onAddBannerClick={() =>
+                setopenmodal((prev) => ({ ...prev, createBanner: true }))
+              }
+              onDoneClick={handleDoneButton}
+              onViewModeChange={setViewMode}
+            />
+          </motion.div>
+
+          {/* Search + Filter chips */}
+          <div className="w-[95%] max-smallest_phone:w-full mt-6 flex flex-col gap-3">
+            {/* Inline search bar */}
+            <form onSubmit={handleInlineSearch} className="flex items-center gap-2">
+              <div className="flex-1 flex items-center gap-2 bg-white border-2 border-gray-200 rounded-xl px-3 py-2 shadow-sm focus-within:border-indigo-400 transition-colors">
+                <FontAwesomeIcon icon={faSearch} className="text-gray-400 text-sm shrink-0" />
+                <input
+                  type="text"
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  placeholder={`Search ${type ?? "items"}...`}
+                  className="flex-1 text-sm outline-none bg-transparent text-gray-700 placeholder-gray-400"
+                />
+                {searchInput && (
+                  <button
+                    type="button"
+                    onClick={() => { setSearchInput(""); handleRemoveFilter("name"); }}
+                    className="text-gray-400 hover:text-gray-600 transition-colors"
+                  >
+                    <FontAwesomeIcon icon={faXmark} className="text-sm" />
+                  </button>
+                )}
               </div>
-            ) : (
-              <>
-                {type === "product" &&
-                  allData?.product?.map((obj, index) => (
-                    <Card
-                      key={index}
-                      index={index}
-                      img={obj.covers}
-                      name={obj.name}
-                      hover={true}
-                      price={parseFloat(obj.price.toString()).toFixed(2)}
-                      id={obj.id ?? 0}
-                      discount={obj.discount}
-                      stock={obj.stock}
-                      stocktype={obj.stocktype}
-                      isAdmin={true}
-                      lowstock={obj.lowstock}
-                      reloaddata={() => setreloaddata(true)}
-                    />
-                  ))}
-                {type === "banner" &&
-                  allData?.banner?.map((obj, idx) => (
-                    <div
-                      key={idx}
-                      className={`banner-card
-                      ${
-                        obj.size !== "small"
-                          ? `w-[500px] h-[350px] max-smaller_screen:w-[400px] 
-                          max-smaller_screen:h-[250px]
-                          max-smallest_screen1:w-[300px] 
-                          max-smallest_screen1:h-[150px]
-                          max-smallest_tablet:w-[250px]
-                          max-smallest_tablet:h-[150px]
-                          `
-                          : "w-[400px] h-[500px] max-smallest_screen1:w-[150px] max-smallest_screen1:h-[250px]"
-                      }
-                      
-                      `}
+              <button
+                type="submit"
+                className="shrink-0 px-4 py-2 bg-linear-to-r from-indigo-500 to-purple-600 text-white text-sm font-semibold rounded-xl shadow-sm hover:shadow-md hover:scale-105 transition-all"
+              >
+                Search
+              </button>
+            </form>
+
+            {/* Active filter chips */}
+            {activeFilterChips.length > 0 && (
+              <div className="flex items-center gap-2 flex-wrap">
+                {activeFilterChips.map(({ key, label, displayVal }) => (
+                  <span
+                    key={key}
+                    className="inline-flex items-center gap-1.5 px-3 py-1 bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-medium rounded-full"
+                  >
+                    <span>{label}{displayVal ? `: ${displayVal}` : ""}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveFilter(key)}
+                      className="text-indigo-400 hover:text-indigo-700 transition-colors leading-none"
+                      aria-label={`Remove ${label} filter`}
                     >
-                      <BannerCard
-                        key={obj.name}
-                        data={{
-                          name: obj.name,
-                          url: obj.image.url,
-                        }}
-                        bannersize={obj.size as any}
-                        index={idx}
-                        id={obj.id ?? 0}
-                        type="banner"
-                        reloaddata={() => setreloaddata(true)}
-                      />
-                    </div>
-                  ))}
-                {type === "promotion" &&
-                  allData?.promotion?.map((obj, idx) => (
-                    <div
-                      key={idx}
-                      className="banner-card w-[500px] h-[300px]
-                          max-smaller_screen:w-[400px] 
-                          max-smaller_screen:h-[250px]
-                          max-smallest_screen1:w-[300px] 
-                          max-smallest_screen1:h-[150px]
-                          max-smallest_phone:w-[250px]"
-                    >
-                      <BannerCard
-                        key={obj.name}
-                        data={{
-                          name: obj.name,
-                          url: obj.banner?.image.url ?? "",
-                        }}
-                        index={idx}
-                        id={obj.id ?? 0}
-                        type="promotion"
-                        isExpired={obj.isExpired}
-                        reloaddata={() => setreloaddata(true)}
-                      />
-                    </div>
-                  ))}
-                {allData &&
-                  allData[type as string] &&
-                  allData[type as string].length === 0 && (
-                    <h3
-                      hidden={!!allData}
-                      className="w-fit ml-10 h-fit font-normal text-xl text-red-400 p-3 border-2 border-red-300 rounded-lg"
-                    >
-                      {type === "banner" ? (
-                        <>
-                          {allData?.banner?.length === 0 && (
-                            <>
-                              No Banner (Create Banner by Click on Action and
-                              Banner)
-                            </>
-                          )}
-                        </>
-                      ) : type === "promotion" ? (
-                        <>
-                          {allData?.promotion?.length === 0 && (
-                            <>
-                              No Promotion (Create Promotion by Click on Action
-                              and Promotion)
-                            </>
-                          )}
-                        </>
-                      ) : (
-                        <>
-                          {allData?.product?.length === 0 && (
-                            <>
-                              No Product (Create Product by Click on Action and
-                              Product)
-                            </>
-                          )}
-                        </>
-                      )}
-                    </h3>
-                  )}
-              </>
+                      <FontAwesomeIcon icon={faXmark} className="text-[10px]" />
+                    </button>
+                  </span>
+                ))}
+                <button
+                  type="button"
+                  onClick={handleClearAllFilters}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 bg-red-50 border border-red-200 text-red-600 text-xs font-medium rounded-full hover:bg-red-100 transition-colors"
+                >
+                  <FontAwesomeIcon icon={faFilterCircleXmark} className="text-[10px]" />
+                  Clear all
+                </button>
+              </div>
             )}
           </div>
+
+          {/* Content */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className={`productlist w-[95%] max-smallest_phone:w-full h-fit mt-4 ${
+              viewMode === "card"
+                ? `grid grid-cols-3 max-small_screen:grid-cols-2 gap-x-5 gap-y-5 max-small_phone:gap-x-2 max-smallest_tablet:grid-cols-1 ${
+                    type === "product"
+                      ? "max-smallest_tablet:grid-cols-2 max-large_phone:grid-cols-1"
+                      : ""
+                  } place-items-center place-content-center`
+                : "flex flex-col gap-4"
+            }`}
+          >
+            {loaded ? (
+              <LoadingState type={ty} />
+            ) : (
+              <>
+                {/* Select mode toolbar */}
+                {!loaded && currentData.length > 0 && (
+                  <div
+                    className={`col-span-full w-full flex items-center gap-3 flex-wrap px-1 pb-2 ${
+                      viewMode === "list" ? "" : ""
+                    }`}
+                  >
+                    {isSelectMode ? (
+                      <>
+                        <button
+                          onClick={toggleSelectAll}
+                          className="px-3 py-1.5 text-sm font-medium rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors"
+                        >
+                          {selectedIds.size === currentData.length
+                            ? "Deselect All"
+                            : "Select All"}
+                        </button>
+                        <span className="text-sm text-gray-500">
+                          {selectedIds.size} selected
+                        </span>
+                        <button
+                          disabled={selectedIds.size === 0 || isLoading.DELETE}
+                          onClick={openBulkDeleteConfirm}
+                          className="px-3 py-1.5 text-sm font-medium rounded-lg bg-red-500 hover:bg-red-600 disabled:opacity-40 disabled:cursor-not-allowed text-white transition-colors"
+                        >
+                          {isLoading.DELETE
+                            ? "Deleting…"
+                            : `Delete (${selectedIds.size})`}
+                        </button>
+                        <button
+                          onClick={exitSelectMode}
+                          className="px-3 py-1.5 text-sm font-medium rounded-lg bg-white border border-gray-300 hover:bg-gray-50 text-gray-600 transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        onClick={() => setIsSelectMode(true)}
+                        className="px-3 py-1.5 text-sm font-medium rounded-lg bg-white border border-gray-300 hover:bg-gray-50 text-gray-600 transition-colors"
+                      >
+                        Select
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {viewMode === "card" ? renderCardView() : renderListView()}
+                {currentData.length === 0 && <EmptyState type={type} />}
+              </>
+            )}
+          </motion.div>
         </div>
 
         <div className="w-full h-fit">

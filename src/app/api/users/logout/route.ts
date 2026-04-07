@@ -1,5 +1,6 @@
-import { getUser } from "@/src/context/OrderContext";
+import { getUser } from "@/src/lib/session";
 import Prisma from "@/src/lib/prisma";
+import { hashToken } from "@/src/lib/userlib";
 
 export async function DELETE() {
   const user = await getUser();
@@ -8,9 +9,10 @@ export async function DELETE() {
     return Response.json({ success: false }, { status: 401 });
   }
   try {
-    await Prisma.usersession.deleteMany({
+    await Prisma.usersession.delete({
       where: {
-        session_id: user.session_id,
+        refresh_token_hash: hashToken(user.sessionid),
+        userId: user.userId,
       },
     });
 

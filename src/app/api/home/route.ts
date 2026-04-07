@@ -6,13 +6,13 @@ import {
   Containertype,
   Homeitemtype,
 } from "../../severactions/containeraction";
-import { Homecontainer } from "@prisma/client";
 import {
   caculateArrayPagination,
   calculateDiscountProductPrice,
 } from "@/src/lib/utilities";
-import { ProductState } from "@/src/context/GlobalContext";
+import { ProductState } from "@/src/types/product.type";
 import { calculatePopularityScore } from "../categories/route";
+import { Homecontainer } from "@/prisma/generated/prisma/client";
 
 interface Paramtype {
   ty?: "short" | "detail";
@@ -28,7 +28,7 @@ export function SortProductByPopularScore(
       >,
       number
     >
-  >
+  >,
 ) {
   return product
     ?.map((prod) => {
@@ -42,7 +42,7 @@ export function SortProductByPopularScore(
     .sort((a, b) => b.score - a.score);
 }
 export function SortProductByLatestAddDate(
-  product: Array<Record<keyof Pick<ProductState, "createdAt">, Date>>
+  product: Array<Record<keyof Pick<ProductState, "createdAt">, Date>>,
 ) {
   return product.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 }
@@ -115,6 +115,7 @@ export async function fetchContainers(ty: string) {
                 discount: true,
                 price: true,
                 covers: {
+                  take: 1, // Only get first cover for performance
                   select: {
                     name: true,
                     url: true,
@@ -221,7 +222,7 @@ export function formatContainer(result: formatContainerType) {
                 discount: i.product?.discount ?? 0,
               }),
             },
-          }
+          },
     ),
   };
 }
@@ -241,7 +242,7 @@ export async function GET(request: NextRequest) {
       if (!result) {
         return Response.json(
           { message: "Container Not Found" },
-          { status: 500 }
+          { status: 500 },
         );
       }
       const res = formatContainer(result as any);
@@ -253,7 +254,7 @@ export async function GET(request: NextRequest) {
       return Response.json({ data: res }, { status: 200 });
     }
   } catch (error) {
-    console.error("Get container error", error);
+    console.log("Get container error", error);
     return Response.json({ message: "Error Occurred" }, { status: 500 });
   }
 }
@@ -271,7 +272,7 @@ export async function PUT(req: Request) {
     if (!data.ty && !id) {
       return Response.json(
         { success: false, message: "Invalid Request" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -281,13 +282,13 @@ export async function PUT(req: Request) {
           Prisma.homecontainer.update({
             where: { id: parseInt(item.id) },
             data: { idx: item.idx },
-          })
-        )
+          }),
+        ),
       );
 
       return Response.json(
         { success: true, message: "HomeItems Updated" },
-        { status: 200 }
+        { status: 200 },
       );
     }
 
@@ -299,7 +300,7 @@ export async function PUT(req: Request) {
     if (!container) {
       return Response.json(
         { success: false, message: "Container Not Found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -315,7 +316,7 @@ export async function PUT(req: Request) {
       if (existingContainer) {
         return Response.json(
           { success: false, message: "Container Name Exists" },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
@@ -364,7 +365,7 @@ export async function PUT(req: Request) {
       const cutProduct = caculateArrayPagination(
         sortedProduct,
         1,
-        data.amountofitem
+        data.amountofitem,
       );
       data.items = cutProduct.map((i) => {
         const existingItem = data.items.find((item) => item.item_id === i.id);
@@ -406,11 +407,11 @@ export async function PUT(req: Request) {
         const cutProduct = caculateArrayPagination(
           sortedProduct,
           1,
-          data.amountofitem
+          data.amountofitem,
         );
 
         data.items = data.items.filter((i) =>
-          cutProduct.some((item) => item.id === i.item_id)
+          cutProduct.some((item) => item.id === i.item_id),
         );
       }
     }
@@ -434,12 +435,12 @@ export async function PUT(req: Request) {
 
     const itemsToCreate = newItems.filter(
       (newItem) =>
-        !existingItems.some((existingItem) => existingItem.id === newItem.id)
+        !existingItems.some((existingItem) => existingItem.id === newItem.id),
     );
 
     const itemsToDelete = existingItems.filter(
       (existingItem) =>
-        !newItems?.some((newItem) => newItem.id === existingItem.id)
+        !newItems?.some((newItem) => newItem.id === existingItem.id),
     );
 
     const itemsToUpdate = newItems.filter((newItem) =>
@@ -449,8 +450,8 @@ export async function PUT(req: Request) {
           ((existingItem.banner_id &&
             existingItem.banner_id !== newItem.item_id) ||
             (existingItem.product_id &&
-              existingItem.product_id !== newItem.item_id))
-      )
+              existingItem.product_id !== newItem.item_id)),
+      ),
     );
 
     if (
@@ -486,16 +487,16 @@ export async function PUT(req: Request) {
 
       return Response.json(
         { success: true, message: "Container Updated" },
-        { status: 200 }
+        { status: 200 },
       );
     } else {
       return Response.json({ success: true }, { status: 200 });
     }
   } catch (error) {
-    console.error("Edit container error:", error);
+    console.log("Edit container error:", error);
     return Response.json(
       { success: false, message: "Error Occurred" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -1,7 +1,6 @@
 "use server";
 
-import { FilterValue, Varianttype } from "@/src/context/GlobalContext";
-import { getUser } from "@/src/context/OrderContext";
+import { getUser } from "@/src/lib/session";
 import Prisma from "@/src/lib/prisma";
 import {
   DeleteImageFromStorage,
@@ -9,6 +8,7 @@ import {
 } from "@/src/lib/utilities";
 import dayjs from "dayjs";
 import { revalidateTag } from "next/cache";
+import { FilterValue, Varianttype } from "@/src/types/product.type";
 
 const INVENTORYENUM = {
   SIZE: "SIZE",
@@ -60,10 +60,11 @@ export async function Updatevaraint(data: createdata): Promise<Returntype> {
         option_title: data.option_title,
         option_type: data.option_type,
         option_value: data.option_value,
+        optional: data.optional,
+        sectionId: data.sectionId,
       },
     });
     if (updated) {
-      revalidateTag("variant");
       return { success: true, message: "Variant Update Successfully" };
     }
     return { success: false };
@@ -153,7 +154,7 @@ export const getSubCategories = async (pid: number) => {
 
 export const getTotalOfItems = async (
   ty: string,
-  filtervalue?: FilterValue
+  filtervalue?: FilterValue,
 ) => {
   if (!ty) {
     return { success: false, message: "Invalid request" };
@@ -180,7 +181,7 @@ export const getTotalOfItems = async (
         const isName =
           filtervalue?.name &&
           removeSpaceAndToLowerCase(i.name).includes(
-            removeSpaceAndToLowerCase(filtervalue.name)
+            removeSpaceAndToLowerCase(filtervalue.name),
           );
 
         const isPid =
@@ -252,7 +253,7 @@ export const getTotalOfItems = async (
                   {
                     expireAt: {
                       gte: new Date(
-                        filtervalue.expiredate as unknown as string
+                        filtervalue.expiredate as unknown as string,
                       ),
                     },
                   },
@@ -312,7 +313,7 @@ export const DeleteTempImage = async () => {
     }
 
     const images = await Prisma.tempimage.findMany({
-      where: { user_id: user.id },
+      where: { user_id: user.userId },
     });
 
     if (images.length !== 0) {

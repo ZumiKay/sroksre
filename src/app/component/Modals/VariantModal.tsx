@@ -1,81 +1,60 @@
 "use client";
 import {
   ProductStockType,
-  Stocktype,
   useGlobalContext,
-  VariantColorValueType,
 } from "@/src/context/GlobalContext";
 import { errorToast } from "../Loading";
-import { FormEvent, useEffect, useState } from "react";
-import { RGBColor } from "react-color";
+import {
+  SubmitEvent,
+  useEffect,
+  useState,
+  useCallback,
+  useMemo,
+  memo,
+} from "react";
 import { ApiRequest, Delayloading } from "@/src/context/CustomHook";
 import tinycolor from "tinycolor2";
-import Modal, { SecondaryModal } from "../Modals";
-import { motion } from "framer-motion";
-import PrimaryButton, { Selection } from "../Button";
-import Image from "next/image";
+import { SecondaryModal } from "../Modals";
+import PrimaryButton from "../Button";
 import Variantimg from "../../../../public/Image/Variant.png";
 import Variantstockimg from "../../../../public/Image/Stock.png";
-import {
-  ColorSelectModal,
-  ManageStockContainer,
-  MapSelectedValuesToVariant,
-} from "./VariantModalComponent";
-import { Badge, Button, Input } from "@nextui-org/react";
-import TemplateContainer, {
-  AddTemplateModal,
-} from "./Variantcomponent/TemplateContainer";
-import { VariantTemplateType } from "./Variantcomponent/Action";
-import { HasPartialOverlap } from "@/src/lib/utilities";
-import { NormalSkeleton } from "../Banner";
+import { ManageStockContainer } from "./VariantModalComponent";
 import React from "react";
 
-interface variantdatatype {
-  id?: number;
-  type: "COLOR" | "TEXT";
-  name: string;
-  value: Array<string | VariantColorValueType>;
-}
+// Import types and utilities
+import {
+  Colortype,
+  Colorinitalize,
+  Variantcontainertype,
+  ModalOpenState,
+} from "./types";
+import { useVariantManager } from "./Variantcomponent/hooks/useVariantManager";
+import { useStockManager } from "./Variantcomponent/hooks/useStockManager";
+import { useTemplateManager } from "./Variantcomponent/hooks/useTemplateManager";
+import { SelectionCard } from "./Variantcomponent/SelectionCards";
+import { VariantTypeSelection } from "./Variantcomponent/VariantTypeSelection";
+import { VariantInfoEditor } from "./Variantcomponent/VariantInfoEditor";
+import { VariantView } from "./Variantcomponent/VariantView";
+import {
+  ArraysAreEqualSets,
+  checkVariantExists,
+  updateStockOnVariantEdit,
+  cleanEmptyStock,
+} from "./Variantcomponent/utils";
+import {
+  Stocktype,
+  VariantValueObjType,
+  VariantTypeEnum,
+} from "@/src/types/product.type";
+import VariantSectionEditor from "./Variantcomponent/VariantSectionEditor";
 
-export interface Colortype {
-  hex: string;
-  rgb: RGBColor;
-}
-export const Colorinitalize: Colortype = {
-  hex: "#f5f5f5",
-  rgb: {
-    r: 245,
-    g: 245,
-    b: 245,
-    a: 1,
-  },
-};
+export { Colorinitalize, ArraysAreEqualSets };
+export type { Colortype, Variantcontainertype };
 
-export const ArraysAreEqualSets = (
-  array1: string[],
-  array2: string[]
-): boolean => {
-  if (array1.length !== array2.length) return false;
-
-  const set1 = new Set(array1);
-  const set2 = new Set(array2);
-
-  if (set1.size !== set2.size) return false;
-
-  const set1Array = Array.from(set1);
-  for (let i = 0; i < set1Array.length; i++) {
-    if (!set2.has(set1Array[i])) return false;
-  }
-
-  return true;
-};
-export type Variantcontainertype =
-  | "variant"
-  | "stock"
-  | "type"
-  | "info"
-  | "stockinfo"
-  | "none";
+export type accessFromSectionType =
+  | "secion-create"
+  | "section-list"
+  | undefined;
 
 export const Variantcontainer = ({
   type,
@@ -87,507 +66,675 @@ export const Variantcontainer = ({
   closename?: string;
 }) => {
   const { openmodal, setopenmodal, product, setproduct } = useGlobalContext();
-  const [temp, settemp] = useState<variantdatatype>();
-  const [reloadtemp, setreloadtemp] = useState(true);
 
-  const [colordata, setcolordata] = useState({
-    color: Colorinitalize,
-    name: "",
-  });
-  const [open, setopen] = useState({
+  // Use custom hooks
+  const variantManager = useVariantManager();
+  const stockManager = useStockManager();
+  const templateManager = useTemplateManager();
+
+  // Local state
+  const [open, setOpen] = useState<ModalOpenState>({
     addcolor: false,
     addoption: false,
     addtemplate: false,
   });
-  const [newadd, setnew] = useState<Variantcontainertype>(type ?? "none");
-  const [option, setoption] = useState("");
-  const [added, setadded] = useState(-1);
-  const [edit, setedit] = useState(-1);
+  const [newadd, setNew] = useState<Variantcontainertype>(type ?? "none");
   const [addstock, setaddstock] = useState(-1);
-  const [name, setname] = useState("");
-  const [stock, setstock] = useState("");
-  const [templates, settemplates] = useState<VariantTemplateType[] | []>([]);
-  const [editsubstockidx, seteditsubstockidx] = useState(-1);
   const [reloaddata, setreloaddata] = useState(true);
-  const [addNewSubStock, setaddNewSubStock] = useState(false);
-  const [edittemplate, setedittemplate] = useState<
-    VariantTemplateType | undefined
-  >(undefined);
-  const [selectedvalues, setselectedvalues] = useState<
-    | {
-        [key: string]: string[];
-      }
-    | undefined
-  >(undefined);
-  const [isEditTemp, setisEditTemp] = useState(false);
-  const [loading, setloading] = useState(false);
+  const [mainLoading, setMainLoading] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string>("");
 
-  //Fetch Variant Template
-  const FetchTemplate = async () => {
-    async function asyncfetch() {
-      const res = await ApiRequest(
-        "/api/products/variant/template?ty=short",
-        undefined,
-        "GET"
-      );
-      setreloadtemp(false);
-      if (res.success) {
-        settemplates(res.data);
+  // Variant Section state
+  const [sectionName, setSectionName] = useState("");
+  const [sectionId, setsetionId] = useState<number>();
+  const [editSectionId, setEditSectionId] = useState<number>();
+  const [accessFromSection, setaccessFromSection] =
+    useState<accessFromSectionType>();
+
+  // Variant price and optional state
+  const [variantPrice, setVariantPrice] = useState<number | undefined>(
+    undefined,
+  );
+  const [variantOptional, setVariantOptional] = useState(false);
+
+  // Search and filter state for large data handling
+  const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 50; // Show 50 items per page
+
+  // Memoize filtered variants based on search
+  const filteredVariants = useMemo(() => {
+    if (!product.Variant) return [];
+    if (!searchQuery.trim()) return product.Variant;
+
+    const query = searchQuery.toLowerCase();
+    return product.Variant.filter(
+      (variant) =>
+        variant.option_title.toLowerCase().includes(query) ||
+        variant.option_value.some((val) => {
+          const valString = typeof val === "string" ? val : val.val;
+          return valString.toLowerCase().includes(query);
+        }),
+    );
+  }, [product.Variant, searchQuery]);
+
+  // Memoize paginated variants
+  const paginatedVariants = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredVariants.slice(startIndex, endIndex);
+  }, [filteredVariants, currentPage, itemsPerPage]);
+
+  const totalPages = useMemo(
+    () => Math.ceil(filteredVariants.length / itemsPerPage),
+    [filteredVariants.length, itemsPerPage],
+  );
+
+  // Fetch variant stock
+  const fetchstock = useCallback(
+    async (index: number) => {
+      const asyncfetchdata = async () => {
+        const URL = `/api/products?ty=${type}&pid=${index}`;
+        const response = await ApiRequest(URL, undefined, "GET");
+
+        if (!response.success) {
+          errorToast("Error Connection");
+          return;
+        }
+
+        setproduct((prev) => ({
+          ...prev,
+          ...response.data,
+        }));
+        setreloaddata(false);
+      };
+      await Delayloading(asyncfetchdata, setMainLoading, 500);
+    },
+    [type, setproduct],
+  );
+
+  useEffect(() => {
+    if (editindex && type && type === ProductStockType.stock) {
+      if (reloaddata || (closename && openmodal?.[closename])) {
+        fetchstock(editindex);
       }
     }
-    if (reloadtemp) {
-      await Delayloading(asyncfetch, setloading, 1000);
-    }
-  };
+  }, [reloaddata, editindex, type, fetchstock, closename, openmodal]);
 
-  //Fetch variant stock
-  const fetchstock = async (index: number) => {
-    const asyncfetchdata = async () => {
-      const URL = `/api/products?ty=${type}&pid=${index}`;
-      const response = await ApiRequest(URL, undefined, "GET");
+  useEffect(() => {
+    templateManager.fetchTemplates();
+  }, [templateManager.reloadTemp]);
 
-      if (!response.success) {
-        errorToast("Error Connection");
+  // Reset to first page when search query changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery]);
+
+  // Handler functions
+  const handleCreate = useCallback(
+    async ({ setLoading }: { setLoading?: (val: boolean) => void }) => {
+      const isEditing = variantManager.added !== -1;
+      const currentVariants = product.Variant;
+
+      // Early validation
+      if (
+        !isEditing &&
+        checkVariantExists(currentVariants, variantManager.name)
+      ) {
+        errorToast("Variant name exist");
         return;
       }
 
-      const { varaintstock, variants } = response.data;
+      if (isEditing && (!currentVariants || currentVariants.length === 0)) {
+        errorToast("Error Occured");
+        return;
+      }
 
-      setproduct((prev) => ({ ...prev, varaintstock, variants }));
-      setreloaddata(false);
-    };
-    await Delayloading(asyncfetchdata, setloading, 500);
-  };
+      // Generate temp ID only once if needed
+      const tempId =
+        !isEditing && !product.id
+          ? (() => {
+              if (!currentVariants?.length) return 1;
+              const existingIds = currentVariants
+                .map((v) => v.tempId ?? v.id ?? 0)
+                .filter((id) => id > 0);
+              return existingIds.length > 0 ? Math.max(...existingIds) + 1 : 1;
+            })()
+          : undefined;
 
-  useEffect(() => {
-    editindex &&
-      type &&
-      type === ProductStockType.stock &&
-      reloaddata &&
-      fetchstock(editindex);
-  }, [reloaddata]);
+      // Build variant data
+      const variantData = {
+        id:
+          isEditing && currentVariants
+            ? currentVariants[variantManager.added]?.id
+            : undefined,
+        tempId:
+          isEditing && currentVariants
+            ? currentVariants[variantManager.added]?.tempId
+            : tempId,
+        option_title: variantManager.name,
+        option_type: variantManager.temp?.type as VariantTypeEnum,
+        option_value: variantManager.temp?.value ?? [],
+        price: variantPrice,
+        optional: variantOptional,
+        sectionId: sectionId ?? undefined,
+      };
 
-  useEffect(() => {
-    FetchTemplate();
-  }, [reloadtemp]);
+      let updatedVariants: typeof currentVariants;
+      let updatedStock: Stocktype[] | undefined;
 
-  const handleCreate = () => {
-    let update = product.variants ? [...product.variants] : undefined;
+      // Handle editing mode
+      if (isEditing && currentVariants) {
+        updatedVariants = currentVariants.map((v, idx) =>
+          idx === variantManager.added ? variantData : v,
+        );
 
-    const isExist =
-      added === -1 && update && update.some((i) => i.option_title === name);
-
-    if (isExist) {
-      errorToast("Variant name exist");
-      return;
-    }
-
-    // Check if a variant with type COLOR already exists
-    const isColorTypeExist =
-      added === -1 && update && update.some((i) => i.option_type === "COLOR");
-
-    if (isColorTypeExist && temp?.type === "COLOR") {
-      errorToast("Variant of type color can only have one");
-      return;
-    }
-
-    if (!update) {
-      update = [
-        {
-          option_title: name,
-          option_type: temp?.type as "COLOR" | "TEXT",
-          option_value: temp?.value as string[],
-        },
-      ];
-    } else {
-      if (added !== -1) {
-        update[added] = {
-          option_title: name,
-          option_type: temp?.type as "COLOR" | "TEXT",
-          option_value: temp?.value as string[],
-        };
-
-        if (product.varaintstock) {
-          const updatestock = product.varaintstock?.map((stockItem) => ({
-            ...stockItem,
-            Stockvalue: stockItem.Stockvalue.map((stockValue) => ({
-              ...stockValue,
-              variant_val: stockValue.variant_val.map((val) =>
-                update?.some((vars) =>
-                  vars.option_type === "COLOR"
-                    ? (vars.option_value as VariantColorValueType[]).some(
-                        (color) => color.val === val
-                      )
-                    : vars.option_value.includes(val)
-                )
-                  ? val
-                  : ""
-              ),
-            })).filter((stockValue) =>
-              stockValue.variant_val.some((val) => val !== "")
-            ),
-          }));
-
-          setproduct((prev) => ({ ...prev, varaintstock: updatestock }));
+        // Update stock if exists
+        if (product.Stock?.length) {
+          updatedStock = updateStockOnVariantEdit(
+            product.Stock,
+            updatedVariants,
+          );
         }
       } else {
-        update.push({
-          option_title: name,
-          option_type: temp?.type as "COLOR" | "TEXT",
-          option_value: temp?.value ?? [],
-        });
+        // Create mode - prepare optimistic update
+        updatedVariants = currentVariants
+          ? [...currentVariants, variantData]
+          : [variantData];
       }
-    }
 
-    setproduct((prev) => ({ ...prev, variants: update }));
+      // Save to database
+      if (product.id) {
+        setLoading?.(true);
+        try {
+          const response = await ApiRequest(
+            "/api/products/crud",
+            undefined,
+            "PUT",
+            "JSON",
+            {
+              id: product.id,
+              Variant: variantData,
+              type: "editvariant",
+            },
+          );
 
-    setadded(-1);
-    setname("");
-    setnew("variant");
-  };
+          if (!response.success) {
+            errorToast("Can't Create Variant");
+            setLoading?.(false);
+            return;
+          }
 
-  const handleAddColor = () => {
-    const { color, name } = colordata;
-    if (color?.hex === "" || !name) {
-      errorToast(color.hex === "" ? "Please Select Color" : "Name is Required");
-      return;
-    }
-    const update = { ...temp };
-    if (edit === -1) {
-      update.value?.push({
-        val: color.hex,
-        name,
-      });
-    } else if (update.value && edit !== -1) {
-      update.value[edit] = {
-        val: color.hex,
-        name,
-      };
-    }
-    settemp(update as variantdatatype);
-    setcolordata((prev) => ({ ...prev, color: Colorinitalize, name: "" }));
-    setedit(-1);
-  };
-
-  const handleColorSelect = (idx: number, type: "color" | "text") => {
-    if (type === "color") {
-      const data = temp?.value[idx] as VariantColorValueType;
-      const rgb = tinycolor(data.val).toRgb();
-      setedit(idx);
-      setcolordata({
-        name: data.name ?? "",
-        color: { hex: data.val as string, rgb: rgb },
-      });
-      setopen((prev) => ({ ...prev, addcolor: true }));
-    } else {
-      const data = temp?.value[idx] as string;
-      setedit(idx);
-      setoption(data as string);
-      setopen((prev) => ({ ...prev, addoption: true }));
-    }
-  };
-
-  const handleUpdateVariantOption = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const update = { ...temp };
-    const variant = [...(product.variants ?? [])];
-
-    const isExist =
-      variant &&
-      variant
-        .filter((fil) => fil.option_type === "TEXT")
-        .some((i) => i.option_value.includes(option));
-
-    if (isExist) {
-      errorToast("Option Exist");
-      return;
-    }
-    if (edit === -1) {
-      update.value?.push(option);
-    } else if (update.value) {
-      update.value[edit] = option;
-      setedit(-1);
-    }
-
-    setopen((prev) => ({ ...prev, addoption: false }));
-  };
-  const handleVariantEdit = (idx: number) => {
-    if (product.variants) {
-      const variantToEdit = product.variants[idx];
-      if (variantToEdit) {
-        setname(variantToEdit.option_title);
-        settemp({
-          name: variantToEdit.option_title,
-          value: [...variantToEdit.option_value],
-          type: variantToEdit.option_type as "COLOR" | "TEXT",
-        });
-
-        setadded(idx);
-        setnew("info");
-
-        if (product.varaintstock) {
-          let updatedStock = [...product.varaintstock];
-          updatedStock = updatedStock.map((stock) => {
-            const updatedVariantValues = stock.Stockvalue.map((val, valIdx) => {
-              const currentVariant =
-                product.variants && product.variants[valIdx];
-              if (!currentVariant) return val;
-
-              const variantValue = currentVariant.option_value;
-              return val.variant_val.map((v, vIdx) => {
-                const newValue = variantValue[vIdx];
-                return newValue
-                  ? typeof newValue === "string"
-                    ? newValue
-                    : newValue.val
-                  : v;
-              }) as string[];
-            });
-
-            return {
-              ...stock,
-              variant_val: updatedVariantValues,
-            };
-          });
-
-          setproduct((prev) => ({
-            ...prev,
-            varaintstock: updatedStock,
-          }));
+          // Update variant with server-generated ID for new variants
+          if (
+            !isEditing &&
+            response.data?.createdVariantId &&
+            updatedVariants
+          ) {
+            variantData.id = response.data.createdVariantId;
+            // Update the last item in the array with the new ID
+            updatedVariants = updatedVariants.map((v, idx) =>
+              idx === updatedVariants!.length - 1 ? variantData : v,
+            );
+          }
+        } catch (error) {
+          errorToast("Network error occurred");
+          setLoading?.(false);
+          return;
+        } finally {
+          setLoading?.(false);
         }
       }
-    }
-  };
-  const handleVariantDelete = async (idx: number) => {
-    const { variants, varaintstock } = product;
-    if (!variants || idx < 0 || idx >= variants.length) return;
 
-    const updatedVariants = variants.filter((_, i) => i !== idx);
+      // Update state
+      setproduct((prev) => ({
+        ...prev,
+        Variant: updatedVariants,
+        ...(updatedStock && { Stock: updatedStock }),
+      }));
 
-    if (varaintstock) {
-      let updatedStock = [...varaintstock];
+      // Reset form state
+      variantManager.setAdded(-1);
+      variantManager.setName("");
+      setVariantPrice(undefined);
+      setVariantOptional(false);
 
-      updatedStock = updatedStock.filter((stock) => {
-        const match = stock.Stockvalue.every((val, valIdx) => {
-          const currentVariant = updatedVariants[valIdx];
-          if (!currentVariant) return false;
+      // Show success message
+      setSuccessMessage(
+        isEditing
+          ? "Variant updated successfully"
+          : "Variant created successfully",
+      );
+      setTimeout(() => setSuccessMessage(""), 3000);
 
-          const variantValue = currentVariant.option_value;
-          return variantValue.some(
-            (v) =>
-              (typeof v === "string" ? val.variant_val : v.val) ===
-              val.variant_val
-          );
+      setNew("variant");
+    },
+    [
+      product.id,
+      product.Variant,
+      product.Stock,
+      variantManager,
+      setproduct,
+      variantPrice,
+      variantOptional,
+      sectionId,
+    ],
+  );
+
+  const handleColorSelect = useCallback(
+    (idx: number, selectType: "color" | "text") => {
+      if (selectType === "color") {
+        const data = variantManager.temp?.value[idx] as VariantValueObjType;
+        const rgb = tinycolor(data.val).toRgb();
+        variantManager.setEdit(idx);
+        variantManager.setColorData({
+          name: data.name ?? "",
+          color: { hex: data.val as string, rgb: rgb },
+          price: data.price ? parseFloat(data.price) : undefined,
+          qty: data.qty,
         });
+        setOpen((prev) => ({ ...prev, addcolor: true }));
+      } else {
+        const data = variantManager.temp?.value[idx];
+        variantManager.setEdit(idx);
 
-        return !match;
+        // Handle both string and object types
+        if (typeof data === "string") {
+          variantManager.setOption(data);
+          variantManager.setOptionPrice(undefined);
+          variantManager.setOptionQty(undefined);
+        } else {
+          const objData = data as VariantValueObjType;
+          variantManager.setOption(objData.val);
+          variantManager.setOptionPrice(
+            objData.price ? parseFloat(objData.price) : undefined,
+          );
+          variantManager.setOptionQty(objData.qty);
+        }
+
+        setOpen((prev) => ({ ...prev, addoption: true }));
+      }
+    },
+    [variantManager],
+  );
+
+  const handleUpdateVariantOption = useCallback(
+    (e: SubmitEvent<HTMLFormElement>) => {
+      e.preventDefault();
+      const existingTextOptions =
+        product.Variant?.filter((v) => v.option_type === "TEXT").flatMap(
+          (v) => v.option_value as string[],
+        ) ?? [];
+
+      if (variantManager.addTextOption(existingTextOptions)) {
+        setOpen((prev) => ({ ...prev, addoption: false }));
+      }
+    },
+    [product.Variant, variantManager],
+  );
+
+  const handleVariantEdit = useCallback(
+    (idx: number) => {
+      if (!product.Variant) return;
+
+      const variantToEdit = product.Variant[idx];
+      if (variantToEdit) {
+        variantManager.setName(variantToEdit.option_title);
+        variantManager.setTemp({
+          name: variantToEdit.option_title,
+          value: [...variantToEdit.option_value],
+          type: variantToEdit.option_type as VariantTypeEnum,
+          optional: variantToEdit.optional,
+        });
+        variantManager.setAdded(idx);
+        setVariantPrice(variantToEdit.price);
+        setVariantOptional(variantToEdit.optional ?? false);
+        setNew("info");
+      }
+    },
+    [product.Variant, variantManager],
+  );
+
+  const handleVariantDelete = useCallback(
+    async (idx: number) => {
+      const { Variant: variants, Stock: varaintstock } = product;
+      if (!variants || idx < 0 || idx >= variants.length) return;
+
+      const updatedVariants = variants.filter((_, i) => i !== idx);
+
+      setproduct((prev) => ({
+        ...prev,
+        Variant: updatedVariants,
+        Stock: varaintstock
+          ? varaintstock.filter((stock) =>
+              stock.Stockvalue.some((val) => {
+                return updatedVariants.some((currentVariant) =>
+                  currentVariant.option_value.some((v) => {
+                    const variantVal = typeof v === "string" ? v : v.val;
+                    return val.variant_val.includes(variantVal);
+                  }),
+                );
+              }),
+            )
+          : undefined,
+      }));
+
+      setNew("variant");
+    },
+    [product, setproduct],
+  );
+
+  const handleDeleteMultiple = useCallback(
+    async (variantIds: number[]) => {
+      const { Variant: variants, Stock: varaintstock } = product;
+      if (!variants || variantIds.length === 0) return;
+
+      // Filter out the variants with the given IDs
+      const updatedVariants = variants.filter((v) => {
+        const vId = v.id ?? v.tempId;
+        return !vId || !variantIds.includes(vId);
       });
 
       setproduct((prev) => ({
         ...prev,
-        variants: updatedVariants,
-        varaintstock: updatedStock,
+        Variant: updatedVariants,
+        Stock: varaintstock
+          ? varaintstock.filter((stock) =>
+              stock.Stockvalue.some((val) => {
+                return updatedVariants.some((currentVariant) =>
+                  currentVariant.option_value.some((v) => {
+                    const variantVal = typeof v === "string" ? v : v.val;
+                    return val.variant_val.includes(variantVal);
+                  }),
+                );
+              }),
+            )
+          : undefined,
       }));
-    } else {
+
+      setNew("variant");
+    },
+    [product, setproduct],
+  );
+
+  const handleSelectExistingVariant = useCallback(
+    (variantId: number) => {
+      if (!accessFromSection || !sectionId) return;
+
+      const variant = product.Variant?.find(
+        (v) => (v.id ?? v.tempId) === variantId,
+      );
+      if (!variant) return;
+
+      // Update variant with section ID using tempId as fallback identifier
       setproduct((prev) => ({
         ...prev,
-        variants: updatedVariants,
+        Variant: prev.Variant?.map((v) =>
+          (v.id ?? v.tempId) === variantId ? { ...v, sectionId } : v,
+        ),
       }));
-    }
+    },
+    [accessFromSection, sectionId, product.Variant, setproduct],
+  );
 
-    setnew("variant");
-  };
+  const handleSelectTemplate = useCallback(
+    (id: number) => {
+      //Find selected template
+      const selectedTemp = templateManager.templates.find((i) => i.id === id);
+      if (!selectedTemp) return;
 
-  const handleDeleteVaraint = (idx: number) => {
-    let update = { ...temp };
-    update?.value?.splice(idx, 1);
-    settemp(update as variantdatatype);
-  };
-
-  const handleSelectTemplate = (id: number) => {
-    const selectedtemp = { ...templates.find((i) => i.id === id) };
-
-    if (!selectedtemp) {
-      return;
-    }
-
-    if (isEditTemp) {
-      setedittemplate(selectedtemp as any);
-      setopen((prev) => ({ ...prev, addtemplate: true }));
-    } else {
-      setname(selectedtemp.variant?.option_title as string);
-      settemp({
-        name: selectedtemp.variant?.option_title as string,
-        type: selectedtemp.variant?.option_type as any,
-        value: selectedtemp.variant?.option_value as any,
-      });
-      setnew("info");
-    }
-  };
-
-  const handleDeleteTemplate = async (id: number) => {
-    setloading(true);
-    const request = await ApiRequest(
-      "/api/products/variant/template",
-      undefined,
-      "DELETE",
-      "JSON",
-      { id }
-    );
-    setloading(false);
-    if (!request.success) {
-      errorToast("Error Occured");
-      return;
-    }
-    setreloadtemp(true);
-  };
-
-  const handleBack = async () => {
-    if (newadd == "none") {
-      setopenmodal((prev) => ({ ...prev, addproductvariant: false }));
-      return;
-    } else {
-      if (newadd === "stockinfo") {
-        handleCreateAndUpdateVariantStock();
-        return;
+      if (templateManager.isEditTemp) {
+        templateManager.setEditTemplate(selectedTemp);
+        setOpen((prev) => ({ ...prev, addtemplate: true }));
+      } else {
+        variantManager.setName(selectedTemp.variant?.option_title ?? "");
+        variantManager.setTemp({
+          name: selectedTemp.variant?.option_title ?? "",
+          type: selectedTemp.variant?.option_type as any,
+          value: selectedTemp.variant?.option_value as any,
+        });
+        setNew("info");
       }
+    },
+    [templateManager, variantManager],
+  );
 
-      if (newadd === "stock" && editindex !== -1) {
-        if (closename)
-          setopenmodal((prev) => ({ ...prev, [closename as string]: false }));
-        else setopenmodal((prev) => ({ ...prev, addproductvariant: false }));
-        return;
-      }
-      if (newadd === "type") {
-        setnew("variant");
-        return;
-      }
-      setnew("none");
-    }
-  };
+  const handleCreateAndUpdateVariantStock = useCallback(
+    async (addnew?: boolean) => {
+      //?addnew arg for flag addnew sub stock
 
-  const handleCreateAndUpdateVariantStock = async (addnew?: boolean) => {
-    const stockArray = product.varaintstock ? [...product.varaintstock] : [];
-    const isStockEmpty = product.varaintstock?.findIndex(
-      (i) => i.Stockvalue.length === 0
-    );
-    if (isStockEmpty !== -1) {
-      setproduct((prev) => ({
-        ...prev,
-        varaintstock: stockArray.filter((_, idx) => idx !== isStockEmpty),
-      }));
-    }
-    if (
-      !selectedvalues ||
-      !stock ||
-      Object.values(selectedvalues).some((v) => v.length === 0)
-    ) {
-      if (edit !== -1 && !addnew) setedit(-1);
-      if (selectedvalues) setselectedvalues(undefined);
-      if (stock) setstock("");
+      const cleanedStock = cleanEmptyStock(product.Stock);
 
-      if (!addnew) setnew("stock");
-
-      if (added === -1 && edit === -1 && closename) {
-        setopenmodal((prev) => ({ ...prev, [closename]: false }));
-      }
-      setadded(-1);
-      return;
-    }
-
-    const stockValues = MapSelectedValuesToVariant(
-      selectedvalues,
-      product.variants?.map((i) => i.option_title) ?? []
-    );
-
-    const parsedQty = parseInt(stock, 10);
-
-    const newStock: Stocktype = {
-      qty: parsedQty,
-      Stockvalue: stockValues.map((i) => ({
-        qty: parsedQty,
-        variant_val: i,
-      })),
-    };
-    if (edit === -1 || newadd) {
-      const isOverlap = stockArray.some((item) =>
-        HasPartialOverlap(
-          item.Stockvalue.map((i) => i.variant_val),
-          stockValues
-        )
+      const result = stockManager.createOrUpdateStock(
+        cleanedStock,
+        product.Variant?.map((i) => i.option_title) ?? [],
+        addnew,
       );
 
-      if (isOverlap) {
-        errorToast("Stock Existed");
-        setstock("");
+      //If stockvalue is null reset stock state
+      if (!result) {
+        if (stockManager.editStockIdx !== -1 && !addnew) {
+          stockManager.setEditStockIdx(-1);
+        }
+        stockManager.resetStockState();
 
+        if (!addnew) setNew("stock");
+
+        if (
+          variantManager.added === -1 &&
+          stockManager.editStockIdx === -1 &&
+          closename
+        ) {
+          setopenmodal((prev) => ({ ...prev, [closename]: false }));
+        }
+        variantManager.setAdded(-1);
+        return;
+      }
+
+      //Update Stock when in editmode
+
+      if (editindex) {
+        await handleSaveUpdateSubStock(result);
+      }
+
+      setproduct((prev) => ({ ...prev, Stock: result }));
+      if (addnew) {
+        setNew("stockinfo");
+      } else {
+        stockManager.resetStockState();
+        // Show success message
+        setSuccessMessage(
+          stockManager.editStockIdx !== -1
+            ? "Stock updated successfully"
+            : "Stock created successfully",
+        );
+        setTimeout(() => setSuccessMessage(""), 3000);
+        setNew("stock");
+      }
+    },
+    [
+      product.Stock,
+      product.Variant,
+      stockManager,
+      variantManager,
+      editindex,
+      closename,
+      setproduct,
+      setopenmodal,
+      setSuccessMessage,
+    ],
+  );
+
+  const handleSaveUpdateSubStock = useCallback(
+    async (Stock: Array<Stocktype>) => {
+      setMainLoading(true);
+      const res = await ApiRequest(
+        "/api/products/crud",
+        undefined,
+        "PUT",
+        "JSON",
+        {
+          id: editindex,
+          Stock,
+          type: "editvariantstock",
+        },
+      );
+      setMainLoading(false);
+
+      if (!res.success) {
+        errorToast("Error occurred");
+        return;
+      }
+
+      setSuccessMessage("Stock updated successfully");
+      setTimeout(() => setSuccessMessage(""), 3000);
+      stockManager.setEditStockIdx(-1);
+      stockManager.resetStockState();
+      setNew("stock");
+    },
+    [editindex, stockManager],
+  );
+
+  /**
+   * Helper function to close the modal
+   */
+  const closeModal = useCallback(() => {
+    const modalKey = closename || "addproductvariant";
+    setopenmodal((prev) => ({ ...prev, [modalKey]: false }));
+  }, [closename, setopenmodal]);
+
+  /**
+   * Helper function to reset section state
+   */
+  const resetSectionState = useCallback(() => {
+    setSectionName("");
+    setsetionId(undefined);
+    setEditSectionId(undefined);
+    setaccessFromSection(undefined);
+  }, []);
+
+  /**
+   * Back button handler of all variant modal operation
+   */
+  const handleBack = useCallback(async () => {
+    // Close modal if on home screen
+    if (newadd === "none") {
+      closeModal();
+      return;
+    }
+
+    // Stock info: Save and return to stock list
+    if (newadd === "stockinfo") {
+      handleCreateAndUpdateVariantStock();
+      return;
+    }
+
+    // Stock edit mode: Close modal when editing existing product
+    if (newadd === "stock" && editindex) {
+      closeModal();
+      return;
+    }
+
+    // Variant type/info screens with section context
+    if (newadd === "type" || newadd === "info") {
+      const hasVariants = product.Variant && product.Variant.length > 0;
+
+      // Reset section access flag
+      if (accessFromSection !== "section-list") {
+        setaccessFromSection(undefined);
+      }
+
+      // Navigate based on section context
+      if (editSectionId) {
+        setNew("section-edit");
+        return;
+      }
+
+      if (accessFromSection && hasVariants) {
+        if (accessFromSection === "section-list") {
+          setNew("variant");
+          return;
+        }
+        setNew("section");
+        return;
+      }
+
+      setNew("none");
+      return;
+    }
+
+    // Variant list screen
+    if (newadd === "variant") {
+      if (editSectionId) {
+        setNew("section-edit");
+        return;
+      }
+
+      if (accessFromSection) {
+        setaccessFromSection(undefined);
+        const targetView =
+          accessFromSection === "section-list" ? "section-list" : "section";
+        setNew(targetView);
         return;
       }
     }
 
-    if (edit === -1) {
-      stockArray.push(newStock);
-    } else {
-      const existingStock = stockArray[edit];
-      const updatedStockValue = existingStock.Stockvalue.map((i) => {
-        const isMatch = stockValues.some((val) =>
-          ArraysAreEqualSets(val, i.variant_val)
-        );
-        return isMatch ? { ...i, qty: parsedQty } : i;
-      });
-
-      if (addnew) {
-        stockValues.forEach((i) => {
-          updatedStockValue.push({ qty: parsedQty, variant_val: i });
-        });
-      }
-
-      stockArray[edit].Stockvalue = updatedStockValue;
-      if (!addnew) setedit(-1);
-    }
-
-    //update Stock When In Product Edit Mode
-
-    setproduct((prev) => ({
-      ...prev,
-      varaintstock: stockArray.filter((stock) => stock.Stockvalue.length > 0),
-    }));
-
-    if (editindex) await handleSaveUpdateSubStock(stockArray);
-
-    setselectedvalues(undefined);
-    setstock("");
-    if (!addnew) setnew("stock");
-  };
-
-  const handleDeleteColor = (idx: number) => {
-    const update = { ...temp };
-    update.value?.splice(idx, 1);
-    settemp(update as any);
-  };
-
-  const handleSaveUpdateSubStock = async (varaintstock: Stocktype[]) => {
-    setloading(true);
-    const res = await ApiRequest(
-      "/api/products/crud",
-      undefined,
-      "PUT",
-      "JSON",
-      {
-        id: editindex,
-        varaintstock,
-        type: "editvariantstock",
-      }
-    );
-    setloading(false);
-    if (!res.success) {
-      errorToast("Error occured");
+    // Type selection: Return to variant list
+    if ((newadd as Variantcontainertype) === "type") {
+      setNew("variant");
       return;
     }
-    setedit(-1);
-    setselectedvalues(undefined);
-    setstock("");
-    setnew("stock");
+
+    // Section creation/edit screens
+    if (newadd === "section") {
+      resetSectionState();
+      setNew("none");
+      return;
+    }
+
+    if (newadd === "section-edit") {
+      resetSectionState();
+      setNew("section-list");
+      return;
+    }
+
+    // Default: Return to home screen
+    setNew("none");
+  }, [
+    newadd,
+    editindex,
+    editSectionId,
+    accessFromSection,
+    product.Variant,
+    product.Variantsection,
+    closeModal,
+    resetSectionState,
+    handleCreateAndUpdateVariantStock,
+  ]);
+
+  const handleVariantSectionSelect = () => {
+    //Generate Temp id for variant section
+    const isVariantSection =
+      product.Variantsection && product.Variantsection.length;
+
+    if (isVariantSection) {
+      setNew("section-list");
+      return;
+    }
+
+    //Setup for adding new variant section - use tempId approach
+    const generateSectionTempId = () => {
+      if (!product.Variantsection?.length) return 1;
+      const existingIds = product.Variantsection.map((s) => s.id ?? 0).filter(
+        (id) => id > 0,
+      );
+      return existingIds.length > 0 ? Math.max(...existingIds) + 1 : 1;
+    };
+
+    const variantSectionId = generateSectionTempId();
+
+    setsetionId(variantSectionId);
+    setNew("section");
   };
 
   return (
@@ -598,472 +745,236 @@ export const Variantcontainer = ({
           ? (openmodal[closename] as boolean)
           : openmodal.addproductvariant
       }
+      scroll="inside"
       onPageChange={() =>
         setopenmodal((prev) => ({ ...prev, [closename as string]: false }))
       }
     >
-      <div className="relative productvariant_creation rounded-t-md w-full h-full bg-white flex flex-col items-center justify-start pt-5 gap-y-5">
-        <h3 className="title text-2xl font-bold text-left w-full h-[50px] pl-2 border-b-1 border-black ">
+      <div className="relative productvariant_creation rounded-t-md w-full h-full bg-linear-to-b from-gray-50 to-white flex flex-col items-center justify-start pt-6 gap-y-6">
+        <h3 className="title text-2xl font-bold text-left w-full h-fit px-6 pb-4 border-b-2 border-gray-200 bg-linear-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
           {newadd === "variant" || newadd === "type" || newadd === "info"
             ? "Variant"
             : newadd === "stock" || newadd === "stockinfo"
-            ? "Stock"
-            : "Variant and Stock"}
+              ? "Stock"
+              : newadd === "section" || newadd === "section-edit"
+                ? editSectionId
+                  ? "Edit Variant Section"
+                  : "Create Variant Section"
+                : newadd === "section-list"
+                  ? "Variant Sections"
+                  : "Variant and Stock"}
         </h3>
 
-        {newadd === "variant" ? (
-          <>
-            <div className="w-full flex flex-col items-center gap-y-5">
-              {(product.variants?.length === 0 || !product.variants) && (
-                <h3 className="text-lg text-gray-500 w-[90%] rounded-lg outline outline-1 outline-gray-500 p-2">
-                  No Variant
-                </h3>
-              )}
-              {loading ? (
-                <NormalSkeleton count={3} width="90%" height="fit-content" />
-              ) : (
-                product.variants &&
-                product.variants.map((obj, idx) => (
-                  <motion.div
-                    initial={{ x: "-120%" }}
-                    animate={{ x: 0 }}
-                    transition={{
-                      duration: 0.2,
-                    }}
-                    key={idx}
-                    className="relative varaint_container w-[90%] max-small_phone:w-[100%] h-fit border border-black rounded-lg p-2"
-                  >
-                    <h3 className="variant_name font-medium text-lg w-fit h-fit">
-                      {obj.option_title === "" ? "No Name" : obj.option_title}
-                    </h3>
-                    <motion.div className="varaints flex flex-row flex-wrap gap-3 w-full items-center">
-                      {obj.option_type === "TEXT" &&
-                        obj.option_value.map((item, idx) => (
-                          <div
-                            key={idx}
-                            className="min-w-[40px] h-fit max-w-full break-words font-normal text-lg"
-                          >
-                            {item.toString()}
-                          </div>
-                        ))}
-                      {obj.option_type === "COLOR" &&
-                        obj.option_value.map((item, idx) => {
-                          const data = item as VariantColorValueType;
-                          return (
-                            <div
-                              key={idx}
-                              style={{ backgroundColor: data.val }}
-                              className="w-[30px] h-[30px] rounded-3xl"
-                            ></div>
-                          );
-                        })}
-                      <div className="action flex flex-row items-start w-full h-fit gap-x-5">
-                        <div
-                          onClick={() => handleVariantEdit(idx)}
-                          className="edit text-sm cursor-pointer text-blue-500 hover:text-white active:text-white transition duration-500"
-                        >
-                          Edit
-                        </div>
-                        <div
-                          onClick={() => handleVariantDelete(idx)}
-                          className="edit text-sm cursor-pointer text-red-500 hover:text-white active:text-white transition duration-500"
-                        >
-                          Delete
-                        </div>
-                      </div>
-                    </motion.div>
-                  </motion.div>
-                ))
-              )}
+        {/* Success Message Alert */}
+        {successMessage && (
+          <div className="w-full px-6 animate-in slide-in-from-top duration-300">
+            <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded-lg shadow-md flex items-center gap-3">
+              <div className="shrink-0">
+                <svg
+                  className="w-5 h-5 text-green-500"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-green-800">
+                  {successMessage}
+                </p>
+              </div>
+              <button
+                onClick={() => setSuccessMessage("")}
+                className="shrink-0 text-green-500 hover:text-green-700 transition-colors"
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </button>
             </div>
-          </>
-        ) : (
-          // stock__container
-          //
-          //
-          (newadd === "stock" || newadd === "stockinfo") && (
-            <ManageStockContainer
-              setreloaddata={setreloaddata}
-              isloading={loading}
-              editindex={editindex}
-              newadd={newadd}
-              setedit={setedit}
-              edit={edit}
-              stock={stock}
-              setstock={setstock}
-              addstock={addstock}
-              setnew={setnew}
-              setaddstock={setaddstock}
-              selectedstock={selectedvalues ?? {}}
-              setselectedstock={setselectedvalues}
-              editsubidx={editsubstockidx}
-              seteditsubidx={seteditsubstockidx}
-              setadded={setadded}
-              isAddNew={addNewSubStock}
-              setisAddNew={setaddNewSubStock}
-              handleUpdateStock={(isAddnew) =>
-                handleCreateAndUpdateVariantStock(isAddnew)
-              }
-            />
-          )
+          </div>
+        )}
+
+        {newadd === "variant" && (
+          <VariantView
+            variants={paginatedVariants}
+            allVariants={product.Variant}
+            variantSections={product.Variantsection}
+            loading={mainLoading || templateManager.loading}
+            onEdit={handleVariantEdit}
+            onDelete={handleVariantDelete}
+            onDeleteMultiple={handleDeleteMultiple}
+            accessFromSection={accessFromSection}
+            variantSectionId={sectionId}
+            onSelectVariant={handleSelectExistingVariant}
+            onVariantsSelected={() => setNew("section-edit")}
+            onAddNew={() => {
+              variantManager.setName("");
+              variantManager.setAdded(-1);
+              variantManager.setEdit(-1);
+              setVariantPrice(undefined);
+              setVariantOptional(false);
+              setNew("type");
+            }}
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            currentPage={currentPage}
+            totalPages={totalPages}
+            setCurrentPage={setCurrentPage}
+            totalVariants={filteredVariants.length}
+            productId={product.id}
+          />
+        )}
+
+        {(newadd === "stock" || newadd === "stockinfo") && (
+          <ManageStockContainer
+            setreloaddata={setreloaddata}
+            isloading={mainLoading}
+            editindex={editindex}
+            newadd={newadd}
+            setedit={stockManager.setEditStockIdx}
+            edit={stockManager.editStockIdx}
+            stock={stockManager.stock}
+            setstock={stockManager.setStock}
+            addstock={addstock}
+            setnew={setNew}
+            setaddstock={setaddstock}
+            selectedstock={stockManager.selectedValues ?? {}}
+            setselectedstock={stockManager.setSelectedValues}
+            editsubidx={stockManager.editSubStockIdx}
+            seteditsubidx={stockManager.setEditSubStockIdx}
+            setadded={variantManager.setAdded}
+            isAddNew={stockManager.addNewSubStock}
+            setisAddNew={stockManager.setAddNewSubStock}
+            handleUpdateStock={(isAddnew) =>
+              handleCreateAndUpdateVariantStock(isAddnew)
+            }
+          />
         )}
 
         {/* Chose type for Variant */}
         {newadd === "type" && (
-          <>
-            <Selection
-              default="Chose Type"
-              style={{ width: "90%" }}
-              onChange={(e) => {
-                settemp({
-                  name: "",
-                  value: [],
-                  type: e.target.value as any,
-                });
-                setnew("info");
-              }}
-              data={[
-                {
-                  label: "Color",
-                  value: "COLOR",
-                },
-                { label: "Text", value: "TEXT" },
-              ]}
-            />
-            <div className="templatecontainer w-[90%] h-fit flex flex-col gap-y-5">
-              <div className="w-full h-fit text-lg font-bold flex flex-row gap-x-3 items-center">
-                <p>Template</p>
-
-                <span
-                  onClick={() => setisEditTemp(!isEditTemp)}
-                  className="text-sm text-blue-400 cursor-pointer transition-colors hover:text-gray-300 active:text-gray-300"
-                >
-                  {isEditTemp ? "Done" : "Edit"}
-                </span>
-              </div>
-              <div className="w-full h-fit p-3 max-h-[200px] overflow-y-auto overflow-x-hidden">
-                {loading ? (
-                  <NormalSkeleton width="100%" height="50px" count={3} />
-                ) : (
-                  <TemplateContainer
-                    data={templates.map((item) => ({
-                      id: item.id,
-                      val: item.variant?.option_title ?? "",
-                      type: item.variant?.option_type ?? "",
-                    }))}
-                    edit={!isEditTemp}
-                    onItemsClick={handleSelectTemplate}
-                    onItemsDelete={handleDeleteTemplate}
-                    group={true}
-                  />
-                )}
-              </div>
-
-              <Button
-                color="primary"
-                variant="bordered"
-                style={{ height: "40px" }}
-                onClick={() =>
-                  setopen((prev) => ({ ...prev, addtemplate: true }))
-                }
-              >
-                Add Template
-              </Button>
-            </div>
-
-            {open.addtemplate && (
-              <AddTemplateModal
-                close={() =>
-                  setopen((prev) => ({ ...prev, addtemplate: false }))
-                }
-                refresh={() => setreloadtemp(true)}
-                data={edittemplate}
-              />
-            )}
-          </>
-        )}
-        {newadd === "info" && (
-          <div className="addcontainer w-[95%] h-full flex flex-col gap-y-5 rounded-lg p-2">
-            <Input
-              name="name"
-              type="text"
-              label="Variant Name"
-              value={name}
-              onChange={(e) => setname(e.target.value)}
-              size="lg"
-              className="w-full"
-            />
-            {temp && temp.type === "COLOR" ? (
-              <div className="color_container w-full h-fit flex flex-col gap-y-5">
-                <ColorSelectModal
-                  handleAddColor={handleAddColor}
-                  edit={edit}
-                  setedit={setedit}
-                  open={open.addcolor}
-                  setopen={(val) =>
-                    setopen((prev) => ({ ...prev, addcolor: val }))
-                  }
-                  color={colordata.color}
-                  name={colordata.name}
-                  setcolor={(val) => {
-                    if (typeof val === "string") {
-                      setcolordata((prev) => ({ ...prev, name: val }));
-                    } else {
-                      setcolordata((prev) => ({ ...prev, color: val }));
-                    }
-                  }}
-                />
-
-                <div className="listcolor flex flex-row flex-wrap gap-3 w-full">
-                  {temp?.value?.some((i) => i !== "") ? (
-                    temp?.value?.map((color, idx) => {
-                      const val = color as VariantColorValueType;
-                      return (
-                        <Badge
-                          content="-"
-                          color="danger"
-                          onClick={() => handleDeleteColor(idx)}
-                          key={idx}
-                        >
-                          <div
-                            className={`w-fit h-[50px] rounded-lg flex flex-row justify-center items-center gap-x-3 cursor-pointer p-2 transition-colors active:bg-gray-300 hover:bg-gray-300`}
-                            onClick={() => handleColorSelect(idx, "color")}
-                          >
-                            {/* Display created Color */}
-                            <div
-                              className="color w-[30px] h-[30px] rounded-full"
-                              style={{ backgroundColor: val.val }}
-                            ></div>
-                            {val.name && (
-                              <p className="w-fit h-fit text-lg font-light">
-                                {val.name}
-                              </p>
-                            )}
-                          </div>
-                        </Badge>
-                      );
-                    })
-                  ) : (
-                    <h3 className="warn_mess text-lg text-black font-normal">
-                      No Color Added Yet
-                    </h3>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <>
-                {open.addoption && (
-                  <Modal closestate="none" customZIndex={150}>
-                    <form
-                      onSubmit={(e) => handleUpdateVariantOption(e)}
-                      className="addoption w-[300px] h-1/3
-                       max-smallest_phone:w-[275px]
-                      bg-white p-3 flex flex-col gap-y-5 
-                      items-center justify-start rounded-md"
-                    >
-                      <input
-                        name="option"
-                        placeholder="Option (Required)"
-                        type="text"
-                        value={option}
-                        onChange={(e) => setoption(e.target.value)}
-                        className="text-sm font-medium pl-1 h-[50px] w-full border-2 border-gray-300 rounded-md"
-                      />
-                      <div className="action-btn flex flex-row w-full gap-x-3">
-                        <PrimaryButton
-                          text={edit === -1 ? "Create" : "Update"}
-                          color="#35C191"
-                          type="submit"
-                          disable={option === ""}
-                          width="100%"
-                          textsize="12px"
-                          radius="10px"
-                          height="35px"
-                        />
-                        <PrimaryButton
-                          text="Back"
-                          color="black"
-                          type="button"
-                          onClick={() => {
-                            setopen((prev) => ({
-                              ...prev,
-                              addoption: false,
-                            }));
-                          }}
-                          width="100%"
-                          textsize="12px"
-                          radius="10px"
-                          height="35px"
-                        />
-                      </div>
-                    </form>
-                  </Modal>
-                )}
-                <div className="text-container flex flex-col items-center justify-start gap-y-3">
-                  <h3
-                    onClick={() => {
-                      setedit(-1);
-                      setoption("");
-                      setopen((prev) => ({ ...prev, addoption: true }));
-                    }}
-                    className="text-sm w-ft h-fit cursor-pointer font-medium text-blue-500 transition duration-300 hover:text-gray-300 active:text-gray-300"
-                  >
-                    Add Option
-                  </h3>
-                  <div className="opitonlist flex flex-row gap-3 flex-wrap w-full items-start justify-start h-fit">
-                    {temp?.value.length === 0 && (
-                      <h3 className="warn_mess text-lg text-black font-normal">
-                        No Option Yet
-                      </h3>
-                    )}
-                    {temp?.value.map((i, idx) => (
-                      <Badge
-                        key={idx}
-                        content="-"
-                        color="danger"
-                        onClick={() => handleDeleteVaraint(idx)}
-                      >
-                        <h3
-                          onClick={() => handleColorSelect(idx, "text")}
-                          className="option text-[15px] cursor-pointer p-2 rounded-lg text-black outline outline-2 outline-black font-normal transition duration-200 w-fit h-fit"
-                        >
-                          {i.toString()}
-                        </h3>
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              </>
-            )}
-
-            <div className="flex flex-row gap-x-5 w-full h-[35px]">
-              <PrimaryButton
-                text={`${added === -1 ? "Create" : "Update"}`}
-                type="button"
-                disable={name === "" || temp?.value.length === 0}
-                textsize="12px"
-                onClick={() => handleCreate()}
-                radius="10px"
-                width="100%"
-                height="100%"
-              />
-              <PrimaryButton
-                text="Back"
-                color="lightcoral"
-                type="button"
-                textsize="12px"
-                onClick={() => {
-                  setedit(-1);
-                  setname("");
-                  settemp(undefined);
-                  setnew(added === -1 ? "type" : "variant");
-                }}
-                radius="10px"
-                width="100%"
-                height="100%"
-              />
-            </div>
-          </div>
-        )}
-        {newadd === "variant" && (
-          <PrimaryButton
-            text="Add new"
-            type="button"
-            onClick={() => {
-              setname("");
-              setadded(-1);
-              setedit(-1);
-              setnew("type");
-            }}
-            radius="10px"
-            width="90%"
-            textsize="12px"
-            height="40px"
+          <VariantTypeSelection
+            variantManager={variantManager}
+            templateManager={templateManager}
+            open={open}
+            setOpen={setOpen}
+            setNew={setNew}
+            onSelectTemplate={handleSelectTemplate}
+            setSuccessMessage={setSuccessMessage}
           />
         )}
+        {newadd === "info" && (
+          <VariantInfoEditor
+            variantManager={variantManager}
+            variantSectionId={sectionId}
+            setVariantSectionId={setsetionId}
+            open={open}
+            setOpen={setOpen}
+            setNew={setNew}
+            onColorSelect={handleColorSelect}
+            onUpdateOption={handleUpdateVariantOption}
+            onCreate={({ setloading }) =>
+              handleCreate({ setLoading: setloading })
+            }
+            price={variantPrice}
+            setPrice={setVariantPrice}
+            optional={variantOptional}
+            setOptional={setVariantOptional}
+            variantSections={product.Variantsection}
+          />
+        )}
+        {/**Section Mananger */}
+        {(newadd === "section" ||
+          newadd === "section-list" ||
+          newadd === "section-edit") && (
+          <VariantSectionEditor
+            accessFromSection={accessFromSection}
+            setaccessFromSection={setaccessFromSection}
+            editSectionId={editSectionId}
+            sectionName={sectionName}
+            setSectionName={setSectionName}
+            newadd={newadd}
+            seteditSectonId={setEditSectionId}
+            setNew={setNew}
+            setVariantSectionId={setsetionId}
+            setSuccessMessage={setSuccessMessage}
+          />
+        )}
+
         {/* Choose Type of between Variant and Stock */}
         {newadd === "none" && (
           <>
-            <div className="w-[90%] h-full grid grid-cols-1 gap-5 place-items-center">
-              <div
-                onClick={() => setnew("variant")}
-                className="card w-[350px] h-[250px] 
-                max-small_phone:w-[200px] max-small_phone:h-[150px]
-              bg-blue-300 rounded-lg grid place-content-center place-items-center transition duration-200 cursor-pointer hover:bg-transparent hover:outline hover:outline-1 hover:outline-black"
-              >
-                <Image
-                  src={Variantimg}
-                  alt="Icon"
-                  className="w-[100px] h-[100px] object-contain pb-10"
-                />
-                <div className=" w-full h-fit text-black flex flex-row items-center gap-x-5">
-                  <h3 className="text-2xl font-bold">
-                    {`${
-                      !product.variants || product.variants.length === 0
-                        ? "Create"
-                        : ""
-                    } Variant`}
-                  </h3>
-                  <div
-                    style={
-                      !product.variants || product.variants.length === 0
-                        ? { display: "none" }
-                        : {}
-                    }
-                    className="font-bold w-[40px] h-[40px] text-[15px] p-1 bg-black text-white rounded-full grid place-content-center"
-                  >
-                    {product.variants?.length}
-                  </div>
-                </div>
-              </div>
-              <div
+            <div className="w-[90%] h-full grid grid-cols-1 gap-6 place-items-center">
+              <SelectionCard
+                title={`${
+                  !product.Variant || product.Variant.length === 0
+                    ? "Create"
+                    : "Manage"
+                } Variant`}
+                image={Variantimg}
+                count={product.Variant?.length}
+                onClick={() => setNew("variant")}
+                gradientFrom="from-blue-400"
+                gradientVia="via-blue-500"
+                gradientTo="to-purple-600"
+                badgeColor="text-blue-600"
+              />
+              <SelectionCard
+                title="Variant Sections"
+                image={Variantimg}
+                count={product.Variantsection?.length}
+                onClick={() => handleVariantSectionSelect()}
+                gradientFrom="from-purple-400"
+                gradientVia="via-purple-500"
+                gradientTo="to-pink-600"
+                badgeColor="text-purple-600"
+              />
+              <SelectionCard
+                title={`${
+                  !product.Stock || product.Stock.length === 0
+                    ? "Create"
+                    : "Manage"
+                } Stock`}
+                image={Variantstockimg}
+                count={product.Stock?.length}
+                disabled={!product.Variant || product.Variant.length === 0}
                 onClick={() => {
-                  if (!product.variants || product.variants.length === 0) {
+                  if (!product.Variant || product.Variant.length === 0) {
                     errorToast("Please Create Variant");
                     return;
                   }
-                  setnew("stock");
+                  setNew("stock");
                 }}
-                className="card w-[350px] h-[250px] max-small_phone:w-[200px] max-small_phone:h-[150px] bg-blue-300 rounded-lg grid place-content-center place-items-center transition duration-200 cursor-pointer hover:bg-transparent hover:outline hover:outline-1 hover:outline-black"
-              >
-                <Image
-                  src={Variantstockimg}
-                  alt="Icon"
-                  className="w-[70px] h-[70px[ object-contain pb-10"
-                />
-
-                <div className=" w-full h-fit text-black flex flex-row items-center gap-x-5">
-                  <h3 className="text-2xl font-bold">
-                    {`${
-                      !product.varaintstock || product.varaintstock.length === 0
-                        ? "Create"
-                        : ""
-                    } Stock`}
-                  </h3>
-                  <div
-                    style={
-                      !product.varaintstock || product.varaintstock.length === 0
-                        ? { display: "none" }
-                        : {}
-                    }
-                    className="font-bold w-[40px] h-[40px] text-[15px] p-1 bg-black text-white rounded-full grid place-content-center"
-                  >
-                    {product.varaintstock?.length}
-                  </div>
-                </div>
-              </div>
+                gradientFrom="from-green-400"
+                gradientVia="via-emerald-500"
+                gradientTo="to-teal-600"
+                badgeColor="text-green-600"
+              />
             </div>
           </>
         )}
       </div>
 
-      <div className="flex flex-row justify-end gap-x-5 w-full h-fit bg-white rounded-b-lg p-2 border-t-2 border-gray-500">
-        {editsubstockidx === -1 && (
+      <div className="flex flex-row justify-end gap-x-5 w-full h-fit bg-linear-to-r from-gray-50 to-white rounded-b-lg p-4 border-t-2 border-gray-200 shadow-inner">
+        {stockManager.editSubStockIdx === -1 && (
           <>
             <PrimaryButton
               text={newadd !== "none" ? "Back" : "Close"}
               onClick={() => handleBack()}
-              status={loading ? "loading" : "authenticated"}
+              status={mainLoading ? "loading" : "authenticated"}
               type="button"
               width="30%"
               height="40px"
