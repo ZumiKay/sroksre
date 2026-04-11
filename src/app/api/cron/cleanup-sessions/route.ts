@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cleanupExpiredSessions } from "@/src/lib/sessionCleanup";
+import { timingSafeEquals } from "./helper";
 
 /**
  * Cron job endpoint to clean up expired sessions
@@ -18,13 +19,17 @@ import { cleanupExpiredSessions } from "@/src/lib/sessionCleanup";
  * For security, verify the request comes from your cron service
  */
 
-export async function GET(req: NextRequest) {
+export async function PUT(req: NextRequest) {
   try {
     // Verify the request is authorized (check cron secret or similar)
     const authHeader = req.headers.get("authorization");
     const cronSecret = process.env.CRON_SECRET;
+    const token = authHeader?.startsWith("Bearer ")
+      ? authHeader.slice(7)
+      : null;
 
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+    //Authentication
+    if (!token || !cronSecret || !timingSafeEquals(token, cronSecret)) {
       return NextResponse.json(
         { success: false, message: "Unauthorized" },
         { status: 401 },
@@ -33,10 +38,6 @@ export async function GET(req: NextRequest) {
 
     // Clean up expired sessions
     const count = await cleanupExpiredSessions();
-
-    console.log(
-      `[CRON] Cleaned up ${count} expired sessions at ${new Date().toISOString()}`,
-    );
 
     return NextResponse.json({
       success: true,
