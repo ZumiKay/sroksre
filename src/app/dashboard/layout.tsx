@@ -16,7 +16,7 @@ export async function generateMetadata(): Promise<Metadata> {
     },
   });
 
-  if (!user || !user.userId || !user.sessionid) {
+  if (!user || !user.user || !user.userId || !user.sessionid) {
     return { title: "", description: "" };
   }
 

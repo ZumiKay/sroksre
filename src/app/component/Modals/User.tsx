@@ -203,7 +203,8 @@ export const Createusermodal = ({
               onChange={(e) =>
                 setdata((prev) => ({ ...prev, role: e.target.value }) as never)
               }
-              className="w-full h-12.5 px-4 py-2 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-hidden transition-all bg-white text-gray-800 font-medium"
+              disabled={globalindex.useredit !== -1 && data.role === "ADMIN"}
+              className="w-full h-12.5 px-4 py-2 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-hidden transition-all bg-white text-gray-800 font-medium disabled:opacity-60 disabled:cursor-not-allowed disabled:bg-gray-100"
               required
             >
               <option value="USER">User - Regular Customer</option>
@@ -211,11 +212,13 @@ export const Createusermodal = ({
               <option value="ADMIN">Admin - Full Access</option>
             </select>
             <p className="text-xs text-gray-500 mt-1.5">
-              {data.role === "ADMIN" && "⚠️ Admin has full system access"}
-              {data.role === "EDITOR" &&
-                "✏️ Editor can manage content and products"}
-              {(data.role === "USER" || !data.role) &&
-                "👤 User can browse and purchase"}
+              {data.role === "ADMIN" && globalindex.useredit !== -1
+                ? "🔒 Admin role cannot be changed"
+                : data.role === "ADMIN"
+                  ? "⚠️ Admin has full system access"
+                  : data.role === "EDITOR"
+                    ? "✏️ Editor can manage content and products"
+                    : "👤 User can browse and purchase"}
             </p>
           </div>
 

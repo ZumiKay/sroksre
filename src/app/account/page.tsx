@@ -4,7 +4,11 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faDiscord, faGoogle } from "@fortawesome/free-brands-svg-icons";
 import PrimaryButton from "../component/Button";
 import { signIn } from "next-auth/react";
-import { errorToast, successToast } from "../component/Loading";
+import {
+  ContainerLoading,
+  errorToast,
+  successToast,
+} from "../component/Loading";
 import { useRouter } from "next/navigation";
 import { useGlobalContext, Userinitialize } from "@/src/context/GlobalContext";
 import { ApiRequest } from "@/src/context/CustomHook";

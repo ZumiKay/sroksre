@@ -1,11 +1,12 @@
 import * as jose from "jose";
 import { z } from "zod";
-import { compare, genSaltSync, hashSync } from "bcryptjs";
 import { checkpassword, getOneWeekFromToday } from "./utilities";
 import Prisma from "./prisma";
 import { Role } from "@/prisma/generated/prisma/enums";
 import { userdata, Usersessiontype } from "../types/user.type";
 import { createHash, randomBytes } from "crypto";
+import bcryptjs from "bcryptjs";
+const { compare, genSaltSync, hashSync } = bcryptjs;
 
 export interface RegisterUser {
   id?: number;

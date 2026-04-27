@@ -2,7 +2,7 @@ import { toast, ToastOptions } from "react-toastify";
 import "../globals.css";
 import { CSSProperties } from "react";
 import Modal from "./Modals";
-import { CircularProgress, Progress } from "@heroui/react";
+import { CircularProgress } from "@heroui/react";
 
 export default function LoadingIcon({ style }: { style?: CSSProperties }) {
   return (
@@ -89,20 +89,19 @@ export const infoToast = (message: string, onClose?: () => void) => {
 
 export const ContainerLoading = () => {
   return (
-    <Modal
-      closestate="none"
-      customheight="300px"
-      customwidth="280px"
-      customZIndex={299}
-    >
-      <div className="loading_contianer w-full h-full bg-white rounded-lg p-5 grid place-content-center relative">
-        <div className="loadingio-spinner-double-ring-op62hjn5ktc relative left-[16%] top-[10%]">
-          <div className="ldio-jhvhak8eufc">
-            <div></div>
-            <div></div>
-            <div></div>
-          </div>
-        </div>
+    <Modal closestate="none" customZIndex={299}>
+      <div className="flex flex-col items-center justify-center gap-5 bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl px-10 py-10 w-fit min-w-[180px] sm:min-w-[220px]">
+        <CircularProgress
+          size="lg"
+          color="primary"
+          aria-label="Loading..."
+          classNames={{
+            svg: "w-14 h-14 sm:w-16 sm:h-16",
+          }}
+        />
+        <p className="text-sm sm:text-base font-semibold text-gray-400 tracking-widest uppercase animate-pulse select-none">
+          Loading...
+        </p>
       </div>
     </Modal>
   );

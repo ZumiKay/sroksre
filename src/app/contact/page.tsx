@@ -9,6 +9,7 @@ import Image from "next/image";
 import { getUser } from "@/src/lib/session";
 import Prisma from "@/src/lib/prisma";
 import { Metadata } from "next";
+export const dynamic = "force-dynamic";
 export function generateMetadata(): Metadata {
   return {
     title: "Contact | SrokSre",
