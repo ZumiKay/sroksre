@@ -200,7 +200,7 @@ export type ChildcategoriesGroupByOutputType = {
   _max: ChildcategoriesMaxAggregateOutputType | null
 }
 
-type GetChildcategoriesGroupByPayload<T extends ChildcategoriesGroupByArgs> = Prisma.PrismaPromise<
+export type GetChildcategoriesGroupByPayload<T extends ChildcategoriesGroupByArgs> = Prisma.PrismaPromise<
   Array<
     Prisma.PickEnumerable<ChildcategoriesGroupByOutputType, T['by']> &
       {
@@ -1286,6 +1286,11 @@ export type ChildcategoriesFindManyArgs<ExtArgs extends runtime.Types.Extensions
    * Skip the first `n` Childcategories.
    */
   skip?: number
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+   * 
+   * Filter by unique combinations of Childcategories.
+   */
   distinct?: Prisma.ChildcategoriesScalarFieldEnum | Prisma.ChildcategoriesScalarFieldEnum[]
 }
 

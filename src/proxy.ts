@@ -6,7 +6,7 @@ import { VerifyApiRoute, methodtype } from "./lib/middlewareaction";
 import { getToken } from "next-auth/jwt";
 import { Role } from "@/prisma/generated/prisma/enums";
 
-export default async function middleware(req: NextRequest) {
+export default async function proxy(req: NextRequest) {
   const requestURL = (path: string) => req.nextUrl.pathname.endsWith(path);
 
   const url = req.nextUrl.pathname;

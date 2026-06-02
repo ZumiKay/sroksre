@@ -175,7 +175,7 @@ export type VarianttemplateGroupByOutputType = {
   _max: VarianttemplateMaxAggregateOutputType | null
 }
 
-type GetVarianttemplateGroupByPayload<T extends VarianttemplateGroupByArgs> = Prisma.PrismaPromise<
+export type GetVarianttemplateGroupByPayload<T extends VarianttemplateGroupByArgs> = Prisma.PrismaPromise<
   Array<
     Prisma.PickEnumerable<VarianttemplateGroupByOutputType, T['by']> &
       {
@@ -1065,6 +1065,11 @@ export type VarianttemplateFindManyArgs<ExtArgs extends runtime.Types.Extensions
    * Skip the first `n` Varianttemplates.
    */
   skip?: number
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+   * 
+   * Filter by unique combinations of Varianttemplates.
+   */
   distinct?: Prisma.VarianttemplateScalarFieldEnum | Prisma.VarianttemplateScalarFieldEnum[]
 }
 

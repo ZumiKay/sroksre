@@ -26,7 +26,6 @@ import {
   generateRandomNumber,
   OrderReciptEmail,
 } from "@/src/lib/utilities";
-import nodemailer from "nodemailer";
 import { shippingtype } from "../component/Modals/User";
 import { formatDate } from "../component/EmailTemplate";
 import {
@@ -46,6 +45,7 @@ import {
 } from "@/src/app/severactions/notification_action";
 import { generateInvoicePdf } from "../api/order/helper";
 import { CHECKOUT_SESSION_LIMIT_MS } from "./constants";
+import nodemailer from "nodemailer";
 
 interface Returntype<k = string> {
   success: boolean;

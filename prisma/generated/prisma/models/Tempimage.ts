@@ -182,7 +182,7 @@ export type TempimageGroupByOutputType = {
   _max: TempimageMaxAggregateOutputType | null
 }
 
-type GetTempimageGroupByPayload<T extends TempimageGroupByArgs> = Prisma.PrismaPromise<
+export type GetTempimageGroupByPayload<T extends TempimageGroupByArgs> = Prisma.PrismaPromise<
   Array<
     Prisma.PickEnumerable<TempimageGroupByOutputType, T['by']> &
       {
@@ -1097,6 +1097,11 @@ export type TempimageFindManyArgs<ExtArgs extends runtime.Types.Extensions.Inter
    * Skip the first `n` Tempimages.
    */
   skip?: number
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+   * 
+   * Filter by unique combinations of Tempimages.
+   */
   distinct?: Prisma.TempimageScalarFieldEnum | Prisma.TempimageScalarFieldEnum[]
 }
 

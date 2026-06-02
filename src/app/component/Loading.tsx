@@ -1,3 +1,5 @@
+"use client";
+
 import { toast, ToastOptions } from "react-toastify";
 import "../globals.css";
 import { CSSProperties } from "react";

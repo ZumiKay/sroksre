@@ -207,7 +207,7 @@ export type QuestionsGroupByOutputType = {
   _max: QuestionsMaxAggregateOutputType | null
 }
 
-type GetQuestionsGroupByPayload<T extends QuestionsGroupByArgs> = Prisma.PrismaPromise<
+export type GetQuestionsGroupByPayload<T extends QuestionsGroupByArgs> = Prisma.PrismaPromise<
   Array<
     Prisma.PickEnumerable<QuestionsGroupByOutputType, T['by']> &
       {
@@ -1323,6 +1323,11 @@ export type QuestionsFindManyArgs<ExtArgs extends runtime.Types.Extensions.Inter
    * Skip the first `n` Questions.
    */
   skip?: number
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+   * 
+   * Filter by unique combinations of Questions.
+   */
   distinct?: Prisma.QuestionsScalarFieldEnum | Prisma.QuestionsScalarFieldEnum[]
 }
 

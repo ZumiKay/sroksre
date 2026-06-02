@@ -245,7 +245,7 @@ export type BannerGroupByOutputType = {
   _max: BannerMaxAggregateOutputType | null
 }
 
-type GetBannerGroupByPayload<T extends BannerGroupByArgs> = Prisma.PrismaPromise<
+export type GetBannerGroupByPayload<T extends BannerGroupByArgs> = Prisma.PrismaPromise<
   Array<
     Prisma.PickEnumerable<BannerGroupByOutputType, T['by']> &
       {
@@ -1477,6 +1477,11 @@ export type BannerFindManyArgs<ExtArgs extends runtime.Types.Extensions.Internal
    * Skip the first `n` Banners.
    */
   skip?: number
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+   * 
+   * Filter by unique combinations of Banners.
+   */
   distinct?: Prisma.BannerScalarFieldEnum | Prisma.BannerScalarFieldEnum[]
 }
 

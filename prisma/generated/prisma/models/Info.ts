@@ -206,7 +206,7 @@ export type InfoGroupByOutputType = {
   _max: InfoMaxAggregateOutputType | null
 }
 
-type GetInfoGroupByPayload<T extends InfoGroupByArgs> = Prisma.PrismaPromise<
+export type GetInfoGroupByPayload<T extends InfoGroupByArgs> = Prisma.PrismaPromise<
   Array<
     Prisma.PickEnumerable<InfoGroupByOutputType, T['by']> &
       {
@@ -1231,6 +1231,11 @@ export type InfoFindManyArgs<ExtArgs extends runtime.Types.Extensions.InternalAr
    * Skip the first `n` Infos.
    */
   skip?: number
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+   * 
+   * Filter by unique combinations of Infos.
+   */
   distinct?: Prisma.InfoScalarFieldEnum | Prisma.InfoScalarFieldEnum[]
 }
 

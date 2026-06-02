@@ -217,7 +217,7 @@ export type LoginAttemptGroupByOutputType = {
   _max: LoginAttemptMaxAggregateOutputType | null
 }
 
-type GetLoginAttemptGroupByPayload<T extends LoginAttemptGroupByArgs> = Prisma.PrismaPromise<
+export type GetLoginAttemptGroupByPayload<T extends LoginAttemptGroupByArgs> = Prisma.PrismaPromise<
   Array<
     Prisma.PickEnumerable<LoginAttemptGroupByOutputType, T['by']> &
       {
@@ -1085,6 +1085,11 @@ export type LoginAttemptFindManyArgs<ExtArgs extends runtime.Types.Extensions.In
    * Skip the first `n` LoginAttempts.
    */
   skip?: number
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+   * 
+   * Filter by unique combinations of LoginAttempts.
+   */
   distinct?: Prisma.LoginAttemptScalarFieldEnum | Prisma.LoginAttemptScalarFieldEnum[]
 }
 

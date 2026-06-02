@@ -204,7 +204,7 @@ export type ContaineritemsGroupByOutputType = {
   _max: ContaineritemsMaxAggregateOutputType | null
 }
 
-type GetContaineritemsGroupByPayload<T extends ContaineritemsGroupByArgs> = Prisma.PrismaPromise<
+export type GetContaineritemsGroupByPayload<T extends ContaineritemsGroupByArgs> = Prisma.PrismaPromise<
   Array<
     Prisma.PickEnumerable<ContaineritemsGroupByOutputType, T['by']> &
       {
@@ -1415,6 +1415,11 @@ export type ContaineritemsFindManyArgs<ExtArgs extends runtime.Types.Extensions.
    * Skip the first `n` Containeritems.
    */
   skip?: number
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+   * 
+   * Filter by unique combinations of Containeritems.
+   */
   distinct?: Prisma.ContaineritemsScalarFieldEnum | Prisma.ContaineritemsScalarFieldEnum[]
 }
 

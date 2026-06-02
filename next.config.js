@@ -8,6 +8,10 @@ const __dirname = path.dirname(__filename);
 
 const nextConfig = {
   outputFileTracingRoot: __dirname,
+  // Enable browser source maps in production builds (replaces webpack devtool config)
+  productionBrowserSourceMaps: true,
+  // Turbopack is the default bundler in Next.js 16; no extra config needed
+  turbopack: {},
   images: {
     qualities: [50, 75, 80, 85, 90, 100],
     remotePatterns: [
@@ -39,16 +43,14 @@ const nextConfig = {
     KEY_FRONTEND:
       "4dc0180d676e9ba23390ad6cdd3cdb62271273d23af1f4d2f411b97a1cf20af7",
   },
+  // webpack config is only used when running `next dev --webpack` or `next build --webpack`
+  // Turbopack is now the default bundler in Next.js 16
   webpack: (config, options) => {
     if (options.dev) {
       // Avoid flaky filesystem cache writes in development (ENOENT on pack rename).
       config.cache = {
         type: "memory",
       };
-    }
-
-    if (!options.dev) {
-      config.devtool = options.isServer ? false : "source-map";
     }
 
     // Handle node: protocol imports (fixes UnhandledSchemeError for node:crypto)

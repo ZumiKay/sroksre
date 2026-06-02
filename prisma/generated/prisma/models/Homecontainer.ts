@@ -224,7 +224,7 @@ export type HomecontainerGroupByOutputType = {
   _max: HomecontainerMaxAggregateOutputType | null
 }
 
-type GetHomecontainerGroupByPayload<T extends HomecontainerGroupByArgs> = Prisma.PrismaPromise<
+export type GetHomecontainerGroupByPayload<T extends HomecontainerGroupByArgs> = Prisma.PrismaPromise<
   Array<
     Prisma.PickEnumerable<HomecontainerGroupByOutputType, T['by']> &
       {
@@ -1263,6 +1263,11 @@ export type HomecontainerFindManyArgs<ExtArgs extends runtime.Types.Extensions.I
    * Skip the first `n` Homecontainers.
    */
   skip?: number
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+   * 
+   * Filter by unique combinations of Homecontainers.
+   */
   distinct?: Prisma.HomecontainerScalarFieldEnum | Prisma.HomecontainerScalarFieldEnum[]
 }
 

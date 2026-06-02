@@ -203,7 +203,7 @@ export type ParagraphGroupByOutputType = {
   _max: ParagraphMaxAggregateOutputType | null
 }
 
-type GetParagraphGroupByPayload<T extends ParagraphGroupByArgs> = Prisma.PrismaPromise<
+export type GetParagraphGroupByPayload<T extends ParagraphGroupByArgs> = Prisma.PrismaPromise<
   Array<
     Prisma.PickEnumerable<ParagraphGroupByOutputType, T['by']> &
       {
@@ -1202,6 +1202,11 @@ export type ParagraphFindManyArgs<ExtArgs extends runtime.Types.Extensions.Inter
    * Skip the first `n` Paragraphs.
    */
   skip?: number
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+   * 
+   * Filter by unique combinations of Paragraphs.
+   */
   distinct?: Prisma.ParagraphScalarFieldEnum | Prisma.ParagraphScalarFieldEnum[]
 }
 
