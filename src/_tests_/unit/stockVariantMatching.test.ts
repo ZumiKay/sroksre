@@ -1,4 +1,4 @@
-import { calculateAvailableQuantity } from "@/src/app/api/products/stock/available/route";
+import { calculateAvailableQuantity } from "@/src/app/api/products/stock/available/helper";
 import {
   getmaxqtybaseStockType,
   HasExactMatch,

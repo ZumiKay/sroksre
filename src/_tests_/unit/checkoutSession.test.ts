@@ -37,6 +37,8 @@ import {
   isValidOrderId,
   isCheckoutSessionExpired,
   buildStockAdjustments,
+} from "@/src/app/checkout/stock";
+import {
   renewCheckoutSession,
   terminateCheckoutSession,
   releaseStock,
