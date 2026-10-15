@@ -927,3 +927,4 @@ export const NotificationMenu = forwardRef(
     );
   },
 );
+NotificationMenu.displayName = "NotificationMenu";

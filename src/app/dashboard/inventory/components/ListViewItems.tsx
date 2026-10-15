@@ -129,7 +129,7 @@ export const ProductListItem: React.FC<ProductListItemProps> = ({
     }
     if (promotion.selectproduct) {
       const promo = [...promotion.Products];
-      let temp: Array<number> = [];
+      const temp: Array<number> = [];
       const idx = promo.findIndex((i) => i.id === product.id);
 
       if (!product.discount) {

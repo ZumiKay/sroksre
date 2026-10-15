@@ -104,6 +104,7 @@ export default async function RootLayout({
   return (
     <html lang="en">
       <head>
+        {/* eslint-disable-next-line @next/next/no-sync-scripts -- Font Awesome kit must load before first paint */}
         <script
           src="https://kit.fontawesome.com/3a73dd3b99.js"
           crossOrigin="anonymous"

@@ -48,7 +48,7 @@ export class HomeErrorBoundary extends Component<Props, State> {
               Something went wrong
             </h2>
             <p className="text-gray-500 text-center max-w-md">
-              We're having trouble loading this section. Please try refreshing
+              We&apos;re having trouble loading this section. Please try refreshing
               the page.
             </p>
             <button

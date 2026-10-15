@@ -241,7 +241,7 @@ export const SelectAndSearchProduct = ({
 
   const handleDeleteSelected = useCallback(
     (idx: number) => {
-      let selected = [...(selectedvalue ?? [])];
+      const selected = [...(selectedvalue ?? [])];
       selected.splice(idx, 1);
       setselectedvalue(selected);
       onSelect &&

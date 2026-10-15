@@ -169,7 +169,7 @@ export default function SearchContainer({ isMobile }: { isMobile: boolean }) {
               <>
                 <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2 px-1">
                   {products.length} result{products.length !== 1 ? "s" : ""} for&nbsp;
-                  <span className="text-gray-600">"{search}"</span>
+                  <span className="text-gray-600">&quot;{search}&quot;</span>
                 </p>
                 <div className="flex flex-col gap-0.5">
                   {products.map((product) => (

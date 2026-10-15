@@ -7,11 +7,12 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint .",
     "startserver": "nodemon server.js --max-old-space-size=4096",
     "test": "jest",
     "test:watch": "jest --watch",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "typecheck": "tsc --noEmit"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -106,6 +107,8 @@
     "@types/react-dom": "^19",
     "@types/react-google-recaptcha": "^2.1.9",
     "@types/tinycolor2": "^1.4.6",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^16.4.1",
     "i": "^0.3.7",
     "jest": "^30.4.1",
     "jest-environment-jsdom": "^30.4.1",

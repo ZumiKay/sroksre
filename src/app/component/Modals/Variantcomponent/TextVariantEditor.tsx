@@ -185,6 +185,7 @@ export const TextVariantEditor: React.FC<TextVariantEditorProps> = React.memo(
     );
   },
 );
+TextVariantEditor.displayName = "TextVariantEditor";
 
 const LOW_STOCK_THRESHOLD = 5;
 
@@ -242,3 +243,4 @@ const OptionItem = React.memo<{
     </motion.div>
   );
 });
+OptionItem.displayName = "OptionItem";

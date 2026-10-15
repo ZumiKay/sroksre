@@ -99,7 +99,7 @@ const Card = memo(function Card(props: cardprops) {
   const handleSelectDiscount = useCallback(
     async (id: number, type: "create" | "edit") => {
       const promo = [...promotion.Products];
-      let temp: Array<number> = [];
+      const temp: Array<number> = [];
 
       const index = promo.findIndex((i) => i.id === id);
 

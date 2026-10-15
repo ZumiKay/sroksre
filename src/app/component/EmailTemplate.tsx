@@ -172,7 +172,7 @@ export function OrderReceiptTemplate({ order, isAdmin }: OerderEmailProps) {
                 >
                   <strong>Hi {order.user?.firstname ?? ""},</strong>
                   <br />
-                  We've received your order and will process it shortly.
+                  We&apos;ve received your order and will process it shortly.
                 </p>
               )}
               <h2

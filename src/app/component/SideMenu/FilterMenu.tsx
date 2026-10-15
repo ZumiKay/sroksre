@@ -312,7 +312,7 @@ export const FilterMenu = ({
   }, [category?.parentcates]);
 
   const Footer = useMemo(() => {
-    return () => (
+    const FilterFooter = () => (
       <div className="flex gap-3 w-full p-4 bg-linear-to-t from-gray-50 to-white border-t border-gray-100">
         {type !== "listproduct" ? (
           <PrimaryButton
@@ -351,6 +351,8 @@ export const FilterMenu = ({
         />
       </div>
     );
+    FilterFooter.displayName = "FilterFooter";
+    return FilterFooter;
   }, [
     type,
     totalproduct,

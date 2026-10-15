@@ -350,7 +350,7 @@ export const fetchCategoryMetadata = async (
   let title = "SrokSre - Shop Quality Products Online";
   let description =
     "Discover amazing products at SrokSre. Browse our wide selection of quality items with great deals and fast shipping.";
-  let keywords: string[] = ["SrokSre", "online shopping", "quality products"];
+  const keywords: string[] = ["SrokSre", "online shopping", "quality products"];
   let parentCateName = "";
   let childCateName = "";
   let imageUrl = "";

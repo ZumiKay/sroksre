@@ -350,7 +350,7 @@ export async function createOrder(data: {
 
   let orderId = "";
   try {
-    let checkOrder = preCheckOrder;
+    const checkOrder = preCheckOrder;
 
     if (!checkOrder) {
       let generateID = "SSC" + generateRandomNumber();
@@ -1000,7 +1000,7 @@ export async function createPaypalOrder(orderId: string): Promise<Returntype> {
       Authorization: `Bearer ${accessToken}`,
     };
 
-    let orderItems: Paypalitemtype[] = order.Orderproduct.map((i) => {
+    const orderItems: Paypalitemtype[] = order.Orderproduct.map((i) => {
       const baseDiscountedPrice = i.product.discount
         ? (calculateDiscountProductPrice({
             price: i.product.price,
@@ -1089,7 +1089,7 @@ export async function createPaypalOrder(orderId: string): Promise<Returntype> {
       parseFloat(computedItemTotal) + parseFloat(shippingValue)
     ).toFixed(2);
 
-    let orderAmount: Paypalamounttype = {
+    const orderAmount: Paypalamounttype = {
       currency_code,
       value: computedTotal,
       breakdown: {
@@ -1108,7 +1108,7 @@ export async function createPaypalOrder(orderId: string): Promise<Returntype> {
       .filter(Boolean)
       .join(", ");
 
-    let orderShipping: PaypalshippingType = {
+    const orderShipping: PaypalshippingType = {
       type: isPickup ? undefined : "SHIPPING",
       ...(!isPickup &&
         shipping?.street && {

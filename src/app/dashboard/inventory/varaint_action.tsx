@@ -242,7 +242,7 @@ export const getTotalOfItems = async (
         where: filtervalue?.name ? { name: filtervalue?.name } : {},
       });
     } else if (ty === "promotion") {
-      let potentialresult = await Prisma.promotion.findMany({
+      const potentialresult = await Prisma.promotion.findMany({
         where:
           filtervalue?.name || filtervalue?.expiredate
             ? {
@@ -262,7 +262,7 @@ export const getTotalOfItems = async (
             : {},
       });
 
-      let filterdresult = potentialresult.filter((i) => {
+      const filterdresult = potentialresult.filter((i) => {
         const promoexpire = dayjs(i.expireAt);
         const filterdate = filtervalue?.expiredate
           ? dayjs(filtervalue.expiredate)

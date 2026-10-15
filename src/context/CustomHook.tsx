@@ -172,7 +172,7 @@ export function useDebounceEffect(
 ) {
   useEffect(() => {
     const t = setTimeout(() => {
-      fn.apply(undefined, deps as any);
+      fn();
     }, waitTime);
 
     return () => {

@@ -31,7 +31,7 @@ export const PrepareDataForPromotion = ({
   expiredCount,
 }: PrepareDataForPromotionType): Array<PreparePromotionType> => {
   let i = 0;
-  let result: Array<PreparePromotionType> = [];
+  const result: Array<PreparePromotionType> = [];
   do {
     i++;
 

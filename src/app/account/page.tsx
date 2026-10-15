@@ -488,7 +488,7 @@ export default function AuthenticatePage() {
                     </Button>
                     <div className="text-center">
                       <span className="text-gray-600 text-sm">
-                        Don't have an account?{" "}
+                        Don&apos;t have an account?{" "}
                       </span>
                       <span
                         onClick={() => {

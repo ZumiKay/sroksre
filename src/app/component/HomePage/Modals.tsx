@@ -81,7 +81,7 @@ const Homecontainermodal = ({
   }, []);
 
   const handleCancel = useCallback(() => {
-    let updatedata = { ...data };
+    const updatedata = { ...data };
     if (openmodal?.Addbanner || openmodal?.Addproduct) {
       const key = openmodal?.Addbanner ? "Addbanner" : "Addproduct";
       updatedata.items = [];

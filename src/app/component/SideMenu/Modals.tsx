@@ -113,7 +113,7 @@ export const ConfirmModal = () => {
           },
         });
       }
-      // eslint-disable-next-line react-hooks/exhaustive-deps
+       
     },
     [openmodal, globalindex, product, banner],
   );
@@ -182,7 +182,7 @@ export const ConfirmModal = () => {
           type: undefined,
         },
       }));
-      // eslint-disable-next-line react-hooks/exhaustive-deps
+       
     },
     [openmodal, searchParam],
   );

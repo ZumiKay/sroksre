@@ -235,7 +235,7 @@ const PaymentDetail = async ({
 
 const getOrderTotal = async (orderID: string) => {
   try {
-    let result = (await Prisma.orders.findUnique({
+    const result = (await Prisma.orders.findUnique({
       where: { id: orderID },
       select: {
         price: true,

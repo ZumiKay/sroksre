@@ -42,7 +42,7 @@ export const GetListProduct = async (
   sort?: number,
   promoid?: string,
 ): Promise<GetListProductReturnType> => {
-  let data = {
+  const data = {
     parentcate_id: parseInt(parentcate_id),
     childcate_id: childcate_id ? parseInt(childcate_id) : undefined,
     page: parseInt(page),
@@ -314,7 +314,7 @@ export const GetListProduct = async (
       (prod): prod is NonNullable<typeof prod> => Boolean(prod),
     );
 
-    let result =
+    const result =
       safeProducts.length > 0
         ? (safeProducts.map((prod) => {
             if (prod.discount) {
@@ -468,7 +468,7 @@ export const getFilterValue = async (
   latest?: boolean,
 ) => {
   try {
-    let filtervalues: filtervaluetype = {
+    const filtervalues: filtervaluetype = {
       variant: {
         color: [],
         text: [],

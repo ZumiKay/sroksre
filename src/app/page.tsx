@@ -58,7 +58,7 @@ async function HomeContent() {
           No Content Available
         </h2>
         <p className="text-gray-500 text-center max-w-md">
-          We're setting up the store. Please check back later.
+          We&apos;re setting up the store. Please check back later.
         </p>
       </div>
     );
