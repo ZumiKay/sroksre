@@ -29,7 +29,7 @@ import Link from "next/link";
 import { Metadata } from "next";
 import { getCheckoutdata, getVariantPriceBreakDown } from "./fetchaction";
 import { Varianttype } from "@/src/types/product.type";
-import { Chip } from "@heroui/react";
+import { Chip } from "./ClientChip";
 import { getVariantDetail } from "./helper";
 
 export async function generateMetadata(): Promise<Metadata> {
