@@ -214,6 +214,7 @@ npm run lint         # ESLint
 npm run typecheck    # TypeScript (tsc --noEmit)
 npm test             # Jest test suite
 npm run test:watch   # Jest in watch mode
+npm run seed:products  # Seed 100 test products (`-- <n>` for custom count)
 ```
 
 ---
