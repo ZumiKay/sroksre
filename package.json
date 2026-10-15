@@ -85,7 +85,8 @@
     },
     "@auth/core": {
       "cookie": ">=0.7.0"
-    }
+    },
+    "@internationalized/date": "$@internationalized/date"
   },
   "devDependencies": {
     "@jest/globals": "^30.4.1",

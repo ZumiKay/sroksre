@@ -198,10 +198,10 @@ export function ShippingForm({ orderid }: { orderid: string }) {
       className="w-full max-w-4xl mx-auto"
     >
       <input type="hidden" name="shipping" value="shipping" />
-      <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8 max-smaller_screen:p-6">
-        <div className="flex items-center gap-3 mb-8">
+      <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-4 sm:p-6 md:p-8">
+        <div className="flex items-center gap-3 mb-6 sm:mb-8">
           <div className="w-1 h-8 bg-linear-to-b from-purple-600 to-purple-400 rounded-full" />
-          <h3 className="text-3xl font-bold text-gray-800">Shipping Address</h3>
+          <h3 className="text-2xl sm:text-3xl font-bold text-gray-800">Shipping Address</h3>
         </div>
 
         <div className="shippingform w-full space-y-6">

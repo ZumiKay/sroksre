@@ -90,8 +90,8 @@ export const SlideShow = (props: bannerprops) => {
   };
 
   return (
-    <div className="banner__container w-full h-fit relative overflow-x-hidden shadow-2xl">
-      <div className="w-full h-auto max-h-[95vh] min-h-125 relative overflow-hidden">
+    <div className="banner__container w-full h-fit relative overflow-x-hidden shadow-2xl rounded-2xl">
+      <div className="w-full h-auto max-h-[80vh] min-h-[260px] sm:min-h-[380px] md:min-h-[480px] relative overflow-hidden">
         <AnimatePresence initial={false} mode="wait">
           {props.data.map(
             (data, idx) =>
@@ -104,13 +104,13 @@ export const SlideShow = (props: bannerprops) => {
                     transition={{ duration: 1.2, ease: "easeOut" }}
                     alt={data.name}
                     src={data.img}
-                    className="w-full h-auto min-h-125 object-cover relative"
+                    className="w-full h-auto min-h-[260px] sm:min-h-[380px] md:min-h-[480px] object-cover relative"
                     width={1000}
                     height={1000}
                     loading="lazy"
                   />
                   {/* Gradient overlay for better text readability */}
-                  <div className="absolute inset-0 bg-linear-to-t from-black/70 via-black/20 to-transparent pointer-events-none" />
+                  <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/30 to-transparent pointer-events-none" />
                   <motion.h3
                     initial={{ left: "10px", opacity: 0 }}
                     animate={{ left: "5%", opacity: 1 }}
@@ -122,7 +122,7 @@ export const SlideShow = (props: bannerprops) => {
                     onClick={() =>
                       data.link && (window.location.href = data.link)
                     }
-                    className="title w-full h-50 max-small_phone:text-3xl cursor-pointer text-5xl text-white font-bold absolute top-[70%] left-5 drop-shadow-2xl hover:text-blue-300 transition-colors duration-300"
+                    className="title w-[90%] cursor-pointer text-2xl sm:text-4xl md:text-5xl text-white font-bold absolute bottom-6 sm:bottom-12 left-4 sm:left-8 drop-shadow-2xl hover:text-blue-300 transition-colors duration-300 line-clamp-2"
                   >
                     {data.name}
                   </motion.h3>
@@ -366,27 +366,27 @@ export const Banner: React.FC<BannerProps> = (props) => {
         loading="lazy"
         width={600}
         height={600}
-        className="object-cover w-full h-auto max-h-[90vh] min-h-150"
+        className="object-cover w-full h-auto max-h-[90vh] min-h-[260px] sm:min-h-[400px] md:min-h-[500px]"
       />
       {/* Gradient overlay for better text visibility */}
       <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/30 to-transparent pointer-events-none" />
       <motion.h3
         initial={{ paddingLeft: "0px", opacity: 0 }}
-        whileInView={{ paddingLeft: "50px", opacity: 1 }}
+        whileInView={{ paddingLeft: "20px", opacity: 1 }}
         transition={{
           duration: 1.5,
           ease: "easeOut",
         }}
-        className="w-[85%] h-fit absolute bottom-32 text-white font-black text-5xl drop-shadow-2xl"
+        className="w-[90%] h-fit absolute bottom-20 sm:bottom-28 md:bottom-32 text-white font-black text-2xl sm:text-4xl md:text-5xl drop-shadow-2xl line-clamp-2"
       >
         {props.data.name}
       </motion.h3>
       {props.data.link && (
-        <div className="absolute bottom-10 left-12.5">
+        <div className="absolute bottom-4 sm:bottom-10 left-4 sm:left-12.5">
           <PrimaryButton
             text="Learn More"
-            width="270px"
-            height="55px"
+            width="220px"
+            height="50px"
             type="button"
             radius="12px"
             color="#3B82F6"
@@ -412,7 +412,7 @@ export const ProductCard = (props: ProductCardProps) => {
   return (
     <div
       key={props.id}
-      className="card w-87.5 h-fit flex flex-col bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden group cursor-pointer border border-gray-100"
+      className="card w-68 sm:w-80 md:w-87.5 shrink-0 h-fit flex flex-col bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden group cursor-pointer border border-gray-100"
       onClick={() => (window.location.href = `/product/detail/${props.id}`)}
     >
       <div className="relative overflow-hidden bg-gray-50">
@@ -422,7 +422,7 @@ export const ProductCard = (props: ProductCardProps) => {
           width={"600"}
           height={"600"}
           loading="lazy"
-          className="w-full h-125 object-contain transition-transform duration-700 group-hover:scale-110"
+          className="w-full h-80 sm:h-110 md:h-125 object-contain transition-transform duration-700 group-hover:scale-110"
         />
         {props.price.discount && (
           <div className="absolute top-4 right-4 bg-linear-to-r from-red-500 to-red-600 text-white px-4 py-2 rounded-full font-bold text-sm shadow-lg">
@@ -486,19 +486,19 @@ export const ScrollableContainer = (props: ScrollableContainerProps) => {
   };
   return (
     <div key={props.title} className="w-full h-fit">
-      <div className="header w-full h-17.5 flex flex-row items-center justify-between bg-linear-to-r from-gray-800 via-gray-700 to-gray-800 px-6 py-3 rounded-t-2xl shadow-lg">
-        <h3 className="text-3xl text-white font-bold w-full text-left flex items-center gap-3">
-          <div className="w-1.5 h-8 bg-linear-to-b from-blue-400 to-purple-600 rounded-full"></div>
-          {props.title}
+      <div className="header w-full min-h-16 h-auto flex flex-row items-center justify-between bg-linear-to-r from-gray-800 via-gray-700 to-gray-800 px-4 sm:px-6 py-3 rounded-t-2xl shadow-lg gap-3">
+        <h3 className="text-xl sm:text-2xl md:text-3xl text-white font-bold text-left flex items-center gap-2 sm:gap-3 truncate">
+          <div className="w-1.5 h-6 sm:h-8 bg-linear-to-b from-blue-400 to-purple-600 rounded-full shrink-0"></div>
+          <span className="truncate">{props.title}</span>
         </h3>
-        <div className="w-50 flex flex-row items-center justify-end gap-x-3 select-none">
+        <div className="flex flex-row items-center justify-end gap-x-2 sm:gap-x-3 select-none shrink-0">
           <div
             onClick={() => handleScroll("left")}
             className="w-fit h-fit cursor-pointer transition-all hover:scale-110 active:scale-95 group"
           >
-            <div className="arrow text-[20px] flex items-center justify-center bg-linear-to-br from-white to-gray-100 hover:from-blue-500 hover:to-blue-600 text-gray-800 hover:text-white w-12 h-12 rounded-full shadow-lg hover:shadow-xl transition-all duration-300">
+            <div className="arrow flex items-center justify-center bg-linear-to-br from-white to-gray-100 hover:from-blue-500 hover:to-blue-600 text-gray-800 hover:text-white w-9 h-9 sm:w-11 sm:h-11 rounded-full shadow-lg hover:shadow-xl transition-all duration-300">
               <svg
-                className="w-5 h-5"
+                className="w-4 h-4 sm:w-5 sm:h-5"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -516,9 +516,9 @@ export const ScrollableContainer = (props: ScrollableContainerProps) => {
             onClick={() => handleScroll("right")}
             className="w-fit h-fit cursor-pointer transition-all hover:scale-110 active:scale-95 group"
           >
-            <div className="arrow text-[20px] flex items-center justify-center bg-linear-to-br from-white to-gray-100 hover:from-blue-500 hover:to-blue-600 text-gray-800 hover:text-white w-12 h-12 rounded-full shadow-lg hover:shadow-xl transition-all duration-300">
+            <div className="arrow flex items-center justify-center bg-linear-to-br from-white to-gray-100 hover:from-blue-500 hover:to-blue-600 text-gray-800 hover:text-white w-9 h-9 sm:w-11 sm:h-11 rounded-full shadow-lg hover:shadow-xl transition-all duration-300">
               <svg
-                className="w-5 h-5"
+                className="w-4 h-4 sm:w-5 sm:h-5"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"

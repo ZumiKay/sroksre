@@ -110,8 +110,8 @@ export const FormWrapper = ({
     >
       {loading && <LoadingText />}
 
-      <section className="order-2 lg:order-1 min-w-0">{BodyContent}</section>
-      <aside className="order-1 lg:order-2 w-full lg:sticky lg:top-6">
+      <section className="order-1 min-w-0">{BodyContent}</section>
+      <aside className="order-2 w-full lg:sticky lg:top-6">
         <div className="w-full bg-white rounded-2xl border border-gray-100 shadow-sm p-4 sm:p-5 space-y-3">
           {children}
         </div>

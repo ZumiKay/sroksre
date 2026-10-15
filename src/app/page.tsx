@@ -65,7 +65,7 @@ async function HomeContent() {
   }
 
   return (
-    <div className="w-[95vw] h-full flex flex-col items-center gap-y-5">
+    <div className="w-full max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-full flex flex-col items-center gap-y-8 sm:gap-y-12">
       {items.map((container, idx) => (
         <ContainerRenderer key={idx} container={container as never} idx={idx} />
       ))}
@@ -75,7 +75,7 @@ async function HomeContent() {
 
 export default async function Home() {
   return (
-    <main className="Home__Container w-full h-full grid place-content-center gap-y-10 min-h-screen relative">
+    <main className="Home__Container w-full min-h-screen flex flex-col items-center gap-y-8 relative">
       <HomeErrorBoundary>
         <Suspense fallback={<HomeContainerSkeleton />}>
           <HomeContent />

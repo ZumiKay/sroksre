@@ -226,15 +226,20 @@ export default function AccountMenu({ setProfile }: AccountMenuProps) {
   );
 
   return (
-    <motion.aside
-      ref={ref}
-      initial={{ x: "100%" }}
-      animate={{ x: 0 }}
-      exit={{ x: "100%" }}
-      transition={{ duration: 0.4, ease: "easeInOut" }}
-      onMouseEnter={() => setProfile(true)}
-      className="fixed right-0 top-0 w-107.5 max-small_phone:w-full h-full z-99 bg-white shadow-2xl flex flex-col items-center border-l border-gray-200"
-    >
+    <>
+      <div
+        onClick={() => setProfile(false)}
+        className="fixed inset-0 bg-black/40 backdrop-blur-xs z-90 transition-opacity"
+      />
+      <motion.aside
+        ref={ref}
+        initial={{ x: "100%" }}
+        animate={{ x: 0 }}
+        exit={{ x: "100%" }}
+        transition={{ duration: 0.4, ease: "easeInOut" }}
+        onMouseEnter={() => setProfile(true)}
+        className="fixed right-0 top-0 w-full sm:max-w-md h-full z-99 bg-white shadow-2xl flex flex-col items-center border-l border-gray-200 overflow-y-auto"
+      >
       {status === "loading" ? (
         <div className="w-full h-full flex flex-col items-center justify-center gap-y-6 px-6">
           <div className="w-20 h-20 border-4 border-gray-200 border-t-blue-600 rounded-full animate-spin"></div>
@@ -331,15 +336,15 @@ export default function AccountMenu({ setProfile }: AccountMenuProps) {
           </div>
         </>
       )}
-      {isMobile && (
-        <div
-          onClick={() => setProfile(false)}
-          className="w-10 h-10 absolute top-4 right-4 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 active:bg-gray-300 cursor-pointer transition-all duration-200 hover:scale-110 active:scale-95 shadow-xs"
-        >
-          <CloseVector width="24px" height="24px" />
-        </div>
-      )}
+      <div
+        onClick={() => setProfile(false)}
+        className="w-10 h-10 absolute top-4 right-4 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 active:bg-gray-300 cursor-pointer transition-all duration-200 hover:scale-110 active:scale-95 shadow-xs"
+        aria-label="Close account menu"
+      >
+        <CloseVector width="24px" height="24px" />
+      </div>
     </motion.aside>
+  </>
   );
 }
 

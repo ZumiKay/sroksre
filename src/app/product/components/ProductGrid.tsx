@@ -70,16 +70,7 @@ export const ProductGrid = ({ products, categoryName }: ProductGridProps) => {
 
   return (
     <div
-      className="listproduct grid 
-        grid-cols-3 
-        gap-x-5
-        gap-y-32 
-        place-content-center 
-        w-fit h-full mb-10
-        max-small_screen:grid-cols-1
-        max-small_phone:p-1
-        max-smallest_phone:gap-x-2
-        max-smallest_phone:p-0"
+      className="listproduct grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 w-full max-w-7xl mx-auto px-4 sm:px-6 mb-12"
     >
       {products.map((product, idx) => (
         <Card

@@ -36,7 +36,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 const DashboardLayout = async ({ children }: { children: React.ReactNode }) => {
   return (
-    <section className="min-h-screem min-w-screen w-full h-full bg-linear-to-br from-gray-50 via-white to-indigo-50 relative">
+    <section className="min-h-screen w-full h-full bg-linear-to-br from-gray-50 via-white to-indigo-50 relative">
       {/* Decorative Background Elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-0 right-0 w-96 h-96 bg-linear-to-br from-indigo-200/30 to-purple-200/30 rounded-full blur-3xl transform translate-x-1/2 -translate-y-1/2" />

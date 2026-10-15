@@ -72,7 +72,7 @@ export const PageHeader = ({
           </ol>
         </nav>
 
-        <h2 className="category_name text-4xl font-bold text-gray-900 tracking-tight">
+        <h2 className="category_name text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 tracking-tight wrap-break-word">
           {title}
         </h2>
 

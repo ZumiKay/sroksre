@@ -56,9 +56,9 @@ interface Returntype<k = string> {
 
 const ORDER_ID_PATTERN = /^[A-Za-z0-9_-]{6,64}$/;
 
-const isValidOrderId = (id?: string) => !!id && ORDER_ID_PATTERN.test(id);
+export const isValidOrderId = (id?: string) => !!id && ORDER_ID_PATTERN.test(id);
 
-const isCheckoutSessionExpired = (
+export const isCheckoutSessionExpired = (
   createdAt: Date,
   renewedAt?: Date | null,
   now = Date.now(),
@@ -78,7 +78,7 @@ type StockableItem = {
   };
 };
 
-function buildStockAdjustments(
+export function buildStockAdjustments(
   items: StockableItem[],
   direction: "decrement" | "increment",
 ): PrismaPromise<BatchPayload>[] {
@@ -130,13 +130,13 @@ function buildStockAdjustments(
 }
 
 /** Hold stock for the given cart items (called at checkout start). */
-async function holdStockForItems(items: StockableItem[]) {
+export async function holdStockForItems(items: StockableItem[]) {
   const ops = buildStockAdjustments(items, "decrement");
   if (ops.length > 0) await Prisma.$transaction(ops);
 }
 
 /** Release all stock holds for an order (called on session termination/expiry). */
-async function releaseStock(orderId: string) {
+export async function releaseStock(orderId: string) {
   const orderProducts = await Prisma.orderproduct.findMany({
     where: { orderId },
     select: {

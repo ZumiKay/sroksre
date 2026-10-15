@@ -158,7 +158,7 @@ export default function Navbar({
 
   return (
     <>
-      <nav className="navbar__container sticky top-0 z-50 w-full h-15 bg-[#F3F3F3] flex flex-row justify-between item-center">
+      <nav className="navbar__container sticky top-0 z-50 w-full h-15 bg-[#F3F3F3] flex flex-row justify-between items-center">
         {categories && <CategoriesContainer setopen={setcategories} />}
 
         <div className="first_section  w-1/2 h-full flex items-center pl-3">
@@ -340,12 +340,23 @@ const CategoriesContainer = (props: {
   return (
     <div
       onMouseLeave={() => props.setopen(false)}
-      className="categories__container w-full max-h-screen min-h-[50vh] h-full 
-      absolute top-14.25 z-99 bg-linear-to-b from-white to-gray-50 
-      shadow-xl border-t border-gray-200 flex flex-row gap-8 justify-start 
+      className="categories__container w-full max-h-[calc(100vh-3.75rem)] min-h-[40vh] 
+      absolute top-14.25 left-0 z-99 bg-linear-to-b from-white to-gray-50 
+      shadow-xl border-t border-gray-200 flex flex-row gap-6 sm:gap-8 justify-start 
       max-large_phone:justify-center items-start flex-wrap overflow-x-hidden 
-      max-small_phone:h-screen max-small_phone:pb-20 p-6 overflow-y-auto"
+      pb-20 p-4 sm:p-6 overflow-y-auto"
     >
+      <div className="w-full flex items-center justify-between pb-3 border-b border-gray-200 mb-2">
+        <h2 className="text-lg font-bold text-gray-800">Categories</h2>
+        <button
+          type="button"
+          onClick={() => props.setopen(false)}
+          className="p-1 rounded-full hover:bg-gray-200 transition-colors cursor-pointer"
+          aria-label="Close categories"
+        >
+          <CloseVector width="24px" height="24px" />
+        </button>
+      </div>
       {loading ? (
         <>
           {[...Array(6)].map((_, idx) => (
@@ -491,30 +502,34 @@ export function DashboordNavBar({ session }: { session?: Sessiontype }) {
   const route = usePathname();
 
   return (
-    <nav className="dashboardNav__container flex flex-row w-full items-center justify-evenly bg-[#F3F3F3] h-17.5">
-      <Link href={"/dashboard"}>
+    <nav className="dashboardNav__container flex flex-row w-full items-center gap-2 sm:gap-4 overflow-x-auto px-3 sm:px-6 bg-[#F3F3F3] h-16 sm:h-17.5 sm:justify-evenly">
+      <Link href={"/dashboard"} className="shrink-0">
         <h1
           className={`navlink ${
             route === "/dashboard" ? "activelink" : ""
-          } text-lg font-bold bg-white w-37.5 p-2 transition text-center rounded-md`}
+          } text-sm sm:text-base font-bold bg-white px-4 py-2 transition text-center rounded-md whitespace-nowrap`}
         >
           My Profile
         </h1>
-      </Link>{" "}
-      <Link href={"/dashboard/order"}>
+      </Link>
+      <Link href={"/dashboard/order"} className="shrink-0">
         <h1
           className={`navlink ${
             route === "/dashboard/order" ? "activelink" : ""
-          } text-lg font-bold bg-white w-fit p-2 transition text-center rounded-md`}
+          } text-sm sm:text-base font-bold bg-white px-4 py-2 transition text-center rounded-md whitespace-nowrap`}
         >
-          {session?.role === "ADMIN" ? "Order Mangement" : "My Order"}
+          {session?.role === "ADMIN" ? "Order Management" : "My Order"}
         </h1>
       </Link>
-      <Link hidden={session?.role !== "ADMIN"} href={"/dashboard/inventory"}>
+      <Link
+        hidden={session?.role !== "ADMIN"}
+        href={"/dashboard/inventory"}
+        className="shrink-0"
+      >
         <h1
           className={`navlink ${
             route === "/dashboard/inventory" ? "activelink" : ""
-          } text-lg font-bold bg-white w-37.5 p-2 transition text-center rounded-md`}
+          } text-sm sm:text-base font-bold bg-white px-4 py-2 transition text-center rounded-md whitespace-nowrap`}
         >
           Inventory
         </h1>
@@ -522,11 +537,12 @@ export function DashboordNavBar({ session }: { session?: Sessiontype }) {
       <Link
         hidden={session?.role !== "ADMIN"}
         href={"/dashboard/usermanagement"}
+        className="shrink-0"
       >
         <h1
           className={`navlink ${
             route === "/dashboard/usermanagement" ? "activelink" : ""
-          } text-lg font-bold bg-white w-50 p-2 transition text-center rounded-md`}
+          } text-sm sm:text-base font-bold bg-white px-4 py-2 transition text-center rounded-md whitespace-nowrap`}
         >
           User Management
         </h1>
@@ -848,51 +864,54 @@ export const NotificationMenu = forwardRef(
         onScroll={() => {
           handleScroll();
         }}
-        className="notification absolute w-87.5 h-100 z-150 right-2 top-14 flex flex-col gap-x-5 bg-white rounded-lg overflow-x-hidden overflow-y-auto max-smallest_tablet:right-0 max-smallest_tablet:top-0 max-smallest_tablet:w-screen max-smallest_tablet:h-screen"
+        className="notification fixed sm:absolute inset-x-2 top-16 sm:inset-auto sm:right-2 sm:top-14 sm:w-87.5 max-h-[85vh] sm:h-100 z-150 flex flex-col gap-y-2 bg-white rounded-xl shadow-2xl border border-gray-200 overflow-x-hidden overflow-y-auto"
       >
         <div
           onClick={() => close()}
-          className="w-fit h-fit hidden max-smallest_tablet:block absolute top-1 right-2 z-50"
+          className="w-fit h-fit sm:hidden absolute top-2.5 right-2.5 z-50 cursor-pointer p-1 rounded-full hover:bg-gray-100"
         >
-          <CloseVector width="30px" height="30px" />
+          <CloseVector width="24px" height="24px" />
         </div>
         <h3
-          className="font-bold bg-white text-lg w-full sticky top-0 z-10 text-left p-2 border-b-2 border-b-gray-300
-      "
+          className="font-bold bg-white text-lg w-full sticky top-0 z-10 text-left p-3 border-b border-gray-200"
         >
           Notifications
         </h3>
 
-        <div className="w-full h-full flex flex-col gap-y-5 relative">
+        <div className="w-full h-full flex flex-col gap-y-3 relative px-2 pb-3">
           {!notifydata?.length
             ? !loading && (
-                <h3 className="font-normal text-sm w-full h-fit text-center pt-2">
+                <h3 className="font-normal text-sm w-full h-fit text-center py-6 text-gray-500">
                   No Notification
                 </h3>
               )
             : notifydata.map((n) => (
-                <div key={n.id} className="w-full h-full relative">
+                <div key={n.id} className="w-full relative group">
                   <Link href={n.link ?? ""}>
                     <div
                       onTouchStart={() => handleChecked(n.id as number)}
                       onMouseEnter={() => handleChecked(n.id as number)}
-                      className="notification_item relative w-full h-fit flex flex-col gap-y-5 p-3 transition cursor-pointer hover:bg-gray-300"
+                      className="notification_item relative w-full h-fit flex flex-col gap-y-2 p-3 rounded-lg transition cursor-pointer hover:bg-gray-50 border border-gray-100 pr-9"
                     >
                       {!n.checked && (
-                        <span className="w-2.5 h-2.5 bg-red-500 rounded-xl absolute right-2"></span>
+                        <span className="w-2.5 h-2.5 bg-red-500 rounded-full absolute top-3 right-8"></span>
                       )}
-                      <h3 className="font-bold text-lg">{n.type} </h3>
-                      <p>{n.content}</p>
-                      <p className="text-[12px]">{n.createdAt}</p>
+                      <h3 className="font-bold text-base text-gray-900">{n.type}</h3>
+                      <p className="text-sm text-gray-600 line-clamp-2">{n.content}</p>
+                      <p className="text-xs text-gray-400">{n.createdAt}</p>
                     </div>
                   </Link>
-                  <FontAwesomeIcon
-                    icon={faTrash}
+                  <button
+                    type="button"
                     onClick={() => handleDelete(n.id as number)}
-                    className={`relative w-full left-[90%] transition duration-300 active:text-white cursor-pointer ${
-                      loading ? "animate-spin" : ""
-                    }`}
-                  />
+                    className="absolute top-3 right-3 text-gray-400 hover:text-red-500 transition duration-200 cursor-pointer p-1"
+                    aria-label="Delete notification"
+                  >
+                    <FontAwesomeIcon
+                      icon={faTrash}
+                      className={loading ? "animate-spin" : ""}
+                    />
+                  </button>
                 </div>
               ))}
 

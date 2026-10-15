@@ -96,7 +96,7 @@ export async function Editprofileaction(
       }
     }
 
-    revalidateTag("userinfo");
+    revalidateTag("userinfo", "max");
 
     return { success: true, message: "Update Successfully" };
   } catch (error) {

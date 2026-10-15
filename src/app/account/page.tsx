@@ -255,9 +255,8 @@ export default function AuthenticatePage() {
       >
         <div
           className={`bg-white shadow-2xl flex text-lg flex-col justify-center items-center gap-y-8 
-          max-large_phone:w-[90%] max-small_phone:w-[97%]
           w-full max-w-md min-h-[70vh] 
-          h-fit p-8 md:p-10
+          h-fit p-5 sm:p-8 md:p-10
           rounded-2xl backdrop-blur-xs border-5 border-incart`}
         >
           {/* Header with branding */}

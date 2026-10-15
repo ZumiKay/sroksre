@@ -373,7 +373,7 @@ export const FilterMenu = ({
     >
       <div className="filtermenu w-full relative h-fit">
         <div
-          className="bg-linear-to-b from-white to-gray-50 p-8 max-small_phone:p-5 max-small_phone:max-h-[50vh] rounded-2xl flex flex-col gap-y-6 transition-all duration-300 shadow-xs"
+          className="bg-linear-to-b from-white to-gray-50 p-4 sm:p-8 max-h-[75vh] overflow-y-auto rounded-2xl flex flex-col gap-y-6 transition-all duration-300 shadow-xs"
           style={{
             opacity: loading ? 0.5 : 1,
             pointerEvents: loading ? "none" : "auto",

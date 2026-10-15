@@ -23,7 +23,7 @@ interface RequestBody {
  * - Selected [Blue, Print] → Returns 0 (no stock contains both)
  * - Selected [Print] → Returns 20 (only [M, Print] contains Print)
  */
-const calculateAvailableQuantity = (
+export const calculateAvailableQuantity = (
   variantstock: Stocktype[],
   selectedVariants: Array<{ variant_id: number; value: string }>,
 ): number => {
