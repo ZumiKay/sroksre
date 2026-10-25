@@ -60,7 +60,7 @@
     "react": "^19",
     "react-aria-components": "^1.15.1",
     "react-color": "^2.19.3",
-    "react-cookie-consent": "^9.0.0",
+    "react-cookie-consent": "^10.0.2",
     "react-dom": "^19",
     "react-easy-crop": "^5.0.5",
     "react-google-recaptcha": "^3.1.0",
