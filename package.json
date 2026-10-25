@@ -12,7 +12,7 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "postinstall": "prisma generate",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "next typegen && tsc --noEmit",
     "seed:products": "tsx --tsconfig tsconfig.json prisma/seed/product/seed-products.ts"
   },
   "prisma": {
