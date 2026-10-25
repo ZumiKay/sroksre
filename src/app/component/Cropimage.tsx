@@ -554,7 +554,7 @@ export default function CropImage({
                         and clean
                       </p>
                       <p className="text-gray-600 italic mt-2">
-                        Keep the image tight — small banners don't need wide
+                        Keep the image tight — small banners don&apos;t need wide
                         formats
                       </p>
                     </>

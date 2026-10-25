@@ -2,7 +2,7 @@
 
 ## Overview
 
-SrokSre is a full-stack e-commerce platform built with Next.js 15, featuring advanced session management, role-based access control, and comprehensive order management capabilities.
+SrokSre is a full-stack e-commerce platform built with Next.js 16, featuring advanced session management, role-based access control, and comprehensive order management capabilities.
 
 ---
 
@@ -354,7 +354,7 @@ SrokSre is a full-stack e-commerce platform built with Next.js 15, featuring adv
 
 ```
 /src
-  /app                  # Next.js 15 App Router pages
+  /app                  # Next.js 16 App Router pages
     /dashboard          # Protected dashboard pages
     /account            # Authentication pages
     /product            # Product browsing

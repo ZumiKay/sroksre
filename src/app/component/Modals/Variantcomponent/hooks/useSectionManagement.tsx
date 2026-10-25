@@ -45,7 +45,7 @@ export const useSectionManagement = ({
       return;
     }
 
-    let newVariantSection: VariantSectionType = {
+    const newVariantSection: VariantSectionType = {
       tempId: tempVariantSectionId,
       name: sectionName,
       productsId: product.id,

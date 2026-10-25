@@ -759,7 +759,7 @@ export const GetAllProduct = async (
             ? detailtext.split(",")
             : [detailtext];
 
-        let product = await Prisma.products.findMany({
+        const product = await Prisma.products.findMany({
           where: {
             parentcategory_id: parent_cate ?? undefined,
             childcategory_id: child_cate ?? undefined,
@@ -806,7 +806,7 @@ export const GetAllProduct = async (
         allproduct = caculateArrayPagination(filteredproduct, page, limit);
       }
     } else {
-      let product = await Prisma.products.findMany({
+      const product = await Prisma.products.findMany({
         where: {
           ...(promotionid !== -1
             ? { OR: [{ promotion_id: null }, { promotion_id: promotionid }] }

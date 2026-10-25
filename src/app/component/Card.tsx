@@ -99,7 +99,7 @@ const Card = memo(function Card(props: cardprops) {
   const handleSelectDiscount = useCallback(
     async (id: number, type: "create" | "edit") => {
       const promo = [...promotion.Products];
-      let temp: Array<number> = [];
+      const temp: Array<number> = [];
 
       const index = promo.findIndex((i) => i.id === id);
 
@@ -259,9 +259,8 @@ const Card = memo(function Card(props: cardprops) {
         onMouseLeave={handleMouseLeave}
         onTouchStart={handleMouseEnter}
         onTouchCancel={handleMouseLeave}
-        className={`card__container w-125 h-fit flex flex-col
+        className={`card__container ${props.width ? "" : "w-full max-w-sm"} h-fit flex flex-col mx-auto
        rounded-xl shadow-xs transition-all duration-300 overflow-hidden animate-fade-in
-       max-smaller_screen:w-87.5 max-large_tablet:w-70
        ${
          promotion.selectproduct
            ? isProduct

@@ -1,3 +1,4 @@
+import tinycolor from "tinycolor2";
 import { VariantValueObjType as VariantColorValueType } from "@/src/types/product.type";
 import {
   Stocktype,
@@ -36,7 +37,6 @@ export const checkColorTypeExists = (variants: any[] | undefined): boolean => {
 };
 
 export const getColorRgb = (hex: string) => {
-  const tinycolor = require("tinycolor2");
   return tinycolor(hex).toRgb();
 };
 

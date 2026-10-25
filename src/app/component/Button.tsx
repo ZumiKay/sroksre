@@ -236,6 +236,7 @@ export const InputFileUpload = React.forwardRef<
     </Button>
   );
 });
+InputFileUpload.displayName = "InputFileUpload";
 
 interface Selectcontainerprops {
   data: Array<string | VariantValueObjType>;

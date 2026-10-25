@@ -112,10 +112,10 @@ export async function GET(request: NextRequest) {
           Variant: true,
         },
       });
-      let allval = {
-        size: new Set<String>(),
-        color: new Set<String>(),
-        text: new Set<String>(),
+      const allval = {
+        size: new Set<string>(),
+        color: new Set<string>(),
+        text: new Set<string>(),
       };
 
       allfilter.forEach((filval) => {
@@ -307,7 +307,7 @@ export async function GET(request: NextRequest) {
           discount: true,
         },
       });
-      let result = searchproduct.map((i) => ({
+      const result = searchproduct.map((i) => ({
         ...i,
         price: calculateDiscountProductPrice({
           price: i.price,

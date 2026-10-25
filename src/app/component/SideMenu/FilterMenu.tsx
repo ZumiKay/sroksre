@@ -312,7 +312,7 @@ export const FilterMenu = ({
   }, [category?.parentcates]);
 
   const Footer = useMemo(() => {
-    return () => (
+    const FilterFooter = () => (
       <div className="flex gap-3 w-full p-4 bg-linear-to-t from-gray-50 to-white border-t border-gray-100">
         {type !== "listproduct" ? (
           <PrimaryButton
@@ -351,6 +351,8 @@ export const FilterMenu = ({
         />
       </div>
     );
+    FilterFooter.displayName = "FilterFooter";
+    return FilterFooter;
   }, [
     type,
     totalproduct,
@@ -373,7 +375,7 @@ export const FilterMenu = ({
     >
       <div className="filtermenu w-full relative h-fit">
         <div
-          className="bg-linear-to-b from-white to-gray-50 p-8 max-small_phone:p-5 max-small_phone:max-h-[50vh] rounded-2xl flex flex-col gap-y-6 transition-all duration-300 shadow-xs"
+          className="bg-linear-to-b from-white to-gray-50 p-4 sm:p-8 max-h-[75vh] overflow-y-auto rounded-2xl flex flex-col gap-y-6 transition-all duration-300 shadow-xs"
           style={{
             opacity: loading ? 0.5 : 1,
             pointerEvents: loading ? "none" : "auto",

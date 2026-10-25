@@ -259,7 +259,7 @@ export function ManageStockContainer({
 
   const handleUpdateSubStock = async (idx: number) => {
     const stockArray = [...(product.Stock ?? [])];
-    let updatestockvalue = stockArray[edit];
+    const updatestockvalue = stockArray[edit];
 
     const stockValues = MapSelectedValuesToVariant(
       selectedstock,
@@ -896,3 +896,4 @@ export const ColorSelectModal = React.memo(
     );
   },
 );
+ColorSelectModal.displayName = "ColorSelectModal";

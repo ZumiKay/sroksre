@@ -24,7 +24,7 @@ export default function Error({
       </svg>
       <h2 className="text-2xl font-bold text-gray-800">Product Not Found</h2>
       <p className="text-gray-600 text-center max-w-md">
-        We couldn't load this product. It may have been removed or doesn't
+        We couldn&apos;t load this product. It may have been removed or doesn&apos;t
         exist.
       </p>
       <div className="flex gap-4">

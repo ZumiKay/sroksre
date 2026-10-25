@@ -145,7 +145,7 @@ export async function PUT(request: NextRequest) {
       },
       data: { ...updateData },
     });
-    revalidateTag("usermanagement");
+    revalidateTag("usermanagement", "max");
     return Response.json({ message: "User Updated" }, { status: 200 });
   } catch (error) {
     console.log("Edit User", error);

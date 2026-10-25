@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
     }
 
     let maxprod = false;
-    let result = await Prisma.products.findMany({
+    const result = await Prisma.products.findMany({
       where: {
         id: { not: targetId },
       },
@@ -47,7 +47,7 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    let product = result.map((i) => {
+    const product = result.map((i) => {
       const discount =
         i.discount &&
         calculateDiscountProductPrice({ price: i.price, discount: i.discount });

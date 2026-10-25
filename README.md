@@ -1,6 +1,6 @@
 # SrokSre — Online Store
 
-A full-stack e-commerce platform built with Next.js 15 and React 19. Supports product variants, PayPal payments, an admin dashboard, multi-device session management, real-time notifications, and PDF invoice generation.
+A full-stack e-commerce platform built with Next.js 16 and React 19. Supports product variants, PayPal payments, an admin dashboard, multi-device session management, real-time notifications, and PDF invoice generation.
 
 ---
 
@@ -8,7 +8,7 @@ A full-stack e-commerce platform built with Next.js 15 and React 19. Supports pr
 
 | Layer | Technology |
 |---|---|
-| Framework | Next.js 15 (App Router), React 19, TypeScript |
+| Framework | Next.js 16 (App Router), React 19, TypeScript |
 | Database | PostgreSQL · Prisma ORM |
 | Auth | NextAuth 4 · JWT · bcryptjs |
 | UI | Tailwind CSS v4 · HeroUI · Material UI · Framer Motion |
@@ -211,8 +211,10 @@ npm run build        # Production build
 npm run start        # Start production server
 npm run startserver  # Start Socket.io server (nodemon)
 npm run lint         # ESLint
+npm run typecheck    # TypeScript (tsc --noEmit)
 npm test             # Jest test suite
 npm run test:watch   # Jest in watch mode
+npm run seed:products  # Seed 100 test products (`-- <n>` for custom count)
 ```
 
 ---

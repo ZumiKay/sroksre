@@ -76,7 +76,7 @@ export async function getUser(
       return null;
     }
 
-    let user = session as unknown as Usersessiontype;
+    const user = session as unknown as Usersessiontype;
 
     // Verify session in database
     if (user.sessionid) {

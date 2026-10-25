@@ -44,7 +44,7 @@ export const PolicyButton = ({
 }) => {
   const [loading, setloading] = useState(false);
   const router = useRouter();
-  let openstate = "editpolicy";
+  const openstate = "editpolicy";
   const { openmodal, setopenmodal } = useGlobalContext();
   const handleEdit = () => {
     if (ty === "edit") setopenmodal((prev) => ({ ...prev, [openstate]: true }));
@@ -548,7 +548,7 @@ export const QuestionCard = ({
   idx: number;
   data: Addquestiontype;
 }) => {
-  let openstate = `policyQ${idx}`;
+  const openstate = `policyQ${idx}`;
   const { openmodal, setopenmodal } = useGlobalContext();
   const [loading, setloading] = useState(false);
   const [open, setopen] = useState(false);

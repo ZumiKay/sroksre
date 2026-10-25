@@ -24,6 +24,13 @@
 
 ## 🚀 Usage
 
+### Products Only (recommended for load testing)
+```bash
+npm run seed:products          # 100 products
+npm run seed:products -- 250   # custom count
+```
+Seeds categories (if missing) and products only — no admin or promotions. Re-running adds more products.
+
 ### Admin Only (Default)
 ```bash
 npx prisma db seed

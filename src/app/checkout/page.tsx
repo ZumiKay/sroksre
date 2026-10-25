@@ -29,7 +29,7 @@ import Link from "next/link";
 import { Metadata } from "next";
 import { getCheckoutdata, getVariantPriceBreakDown } from "./fetchaction";
 import { Varianttype } from "@/src/types/product.type";
-import { Chip } from "@heroui/react";
+import { Chip } from "./ClientChip";
 import { getVariantDetail } from "./helper";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -131,11 +131,11 @@ const OrderSummary = async ({ orderId }: { orderId: string }) => {
   }
 
   return (
-    <div className="checkout_container bg-white w-full max-w-4xl mx-auto rounded-2xl shadow-lg border border-gray-100 p-8 max-smaller_screen:p-6 animate-fade-in transition-all duration-300">
+    <div className="checkout_container bg-white w-full max-w-4xl mx-auto rounded-2xl shadow-lg border border-gray-100 p-4 sm:p-6 md:p-8 animate-fade-in transition-all duration-300">
       <input type="hidden" name="summary" value={"summary"} />
-      <div className="flex items-center gap-3 mb-8">
+      <div className="flex items-center gap-3 mb-6 sm:mb-8">
         <div className="w-1 h-8 bg-linear-to-b from-blue-600 to-blue-400 rounded-full"></div>
-        <h3 className="text-3xl font-bold text-gray-800">Order Summary</h3>
+        <h3 className="text-2xl sm:text-3xl font-bold text-gray-800">Order Summary</h3>
       </div>
 
       <div className="productlist w-full h-full flex flex-col gap-y-6">
@@ -177,12 +177,12 @@ const PaymentDetail = async ({
   }
 
   return (
-    <div className="checkout_container bg-white w-full max-w-4xl mx-auto rounded-2xl shadow-lg border border-gray-100 p-8 max-smaller_screen:p-6 animate-fade-in transition-all duration-300">
+    <div className="checkout_container bg-white w-full max-w-4xl mx-auto rounded-2xl shadow-lg border border-gray-100 p-4 sm:p-6 md:p-8 animate-fade-in transition-all duration-300">
       <input type="hidden" value={"payment"} name="payment" />
-      <div className="w-full h-fit flex flex-col gap-y-8">
+      <div className="w-full h-fit flex flex-col gap-y-6 sm:gap-y-8">
         <div className="flex items-center gap-3">
           <div className="w-1 h-8 bg-linear-to-b from-green-600 to-green-400 rounded-full"></div>
-          <h1 className="text-3xl font-bold text-gray-800">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">
             Payment Information
           </h1>
         </div>
@@ -235,7 +235,7 @@ const PaymentDetail = async ({
 
 const getOrderTotal = async (orderID: string) => {
   try {
-    let result = (await Prisma.orders.findUnique({
+    const result = (await Prisma.orders.findUnique({
       where: { id: orderID },
       select: {
         price: true,
@@ -338,7 +338,7 @@ async function Totalprice({ orderID }: { orderID: string }) {
   );
 
   return (
-    <div className="price_container w-full max-w-4xl mx-auto bg-white rounded-2xl shadow-lg border border-gray-100 p-8 max-smaller_screen:p-6">
+    <div className="price_container w-full max-w-4xl mx-auto bg-white rounded-2xl shadow-lg border border-gray-100 p-4 sm:p-6 md:p-8">
       <div className="space-y-4">
         <div className="flex justify-between items-center py-3 border-b border-gray-200">
           <span className="text-gray-600 font-medium">Subtotal</span>
@@ -428,8 +428,8 @@ const SuccessPage = async ({ orderid }: { orderid: string }) => {
     <div className="success_page w-full max-w-5xl mx-auto mt-8 flex flex-col items-center gap-y-12 px-4">
       <div className="header w-full flex flex-row items-center justify-center">
         <div className="hidden md:block flex-1 h-1 bg-linear-to-r from-transparent to-green-500 rounded-full"></div>
-        <div className="content px-8 py-6 bg-linear-to-r from-green-500 to-emerald-500 text-white rounded-2xl shadow-lg transform hover:scale-105 transition-transform duration-300">
-          <h2 className="text-2xl md:text-3xl font-bold text-center whitespace-nowrap">
+        <div className="content px-5 sm:px-8 py-4 sm:py-6 bg-linear-to-r from-green-500 to-emerald-500 text-white rounded-2xl shadow-lg transform hover:scale-105 transition-transform duration-300 text-center">
+          <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-center">
             Thank you for your purchase! 🎉
           </h2>
         </div>

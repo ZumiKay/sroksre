@@ -28,7 +28,7 @@ export async function Editprofileaction(
     if (type === "name") {
       const formedname = data.get("name");
       const namess = JSON.parse(formedname as string);
-      let names = {
+      const names = {
         firstname: namess.firstname,
         lastname: namess.lastname,
       };
@@ -72,13 +72,13 @@ export async function Editprofileaction(
         },
       });
     } else {
-      let password = data.get("password")?.toString() as string;
-      let pass = JSON.parse(password);
-      let User = await Prisma.user.findUnique({ where: { id: user.userId } });
+      const password = data.get("password")?.toString() as string;
+      const pass = JSON.parse(password);
+      const User = await Prisma.user.findUnique({ where: { id: user.userId } });
       if (User) {
         const isValid = compareSync(pass.oldpassword as string, User?.password);
         if (isValid) {
-          let newpassword = pass.newpassword as string;
+          const newpassword = pass.newpassword as string;
           await Prisma.user.update({
             where: {
               id: user.userId,
@@ -96,7 +96,7 @@ export async function Editprofileaction(
       }
     }
 
-    revalidateTag("userinfo");
+    revalidateTag("userinfo", "max");
 
     return { success: true, message: "Update Successfully" };
   } catch (error) {
@@ -118,7 +118,7 @@ export async function Addaddress(
     }
     const alldata = Array.from(data.entries());
 
-    let address: any = {};
+    const address: any = {};
     let message: string = "";
 
     for (const [name, value] of alldata) {

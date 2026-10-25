@@ -16,20 +16,21 @@ const LineSvg = ({
   active: boolean;
 }) => (
   <svg
-    style={{ position: "relative", top: "-15px" }}
-    height="50"
-    width="100%"
+    viewBox="0 0 100 20"
+    preserveAspectRatio="none"
+    className="w-full h-4"
     xmlns="http://www.w3.org/2000/svg"
   >
     <motion.line
       initial={{ pathLength: 0 }}
       animate={control}
       x1="0"
-      y1="50"
-      x2="250"
-      y2="50"
+      y1="10"
+      x2="100"
+      y2="10"
       stroke="lightgray"
-      strokeWidth="10px"
+      strokeWidth="6"
+      strokeLinecap="round"
     />
   </svg>
 );
@@ -82,9 +83,9 @@ const CircleSvg = ({
 }) => (
   <div
     onClick={() => handleClick?.()}
-    className="w-17 h-17.5 relative grid place-items-center"
+    className="w-11 h-11 sm:w-14 sm:h-14 relative grid place-items-center"
   >
-    <svg height="100%" width="100%" xmlns="http://www.w3.org/2000/svg">
+    <svg viewBox="0 0 70 70" className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
       {active && LinearGradient("#495464", control)}
       <motion.circle
         animate={control}
@@ -98,13 +99,13 @@ const CircleSvg = ({
       />
     </svg>
     {step === 4 ? (
-      <div className="w-fit h-fit absolute">
+      <div className="w-fit h-fit absolute scale-75 sm:scale-100">
         <Checkmarksvg />
       </div>
     ) : (
       <h3
         style={!active ? { color: "black" } : { color: "white" }}
-        className="text-lg w-fit h-fit absolute text-white font-bold"
+        className="text-xs sm:text-base w-fit h-fit absolute font-bold"
       >
         {step}
       </h3>
@@ -155,24 +156,17 @@ export const StepComponent = ({
   return (
     <div
       key={data.idx}
-      className={`step_container w-45 max-h-75 h-fit flex flex-row justify-center
-        max-small_phone:w-37.5 max-smallest_phone:w-30
-        ${data.step === 2 ? "max-large_phone:grid max-large_phone:place-content-start" : ""}
-        max-smallest_phone:grid max-smallest_phone:place-content-start`}
-      style={data.noline ? { display: "grid", placeContent: "start" } : {}}
+      className="step_container flex-1 flex flex-row items-center justify-center min-w-0"
     >
-      <div className="indicator h-37.5 w-full max-small_phone:h-25 flex flex-col items-center">
+      <div className="indicator flex flex-col items-center justify-center shrink-0">
         <CircleSvg control={sequence} step={data.step} active={isActive} />
-        <h3 className="title text-lg font-medium w-full h-fit text-center">
+        <h3 className="title text-[11px] sm:text-xs md:text-sm font-medium text-center mt-1 px-0.5 whitespace-nowrap">
           {data.title}
         </h3>
       </div>
       <div
         hidden={data.noline}
-        className={`w-full h-fit
-          ${data.step === 2 ? "max-large_phone:hidden" : ""}
-          ${data.step === 1 ? "max-smallest_phone:hidden" : ""}
-          ${data.step === 3 ? "max-smallest_phone:hidden" : ""}`}
+        className="flex-1 hidden sm:block h-fit -mt-4 px-1"
       >
         <LineSvg control={linesequence} active={isActive} />
       </div>
@@ -199,7 +193,7 @@ export const StepIndicator = ({ step }: { step: number }) => {
   }, [step]);
 
   return (
-    <div className="w-full flex flex-row justify-center items-center gap-0 max-small_phone:grid max-small_phone:grid-cols-2 max-small_phone:gap-y-4 max-small_phone:px-4">
+    <div className="w-full max-w-2xl mx-auto flex flex-row justify-between items-center gap-1 sm:gap-2 px-1 sm:px-4">
       {stepdata.map((s, idx) => (
         <StepComponent
           key={idx}

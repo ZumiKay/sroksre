@@ -91,13 +91,10 @@ export default async function ProductDetailPage({
   }
 
   return (
-    <div className="productdetail__container h-full pt-5">
-      <div
-        className="product_section flex flex-row w-full h-fit 
-      max-smallest_tablet:flex-col max-smallest_tablet:items-center"
-      >
-        <div className="w-full h-fit overflow-x-auto">
-          <div className="w-full grid grid-cols-2 gap-3 max-small_screen:flex max-small_screen:flex-row max-small_screen:justify-start max-small_screen:items-center">
+    <div className="productdetail__container w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div className="product_section flex flex-col lg:flex-row w-full gap-8 lg:gap-12 items-start">
+        <div className="w-full lg:w-1/2 overflow-hidden">
+          <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-3 max-sm:flex max-sm:overflow-x-auto max-sm:snap-x max-sm:snap-mandatory max-sm:pb-4 scrollbar-hide">
             {data?.data.covers.map((img, idx) => (
               <ProductCoverImage
                 key={idx}
@@ -108,11 +105,8 @@ export default async function ProductDetailPage({
             ))}
           </div>
         </div>
-        <div
-          className="product_detail  w-3/4 max-smallest_tablet:w-[95vw] 
-        max-smallest_tablet:pl-0 flex flex-col pl-4 gap-y-10 h-fit"
-        >
-          <h3 className="product_name text-3xl font-bold h-fit pt-1 wrap-break-word">
+        <div className="product_detail w-full lg:w-1/2 flex flex-col gap-y-6 sm:gap-y-8">
+          <h3 className="product_name text-2xl sm:text-3xl font-bold h-fit pt-1 wrap-break-word">
             {data?.data.name}
           </h3>
           <p className="product_description text-lg font-normal w-full">
@@ -207,20 +201,20 @@ export default async function ProductDetailPage({
 
 const ShowRelated = ({ data }: { data: Relatedproducttype[] }) => {
   return (
-    <div className="w-full h-fit grid grid-cols-3 gap-y-5">
+    <div className="w-full h-fit grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
       {data.map((related) => (
         <Link key={related.id} href={`/product/detail/${related.id}`}>
-          <div className="w-50 h-fit flex flex-col gap-y-3 items-center justify-center p-2 rounded-lg border-2 border-black transition-all duration-200 hover:bg-black hover:text-white cursor-pointer">
+          <div className="w-full h-fit flex flex-col gap-y-2 items-center justify-center p-3 rounded-xl border border-gray-200 hover:border-black transition-all duration-200 hover:bg-black hover:text-white cursor-pointer group">
             <Image
               src={related.covers[0].url}
               alt={related.name}
-              className="w-25 h-25 object-cover rounded-lg"
+              className="w-20 h-20 sm:w-24 sm:h-24 object-cover rounded-lg"
               width={100}
               height={100}
               loading="lazy"
               quality={75}
             />
-            <h3 className="w-full text-center">{related.name}</h3>
+            <h3 className="w-full text-center text-xs sm:text-sm font-medium line-clamp-2">{related.name}</h3>
           </div>
         </Link>
       ))}
