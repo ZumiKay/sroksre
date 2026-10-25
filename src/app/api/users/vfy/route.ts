@@ -1,8 +1,5 @@
 import Prisma from "@/src/lib/prisma";
-import {
-  generateRandomNumber,
-  generateRandomPassword,
-} from "@/src/lib/utilities";
+import { generateRandomNumber, generateRandomPassword } from "@/src/lib/utilities";
 import { z } from "zod";
 
 import { NextRequest } from "next/server";
@@ -14,7 +11,7 @@ interface Vfydatatype {
   type: "register" | "forgot";
 }
 
-const verifyEmail = z.object({ email: z.string().email() });
+const verifyEmail = z.object({ email: z.email() });
 
 export async function POST(request: NextRequest) {
   try {
@@ -93,10 +90,7 @@ export async function POST(request: NextRequest) {
     }
   } catch (error: any) {
     if (error?.issues) {
-      return Response.json(
-        { message: error.issues[0].message },
-        { status: 500 },
-      );
+      return Response.json({ message: error.issues[0].message }, { status: 500 });
     }
     console.log("Verify User", error);
     return Response.json({ message: "Error Occured" }, { status: 500 });
@@ -119,10 +113,7 @@ export async function DELETE(request: NextRequest) {
         });
         return Response.json({ status: 200 });
       } else {
-        return Response.json(
-          { message: "what you try to do?" },
-          { status: 404 },
-        );
+        return Response.json({ message: "what you try to do?" }, { status: 404 });
       }
     } else {
       const alluser = await Prisma.user.findMany({
