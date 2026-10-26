@@ -45,7 +45,7 @@ A full-stack e-commerce platform built with Next.js 16 and React 19. Supports pr
 - Login rate limiting and account lockdown after repeated failures
 - Multi-device session viewer — inspect and revoke individual device sessions
 - Role-based access control (ADMIN / USER) enforced at middleware and API level
-- Google reCAPTCHA on sensitive forms
+- Cloudflare Turnstile on sensitive forms
 
 ### Notifications
 - In-app notification system for order events (new order, order confirmed) and stock alerts (out-of-stock after purchase)
@@ -189,8 +189,8 @@ sroksre/
 | `PAYPAL_BASE` | PayPal API base URL (`https://api-m.sandbox.paypal.com` for sandbox) |
 | `NEXT_PUBLIC_PAYPAL_ID` | PayPal client ID |
 | `PAYPAL_KEY` | PayPal client secret |
-| `NEXT_PUBLIC_CAPTCHA_KEY` | Google reCAPTCHA site key |
-| `CAPTCHA_SECRETKEY` | Google reCAPTCHA secret key |
+| `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Cloudflare Turnstile site key |
+| `TURNSTILE_SECRET_KEY` | Cloudflare Turnstile secret key |
 | `BLOB_READ_WRITE_TOKEN` | Vercel Blob access token |
 | `NEXT_PUBLIC_BASE_URL` | Public base URL (used in emails and links) |
 | `NEXT_PUBLIC_SOCKET_URL` | Socket.io server URL |

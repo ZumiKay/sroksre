@@ -18,6 +18,8 @@ export interface RegisterUser {
   role?: Role;
   type?: string;
   phonenumber?: string;
+  /** Email verification code, required when claiming a pending sign-up by id */
+  cid?: string;
 }
 
 export interface DeviceInfo {
@@ -33,9 +35,7 @@ interface AuthReturnType {
 }
 
 //encode secret
-export const secretkey = new TextEncoder().encode(
-  process.env.JWT_SECRET as string,
-);
+export const secretkey = new TextEncoder().encode(process.env.JWT_SECRET as string);
 
 /**@requires For Usersession ONLY */
 const generateSessionId = (): string => {
@@ -171,11 +171,11 @@ export const createToken = async (payload: {
 export const validateUserInput = z.object({
   firstname: z.string().max(50),
   lastname: z.string().max(50),
-  email: z.string().email(),
+  email: z.email(),
 });
 
 export const verifyUserLoginInput = z.object({
-  email: z.string().email(),
+  email: z.email(),
   password: z.string(),
 });
 
@@ -333,17 +333,12 @@ export const recordFailedLoginAttempt = async (
 
     // Reset attempts if last attempt was outside the window
     const shouldReset = existingAttempt.lastAttemptAt < attemptWindowStart;
-    const newAttemptCount = shouldReset
-      ? 1
-      : existingAttempt.failedAttempts + 1;
+    const newAttemptCount = shouldReset ? 1 : existingAttempt.failedAttempts + 1;
 
     // Check if account should be locked
     const shouldLock = newAttemptCount >= LOGIN_ATTEMPT_CONFIG.MAX_ATTEMPTS;
     const lockedUntil = shouldLock
-      ? new Date(
-          now.getTime() +
-            LOGIN_ATTEMPT_CONFIG.LOCKOUT_DURATION_MINUTES * 60 * 1000,
-        )
+      ? new Date(now.getTime() + LOGIN_ATTEMPT_CONFIG.LOCKOUT_DURATION_MINUTES * 60 * 1000)
       : null;
 
     await Prisma.loginAttempt.update({
@@ -358,9 +353,7 @@ export const recordFailedLoginAttempt = async (
 
     return {
       isLocked: shouldLock,
-      remainingTime: shouldLock
-        ? LOGIN_ATTEMPT_CONFIG.LOCKOUT_DURATION_MINUTES
-        : undefined,
+      remainingTime: shouldLock ? LOGIN_ATTEMPT_CONFIG.LOCKOUT_DURATION_MINUTES : undefined,
       attempts: newAttemptCount,
     };
   } catch (error) {
@@ -431,10 +424,7 @@ export const userlogin = async (
       return { success: false, message: "Incorrect Information" };
     }
 
-    const isValidPassword = await compare(
-      credential.password as string,
-      user.password,
-    );
+    const isValidPassword = await compare(credential.password as string, user.password);
 
     if (!isValidPassword) {
       // Record failed attempt
@@ -447,8 +437,7 @@ export const userlogin = async (
         };
       }
 
-      const remainingAttempts =
-        LOGIN_ATTEMPT_CONFIG.MAX_ATTEMPTS - attemptResult.attempts;
+      const remainingAttempts = LOGIN_ATTEMPT_CONFIG.MAX_ATTEMPTS - attemptResult.attempts;
       return {
         success: false,
         message: `Incorrect Information. ${remainingAttempts} attempt(s) remaining before account lockout.`,
@@ -494,9 +483,7 @@ interface RegisterReturnType {
   message?: string;
 }
 
-export const registerUser = async (
-  data: RegisterUser,
-): Promise<RegisterReturnType> => {
+export const registerUser = async (data: RegisterUser): Promise<RegisterReturnType> => {
   try {
     validateUserInput.parse(data);
 
@@ -524,8 +511,22 @@ export const registerUser = async (
     if (!data.id) {
       await Prisma.user.create({ data: userData });
     } else {
+      // An id may only claim the pending sign-up placeholder that
+      // /api/users/vfy created (empty email), and only with its code.
+      // Without this, any account could be overwritten by passing its id.
+      const pending = data.cid
+        ? await Prisma.user.findFirst({
+            where: { id: data.id, vfy: data.cid, email: "" },
+            select: { id: true },
+          })
+        : null;
+
+      if (!pending) {
+        return { success: false, message: "Invalid verification code" };
+      }
+
       await Prisma.user.update({
-        where: { id: data.id },
+        where: { id: pending.id },
         data: { ...userData, vfy: null },
       });
     }
@@ -587,10 +588,7 @@ export const handleCheckandRegisterUser = async ({
 export const getOAuthInfo = async (
   oauthId: string,
   email: string,
-  deviceInfo?: Pick<
-    Usersessiontype,
-    "device" | "userAgent" | "ipAddress"
-  > | null,
+  deviceInfo?: Pick<Usersessiontype, "device" | "userAgent" | "ipAddress"> | null,
 ): Promise<{
   id: number;
   oauthId: string;
@@ -611,10 +609,7 @@ export const getOAuthInfo = async (
       ipAddress: "Unknown",
     };
 
-    const sessionid = await createUserSession(
-      user.id,
-      (deviceInfo as any) || defaultDeviceInfo,
-    );
+    const sessionid = await createUserSession(user.id, (deviceInfo as any) || defaultDeviceInfo);
 
     return {
       id: user.id,

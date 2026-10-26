@@ -25,6 +25,7 @@ jest.mock("zod", () => {
       string: jest.fn(() => createZodChain()),
       number: jest.fn(() => createZodChain()),
       boolean: jest.fn(() => createZodChain()),
+      email: jest.fn(() => createZodChain()),
       object: jest.fn((_schema) => ({
         parse: jest.fn((data) => data),
         safeParse: jest.fn(),
@@ -62,7 +63,12 @@ const mockCheckPassword = utilities.checkpassword as jest.MockedFunction<
 
 // Mock Prisma methods
 const mockPrisma = Prisma as unknown as {
-  user: { findUnique: jest.Mock; findFirst: jest.Mock; create: jest.Mock };
+  user: {
+    findUnique: jest.Mock;
+    findFirst: jest.Mock;
+    create: jest.Mock;
+    update: jest.Mock;
+  };
   usersession: {
     create: jest.Mock;
     findFirst: jest.Mock;
@@ -75,6 +81,7 @@ mockPrisma.user = {
   findUnique: jest.fn(),
   findFirst: jest.fn(),
   create: jest.fn(),
+  update: jest.fn(),
 };
 mockPrisma.usersession = {
   findFirst: jest.fn(),
@@ -227,6 +234,59 @@ describe("Testing Authentication && Authorization", () => {
 
       expect(result).toEqual({ success: true });
       expect(mockPrisma.user.create).toHaveBeenCalledTimes(1);
+    });
+
+    describe("claiming a pending sign-up by id", () => {
+      beforeEach(() => {
+        (mockPrisma.user.findUnique as jest.Mock).mockResolvedValue(null);
+        mockCheckPassword.mockReturnValue({ isValid: true, error: "" });
+        mockHashSync.mockReturnValue("randomhashed" as never);
+      });
+
+      it("updates the placeholder when id and code match", async () => {
+        (mockPrisma.user.findFirst as jest.Mock).mockResolvedValue({ id: 5 });
+        (mockPrisma.user.update as jest.Mock).mockResolvedValue({});
+
+        const result = await registerUser({
+          ...mockRegisterData,
+          id: 5,
+          cid: "123456",
+        });
+
+        expect(result).toEqual({ success: true });
+        expect(mockPrisma.user.findFirst).toHaveBeenCalledWith({
+          where: { id: 5, vfy: "123456", email: "" },
+          select: { id: true },
+        });
+        expect(mockPrisma.user.update).toHaveBeenCalledWith(
+          expect.objectContaining({ where: { id: 5 } }),
+        );
+      });
+
+      it("refuses to overwrite an account without a code", async () => {
+        const result = await registerUser({ ...mockRegisterData, id: 1 });
+
+        expect(result).toEqual({
+          success: false,
+          message: "Invalid verification code",
+        });
+        expect(mockPrisma.user.findFirst).not.toHaveBeenCalled();
+        expect(mockPrisma.user.update).not.toHaveBeenCalled();
+      });
+
+      it("refuses when id is not a pending placeholder with that code", async () => {
+        (mockPrisma.user.findFirst as jest.Mock).mockResolvedValue(null);
+
+        const result = await registerUser({
+          ...mockRegisterData,
+          id: 1,
+          cid: "000000",
+        });
+
+        expect(result.success).toBe(false);
+        expect(mockPrisma.user.update).not.toHaveBeenCalled();
+        expect(mockPrisma.user.create).not.toHaveBeenCalled();
+      });
     });
 
     it("should return error when user already exists", async () => {
