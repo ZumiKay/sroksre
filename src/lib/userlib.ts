@@ -18,6 +18,8 @@ export interface RegisterUser {
   role?: Role;
   type?: string;
   phonenumber?: string;
+  /** Email verification code, required when claiming a pending sign-up by id */
+  cid?: string;
 }
 
 export interface DeviceInfo {
@@ -509,8 +511,22 @@ export const registerUser = async (data: RegisterUser): Promise<RegisterReturnTy
     if (!data.id) {
       await Prisma.user.create({ data: userData });
     } else {
+      // An id may only claim the pending sign-up placeholder that
+      // /api/users/vfy created (empty email), and only with its code.
+      // Without this, any account could be overwritten by passing its id.
+      const pending = data.cid
+        ? await Prisma.user.findFirst({
+            where: { id: data.id, vfy: data.cid, email: "" },
+            select: { id: true },
+          })
+        : null;
+
+      if (!pending) {
+        return { success: false, message: "Invalid verification code" };
+      }
+
       await Prisma.user.update({
-        where: { id: data.id },
+        where: { id: pending.id },
         data: { ...userData, vfy: null },
       });
     }

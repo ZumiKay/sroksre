@@ -1,5 +1,6 @@
 "use client";
-import { ChangeEvent, SubmitEvent, useState } from "react";
+import { ChangeEvent, SubmitEvent, useRef, useState } from "react";
+import type { TurnstileInstance } from "@marsidev/react-turnstile";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faDiscord, faGoogle } from "@fortawesome/free-brands-svg-icons";
 import PrimaryButton from "../component/Button";
@@ -16,8 +17,7 @@ import ReactDOMServer from "react-dom/server";
 import { CredentialEmail } from "../component/EmailTemplate";
 import { SendVfyEmail } from "./actions";
 import { PasswordInput } from "../component/FormComponent";
-import RecapchaContainer from "../component/RecaphaComponent";
-import { VerifyRecapcha } from "../severactions/RecapchaAction";
+import TurnstileContainer from "../component/TurnstileComponent";
 import { Button, Checkbox } from "@heroui/react";
 import { userdata } from "@/src/types/user.type";
 
@@ -45,6 +45,7 @@ export default function AuthenticatePage() {
     email: false,
     cid: false,
   });
+  const turnstileRef = useRef<TurnstileInstance | undefined>(undefined);
 
   const handleLogin = async (e: SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -110,16 +111,7 @@ export default function AuthenticatePage() {
 
     setloading("loading");
 
-    //verify GOOGLE RECAPCHAv2
-    const verify = VerifyRecapcha.bind(null, data.recapcha);
-    const req = await verify();
-
-    if (!req.success) {
-      setloading("authenticated");
-      errorToast("Invalid Recapcha");
-      return;
-    }
-
+    // The Turnstile token (data.recapcha) is verified by the register API
     const request = await ApiRequest(
       "/api/auth/register",
       undefined,
@@ -128,6 +120,10 @@ export default function AuthenticatePage() {
       data,
     );
     setloading("authenticated");
+
+    // Turnstile tokens are single-use: get a fresh one for any retry
+    turnstileRef.current?.reset();
+    setdata((prev) => ({ ...prev, recapcha: null }));
 
     if (!request.success) {
       const error = request.message;
@@ -370,8 +366,8 @@ export default function AuthenticatePage() {
                   </div>
 
                   <div className="w-full flex justify-center">
-                    <RecapchaContainer
-                      captchaValue={data.recapcha}
+                    <TurnstileContainer
+                      ref={turnstileRef}
                       setcaptchaValue={(value) =>
                         setdata((prev) => ({ ...prev, recapcha: value }))
                       }
