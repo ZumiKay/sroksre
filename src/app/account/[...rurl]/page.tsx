@@ -1,33 +1,30 @@
-import Prisma from "@/src/lib/prisma";
 import { notFound } from "next/navigation";
+import { findResetToken } from "@/src/lib/emailVerification";
 import ResetPasswordForm from "./ResetPasswordForm";
 
+// Password reset link: /account/reset/<token>
 export default async function ResetPage({
   params,
 }: {
-  params: Promise<{ rurl: string }>;
+  params: Promise<{ rurl: string[] }>;
 }) {
   const { rurl } = await params;
-  const URL = decodeURIComponent(rurl);
-  const match = URL.match(/cid=(\d+)/);
-
-  if (!match) {
+  if (rurl.length !== 2 || rurl[0] !== "reset") {
     notFound();
   }
 
-  // Verify user on server side
-  const user = await Prisma.user.findFirst({
-    where: { vfy: match[1] },
-    select: { id: true, vfy: true },
-  });
+  const token = decodeURIComponent(rurl[1]);
+  const record = await findResetToken(token);
 
-  if (!user || !user.vfy) {
+  if (!record) {
     return (
       <div className="min-h-[50vh] w-full flex flex-col gap-y-5 items-center justify-center">
-        <h1 className="text-xl font-black text-incart"> 404 | Not Found</h1>
+        <h1 className="text-xl font-black text-incart">
+          This reset link is invalid or has expired
+        </h1>
       </div>
     );
   }
 
-  return <ResetPasswordForm cid={match[1]} />;
+  return <ResetPasswordForm token={token} />;
 }

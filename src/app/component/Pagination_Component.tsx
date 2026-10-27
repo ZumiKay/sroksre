@@ -93,6 +93,7 @@ export default function PaginationCustom({
             label="Show Per Page"
             placeholder=""
             value={show}
+            allowNone={false}
             setvalue={setshow}
             onChange={(val) => onSelectShowPerPage && onSelectShowPerPage(val)}
           />
@@ -115,6 +116,8 @@ interface SelectionCustomProps {
   size?: "sm" | "md" | "lg";
   defaultValue?: string;
   popoverProps?: Record<string, unknown>;
+  /** Show a "-- None --" option for clearing the value. Defaults to true. */
+  allowNone?: boolean;
 }
 
 export const SelectionCustom = ({
@@ -129,16 +132,17 @@ export const SelectionCustom = ({
   isLoading,
   size,
   popoverProps,
+  allowNone = true,
 }: SelectionCustomProps) => {
   const items = useMemo(
     () => [
-      { label: "-- None --", value: "" },
+      ...(allowNone ? [{ label: "-- None --", value: "" }] : []),
       ...data.map((item) => ({
         label: item.label,
         value: item.value.toString(),
       })),
     ],
-    [data],
+    [data, allowNone],
   );
 
   const selectedKeys = useMemo(
@@ -162,6 +166,9 @@ export const SelectionCustom = ({
       size={size ?? "md"}
       labelPlacement={textplacement}
       selectedKeys={selectedKeys}
+      disallowEmptySelection={!allowNone}
+      // The popup's open/close animation flickers; open it instantly instead.
+      disableAnimation
       style={style}
       isLoading={!!isLoading}
       popoverProps={popoverProps as any}

@@ -32,3 +32,12 @@ export const Imagetemptype = {
 } as const
 
 export type Imagetemptype = (typeof Imagetemptype)[keyof typeof Imagetemptype]
+
+
+export const VerificationPurpose = {
+  SIGNUP: 'SIGNUP',
+  RESET_PASSWORD: 'RESET_PASSWORD',
+  CHANGE_EMAIL: 'CHANGE_EMAIL'
+} as const
+
+export type VerificationPurpose = (typeof VerificationPurpose)[keyof typeof VerificationPurpose]

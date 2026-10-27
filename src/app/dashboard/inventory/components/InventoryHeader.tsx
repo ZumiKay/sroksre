@@ -90,6 +90,7 @@ export const InventoryHeader: React.FC<InventoryHeaderProps> = ({
                 data={filterOptions}
                 placeholder="Item"
                 value={type}
+                allowNone={false}
                 onChange={(val) => onFilterChange(val.toString().toLowerCase())}
                 style={{ width: "140px" }}
               />
@@ -107,7 +108,7 @@ export const InventoryHeader: React.FC<InventoryHeaderProps> = ({
             icon={faBox}
             label="Total"
             value={itemTotal}
-            gradient="from-blue-500 to-cyan-600"
+            color="bg-blue-600"
           />
 
           {type === "product" && (
@@ -115,7 +116,7 @@ export const InventoryHeader: React.FC<InventoryHeaderProps> = ({
               icon={faTriangleExclamation}
               label="Low"
               value={lowstock}
-              gradient="from-red-500 to-pink-600"
+              color="bg-red-600"
               onClick={onLowStockClick}
             />
           )}
@@ -125,7 +126,7 @@ export const InventoryHeader: React.FC<InventoryHeaderProps> = ({
               icon={faClock}
               label="Expired"
               value={promoexpire}
-              gradient="from-orange-500 to-red-600"
+              color="bg-orange-600"
             />
           )}
         </>
@@ -135,7 +136,7 @@ export const InventoryHeader: React.FC<InventoryHeaderProps> = ({
             <ActionButton
               icon={faPercent}
               label="Discount"
-              gradient="from-purple-500 to-pink-600"
+              color="bg-purple-600"
               onClick={onDiscountClick}
             />
           )}
@@ -146,7 +147,7 @@ export const InventoryHeader: React.FC<InventoryHeaderProps> = ({
         <ActionButton
           icon={faPlus}
           label="Add New"
-          gradient="from-green-500 to-emerald-600"
+          color="bg-green-600"
           onClick={onAddBannerClick}
         />
       )}
@@ -159,7 +160,7 @@ export const InventoryHeader: React.FC<InventoryHeaderProps> = ({
           className={`shrink-0 flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-1.5 md:py-2.5 rounded-lg md:rounded-xl shadow-md font-bold text-xs md:text-sm transition-all ${
             isLoadingUpdate
               ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-              : "bg-linear-to-r from-blue-500 to-cyan-600 text-white hover:shadow-lg hover:scale-105"
+              : "bg-blue-600 text-white hover:shadow-lg hover:scale-105"
           }`}
         >
           {isLoadingUpdate ? (
@@ -185,7 +186,7 @@ export const InventoryHeader: React.FC<InventoryHeaderProps> = ({
       <ActionButton
         icon={faFilter}
         label="Filter"
-        gradient={hasActiveFilters ? "from-blue-600 to-indigo-700" : "from-cyan-500 to-blue-600"}
+        color={hasActiveFilters ? "bg-indigo-700" : "bg-blue-600"}
         onClick={onFilterClick}
       />
 
@@ -199,13 +200,13 @@ const StatBadge: React.FC<{
   icon: IconDefinition;
   label: string;
   value: number;
-  gradient: string;
+  color: string;
   onClick?: () => void;
-}> = ({ icon, label, value, gradient, onClick }) => (
+}> = ({ icon, label, value, color, onClick }) => (
   <div
     role={onClick ? "button" : undefined}
     onClick={onClick}
-    className={`shrink-0 flex items-center gap-1.5 md:gap-2 px-2.5 md:px-4 py-1.5 md:py-2.5 bg-linear-to-r ${gradient} text-white rounded-lg md:rounded-xl shadow-md hover:shadow-lg transition-all ${
+    className={`shrink-0 flex items-center gap-1.5 md:gap-2 px-2.5 md:px-4 py-1.5 md:py-2.5 ${color} text-white rounded-lg md:rounded-xl shadow-md hover:shadow-lg transition-all ${
       onClick ? "cursor-pointer hover:scale-105 active:scale-95" : ""
     }`}
   >
@@ -219,13 +220,13 @@ const StatBadge: React.FC<{
 const ActionButton: React.FC<{
   icon: IconDefinition;
   label: string;
-  gradient: string;
+  color: string;
   onClick: () => void;
-}> = ({ icon, label, gradient, onClick }) => (
+}> = ({ icon, label, color, onClick }) => (
   <button
     type="button"
     onClick={onClick}
-    className={`shrink-0 flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-1.5 md:py-2.5 bg-linear-to-r ${gradient} text-white rounded-lg md:rounded-xl shadow-md hover:shadow-lg transition-all hover:scale-105 font-bold text-xs md:text-sm`}
+    className={`shrink-0 flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-1.5 md:py-2.5 ${color} text-white rounded-lg md:rounded-xl shadow-md hover:shadow-lg transition-all hover:scale-105 font-bold text-xs md:text-sm`}
   >
     <FontAwesomeIcon icon={icon} className={`text-sm md:text-base`} />
     <span className="whitespace-nowrap">{label}</span>
@@ -242,7 +243,7 @@ const ViewModeToggle: React.FC<{
       onClick={() => onChange("card")}
       className={`px-2.5 md:px-3 py-1.5 md:py-2 transition-all ${
         viewMode === "card"
-          ? "bg-linear-to-r from-indigo-500 to-purple-600 text-white"
+          ? "bg-indigo-600 text-white"
           : "text-gray-600 hover:bg-gray-100"
       }`}
       title="Card View"
@@ -254,7 +255,7 @@ const ViewModeToggle: React.FC<{
       onClick={() => onChange("list")}
       className={`px-2.5 md:px-3 py-1.5 md:py-2 transition-all ${
         viewMode === "list"
-          ? "bg-linear-to-r from-indigo-500 to-purple-600 text-white"
+          ? "bg-indigo-600 text-white"
           : "text-gray-600 hover:bg-gray-100"
       }`}
       title="List View"

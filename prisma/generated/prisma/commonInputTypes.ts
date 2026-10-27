@@ -388,6 +388,23 @@ export type BoolNullableWithAggregatesFilter<$PrismaModel = never> = {
   _max?: Prisma.NestedBoolNullableFilter<$PrismaModel>
 }
 
+export type EnumVerificationPurposeFilter<$PrismaModel = never> = {
+  equals?: $Enums.VerificationPurpose | Prisma.EnumVerificationPurposeFieldRefInput<$PrismaModel>
+  in?: $Enums.VerificationPurpose[] | Prisma.ListEnumVerificationPurposeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.VerificationPurpose[] | Prisma.ListEnumVerificationPurposeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumVerificationPurposeFilter<$PrismaModel> | $Enums.VerificationPurpose
+}
+
+export type EnumVerificationPurposeWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.VerificationPurpose | Prisma.EnumVerificationPurposeFieldRefInput<$PrismaModel>
+  in?: $Enums.VerificationPurpose[] | Prisma.ListEnumVerificationPurposeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.VerificationPurpose[] | Prisma.ListEnumVerificationPurposeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumVerificationPurposeWithAggregatesFilter<$PrismaModel> | $Enums.VerificationPurpose
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumVerificationPurposeFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumVerificationPurposeFilter<$PrismaModel>
+}
+
 export type NestedIntFilter<$PrismaModel = never> = {
   equals?: number | Prisma.IntFieldRefInput<$PrismaModel>
   in?: number[] | Prisma.ListIntFieldRefInput<$PrismaModel>
@@ -697,6 +714,23 @@ export type NestedBoolNullableWithAggregatesFilter<$PrismaModel = never> = {
   _count?: Prisma.NestedIntNullableFilter<$PrismaModel>
   _min?: Prisma.NestedBoolNullableFilter<$PrismaModel>
   _max?: Prisma.NestedBoolNullableFilter<$PrismaModel>
+}
+
+export type NestedEnumVerificationPurposeFilter<$PrismaModel = never> = {
+  equals?: $Enums.VerificationPurpose | Prisma.EnumVerificationPurposeFieldRefInput<$PrismaModel>
+  in?: $Enums.VerificationPurpose[] | Prisma.ListEnumVerificationPurposeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.VerificationPurpose[] | Prisma.ListEnumVerificationPurposeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumVerificationPurposeFilter<$PrismaModel> | $Enums.VerificationPurpose
+}
+
+export type NestedEnumVerificationPurposeWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.VerificationPurpose | Prisma.EnumVerificationPurposeFieldRefInput<$PrismaModel>
+  in?: $Enums.VerificationPurpose[] | Prisma.ListEnumVerificationPurposeFieldRefInput<$PrismaModel>
+  notIn?: $Enums.VerificationPurpose[] | Prisma.ListEnumVerificationPurposeFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumVerificationPurposeWithAggregatesFilter<$PrismaModel> | $Enums.VerificationPurpose
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumVerificationPurposeFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumVerificationPurposeFilter<$PrismaModel>
 }
 
 

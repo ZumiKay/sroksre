@@ -5,36 +5,24 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faDiscord, faGoogle } from "@fortawesome/free-brands-svg-icons";
 import PrimaryButton from "../component/Button";
 import { signIn } from "next-auth/react";
-import {
-  ContainerLoading,
-  errorToast,
-  successToast,
-} from "../component/Loading";
+import { errorToast, successToast } from "../component/Loading";
 import { useRouter } from "next/navigation";
-import { useGlobalContext, Userinitialize } from "@/src/context/GlobalContext";
+import { Userinitialize } from "@/src/context/GlobalContext";
 import { ApiRequest } from "@/src/context/CustomHook";
-import ReactDOMServer from "react-dom/server";
-import { CredentialEmail } from "../component/EmailTemplate";
-import { SendVfyEmail } from "./actions";
 import { PasswordInput } from "../component/FormComponent";
 import TurnstileContainer from "../component/TurnstileComponent";
 import { Button, Checkbox } from "@heroui/react";
 import { userdata } from "@/src/types/user.type";
 
 const validatePassword = (password: string) => {
-  return (
-    password.length >= 8 &&
-    /[!@#$%^&*(),.?":{}|<>]/.test(password) &&
-    /\d/.test(password)
-  );
+  return password.length >= 8 && /[!@#$%^&*(),.?":{}|<>]/.test(password) && /\d/.test(password);
 };
 export default function AuthenticatePage() {
   const router = useRouter();
-  const { setisLoading, isLoading } = useGlobalContext();
   const [type, settype] = useState<"login" | "register" | "forget">("login");
-  const [loading, setloading] = useState<
-    "authenticated" | "loading" | "unauthenticated"
-  >("unauthenticated");
+  const [loading, setloading] = useState<"authenticated" | "loading" | "unauthenticated">(
+    "unauthenticated",
+  );
   const [data, setdata] = useState<userdata>({
     email: "",
     password: "",
@@ -84,12 +72,7 @@ export default function AuthenticatePage() {
 
   const handleRegisterUser = async () => {
     //Validate user input data
-    if (
-      !data.password ||
-      !data.firstname ||
-      !data.confirmpassword ||
-      !data.recapcha
-    ) {
+    if (!data.password || !data.firstname || !data.confirmpassword || !data.recapcha) {
       errorToast("Fill in all required");
       return;
     }
@@ -111,17 +94,10 @@ export default function AuthenticatePage() {
 
     setloading("loading");
 
-    // The Turnstile token (data.recapcha) is verified by the register API
-    const request = await ApiRequest(
-      "/api/auth/register",
-      undefined,
-      "POST",
-      "JSON",
-      data,
-    );
+    const request = await ApiRequest("/api/auth/register", undefined, "POST", "JSON", data);
     setloading("authenticated");
 
-    // Turnstile tokens are single-use: get a fresh one for any retry
+    // Turnstile tokens are single-use
     turnstileRef.current?.reset();
     setdata((prev) => ({ ...prev, recapcha: null }));
 
@@ -144,87 +120,47 @@ export default function AuthenticatePage() {
     const { value, name, checked } = e.target;
     setdata({ ...data, [name]: name === "agreement" ? checked : value });
   };
+
+  /*Reset account hnadler using email/code verfification*/
   const handleConfirm = async (types: "email" | "cid") => {
     const isEmailType = types === "email";
-    const URL = `/api/users/vfy${types === "cid" ? `?cid=${data.cid}` : ""}`;
 
-    if (isEmailType && !data.email) {
+    if (!data.email) {
       errorToast("Email Required");
-      return setloading("authenticated");
+      return;
+    }
+    if (!isEmailType && !/^\d{6}$/.test(data.cid ?? "")) {
+      errorToast("Enter the 6-digit code");
+      return;
     }
 
     setloading("loading");
-    const requestBody = isEmailType ? { email: data.email, type } : undefined;
-    const method = isEmailType ? "POST" : "GET";
+    const verifyreq = isEmailType
+      ? await ApiRequest("/api/users/vfy", undefined, "POST", "JSON", {
+          email: data.email,
+          type: type === "register" ? "register" : "forgot",
+        })
+      : await ApiRequest("/api/users/vfy/check", undefined, "POST", "JSON", {
+          email: data.email,
+          code: data.cid,
+        });
+    setloading("authenticated");
 
-    // Make API request
-    const verifyreq = await ApiRequest(
-      URL,
-      undefined,
-      method,
-      "JSON",
-      requestBody,
-    );
+    if (!verifyreq.success) {
+      errorToast(verifyreq.message ?? "Error Occurred");
+      return;
+    }
 
-    if (types === "cid") setloading("authenticated");
-
-    if (verifyreq.success) {
-      const vfydata = verifyreq.data;
-
-      if (isEmailType && data.email) {
-        const emailSubject =
-          type === "register" ? "Email Verification" : "Reset Password";
-        const emailTemplate = ReactDOMServer.renderToString(
-          <CredentialEmail {...vfydata} />,
-        );
-        const sendemail = SendVfyEmail.bind(
-          null,
-          emailTemplate,
-          data.email,
-          emailSubject,
-        );
-
-        const makereq = await sendemail();
-        setloading("authenticated");
-
-        if (!makereq.success) {
-          errorToast("Error occurred");
-          return;
-        }
-
-        successToast("Please Check Your Email");
-        setdata((prev) => ({ ...prev, password: "", confirmpassword: "" }));
-      }
-
-      if (type === "register") {
-        setverify((prev) => ({ ...prev, [types]: true }));
-        if (vfydata?.id) setdata((prev) => ({ ...prev, id: vfydata.id }));
-      }
+    if (type === "register") {
+      if (isEmailType) successToast("Please Check Your Email");
+      setverify((prev) => ({ ...prev, [types]: true }));
     } else {
-      // Handle error scenario
-      setloading("authenticated");
-      errorToast(verifyreq.error ?? "Error Occurred");
-
-      if (type === "register") {
-        setverify((prev) => ({ ...prev, [types]: false }));
-      }
+      successToast(verifyreq.message ?? "Please Check Your Email");
     }
   };
 
-  const handleBack = async () => {
-    if (verify.email) {
-      const deletecid = await ApiRequest(
-        "/api/users/vfy",
-        setisLoading,
-        "DELETE",
-        "JSON",
-        { type: "email", cid: data.cid },
-      );
-      if (!deletecid.success) {
-        errorToast("Error Occured");
-        return;
-      }
-    }
+  const handleBack = () => {
+    setdata(Userinitialize);
     settype("login");
     setverify({ cid: false, email: false });
   };
@@ -277,9 +213,7 @@ export default function AuthenticatePage() {
             <div className="w-full space-y-4">
               {!verify.email ? (
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">
-                    Email Address
-                  </label>
+                  <label className="text-sm font-medium text-gray-700">Email Address</label>
                   <input
                     type="email"
                     name="email"
@@ -292,13 +226,14 @@ export default function AuthenticatePage() {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">
-                    Verification Code
-                  </label>
+                  <label className="text-sm font-medium text-gray-700">Verification Code</label>
                   <input
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    maxLength={6}
                     name="cid"
-                    value={data.cid}
+                    value={data.cid ?? ""}
                     placeholder="Enter 6-digit code"
                     className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-hidden text-gray-700 text-center text-2xl tracking-widest"
                     onChange={handleChange}
@@ -312,9 +247,7 @@ export default function AuthenticatePage() {
               {verify.email && verify.cid && (
                 <>
                   <div className="w-full space-y-2">
-                    <label className="text-sm font-medium text-gray-700">
-                      First Name
-                    </label>
+                    <label className="text-sm font-medium text-gray-700">First Name</label>
                     <input
                       type="text"
                       className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-hidden text-gray-700"
@@ -326,9 +259,7 @@ export default function AuthenticatePage() {
                     />
                   </div>
                   <div className="w-full space-y-2">
-                    <label className="text-sm font-medium text-gray-700">
-                      Last Name
-                    </label>
+                    <label className="text-sm font-medium text-gray-700">Last Name</label>
                     <input
                       type="text"
                       className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-hidden text-gray-700"
@@ -368,9 +299,7 @@ export default function AuthenticatePage() {
                   <div className="w-full flex justify-center">
                     <TurnstileContainer
                       ref={turnstileRef}
-                      setcaptchaValue={(value) =>
-                        setdata((prev) => ({ ...prev, recapcha: value }))
-                      }
+                      setcaptchaValue={(value) => setdata((prev) => ({ ...prev, recapcha: value }))}
                     />
                   </div>
                   <div className="w-full">
@@ -420,9 +349,7 @@ export default function AuthenticatePage() {
                     height="40px"
                     radius="10px"
                     status={loading}
-                    onClick={() =>
-                      handleConfirm(!verify.email ? "email" : "cid")
-                    }
+                    onClick={() => handleConfirm(!verify.email ? "email" : "cid")}
                   />
                 )}
                 <PrimaryButton
@@ -432,7 +359,7 @@ export default function AuthenticatePage() {
                   width="100%"
                   height="40px"
                   radius="10px"
-                  status={isLoading.DELETE ? "loading" : "authenticated"}
+                  status={loading === "loading" ? "loading" : "authenticated"}
                   onClick={() => handleBack()}
                 />
               </div>
@@ -440,9 +367,7 @@ export default function AuthenticatePage() {
           ) : (
             <>
               <div className="w-full space-y-2">
-                <label className="text-sm font-medium text-gray-700">
-                  Email Address
-                </label>
+                <label className="text-sm font-medium text-gray-700">Email Address</label>
                 <input
                   type="email"
                   name="email"
@@ -483,9 +408,7 @@ export default function AuthenticatePage() {
                       Login
                     </Button>
                     <div className="text-center">
-                      <span className="text-gray-600 text-sm">
-                        Don&apos;t have an account?{" "}
-                      </span>
+                      <span className="text-gray-600 text-sm">Don&apos;t have an account? </span>
                       <span
                         onClick={() => {
                           setdata(Userinitialize);
@@ -502,9 +425,7 @@ export default function AuthenticatePage() {
                         <div className="w-full border-t border-gray-300"></div>
                       </div>
                       <div className="relative flex justify-center text-sm">
-                        <span className="px-2 bg-white text-gray-500">
-                          Or continue with
-                        </span>
+                        <span className="px-2 bg-white text-gray-500">Or continue with</span>
                       </div>
                     </div>
 
@@ -514,10 +435,7 @@ export default function AuthenticatePage() {
                         onClick={() => servicesSignIn("google")}
                         className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-gray-700 font-medium"
                       >
-                        <FontAwesomeIcon
-                          icon={faGoogle}
-                          className="text-lg text-red-500"
-                        />
+                        <FontAwesomeIcon icon={faGoogle} className="text-lg text-red-500" />
                         <span>Continue with Gmail</span>
                       </button>
                       <button
@@ -580,22 +498,15 @@ export const PasswordVerification = ({ password }: { password: string }) => {
 
   return (
     <div className="password_verification w-full h-fit flex flex-col gap-3 bg-linear-to-br from-gray-50 to-blue-50 p-4 rounded-lg border border-gray-200">
-      <p className="text-sm font-semibold text-gray-700">
-        Password requirements:
-      </p>
+      <p className="text-sm font-semibold text-gray-700">Password requirements:</p>
       <ul className="space-y-2">
         {PasswordRequirement.map((requirement, idx) => {
           const isValid = validationStatus[requirement.value];
           return (
-            <li
-              key={idx}
-              className="flex items-center gap-2 text-sm font-medium"
-            >
+            <li key={idx} className="flex items-center gap-2 text-sm font-medium">
               <span
                 className={`shrink-0 w-5 h-5 rounded-full flex items-center justify-center ${
-                  !isValid
-                    ? "bg-red-100 text-red-600"
-                    : "bg-green-100 text-green-600"
+                  !isValid ? "bg-red-100 text-red-600" : "bg-green-100 text-green-600"
                 }`}
               >
                 {isValid ? "✓" : "×"}

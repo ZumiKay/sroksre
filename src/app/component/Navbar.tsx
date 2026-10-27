@@ -694,7 +694,7 @@ export const SubInventoryMenu = memo((props: Subinventorymenuprops) => {
     ],
   );
   return (
-    <Dropdown classNames={DROPDOWN_CLASSNAMES}>
+    <Dropdown classNames={DROPDOWN_CLASSNAMES} disableAnimation>
       <DropdownTrigger>
         <Button
           color={props.type ? "default" : "success"}

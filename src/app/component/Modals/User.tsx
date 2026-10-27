@@ -491,22 +491,15 @@ export const EditProfile = ({
       successToast(verified.message as string);
       setdata((prev) => ({ ...prev, email: { ...prev.email, verify: true } }));
     } else if (data.email.verify) {
+      // Checks the code and switches the email server-side in one step.
       const verified = await verifyrequest();
       setloading((prev) => ({ ...prev, post: false }));
       if (!verified.success) {
         errorToast(verified.message as string);
         return;
       }
-      const formeddata = new FormData();
-      formeddata.set("email", data.email.newemail);
-      const updaterequest = Editprofileaction.bind(null, formeddata, type);
-      const update = await updaterequest();
-      if (!update.success) {
-        errorToast(update.message as string);
-        return;
-      }
 
-      successToast(update.message as string);
+      successToast(verified.message as string);
       setopenmodal((prev) => ({
         ...prev,
         editprofile: false,

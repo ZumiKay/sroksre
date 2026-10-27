@@ -1,15 +1,22 @@
 import Prisma from "@/src/lib/prisma";
-import { Role } from "@/prisma/generated/prisma/enums";
+import { Role, VerificationPurpose } from "@/prisma/generated/prisma/enums";
 import { registerUser } from "@/src/lib/userlib";
 import { getUser } from "@/src/lib/session";
 import { verifyTurnstile } from "@/src/lib/turnstile";
+import {
+  CHECK_FAILURE_MESSAGE,
+  checkCode,
+  deleteVerification,
+} from "@/src/lib/emailVerification";
 import { NextRequest } from "next/server";
 
 export async function POST(req: NextRequest) {
   const userdata: any = await req.json();
 
-  // Public sign-ups must pass Turnstile. Admins creating users from the
-  // dashboard have no captcha widget, so they skip it.
+  // Public sign-ups must pass Turnstile and prove they own the email with
+  // the code from /api/users/vfy. Admins creating users from the dashboard
+  // have neither, so they skip both.
+  let verificationId: number | null = null;
   const session = await getUser();
   if (session?.role !== "ADMIN") {
     const captcha = await verifyTurnstile(userdata?.recapcha);
@@ -19,14 +26,28 @@ export async function POST(req: NextRequest) {
         { status: 400 },
       );
     }
+
+    const verification = await checkCode({
+      purpose: VerificationPurpose.SIGNUP,
+      email: typeof userdata?.email === "string" ? userdata.email : "",
+      code: userdata?.cid,
+    });
+    if (!verification.ok) {
+      return Response.json(
+        { message: CHECK_FAILURE_MESSAGE[verification.reason] },
+        { status: 400 },
+      );
+    }
+    verificationId = verification.id;
   }
 
   const user = await registerUser(userdata);
-  if (user.success) {
-    return Response.json({ message: "Registered" }, { status: 200 });
-  } else {
+  if (!user.success) {
     return Response.json({ message: user.message }, { status: 500 });
   }
+
+  if (verificationId) await deleteVerification(verificationId);
+  return Response.json({ message: "Registered" }, { status: 200 });
 }
 // Fields an admin may edit from the user management modal.
 const EDITABLE_TEXT_FIELDS = ["firstname", "lastname", "email", "phonenumber"] as const;

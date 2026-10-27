@@ -1,7 +1,3 @@
-"use server";
-
-import { handleEmail } from "../checkout/action";
-
 export interface userdata {
   id?: number;
   email?: string;
@@ -15,26 +11,3 @@ export interface userdata {
   cid?: string;
   phonenumber?: string;
 }
-
-export const SendVfyEmail = async (
-  html: string,
-  to: string,
-  subject: string
-) => {
-  try {
-    const sent = await handleEmail({
-      subject,
-      to,
-      html,
-    });
-
-    if (!sent.success) {
-      return { success: false };
-    }
-
-    return { success: true };
-  } catch (error) {
-    console.log("Send email", error);
-    return { success: false };
-  }
-};

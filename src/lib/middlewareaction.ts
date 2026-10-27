@@ -29,7 +29,8 @@ const allPublicRoute: Map<string, methodtype[]> = new Map([
   ["/categories/select", ["GET"]],
   ["/auth/register", ["POST"]],
   ["/order/cart/check", ["POST"]],
-  ["/users/vfy", ["POST", "DELETE", "GET"]],
+  ["/users/vfy", ["POST"]],
+  ["/users/vfy/check", ["POST"]],
 ]);
 
 const userRoute: Map<string, methodtype[]> = new Map([

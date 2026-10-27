@@ -1,167 +1,87 @@
 import Prisma from "@/src/lib/prisma";
-import { generateRandomNumber, generateRandomPassword } from "@/src/lib/utilities";
 import { z } from "zod";
-
 import { NextRequest } from "next/server";
-import { extractQueryParams } from "../../banner/route";
+import {
+  deleteVerification,
+  issueResetToken,
+  issueSignupCode,
+} from "@/src/lib/emailVerification";
+import {
+  sendPasswordResetEmail,
+  sendVerificationCodeEmail,
+} from "@/src/lib/verificationEmail";
 
-interface Vfydatatype {
-  email?: string;
-  template?: string;
-  type: "register" | "forgot";
-}
+const requestSchema = z.object({
+  email: z.email(),
+  type: z.enum(["register", "forgot"]),
+});
 
-const verifyEmail = z.object({ email: z.email() });
+// Same reply whether or not the account exists, so this can't be used to
+// find out which emails are registered.
+const RESET_SENT_MESSAGE =
+  "If an account exists for this email, a reset link has been sent";
 
+/**
+ * Send a sign-up code or a password reset link by email.
+ * The code / link is never included in the response.
+ */
 export async function POST(request: NextRequest) {
-  try {
-    const data: Vfydatatype = await request.json();
-
-    if (!data.email) {
-      return Response.json({}, { status: 400 });
-    }
-
-    verifyEmail.parse({ email: data.email });
-
-    let isUniqueOtp = false;
-    let otp = generateRandomNumber();
-
-    while (!isUniqueOtp) {
-      const isNotUniqiueOtp = await Prisma.user.findFirst({
-        where: { vfy: otp },
-      });
-
-      if (isNotUniqiueOtp) {
-        otp = generateRandomNumber();
-      } else {
-        isUniqueOtp = true;
-      }
-    }
-
-    const isUser =
-      data.type === "register"
-        ? await Prisma.user.findFirst({
-            where: { email: data.email },
-          })
-        : false;
-
-    if (!data.type) {
-      return Response.json({}, { status: 400 });
-    }
-
-    //send email
-    if (!isUser) {
-      const emailTemplate = {
-        infotype: data.type === "register" ? "code" : "link",
-        infovalue:
-          data.type === "register"
-            ? `${otp}`
-            : `${process.env.NEXTAUTH_URL}/account/reset&cid=${otp}`,
-        message:
-          data.type === "register"
-            ? "Please use this code for verify email"
-            : "Please use this link for reset password",
-        warn: "Your email will be use for this purpose only",
-      };
-
-      //initial user
-      data.type === "register"
-        ? await Prisma.user.create({
-            data: {
-              firstname: "",
-              email: "",
-              password: generateRandomPassword(),
-              vfy: otp,
-            },
-          })
-        : await Prisma.user.updateMany({
-            where: { email: data.email },
-            data: {
-              vfy: otp,
-            },
-          });
-
-      return Response.json(
-        { message: "Successfully Sent Code", data: emailTemplate },
-        { status: 200 },
-      );
-    } else {
-      return Response.json({ message: "Email already exist" }, { status: 500 });
-    }
-  } catch (error: any) {
-    if (error?.issues) {
-      return Response.json({ message: error.issues[0].message }, { status: 500 });
-    }
-    console.log("Verify User", error);
-    return Response.json({ message: "Error Occured" }, { status: 500 });
+  const parsed = requestSchema.safeParse(await request.json().catch(() => null));
+  if (!parsed.success) {
+    return Response.json({ message: "Invalid email" }, { status: 400 });
   }
-}
+  const { email, type } = parsed.data;
 
-export async function DELETE(request: NextRequest) {
   try {
-    const data = await request.json();
+    const user = await Prisma.user.findUnique({
+      where: { email },
+      select: { id: true },
+    });
 
-    if (data.type === "email") {
-      const allowdelete = await Prisma.user.findFirst({
-        where: {
-          vfy: data.cid,
-        },
-      });
-      if (allowdelete?.vfy) {
-        await Prisma.user.deleteMany({
-          where: { vfy: { equals: data.cid as string } },
-        });
-        return Response.json({ status: 200 });
-      } else {
-        return Response.json({ message: "what you try to do?" }, { status: 404 });
-      }
-    } else {
-      const alluser = await Prisma.user.findMany({
-        where: {
-          vfy: { not: null },
-        },
-      });
-      if (alluser) {
-        await Prisma.usersession.deleteMany({
-          where: {
-            userId: { in: alluser.map((i) => i.id) },
-          },
-        });
-        await Prisma.user.updateMany({
-          where: {
-            id: { in: alluser.map((i) => i.id) },
-          },
-          data: {
-            vfy: null,
-          },
-        });
-        return Response.json({}, { status: 200 });
-      }
-      return Response.json({}, { status: 200 });
-    }
-  } catch (error) {
-    console.log("Delete Error", error);
-    return Response.json({ message: "Error Occured" }, { status: 500 });
-  }
-}
-
-export async function GET(req: NextRequest) {
-  try {
-    const url = req.nextUrl.toString();
-    const params = extractQueryParams(url);
-    if (params.cid) {
-      const user = await Prisma.user.findFirst({
-        where: { vfy: `${params.cid}` },
-        select: { id: true },
-      });
+    if (type === "register") {
       if (user) {
-        return Response.json({ data: { id: user.id } }, { status: 200 });
+        return Response.json(
+          { message: "Email already exist" },
+          { status: 409 },
+        );
       }
-      return Response.json({ message: "Incorrect Code" }, { status: 404 });
+
+      const issued = await issueSignupCode(email);
+      if (!issued.ok) {
+        return Response.json(
+          { message: "Please wait a minute before requesting another code" },
+          { status: 429 },
+        );
+      }
+
+      const sent = await sendVerificationCodeEmail(
+        email,
+        issued.secret,
+        "signup",
+      );
+      if (!sent.success) {
+        // Let the user retry right away instead of waiting out the cooldown.
+        await deleteVerification(issued.id);
+        return Response.json(
+          { message: "Failed to send email, please try again" },
+          { status: 502 },
+        );
+      }
+
+      return Response.json({ message: "Code sent" }, { status: 200 });
     }
-    return Response.json({}, { status: 404 });
+
+    // type === "forgot"
+    if (user) {
+      const issued = await issueResetToken(user.id, email);
+      if (issued.ok) {
+        const sent = await sendPasswordResetEmail(email, issued.secret);
+        if (!sent.success) await deleteVerification(issued.id);
+      }
+    }
+    return Response.json({ message: RESET_SENT_MESSAGE }, { status: 200 });
   } catch (error) {
     console.log("Verify User", error);
-    return Response.json({ message: "Failed To Verify" }, { status: 500 });
+    return Response.json({ message: "Error Occured" }, { status: 500 });
   }
 }

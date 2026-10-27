@@ -26,29 +26,29 @@ enum Imagetemptype {
 }
 
 model User {
-  id           Int            @id @default(autoincrement())
-  buyer_id     String         @unique @default(uuid()) //For Order ReF
-  oauthId      String?
-  type         String? //For Classify OAuth
-  firstname    String
-  lastname     String?
-  email        String         @unique
-  role         Role           @default(USER)
-  phonenumber  String?        @unique
-  password     String         @unique
-  whislist     Json?
-  vfy          String?
-  products     Products[]
-  questions    Questions[]
-  sessions     Usersession[]
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
-  addresses    Address[]
-  Orders       Orders[]
-  Notification Notification[]
-  Wishlist     Wishlist[]
-  Orderproduct Orderproduct[]
-  Tempimage    Tempimage[]
+  id                 Int                 @id @default(autoincrement())
+  buyer_id           String              @unique @default(uuid()) //For Order ReF
+  oauthId            String?
+  type               String? //For Classify OAuth
+  firstname          String
+  lastname           String?
+  email              String              @unique
+  role               Role                @default(USER)
+  phonenumber        String?             @unique
+  password           String              @unique
+  whislist           Json?
+  products           Products[]
+  questions          Questions[]
+  sessions           Usersession[]
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  addresses          Address[]
+  Orders             Orders[]
+  Notification       Notification[]
+  Wishlist           Wishlist[]
+  Orderproduct       Orderproduct[]
+  Tempimage          Tempimage[]
+  emailVerifications EmailVerification[]
 
   @@index([email])
   @@index([oauthId])
@@ -490,4 +490,28 @@ model LoginAttempt {
   @@index([identifier])
   @@index([isLocked])
   @@index([lockedUntil])
+}
+
+enum VerificationPurpose {
+  SIGNUP
+  RESET_PASSWORD
+  CHANGE_EMAIL
+}
+
+// Short-lived email codes / reset tokens. Only a SHA-256 hash is stored.
+model EmailVerification {
+  id        Int                 @id @default(autoincrement())
+  purpose   VerificationPurpose
+  email     String
+  userId    Int?
+  user      User?               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String
+  attempts  Int                 @default(0)
+  expiresAt DateTime
+  createdAt DateTime            @default(now())
+
+  @@index([email, purpose])
+  @@index([userId, purpose])
+  @@index([tokenHash])
+  @@index([expiresAt])
 }

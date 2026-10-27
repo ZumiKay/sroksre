@@ -36,7 +36,6 @@ async function main() {
         lastname: adminLastname,
         phonenumber: adminPhone,
         role: "ADMIN",
-        vfy: "verified", // Mark as verified
       },
     });
 

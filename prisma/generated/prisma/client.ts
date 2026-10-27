@@ -191,3 +191,8 @@ export type Notification = Prisma.NotificationModel
  * 
  */
 export type LoginAttempt = Prisma.LoginAttemptModel
+/**
+ * Model EmailVerification
+ * 
+ */
+export type EmailVerification = Prisma.EmailVerificationModel

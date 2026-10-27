@@ -3,6 +3,15 @@ jest.mock("@/src/lib/prisma");
 jest.mock("@/src/lib/session", () => ({ getUser: jest.fn() }));
 jest.mock("@/src/lib/userlib", () => ({ registerUser: jest.fn() }));
 jest.mock("@/src/lib/turnstile", () => ({ verifyTurnstile: jest.fn() }));
+jest.mock("@/src/lib/emailVerification", () => ({
+  checkCode: jest.fn(),
+  deleteVerification: jest.fn(),
+  CHECK_FAILURE_MESSAGE: {
+    invalid: "Incorrect code",
+    expired: "Code expired, please request a new one",
+    too_many_attempts: "Too many attempts, please request a new code",
+  },
+}));
 
 // ── Imports ───────────────────────────────────────────────────────────────────
 import { POST, PUT } from "@/src/app/api/auth/register/route";
@@ -10,11 +19,14 @@ import Prisma from "@/src/lib/prisma";
 import { getUser } from "@/src/lib/session";
 import { registerUser } from "@/src/lib/userlib";
 import { verifyTurnstile } from "@/src/lib/turnstile";
+import { checkCode, deleteVerification } from "@/src/lib/emailVerification";
 import type { NextRequest } from "next/server";
 
 const mockGetUser = getUser as jest.Mock;
 const mockRegisterUser = registerUser as jest.Mock;
 const mockVerify = verifyTurnstile as jest.Mock;
+const mockCheckCode = checkCode as jest.Mock;
+const mockDeleteVerification = deleteVerification as jest.Mock;
 const mockFindUnique = Prisma.user.findUnique as unknown as jest.Mock;
 const mockUpdate = Prisma.user.update as unknown as jest.Mock;
 
@@ -26,12 +38,19 @@ const signup = {
   password: "Password1!",
   firstname: "A",
   recapcha: "tok",
+  cid: "123456",
 };
 
-describe("POST /api/auth/register captcha", () => {
+describe("POST /api/auth/register captcha + email code", () => {
   beforeEach(() => {
     jest.resetAllMocks();
     mockRegisterUser.mockResolvedValue({ success: true });
+    mockCheckCode.mockResolvedValue({
+      ok: true,
+      id: 42,
+      email: signup.email,
+      userId: null,
+    });
   });
 
   it("rejects a public sign-up when Turnstile fails, without registering", async () => {
@@ -56,23 +75,61 @@ describe("POST /api/auth/register captcha", () => {
     expect(mockRegisterUser).not.toHaveBeenCalled();
   });
 
-  it("registers a public sign-up when Turnstile passes", async () => {
+  it("registers when captcha and code pass, then uses up the code", async () => {
     mockGetUser.mockResolvedValue({ role: "USER" });
     mockVerify.mockResolvedValue({ success: true });
 
     const res = await POST(req(signup));
 
     expect(res.status).toBe(200);
+    expect(mockCheckCode).toHaveBeenCalledWith({
+      purpose: "SIGNUP",
+      email: signup.email,
+      code: "123456",
+    });
     expect(mockRegisterUser).toHaveBeenCalledWith(signup);
+    expect(mockDeleteVerification).toHaveBeenCalledWith(42);
   });
 
-  it("lets an admin create a user without a captcha", async () => {
+  it.each([
+    ["invalid", "Incorrect code"],
+    ["expired", "Code expired, please request a new one"],
+    ["too_many_attempts", "Too many attempts, please request a new code"],
+  ])(
+    "rejects a sign-up whose email code is %s, without registering",
+    async (reason, message) => {
+      mockGetUser.mockResolvedValue(null);
+      mockVerify.mockResolvedValue({ success: true });
+      mockCheckCode.mockResolvedValue({ ok: false, reason });
+
+      const res = await POST(req(signup));
+
+      expect(res.status).toBe(400);
+      expect(await res.json()).toEqual({ message });
+      expect(mockRegisterUser).not.toHaveBeenCalled();
+      expect(mockDeleteVerification).not.toHaveBeenCalled();
+    },
+  );
+
+  it("keeps the code when registration fails, so the user can retry", async () => {
+    mockGetUser.mockResolvedValue(null);
+    mockVerify.mockResolvedValue({ success: true });
+    mockRegisterUser.mockResolvedValue({ success: false, message: "Weak" });
+
+    const res = await POST(req(signup));
+
+    expect(res.status).toBe(500);
+    expect(mockDeleteVerification).not.toHaveBeenCalled();
+  });
+
+  it("lets an admin create a user without a captcha or code", async () => {
     mockGetUser.mockResolvedValue({ role: "ADMIN" });
 
-    const res = await POST(req({ ...signup, recapcha: null }));
+    const res = await POST(req({ ...signup, recapcha: null, cid: undefined }));
 
     expect(res.status).toBe(200);
     expect(mockVerify).not.toHaveBeenCalled();
+    expect(mockCheckCode).not.toHaveBeenCalled();
     expect(mockRegisterUser).toHaveBeenCalled();
   });
 });

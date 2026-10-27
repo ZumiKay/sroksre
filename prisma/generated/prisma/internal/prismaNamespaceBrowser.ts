@@ -80,7 +80,8 @@ export const ModelName = {
   Policy: 'Policy',
   Paragraph: 'Paragraph',
   Notification: 'Notification',
-  LoginAttempt: 'LoginAttempt'
+  LoginAttempt: 'LoginAttempt',
+  EmailVerification: 'EmailVerification'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -111,7 +112,6 @@ export const UserScalarFieldEnum = {
   phonenumber: 'phonenumber',
   password: 'password',
   whislist: 'whislist',
-  vfy: 'vfy',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
@@ -480,6 +480,20 @@ export const LoginAttemptScalarFieldEnum = {
 } as const
 
 export type LoginAttemptScalarFieldEnum = (typeof LoginAttemptScalarFieldEnum)[keyof typeof LoginAttemptScalarFieldEnum]
+
+
+export const EmailVerificationScalarFieldEnum = {
+  id: 'id',
+  purpose: 'purpose',
+  email: 'email',
+  userId: 'userId',
+  tokenHash: 'tokenHash',
+  attempts: 'attempts',
+  expiresAt: 'expiresAt',
+  createdAt: 'createdAt'
+} as const
+
+export type EmailVerificationScalarFieldEnum = (typeof EmailVerificationScalarFieldEnum)[keyof typeof EmailVerificationScalarFieldEnum]
 
 
 export const SortOrder = {

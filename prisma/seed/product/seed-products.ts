@@ -8,6 +8,7 @@
  * Products are added on top of existing data; re-running adds more.
  */
 
+import "dotenv/config";
 import Prisma from "@/src/lib/prisma";
 import { seedAll } from "./seed";
 

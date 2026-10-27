@@ -2,11 +2,18 @@
 
 import Prisma from "@/src/lib/prisma";
 import { compareSync } from "bcryptjs";
-import { generateRandomNumber } from "@/src/lib/utilities";
 import { revalidateTag } from "next/cache";
 import { getUser } from "@/src/lib/session";
-import { handleEmail } from "../checkout/action";
 import { hashPassword } from "@/src/lib/userlib";
+import { z } from "zod";
+import { VerificationPurpose } from "@/prisma/generated/prisma/enums";
+import {
+  CHECK_FAILURE_MESSAGE,
+  checkCode,
+  deleteVerification,
+  issueChangeEmailCode,
+} from "@/src/lib/emailVerification";
+import { sendVerificationCodeEmail } from "@/src/lib/verificationEmail";
 
 interface returntype {
   success: boolean;
@@ -58,19 +65,9 @@ export async function Editprofileaction(
         },
       });
     } else if (type === "email") {
-      const email = data.get("email");
-
-      await Prisma.user.update({
-        where: { id: user.userId },
-        data: {
-          email: email as string,
-        },
-      });
-      await Prisma.usersession.deleteMany({
-        where: {
-          userId: user.userId,
-        },
-      });
+      // Email changes must go through VerifyEmail so the new address is
+      // confirmed with a code first.
+      return { success: false, message: "Please verify your new email" };
     } else {
       const password = data.get("password")?.toString() as string;
       const pass = JSON.parse(password);
@@ -168,6 +165,12 @@ export const Deleteaddress = async (id: number): Promise<returntype> => {
   }
 };
 
+/**
+ * Change the logged-in user's email in two steps:
+ * 1. verified=false: email a code to the new address.
+ * 2. verified=true: check the code, then switch to the address the code was
+ *    sent to and log out all sessions. `email` is ignored in this step.
+ */
 export const VerifyEmail = async (
   email: string,
   verified: boolean,
@@ -175,47 +178,70 @@ export const VerifyEmail = async (
 ): Promise<returntype> => {
   try {
     const user = await getUser();
+    if (!user?.userId) {
+      return { success: false, message: "Unauthorized" };
+    }
 
     if (!verified) {
-      const isEmail = await Prisma.user.findFirst({
-        where: {
-          email: email,
-        },
+      if (!z.email().safeParse(email).success) {
+        return { success: false, message: "Invalid email" };
+      }
+      const isEmail = await Prisma.user.findUnique({
+        where: { email },
+        select: { id: true },
       });
       if (isEmail) {
         return { success: false, message: "Email Already Exist" };
       }
-      const otp = generateRandomNumber();
 
-      await Prisma.user.update({
-        where: {
-          id: user?.userId,
-        },
-        data: {
-          vfy: otp,
-        },
-      });
-      await handleEmail({
-        subject: "Verify Email",
-        to: email,
-        message: `Verify Code: ${otp}`,
-        title: "Email Verification",
-        warn: "",
-      });
-      return { success: true, message: "Please Check Email" };
-    } else {
-      const verifyemail = await Prisma.user.updateMany({
-        where: { vfy: code },
-        data: {
-          vfy: null,
-        },
-      });
-      if (!verifyemail) {
-        return { success: false, message: "Invalid Code" };
-      } else {
-        return { success: true, message: "Verified" };
+      const issued = await issueChangeEmailCode(user.userId, email);
+      if (!issued.ok) {
+        return {
+          success: false,
+          message: "Please wait a minute before requesting another code",
+        };
       }
+
+      const sent = await sendVerificationCodeEmail(
+        email,
+        issued.secret,
+        "change_email",
+      );
+      if (!sent.success) {
+        await deleteVerification(issued.id);
+        return { success: false, message: "Failed to send email" };
+      }
+      return { success: true, message: "Please Check Email" };
     }
+
+    const result = await checkCode({
+      purpose: VerificationPurpose.CHANGE_EMAIL,
+      userId: user.userId,
+      code,
+    });
+    if (!result.ok) {
+      return { success: false, message: CHECK_FAILURE_MESSAGE[result.reason] };
+    }
+
+    try {
+      await Prisma.$transaction([
+        Prisma.user.update({
+          where: { id: user.userId },
+          data: { email: result.email },
+        }),
+        Prisma.usersession.deleteMany({ where: { userId: user.userId } }),
+        Prisma.emailVerification.deleteMany({ where: { id: result.id } }),
+      ]);
+    } catch (error) {
+      // Someone registered this address after the code was sent.
+      if ((error as { code?: string } | null)?.code === "P2002") {
+        return { success: false, message: "Email Already Exist" };
+      }
+      throw error;
+    }
+
+    revalidateTag("userinfo", "max");
+    return { success: true, message: "Email Updated" };
   } catch (error) {
     console.log("Verify Email", error);
     return { success: false, message: "Error Occured" };

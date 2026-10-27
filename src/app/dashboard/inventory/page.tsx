@@ -164,7 +164,7 @@ export default function Inventory() {
   useEffect(() => {
     if (!type) {
       return redirect(
-        `/dashboard/inventory${DEFAULT_PARAMS(type ?? "product")}`,
+        `/dashboard/inventory${DEFAULT_PARAMS(type || "product")}`,
       );
     }
 
@@ -304,6 +304,7 @@ export default function Inventory() {
 
   const handleShowPerPage = useCallback(
     (value: number | string) => {
+      if (!value) return;
       const param = new URLSearchParams(searchParam);
       param.set("p", "1");
       param.set("limit", value.toString());
@@ -384,6 +385,8 @@ export default function Inventory() {
 
   const handleFilter = useCallback(
     async (value: string) => {
+      // "-- None --" is not a valid type; keep the current one
+      if (!value) return;
       const params = new URLSearchParams(searchParam);
 
       // Reset filter params
@@ -884,7 +887,7 @@ export default function Inventory() {
               </div>
               <button
                 type="submit"
-                className="shrink-0 px-4 py-2 bg-linear-to-r from-indigo-500 to-purple-600 text-white text-sm font-semibold rounded-xl shadow-sm hover:shadow-md hover:scale-105 transition-all"
+                className="shrink-0 px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-xl shadow-sm hover:shadow-md hover:scale-105 transition-all"
               >
                 Search
               </button>
