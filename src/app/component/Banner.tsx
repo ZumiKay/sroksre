@@ -1,5 +1,4 @@
 "use client";
-import Image from "next/image";
 import ReactSelect from "react-select/async";
 import makeAnimated from "react-select/animated";
 import {
@@ -13,7 +12,6 @@ import {
 import { Selection } from "./Button";
 import { getSubCategories } from "../dashboard/inventory/varaint_action";
 import { getSelectCategory } from "../action";
-import SelectArrow from "../../../public/Image/Arrow_down.svg";
 import { AnimatePresence, motion } from "framer-motion";
 import { DeleteIcon } from "./Asset";
 import { Skeleton } from "@heroui/react";
@@ -140,7 +138,7 @@ export const SelectAndSearchProduct = ({
 
   const isSelected = useCallback(
     (val: SelectType) => {
-      return selectedvalue?.findIndex((i) => i.value === val.value) !== -1;
+      return selectedvalue?.some((i) => i.value === val.value) ?? false;
     },
     [selectedvalue],
   );
@@ -258,23 +256,27 @@ export const SelectAndSearchProduct = ({
     () =>
       selectedvalue?.map((i, idx) => (
         <motion.div
-          key={idx}
-          initial={{ scale: 0.8, opacity: 0 }}
+          key={i.value}
+          layout
+          initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0.8, opacity: 0 }}
-          className="w-fit h-fit flex flex-row items-center gap-2 bg-linear-to-r from-blue-500 to-purple-600 rounded-lg px-3 py-2 shadow-md hover:shadow-lg transition-all duration-200"
+          exit={{ scale: 0.9, opacity: 0 }}
+          transition={{ duration: 0.15 }}
+          className="w-fit h-fit flex flex-row items-center gap-1.5 bg-blue-600 rounded-lg pl-3 pr-1.5 py-1.5"
         >
-          <p className="text-sm font-semibold text-white truncate max-w-50">
+          <p className="text-sm font-medium text-white truncate max-w-50">
             {i.label}
           </p>
           <button
+            type="button"
+            aria-label={`Remove ${i.label}`}
             onClick={(e) => {
               e.stopPropagation();
               handleDeleteSelected(idx);
             }}
             onMouseEnter={() => setisDelete(true)}
             onMouseLeave={() => setisDelete(false)}
-            className="text-white hover:text-red-200 transition-colors duration-200 shrink-0"
+            className="w-6 h-6 flex items-center justify-center rounded-md text-white/80 hover:text-white hover:bg-blue-700 transition-colors duration-150 shrink-0"
           >
             <DeleteIcon />
           </button>
@@ -293,17 +295,19 @@ export const SelectAndSearchProduct = ({
         onClick={() => {
           setfocus(true);
         }}
-        className={`inputcontainer w-full min-h-13.5 relative h-fit flex flex-row items-center border-2 rounded-xl transition-all duration-200 ${
+        className={`inputcontainer w-full min-h-13 relative h-fit flex flex-row items-center border-2 rounded-xl bg-white cursor-text transition-all duration-200 ${
           focus
-            ? "border-blue-500 shadow-lg shadow-blue-200"
-            : "border-gray-300 hover:border-gray-400"
-        } bg-white`}
+            ? "border-blue-500 ring-4 ring-blue-100"
+            : "border-gray-200 hover:border-gray-300"
+        }`}
       >
-        <div className="w-full max-w-[95%] h-fit flex flex-row flex-wrap items-center gap-2 p-2">
+        <div className="w-full pr-10 h-fit flex flex-row flex-wrap items-center gap-1.5 p-2">
           <AnimatePresence>{selectedTags}</AnimatePresence>
           <span
             ref={inputRef}
-            className="min-w-50 w-full h-full text-base flex flex-col justify-center cursor-text focus:outline-hidden text-gray-700 placeholder:text-gray-400"
+            className={`min-w-50 flex-1 h-full px-1 py-1 text-sm flex flex-col justify-center cursor-text focus:outline-hidden ${
+              focus ? "text-gray-800" : "text-gray-400"
+            }`}
             role="textbox"
             onInput={handleInputChange}
             onClick={() => setfocus(true)}
@@ -312,55 +316,64 @@ export const SelectAndSearchProduct = ({
         </div>
         <div
           onClick={() => setfocus(true)}
-          className="absolute w-10 right-2 top-0 h-full flex flex-col justify-center items-center"
+          className="absolute w-10 right-1 top-0 h-full flex flex-col justify-center items-center"
         >
-          <motion.div
+          <motion.svg
             animate={{ rotate: focus ? 180 : 0 }}
-            transition={{ duration: 0.3 }}
+            transition={{ duration: 0.2 }}
+            viewBox="0 0 20 20"
+            fill="currentColor"
+            aria-hidden="true"
+            className={`w-5 h-5 transition-colors duration-200 ${
+              focus ? "text-blue-600" : "text-gray-500"
+            }`}
           >
-            <Image
-              src={SelectArrow}
-              alt="Arrow"
-              className="w-6 h-6 object-contain opacity-60"
+            <path
+              fillRule="evenodd"
+              d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+              clipRule="evenodd"
             />
-          </motion.div>
+          </motion.svg>
         </div>
       </div>
       <AnimatePresence>
         {!isDelete && focus && (
-          <motion.ul
-            initial={{
-              opacity: 0,
-              y: -10,
-              scale: 0.95,
-            }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -10, scale: 0.95 }}
-            transition={{ duration: 0.2 }}
-            className="option_container absolute bg-white w-full h-fit max-h-100 overflow-y-auto overflow-x-hidden p-3 flex flex-col gap-y-2 items-center border-2 border-gray-200 rounded-xl shadow-2xl z-50 mt-2"
+          <motion.div
+            role="listbox"
+            aria-multiselectable={!singleselect}
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.15 }}
+            className="option_container absolute bg-white w-full h-fit max-h-80 overflow-y-auto overflow-x-hidden p-1.5 flex flex-col gap-y-0.5 border border-gray-200 rounded-xl shadow-lg z-50 mt-1.5"
           >
             {loading ? (
-              <NormalSkeleton width="100%" height="40px" count={3} />
+              <div className="p-1.5">
+                <NormalSkeleton width="100%" height="36px" count={3} />
+              </div>
             ) : options && options.length > 0 ? (
-              options.map((i, idx) => {
+              options.map((i) => {
                 const selected = isSelected(i);
                 const selectedIndex = selectedvalue?.findIndex(
                   (v) => v.value === i.value,
                 );
                 return (
-                  <motion.div
-                    key={idx}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: idx * 0.05 }}
-                    className="option w-full h-fit flex flex-row items-center gap-3 group cursor-pointer"
+                  <div
+                    key={i.value}
+                    role="option"
+                    aria-selected={selected}
+                    className={`option w-full h-fit flex flex-row items-center gap-3 px-2.5 py-2 rounded-lg cursor-pointer transition-colors duration-150 ${
+                      selected
+                        ? "bg-blue-50 text-blue-700"
+                        : "text-gray-700 hover:bg-gray-100"
+                    }`}
                     onClick={() => handleSelectOption(i)}
                   >
                     <div
-                      className={`selectednumber w-9 h-9 font-semibold text-sm rounded-full flex justify-center items-center transition-all duration-200 ${
+                      className={`selectednumber w-6 h-6 shrink-0 text-xs font-semibold rounded-full flex justify-center items-center transition-colors duration-150 ${
                         selected
-                          ? "bg-linear-to-br from-blue-500 to-purple-600 text-white shadow-md scale-110"
-                          : "bg-gray-200 text-gray-600 group-hover:bg-gray-300"
+                          ? "bg-blue-600 text-white"
+                          : "border-2 border-gray-300 bg-white"
                       }`}
                     >
                       {!singleselect && selected
@@ -371,39 +384,33 @@ export const SelectAndSearchProduct = ({
                           ? "✓"
                           : ""}
                     </div>
-                    <li
-                      className={`w-full h-fit p-3 font-medium rounded-lg transition-all duration-200 ${
-                        selected
-                          ? "bg-linear-to-r from-blue-50 to-purple-50 text-blue-700 font-semibold"
-                          : "bg-gray-50 text-gray-700 group-hover:bg-gray-100 group-hover:shadow-md"
+                    <span
+                      className={`w-full text-sm truncate ${
+                        selected ? "font-semibold" : "font-medium"
                       }`}
                     >
                       {i.label}
-                    </li>
-                  </motion.div>
+                    </span>
+                  </div>
                 );
               })
             ) : (
-              <div className="w-full h-20 flex items-center justify-center text-gray-400 text-sm">
+              <div className="w-full h-16 flex items-center justify-center text-gray-400 text-sm">
                 <p>No results found</p>
               </div>
             )}
             {options && !isLimit && options.length > 0 && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="w-full mt-2"
-              >
+              <div className="w-full pt-1.5 mt-1 border-t border-gray-100">
                 <button
                   onClick={loadMore}
                   type="button"
-                  className="w-full h-10 rounded-lg font-semibold text-sm bg-linear-to-r from-teal-500 to-cyan-600 text-white hover:from-teal-600 hover:to-cyan-700 transition-all duration-200 shadow-md hover:shadow-lg"
+                  className="w-full h-9 rounded-lg font-semibold text-sm text-blue-600 hover:bg-blue-50 transition-colors duration-150"
                 >
                   Load More
                 </button>
-              </motion.div>
+              </div>
             )}
-          </motion.ul>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>

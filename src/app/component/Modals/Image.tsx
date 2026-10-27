@@ -1,17 +1,8 @@
-import {
-  ApiRequest,
-  Delayloading,
-  useScreenSize,
-} from "@/src/context/CustomHook";
+import { ApiRequest, Delayloading, useScreenSize } from "@/src/context/CustomHook";
 import { useGlobalContext } from "@/src/context/GlobalContext";
 import { productcoverstype } from "@/src/types/product.type";
 import { ChangeEvent, useRef, useState, useCallback, useEffect } from "react";
-import {
-  ContainerLoading,
-  errorToast,
-  infoToast,
-  successToast,
-} from "../Loading";
+import { ContainerLoading, errorToast, infoToast, successToast } from "../Loading";
 import { InputFileUpload } from "../Button";
 import CropImage from "../Cropimage";
 import { upload } from "@vercel/blob/client";
@@ -21,13 +12,7 @@ import Image from "next/image";
 
 // Constants
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-const ALLOWED_FILE_TYPES = [
-  "image/jpeg",
-  "image/webp",
-  "image/png",
-  "image/svg+xml",
-  "image/gif",
-];
+const ALLOWED_FILE_TYPES = ["image/jpeg", "image/webp", "image/png", "image/svg+xml", "image/gif"];
 
 export type Imgurl = {
   url: string;
@@ -53,24 +38,13 @@ const generateUniqueFileName = (originalName: string): string => {
   const timestamp = Date.now();
   const randomStr = Math.random().toString(36).substring(2, 8);
   const extension = originalName.substring(originalName.lastIndexOf("."));
-  const nameWithoutExt = originalName.substring(
-    0,
-    originalName.lastIndexOf("."),
-  );
+  const nameWithoutExt = originalName.substring(0, originalName.lastIndexOf("."));
   return `${nameWithoutExt}_${timestamp}_${randomStr}${extension}`;
 };
 
 // Verify URL is accessible with retry logic
 const verifyBlobUrl = async (url: string): Promise<boolean> => {
-  const response = await ApiRequest(
-    url,
-    undefined,
-    "HEAD",
-    undefined,
-    undefined,
-    undefined,
-    3,
-  );
+  const response = await ApiRequest(url, undefined, "HEAD", undefined, undefined, undefined, 3);
   if (response.success) {
     return true;
   }
@@ -123,15 +97,8 @@ const uploadToVercel = async (
 };
 
 export const ImageUpload = (props: imageuploadprops) => {
-  const {
-    product,
-    setproduct,
-    banner,
-    setbanner,
-    openmodal,
-    setopenmodal,
-    globalindex,
-  } = useGlobalContext();
+  const { product, setproduct, banner, setbanner, openmodal, setopenmodal, globalindex } =
+    useGlobalContext();
   const [Imgurl, seturl] = useState<Imgurl[]>([]);
   const [Imgurltemp, seturltemp] = useState<Imgurl[]>([]);
   const [Files, setfiles] = useState<File[]>([]);
@@ -186,9 +153,7 @@ export const ImageUpload = (props: imageuploadprops) => {
       }
 
       // Validate file size
-      const oversizedFiles = filesArray.filter(
-        (file) => file.size > MAX_FILE_SIZE,
-      );
+      const oversizedFiles = filesArray.filter((file) => file.size > MAX_FILE_SIZE);
       if (oversizedFiles.length > 0) {
         errorToast(
           `${oversizedFiles.length} file(s) exceed 10MB limit: ${oversizedFiles
@@ -199,17 +164,11 @@ export const ImageUpload = (props: imageuploadprops) => {
       }
 
       // Filter by file type
-      const filteredFile = filesArray.filter((file) =>
-        ALLOWED_FILE_TYPES.includes(file.type),
-      );
+      const filteredFile = filesArray.filter((file) => ALLOWED_FILE_TYPES.includes(file.type));
 
       // Alert if some files were filtered out
       if (filteredFile.length < filesArray.length) {
-        infoToast(
-          `${
-            filesArray.length - filteredFile.length
-          } file(s) skipped (invalid type)`,
-        );
+        infoToast(`${filesArray.length - filteredFile.length} file(s) skipped (invalid type)`);
       }
       const filteredFileUrl = filetourl(filteredFile);
       const updateUrl = [
@@ -272,10 +231,7 @@ export const ImageUpload = (props: imageuploadprops) => {
   );
 
   //Update Product when saved
-  const handleUpdateCover = async (
-    data: productcoverstype[],
-    type: "product" | "banner",
-  ) => {
+  const handleUpdateCover = async (data: productcoverstype[], type: "product" | "banner") => {
     const update =
       type === "product"
         ? await ApiRequest("/api/products/crud", undefined, "PUT", "JSON", {
@@ -324,16 +280,10 @@ export const ImageUpload = (props: imageuploadprops) => {
       const errors: string[] = [];
 
       results.forEach((result, index) => {
-        if (
-          result.status === "fulfilled" &&
-          result.value.success &&
-          result.value.data
-        ) {
+        if (result.status === "fulfilled" && result.value.success && result.value.data) {
           uploadImages.push(result.value.data);
         } else if (result.status === "fulfilled" && !result.value.success) {
-          errors.push(
-            result.value.error || `Failed to upload ${Files[index].name}`,
-          );
+          errors.push(result.value.error || `Failed to upload ${Files[index].name}`);
         } else if (result.status === "rejected") {
           errors.push(`Upload rejected: ${Files[index].name}`);
         }
@@ -341,14 +291,11 @@ export const ImageUpload = (props: imageuploadprops) => {
 
       // Handle errors
       if (errors.length > 0) {
-        console.log("Upload errors:", errors);
         if (uploadImages.length === 0) {
           errorToast("All uploads failed");
           return;
         } else {
-          infoToast(
-            `${errors.length} upload(s) failed, ${uploadImages.length} succeeded`,
-          );
+          infoToast(`${errors.length} upload(s) failed, ${uploadImages.length} succeeded`);
         }
       }
 
@@ -516,12 +463,8 @@ export const ImageUpload = (props: imageuploadprops) => {
                       />
                     </svg>
                   </div>
-                  <h3 className="text-xl font-bold text-gray-600">
-                    No Images Uploaded
-                  </h3>
-                  <p className="text-sm text-gray-500">
-                    Upload images to get started
-                  </p>
+                  <h3 className="text-xl font-bold text-gray-600">No Images Uploaded</h3>
+                  <p className="text-sm text-gray-500">Upload images to get started</p>
                 </div>
               ) : (
                 Imgurl.map((file, index) => {
@@ -538,9 +481,7 @@ export const ImageUpload = (props: imageuploadprops) => {
                       onClick={() => handleselectImg(index)}
                     >
                       <div
-                        className={`relative w-full ${getImageContainerClass(
-                          index,
-                        )} bg-gray-100`}
+                        className={`relative w-full ${getImageContainerClass(index)} bg-gray-100`}
                       >
                         (
                         <Image
@@ -560,9 +501,7 @@ export const ImageUpload = (props: imageuploadprops) => {
 
                       {/* Overlay with image info */}
                       <div className="absolute bottom-0 left-0 right-0 bg-black  p-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                        <p className="text-white text-xs font-semibold truncate">
-                          {file.name}
-                        </p>
+                        <p className="text-white text-xs font-semibold truncate">{file.name}</p>
                         {dim && (
                           <p className="text-white text-xs mt-1">
                             {dim.width} × {dim.height}px
@@ -640,30 +579,22 @@ export const ImageUpload = (props: imageuploadprops) => {
             {/* Upload Progress Indicator */}
             {loading && Object.keys(uploadProgress).length > 0 && (
               <div className="w-full bg-white rounded-lg p-4 border-2 border-blue-200 shadow-md">
-                <h4 className="text-sm font-bold text-gray-700 mb-3">
-                  Upload Progress
-                </h4>
+                <h4 className="text-sm font-bold text-gray-700 mb-3">Upload Progress</h4>
                 <div className="space-y-2 max-h-37.5 overflow-y-auto">
-                  {Object.entries(uploadProgress).map(
-                    ([fileName, progress]) => (
-                      <div key={fileName} className="space-y-1">
-                        <div className="flex justify-between text-xs">
-                          <span className="text-gray-600 truncate max-w-50">
-                            {fileName}
-                          </span>
-                          <span className="text-blue-600 font-semibold">
-                            {Math.round(progress)}%
-                          </span>
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-                          <div
-                            className="bg-linear-to-r from-blue-500 to-purple-500 h-full rounded-full transition-all duration-300"
-                            style={{ width: `${progress}%` }}
-                          />
-                        </div>
+                  {Object.entries(uploadProgress).map(([fileName, progress]) => (
+                    <div key={fileName} className="space-y-1">
+                      <div className="flex justify-between text-xs">
+                        <span className="text-gray-600 truncate max-w-50">{fileName}</span>
+                        <span className="text-blue-600 font-semibold">{Math.round(progress)}%</span>
                       </div>
-                    ),
-                  )}
+                      <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                        <div
+                          className="bg-linear-to-r from-blue-500 to-purple-500 h-full rounded-full transition-all duration-300"
+                          style={{ width: `${progress}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
@@ -675,15 +606,9 @@ export const ImageUpload = (props: imageuploadprops) => {
               <p className="text-sm text-gray-600">
                 Upload up to {props.limit} images (max 10MB each)
               </p>
-              <p className="text-xs text-gray-500">
-                Supported: JPEG, PNG, WebP, SVG, GIF
-              </p>
+              <p className="text-xs text-gray-500">Supported: JPEG, PNG, WebP, SVG, GIF</p>
             </div>
-            <InputFileUpload
-              ref={fileInputRef}
-              onChange={handleFile}
-              multiple={props.mutitlple}
-            />
+            <InputFileUpload ref={fileInputRef} onChange={handleFile} multiple={props.mutitlple} />
             <div className="flex flex-col gap-3 mt-2">
               <button
                 onClick={() => handleSave()}
@@ -713,11 +638,7 @@ export const ImageUpload = (props: imageuploadprops) => {
             {Imgurl.length > 0 && (
               <div className="mt-4 p-4 bg-blue-50 rounded-xl border-2 border-blue-200">
                 <div className="flex items-center gap-2 text-blue-700">
-                  <svg
-                    className="w-5 h-5"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                     <path
                       fillRule="evenodd"
                       d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"

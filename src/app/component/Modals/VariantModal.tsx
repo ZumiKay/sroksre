@@ -15,7 +15,6 @@ import {
 import { ApiRequest, Delayloading } from "@/src/context/CustomHook";
 import tinycolor from "tinycolor2";
 import { SecondaryModal } from "../Modals";
-import PrimaryButton from "../Button";
 import Variantimg from "../../../../public/Image/Variant.png";
 import Variantstockimg from "../../../../public/Image/Stock.png";
 import { ManageStockContainer } from "./VariantModalComponent";
@@ -712,6 +711,65 @@ export const Variantcontainer = ({
     handleCreateAndUpdateVariantStock,
   ]);
 
+  // Title + one-line explanation for the current screen
+  const screen = useMemo(() => {
+    switch (newadd) {
+      case "variant":
+        return {
+          title: "Variants",
+          subtitle: "Options customers pick from, like Size or Color.",
+        };
+      case "type":
+        return {
+          title: "New Variant",
+          subtitle: "Choose how this option is shown, or start from a template.",
+        };
+      case "info":
+        return {
+          title: variantManager.added !== -1 ? "Edit Variant" : "New Variant",
+          subtitle: "Name the option and add the values customers can choose.",
+        };
+      case "stock":
+        return {
+          title: "Stock",
+          subtitle: "Quantity for each combination of variant values.",
+        };
+      case "stockinfo":
+        return {
+          title:
+            stockManager.editStockIdx !== -1 ? "Edit Stock" : "New Stock",
+          subtitle: "Pick the variant values for this entry and set its quantity.",
+        };
+      case "section":
+      case "section-edit":
+        return {
+          title: editSectionId ? "Edit Variant Section" : "New Variant Section",
+          subtitle: "Group related variants so they show together.",
+        };
+      case "section-list":
+        return {
+          title: "Variant Sections",
+          subtitle: "Groups of variants shown together on the product page.",
+        };
+      default:
+        return {
+          title: "Variants & Stock",
+          subtitle:
+            "Set up product options, group them into sections, then track stock for each combination.",
+        };
+    }
+  }, [newadd, variantManager.added, stockManager.editStockIdx, editSectionId]);
+
+  // The footer button does different things per screen; say what it does
+  const backLabel =
+    newadd === "none" || (newadd === "stock" && editindex)
+      ? "Close"
+      : newadd === "stockinfo"
+        ? "Save & Back"
+        : "Back";
+
+  const hasVariants = !!product.Variant && product.Variant.length > 0;
+
   const handleVariantSectionSelect = () => {
     //Generate Temp id for variant section
     const isVariantSection =
@@ -750,28 +808,31 @@ export const Variantcontainer = ({
         setopenmodal((prev) => ({ ...prev, [closename as string]: false }))
       }
     >
-      <div className="relative productvariant_creation rounded-t-md w-full h-full bg-linear-to-b from-gray-50 to-white flex flex-col items-center justify-start pt-6 gap-y-6">
-        <h3 className="title text-2xl font-bold text-left w-full h-fit px-6 pb-4 border-b-2 border-gray-200 bg-linear-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-          {newadd === "variant" || newadd === "type" || newadd === "info"
-            ? "Variant"
-            : newadd === "stock" || newadd === "stockinfo"
-              ? "Stock"
-              : newadd === "section" || newadd === "section-edit"
-                ? editSectionId
-                  ? "Edit Variant Section"
-                  : "Create Variant Section"
-                : newadd === "section-list"
-                  ? "Variant Sections"
-                  : "Variant and Stock"}
-        </h3>
+      <div className="relative productvariant_creation rounded-t-md w-full h-full bg-white flex flex-col items-center justify-start pt-5 gap-y-5">
+        <div className="w-full h-fit px-6 pb-4 border-b border-gray-200">
+          {newadd !== "none" && (
+            <p className="text-xs font-medium text-gray-400 mb-1">
+              Variants &amp; Stock
+              <span className="mx-1.5">/</span>
+              <span className="text-gray-600">{screen.title}</span>
+            </p>
+          )}
+          <h3 className="title text-xl font-bold text-gray-900">
+            {screen.title}
+          </h3>
+          <p className="text-sm text-gray-500 mt-1">{screen.subtitle}</p>
+        </div>
 
         {/* Success Message Alert */}
         {successMessage && (
-          <div className="w-full px-6 animate-in slide-in-from-top duration-300">
-            <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded-lg shadow-md flex items-center gap-3">
+          <div
+            role="status"
+            className="w-full px-6 animate-in slide-in-from-top duration-300"
+          >
+            <div className="bg-green-50 border border-green-200 px-4 py-3 rounded-lg flex items-center gap-3">
               <div className="shrink-0">
                 <svg
-                  className="w-5 h-5 text-green-500"
+                  className="w-5 h-5 text-green-600"
                   fill="currentColor"
                   viewBox="0 0 20 20"
                 >
@@ -788,8 +849,10 @@ export const Variantcontainer = ({
                 </p>
               </div>
               <button
+                type="button"
+                aria-label="Dismiss"
                 onClick={() => setSuccessMessage("")}
-                className="shrink-0 text-green-500 hover:text-green-700 transition-colors"
+                className="shrink-0 p-1 rounded-md text-green-600 hover:text-green-800 hover:bg-green-100 transition-colors"
               >
                 <svg
                   className="w-4 h-4"
@@ -917,30 +980,26 @@ export const Variantcontainer = ({
         {/* Choose Type of between Variant and Stock */}
         {newadd === "none" && (
           <>
-            <div className="w-[90%] h-full grid grid-cols-1 gap-6 place-items-center">
+            <div className="w-full px-6 pb-2 flex flex-col gap-3">
               <SelectionCard
-                title={`${
-                  !product.Variant || product.Variant.length === 0
-                    ? "Create"
-                    : "Manage"
-                } Variant`}
+                title={`${hasVariants ? "Manage" : "Create"} Variants`}
+                description="Add options like Size or Color and their values."
                 image={Variantimg}
                 count={product.Variant?.length}
+                countLabel={product.Variant?.length === 1 ? "variant" : "variants"}
                 onClick={() => setNew("variant")}
-                gradientFrom="from-blue-400"
-                gradientVia="via-blue-500"
-                gradientTo="to-purple-600"
-                badgeColor="text-blue-600"
+                accent="blue"
               />
               <SelectionCard
                 title="Variant Sections"
+                description="Group related variants, e.g. a “Frame” section with Color and Size."
                 image={Variantimg}
                 count={product.Variantsection?.length}
+                countLabel={
+                  product.Variantsection?.length === 1 ? "section" : "sections"
+                }
                 onClick={() => handleVariantSectionSelect()}
-                gradientFrom="from-purple-400"
-                gradientVia="via-purple-500"
-                gradientTo="to-pink-600"
-                badgeColor="text-purple-600"
+                accent="purple"
               />
               <SelectionCard
                 title={`${
@@ -948,40 +1007,54 @@ export const Variantcontainer = ({
                     ? "Create"
                     : "Manage"
                 } Stock`}
+                description="Set the quantity for each combination of variant values."
+                disabledHint="Create at least one variant first."
                 image={Variantstockimg}
                 count={product.Stock?.length}
-                disabled={!product.Variant || product.Variant.length === 0}
+                countLabel={product.Stock?.length === 1 ? "entry" : "entries"}
+                disabled={!hasVariants}
                 onClick={() => {
-                  if (!product.Variant || product.Variant.length === 0) {
+                  if (!hasVariants) {
                     errorToast("Please Create Variant");
                     return;
                   }
                   setNew("stock");
                 }}
-                gradientFrom="from-green-400"
-                gradientVia="via-emerald-500"
-                gradientTo="to-teal-600"
-                badgeColor="text-green-600"
+                accent="green"
               />
             </div>
           </>
         )}
       </div>
 
-      <div className="flex flex-row justify-end gap-x-5 w-full h-fit bg-linear-to-r from-gray-50 to-white rounded-b-lg p-4 border-t-2 border-gray-200 shadow-inner">
+      <div className="flex flex-row items-center justify-between gap-x-5 w-full h-fit bg-white rounded-b-lg px-6 py-4 border-t border-gray-200">
         {stockManager.editSubStockIdx === -1 && (
-          <>
-            <PrimaryButton
-              text={newadd !== "none" ? "Back" : "Close"}
-              onClick={() => handleBack()}
-              status={mainLoading ? "loading" : "authenticated"}
-              type="button"
-              width="30%"
-              height="40px"
-              color="lightcoral"
-              radius="10px"
-            />
-          </>
+          <button
+            type="button"
+            onClick={() => handleBack()}
+            disabled={mainLoading}
+            className={`inline-flex items-center gap-2 h-10 px-4 rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+              backLabel === "Save & Back"
+                ? "bg-blue-600 text-white hover:bg-blue-700"
+                : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
+            }`}
+          >
+            {backLabel !== "Close" && (
+              <svg
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                aria-hidden="true"
+                className="w-4 h-4"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            )}
+            {mainLoading ? "Please wait…" : backLabel}
+          </button>
         )}
       </div>
     </SecondaryModal>

@@ -94,11 +94,11 @@ export const UpdateStockModal = ({
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.3 }}
-        className="updatestock w-full h-full rounded-2xl flex flex-col gap-y-6 bg-linear-to-br from-white to-blue-50 p-6 shadow-xl border-2 border-blue-200"
+        className="updatestock w-full h-full rounded-2xl flex flex-col gap-y-6 bg-white p-6 border border-gray-200"
       >
         <div className="w-full space-y-2 pb-4 border-b-2 border-blue-200">
           <h4 className="text-2xl font-bold text-gray-800 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-linear-to-br from-blue-500 to-cyan-600 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center">
               <FontAwesomeIcon icon={faBoxesStacked} className="text-white" />
             </div>
             Update Stock
@@ -145,7 +145,7 @@ export const UpdateStockModal = ({
             className={`w-full h-14 rounded-xl font-bold text-base transition-all duration-300 shadow-lg flex items-center justify-center gap-2 ${
               loading?.PUT || loading?.GET
                 ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                : "bg-linear-to-r from-green-500 to-emerald-600 text-white hover:from-green-600 hover:to-emerald-700 hover:shadow-xl hover:scale-[1.02]"
+                : "bg-green-600 text-white hover:bg-green-700"
             }`}
           >
             {loading?.PUT ? (
@@ -169,7 +169,7 @@ export const UpdateStockModal = ({
             className={`w-full h-14 rounded-xl font-bold text-base transition-all duration-300 shadow-lg flex items-center justify-center gap-2 ${
               loading?.PUT || loading?.GET
                 ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                : "bg-linear-to-r from-pink-500 to-red-600 text-white hover:from-pink-600 hover:to-red-700 hover:shadow-xl hover:scale-[1.02]"
+                : "bg-red-600 text-white hover:bg-red-700"
             }`}
           >
             <FontAwesomeIcon icon={faTimes} />

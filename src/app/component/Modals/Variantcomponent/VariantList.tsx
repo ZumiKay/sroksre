@@ -50,7 +50,7 @@ const VariantItem = memo(
           ease: "easeOut",
         }}
         key={idx}
-        className={`relative varaint_container w-[90%] max-small_phone:w-full h-fit border-2 rounded-xl p-4 shadow-xs hover:shadow-lg transition-all duration-300 bg-linear-to-br from-white to-gray-50 ${
+        className={`relative varaint_container w-[90%] max-small_phone:w-full h-fit border-2 rounded-xl p-4 shadow-xs hover:shadow-md transition-all duration-200 bg-white ${
           isSelected
             ? "border-red-400 bg-red-50"
             : "border-gray-200 hover:border-blue-300"

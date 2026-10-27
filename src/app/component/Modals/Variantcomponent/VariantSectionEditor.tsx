@@ -183,7 +183,7 @@ const VariantSectionEditor = ({
   return (
     <div className="w-full h-full flex flex-col px-6">
       <div className="max-w-2xl mx-auto w-full flex-1 flex flex-col overflow-hidden">
-        <div className="bg-linear-to-br from-blue-50 to-purple-50 rounded-lg p-6 border-2 border-blue-200 shrink-0">
+        <div className="bg-blue-50 rounded-lg p-6 border-2 border-blue-200 shrink-0">
           <h3 className="text-xl font-bold text-gray-800 mb-2">
             Variant Sections
           </h3>
@@ -335,7 +335,7 @@ const VariantSectionEditor = ({
             >
               <Card className="border-2 border-gray-200 mt-4">
                 <CardBody className="p-6 space-y-6">
-                  <div className="bg-linear-to-br from-blue-50 to-purple-50 rounded-lg p-6 border-2 border-blue-200">
+                  <div className="bg-blue-50 rounded-lg p-6 border-2 border-blue-200">
                     <label className="block text-sm font-semibold text-gray-700 mb-2">
                       Section Name *
                     </label>

@@ -24,16 +24,11 @@ export async function PUT(req: NextRequest) {
     // Verify the request is authorized (check cron secret or similar)
     const authHeader = req.headers.get("authorization");
     const cronSecret = process.env.CRON_SECRET;
-    const token = authHeader?.startsWith("Bearer ")
-      ? authHeader.slice(7)
-      : null;
+    const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
 
     //Authentication
     if (!token || !cronSecret || !timingSafeEquals(token, cronSecret)) {
-      return NextResponse.json(
-        { success: false, message: "Unauthorized" },
-        { status: 401 },
-      );
+      return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
     }
 
     // Clean up expired sessions
@@ -47,9 +42,6 @@ export async function PUT(req: NextRequest) {
     });
   } catch (error) {
     console.log("[CRON] Error cleaning up sessions:", error);
-    return NextResponse.json(
-      { success: false, message: "Internal server error" },
-      { status: 500 },
-    );
+    return NextResponse.json({ success: false, message: "Internal server error" }, { status: 500 });
   }
 }

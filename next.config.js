@@ -9,9 +9,15 @@ const __dirname = path.dirname(__filename);
 const nextConfig = {
   outputFileTracingRoot: __dirname,
   // Enable browser source maps in production builds (replaces webpack devtool config)
-  productionBrowserSourceMaps: true,
+  productionBrowserSourceMaps: false,
   // Turbopack is the default bundler in Next.js 16; no extra config needed
   turbopack: {},
+  compiler: {
+    // Production builds: strip console.log/info/warn/debug so internal data
+    // never shows in the browser console or server logs. console.error stays
+    // so real failures are still logged on the server.
+    removeConsole: process.env.NODE_ENV === "production" ? { exclude: ["error"] } : false,
+  },
   images: {
     qualities: [50, 75, 80, 85, 90, 100],
     remotePatterns: [
@@ -40,8 +46,7 @@ const nextConfig = {
     ],
   },
   env: {
-    KEY_FRONTEND:
-      "4dc0180d676e9ba23390ad6cdd3cdb62271273d23af1f4d2f411b97a1cf20af7",
+    KEY_FRONTEND: "4dc0180d676e9ba23390ad6cdd3cdb62271273d23af1f4d2f411b97a1cf20af7",
   },
   // webpack config is only used when running `next dev --webpack` or `next build --webpack`
   // Turbopack is now the default bundler in Next.js 16

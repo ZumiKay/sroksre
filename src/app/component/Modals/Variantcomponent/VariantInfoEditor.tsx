@@ -58,10 +58,23 @@ export const VariantInfoEditor: React.FC<VariantInfoEditorProps> = ({
     setNew(variantManager.added === -1 ? "type" : "variant");
   };
 
+  // Drop the variant being edited and start a fresh one (create mode).
+  // Keep the variant type so the right editor (color/text) stays open.
   const handleCancel = () => {
+    const currentType = variantManager.temp?.type;
+
+    variantManager.setAdded(-1);
     variantManager.setEdit(-1);
     variantManager.setName("");
-    variantManager.setTemp(undefined);
+    variantManager.setOption("");
+    variantManager.setOptionPrice(undefined);
+    variantManager.setOptionQty(undefined);
+    variantManager.setTemp(
+      currentType ? { name: "", type: currentType, value: [] } : undefined,
+    );
+    setPrice(undefined);
+    setOptional(false);
+    setOpen((prev) => ({ ...prev, addcolor: false, addoption: false }));
   };
 
   const handleSetAllOptionPrice = (val: string) => {

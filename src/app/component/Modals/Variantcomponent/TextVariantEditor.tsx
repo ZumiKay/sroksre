@@ -98,10 +98,10 @@ export const TextVariantEditor: React.FC<TextVariantEditorProps> = React.memo(
           <Modal closestate="none" customZIndex={150}>
             <form
               onSubmit={onUpdateOption}
-              className="addoption w-85 max-smallest_phone:w-75 h-fit bg-linear-to-br from-blue-50/50 via-white to-purple-50/50 p-6 flex flex-col gap-y-6 items-center justify-start rounded-2xl shadow-2xl border-2 border-gray-200/60 backdrop-blur-xs"
+              className="addoption w-85 max-smallest_phone:w-75 h-fit bg-white p-6 flex flex-col gap-y-6 items-center justify-start rounded-2xl shadow-xl border border-gray-200"
             >
               <div className="w-full flex flex-col gap-2">
-                <h3 className="text-xl font-bold bg-linear-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                <h3 className="text-lg font-semibold text-gray-900">
                   {modalTitle}
                 </h3>
                 <p className="text-sm text-gray-600">{modalDescription}</p>
@@ -138,14 +138,14 @@ export const TextVariantEditor: React.FC<TextVariantEditorProps> = React.memo(
                 <Button
                   type="submit"
                   isDisabled={variantManager.option === ""}
-                  className="flex-1 h-12 font-bold text-base bg-linear-to-r from-green-500 to-emerald-600 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95"
+                  className="flex-1 h-11 font-semibold text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors active:scale-[0.98]"
                 >
                   {buttonText}
                 </Button>
                 <Button
                   type="button"
                   onClick={handleCancel}
-                  className="flex-1 h-12 font-bold text-base bg-linear-to-r from-gray-600 to-gray-700 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95"
+                  className="flex-1 h-11 font-semibold text-sm bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors active:scale-[0.98]"
                 >
                   Cancel
                 </Button>
@@ -222,7 +222,7 @@ const OptionItem = React.memo<{
           className={`relative option text-sm cursor-pointer px-4 py-2.5 rounded-lg border-2 font-medium transition-all duration-200 hover:shadow-md active:scale-95 w-fit h-fit flex items-center gap-1.5 ${
             isLowStock
               ? "bg-orange-50 border-orange-300 text-orange-800 hover:border-orange-400"
-              : "bg-linear-to-r from-blue-50 to-purple-50 border-blue-200 text-gray-700 hover:border-blue-400"
+              : "bg-blue-50 border-blue-200 text-gray-700 hover:border-blue-400"
           }`}
         >
           <span>{displayValue}</span>
