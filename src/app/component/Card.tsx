@@ -150,7 +150,10 @@ const Card = memo(function Card(props: cardprops) {
         setpromotion((prev) => ({
           ...prev,
           Products: promo,
-          tempproduct: temp,
+          // Accumulate: earlier removals must survive later toggles
+          tempproduct: Array.from(
+            new Set([...(prev.tempproduct ?? []), ...temp]),
+          ),
         }));
       } else {
         setglobalindex((prev) => ({ ...prev, promotionproductedit: id }));
@@ -212,7 +215,9 @@ const Card = memo(function Card(props: cardprops) {
           -{hasDiscount?.percent ?? 0}%
         </p>
         <p className="text-sm font-medium">
-          {hasDiscount?.newprice ? `$${hasDiscount?.newprice}` : ""}
+          {hasDiscount?.newprice
+            ? `$${Number(hasDiscount.newprice).toFixed(2)}`
+            : ""}
         </p>
       </div>
     ),

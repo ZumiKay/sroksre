@@ -433,10 +433,17 @@ export const DiscountModals = () => {
     setalldata,
     setpromotion,
     globalindex,
+    setglobalindex,
     openmodal,
     setopenmodal,
   } = useGlobalContext();
   const [discount, setdiscount] = useState<number>(0);
+
+  // Forget which card opened the modal, so the next open starts clean
+  const closeModal = () => {
+    setopenmodal((prev) => ({ ...prev, discount: false }));
+    setglobalindex((prev) => ({ ...prev, promotionproductedit: -1 }));
+  };
 
   useEffect(() => {
     if (globalindex.promotionproductedit !== -1) {
@@ -498,7 +505,7 @@ export const DiscountModals = () => {
     //update product
     setalldata((prev) => ({ ...prev, product: allproduct }));
     setpromotion((prev) => ({ ...prev, Products: promoproduct }));
-    setopenmodal((prev) => ({ ...prev, discount: false }));
+    closeModal();
   };
 
   const isSingle = globalindex.promotionproductedit !== -1;
@@ -507,9 +514,7 @@ export const DiscountModals = () => {
     <SecondaryModal
       size="md"
       open={openmodal.discount}
-      onPageChange={(val) =>
-        setopenmodal((prev) => ({ ...prev, discount: val }))
-      }
+      onPageChange={(val) => !val && closeModal()}
       closebtn
     >
       <form
@@ -546,9 +551,7 @@ export const DiscountModals = () => {
         <div className="flex flex-row items-center justify-end gap-3">
           <button
             type="button"
-            onClick={() =>
-              setopenmodal((prev) => ({ ...prev, discount: false }))
-            }
+            onClick={closeModal}
             className="h-10 px-5 rounded-lg text-sm font-semibold bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 transition-colors max-small_phone:flex-1"
           >
             Cancel

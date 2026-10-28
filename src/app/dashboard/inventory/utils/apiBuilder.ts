@@ -1,4 +1,5 @@
 import dayjs from "dayjs";
+import { Orderpricetype } from "@/src/types/order.type";
 
 interface FilterParams {
   status?: string;
@@ -109,6 +110,25 @@ export const buildPromotionApiUrl = (
 };
 
 // Data transformation functions
+/**
+ * Product cards and list rows read discounts as
+ * { price, discount: { percent, newprice } }. No discount (or 0%) → undefined.
+ */
+export const toCardDiscount = (
+  rawPrice: number | string,
+  percent?: number,
+): Orderpricetype | undefined => {
+  const price = parseFloat(rawPrice.toString());
+  if (!percent || percent <= 0 || isNaN(price)) return undefined;
+  return {
+    price,
+    discount: {
+      percent,
+      newprice: parseFloat((price - (price * percent) / 100).toFixed(2)),
+    },
+  };
+};
+
 export const transformProductData = (item: any) => ({
   ...item,
   category: {

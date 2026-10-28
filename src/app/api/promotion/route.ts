@@ -442,8 +442,8 @@ export async function GET(request: NextRequest) {
             ...j,
             discount: {
               percent: discount,
-              newPrice: (price - (price * discount) / 100).toFixed(2),
-              oldPrice: price,
+              newprice: (price - (price * discount) / 100).toFixed(2),
+              oldprice: price,
             },
           };
         });

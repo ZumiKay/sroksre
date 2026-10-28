@@ -173,7 +173,8 @@ export const ProductListItem: React.FC<ProductListItemProps> = ({
       setpromotion((prev) => ({
         ...prev,
         Products: promo,
-        tempproduct: temp,
+        // Accumulate: earlier removals must survive later toggles
+        tempproduct: Array.from(new Set([...(prev.tempproduct ?? []), ...temp])),
       }));
     }
   }, [promotion, product, isProduct, allData, setpromotion, setalldata]);

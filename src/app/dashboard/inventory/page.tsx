@@ -35,6 +35,7 @@ import {
   transformProductData,
   transformBannerData,
   transformPromotionData,
+  toCardDiscount,
 } from "./utils/apiBuilder";
 import useCheckSession from "@/src/hooks/useCheckSession";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -88,6 +89,7 @@ export default function Inventory() {
     itemlength,
     setitemlength,
     globalindex,
+    setglobalindex,
   } = useGlobalContext();
   const { handleCheckSession } = useCheckSession();
 
@@ -207,19 +209,24 @@ export default function Inventory() {
             if (ty === "product") {
               setlowstock(response.lowstock as number);
 
-              // Merge discount data for promotion products
-              if (promotion.selectproduct && type === "product") {
-                const productMap = new Map(
-                  promotion.Products.map((product) => [product.id, product.discount]),
-                );
+              // While picking products for a promotion, unsaved picks win over saved
+              // discounts, and products being removed show no discount.
+              const isPicking = !!promotion.selectproduct && type === "product";
+              const pickedPercent = new Map(
+                isPicking
+                  ? promotion.Products.map((product) => [product.id, product.discount?.percent])
+                  : [],
+              );
+              const removedIds = new Set(isPicking ? (promotion.tempproduct ?? []) : []);
 
-                modifieddata = modifieddata.map((item: any) => {
-                  if (productMap.has(item.id)) {
-                    return { ...item, discount: productMap.get(item.id) };
-                  }
-                  return item;
-                });
-              }
+              modifieddata = modifieddata.map((item: any) => {
+                const percent = pickedPercent.has(item.id)
+                  ? pickedPercent.get(item.id)
+                  : removedIds.has(item.id)
+                    ? undefined
+                    : item.discount?.percent;
+                return { ...item, discount: toCardDiscount(item.price, percent) };
+              });
             }
 
             // Handle promotion-specific data
@@ -776,7 +783,11 @@ export default function Inventory() {
               onFilterChange={handleFilter}
               onFilterClick={() => setopenmodal((prev) => ({ ...prev, filteroption: true }))}
               onLowStockClick={handleLowStockFilter}
-              onDiscountClick={() => setopenmodal((prev) => ({ ...prev, discount: true }))}
+              onDiscountClick={() => {
+                // Header button applies to every selected product, not a single card
+                setglobalindex((prev) => ({ ...prev, promotionproductedit: -1 }));
+                setopenmodal((prev) => ({ ...prev, discount: true }));
+              }}
               onAddBannerClick={() => setopenmodal((prev) => ({ ...prev, createBanner: true }))}
               onDoneClick={handleDoneButton}
               onViewModeChange={setViewMode}
