@@ -2,18 +2,19 @@
 import ReactSelect from "react-select/async";
 import makeAnimated from "react-select/animated";
 import {
+  ChangeEvent,
   CSSProperties,
   useEffect,
   useRef,
   useState,
   useMemo,
   useCallback,
+  useId,
 } from "react";
 import { Selection } from "./Button";
 import { getSubCategories } from "../dashboard/inventory/varaint_action";
 import { getSelectCategory } from "../action";
 import { AnimatePresence, motion } from "framer-motion";
-import { DeleteIcon } from "./Asset";
 import { Skeleton } from "@heroui/react";
 import { SelectType } from "@/src/types/productAction.type";
 
@@ -132,9 +133,10 @@ export const SelectAndSearchProduct = ({
   const [selectedvalue, setselectedvalue] = useState<SelectType[] | undefined>(
     value,
   );
-  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const conref = useRef<HTMLDivElement>(null);
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const listboxId = useId();
 
   const isSelected = useCallback(
     (val: SelectType) => {
@@ -161,18 +163,9 @@ export const SelectAndSearchProduct = ({
     [getdata],
   );
 
+  // Load options whenever the picker opens
   useEffect(() => {
-    if (inputRef.current) {
-      const placeHolder = placeholder ?? "Search Product";
-      if (focus) {
-        inputRef.current.innerHTML = "";
-        fetchData(inputValue, limit);
-      } else {
-        if (inputRef.current.innerHTML !== placeHolder) {
-          inputRef.current.innerHTML = placeHolder;
-        }
-      }
-    }
+    if (focus) fetchData(inputValue, limit);
   }, [focus]);
 
   useEffect(() => {
@@ -186,8 +179,18 @@ export const SelectAndSearchProduct = ({
 
     return () => {
       window.removeEventListener("mousedown", handleCloseOption);
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
     };
   }, []);
+
+  const emitChange = useCallback(
+    (selected: SelectType[]) => {
+      if (!onSelect) return;
+      if (singleselect) onSelect(selected[0]);
+      else onSelect(selected.length === 0 ? undefined : selected);
+    },
+    [singleselect, onSelect],
+  );
 
   const handleSelectOption = useCallback(
     (value: SelectType) => {
@@ -197,39 +200,36 @@ export const SelectAndSearchProduct = ({
 
       if (check !== -1) {
         selected.splice(check, 1);
+      } else if (singleselect) {
+        selected = [value];
       } else {
-        if (singleselect) {
-          selected = [value];
-        } else {
-          selected.push(value);
-        }
+        selected.push(value);
       }
 
-      onSelect &&
-        (singleselect
-          ? onSelect(selected[0])
-          : onSelect(selected.length === 0 ? undefined : selected));
+      emitChange(selected);
       setselectedvalue(selected);
+      // A single pick is final, so close the list
+      if (singleselect && check === -1) setfocus(false);
     },
-    [selectedvalue, singleselect, onSelect],
+    [selectedvalue, singleselect, emitChange],
   );
 
-  const handleInputChange = useCallback(() => {
-    if (inputRef.current) {
-      const value = inputRef.current.innerText;
+  const handleInputChange = useCallback(
+    (e: ChangeEvent<HTMLInputElement>) => {
+      const value = e.target.value;
       setInputValue(value);
+      setfocus(true);
 
-      // Clear previous timer
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current);
       }
-
-      // Set new timer for debounced search
       debounceTimerRef.current = setTimeout(() => {
         fetchData(value, 3);
-      }, 300); // 300ms debounce
-    }
-  }, [fetchData]);
+        setlimt(3);
+      }, 300);
+    },
+    [fetchData],
+  );
 
   const loadMore = useCallback(async () => {
     const newLimit = limit + 3;
@@ -242,16 +242,25 @@ export const SelectAndSearchProduct = ({
       const selected = [...(selectedvalue ?? [])];
       selected.splice(idx, 1);
       setselectedvalue(selected);
-      onSelect &&
-        (singleselect
-          ? onSelect(selected.length === 0 ? undefined : selected[0])
-          : onSelect(selected.length === 0 ? undefined : selected));
+      emitChange(selected);
       setisDelete(false);
     },
-    [selectedvalue, singleselect, onSelect],
+    [selectedvalue, emitChange],
   );
 
-  // Memoize selected tags rendering
+  const handleClearAll = useCallback(() => {
+    setselectedvalue([]);
+    emitChange([]);
+    setisDelete(false);
+  }, [emitChange]);
+
+  const hasSelection = (selectedvalue?.length ?? 0) > 0;
+  const inputPlaceholder = hasSelection
+    ? singleselect
+      ? "Search to change"
+      : "Search to add more"
+    : (placeholder ?? "Search products");
+
   const selectedTags = useMemo(
     () =>
       selectedvalue?.map((i, idx) => (
@@ -262,9 +271,9 @@ export const SelectAndSearchProduct = ({
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
           transition={{ duration: 0.15 }}
-          className="w-fit h-fit flex flex-row items-center gap-1.5 bg-blue-600 rounded-lg pl-3 pr-1.5 py-1.5"
+          className="w-fit h-fit flex flex-row items-center gap-1 bg-slate-100 border border-slate-200 rounded-md pl-2.5 pr-1 py-0.5"
         >
-          <p className="text-sm font-medium text-white truncate max-w-50">
+          <p className="text-sm font-medium text-slate-800 truncate max-w-50">
             {i.label}
           </p>
           <button
@@ -276,9 +285,9 @@ export const SelectAndSearchProduct = ({
             }}
             onMouseEnter={() => setisDelete(true)}
             onMouseLeave={() => setisDelete(false)}
-            className="w-6 h-6 flex items-center justify-center rounded-md text-white/80 hover:text-white hover:bg-blue-700 transition-colors duration-150 shrink-0"
+            className="w-5 h-5 flex items-center justify-center rounded-sm text-slate-400 hover:text-slate-900 hover:bg-slate-200 transition-colors duration-150 shrink-0"
           >
-            <DeleteIcon />
+            <XIcon className="w-3 h-3" />
           </button>
         </motion.div>
       )),
@@ -287,45 +296,79 @@ export const SelectAndSearchProduct = ({
 
   return (
     <div
-      ref={conref as any}
+      ref={conref}
       onTouchCancel={() => setfocus(false)}
       className="productselect w-full h-fit relative"
     >
       <div
         onClick={() => {
           setfocus(true);
+          inputRef.current?.focus();
         }}
-        className={`inputcontainer w-full min-h-13 relative h-fit flex flex-row items-center border-2 rounded-xl bg-white cursor-text transition-all duration-200 ${
+        className={`inputcontainer w-full min-h-11 relative h-fit flex flex-row items-center border rounded-lg bg-white cursor-text transition-colors duration-150 ${
           focus
-            ? "border-blue-500 ring-4 ring-blue-100"
-            : "border-gray-200 hover:border-gray-300"
+            ? "border-slate-900 ring-2 ring-slate-200"
+            : "border-slate-300 hover:border-slate-400"
         }`}
       >
-        <div className="w-full pr-10 h-fit flex flex-row flex-wrap items-center gap-1.5 p-2">
-          <AnimatePresence>{selectedTags}</AnimatePresence>
-          <span
-            ref={inputRef}
-            className={`min-w-50 flex-1 h-full px-1 py-1 text-sm flex flex-col justify-center cursor-text focus:outline-hidden ${
-              focus ? "text-gray-800" : "text-gray-400"
-            }`}
-            role="textbox"
-            onInput={handleInputChange}
-            onClick={() => setfocus(true)}
-            contentEditable
-          ></span>
-        </div>
-        <div
-          onClick={() => setfocus(true)}
-          className="absolute w-10 right-1 top-0 h-full flex flex-col justify-center items-center"
+        <svg
+          viewBox="0 0 20 20"
+          fill="currentColor"
+          aria-hidden="true"
+          className="absolute left-3 top-3 w-4 h-4 text-slate-400"
         >
+          <path
+            fillRule="evenodd"
+            d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z"
+            clipRule="evenodd"
+          />
+        </svg>
+        <div className="w-full pl-9 pr-16 h-fit flex flex-row flex-wrap items-center gap-1.5 py-1.5">
+          <AnimatePresence>{selectedTags}</AnimatePresence>
+          <input
+            ref={inputRef}
+            type="text"
+            role="combobox"
+            aria-expanded={focus}
+            aria-controls={listboxId}
+            aria-autocomplete="list"
+            value={inputValue}
+            placeholder={inputPlaceholder}
+            onChange={handleInputChange}
+            onFocus={() => setfocus(true)}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") {
+                setfocus(false);
+                inputRef.current?.blur();
+              }
+            }}
+            className="min-w-30 flex-1 h-7 px-1 text-sm text-slate-900 placeholder:text-slate-400 bg-transparent outline-none"
+          />
+        </div>
+        <div className="absolute right-1.5 top-0 h-full flex flex-row items-center gap-0.5">
+          {hasSelection && (
+            <button
+              type="button"
+              aria-label="Clear selection"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleClearAll();
+              }}
+              onMouseEnter={() => setisDelete(true)}
+              onMouseLeave={() => setisDelete(false)}
+              className="w-7 h-7 flex items-center justify-center rounded-md text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-colors"
+            >
+              <XIcon className="w-3.5 h-3.5" />
+            </button>
+          )}
           <motion.svg
             animate={{ rotate: focus ? 180 : 0 }}
             transition={{ duration: 0.2 }}
             viewBox="0 0 20 20"
             fill="currentColor"
             aria-hidden="true"
-            className={`w-5 h-5 transition-colors duration-200 ${
-              focus ? "text-blue-600" : "text-gray-500"
+            className={`w-5 h-5 mr-1 transition-colors duration-200 ${
+              focus ? "text-slate-900" : "text-slate-400"
             }`}
           >
             <path
@@ -339,54 +382,66 @@ export const SelectAndSearchProduct = ({
       <AnimatePresence>
         {!isDelete && focus && (
           <motion.div
+            id={listboxId}
             role="listbox"
             aria-multiselectable={!singleselect}
-            initial={{ opacity: 0, y: -6 }}
+            initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            transition={{ duration: 0.15 }}
-            className="option_container absolute bg-white w-full h-fit max-h-80 overflow-y-auto overflow-x-hidden p-1.5 flex flex-col gap-y-0.5 border border-gray-200 rounded-xl shadow-lg z-50 mt-1.5"
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.12 }}
+            className="option_container absolute bg-white w-full h-fit max-h-80 overflow-y-auto overflow-x-hidden p-1 flex flex-col gap-y-0.5 border border-slate-200 rounded-lg shadow-lg z-50 mt-1"
           >
             {loading ? (
-              <div className="p-1.5">
-                <NormalSkeleton width="100%" height="36px" count={3} />
+              <div className="p-1">
+                <NormalSkeleton width="100%" height="32px" count={3} />
               </div>
             ) : options && options.length > 0 ? (
               options.map((i) => {
                 const selected = isSelected(i);
-                const selectedIndex = selectedvalue?.findIndex(
-                  (v) => v.value === i.value,
-                );
+                const selectedIndex =
+                  selectedvalue?.findIndex((v) => v.value === i.value) ?? -1;
                 return (
                   <div
                     key={i.value}
                     role="option"
                     aria-selected={selected}
-                    className={`option w-full h-fit flex flex-row items-center gap-3 px-2.5 py-2 rounded-lg cursor-pointer transition-colors duration-150 ${
-                      selected
-                        ? "bg-blue-50 text-blue-700"
-                        : "text-gray-700 hover:bg-gray-100"
+                    className={`option w-full h-fit flex flex-row items-center gap-3 px-2.5 py-2 rounded-md cursor-pointer transition-colors duration-150 ${
+                      selected ? "bg-slate-100" : "hover:bg-slate-50"
                     }`}
                     onClick={() => handleSelectOption(i)}
                   >
-                    <div
-                      className={`selectednumber w-6 h-6 shrink-0 text-xs font-semibold rounded-full flex justify-center items-center transition-colors duration-150 ${
-                        selected
-                          ? "bg-blue-600 text-white"
-                          : "border-2 border-gray-300 bg-white"
-                      }`}
-                    >
-                      {!singleselect && selected
-                        ? selectedIndex !== undefined && selectedIndex !== -1
+                    {singleselect ? (
+                      <span
+                        aria-hidden="true"
+                        className={`w-4 h-4 shrink-0 rounded-full border flex items-center justify-center transition-colors ${
+                          selected
+                            ? "border-slate-900"
+                            : "border-slate-300 bg-white"
+                        }`}
+                      >
+                        {selected && (
+                          <span className="w-2 h-2 rounded-full bg-slate-900" />
+                        )}
+                      </span>
+                    ) : (
+                      <span
+                        aria-hidden="true"
+                        className={`selectednumber w-5 h-5 shrink-0 text-[11px] font-semibold rounded-md flex justify-center items-center transition-colors ${
+                          selected
+                            ? "bg-slate-900 text-white"
+                            : "border border-slate-300 bg-white"
+                        }`}
+                      >
+                        {selected && selectedIndex !== -1
                           ? selectedIndex + 1
-                          : "✓"
-                        : selected
-                          ? "✓"
                           : ""}
-                    </div>
+                      </span>
+                    )}
                     <span
                       className={`w-full text-sm truncate ${
-                        selected ? "font-semibold" : "font-medium"
+                        selected
+                          ? "font-semibold text-slate-900"
+                          : "text-slate-700"
                       }`}
                     >
                       {i.label}
@@ -395,18 +450,22 @@ export const SelectAndSearchProduct = ({
                 );
               })
             ) : (
-              <div className="w-full h-16 flex items-center justify-center text-gray-400 text-sm">
-                <p>No results found</p>
+              <div className="w-full py-6 flex items-center justify-center text-slate-500 text-sm">
+                <p>
+                  {inputValue.trim()
+                    ? `No results for “${inputValue.trim()}”`
+                    : "No results found"}
+                </p>
               </div>
             )}
-            {options && !isLimit && options.length > 0 && (
-              <div className="w-full pt-1.5 mt-1 border-t border-gray-100">
+            {options && !isLimit && options.length > 0 && !loading && (
+              <div className="w-full pt-1 mt-0.5 border-t border-slate-100">
                 <button
                   onClick={loadMore}
                   type="button"
-                  className="w-full h-9 rounded-lg font-semibold text-sm text-blue-600 hover:bg-blue-50 transition-colors duration-150"
+                  className="w-full h-8 rounded-md font-medium text-sm text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors duration-150"
                 >
-                  Load More
+                  Show more
                 </button>
               </div>
             )}
@@ -416,3 +475,17 @@ export const SelectAndSearchProduct = ({
     </div>
   );
 };
+
+const XIcon = ({ className }: { className?: string }) => (
+  <svg
+    viewBox="0 0 20 20"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2}
+    strokeLinecap="round"
+    aria-hidden="true"
+    className={className}
+  >
+    <path d="M5 5l10 10M15 5L5 15" />
+  </svg>
+);

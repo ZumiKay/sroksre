@@ -323,18 +323,18 @@ const CategoriesContainer = (props: { setopen: React.Dispatch<React.SetStateActi
   return (
     <div
       onMouseLeave={() => props.setopen(false)}
-      className="categories__container absolute top-full left-0 z-99 w-full max-h-[calc(100vh-3.75rem)] overflow-y-auto overflow-x-hidden bg-white border-t border-gray-200 shadow-xl"
+      className="categories__container absolute top-full left-0 z-99 w-full max-h-[calc(100vh-3.75rem)] overflow-y-auto overflow-x-hidden bg-white border-t border-slate-200 shadow-xl"
     >
       <div className="w-full max-w-7xl mx-auto px-4 sm:px-8 pt-5 pb-10 flex flex-col gap-6">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-500">
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-500">
             Shop by category
           </h2>
           <button
             type="button"
             onClick={() => props.setopen(false)}
-            className="p-1.5 rounded-full text-gray-500 hover:bg-gray-100 transition-colors"
+            className="p-1.5 rounded-full text-slate-500 hover:bg-slate-100 transition-colors"
             aria-label="Close categories"
           >
             <CloseVector width="20px" height="20px" />
@@ -345,33 +345,33 @@ const CategoriesContainer = (props: { setopen: React.Dispatch<React.SetStateActi
           <>
             <div className="flex flex-wrap gap-2">
               {[...Array(3)].map((_, idx) => (
-                <div key={idx} className="w-32 h-10 rounded-full bg-gray-100 animate-pulse" />
+                <div key={idx} className="w-32 h-10 rounded-full bg-slate-100 animate-pulse" />
               ))}
             </div>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-8 gap-y-8">
               {[...Array(4)].map((_, idx) => (
                 <div key={idx} className="flex flex-col gap-3 animate-pulse">
-                  <div className="w-2/3 h-5 bg-gray-200 rounded-sm" />
-                  <div className="w-full h-4 bg-gray-100 rounded-sm" />
-                  <div className="w-4/5 h-4 bg-gray-100 rounded-sm" />
-                  <div className="w-3/5 h-4 bg-gray-100 rounded-sm" />
+                  <div className="w-2/3 h-5 bg-slate-200 rounded-sm" />
+                  <div className="w-full h-4 bg-slate-100 rounded-sm" />
+                  <div className="w-4/5 h-4 bg-slate-100 rounded-sm" />
+                  <div className="w-3/5 h-4 bg-slate-100 rounded-sm" />
                 </div>
               ))}
             </div>
           </>
         ) : !allcate || allcate.length === 0 ? (
           <div className="w-full flex flex-col items-center justify-center gap-3 py-16 text-center">
-            <span className="w-14 h-14 rounded-full bg-gray-100 text-gray-400 flex items-center justify-center">
+            <span className="w-14 h-14 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center">
               <FontAwesomeIcon icon={faLayerGroup} className="text-xl" />
             </span>
-            <h3 className="text-base font-semibold text-gray-700">No categories yet</h3>
-            <p className="text-sm text-gray-500 max-w-sm">
+            <h3 className="text-base font-semibold text-slate-700">No categories yet</h3>
+            <p className="text-sm text-slate-500 max-w-sm">
               Check back soon, or browse everything we have.
             </p>
             <button
               type="button"
               onClick={() => go("/product?all=1")}
-              className="mt-1 h-10 px-5 rounded-full text-sm font-semibold bg-incart text-white hover:opacity-90 transition-opacity"
+              className="mt-1 h-10 px-5 rounded-full text-sm font-semibold bg-slate-900 text-white hover:bg-slate-800 transition-colors"
             >
               Shop all products
             </button>
@@ -408,19 +408,19 @@ const CategoriesContainer = (props: { setopen: React.Dispatch<React.SetStateActi
                         onClick={() =>
                           go(`/product?${i.type === "normal" ? `pid=${i.id}` : `ppid=${i.id}`}`)
                         }
-                        className="category_header group flex items-center gap-2 text-left pb-2 border-b border-gray-200"
+                        className="category_header group flex items-center gap-2 text-left pb-2 border-b border-slate-200"
                       >
-                        <span className="text-sm font-bold text-gray-900 group-hover:text-incart wrap-break-word">
+                        <span className="text-sm font-bold text-slate-900 group-hover:text-slate-600 wrap-break-word">
                           {i.name}
                         </span>
                         {i.type === "sale" && (
-                          <span className="shrink-0 text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-sm bg-red-50 text-red-600">
+                          <span className="shrink-0 text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-sm border border-red-200 text-red-600">
                             Sale
                           </span>
                         )}
                         <FontAwesomeIcon
                           icon={faArrowRight}
-                          className="ml-auto text-[10px] text-gray-300 group-hover:text-incart group-hover:translate-x-0.5 transition"
+                          className="ml-auto text-[10px] text-slate-300 group-hover:text-slate-600 group-hover:translate-x-0.5 transition"
                         />
                       </button>
                       {subs.length > 0 && (
@@ -438,7 +438,7 @@ const CategoriesContainer = (props: { setopen: React.Dispatch<React.SetStateActi
                                     }`,
                                   )
                                 }
-                                className="subcategory w-full text-left text-sm text-gray-600 py-1.5 hover:text-incart hover:underline underline-offset-4 transition-colors wrap-break-word"
+                                className="subcategory w-full text-left text-sm text-slate-600 py-1.5 hover:text-slate-900 hover:underline underline-offset-4 transition-colors wrap-break-word"
                               >
                                 {sub.name}
                               </button>
@@ -475,8 +475,8 @@ function QuickLink({
       onClick={onClick}
       className={`inline-flex items-center gap-2 h-10 px-4 rounded-full text-sm font-semibold border transition-colors ${
         primary
-          ? "bg-incart text-white border-incart hover:opacity-90"
-          : "bg-white text-gray-700 border-gray-300 hover:border-incart hover:text-incart"
+          ? "bg-slate-900 text-white border-slate-900 hover:bg-slate-800"
+          : "bg-white text-slate-700 border-slate-300 hover:border-slate-900 hover:text-slate-900"
       }`}
     >
       <FontAwesomeIcon icon={icon} className="text-xs" />

@@ -23,15 +23,8 @@ import {
   faLayerGroup,
   faPen,
   faPercent,
-  faTags,
 } from "@fortawesome/free-solid-svg-icons";
-import {
-  ACCENTS,
-  Accent,
-  IconTile,
-  ModalTitle,
-  SectionCard,
-} from "./FormSection";
+import { ACCENTS, IconTile, ModalTitle, SectionCard } from "./FormSection";
 
 interface InventoryParamType {
   ty?: string;
@@ -231,14 +224,14 @@ export const CreatePromotionModal = ({
             type="button"
             onClick={() => handleCancel()}
             disabled={isSaving}
-            className="h-10 px-5 rounded-lg text-sm font-semibold bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed max-small_phone:flex-1"
+            className="h-10 px-5 rounded-lg text-sm font-semibold bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed max-small_phone:flex-1"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={isSaving}
-            className="inline-flex items-center justify-center gap-2 h-10 px-5 rounded-lg text-sm font-semibold bg-orange-500 text-white shadow-sm hover:bg-orange-600 transition-colors disabled:opacity-60 disabled:cursor-not-allowed max-small_phone:flex-1"
+            className="inline-flex items-center justify-center gap-2 h-10 px-5 rounded-lg text-sm font-semibold bg-slate-900 text-white shadow-sm hover:bg-slate-800 transition-colors disabled:opacity-60 disabled:cursor-not-allowed max-small_phone:flex-1"
           >
             {isSaving ? (
               <Spinner />
@@ -253,15 +246,13 @@ export const CreatePromotionModal = ({
       {loading && <BlurLoading />}
       <div className="createPromotion__container w-full flex flex-col gap-y-5 py-4">
         <ModalTitle
-          icon={faTags}
-          accent="orange"
           title={isEdit ? "Edit Promotion" : "New Promotion"}
           subtitle="Discount a set of products until a set date, with an optional banner."
         />
 
-        <SectionCard icon={faPen} accent="blue" title="Details">
+        <SectionCard icon={faPen} title="Details">
           <label className="flex flex-col gap-y-1.5">
-            <span className="text-sm font-medium text-gray-700">Name</span>
+            <span className="text-sm font-medium text-slate-700">Name</span>
             <input
               type="text"
               name="name"
@@ -273,9 +264,9 @@ export const CreatePromotionModal = ({
             />
           </label>
           <label className="flex flex-col gap-y-1.5">
-            <span className="text-sm font-medium text-gray-700">
+            <span className="text-sm font-medium text-slate-700">
               Description{" "}
-              <span className="font-normal text-gray-400">(optional)</span>
+              <span className="font-normal text-slate-400">(optional)</span>
             </span>
             <textarea
               name="description"
@@ -290,7 +281,6 @@ export const CreatePromotionModal = ({
 
         <SectionCard
           icon={faClock}
-          accent="rose"
           title="Ends on"
           hint="Discounts stop applying after this date and time."
         >
@@ -317,14 +307,12 @@ export const CreatePromotionModal = ({
 
         <SectionCard
           icon={faLayerGroup}
-          accent="purple"
           title="Products and banner"
           hint="Choosing closes this window so you can pick from the list."
         >
           <div className="flex flex-col gap-2">
             <PickRow
               icon={faBox}
-              accent="green"
               title="Products"
               required
               count={productCount}
@@ -334,7 +322,6 @@ export const CreatePromotionModal = ({
             />
             <PickRow
               icon={faImage}
-              accent="purple"
               title="Banner"
               count={hasBanner ? 1 : 0}
               status={hasBanner ? "Selected" : undefined}
@@ -344,9 +331,8 @@ export const CreatePromotionModal = ({
           </div>
         </SectionCard>
 
-        <section className="rounded-xl border border-gray-200 bg-white p-5">
+        <section className="rounded-xl border border-slate-200 bg-white p-5">
           <Switch
-            color="warning"
             isSelected={promotion.autocate}
             onValueChange={(val) => {
               setpromotion((prev) => ({ ...prev, autocate: val }));
@@ -354,14 +340,15 @@ export const CreatePromotionModal = ({
             classNames={{
               base: "max-w-full w-full flex-row-reverse justify-between gap-4",
               label: "flex items-start gap-3",
+              wrapper: "group-data-[selected=true]:bg-slate-900",
             }}
           >
-            <IconTile icon={faPercent} accent="amber" size="sm" />
+            <IconTile icon={faPercent} size="sm" />
             <span>
-              <span className="block text-sm font-semibold text-gray-900">
+              <span className="block text-sm font-semibold text-slate-900">
                 List in Sale category
               </span>
-              <span className="block text-xs text-gray-500 mt-0.5">
+              <span className="block text-xs text-slate-500 mt-0.5">
                 Show these products in the Sale category while the promotion
                 runs.
               </span>
@@ -382,7 +369,7 @@ export const CreatePromotionModal = ({
 };
 
 const inputClass =
-  "w-full h-11 px-3 rounded-lg border border-gray-300 bg-white text-sm text-gray-900 placeholder:text-gray-400 outline-none transition-colors focus:border-orange-500 focus:ring-2 focus:ring-orange-100";
+  "w-full h-11 px-3 rounded-lg border border-slate-300 bg-white text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-colors focus:border-slate-900 focus:ring-2 focus:ring-slate-200";
 
 const Spinner = () => (
   <span
@@ -393,7 +380,6 @@ const Spinner = () => (
 
 function PickRow({
   icon,
-  accent,
   title,
   count,
   status,
@@ -402,7 +388,6 @@ function PickRow({
   onClick,
 }: {
   icon: IconDefinition;
-  accent: Accent;
   title: string;
   count: number;
   status?: string;
@@ -412,17 +397,17 @@ function PickRow({
 }) {
   const done = count > 0;
   const badge = done
-    ? { text: status, className: "bg-green-100 text-green-700" }
+    ? { text: status, className: "bg-slate-900 text-white" }
     : required
-      ? { text: "Required", className: "bg-red-100 text-red-700" }
-      : { text: "Optional", className: "bg-gray-100 text-gray-600" };
+      ? { text: "Required", className: "bg-red-50 text-red-600" }
+      : { text: "Optional", className: "bg-slate-100 text-slate-600" };
 
   return (
-    <div className="flex items-center justify-between gap-4 rounded-lg border border-gray-200 px-3 py-3">
+    <div className="flex items-center justify-between gap-4 rounded-lg border border-slate-200 px-3 py-3">
       <div className="flex items-center gap-3 min-w-0">
-        <IconTile icon={icon} accent={accent} />
+        <IconTile icon={icon} />
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-gray-900">{title}</p>
+          <p className="text-sm font-semibold text-slate-900">{title}</p>
           <span
             className={`inline-block mt-1 text-xs font-medium px-2 py-0.5 rounded-full ${badge.className}`}
           >
@@ -433,7 +418,7 @@ function PickRow({
       <button
         type="button"
         onClick={onClick}
-        className={`shrink-0 h-9 px-4 rounded-lg text-sm font-semibold border transition-colors ${ACCENTS[accent].soft} hover:brightness-95`}
+        className={`shrink-0 h-9 px-4 rounded-lg text-sm font-semibold border transition-colors ${ACCENTS.neutral.soft}`}
       >
         {actionLabel}
       </button>
@@ -532,8 +517,6 @@ export const DiscountModals = () => {
         className="discount_content w-full flex flex-col gap-y-5 py-4"
       >
         <ModalTitle
-          icon={faPercent}
-          accent="purple"
           title="Set Discount"
           subtitle={
             isSingle
@@ -549,7 +532,7 @@ export const DiscountModals = () => {
           placeholder="e.g. 20"
           description="Between 1% and 100%."
           endContent={
-            <span className="text-sm font-semibold text-purple-600">%</span>
+            <span className="text-sm font-semibold text-slate-600">%</span>
           }
           name="discount"
           value={discount}
@@ -557,7 +540,7 @@ export const DiscountModals = () => {
           maxValue={100}
           onValueChange={(e) => setdiscount(e)}
           isRequired
-          classNames={{ label: "text-sm font-medium text-gray-700" }}
+          classNames={{ label: "text-sm font-medium text-slate-700" }}
         />
 
         <div className="flex flex-row items-center justify-end gap-3">
@@ -566,13 +549,13 @@ export const DiscountModals = () => {
             onClick={() =>
               setopenmodal((prev) => ({ ...prev, discount: false }))
             }
-            className="h-10 px-5 rounded-lg text-sm font-semibold bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 transition-colors max-small_phone:flex-1"
+            className="h-10 px-5 rounded-lg text-sm font-semibold bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 transition-colors max-small_phone:flex-1"
           >
             Cancel
           </button>
           <button
             type="submit"
-            className="inline-flex items-center justify-center gap-2 h-10 px-5 rounded-lg text-sm font-semibold bg-purple-600 text-white shadow-sm hover:bg-purple-700 transition-colors max-small_phone:flex-1"
+            className="inline-flex items-center justify-center gap-2 h-10 px-5 rounded-lg text-sm font-semibold bg-slate-900 text-white shadow-sm hover:bg-slate-800 transition-colors max-small_phone:flex-1"
           >
             <FontAwesomeIcon icon={faCheck} className="text-xs" />
             Apply Discount

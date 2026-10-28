@@ -1,5 +1,8 @@
 "use client";
-import { BannerInitialize, useGlobalContext } from "@/src/context/GlobalContext";
+import {
+  BannerInitialize,
+  useGlobalContext,
+} from "@/src/context/GlobalContext";
 import { useCallback, useState, memo } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -11,7 +14,6 @@ import {
   faCloudArrowUp,
   faCompress,
   faExpand,
-  faFlag,
   faFolder,
   faFolderOpen,
   faFolderTree,
@@ -33,7 +35,14 @@ import { ImageUpload } from "./Image";
 import { DeleteTempImage } from "../../dashboard/inventory/varaint_action";
 import { Input } from "@heroui/react";
 import { ImageWithLoader } from "../ImageWithLoader";
-import { ACCENTS, Field, ModalTitle, Option, OptionGroup, SectionCard } from "./FormSection";
+import {
+  ACCENTS,
+  Field,
+  ModalTitle,
+  Option,
+  OptionGroup,
+  SectionCard,
+} from "./FormSection";
 import { BannerState, SelectType } from "@/src/types/productAction.type";
 
 export const BannerType = [
@@ -79,31 +88,35 @@ export const BannerModal = memo(function BannerModal({
     setglobalindex({ ...globalindex, bannereditindex: -1 });
   }, [openmodal, globalindex, setopenmodal, setglobalindex]);
 
-  const getSelectItems = useCallback(async (limit: number, value: string, type: string) => {
-    const getreq = (type === "prod" ? getProductForBanner : getPromotionForBanner).bind(
-      null,
-      limit,
-      value,
-    );
-    const request = await getreq();
+  const getSelectItems = useCallback(
+    async (limit: number, value: string, type: string) => {
+      const getreq = (
+        type === "prod" ? getProductForBanner : getPromotionForBanner
+      ).bind(null, limit, value);
+      const request = await getreq();
 
-    if (request.success) {
-      return request;
-    }
-    return null;
-  }, []);
+      if (request.success) {
+        return request;
+      }
+      return null;
+    },
+    [],
+  );
 
-  const getCategory = useCallback(async (type: "parent" | "child", value: string, pid: number) => {
-    const getreq =
-      type === "parent"
-        ? getParentCategoryForBanner.bind(null, value)
-        : getChildCategoryForBanner.bind(null, value, pid);
-    const request = await getreq();
-    if (request.success) {
-      return request;
-    }
-    return null;
-  }, []);
+  const getCategory = useCallback(
+    async (type: "parent" | "child", value: string, pid: number) => {
+      const getreq =
+        type === "parent"
+          ? getParentCategoryForBanner.bind(null, value)
+          : getChildCategoryForBanner.bind(null, value, pid);
+      const request = await getreq();
+      if (request.success) {
+        return request;
+      }
+      return null;
+    },
+    [],
+  );
 
   useEffectOnce(() => {
     const fetchdata = async () => {
@@ -167,7 +180,9 @@ export const BannerModal = memo(function BannerModal({
           errorToast("Failed To Update");
           return;
         }
-        const idx = allbanner.findIndex((i) => i.id === globalindex.bannereditindex);
+        const idx = allbanner.findIndex(
+          (i) => i.id === globalindex.bannereditindex,
+        );
         allbanner[idx] = banner;
         setalldata({ banner: allbanner });
         setglobalindex((prev) => ({ ...prev, bannereditindex: -1 }));
@@ -198,7 +213,12 @@ export const BannerModal = memo(function BannerModal({
           return {
             ...prev,
             type: value as BannerState["type"],
-            linktype: value === "product" ? "product" : value === "category" ? "parent" : undefined,
+            linktype:
+              value === "product"
+                ? "product"
+                : value === "category"
+                  ? "parent"
+                  : undefined,
           };
         }
         return { ...prev, [name]: value };
@@ -224,7 +244,8 @@ export const BannerModal = memo(function BannerModal({
     [setbanner],
   );
 
-  const openImageUpload = () => setopenmodal((prev) => ({ ...prev, imageupload: true }));
+  const openImageUpload = () =>
+    setopenmodal((prev) => ({ ...prev, imageupload: true }));
 
   const isEdit = globalindex.bannereditindex !== -1;
   const hasImage = banner.image?.url?.length > 0;
@@ -240,7 +261,7 @@ export const BannerModal = memo(function BannerModal({
             type="button"
             onClick={() => handleCancel()}
             disabled={loading}
-            className="h-10 px-5 rounded-lg text-sm font-semibold bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed max-small_phone:flex-1"
+            className="h-10 px-5 rounded-lg text-sm font-semibold bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed max-small_phone:flex-1"
           >
             Cancel
           </button>
@@ -248,7 +269,7 @@ export const BannerModal = memo(function BannerModal({
             type="button"
             onClick={() => handleCreate()}
             disabled={loading}
-            className="inline-flex items-center justify-center gap-2 h-10 px-5 rounded-lg text-sm font-semibold bg-slate-500 text-white shadow-sm hover:bg-blue-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed max-small_phone:flex-1"
+            className="inline-flex items-center justify-center gap-2 h-10 px-5 rounded-lg text-sm font-semibold bg-slate-500 text-white shadow-sm hover:bg-slate-800 transition-colors disabled:opacity-60 disabled:cursor-not-allowed max-small_phone:flex-1"
           >
             {loading ? (
               <span
@@ -265,13 +286,11 @@ export const BannerModal = memo(function BannerModal({
     >
       <div className="bannermodal_content w-full max-w-2xl mx-auto flex flex-col gap-y-5 py-4">
         <ModalTitle
-          icon={faFlag}
-          accent="blue"
           title={isEdit ? "Edit Banner" : "New Banner"}
           subtitle="Banners show on the home page. Pick a size, add an image, and optionally link it to products or a category."
         />
 
-        <SectionCard icon={faPen} accent="blue" title="Basics">
+        <SectionCard icon={faPen} title="Basics">
           <Input
             size="lg"
             name="name"
@@ -284,8 +303,9 @@ export const BannerModal = memo(function BannerModal({
             value={banner.name}
             onChange={(e) => setField("name", e.target.value)}
             classNames={{
-              label: "text-sm font-medium text-gray-700",
-              inputWrapper: "group-data-[focus=true]:border-blue-500 border-gray-300",
+              label: "text-sm font-medium text-slate-700",
+              inputWrapper:
+                "group-data-[focus=true]:border-slate-500 border-slate-300",
             }}
           />
 
@@ -299,15 +319,16 @@ export const BannerModal = memo(function BannerModal({
 
         <SectionCard
           icon={faImage}
-          accent="purple"
           title="Image"
           hint="Cropped to fit the size above. If you change the size, upload the image again."
         >
           {hasImage ? (
-            <div className="rounded-xl border border-gray-200 overflow-hidden">
+            <div className="rounded-xl border border-slate-200 overflow-hidden">
               <div
-                className={`w-full bg-gray-100 ${
-                  banner.size === "small" ? "aspect-4/3 max-w-sm mx-auto" : "aspect-video"
+                className={`w-full bg-slate-100 ${
+                  banner.size === "small"
+                    ? "aspect-4/3 max-w-sm mx-auto"
+                    : "aspect-video"
                 }`}
               >
                 <ImageWithLoader
@@ -320,15 +341,18 @@ export const BannerModal = memo(function BannerModal({
                   quality={75}
                 />
               </div>
-              <div className="flex items-center justify-between gap-3 px-4 py-3 border-t border-gray-200 bg-white">
-                <p className="text-sm text-gray-600 truncate flex items-center gap-2">
-                  <FontAwesomeIcon icon={faCircleCheck} className="text-green-500" />
+              <div className="flex items-center justify-between gap-3 px-4 py-3 border-t border-slate-200 bg-white">
+                <p className="text-sm text-slate-600 truncate flex items-center gap-2">
+                  <FontAwesomeIcon
+                    icon={faCircleCheck}
+                    className="text-slate-500"
+                  />
                   {banner.image.name || "Banner image"}
                 </p>
                 <button
                   type="button"
                   onClick={openImageUpload}
-                  className="shrink-0 h-9 px-4 rounded-lg text-sm font-semibold bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 transition-colors"
+                  className="shrink-0 h-9 px-4 rounded-lg text-sm font-semibold bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100 transition-colors"
                 >
                   Replace
                 </button>
@@ -338,16 +362,20 @@ export const BannerModal = memo(function BannerModal({
             <button
               type="button"
               onClick={openImageUpload}
-              className={`w-full flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-purple-300 bg-purple-50 text-purple-600 hover:border-purple-500 hover:bg-purple-100 transition-colors ${
-                banner.size === "small" ? "aspect-4/3 max-w-sm mx-auto" : "aspect-video"
+              className={`w-full flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 text-slate-600 hover:border-slate-500 hover:bg-slate-100 transition-colors ${
+                banner.size === "small"
+                  ? "aspect-4/3 max-w-sm mx-auto"
+                  : "aspect-video"
               }`}
             >
-              <span className="w-12 h-12 rounded-full bg-white text-purple-600 flex items-center justify-center shadow-sm">
+              <span className="w-12 h-12 rounded-full bg-white text-slate-600 flex items-center justify-center shadow-sm">
                 <FontAwesomeIcon icon={faCloudArrowUp} className="text-xl" />
               </span>
               <span className="text-sm font-semibold">Upload image</span>
-              <span className="text-xs text-purple-500">
-                {banner.size === "small" ? "Best at 1:1 or 4:3" : "Best at 16:9 or 4:3"}
+              <span className="text-xs text-slate-500">
+                {banner.size === "small"
+                  ? "Best at 1:1 or 4:3"
+                  : "Best at 16:9 or 4:3"}
               </span>
             </button>
           )}
@@ -355,7 +383,6 @@ export const BannerModal = memo(function BannerModal({
 
         <SectionCard
           icon={faLink}
-          accent="orange"
           title="Link"
           hint="What happens when a customer clicks the banner."
         >
@@ -367,10 +394,15 @@ export const BannerModal = memo(function BannerModal({
           />
 
           {banner.type === "product" && (
-            <Field label="Products" hint="Customers see these products when they open the banner.">
+            <Field
+              label="Products"
+              hint="Customers see these products when they open the banner."
+            >
               <SelectAndSearchProduct
                 getdata={(take, value) => getSelectItems(take, value, "prod")}
-                onSelect={(value) => handleSelectProduct("selectedproduct", value)}
+                onSelect={(value) =>
+                  handleSelectProduct("selectedproduct", value)
+                }
                 value={banner.selectedproduct}
               />
             </Field>
@@ -406,7 +438,9 @@ export const BannerModal = memo(function BannerModal({
                           parseInt(banner.parentcate?.value.toString() ?? "0"),
                         )
                       }
-                      onSelect={(value) => handleSelectProduct("childcate", value)}
+                      onSelect={(value) =>
+                        handleSelectProduct("childcate", value)
+                      }
                       value={banner.childcate ? [banner.childcate] : undefined}
                       placeholder="Search sub categories"
                       singleselect
@@ -414,7 +448,7 @@ export const BannerModal = memo(function BannerModal({
                   </Field>
                 ) : (
                   <p
-                    className={`text-sm rounded-lg border px-4 py-3 flex items-center gap-2 ${ACCENTS.amber.soft}`}
+                    className={`text-sm rounded-lg border px-4 py-3 flex items-center gap-2 ${ACCENTS.neutral.soft}`}
                   >
                     <FontAwesomeIcon icon={faCircleInfo} />
                     Choose a parent category to see its sub categories.
@@ -444,14 +478,12 @@ const SIZE_OPTIONS: Option[] = [
     label: "Normal",
     description: "Full width, 16:9",
     icon: faExpand,
-    accent: "slate",
   },
   {
     value: "small",
     label: "Small",
     description: "Compact, 1:1 or 4:3",
     icon: faCompress,
-    accent: "teal",
   },
 ];
 
@@ -461,21 +493,18 @@ const TYPE_OPTIONS: Option[] = [
     label: "Nothing",
     description: "Image only",
     icon: faBan,
-    accent: "slate",
   },
   {
     value: "product",
     label: "Products",
     description: "Show picked products",
     icon: faBox,
-    accent: "green",
   },
   {
     value: "category",
     label: "Category",
     description: "Open a category",
     icon: faFolderTree,
-    accent: "orange",
   },
 ];
 
@@ -484,12 +513,10 @@ const CATEGORY_LINK_OPTIONS: Option[] = [
     value: "parent",
     label: "Parent category",
     icon: faFolder,
-    accent: "amber",
   },
   {
     value: "sub",
     label: "Sub category",
     icon: faFolderOpen,
-    accent: "indigo",
   },
 ];

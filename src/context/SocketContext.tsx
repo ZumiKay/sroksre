@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  createContext,
-  ReactNode,
-  useContext,
-  useEffect,
-  useState,
-} from "react";
+import { createContext, ReactNode, useContext, useEffect, useState } from "react";
 import { io, Socket } from "socket.io-client";
 import { SaveNotification } from "../app/severactions/notification_action";
 import { NotificationType } from "../types/user.type";
@@ -21,31 +15,26 @@ export const SocketProvider = ({ children }: { children: ReactNode }) => {
   const [sockset, setsocket] = useState<Socket | null>(null);
 
   useEffect(() => {
-    const socketIo = io(process.env.NEXT_PUBLIC_SOCKET_URL as string);
-    socketIo.on("connect", () => {
-      console.log("Connected to socket server");
-    });
-    socketIo.on("connect_error", (err) => {
-      console.log("Connection error:", err);
-    });
-    socketIo.on("disconnect", () => {
-      console.log("Disconnected from socket server");
-    });
-    setsocket(socketIo);
-    return () => {
-      socketIo.disconnect();
-    };
+    //    const socketIo = io(process.env.NEXT_PUBLIC_SOCKET_URL as string);
+    //    socketIo.on("connect", () => {
+    //      console.log("Connected to socket server");
+    //    });
+    //    socketIo.on("connect_error", (err) => {
+    //      console.log("Connection error:", err);
+    //    });
+    //    socketIo.on("disconnect", () => {
+    //      console.log("Disconnected from socket server");
+    //    });
+    //    setsocket(socketIo);
+    //    return () => {
+    //      socketIo.disconnect();
+    //    };
   }, []);
 
-  return (
-    <SocketContext.Provider value={sockset}>{children}</SocketContext.Provider>
-  );
+  return <SocketContext.Provider value={sockset}>{children}</SocketContext.Provider>;
 };
 
-export async function SendNotification(
-  data: NotificationType,
-  socket?: Socket | null,
-) {
+export async function SendNotification(data: NotificationType, socket?: Socket | null) {
   // Always persist to DB regardless of socket availability
   const savenoti = SaveNotification.bind(null, data);
   const makereq = await savenoti();

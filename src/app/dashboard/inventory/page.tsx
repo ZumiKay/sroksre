@@ -650,6 +650,7 @@ export default function Inventory() {
             index={idx}
             id={obj.id ?? 0}
             type="promotion"
+            promodata={obj}
             isExpired={obj.isExpired}
             reloaddata={() => setreloaddata(true)}
           />

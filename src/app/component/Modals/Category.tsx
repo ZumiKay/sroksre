@@ -125,8 +125,6 @@ export const Category = () => {
     >
       <div className="category w-full flex flex-col gap-y-5 py-4">
         <ModalTitle
-          icon={faFolderTree}
-          accent="indigo"
           title="Categories"
           subtitle="Create a new category or edit the ones you have."
         />
@@ -135,7 +133,7 @@ export const Category = () => {
         <div
           role="tablist"
           aria-label="Category mode"
-          className="category__navbar grid grid-cols-2 gap-1 p-1 rounded-xl bg-gray-100"
+          className="category__navbar grid grid-cols-2 gap-1 p-1 rounded-xl bg-slate-100"
         >
           {(["Create", "Edit"] as const).map((mode) => {
             const active = show === mode;
@@ -149,7 +147,7 @@ export const Category = () => {
                 className={`category_header h-10 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-colors ${
                   active
                     ? "primary__button text-white shadow-sm"
-                    : "text-gray-600 hover:bg-white hover:text-gray-900"
+                    : "text-slate-600 hover:bg-white hover:text-slate-900"
                 }`}
               >
                 <FontAwesomeIcon
@@ -166,7 +164,6 @@ export const Category = () => {
           <>
             <SectionCard
               icon={faLayerGroup}
-              accent="indigo"
               title="Type"
               hint="Normal categories are managed by you. The others fill with products automatically."
             >
@@ -178,7 +175,7 @@ export const Category = () => {
               />
             </SectionCard>
 
-            <SectionCard icon={faPen} accent="blue" title="Details">
+            <SectionCard icon={faPen} title="Details">
               <DetailsFields
                 name={category.name}
                 description={category.description}
@@ -189,7 +186,6 @@ export const Category = () => {
             {catetype === "sale" && (
               <SectionCard
                 icon={faTags}
-                accent="orange"
                 title="Promotions"
                 hint="Products from these promotions are listed in this category."
               >
@@ -208,7 +204,6 @@ export const Category = () => {
             {catetype === "popular" && (
               <SectionCard
                 icon={faCalendarDays}
-                accent="green"
                 title="Date range"
                 hint="The period used to decide which products are popular."
               >
@@ -219,7 +214,6 @@ export const Category = () => {
             {catetype === "normal" && (
               <SectionCard
                 icon={faFolderTree}
-                accent="purple"
                 title="Sub categories"
                 hint="Optional. Group products further, e.g. Shirts under Men."
               >
@@ -235,7 +229,7 @@ export const Category = () => {
                       setopenmodal((prev) => ({ ...prev, addsubcategory: true }))
                     }
                     disabled={category.name.length === 0}
-                    className={`w-full h-11 rounded-lg text-sm font-semibold border flex items-center justify-center gap-2 transition-colors disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400 disabled:border-gray-200 ${ACCENTS.purple.soft} hover:brightness-95`}
+                    className={`w-full h-11 rounded-lg text-sm font-semibold border flex items-center justify-center gap-2 transition-colors disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400 disabled:border-slate-200 ${ACCENTS.neutral.soft}`}
                   >
                     <FontAwesomeIcon icon={faPlus} className="text-xs" />
                     {category.subcategories.length > 0
@@ -244,14 +238,14 @@ export const Category = () => {
                   </button>
                 )}
                 {category.name.length === 0 && !openmodal.addsubcategory && (
-                  <p className="text-xs text-gray-500">Enter a name first.</p>
+                  <p className="text-xs text-slate-500">Enter a name first.</p>
                 )}
               </SectionCard>
             )}
 
             {catetype === "latest" && (
               <p
-                className={`text-sm rounded-lg border px-4 py-3 flex items-center gap-2 ${ACCENTS.teal.soft}`}
+                className={`text-sm rounded-lg border px-4 py-3 flex items-center gap-2 ${ACCENTS.neutral.soft}`}
               >
                 <FontAwesomeIcon icon={faCircleInfo} />
                 Newest products are added to this category automatically.
@@ -263,7 +257,7 @@ export const Category = () => {
                 type="button"
                 onClick={() => canCreate && handleAdd()}
                 disabled={!canCreate}
-                className="inline-flex items-center justify-center gap-2 h-10 px-5 rounded-lg text-sm font-semibold primary__button text-white shadow-sm hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed max-small_phone:w-full"
+                className="inline-flex items-center justify-center gap-2 h-10 px-5 rounded-lg text-sm font-semibold primary__button text-white shadow-sm hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed max-small_phone:w-full"
               >
                 {loading ? <Spinner /> : <FontAwesomeIcon icon={faCheck} className="text-xs" />}
                 {loading ? "Creating..." : "Create Category"}
@@ -284,28 +278,24 @@ const TYPE_OPTIONS: Option[] = [
     label: "Normal",
     description: "You pick sub categories",
     icon: faFolder,
-    accent: "blue",
   },
   {
     value: "popular",
     label: "Popular",
     description: "Most popular products",
     icon: faFire,
-    accent: "green",
   },
   {
     value: "latest",
     label: "Latest",
     description: "Newest products",
     icon: faClock,
-    accent: "teal",
   },
   {
     value: "sale",
     label: "Sale",
     description: "Products on promotion",
     icon: faTags,
-    accent: "orange",
   },
 ];
 
@@ -327,8 +317,8 @@ function DetailsFields({
   onChange: (e: ChangeEvent<HTMLInputElement>) => void;
 }) {
   const classNames = {
-    label: "text-sm font-medium text-gray-700",
-    inputWrapper: "border-gray-300 group-data-[focus=true]:border-indigo-500",
+    label: "text-sm font-medium text-slate-700",
+    inputWrapper: "border-slate-300 group-data-[focus=true]:border-slate-500",
   };
   return (
     <>
@@ -524,10 +514,10 @@ const EditCategory = ({
         {!edit ? (
           <>
             <div className="w-full flex items-center justify-between">
-              <h4 className="text-sm font-semibold text-gray-900">All categories</h4>
+              <h4 className="text-sm font-semibold text-slate-900">All categories</h4>
               {!loading && categories.length > 0 && (
                 <span
-                  className={`text-xs font-semibold px-2.5 py-1 rounded-full ${ACCENTS.indigo.tile}`}
+                  className={`text-xs font-semibold px-2.5 py-1 rounded-full ${ACCENTS.neutral.tile}`}
                 >
                   {categories.length} {categories.length === 1 ? "category" : "categories"}
                 </span>
@@ -538,20 +528,20 @@ const EditCategory = ({
                 {Array.from({ length: 3 }).map((_, idx) => (
                   <div
                     key={idx}
-                    className="w-full h-15 rounded-xl border border-gray-200 bg-white flex items-center px-3 gap-3 animate-pulse"
+                    className="w-full h-15 rounded-xl border border-slate-200 bg-white flex items-center px-3 gap-3 animate-pulse"
                   >
-                    <div className="w-9 h-9 bg-gray-200 rounded-lg" />
-                    <div className="flex-1 h-4 bg-gray-200 rounded-sm" />
-                    <div className="w-20 h-8 bg-gray-200 rounded-lg" />
+                    <div className="w-9 h-9 bg-slate-200 rounded-lg" />
+                    <div className="flex-1 h-4 bg-slate-200 rounded-sm" />
+                    <div className="w-20 h-8 bg-slate-200 rounded-lg" />
                   </div>
                 ))}
               </div>
             ) : categories.length === 0 ? (
-              <div className="w-full py-12 flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-indigo-200 bg-indigo-50 text-center">
-                <IconTile icon={faFolderOpen} accent="indigo" size="lg" />
+              <div className="w-full py-12 flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 text-center">
+                <IconTile icon={faFolderOpen} size="lg" />
                 <div>
-                  <h3 className="text-base font-semibold text-gray-900">No categories yet</h3>
-                  <p className="text-sm text-gray-500 mt-0.5">
+                  <h3 className="text-base font-semibold text-slate-900">No categories yet</h3>
+                  <p className="text-sm text-slate-500 mt-0.5">
                     Switch to &ldquo;Create new&rdquo; to add your first one.
                   </p>
                 </div>
@@ -563,20 +553,18 @@ const EditCategory = ({
                   return (
                     <div
                       key={obj.id ?? idx}
-                      className="parentcategory w-full flex flex-row items-center gap-3 rounded-xl border border-gray-200 bg-white p-2 pl-3 hover:border-indigo-300 transition-colors"
+                      className="parentcategory w-full flex flex-row items-center gap-3 rounded-xl border border-slate-200 bg-white p-2 pl-3 hover:border-slate-300 transition-colors"
                     >
-                      <IconTile icon={typeInfo.icon} accent={typeInfo.accent} />
+                      <IconTile icon={typeInfo.icon} />
                       <button
                         type="button"
                         onClick={() => handleClick(idx)}
                         className="parentcateogry flex-1 min-w-0 text-left py-1"
                       >
-                        <span className="block text-sm font-semibold text-gray-900 break-all">
+                        <span className="block text-sm font-semibold text-slate-900 break-all">
                           {obj.name}
                         </span>
-                        <span
-                          className={`inline-block mt-0.5 text-xs font-medium ${ACCENTS[typeInfo.accent].text}`}
-                        >
+                        <span className="inline-block mt-0.5 text-xs font-medium text-slate-500">
                           {typeInfo.label}
                           {obj.type === "normal" || !obj.type
                             ? ` · ${obj.subcategories?.length ?? 0} sub`
@@ -586,7 +574,7 @@ const EditCategory = ({
                       <button
                         type="button"
                         onClick={() => handleClick(idx)}
-                        className={`actions shrink-0 h-9 px-3 rounded-lg text-sm font-semibold border flex items-center gap-2 transition-colors ${ACCENTS.blue.soft} hover:brightness-95`}
+                        className={`actions shrink-0 h-9 px-3 rounded-lg text-sm font-semibold border flex items-center gap-2 transition-colors ${ACCENTS.neutral.soft}`}
                       >
                         <FontAwesomeIcon icon={faPenToSquare} className="text-xs" />
                         <span className="max-small_phone:hidden">Edit</span>
@@ -605,7 +593,7 @@ const EditCategory = ({
                             categoryeditindex: [...prev.categoryeditindex, obj.id as number],
                           }));
                         }}
-                        className={`actions shrink-0 h-9 px-3 rounded-lg text-sm font-semibold border flex items-center gap-2 transition-colors ${ACCENTS.rose.soft} hover:brightness-95`}
+                        className={`actions shrink-0 h-9 px-3 rounded-lg text-sm font-semibold border flex items-center gap-2 transition-colors ${ACCENTS.danger.soft}`}
                       >
                         <FontAwesomeIcon icon={faTrash} className="text-xs" />
                         <span className="max-small_phone:hidden">Delete</span>
@@ -620,8 +608,8 @@ const EditCategory = ({
           <div className="editcontainer relative flex flex-col gap-y-4 w-full">
             {loading && (
               <div className="absolute inset-0 z-10 rounded-xl bg-white/80 flex items-center justify-center">
-                <div className="flex items-center gap-3 text-sm font-semibold text-gray-700">
-                  <Spinner className="border-indigo-200 border-t-indigo-600" />
+                <div className="flex items-center gap-3 text-sm font-semibold text-slate-700">
+                  <Spinner className="border-slate-200 border-t-slate-600" />
                   Saving...
                 </div>
               </div>
@@ -635,26 +623,26 @@ const EditCategory = ({
                   setedit(false);
                   setcategory(CateogoryInitailizestate);
                 }}
-                className="w-9 h-9 shrink-0 rounded-lg border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 flex items-center justify-center transition-colors"
+                className="w-9 h-9 shrink-0 rounded-lg border border-slate-300 bg-white text-slate-600 hover:bg-slate-50 flex items-center justify-center transition-colors"
               >
                 <FontAwesomeIcon icon={faArrowLeft} className="text-sm" />
               </button>
               <div className="min-w-0">
-                <p className="text-xs text-gray-400">All categories / Edit</p>
-                <h4 className="text-base font-semibold text-gray-900 truncate">
+                <p className="text-xs text-slate-400">All categories / Edit</p>
+                <h4 className="text-base font-semibold text-slate-900 truncate">
                   {category.name || "Untitled category"}
                 </h4>
               </div>
               {category.type && TYPE_ACCENT[category.type] && (
                 <span
-                  className={`ml-auto shrink-0 text-xs font-semibold px-2.5 py-1 rounded-full ${ACCENTS[TYPE_ACCENT[category.type].accent].tile}`}
+                  className={`ml-auto shrink-0 text-xs font-semibold px-2.5 py-1 rounded-full ${ACCENTS.neutral.tile}`}
                 >
                   {TYPE_ACCENT[category.type].label}
                 </span>
               )}
             </div>
 
-            <SectionCard icon={faPen} accent="blue" title="Details">
+            <SectionCard icon={faPen} title="Details">
               <DetailsFields
                 name={category.name}
                 description={category.description}
@@ -665,7 +653,6 @@ const EditCategory = ({
             {category.type === "sale" && (
               <SectionCard
                 icon={faTags}
-                accent="orange"
                 title="Promotions"
                 hint="Products from these promotions are listed in this category."
               >
@@ -682,7 +669,7 @@ const EditCategory = ({
             )}
 
             {category.type === "normal" && (
-              <SectionCard icon={faFolderTree} accent="purple" title="Sub categories">
+              <SectionCard icon={faFolderTree} title="Sub categories">
                 <AddSubCategoryMenu index={editindex} />
               </SectionCard>
             )}
@@ -690,7 +677,6 @@ const EditCategory = ({
             {category.type === "popular" && (
               <SectionCard
                 icon={faCalendarDays}
-                accent="green"
                 title="Date range"
                 hint="The period used to decide which products are popular."
               >
@@ -705,7 +691,7 @@ const EditCategory = ({
                   setedit(false);
                   setcategory(CateogoryInitailizestate);
                 }}
-                className="h-10 px-5 rounded-lg text-sm font-semibold bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 transition-colors max-small_phone:flex-1"
+                className="h-10 px-5 rounded-lg text-sm font-semibold bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 transition-colors max-small_phone:flex-1"
               >
                 Back
               </button>
@@ -713,7 +699,7 @@ const EditCategory = ({
                 type="button"
                 onClick={() => handleConfirm()}
                 disabled={loading}
-                className="inline-flex items-center justify-center gap-2 h-10 px-5 rounded-lg text-sm font-semibold bg-indigo-600 text-white shadow-sm hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed max-small_phone:flex-1"
+                className="inline-flex items-center justify-center gap-2 h-10 px-5 rounded-lg text-sm font-semibold bg-slate-900 text-white shadow-sm hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed max-small_phone:flex-1"
               >
                 <FontAwesomeIcon icon={faCheck} className="text-xs" />
                 Save Changes
@@ -729,7 +715,7 @@ const EditCategory = ({
           className="flex flex-col gap-3 w-full rounded-xl border border-red-200 bg-red-50 p-4"
         >
           <div className="flex items-start gap-3">
-            <IconTile icon={faTriangleExclamation} accent="rose" size="sm" />
+            <IconTile icon={faTriangleExclamation} accent="danger" size="sm" />
             <div className="flex-1">
               <h4 className="text-sm font-semibold text-red-800">
                 {pendingCount} {pendingCount === 1 ? "category" : "categories"} marked for deletion
@@ -744,7 +730,7 @@ const EditCategory = ({
               type="button"
               onClick={() => handleReset()}
               disabled={loading}
-              className="inline-flex items-center justify-center gap-2 h-10 px-4 rounded-lg text-sm font-semibold bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed max-small_phone:flex-1"
+              className="inline-flex items-center justify-center gap-2 h-10 px-4 rounded-lg text-sm font-semibold bg-white text-slate-700 border border-slate-300 hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed max-small_phone:flex-1"
             >
               <FontAwesomeIcon icon={faRotateLeft} className="text-xs" />
               Undo all
