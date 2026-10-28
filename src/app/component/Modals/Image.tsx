@@ -470,7 +470,6 @@ export const ImageUpload = (props: imageuploadprops) => {
                 Imgurl.map((file, index) => {
                   const dim = imageDimensions[index];
                   const isLandscape = dim && dim.ratio > 1.5;
-                  const isPortrait = dim && dim.ratio < 0.7;
 
                   return (
                     <div

@@ -20,6 +20,7 @@ export const buildProductApiUrl = (
   promotionSelectProduct: boolean,
   pid?: number,
   promoids?: string,
+  selectedIds?: number[],
 ): string => {
   const { status, name, childcate, parentcate } = filtervalue;
 
@@ -45,6 +46,9 @@ export const buildProductApiUrl = (
     if (pid) params.append("pid", pid.toString());
     if (promotionSelectProduct) params.append("sp", "1");
     if (promoids) params.append("pids", promoids);
+    if (promotionSelectProduct && selectedIds && selectedIds.length > 0) {
+      params.append("sel", selectedIds.join(","));
+    }
 
     return `/api/products?${params.toString()}`;
   }
@@ -109,11 +113,6 @@ export const buildPromotionApiUrl = (
   return `/api/promotion?ty=all&lt=${show}&p=${page ?? "1"}`;
 };
 
-// Data transformation functions
-/**
- * Product cards and list rows read discounts as
- * { price, discount: { percent, newprice } }. No discount (or 0%) → undefined.
- */
 export const toCardDiscount = (
   rawPrice: number | string,
   percent?: number,

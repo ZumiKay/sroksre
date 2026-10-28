@@ -1,12 +1,4 @@
-import { VariantValueObjType } from "@/src/types/product.type";
 import { RGBColor } from "react-color";
-
-export interface VariantDataType {
-  id?: number;
-  type: "COLOR" | "TEXT";
-  name: string;
-  value: Array<string | VariantValueObjType>;
-}
 
 export interface Colortype {
   hex: string;

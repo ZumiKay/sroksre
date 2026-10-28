@@ -1,8 +1,5 @@
 import { ProductState, VariantValueObjType } from "@/src/types/product.type";
-import {
-  Productorderdetailtype,
-  Productordertype,
-} from "@/src/types/order.type";
+import { Productorderdetailtype } from "@/src/types/order.type";
 
 /**
  * Calculate additional price from selected options
@@ -64,23 +61,6 @@ export const isOptionAvailable = (
 };
 
 /**
- * Get option quantity if available
- */
-export const getOptionQuantity = (
-  option: string | VariantValueObjType,
-): number | undefined => {
-  if (typeof option === "string") return undefined;
-
-  if (option.qty !== undefined) {
-    return typeof option.qty === "number"
-      ? option.qty
-      : parseInt(option.qty || "0");
-  }
-
-  return undefined;
-};
-
-/**
  * Check if all required variants are selected
  */
 export const areRequiredVariantsSelected = (
@@ -128,20 +108,6 @@ export const getAllSelectedDetails = (
   return details.filter(
     (detail) => detail && detail.value && detail.value.length > 0,
   );
-};
-
-/**
- * Check if any selections exist
- */
-export const hasAnySelections = (
-  productorderdetail: Productordertype | undefined,
-): boolean => {
-  const hasQty =
-    productorderdetail?.quantity && productorderdetail.quantity > 0;
-  const hasDetails = productorderdetail?.details?.some(
-    (detail) => detail && detail.value && detail.value.length > 0,
-  );
-  return Boolean(hasQty || hasDetails);
 };
 
 /**

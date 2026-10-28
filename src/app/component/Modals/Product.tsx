@@ -1,8 +1,4 @@
-import {
-  ApiRequest,
-  Delayloading,
-  useScreenSize,
-} from "@/src/context/CustomHook";
+import { ApiRequest, Delayloading } from "@/src/context/CustomHook";
 import {
   CateogoryState,
   Productinitailizestate,
@@ -64,8 +60,6 @@ export function CreateProducts({
     isLoading,
     setisLoading,
   } = useGlobalContext();
-
-  const { isMobile } = useScreenSize();
 
   const detailref = useRef<HTMLDivElement>(null);
   const [loading, setloading] = useState(false);

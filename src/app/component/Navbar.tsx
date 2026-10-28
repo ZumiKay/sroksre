@@ -29,7 +29,7 @@ import DefaultImage from "../../../public/Image/default.png";
 import ActiveBell from "../../../public/Image/blackbell.svg";
 import Bell from "../../../public/Image/whitebell.svg";
 import { CSSProperties, forwardRef, memo, useCallback, useEffect, useRef, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { AccountMenu, CartMenu } from "./SideMenu";
 import Link from "next/link";
 import {
@@ -37,7 +37,6 @@ import {
   CateogoryState,
   Productinitailizestate,
   PromotionInitialize,
-  Sessiontype,
   useGlobalContext,
 } from "@/src/context/GlobalContext";
 import { ApiRequest, useScreenSize } from "@/src/context/CustomHook";
@@ -74,7 +73,7 @@ export default function Navbar({
     initialNotificationCount,
   );
 
-  const { isTablet, isMobile } = useScreenSize();
+  const { isMobile } = useScreenSize();
   const socket = useSocket();
 
   const router = useRouter();
@@ -482,54 +481,6 @@ function QuickLink({
       <FontAwesomeIcon icon={icon} className="text-xs" />
       {label}
     </button>
-  );
-}
-export function DashboordNavBar({ session }: { session?: Sessiontype }) {
-  const route = usePathname();
-
-  return (
-    <nav className="dashboardNav__container flex flex-row w-full items-center gap-2 sm:gap-4 overflow-x-auto px-3 sm:px-6 bg-[#F3F3F3] h-16 sm:h-17.5 sm:justify-evenly">
-      <Link href={"/dashboard"} className="shrink-0">
-        <h1
-          className={`navlink ${
-            route === "/dashboard" ? "activelink" : ""
-          } text-sm sm:text-base font-bold bg-white px-4 py-2 transition text-center rounded-md whitespace-nowrap`}
-        >
-          My Profile
-        </h1>
-      </Link>
-      <Link href={"/dashboard/order"} className="shrink-0">
-        <h1
-          className={`navlink ${
-            route === "/dashboard/order" ? "activelink" : ""
-          } text-sm sm:text-base font-bold bg-white px-4 py-2 transition text-center rounded-md whitespace-nowrap`}
-        >
-          {session?.role === "ADMIN" ? "Order Management" : "My Order"}
-        </h1>
-      </Link>
-      <Link hidden={session?.role !== "ADMIN"} href={"/dashboard/inventory"} className="shrink-0">
-        <h1
-          className={`navlink ${
-            route === "/dashboard/inventory" ? "activelink" : ""
-          } text-sm sm:text-base font-bold bg-white px-4 py-2 transition text-center rounded-md whitespace-nowrap`}
-        >
-          Inventory
-        </h1>
-      </Link>
-      <Link
-        hidden={session?.role !== "ADMIN"}
-        href={"/dashboard/usermanagement"}
-        className="shrink-0"
-      >
-        <h1
-          className={`navlink ${
-            route === "/dashboard/usermanagement" ? "activelink" : ""
-          } text-sm sm:text-base font-bold bg-white px-4 py-2 transition text-center rounded-md whitespace-nowrap`}
-        >
-          User Management
-        </h1>
-      </Link>
-    </nav>
   );
 }
 interface Subinventorymenuprops {

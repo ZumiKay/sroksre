@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useMemo } from "react";
+import React, { useState } from "react";
 import { VariantList } from "./VariantList";
 import { EmptyState } from "./EmptyState";
 import { NormalSkeleton } from "../../Banner";
@@ -73,7 +73,6 @@ export const VariantView: React.FC<VariantViewProps> = ({
       return false;
     return variant?.sectionId === variantSectionId;
   };
-
 
   /** Method for handle Selection Variant For Variant Section */
   const handleVariantToggle = (variantId: number, variant: Varianttype) => {

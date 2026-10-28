@@ -1,7 +1,3 @@
-import {
-  PromotionProductState,
-  PromotionState,
-} from "@/src/types/productAction.type";
 import { createRandomNormalStockProduct } from "../product";
 import { generateExpirationDate } from "@/src/lib/userlib";
 import { Products, Promotion } from "@/prisma/generated/prisma/client";

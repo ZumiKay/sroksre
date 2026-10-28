@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useCallback, useMemo, useEffect } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import { Orderpricetype } from "@/src/types/order.type";
@@ -9,7 +9,12 @@ import Checkmark from "../../../../../public/Image/Checkmark.svg";
 import { ProductState, StockTypeEnum } from "@/src/types/product.type";
 import { errorToast } from "@/src/app/component/Loading";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faImage, faClock, faCheck, faTriangleExclamation } from "@fortawesome/free-solid-svg-icons";
+import {
+  faImage,
+  faClock,
+  faCheck,
+  faTriangleExclamation,
+} from "@fortawesome/free-solid-svg-icons";
 import { Variantcontainer } from "@/src/app/component/Modals/VariantModal";
 import { UpdateStockModal } from "@/src/app/component/Modals/Stock";
 
@@ -235,21 +240,13 @@ export const ProductListItem: React.FC<ProductListItemProps> = ({
         )}
         {isProduct && promotion.selectproduct && (
           <div className="absolute top-1 right-1 bg-white rounded-full p-1 shadow-lg">
-            <Image
-              src={Checkmark}
-              alt="Selected"
-              width={20}
-              height={20}
-              className="w-5 h-5"
-            />
+            <Image src={Checkmark} alt="Selected" width={20} height={20} className="w-5 h-5" />
           </div>
         )}
       </div>
 
       <div className="flex-1 min-w-0">
-        <h3 className="text-lg font-bold text-gray-800 truncate">
-          {product.name}
-        </h3>
+        <h3 className="text-lg font-bold text-gray-800 truncate">{product.name}</h3>
         <div className="flex items-center gap-4 mt-2 flex-wrap">
           <span className="text-xl font-bold text-indigo-600">
             ${parseFloat(product.price.toString()).toFixed(2)}
@@ -264,9 +261,7 @@ export const ProductListItem: React.FC<ProductListItemProps> = ({
           {product.stock !== undefined && (
             <span
               className={`px-2 py-1 rounded-full text-xs font-bold ${
-                !product.lowstock
-                  ? "bg-green-100 text-green-600"
-                  : "bg-red-100 text-red-600"
+                !product.lowstock ? "bg-green-100 text-green-600" : "bg-red-100 text-red-600"
               }`}
             >
               Stock: {product.stock}
@@ -302,16 +297,9 @@ export const ProductListItem: React.FC<ProductListItemProps> = ({
       )}
 
       {/* Inline stock/variant modals — mirrors Card component behaviour */}
-      {openmodal?.[closename] &&
-      product.stocktype === StockTypeEnum.variants ? (
-        <Variantcontainer
-          type="stock"
-          editindex={product.id}
-          closename={closename}
-        />
-      ) : openmodal?.[closename] &&
-        product.stocktype === StockTypeEnum.normal &&
-        product.id ? (
+      {openmodal?.[closename] && product.stocktype === StockTypeEnum.variants ? (
+        <Variantcontainer type="stock" editindex={product.id} closename={closename} />
+      ) : openmodal?.[closename] && product.stocktype === StockTypeEnum.normal && product.id ? (
         <UpdateStockModal closename={closename} productId={product.id} />
       ) : null}
     </motion.div>
@@ -390,21 +378,13 @@ export const BannerListItem: React.FC<BannerListItemProps> = ({
         />
         {isBanner && promotion.selectbanner && (
           <div className="absolute top-1 right-1 bg-white rounded-full p-1 shadow-lg">
-            <Image
-              src={Checkmark}
-              alt="Selected"
-              width={20}
-              height={20}
-              className="w-5 h-5"
-            />
+            <Image src={Checkmark} alt="Selected" width={20} height={20} className="w-5 h-5" />
           </div>
         )}
       </div>
 
       <div className="flex-1 min-w-0">
-        <h3 className="text-lg font-bold text-gray-800 truncate">
-          {banner.name}
-        </h3>
+        <h3 className="text-lg font-bold text-gray-800 truncate">{banner.name}</h3>
         <div className="flex items-center gap-2 mt-2">
           <span className="px-2 py-1 bg-blue-100 text-blue-600 rounded-full text-xs font-bold">
             {banner.size}
@@ -412,19 +392,16 @@ export const BannerListItem: React.FC<BannerListItemProps> = ({
         </div>
       </div>
 
-      {hover &&
-        !promotion.selectbanner &&
-        !openmodal.managebanner &&
-        !isSelectMode && (
-          <div className="shrink-0 z-10" onClick={(e) => e.stopPropagation()}>
-            <SubInventoryMenu
-              data={actionMenu}
-              type="banner"
-              index={banner.id}
-              reloaddata={reloaddata}
-            />
-          </div>
-        )}
+      {hover && !promotion.selectbanner && !openmodal.managebanner && !isSelectMode && (
+        <div className="shrink-0 z-10" onClick={(e) => e.stopPropagation()}>
+          <SubInventoryMenu
+            data={actionMenu}
+            type="banner"
+            index={banner.id}
+            reloaddata={reloaddata}
+          />
+        </div>
+      )}
     </motion.div>
   );
 };
@@ -506,9 +483,7 @@ export const PromotionListItem: React.FC<PromotionListItemProps> = ({
       </div>
 
       <div className={`flex-1 min-w-0 ${promotion.isExpired ? "mt-6" : ""}`}>
-        <h3 className="text-lg font-bold text-gray-800 truncate">
-          {promotion.name}
-        </h3>
+        <h3 className="text-lg font-bold text-gray-800 truncate">{promotion.name}</h3>
         <div className="flex items-center gap-2 mt-2">
           {promotion.isExpired ? (
             <span className="px-2 py-1 bg-red-100 text-red-600 rounded-full text-xs font-bold">

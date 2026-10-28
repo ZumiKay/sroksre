@@ -16,7 +16,6 @@ import {
 } from "../hooks/useProductStock";
 import {
   isOptionAvailable,
-  getOptionQuantity,
   areRequiredVariantsSelected,
   getRequiredVariantDetails,
   getAllSelectedDetails,
@@ -45,7 +44,6 @@ export const VariantSelector = React.memo((props: VariantSelectorProps) => {
     idx,
     data,
     prob,
-    errormess,
     setmess,
     setqty,
     setloading,

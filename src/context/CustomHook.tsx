@@ -6,65 +6,10 @@ import {
   DependencyList,
   useRef,
 } from "react";
-import { LoadingState, useGlobalContext } from "./GlobalContext";
+import { LoadingState } from "./GlobalContext";
 import Error from "next/error";
-import { useRouter, useSearchParams } from "next/navigation";
 
-type RequestMethod = "HEAD" | "GET" | "POST" | "PUT" | "DELETE"; // Add other request methods as needed
-
-export const useRequest = (
-  url: string,
-  method: RequestMethod = "GET",
-  data: any = null,
-  alldatastate?: string,
-) => {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [responseData, setResponseData] = useState<any | null>(null);
-  const { setalldata } = useGlobalContext();
-
-  const makeRequest = async () => {
-    try {
-      setLoading(true);
-
-      const requestOptions: RequestInit = {
-        method,
-        headers: {
-          "Content-Type": "application/json",
-        },
-      };
-
-      if (data) {
-        requestOptions.body = JSON.stringify(data);
-      }
-
-      const response = await fetch(url, requestOptions);
-
-      const responseJson = await response.json();
-
-      if (!response.ok) {
-        throw new Error(responseData.message || "Error Occured");
-      }
-
-      if ("data" in responseJson && alldatastate) {
-        setResponseData(responseJson.data);
-        setalldata((prev) => ({
-          ...prev,
-          [alldatastate as string]: responseJson.data,
-        }));
-      } else {
-        setResponseData(responseJson);
-      }
-      setLoading(false);
-    } catch (error: any) {
-      console.log(error);
-      setError(error.message || "Error Occured");
-      setLoading(false);
-    }
-  };
-
-  return { loading, error, responseData, makeRequest };
-};
+type RequestMethod = "HEAD" | "GET" | "POST" | "PUT" | "DELETE";
 
 export const ApiRequest = async (
   url: string,
@@ -181,43 +126,12 @@ export function useDebounceEffect(
   }, deps);
 }
 
-export function useSetSearchParams() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-
-  const getSearchParams = () => {
-    const searchParam = new URLSearchParams(searchParams);
-    return Object.fromEntries(searchParam);
-  };
-  const setSearchParams = (newParams: Record<string, string>) => {
-    const searchParam = new URLSearchParams(searchParams);
-
-    Object.entries(newParams).forEach(([key, value]) => {
-      if (value === null || value === undefined || value === "") {
-        searchParam.delete(key);
-      } else {
-        searchParam.set(key, `${value}`);
-      }
-    });
-
-    router.push(`?${searchParam}`);
-  };
-  const deleteSearchParams = (key: string) => {
-    const searchParam = new URLSearchParams(searchParams);
-
-    searchParam.delete(key);
-
-    router.push(`?${searchParam}`);
-  };
-
-  return { getSearchParams, setSearchParams, deleteSearchParams };
-}
-
 export const useEffectOnce = (effect: () => void | (() => void)) => {
   const destroyFunc = useRef<void | (() => void)>(undefined);
   const effectCalled = useRef(false);
   const renderAfterCalled = useRef(false);
-  const [val, setVal] = useState<number>(0);
+  // Only the setter is needed: it forces one extra render
+  const [, setVal] = useState<number>(0);
 
   if (effectCalled.current) {
     renderAfterCalled.current = true;

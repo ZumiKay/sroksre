@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { redirect, useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { LocalizationProvider } from "@mui/x-date-pickers";
@@ -40,7 +40,7 @@ import {
 } from "./utils/apiBuilder";
 import useCheckSession from "@/src/hooks/useCheckSession";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faSearch, faXmark, faFilterCircleXmark } from "@fortawesome/free-solid-svg-icons";
+import { faSearch, faXmark } from "@fortawesome/free-solid-svg-icons";
 
 // Constants
 const DEFAULT_PARAMS = (type: string) => `?ty=${type}&p=1&limit=1`;
@@ -48,7 +48,7 @@ const DEFAULT_PARAMS = (type: string) => `?ty=${type}&p=1&limit=1`;
 // Filter chip key → human-readable label mapping
 const FILTER_CHIP_LABELS: Record<string, string> = {
   name: "Name",
-  status: "Status",
+  status: "Stock",
   parentcate: "Category",
   childcate: "Subcategory",
   expiredate: "Expire before",
@@ -96,6 +96,8 @@ export default function Inventory() {
   // Local state
   const [loaded, setloaded] = useState(false);
   const [showPromoProducts, setShowPromoProducts] = useState(false);
+  // While picking promotion products, list the picked ones first (on unless turned off)
+  const [selectedFirst, setSelectedFirst] = useState(searchParam.get("selectedfirst") !== "0");
   const [show, setshow] = useState(limit ?? "1");
   const [page, setpage] = useState(p ? parseInt(p) : 1);
   const [itemscount, setitemcount] = useState(0);
@@ -189,7 +191,11 @@ export default function Inventory() {
             filtervalue,
             !!promotion.selectproduct,
             pid,
-            promoids,
+            // From state, not the URL: the URL updates a moment after Apply
+            filtervalue.promoids,
+            selectedFirst
+              ? promotion.Products.map((product) => product.id).filter((id) => id !== 0)
+              : undefined,
           );
           transformFunction = transformProductData;
         } else if (ty === "banner") {
@@ -267,7 +273,7 @@ export default function Inventory() {
       filtervalue,
       promotion,
       type,
-      promoids,
+      selectedFirst,
       setalldata,
       setitemlength,
       setpromotion,
@@ -357,6 +363,8 @@ export default function Inventory() {
       setpage(1);
       setshow("1");
       settype(value);
+      setfiltervalue({});
+      setSearchInput("");
       router.push(`?${params}`, { scroll: false });
       setreloaddata(true);
     },
@@ -394,12 +402,14 @@ export default function Inventory() {
 
   const handleRemoveFilter = useCallback(
     (key: string) => {
+      // A subcategory only makes sense under its category
+      const keys = key === "parentcate" ? ["parentcate", "childcate"] : [key];
       const params = new URLSearchParams(searchParam);
-      params.delete(key);
+      keys.forEach((k) => params.delete(k));
       params.set("p", "1");
       setfiltervalue((prev) => {
         const next = { ...prev };
-        delete (next as any)[key];
+        keys.forEach((k) => delete (next as any)[k]);
         return next;
       });
       if (key === "name") setSearchInput("");
@@ -441,7 +451,14 @@ export default function Inventory() {
           displayVal = childCateNameMap[String(raw)] ?? String(raw);
         } else if (key === "expiredate") {
           displayVal = dayjs(raw).format("MMM D, YYYY");
-        } else if (key === "expired" || key === "promoids") {
+        } else if (key === "status") {
+          displayVal = raw === "Low" ? "Low stock" : String(raw);
+        } else if (key === "promoids") {
+          const count = String(raw).split(",").filter(Boolean).length;
+          displayVal = `${count} selected`;
+        } else if (key === "bannertype" || key === "bannersize") {
+          displayVal = String(raw).charAt(0).toUpperCase() + String(raw).slice(1);
+        } else if (key === "expired") {
           displayVal = "";
         }
         const label = FILTER_CHIP_LABELS[key] ?? key;
@@ -755,6 +772,8 @@ export default function Inventory() {
             reloadData={() => setreloaddata(true)}
             setfilterdata={setfiltervalue as any}
             isSetPromotion={promotion.selectproduct}
+            selectedFirst={selectedFirst}
+            onSelectedFirstChange={setSelectedFirst}
           />
         )}
 
@@ -798,31 +817,33 @@ export default function Inventory() {
           <div className="w-[95%] max-smallest_phone:w-full mt-6 flex flex-col gap-3">
             {/* Inline search bar */}
             <form onSubmit={handleInlineSearch} className="flex items-center gap-2">
-              <div className="flex-1 flex items-center gap-2 bg-white border-2 border-gray-200 rounded-xl px-3 py-2 shadow-sm focus-within:border-indigo-400 transition-colors">
-                <FontAwesomeIcon icon={faSearch} className="text-gray-400 text-sm shrink-0" />
+              <div className="flex-1 flex items-center gap-2 h-10 bg-white border border-slate-300 rounded-lg px-3 transition-colors hover:border-slate-400 focus-within:border-slate-900 focus-within:ring-2 focus-within:ring-slate-200">
+                <FontAwesomeIcon icon={faSearch} className="text-slate-400 text-sm shrink-0" />
                 <input
-                  type="text"
+                  type="search"
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
-                  placeholder={`Search ${type ?? "items"}...`}
-                  className="flex-1 text-sm outline-none bg-transparent text-gray-700 placeholder-gray-400"
+                  placeholder={`Search ${type ?? "items"} by name`}
+                  aria-label={`Search ${type ?? "items"} by name`}
+                  className="flex-1 min-w-0 text-sm outline-none bg-transparent text-slate-900 placeholder:text-slate-400 [&::-webkit-search-cancel-button]:hidden"
                 />
                 {searchInput && (
                   <button
                     type="button"
+                    aria-label="Clear search"
                     onClick={() => {
                       setSearchInput("");
                       handleRemoveFilter("name");
                     }}
-                    className="text-gray-400 hover:text-gray-600 transition-colors"
+                    className="w-6 h-6 flex items-center justify-center rounded-md text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-colors"
                   >
-                    <FontAwesomeIcon icon={faXmark} className="text-sm" />
+                    <FontAwesomeIcon icon={faXmark} className="text-xs" />
                   </button>
                 )}
               </div>
               <button
                 type="submit"
-                className="shrink-0 px-4 py-2 bg-slate-600 text-white text-sm font-semibold rounded-xl shadow-sm hover:shadow-md hover:scale-105 transition-all"
+                className="shrink-0 h-10 px-4 bg-slate-900 text-white text-sm font-semibold rounded-lg hover:bg-slate-800 transition-colors"
               >
                 Search
               </button>
@@ -831,33 +852,37 @@ export default function Inventory() {
             {/* Active filter chips */}
             {activeFilterChips.length > 0 && (
               <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs font-medium text-slate-500">Filters:</span>
                 {activeFilterChips.map(({ key, label, displayVal }) => (
                   <span
                     key={key}
-                    className="inline-flex items-center gap-1.5 px-3 py-1 bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-medium rounded-full"
+                    className="inline-flex items-center gap-1 h-7 pl-2.5 pr-1 bg-white border border-slate-300 text-slate-700 text-xs rounded-full"
                   >
                     <span>
-                      {label}
-                      {displayVal ? `: ${displayVal}` : ""}
+                      <span className="text-slate-500">{label}</span>
+                      {displayVal ? (
+                        <span className="font-semibold text-slate-900">: {displayVal}</span>
+                      ) : null}
                     </span>
                     <button
                       type="button"
                       onClick={() => handleRemoveFilter(key)}
-                      className="text-indigo-400 hover:text-indigo-700 transition-colors leading-none"
+                      className="w-5 h-5 flex items-center justify-center rounded-full text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-colors"
                       aria-label={`Remove ${label} filter`}
                     >
                       <FontAwesomeIcon icon={faXmark} className="text-[10px]" />
                     </button>
                   </span>
                 ))}
-                <button
-                  type="button"
-                  onClick={handleClearAllFilters}
-                  className="inline-flex items-center gap-1.5 px-3 py-1 bg-red-50 border border-red-200 text-red-600 text-xs font-medium rounded-full hover:bg-red-100 transition-colors"
-                >
-                  <FontAwesomeIcon icon={faFilterCircleXmark} className="text-[10px]" />
-                  Clear all
-                </button>
+                {activeFilterChips.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={handleClearAllFilters}
+                    className="h-7 px-2 text-xs font-medium text-slate-600 underline-offset-4 hover:text-slate-900 hover:underline"
+                  >
+                    Clear all
+                  </button>
+                )}
               </div>
             )}
           </div>

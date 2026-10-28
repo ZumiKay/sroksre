@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, ReactNode, useContext, useEffect, useState } from "react";
-import { io, Socket } from "socket.io-client";
+import { Socket } from "socket.io-client";
 import { SaveNotification } from "../app/severactions/notification_action";
 import { NotificationType } from "../types/user.type";
 

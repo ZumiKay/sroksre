@@ -1,5 +1,4 @@
 import {
-  Allstatus,
   OrderInfoParamTyType,
   ShippingTypeEnum,
   totalpricetype,
@@ -8,13 +7,6 @@ import Prisma from "@/src/lib/prisma";
 import { calculateDiscountProductPrice } from "@/src/lib/utilities";
 import { NextRequest } from "next/server";
 import { getUser } from "@/src/lib/session";
-
-//Get Order Informations
-
-type OrderInfoParamType = {
-  ty?: OrderInfoParamTyType;
-  q?: string;
-};
 
 export async function GET(req: NextRequest) {
   const ty = req.nextUrl.searchParams.get("ty") as OrderInfoParamTyType | null;

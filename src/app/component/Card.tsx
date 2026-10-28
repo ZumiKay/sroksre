@@ -833,37 +833,3 @@ export const BannerCard = memo(function BannerCard({
     </div>
   );
 });
-
-export const UserCard = ({
-  uid,
-  firstname,
-  lastname,
-  email,
-  index,
-}: {
-  index: number;
-  uid: string;
-  firstname: string;
-  lastname?: string;
-  email: string;
-}) => {
-  const { setopenmodal, setglobalindex } = useGlobalContext();
-  const handleEdit = () => {
-    setglobalindex((prev) => ({ ...prev, useredit: index }));
-    setopenmodal((prev) => ({ ...prev, createUser: true }));
-  };
-  return (
-    <div
-      key={index}
-      onClick={() => handleEdit()}
-      className="usercard_container max-smallest_phone:w-68.75 w-82.5 h-25 rounded-lg border-2 border-black flex flex-col justify-center items-center gap-y-5 p-2 transition hover:bg-black hover:text-white"
-    >
-      <h3 className="text-md font-bold w-full text-center wrap-break-word">
-        {`${firstname} ${lastname}`} #{uid}
-      </h3>
-      <h3 className="text-md text-center font-bold w-full wrap-break-word">
-        {email}
-      </h3>
-    </div>
-  );
-};

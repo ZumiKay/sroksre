@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBoxOpen, faImage, faXmark } from "@fortawesome/free-solid-svg-icons";
@@ -14,7 +14,7 @@ const formatPrice = (value: number) => `$${value.toFixed(2)}`;
 
 /**
  * Lists every product in the promotion being edited (from all pages), so
- * discounts can be applied to exactly the products the admin checks.
+ * discounts can be applied to exactly the products.
  */
 export const PromotionProductsPanel = ({ onClose }: { onClose: () => void }) => {
   const { promotion, setpromotion, allData, setalldata } = useGlobalContext();

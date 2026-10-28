@@ -74,12 +74,6 @@ export function ProductDetailSkeleton() {
   );
 }
 
-export function ProductImageSkeleton() {
-  return (
-    <div className="w-100 h-125 bg-gray-300 rounded-lg animate-pulse max-medium_screen:w-87.5 max-medium_screen:h-112.5"></div>
-  );
-}
-
 export function RelatedProductSkeleton() {
   return (
     <div className="w-50 h-45 bg-gray-200 rounded-lg border-2 border-gray-300 animate-pulse flex flex-col gap-y-3 items-center justify-center p-2">

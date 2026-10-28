@@ -4,21 +4,13 @@ import {
   useGlobalContext,
 } from "@/src/context/GlobalContext";
 import { errorToast } from "../Loading";
-import {
-  SubmitEvent,
-  useEffect,
-  useState,
-  useCallback,
-  useMemo,
-  memo,
-} from "react";
+import { SubmitEvent, useEffect, useState, useCallback, useMemo } from "react";
 import { ApiRequest, Delayloading } from "@/src/context/CustomHook";
 import tinycolor from "tinycolor2";
 import { SecondaryModal } from "../Modals";
 import Variantimg from "../../../../public/Image/Variant.png";
 import Variantstockimg from "../../../../public/Image/Stock.png";
 import { ManageStockContainer } from "./VariantModalComponent";
-import React from "react";
 
 // Import types and utilities
 import {

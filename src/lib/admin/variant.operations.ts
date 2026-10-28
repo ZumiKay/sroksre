@@ -1,6 +1,5 @@
 import Prisma from "../prisma";
 import { Varianttype, VariantValueObjType } from "../../types/product.type";
-import { updateProductVariantStock } from "./stock.operations";
 
 export const handleUpdateProductVariant = async (
   id: number,

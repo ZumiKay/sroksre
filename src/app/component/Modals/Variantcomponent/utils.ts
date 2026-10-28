@@ -1,5 +1,3 @@
-import tinycolor from "tinycolor2";
-import { VariantValueObjType as VariantColorValueType } from "@/src/types/product.type";
 import {
   Stocktype,
   Varianttype,
@@ -30,14 +28,6 @@ export const checkVariantExists = (
   name: string,
 ): boolean => {
   return !!variants?.some((i) => i.option_title === name);
-};
-
-export const checkColorTypeExists = (variants: any[] | undefined): boolean => {
-  return !!variants?.some((i) => i.option_type === "COLOR");
-};
-
-export const getColorRgb = (hex: string) => {
-  return tinycolor(hex).toRgb();
 };
 
 export const updateStockOnVariantEdit = (

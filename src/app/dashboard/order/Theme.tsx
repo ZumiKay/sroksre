@@ -1,14 +1,5 @@
 import { createTheme } from "@mui/material";
 
-export const AllOrderStatusColor: { [key: string]: string } = {
-  incart: "#495464",
-  unpaid: "#EB5757",
-  paid: "#35C191",
-  preparing: "#0097FA",
-  shipped: "#60513C",
-  arrived: "#35C191",
-};
-
 declare module "@mui/material/styles" {
   interface Palette {
     incart: Palette["primary"];

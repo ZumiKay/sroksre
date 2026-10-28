@@ -131,11 +131,11 @@ export function extractQueryParams(url: string) {
     return {};
   }
 
-  const paramsArray = queryString.split("&");
   const queryParams: Record<string, string | number> = {};
 
-  paramsArray.forEach((param) => {
-    const [key, value] = param.split("=");
+  // URLSearchParams decodes values ("summer+shirt", "1%2C2", "10%3A00"),
+  // which the old split("=") left encoded and so broke those filters.
+  new URLSearchParams(queryString).forEach((value, key) => {
     queryParams[key] = isNaN(Number(value)) ? value : parseInt(value, 10);
   });
 

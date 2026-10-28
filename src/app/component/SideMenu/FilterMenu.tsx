@@ -8,11 +8,8 @@ import React, {
 } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import dayjs from "dayjs";
-import { Checkbox } from "@heroui/react";
 import { DateTimePicker } from "@mui/x-date-pickers";
 import { SecondaryModal } from "../Modals";
-import { Selection } from "../Button";
-import PrimaryButton from "../Button";
 import { useGlobalContext } from "@/src/context/GlobalContext";
 import {
   ApiRequest,
@@ -27,7 +24,6 @@ import {
   InventoryParamType,
 } from "../../dashboard/inventory/varaint_action";
 import { BannerSize, BannerType } from "../Modals/Banner";
-import { SelectionCustom } from "../Pagination_Component";
 import { SelectAndSearchProduct } from "../Banner";
 import { GetPromotionSelection } from "../Modals/Category";
 import { FilterValue } from "@/src/types/product.type";
@@ -42,8 +38,6 @@ interface CategoriesType {
   parentcates: Array<FilterCategoryType>;
   childcate?: Array<FilterCategoryType>;
 }
-
-const statusFilter = ["Low"];
 
 const fetchsubcate = async (value: string) => {
   const getsub = getSubCategories.bind(null, parseInt(value));
@@ -66,6 +60,9 @@ interface FilterMenuProps {
   setisFilter?: React.Dispatch<React.SetStateAction<boolean>>;
   reloadData?: () => void;
   isSetPromotion?: boolean;
+  /** Promotion product picking: list picked products first */
+  selectedFirst?: boolean;
+  onSelectedFirstChange?: (value: boolean) => void;
   setfilterdata?: React.Dispatch<
     React.SetStateAction<InventoryParamType | undefined>
   >;
@@ -83,6 +80,8 @@ export const FilterMenu = ({
   reloadData,
   setfilterdata,
   isSetPromotion,
+  selectedFirst,
+  onSelectedFirstChange,
 }: FilterMenuProps) => {
   const { openmodal, setopenmodal, promotion, listproductfilval, globalindex } =
     useGlobalContext();
@@ -117,6 +116,9 @@ export const FilterMenu = ({
     text?: Array<string>;
   }>({});
   const [promoval, setpromoval] = useState<SelectType[] | undefined>(undefined);
+  const [showSelectedFirst, setShowSelectedFirst] = useState(
+    selectedFirst ?? true,
+  );
 
   const fetchcate = useCallback(async () => {
     const asycnfetchdata = async () => {
@@ -173,31 +175,45 @@ export const FilterMenu = ({
 
   const handleFilter = useCallback(() => {
     const params = new URLSearchParams(searchParams);
-    const filtervalues = Object.entries(filtervalue);
+    const applied: Record<string, string> = {};
 
-    filtervalues.map(([key, value]) => {
-      if (key === "expiredate" && value) {
-        const val = dayjs(value);
-        params.set(key, formatDate(val.toDate()));
-        setfilterdata &&
-          setfilterdata((prev) => ({
-            ...prev,
-            [key]: formatDate(val.toDate()),
-          }));
-      }
-      if (key === "promoids" && value) {
-        const val = value as number[];
-        params.set("promoids", val.join(","));
-        setfilterdata && setfilterdata((prev) => ({ ...prev, [key]: value }));
+    // Write every field: set it when filled, remove it when cleared
+    Object.entries(filtervalue).forEach(([key, value]) => {
+      if (key === "p") return;
+      let out: string | undefined;
+      if (key === "expiredate") {
+        out = value ? formatDate(dayjs(value).toDate()) : undefined;
+      } else if (key === "promoids") {
+        out =
+          Array.isArray(value) && value.length > 0
+            ? value.join(",")
+            : undefined;
+      } else if (
+        value !== undefined &&
+        value !== null &&
+        value !== "" &&
+        value !== "none"
+      ) {
+        out = String(value);
       }
 
-      if (key !== "p" && value && value !== "none") {
-        params.set(key, value);
-        setfilterdata && setfilterdata((prev) => ({ ...prev, [key]: value }));
+      if (out) {
+        params.set(key, out);
+        applied[key] = out;
+      } else {
+        params.delete(key);
       }
     });
 
+    if (promotion.selectproduct && onSelectedFirstChange) {
+      if (showSelectedFirst) params.delete("selectedfirst");
+      else params.set("selectedfirst", "0");
+      onSelectedFirstChange(showSelectedFirst);
+    }
+
     params.set("p", "1");
+
+    setfilterdata && setfilterdata(applied as InventoryParamType);
 
     router.push(`?${params}`);
 
@@ -214,22 +230,20 @@ export const FilterMenu = ({
     setisFilter,
     reloadData,
     setopenmodal,
+    promotion.selectproduct,
+    showSelectedFirst,
+    onSelectedFirstChange,
   ]);
 
-  const handleSelect = useCallback(
-    (e: ChangeEvent<HTMLSelectElement>) => {
-      const { name, value } = e.target;
-
-      setfilter((prev) => ({ ...prev, [name]: value }));
-
-      if (name === "parentcate") {
-        const params = new URLSearchParams(searchParams);
-        params.delete("childcate");
-        router.push(`?${params}`);
-      }
-    },
-    [searchParams, router],
-  );
+  const handleSelect = useCallback((e: ChangeEvent<HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setfilter((prev) => ({
+      ...prev,
+      [name]: value,
+      // A new category invalidates the chosen subcategory
+      ...(name === "parentcate" ? { childcate: undefined } : {}),
+    }));
+  }, []);
 
   const handleClear = useCallback(() => {
     const params = new URLSearchParams(searchParams);
@@ -238,6 +252,10 @@ export const FilterMenu = ({
         params.delete(key);
       }
     });
+
+    params.delete("selectedfirst");
+    setShowSelectedFirst(true);
+    onSelectedFirstChange?.(true);
 
     params.set("p", "1");
 
@@ -255,6 +273,7 @@ export const FilterMenu = ({
     setfilterdata,
     reloadData,
     setopenmodal,
+    onSelectedFirstChange,
   ]);
 
   const handleNameChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
@@ -280,11 +299,14 @@ export const FilterMenu = ({
 
   const handlePromotionSelect = useCallback(
     (value?: SelectType | SelectType[]) => {
-      if (!value) return;
-      const val = value as SelectType[];
+      // Clearing the picker removes the promotion filter
+      const val = (value as SelectType[] | undefined) ?? [];
       setfilter((prev) => ({
         ...prev,
-        promoids: val.map((i) => parseInt(i.value.toString(), 10)),
+        promoids:
+          val.length > 0
+            ? val.map((i) => parseInt(i.value.toString(), 10))
+            : undefined,
       }));
     },
     [],
@@ -300,511 +322,349 @@ export const FilterMenu = ({
     [globalindex.promotioneditindex],
   );
 
-  const isFilterDisabled = useMemo(() => {
-    return Object.entries(filtervalue).every(([i, j]) => !j || j === "none");
-  }, [filtervalue]);
+  const parentCategoryOptions = useMemo(
+    () =>
+      category?.parentcates?.map((i) => ({ label: i.name, value: i.id })) ?? [],
+    [category?.parentcates],
+  );
+  const subCategoryOptions = useMemo(
+    () =>
+      category?.childcate?.map((i) => ({ label: i.name, value: i.id })) ?? [],
+    [category?.childcate],
+  );
 
-  const mappedParentCategories = useMemo(() => {
-    return category?.parentcates?.map((i) => ({
-      label: i.name,
-      value: i.id,
-    }));
-  }, [category?.parentcates]);
+  const typeLabel =
+    type === "product"
+      ? "products"
+      : type === "banner"
+        ? "banners"
+        : type === "promotion"
+          ? "promotions"
+          : type === "usermanagement"
+            ? "users"
+            : "items";
 
   const Footer = useMemo(() => {
     const FilterFooter = () => (
-      <div className="flex gap-3 w-full p-4 bg-linear-to-t from-gray-50 to-white border-t border-gray-100">
+      <div className="w-full flex flex-row items-center justify-between gap-3">
+        <button
+          type="button"
+          onClick={handleClear}
+          className="h-10 px-3 rounded-lg text-sm font-medium text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors"
+        >
+          Clear all
+        </button>
         {type !== "listproduct" ? (
-          <PrimaryButton
+          <button
             type="button"
             onClick={handleFilter}
-            text="Apply Filters"
-            disable={isFilterDisabled}
-            radius="12px"
-            width="70%"
-            color="#3B82F6"
-            hoverColor="#2563EB"
-          />
+            className="h-10 px-5 rounded-lg text-sm font-semibold bg-slate-900 text-white hover:bg-slate-800 transition-colors"
+          >
+            Apply filters
+          </button>
         ) : (
-          <PrimaryButton
+          <button
             type="button"
-            text={`Show ${totalproduct || 0} Product${
-              totalproduct !== 1 ? "s" : ""
-            }`}
             onClick={() =>
               setopenmodal((prev) => ({ ...prev, filteroption: false }))
             }
-            radius="12px"
-            width="70%"
-            color="#3B82F6"
-            hoverColor="#2563EB"
-          />
+            className="h-10 px-5 rounded-lg text-sm font-semibold bg-slate-900 text-white hover:bg-slate-800 transition-colors"
+          >
+            Show {totalproduct || 0} product{totalproduct !== 1 ? "s" : ""}
+          </button>
         )}
-        <PrimaryButton
-          type="button"
-          onClick={handleClear}
-          text="Clear All"
-          color="#F87171"
-          hoverColor="#EF4444"
-          radius="12px"
-          width="30%"
-        />
       </div>
     );
     FilterFooter.displayName = "FilterFooter";
     return FilterFooter;
-  }, [
-    type,
-    totalproduct,
-    handleFilter,
-    handleClear,
-    isFilterDisabled,
-    setopenmodal,
-  ]);
+  }, [type, totalproduct, handleFilter, handleClear, setopenmodal]);
+
+  const isPickingPromotionProducts =
+    type === "product" && promotion.selectproduct;
+  const isEditingPromotion =
+    globalindex.promotioneditindex !== -1 && isSetPromotion;
 
   return (
     <SecondaryModal
       open={openmodal.filteroption}
-      size="5xl"
+      size="xl"
       onPageChange={(val) =>
         setopenmodal((prev) => ({ ...prev, filteroption: val }))
       }
       placement="top"
+      scroll="inside"
       closebtn
       footer={Footer}
     >
-      <div className="filtermenu w-full relative h-fit">
-        <div
-          className="bg-linear-to-b from-white to-gray-50 p-4 sm:p-8 max-h-[75vh] overflow-y-auto rounded-2xl flex flex-col gap-y-6 transition-all duration-300 shadow-xs"
-          style={{
-            opacity: loading ? 0.5 : 1,
-            pointerEvents: loading ? "none" : "auto",
-          }}
-        >
-          {type !== "usermanagement" && (
-            <div
-              className={type === "listproduct" ? "hidden" : "w-full space-y-2"}
-            >
-              <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                <svg
-                  className="w-4 h-4 text-gray-500"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                  />
-                </svg>
-                Search by Name
-              </label>
-              {loading ? (
-                <div className="w-full h-[52px] rounded-xl bg-linear-to-r from-gray-200 via-gray-300 to-gray-200 animate-pulse" />
-              ) : (
-                <input
-                  type="text"
-                  name="name"
-                  placeholder="Enter product name..."
-                  value={filtervalue.name}
-                  onChange={handleNameChange}
-                  disabled={loading}
-                  className="w-full px-4 py-3 h-[52px] rounded-xl border-2 border-gray-200 bg-white hover:border-gray-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all duration-200 outline-hidden disabled:opacity-50 disabled:cursor-not-allowed shadow-xs text-gray-900 placeholder:text-gray-400"
-                />
-              )}
-            </div>
-          )}
-          {type === "listproduct" &&
-            (filterdata.color || filterdata.size || filterdata.text) && (
-              <>
-                {filterdata.size && filterdata.size.length !== 0 && (
-                  <ToggleSelect
-                    type="size"
-                    title="Size"
-                    data={filterdata.size}
-                  />
-                )}
-                {filterdata.color && filterdata.color.length > 0 && (
-                  <ToggleSelect
-                    type="color"
-                    title="Color"
-                    data={
-                      filterdata.color?.filter((i) => i.length > 0) as string[]
-                    }
-                  />
-                )}
-                {filterdata.text && filterdata.text.length !== 0 && (
-                  <ToggleSelect
-                    type="text"
-                    title="Other"
-                    data={filterdata.text}
-                  />
-                )}
-              </>
-            )}
-          {type === "usermanagement" && (
-            <div className="w-full space-y-2">
-              <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                <svg
-                  className="w-4 h-4 text-gray-500"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                  />
-                </svg>
-                Search Users
-              </label>
-              {loading ? (
-                <div className="w-full h-[52px] rounded-xl bg-linear-to-r from-gray-200 via-gray-300 to-gray-200 animate-pulse" />
-              ) : (
-                <input
-                  type="text"
-                  name="search"
-                  placeholder="Search by ID or Email..."
-                  value={filtervalue.search}
-                  onChange={handleSearchChange}
-                  disabled={loading}
-                  className="w-full px-4 py-3 h-[52px] rounded-xl border-2 border-gray-200 bg-white hover:border-gray-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all duration-200 outline-hidden disabled:opacity-50 disabled:cursor-not-allowed shadow-xs text-gray-900 placeholder:text-gray-400"
-                />
-              )}
-            </div>
-          )}
-          {type === "banner" && (
-            <div className="space-y-6 p-4 bg-linear-to-br from-purple-50 to-blue-50 rounded-xl border border-purple-100">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 bg-linear-to-br from-purple-500 to-blue-500 rounded-lg flex items-center justify-center">
-                  <svg
-                    className="w-5 h-5 text-white"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                    />
-                  </svg>
-                </div>
-                <h3 className="text-base font-semibold text-gray-800">
-                  Banner Settings
-                </h3>
-              </div>
-              <div className="w-full flex flex-col gap-y-2">
-                <label className="text-sm font-medium text-gray-700">
-                  Banner Type
-                </label>
-                {loading ? (
-                  <div className="w-full h-[52px] rounded-xl bg-linear-to-r from-gray-200 via-gray-300 to-gray-200 animate-pulse" />
-                ) : (
-                  <Selection
-                    name="bannertype"
-                    data={[{ label: "None", value: "none" }, ...BannerType]}
-                    value={filtervalue.bannertype}
-                    onChange={handleSelect}
-                    disable={loading}
-                  />
-                )}
-              </div>
-              <div className="w-full flex flex-col gap-y-2">
-                <label className="text-sm font-medium text-gray-700">
-                  Banner Size
-                </label>
-                {loading ? (
-                  <div className="w-full h-[52px] rounded-xl bg-linear-to-r from-gray-200 via-gray-300 to-gray-200 animate-pulse" />
-                ) : (
-                  <Selection
-                    name="bannersize"
-                    data={[{ label: "None", value: "none" }, ...BannerSize]}
-                    onChange={handleSelect}
-                    value={filtervalue.bannersize}
-                    disable={loading}
-                  />
-                )}
-              </div>
-            </div>
-          )}
-          {type === "promotion" && (
-            <div className="space-y-6 p-4 bg-linear-to-br from-green-50 to-emerald-50 rounded-xl border border-green-100">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 bg-linear-to-br from-green-500 to-emerald-500 rounded-lg flex items-center justify-center">
-                  <svg
-                    className="w-5 h-5 text-white"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"
-                    />
-                  </svg>
-                </div>
-                <h3 className="text-base font-semibold text-gray-800">
-                  Promotion Filters
-                </h3>
-              </div>
-              <div className="w-full flex flex-col gap-y-2">
-                <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                  <svg
-                    className="w-4 h-4 text-gray-500"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                    />
-                  </svg>
-                  Expiration Date
-                </label>
-                {loading ? (
-                  <div className="w-full h-[52px] rounded-xl bg-linear-to-r from-gray-200 via-gray-300 to-gray-200 animate-pulse" />
-                ) : (
-                  <div className="w-full h-[52px] relative z-100">
-                    <DateTimePicker
-                      sx={{
-                        width: "100%",
-                        "& .MuiOutlinedInput-root": {
-                          borderRadius: "12px",
-                        },
-                      }}
-                      value={
-                        filtervalue.expiredate
-                          ? dayjs(filtervalue.expiredate)
-                          : null
-                      }
-                      onChange={handleDateChange}
-                      disabled={loading}
-                    />
-                  </div>
-                )}
-              </div>
-
-              <div className="w-full flex flex-col gap-y-2">
-                <label className="text-sm font-medium text-gray-700">
-                  Status
-                </label>
-                {loading ? (
-                  <div className="w-full h-[52px] rounded-xl bg-linear-to-r from-gray-200 via-gray-300 to-gray-200 animate-pulse" />
-                ) : (
-                  <SelectionCustom
-                    data={[{ label: "Expired", value: "1" }]}
-                    label="status"
-                    value={filtervalue.expired}
-                    placeholder="Select Status"
-                    onChange={handleExpiredChange}
-                  />
-                )}
-              </div>
-            </div>
-          )}
-          {type === "product" && (
-            <div className="space-y-6">
-              <div className="p-4 bg-linear-to-br from-blue-50 to-indigo-50 rounded-xl border border-blue-100 space-y-5">
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="w-8 h-8 bg-linear-to-br from-blue-500 to-indigo-500 rounded-lg flex items-center justify-center">
-                    <svg
-                      className="w-5 h-5 text-white"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
-                      />
-                    </svg>
-                  </div>
-                  <h3 className="text-base font-semibold text-gray-800">
-                    Product Categories
-                  </h3>
-                </div>
-                <div className="w-full flex flex-col gap-y-2">
-                  <label className="text-sm font-medium text-gray-700">
-                    Category
-                  </label>
-                  {loading ? (
-                    <div className="w-full h-[52px] rounded-xl bg-linear-to-r from-gray-200 via-gray-300 to-gray-200 animate-pulse" />
-                  ) : (
-                    <Selection
-                      name="parentcate"
-                      data={mappedParentCategories}
-                      default="Select Parent Category"
-                      value={filtervalue.parentcate ?? ""}
-                      onChange={handleSelect}
-                      disable={loading}
-                    />
-                  )}
-                </div>
-                {filtervalue.parentcate !== 0 && (
-                  <div className="w-full flex flex-col gap-y-2 animate-fade-in">
-                    <label className="text-sm font-medium text-gray-700">
-                      Subcategory
-                    </label>
-                    {loading ? (
-                      <div className="w-full h-[52px] rounded-xl bg-linear-to-r from-gray-200 via-gray-300 to-gray-200 animate-pulse" />
-                    ) : (
-                      <Selection
-                        type="subcategory"
-                        subcategory={category?.childcate}
-                        name="childcate"
-                        default="Select Sub Category"
-                        value={filtervalue.childcate ?? ""}
-                        onChange={handleSelect}
-                        disable={loading}
-                      />
-                    )}
-                  </div>
-                )}
-              </div>
-
-              <div className="w-full flex flex-col gap-y-2">
-                <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                  <svg
-                    className="w-4 h-4 text-gray-500"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
-                    />
-                  </svg>
-                  Stock Status
-                </label>
-                {loading ? (
-                  <div className="w-full h-[52px] rounded-xl bg-linear-to-r from-gray-200 via-gray-300 to-gray-200 animate-pulse" />
-                ) : (
-                  <Selection
-                    default="Select Stock Status"
-                    onChange={handleSelect}
-                    name="status"
-                    value={filtervalue.status}
-                    data={statusFilter}
-                    disable={loading}
-                  />
-                )}
-              </div>
-              {promotion.selectproduct && (
-                <div className="w-full flex flex-col gap-y-2">
-                  <label className="text-sm font-medium text-gray-700">
-                    Discount
-                  </label>
-                  <Selection
-                    default="Select Discount"
-                    name="discount"
-                    disable={loading}
-                  />
-                </div>
-              )}
-              {type === "product" &&
-                (globalindex.promotioneditindex !== -1 && isSetPromotion ? (
-                  <div className="p-4 bg-linear-to-br from-amber-50 to-orange-50 rounded-xl border border-amber-100">
-                    {loading ? (
-                      <div className="w-full h-[44px] rounded-xl bg-linear-to-r from-gray-200 via-gray-300 to-gray-200 animate-pulse" />
-                    ) : (
-                      <Checkbox
-                        className="w-full"
-                        isSelected={!!filtervalue.promoids}
-                        isDisabled={loading}
-                        onValueChange={handleCheckboxChange}
-                      >
-                        <span className="text-sm font-medium text-gray-700">
-                          Show Only Discounted Products
-                        </span>
-                      </Checkbox>
-                    )}
-                  </div>
-                ) : (
-                  <div className="w-full flex flex-col gap-y-2">
-                    <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                      <svg
-                        className="w-4 h-4 text-gray-500"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"
-                        />
-                      </svg>
-                      Promotion
-                    </label>
-                    {loading ? (
-                      <div className="w-full h-[52px] rounded-xl bg-linear-to-r from-gray-200 via-gray-300 to-gray-200 animate-pulse" />
-                    ) : (
-                      <SelectAndSearchProduct
-                        getdata={(take, value) =>
-                          GetPromotionSelection(value, take)
-                        }
-                        placeholder="Select Promotion..."
-                        value={promoval}
-                        onSelect={handlePromotionSelect}
-                      />
-                    )}
-                  </div>
-                ))}
-            </div>
-          )}
+      <div
+        className="filtermenu w-full flex flex-col gap-y-5 py-2 transition-opacity"
+        style={{
+          opacity: loading ? 0.6 : 1,
+          pointerEvents: loading ? "none" : "auto",
+        }}
+        aria-busy={loading}
+      >
+        <div className="pb-4 border-b border-slate-200">
+          <h3 className="text-xl font-semibold tracking-tight text-slate-900">
+            Filter {typeLabel}
+          </h3>
+          <p className="text-sm text-slate-500 mt-1">
+            Changes take effect when you click Apply filters.
+          </p>
         </div>
+
+        {type !== "usermanagement" && type !== "listproduct" && (
+          <FilterField label="Name">
+            <input
+              type="text"
+              name="name"
+              placeholder={`Search ${typeLabel} by name`}
+              value={filtervalue.name ?? ""}
+              onChange={handleNameChange}
+              onKeyDown={(e) => e.key === "Enter" && handleFilter()}
+              className={inputClass}
+            />
+          </FilterField>
+        )}
+
+        {type === "usermanagement" && (
+          <FilterField label="Search users">
+            <input
+              type="text"
+              name="search"
+              placeholder="ID or email"
+              value={filtervalue.search ?? ""}
+              onChange={handleSearchChange}
+              onKeyDown={(e) => e.key === "Enter" && handleFilter()}
+              className={inputClass}
+            />
+          </FilterField>
+        )}
+
+        {type === "listproduct" &&
+          (filterdata.color || filterdata.size || filterdata.text) && (
+            <>
+              {filterdata.size && filterdata.size.length !== 0 && (
+                <ToggleSelect type="size" title="Size" data={filterdata.size} />
+              )}
+              {filterdata.color && filterdata.color.length > 0 && (
+                <ToggleSelect
+                  type="color"
+                  title="Color"
+                  data={
+                    filterdata.color?.filter((i) => i.length > 0) as string[]
+                  }
+                />
+              )}
+              {filterdata.text && filterdata.text.length !== 0 && (
+                <ToggleSelect
+                  type="text"
+                  title="Other"
+                  data={filterdata.text}
+                />
+              )}
+            </>
+          )}
+
+        {type === "banner" && (
+          <div className="grid grid-cols-2 gap-4 max-small_phone:grid-cols-1">
+            <SelectField
+              label="Type"
+              name="bannertype"
+              value={filtervalue.bannertype}
+              onChange={handleSelect}
+              placeholder="Any type"
+              options={BannerType}
+            />
+            <SelectField
+              label="Size"
+              name="bannersize"
+              value={filtervalue.bannersize}
+              onChange={handleSelect}
+              placeholder="Any size"
+              options={BannerSize}
+            />
+          </div>
+        )}
+
+        {type === "promotion" && (
+          <>
+            <FilterField label="Expires before">
+              <DateTimePicker
+                sx={{
+                  width: "100%",
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: "8px",
+                    height: "40px",
+                    fontSize: "14px",
+                  },
+                }}
+                value={
+                  filtervalue.expiredate ? dayjs(filtervalue.expiredate) : null
+                }
+                onChange={handleDateChange}
+              />
+            </FilterField>
+            <SelectField
+              label="Status"
+              name="expired"
+              value={filtervalue.expired}
+              onChange={(e) => handleExpiredChange(e.target.value)}
+              placeholder="Any status"
+              options={[{ label: "Expired only", value: "1" }]}
+            />
+          </>
+        )}
+
+        {type === "product" && (
+          <>
+            <div className="grid grid-cols-2 gap-4 max-small_phone:grid-cols-1">
+              <SelectField
+                label="Category"
+                name="parentcate"
+                value={filtervalue.parentcate}
+                onChange={handleSelect}
+                placeholder={loading ? "Loading..." : "Any category"}
+                options={parentCategoryOptions}
+              />
+              <SelectField
+                label="Subcategory"
+                name="childcate"
+                value={filtervalue.childcate}
+                onChange={handleSelect}
+                placeholder={
+                  filtervalue.parentcate
+                    ? "Any subcategory"
+                    : "Choose a category first"
+                }
+                options={filtervalue.parentcate ? subCategoryOptions : []}
+                disabled={!filtervalue.parentcate}
+              />
+            </div>
+
+            <SelectField
+              label="Stock"
+              name="status"
+              value={filtervalue.status}
+              onChange={handleSelect}
+              placeholder="Any stock level"
+              options={[{ label: "Low stock (5 or fewer)", value: "Low" }]}
+            />
+
+            {isPickingPromotionProducts ? (
+              <div className="flex flex-col gap-3 rounded-xl border border-slate-200 p-4">
+                <span className="text-sm font-medium text-slate-700">
+                  Promotion products
+                </span>
+                {onSelectedFirstChange && (
+                  <CheckboxField
+                    checked={showSelectedFirst}
+                    onChange={setShowSelectedFirst}
+                    label="Show selected products first"
+                    hint="Products in this promotion appear at the start of the list, across all pages."
+                  />
+                )}
+                {isEditingPromotion && (
+                  <CheckboxField
+                    checked={!!filtervalue.promoids}
+                    onChange={handleCheckboxChange}
+                    label="Show only discounted products"
+                    hint="Hide products that aren't saved in this promotion."
+                  />
+                )}
+              </div>
+            ) : (
+              <FilterField label="Promotion">
+                <SelectAndSearchProduct
+                  getdata={(take, value) => GetPromotionSelection(value, take)}
+                  placeholder="Search promotions"
+                  value={promoval}
+                  onSelect={handlePromotionSelect}
+                />
+              </FilterField>
+            )}
+          </>
+        )}
       </div>
     </SecondaryModal>
   );
 };
 
-interface InfoContainerProps {
-  container?: string;
-  title: string;
-  content: string;
-}
+const inputClass =
+  "w-full h-10 px-3 rounded-lg border border-slate-300 bg-white text-sm text-slate-900 placeholder:text-slate-400 outline-none transition-colors hover:border-slate-400 focus:border-slate-900 focus:ring-2 focus:ring-slate-200";
 
-export const InfoContainer = ({ title, content }: InfoContainerProps) => {
-  return (
-    <div className="info__container w-[300px] max-w-[400px] h-fit flex flex-col items-start justify-start gap-y-4 p-6 bg-linear-to-br from-white to-gray-50 rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 hover:scale-[1.02]">
-      <div className="info__header text-lg font-bold text-gray-800 flex items-center gap-2">
-        <div className="w-8 h-8 bg-linear-to-br from-blue-500 to-purple-500 rounded-lg flex items-center justify-center">
-          <svg
-            className="w-5 h-5 text-white"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-            />
-          </svg>
-        </div>
-        {title}
-      </div>
-      <p className="info__body text-sm font-normal max-w-[350px] wrap-break-word text-left text-gray-600 leading-relaxed">
-        {content}
-      </p>
-    </div>
-  );
-};
+const FilterField = ({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) => (
+  <div className="flex flex-col gap-1.5">
+    <span className="text-sm font-medium text-slate-700">{label}</span>
+    {children}
+  </div>
+);
+
+const SelectField = ({
+  label,
+  name,
+  value,
+  onChange,
+  options,
+  placeholder,
+  disabled,
+}: {
+  label: string;
+  name: string;
+  value?: string | number;
+  onChange: (e: ChangeEvent<HTMLSelectElement>) => void;
+  options: Array<{ label: string; value: string | number }>;
+  placeholder: string;
+  disabled?: boolean;
+}) => (
+  <label className="flex flex-col gap-1.5">
+    <span className="text-sm font-medium text-slate-700">{label}</span>
+    <select
+      name={name}
+      value={value ?? ""}
+      onChange={onChange}
+      disabled={disabled}
+      className={`${inputClass} disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed`}
+    >
+      <option value="">{placeholder}</option>
+      {options.map((option) => (
+        <option key={option.value} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+    </select>
+  </label>
+);
+
+const CheckboxField = ({
+  checked,
+  onChange,
+  label,
+  hint,
+}: {
+  checked: boolean;
+  onChange: (value: boolean) => void;
+  label: string;
+  hint?: string;
+}) => (
+  <label className="flex items-start gap-3 cursor-pointer">
+    <input
+      type="checkbox"
+      checked={checked}
+      onChange={(e) => onChange(e.target.checked)}
+      className="mt-0.5 w-4 h-4 shrink-0 accent-slate-900"
+    />
+    <span>
+      <span className="block text-sm text-slate-900">{label}</span>
+      {hint && (
+        <span className="block text-xs text-slate-500 mt-0.5">{hint}</span>
+      )}
+    </span>
+  </label>
+);

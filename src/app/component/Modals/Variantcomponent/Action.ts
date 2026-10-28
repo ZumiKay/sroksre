@@ -1,6 +1,6 @@
 "use server";
 
-import { Stocktype, Varianttype } from "@/src/types/product.type";
+import { Varianttype } from "@/src/types/product.type";
 import Prisma from "@/src/lib/prisma";
 
 export interface VariantTemplateType {

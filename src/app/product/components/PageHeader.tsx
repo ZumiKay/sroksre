@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { Banner } from "../../component/HomePage/Component";
-import { ProductFilterButton } from "../component";
 
 interface BreadcrumbItem {
   label: string;
@@ -78,43 +77,6 @@ export const PageHeader = ({
 
         <div className="w-16 h-1 bg-black rounded-full" />
       </div>
-    </div>
-  );
-};
-
-interface FilterSectionProps {
-  showFilter: boolean;
-  pid?: string;
-  cid?: string;
-  color?: string[];
-  other?: string[];
-  search?: string;
-  promo?: string[];
-  pcate?: string[];
-  ccate?: string[];
-  promoid?: string;
-  productCount?: number;
-}
-
-export const FilterSection = ({ showFilter, ...props }: FilterSectionProps) => {
-  if (!showFilter) return null;
-
-  // Import the component dynamically to avoid circular dependency
-
-  return (
-    <div className="filter_container w-full pr-2 pl-2 h-[40px] flex flex-row justify-center">
-      <ProductFilterButton
-        pid={props.pid ?? "0"}
-        cid={props.cid}
-        color={props.color}
-        other={props.other}
-        search={props.search}
-        promo={props.promo}
-        pcate={props.pcate}
-        ccate={props.ccate}
-        isPromotion={props.promoid}
-        productcount={props.productCount}
-      />
     </div>
   );
 };

@@ -8,7 +8,7 @@ import { faTrash, faPlus, faChevronDown } from "@fortawesome/free-solid-svg-icon
 import { TextField } from "@mui/material";
 
 import { useGlobalContext } from "@/src/context/GlobalContext";
-import { ChangeEvent, SubmitEvent, useEffect, useState } from "react";
+import { ChangeEvent, useEffect, useState } from "react";
 import {
   AddPolicyOrQuestion,
   Addpolicytype,
@@ -17,7 +17,7 @@ import {
 } from "./action";
 import { errorToast, successToast } from "../component/Loading";
 import { PrimaryConfirmModal } from "../component/SideMenu";
-import { Button, Chip } from "@heroui/react";
+import { Button } from "@heroui/react";
 import { ApiRequest, useClickOutside } from "@/src/context/CustomHook";
 import { Showtypemodal } from "./secondcomponent";
 import Textarea from "@mui/joy/Textarea";

@@ -117,7 +117,7 @@ export async function GET(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const { id, type } = await request.json();
+    const { id } = await request.json();
 
     await Prisma.wishlist.deleteMany({ where: { uid: id } });
     await Prisma.orderproduct.deleteMany({ where: { user_id: id } });

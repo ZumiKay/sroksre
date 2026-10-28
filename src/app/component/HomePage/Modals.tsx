@@ -1,7 +1,6 @@
 "use client";
 
 import { ChangeEvent, useState, useCallback, useMemo, useEffect } from "react";
-import React from "react";
 import PrimaryButton from "../Button";
 import { TextInput } from "../FormComponent";
 import { SecondaryModal } from "../Modals";
@@ -11,11 +10,7 @@ import {
   CreateContainer,
 } from "../../severactions/containeraction";
 import { useGlobalContext } from "@/src/context/GlobalContext";
-import {
-  ApiRequest,
-  useEffectOnce,
-  useScreenSize,
-} from "@/src/context/CustomHook";
+import { ApiRequest, useScreenSize } from "@/src/context/CustomHook";
 import { ContainerLoading, errorToast, successToast } from "../Loading";
 import { BannerModal } from "../Modals/Banner";
 import { CreateContainerType } from "./modals/CreateContainerType";

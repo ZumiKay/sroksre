@@ -14,7 +14,6 @@ jest.mock("@/src/app/checkout/fetchaction.ts");
 import { generateOrderData } from "@/src/_tests_/mocks/order";
 import { updateStatus } from "@/src/app/checkout/action";
 import { getCheckoutdata } from "@/src/app/checkout/fetchaction";
-import { canPlaceOrder } from "@/src/app/checkout/helper";
 import Prisma from "@/src/lib/prisma";
 import { Ordertype } from "@/src/types/order.type";
 

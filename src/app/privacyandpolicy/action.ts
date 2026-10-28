@@ -72,21 +72,6 @@ export const AddPolicyOrQuestion = async (
   }
 };
 
-export const getPolicy = async (qid?: number, pid?: number) => {
-  if (!qid && !pid) {
-    return { success: false, message: "Invalid data" };
-  }
-
-  const result = await (qid
-    ? Prisma.question.findUnique({ where: { id: qid } })
-    : Prisma.policy.findUnique({
-        where: { id: pid },
-        include: { Paragraph: true },
-      }));
-
-  return { success: true, data: result };
-};
-
 interface deletepolicytype {
   pid?: number;
   qid?: number;

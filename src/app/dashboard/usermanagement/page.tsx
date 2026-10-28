@@ -7,7 +7,7 @@ import {
   errorToast,
   successToast,
 } from "../../component/Loading";
-import React, { useCallback, useEffect, useState, useMemo, memo } from "react";
+import { useCallback, useEffect, useState, useMemo, memo } from "react";
 import { FilterMenu } from "../../component/SideMenu";
 import { Createusermodal } from "../../component/Modals/User";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -28,24 +28,6 @@ import {
   faUser,
   faUserPlus,
 } from "@fortawesome/free-solid-svg-icons";
-
-interface usermangementFilterType {
-  search?: string;
-  lt?: string;
-  p?: string;
-  sort?: string;
-  role?: string;
-}
-
-interface UserType {
-  id: number;
-  firstname: string;
-  lastname?: string;
-  email: string;
-  role: string;
-  phonenumber?: string;
-  createdAt: string;
-}
 export default function UsermanagementPage() {
   const router = useRouter();
   const searchParam = useSearchParams();
@@ -72,7 +54,6 @@ export default function UsermanagementPage() {
   }, [setopenmodal]);
   const [page, setpage] = useState(parseInt(p ?? "1"));
   const [showperpage, setshow] = useState(lt ?? "10");
-  const [isFilter, setisFilter] = useState(!!search);
   const [loading, setloading] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<number[]>([]);
   const [bulkAction, setBulkAction] = useState<string>("");
@@ -600,9 +581,7 @@ export default function UsermanagementPage() {
           }}
         />
       )}
-      {openmodal.filteroption && (
-        <FilterMenu type="usermanagement" setisFilter={setisFilter} />
-      )}
+      {openmodal.filteroption && <FilterMenu type="usermanagement" />}
     </>
   );
 }

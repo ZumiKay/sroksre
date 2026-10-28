@@ -10,7 +10,6 @@ import {
 } from "../types/product.type";
 import {
   AllDataState,
-  Allrefstate,
   filterinventorytype,
   ItemLength,
 } from "../types/global.type";
@@ -19,7 +18,6 @@ import {
   PromotionProductState,
   PromotionState,
 } from "../types/productAction.type";
-import { Role } from "@/prisma/generated/prisma/enums";
 import dayjs from "dayjs";
 
 type alerttype = {
@@ -99,15 +97,6 @@ export interface LoadingState {
   DELETE: boolean;
   IMAGE: any;
 }
-export interface Sessiontype {
-  id?: number;
-  email?: string;
-  name?: string;
-  image?: string;
-  role?: Role;
-  status?: string;
-  sessionid?: string;
-}
 
 //Initail State
 //
@@ -148,9 +137,6 @@ const OpenmodalinitialState: OpenModalState = {
     closecon: "",
   },
 };
-export const Allrefinitialize: Allrefstate = {
-  filterref: null,
-};
 export const CateogoryInitailizestate: CateogoryState = {
   name: "",
   description: "",
@@ -170,14 +156,6 @@ export const Productinitailizestate: ProductState = {
   },
   details: [],
   relatedproductid: [],
-};
-export const AllDataInitialize: AllDataState = {
-  product: [],
-  banner: [],
-  category: [],
-  promotion: [],
-  filteredData: [],
-  user: [],
 };
 export const ItemlengthInitialize: ItemLength = {
   total: 0,
@@ -390,28 +368,4 @@ export const useGlobalContext = () => {
   } else {
     return context;
   }
-};
-type closecontype =
-  | "createProduct"
-  | "createBanner"
-  | "createPromotion"
-  | "createCategory"
-  | "addsubcategory"
-  | "createUser";
-export const SaveCheck = (
-  confirm: boolean,
-  closecon: closecontype,
-  openmodal: OpenModalState,
-  open?: boolean,
-  deletecallback?: any,
-) => {
-  return {
-    ...openmodal,
-    confirmmodal: {
-      open: open ?? false,
-      confirm: confirm,
-      closecon: closecon,
-      deletecallback: deletecallback,
-    },
-  };
 };

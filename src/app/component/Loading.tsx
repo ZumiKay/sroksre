@@ -17,9 +17,6 @@ export default function LoadingIcon({ style }: { style?: CSSProperties }) {
     </div>
   );
 }
-export const LoadingLogo = () => {
-  return <div></div>;
-};
 export const LoadingText = ({ style }: { style?: CSSProperties }) => {
   return (
     <div

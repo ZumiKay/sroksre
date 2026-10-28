@@ -1,6 +1,4 @@
 "use client";
-import ReactSelect from "react-select/async";
-import makeAnimated from "react-select/animated";
 import {
   ChangeEvent,
   CSSProperties,
@@ -11,24 +9,9 @@ import {
   useCallback,
   useId,
 } from "react";
-import { Selection } from "./Button";
-import { getSubCategories } from "../dashboard/inventory/varaint_action";
-import { getSelectCategory } from "../action";
 import { AnimatePresence, motion } from "framer-motion";
 import { Skeleton } from "@heroui/react";
 import { SelectType } from "@/src/types/productAction.type";
-
-//
-const animatedComponents = makeAnimated();
-
-const getOptions = async (value: string) => {
-  const getreq = getSelectCategory.bind(null, value);
-  const data = await getreq();
-  if (data.success) {
-    return data.data;
-  }
-  return null;
-};
 
 export const NormalSkeleton = ({
   width,
@@ -46,56 +29,6 @@ export const NormalSkeleton = ({
       {Array.from({ length: count }).map((_, idx) => (
         <Skeleton key={idx} className="rounded-lg" style={{ height, width }} />
       ))}
-    </div>
-  );
-};
-
-export const SearchAndSelectCategory = () => {
-  const [selected, setselected] = useState<SelectType | undefined>(undefined);
-  const [subcate, setsubcate] = useState<SelectType[] | undefined>(undefined);
-  const handleSelectChange = async (val: SelectType | null) => {
-    const selected = val ?? undefined;
-
-    if (selected?.value) {
-      const getreq = getSubCategories.bind(
-        null,
-        parseInt(selected.value.toString()),
-      );
-      const sub = await getreq();
-      if (sub.success) {
-        setsubcate(sub.data?.map((i) => ({ label: i.name, value: i.id })));
-      }
-    }
-
-    setselected(selected);
-  };
-
-  return (
-    <div className="w-full h-fit flex flex-col gap-y-5">
-      <div className="w-full h-fit flex flex-row gap-x-5">
-        <div className="w-full h-fit flex flex-col gap-y-5">
-          <label className="text-lg font-bold">Parent Category</label>
-          <ReactSelect
-            closeMenuOnSelect={false}
-            components={animatedComponents}
-            placeholder={"Product name"}
-            loadOptions={(value) => getOptions(value) as any}
-            onChange={(val) => handleSelectChange(val as SelectType | null)}
-          />
-        </div>
-        {subcate && (
-          <div className="w-full h-fit flex flex-col gap-y-5">
-            <label className="text-lg font-bold">Sub Category</label>
-            <Selection data={subcate} />
-          </div>
-        )}
-      </div>
-      {selected && (
-        <div className="w-full h-fit flex flex-col gap-y-5">
-          <label className="text-lg font-bold">Products</label>
-          <Selection data={["All"]} />
-        </div>
-      )}
     </div>
   );
 };

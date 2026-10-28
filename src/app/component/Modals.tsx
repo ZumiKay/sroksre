@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  CSSProperties,
-  FormHTMLAttributes,
-  JSX,
-  ReactNode,
-  useEffect,
-  useRef,
-} from "react";
+import { CSSProperties, FormHTMLAttributes, ReactNode, useEffect, useRef } from "react";
 import {
   GlobalIndexState,
   useGlobalContext,
@@ -19,7 +12,6 @@ import {
   ModalHeader,
   Modal as Modals,
 } from "@heroui/react";
-import React from "react";
 
 export default function Modal({
   children,

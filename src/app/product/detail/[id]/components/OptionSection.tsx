@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import PrimaryButton from "@/src/app/component/Button";
 import {
   Productdetailinitialize,

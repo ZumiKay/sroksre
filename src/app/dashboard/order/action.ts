@@ -1,10 +1,7 @@
 "use server";
 
 import Prisma from "@/src/lib/prisma";
-import {
-  OrderReciptEmail,
-  removeSpaceAndToLowerCase,
-} from "@/src/lib/utilities";
+import { OrderReciptEmail } from "@/src/lib/utilities";
 import { revalidatePath } from "next/cache";
 import { Allstatus, totalpricetype } from "@/src/types/order.type";
 import { SendOrderEmail } from "../../checkout/action";
@@ -146,7 +143,6 @@ export const getFilterOrder = async ({
 
     // Search filter (ID or user details)
     if (search) {
-      const searchLower = removeSpaceAndToLowerCase(search);
       whereClause.OR = [
         { id: { contains: search, mode: "insensitive" } },
         { user: { email: { contains: search, mode: "insensitive" } } },
@@ -199,10 +195,14 @@ export const getFilterOrder = async ({
       });
     }
 
+    // Price lives in JSON and is filtered after paging, so with a price filter
+    // only this page's count is known; otherwise use the database total.
+    const hasPriceFilter = !!startprice || !!endprice;
+
     return {
       success: true,
       data: filteredOrders.length === 0 ? undefined : filteredOrders,
-      total: filteredOrders.length, // Use filtered count if price filter applied
+      total: hasPriceFilter ? filteredOrders.length : total,
     };
   } catch (error) {
     console.log("Filter order", error);

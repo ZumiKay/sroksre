@@ -247,22 +247,3 @@ export const VerifyEmail = async (
     return { success: false, message: "Error Occured" };
   }
 };
-
-export const checkloggedsession = async (sessionid: string) => {
-  try {
-    const usersession = await Prisma.usersession.findUnique({
-      where: {
-        sessionid: sessionid,
-      },
-    });
-
-    if (usersession) {
-      return { success: true };
-    }
-
-    return { success: false };
-  } catch (error) {
-    console.log("Error checking session:", error);
-    return { success: false, error: "Error checking session" };
-  }
-};
