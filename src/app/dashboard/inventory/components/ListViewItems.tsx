@@ -136,6 +136,8 @@ export const ProductListItem: React.FC<ProductListItemProps> = ({
         if (!isProduct) {
           promo.push({
             id: product.id,
+            name: product.name,
+            cover: product.covers?.[0]?.url,
             discount: {
               percent: 0,
               newprice: "",
@@ -161,6 +163,8 @@ export const ProductListItem: React.FC<ProductListItemProps> = ({
         } else {
           promo.push({
             id: product.id,
+            name: product.name,
+            cover: product.covers?.[0]?.url,
             discount: {
               percent: 0,
               newprice: "",

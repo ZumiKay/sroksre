@@ -430,16 +430,28 @@ export async function GET(request: NextRequest) {
         where: {
           id: param.p,
         },
-        include: { banner: true, Products: true },
+        include: {
+          banner: true,
+          Products: {
+            include: {
+              covers: {
+                take: 1,
+                orderBy: { id: "asc" },
+                select: { url: true },
+              },
+            },
+          },
+        },
       });
 
       if (promotion) {
-        const modifiedProducts = promotion.Products.map((j) => {
+        const modifiedProducts = promotion.Products.map(({ covers, ...j }) => {
           const price = parseFloat(j.price.toString());
           const discount = parseFloat(j.discount?.toString() as string) || 0;
 
           return {
             ...j,
+            cover: covers[0]?.url,
             discount: {
               percent: discount,
               newprice: (price - (price * discount) / 100).toFixed(2),

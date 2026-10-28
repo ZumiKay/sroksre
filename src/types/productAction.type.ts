@@ -30,6 +30,9 @@ export interface BannerState {
 
 export interface PromotionProductState {
   id: number;
+  /** Shown in the promotion products panel, which lists products from every page */
+  name?: string;
+  cover?: string;
   discount?: {
     percent: number;
     newprice: string;

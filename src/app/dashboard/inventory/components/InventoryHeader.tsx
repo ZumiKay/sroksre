@@ -27,7 +27,8 @@ interface InventoryHeaderProps {
   isPromotionSelection: boolean;
   isBannerSelection: boolean;
   isManagingBanner: boolean;
-  isMultipleProducts: boolean;
+  /** Products picked for the promotion being edited */
+  promotionProductCount: number;
   isLoadingUpdate: boolean;
   viewMode: "card" | "list";
   onFilterChange: (value: string) => void;
@@ -61,7 +62,7 @@ export const InventoryHeader: React.FC<InventoryHeaderProps> = ({
   isPromotionSelection,
   isBannerSelection,
   isManagingBanner,
-  isMultipleProducts,
+  promotionProductCount,
   isLoadingUpdate,
   viewMode,
   onFilterChange,
@@ -118,10 +119,10 @@ export const InventoryHeader: React.FC<InventoryHeaderProps> = ({
         </>
       ) : (
         <>
-          {isPromotionSelection && isMultipleProducts && (
+          {isPromotionSelection && promotionProductCount > 0 && (
             <ActionButton
               icon={faPercent}
-              label="Discount"
+              label={`Discounts · ${promotionProductCount}`}
               color="bg-purple-600"
               onClick={onDiscountClick}
             />

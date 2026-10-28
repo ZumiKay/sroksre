@@ -111,6 +111,8 @@ const Card = memo(function Card(props: cardprops) {
           if (!isProduct) {
             const option = {
               id: id,
+              name: props.name,
+              cover: props.img?.[0]?.url,
               discount: {
                 percent: 0,
                 newprice: "",
@@ -138,6 +140,8 @@ const Card = memo(function Card(props: cardprops) {
           } else {
             promo.push({
               id: id,
+              name: props.name,
+              cover: props.img?.[0]?.url,
               discount: {
                 percent: 0,
                 newprice: "",

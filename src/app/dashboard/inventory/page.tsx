@@ -13,6 +13,7 @@ import { CreateProducts } from "../../component/Modals/Product";
 import { Category } from "../../component/Modals/Category";
 import { BannerModal } from "../../component/Modals/Banner";
 import { CreatePromotionModal, DiscountModals } from "../../component/Modals/Promotion";
+import { PromotionProductsPanel } from "./components/PromotionProductsPanel";
 import PaginationCustom from "../../component/Pagination_Component";
 import { InventoryHeader } from "./components/InventoryHeader";
 import { ProductListItem, BannerListItem, PromotionListItem } from "./components/ListViewItems";
@@ -89,12 +90,12 @@ export default function Inventory() {
     itemlength,
     setitemlength,
     globalindex,
-    setglobalindex,
   } = useGlobalContext();
   const { handleCheckSession } = useCheckSession();
 
   // Local state
   const [loaded, setloaded] = useState(false);
+  const [showPromoProducts, setShowPromoProducts] = useState(false);
   const [show, setshow] = useState(limit ?? "1");
   const [page, setpage] = useState(p ? parseInt(p) : 1);
   const [itemscount, setitemcount] = useState(0);
@@ -759,6 +760,9 @@ export default function Inventory() {
 
         {/**Discount edit modal */}
         {openmodal.discount && <DiscountModals />}
+        {showPromoProducts && (
+          <PromotionProductsPanel onClose={() => setShowPromoProducts(false)} />
+        )}
 
         <div className="inventory__container w-full h-full min-h-screen relative flex flex-col items-center pb-50 bg-linear-to-b from-gray-50 to-white">
           {/* Header */}
@@ -777,17 +781,13 @@ export default function Inventory() {
               isPromotionSelection={!!promotion.selectproduct}
               isBannerSelection={!!promotion.selectbanner}
               isManagingBanner={!!openmodal.managebanner}
-              isMultipleProducts={promotion.Products.length > 1}
+              promotionProductCount={promotion.Products.filter((p) => p.id !== 0).length}
               isLoadingUpdate={isLoading.PUT}
               viewMode={viewMode}
               onFilterChange={handleFilter}
               onFilterClick={() => setopenmodal((prev) => ({ ...prev, filteroption: true }))}
               onLowStockClick={handleLowStockFilter}
-              onDiscountClick={() => {
-                // Header button applies to every selected product, not a single card
-                setglobalindex((prev) => ({ ...prev, promotionproductedit: -1 }));
-                setopenmodal((prev) => ({ ...prev, discount: true }));
-              }}
+              onDiscountClick={() => setShowPromoProducts(true)}
               onAddBannerClick={() => setopenmodal((prev) => ({ ...prev, createBanner: true }))}
               onDoneClick={handleDoneButton}
               onViewModeChange={setViewMode}
