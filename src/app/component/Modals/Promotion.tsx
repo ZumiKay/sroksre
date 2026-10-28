@@ -9,25 +9,29 @@ import { useRouter, useSearchParams } from "next/navigation";
 import React, { ChangeEvent, SubmitEvent, useEffect, useState } from "react";
 import { BlurLoading, errorToast, infoToast, successToast } from "../Loading";
 import { SecondaryModal } from "../Modals";
-import { motion } from "framer-motion";
 import dayjs from "dayjs";
 import { parseAbsoluteToLocal } from "@internationalized/date";
 import { ImageUpload } from "./Image";
 import { DatePicker, NumberInput, Switch } from "@heroui/react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 import {
-  faTags,
-  faInfoCircle,
-  faClock,
-  faLayerGroup,
-  faImage,
   faBox,
-  faSpinner,
   faCheck,
-  faTimes,
-  faTag,
-  faPercentage,
+  faClock,
+  faImage,
+  faLayerGroup,
+  faPen,
+  faPercent,
+  faTags,
 } from "@fortawesome/free-solid-svg-icons";
+import {
+  ACCENTS,
+  Accent,
+  IconTile,
+  ModalTitle,
+  SectionCard,
+} from "./FormSection";
 
 interface InventoryParamType {
   ty?: string;
@@ -202,6 +206,12 @@ export const CreatePromotionModal = ({
     setopenmodal((prev) => ({ ...prev, createPromotion: false }));
   };
 
+  const isEdit = globalindex.promotioneditindex !== -1;
+  const isSaving = !!(isLoading.POST || isLoading.PUT);
+  const productCount =
+    promotion.Products?.filter((i) => i.id !== 0).length ?? 0;
+  const hasBanner = !!(promotion.banner?.id || promotion.banner_id);
+
   return (
     <SecondaryModal
       onPageChange={(val) =>
@@ -212,183 +222,153 @@ export const CreatePromotionModal = ({
       size="xl"
       placement="top"
       isForm={{
-        className:
-          "promotionform w-full h-full flex flex-col justify-start items-start gap-y-5 overflow-y-auto pr-2",
+        className: "promotionform w-full h-full flex flex-col",
         onSubmit: handleSubmit,
       }}
       footer={() => (
-        <div className="w-full bg-linear-to-r from-white to-orange-50 px-5 py-4 flex flex-row gap-3 border-t border-orange-200 shadow-[0_-4px_12px_rgba(0,0,0,0.05)]">
-          <button
-            type="submit"
-            disabled={isLoading.POST || isLoading.PUT}
-            className={`relative w-full h-11 rounded-xl p-3 font-bold text-sm transition-all duration-200 flex items-center justify-center gap-2 overflow-hidden ${
-              isLoading.POST || isLoading.PUT
-                ? "bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200"
-                : "bg-linear-to-br from-orange-500 to-rose-500 text-white shadow-md shadow-orange-200 hover:shadow-lg hover:shadow-orange-300 hover:scale-[1.02] active:scale-[0.98]"
-            }`}
-          >
-            {isLoading.POST || isLoading.PUT ? (
-              <>
-                <FontAwesomeIcon icon={faSpinner} spin className="text-xs" />
-                <span>
-                  {globalindex.promotioneditindex === -1
-                    ? "Creating..."
-                    : "Updating..."}
-                </span>
-              </>
-            ) : (
-              <>
-                <FontAwesomeIcon icon={faCheck} className="text-xs" />
-                <span>
-                  {globalindex.promotioneditindex === -1 ? "Create" : "Update"}
-                </span>
-              </>
-            )}
-          </button>
+        <div className="w-full flex flex-row items-center justify-end gap-3">
           <button
             type="button"
             onClick={() => handleCancel()}
-            disabled={isLoading.POST || isLoading.PUT}
-            className={`w-full h-11 rounded-xl p-5 font-bold text-sm transition-all duration-200 flex items-center justify-center gap-2 border ${
-              isLoading.POST || isLoading.PUT
-                ? "bg-gray-100 text-gray-400 cursor-not-allowed border-gray-200"
-                : "bg-white text-gray-600 border-gray-300 hover:border-red-400 hover:text-red-500 hover:bg-red-50 hover:shadow-sm active:scale-[0.98]"
-            }`}
+            disabled={isSaving}
+            className="h-10 px-5 rounded-lg text-sm font-semibold bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed max-small_phone:flex-1"
           >
-            <FontAwesomeIcon icon={faTimes} className="text-xs" />
-            <span>Cancel</span>
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={isSaving}
+            className="inline-flex items-center justify-center gap-2 h-10 px-5 rounded-lg text-sm font-semibold bg-orange-500 text-white shadow-sm hover:bg-orange-600 transition-colors disabled:opacity-60 disabled:cursor-not-allowed max-small_phone:flex-1"
+          >
+            {isSaving ? (
+              <Spinner />
+            ) : (
+              <FontAwesomeIcon icon={faCheck} className="text-xs" />
+            )}
+            {isEdit ? "Save Changes" : "Create Promotion"}
           </button>
         </div>
       )}
     >
       {loading && <BlurLoading />}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.3 }}
-        className="createPromotion__container relative rounded-2xl w-full h-full bg-linear-to-br from-white to-orange-50 p-6 flex flex-col shadow-xl border-2 border-orange-200"
-      >
-        <div className="w-full space-y-2 pb-5 border-b-2 border-orange-200 mb-6">
-          <h4 className="text-2xl font-bold text-gray-800 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-linear-to-br from-orange-500 to-red-600 flex items-center justify-center">
-              <FontAwesomeIcon icon={faTags} className="text-white" />
-            </div>
-            {globalindex.promotioneditindex === -1
-              ? "Create Promotion"
-              : "Edit Promotion"}
-          </h4>
-          <p className="text-sm text-gray-500 ml-13">
-            Set up promotional offers with discounts and banners
-          </p>
-        </div>
+      <div className="createPromotion__container w-full flex flex-col gap-y-5 py-4">
+        <ModalTitle
+          icon={faTags}
+          accent="orange"
+          title={isEdit ? "Edit Promotion" : "New Promotion"}
+          subtitle="Discount a set of products until a set date, with an optional banner."
+        />
 
-        <div className="w-full h-fit flex flex-col gap-y-5 items-center">
-          <div className="w-full bg-white rounded-xl p-5 border-2 border-gray-200 shadow-xs space-y-4">
-            <div className="flex items-center gap-2 mb-3">
-              <FontAwesomeIcon
-                icon={faInfoCircle}
-                className="text-lg text-orange-500"
-              />
-              <h5 className="font-bold text-gray-800">Basic Information</h5>
-            </div>
+        <SectionCard icon={faPen} accent="blue" title="Details">
+          <label className="flex flex-col gap-y-1.5">
+            <span className="text-sm font-medium text-gray-700">Name</span>
             <input
               type="text"
               name="name"
-              placeholder="Promotion Name"
+              placeholder="e.g. Black Friday"
               value={promotion.name}
-              className="w-full h-14 px-4 border-2 border-gray-300 rounded-xl text-base font-medium focus:border-orange-500 focus:outline-hidden transition-colors"
+              className={inputClass}
               onChange={handleChange}
               required
             />
+          </label>
+          <label className="flex flex-col gap-y-1.5">
+            <span className="text-sm font-medium text-gray-700">
+              Description{" "}
+              <span className="font-normal text-gray-400">(optional)</span>
+            </span>
             <textarea
               name="description"
               value={promotion.description}
               onChange={handleChange}
-              placeholder="Description (optional)"
-              className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl text-base font-medium focus:border-orange-500 focus:outline-hidden transition-colors resize-none"
+              placeholder="What is this promotion about?"
+              className={`${inputClass} h-auto py-2.5 resize-none`}
               rows={3}
             />
-          </div>
-          <div className="w-full bg-linear-to-br from-red-50 to-pink-50 rounded-xl p-5 border-2 border-red-200 space-y-3">
-            <div className="flex items-center gap-2">
-              <FontAwesomeIcon
-                icon={faClock}
-                className="text-lg text-red-500"
-              />
-              <h5 className="font-bold text-gray-800">Expiration</h5>
-              <span className="text-xs text-red-600 font-semibold bg-red-100 px-2 py-1 rounded-full">
-                Required
-              </span>
-            </div>
-            <DatePicker
-              label="Expire Date"
-              granularity="minute"
-              value={
-                promotion.expireAt
-                  ? parseAbsoluteToLocal(
-                      dayjs(promotion.expireAt).toISOString(),
-                    )
-                  : null
-              }
-              onOpenChange={(open) => setisPickDate(open)}
-              onChange={(val) => {
-                setpromotion((prev) => ({
-                  ...prev,
-                  expireAt: val ? dayjs(val.toDate()) : undefined,
-                }));
-              }}
-              classNames={{
-                base: "w-full",
-              }}
+          </label>
+        </SectionCard>
+
+        <SectionCard
+          icon={faClock}
+          accent="rose"
+          title="Ends on"
+          hint="Discounts stop applying after this date and time."
+        >
+          <DatePicker
+            aria-label="End date"
+            variant="bordered"
+            granularity="minute"
+            isRequired
+            value={
+              promotion.expireAt
+                ? parseAbsoluteToLocal(dayjs(promotion.expireAt).toISOString())
+                : null
+            }
+            onOpenChange={(open) => setisPickDate(open)}
+            onChange={(val) => {
+              setpromotion((prev) => ({
+                ...prev,
+                expireAt: val ? dayjs(val.toDate()) : undefined,
+              }));
+            }}
+            classNames={{ base: "w-full" }}
+          />
+        </SectionCard>
+
+        <SectionCard
+          icon={faLayerGroup}
+          accent="purple"
+          title="Products and banner"
+          hint="Choosing closes this window so you can pick from the list."
+        >
+          <div className="flex flex-col gap-2">
+            <PickRow
+              icon={faBox}
+              accent="green"
+              title="Products"
+              required
+              count={productCount}
+              status={productCount > 0 ? `${productCount} selected` : undefined}
+              actionLabel={productCount > 0 ? "Edit" : "Choose"}
+              onClick={() => handleSelectProductAndBanner("product")}
+            />
+            <PickRow
+              icon={faImage}
+              accent="purple"
+              title="Banner"
+              count={hasBanner ? 1 : 0}
+              status={hasBanner ? "Selected" : undefined}
+              actionLabel={hasBanner ? "Change" : "Choose"}
+              onClick={() => handleSelectProductAndBanner("banner")}
             />
           </div>
+        </SectionCard>
 
-          <div className="w-full bg-linear-to-br from-blue-50 to-indigo-50 rounded-xl p-5 border-2 border-blue-200">
-            <div className="flex items-center gap-3">
-              <FontAwesomeIcon
-                icon={faLayerGroup}
-                className="text-lg text-blue-500"
-              />
-              <Switch
-                isSelected={promotion.autocate}
-                onValueChange={(val) => {
-                  setpromotion((prev) => ({ ...prev, autocate: val }));
-                }}
-              >
-                <span className="font-semibold text-gray-700">
-                  Auto List at Sale Category
-                </span>
-              </Switch>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={() => handleSelectProductAndBanner("banner")}
-            className="w-full h-14 rounded-xl font-bold text-base transition-all duration-300 shadow-lg flex items-center justify-center gap-2 bg-linear-to-r from-purple-500 to-indigo-600 text-white hover:from-purple-600 hover:to-indigo-700 hover:shadow-xl hover:scale-[1.02]"
+        <section className="rounded-xl border border-gray-200 bg-white p-5">
+          <Switch
+            color="warning"
+            isSelected={promotion.autocate}
+            onValueChange={(val) => {
+              setpromotion((prev) => ({ ...prev, autocate: val }));
+            }}
+            classNames={{
+              base: "max-w-full w-full flex-row-reverse justify-between gap-4",
+              label: "flex items-start gap-3",
+            }}
           >
-            <FontAwesomeIcon icon={faImage} className="text-lg" />
+            <IconTile icon={faPercent} accent="amber" size="sm" />
             <span>
-              {promotion.banner?.id || promotion.banner_id
-                ? "Edit Banner"
-                : "Select Banner"}
+              <span className="block text-sm font-semibold text-gray-900">
+                List in Sale category
+              </span>
+              <span className="block text-xs text-gray-500 mt-0.5">
+                Show these products in the Sale category while the promotion
+                runs.
+              </span>
             </span>
-          </button>
-          <button
-            type="button"
-            onClick={() => handleSelectProductAndBanner("product")}
-            className="w-full h-14 rounded-xl font-bold text-base transition-all duration-300 shadow-lg flex items-center justify-center gap-2 bg-linear-to-r from-blue-500 to-cyan-600 text-white hover:from-blue-600 hover:to-cyan-700 hover:shadow-xl hover:scale-[1.02]"
-          >
-            <FontAwesomeIcon icon={faBox} className="text-lg" />
-            <span>
-              {promotion.Products?.filter((i) => i.id !== 0).length > 0
-                ? `Edit Products (${
-                    promotion.Products.filter((i) => i.id !== 0).length
-                  })`
-                : "Select Product"}
-            </span>
-          </button>
-        </div>
-      </motion.div>
+          </Switch>
+        </section>
+      </div>
       {openmodal.imageupload && (
         <ImageUpload
           mutitlple={false}
@@ -400,6 +380,66 @@ export const CreatePromotionModal = ({
     </SecondaryModal>
   );
 };
+
+const inputClass =
+  "w-full h-11 px-3 rounded-lg border border-gray-300 bg-white text-sm text-gray-900 placeholder:text-gray-400 outline-none transition-colors focus:border-orange-500 focus:ring-2 focus:ring-orange-100";
+
+const Spinner = () => (
+  <span
+    aria-hidden="true"
+    className="w-4 h-4 rounded-full border-2 border-white/40 border-t-white animate-spin"
+  />
+);
+
+function PickRow({
+  icon,
+  accent,
+  title,
+  count,
+  status,
+  required,
+  actionLabel,
+  onClick,
+}: {
+  icon: IconDefinition;
+  accent: Accent;
+  title: string;
+  count: number;
+  status?: string;
+  required?: boolean;
+  actionLabel: string;
+  onClick: () => void;
+}) {
+  const done = count > 0;
+  const badge = done
+    ? { text: status, className: "bg-green-100 text-green-700" }
+    : required
+      ? { text: "Required", className: "bg-red-100 text-red-700" }
+      : { text: "Optional", className: "bg-gray-100 text-gray-600" };
+
+  return (
+    <div className="flex items-center justify-between gap-4 rounded-lg border border-gray-200 px-3 py-3">
+      <div className="flex items-center gap-3 min-w-0">
+        <IconTile icon={icon} accent={accent} />
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-gray-900">{title}</p>
+          <span
+            className={`inline-block mt-1 text-xs font-medium px-2 py-0.5 rounded-full ${badge.className}`}
+          >
+            {badge.text}
+          </span>
+        </div>
+      </div>
+      <button
+        type="button"
+        onClick={onClick}
+        className={`shrink-0 h-9 px-4 rounded-lg text-sm font-semibold border transition-colors ${ACCENTS[accent].soft} hover:brightness-95`}
+      >
+        {actionLabel}
+      </button>
+    </div>
+  );
+}
 
 export const DiscountModals = () => {
   const {
@@ -476,68 +516,69 @@ export const DiscountModals = () => {
     setopenmodal((prev) => ({ ...prev, discount: false }));
   };
 
+  const isSingle = globalindex.promotionproductedit !== -1;
+
   return (
     <SecondaryModal
-      size="xl"
+      size="md"
       open={openmodal.discount}
       onPageChange={(val) =>
         setopenmodal((prev) => ({ ...prev, discount: val }))
       }
       closebtn
     >
-      <motion.form
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.3 }}
+      <form
         onSubmit={handleDiscount}
-        className="discount_content rounded-2xl w-full h-full p-6 bg-linear-to-br from-white to-purple-50 flex flex-col gap-y-6 shadow-xl border-2 border-purple-200"
+        className="discount_content w-full flex flex-col gap-y-5 py-4"
       >
-        <div className="w-full space-y-2 pb-4 border-b-2 border-purple-200">
-          <h4 className="text-2xl font-bold text-gray-800 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-linear-to-br from-purple-500 to-pink-600 flex items-center justify-center">
-              <FontAwesomeIcon icon={faPercentage} className="text-white" />
-            </div>
-            Set Discount
-          </h4>
-          {globalindex.promotionproductedit === -1 && (
-            <p className="text-sm text-gray-500 ml-13">
-              Apply discount percentage to all selected products
-            </p>
-          )}
-        </div>
+        <ModalTitle
+          icon={faPercent}
+          accent="purple"
+          title="Set Discount"
+          subtitle={
+            isSingle
+              ? "Applies to this product only."
+              : "Applies to every selected product."
+          }
+        />
 
-        <div className="w-full bg-white rounded-xl p-5 border-2 border-gray-200 shadow-xs space-y-3">
-          <div className="flex items-center gap-2">
-            <FontAwesomeIcon icon={faTag} className="text-lg text-purple-500" />
-            <h5 className="font-bold text-gray-800">Discount Percentage</h5>
-          </div>
-          <NumberInput
-            type="number"
-            placeholder="Enter discount (1-100)"
-            endContent={"%"}
-            name="discount"
-            value={discount}
-            minValue={1}
-            maxValue={100}
-            className="w-full h-14 rounded-xl px-4 text-lg font-bold border-2 border-gray-300 focus:border-purple-500 focus:outline-hidden transition-colors"
-            onValueChange={(e) => setdiscount(e)}
-            isRequired
-          />
-          <p className="text-xs text-gray-500 flex items-center gap-1">
-            <FontAwesomeIcon icon={faInfoCircle} />
-            Enter a value between 1% and 100%
-          </p>
-        </div>
+        <NumberInput
+          label="Discount"
+          labelPlacement="outside"
+          variant="bordered"
+          placeholder="e.g. 20"
+          description="Between 1% and 100%."
+          endContent={
+            <span className="text-sm font-semibold text-purple-600">%</span>
+          }
+          name="discount"
+          value={discount}
+          minValue={1}
+          maxValue={100}
+          onValueChange={(e) => setdiscount(e)}
+          isRequired
+          classNames={{ label: "text-sm font-medium text-gray-700" }}
+        />
 
-        <button
-          type="submit"
-          className="w-full h-14 rounded-xl font-bold text-base transition-all duration-300 shadow-lg flex items-center justify-center gap-2 bg-linear-to-r from-purple-500 to-pink-600 text-white hover:from-purple-600 hover:to-pink-700 hover:shadow-xl hover:scale-[1.02]"
-        >
-          <FontAwesomeIcon icon={faCheck} />
-          <span>Apply Discount</span>
-        </button>
-      </motion.form>
+        <div className="flex flex-row items-center justify-end gap-3">
+          <button
+            type="button"
+            onClick={() =>
+              setopenmodal((prev) => ({ ...prev, discount: false }))
+            }
+            className="h-10 px-5 rounded-lg text-sm font-semibold bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 transition-colors max-small_phone:flex-1"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            className="inline-flex items-center justify-center gap-2 h-10 px-5 rounded-lg text-sm font-semibold bg-purple-600 text-white shadow-sm hover:bg-purple-700 transition-colors max-small_phone:flex-1"
+          >
+            <FontAwesomeIcon icon={faCheck} className="text-xs" />
+            Apply Discount
+          </button>
+        </div>
+      </form>
     </SecondaryModal>
   );
 };

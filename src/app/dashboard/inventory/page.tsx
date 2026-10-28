@@ -12,17 +12,10 @@ import { FilterMenu } from "../../component/SideMenu";
 import { CreateProducts } from "../../component/Modals/Product";
 import { Category } from "../../component/Modals/Category";
 import { BannerModal } from "../../component/Modals/Banner";
-import {
-  CreatePromotionModal,
-  DiscountModals,
-} from "../../component/Modals/Promotion";
+import { CreatePromotionModal, DiscountModals } from "../../component/Modals/Promotion";
 import PaginationCustom from "../../component/Pagination_Component";
 import { InventoryHeader } from "./components/InventoryHeader";
-import {
-  ProductListItem,
-  BannerListItem,
-  PromotionListItem,
-} from "./components/ListViewItems";
+import { ProductListItem, BannerListItem, PromotionListItem } from "./components/ListViewItems";
 import { EmptyState, LoadingState } from "./components/EmptyAndLoadingStates";
 
 // Contexts & Hooks
@@ -132,10 +125,7 @@ export default function Inventory() {
     [filtervalue],
   );
 
-  const currentData = useMemo(
-    () => allData?.[type as string] || [],
-    [allData, type],
-  );
+  const currentData = useMemo(() => allData?.[type as string] || [], [allData, type]);
 
   //Check user session
   useEffect(() => {
@@ -163,9 +153,7 @@ export default function Inventory() {
   // Validation searchParams
   useEffect(() => {
     if (!type) {
-      return redirect(
-        `/dashboard/inventory${DEFAULT_PARAMS(type || "product")}`,
-      );
+      return redirect(`/dashboard/inventory${DEFAULT_PARAMS(type || "product")}`);
     }
 
     const isValid =
@@ -182,16 +170,7 @@ export default function Inventory() {
     if (reloaddata) {
       fetchdata(promotion.id);
     }
-  }, [
-    reloaddata,
-    type,
-    p,
-    limit,
-    parentcate,
-    childcate,
-    expired,
-    promotion.id,
-  ]);
+  }, [reloaddata, type, p, limit, parentcate, childcate, expired, promotion.id]);
 
   const fetchdata = useCallback(
     async (pid?: number) => {
@@ -211,12 +190,7 @@ export default function Inventory() {
           );
           transformFunction = transformProductData;
         } else if (ty === "banner") {
-          apiUrl = buildBannerApiUrl(
-            page,
-            show,
-            filtervalue,
-            !!promotion.selectbanner,
-          );
+          apiUrl = buildBannerApiUrl(page, show, filtervalue, !!promotion.selectbanner);
           transformFunction = transformBannerData;
         } else if (ty === "promotion") {
           apiUrl = buildPromotionApiUrl(page, show, filtervalue);
@@ -224,14 +198,7 @@ export default function Inventory() {
         }
 
         const makerequest = async () => {
-          const response = await ApiRequest(
-            apiUrl,
-            undefined,
-            "GET",
-            undefined,
-            undefined,
-            ty,
-          );
+          const response = await ApiRequest(apiUrl, undefined, "GET", undefined, undefined, ty);
 
           if (response.success) {
             let modifieddata = response.data?.map(transformFunction);
@@ -243,10 +210,7 @@ export default function Inventory() {
               // Merge discount data for promotion products
               if (promotion.selectproduct && type === "product") {
                 const productMap = new Map(
-                  promotion.Products.map((product) => [
-                    product.id,
-                    product.discount,
-                  ]),
+                  promotion.Products.map((product) => [product.id, product.discount]),
                 );
 
                 modifieddata = modifieddata.map((item: any) => {
@@ -331,13 +295,7 @@ export default function Inventory() {
               type: updateType,
             };
 
-      const updatereq = await ApiRequest(
-        "/api/promotion",
-        setisLoading,
-        "PUT",
-        "JSON",
-        data,
-      );
+      const updatereq = await ApiRequest("/api/promotion", setisLoading, "PUT", "JSON", data);
 
       if (updatereq.success) {
         return true;
@@ -352,10 +310,7 @@ export default function Inventory() {
   const handleDoneButton = useCallback(async () => {
     if (promotion.selectbanner || promotion.selectproduct) {
       if (promotion.selectproduct && promotion.tempproduct) {
-        const success = await handleUpdateProductBannerPromotion(
-          promotion,
-          "product",
-        );
+        const success = await handleUpdateProductBannerPromotion(promotion, "product");
         if (!success) {
           errorToast("Failed to update");
           return;
@@ -365,10 +320,7 @@ export default function Inventory() {
         promotion.banner_id &&
         globalindex.promotioneditindex !== -1
       ) {
-        const success = await handleUpdateProductBannerPromotion(
-          promotion,
-          "banner",
-        );
+        const success = await handleUpdateProductBannerPromotion(promotion, "banner");
         if (!success) {
           errorToast("Error Occurred");
           return;
@@ -376,12 +328,7 @@ export default function Inventory() {
       }
     }
     setopenmodal((prev) => ({ ...prev, createPromotion: true }));
-  }, [
-    promotion,
-    globalindex,
-    handleUpdateProductBannerPromotion,
-    setopenmodal,
-  ]);
+  }, [promotion, globalindex, handleUpdateProductBannerPromotion, setopenmodal]);
 
   const handleFilter = useCallback(
     async (value: string) => {
@@ -399,7 +346,6 @@ export default function Inventory() {
       params.set("ty", value);
       params.set("p", "1");
       params.set("limit", "1");
-
       setpage(1);
       setshow("1");
       settype(value);
@@ -511,12 +457,8 @@ export default function Inventory() {
   }, []);
 
   const toggleSelectAll = useCallback(() => {
-    const ids: number[] = (currentData as any[])
-      .map((item) => item.id)
-      .filter(Boolean);
-    setSelectedIds((prev) =>
-      prev.size === ids.length ? new Set() : new Set(ids),
-    );
+    const ids: number[] = (currentData as any[]).map((item) => item.id).filter(Boolean);
+    setSelectedIds((prev) => (prev.size === ids.length ? new Set() : new Set(ids)));
   }, [currentData]);
 
   const handleBulkDelete = useCallback(async () => {
@@ -587,11 +529,7 @@ export default function Inventory() {
                       stroke="currentColor"
                       strokeWidth={3}
                     >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M5 13l4 4L19 7"
-                      />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                     </svg>
                   )}
                 </div>
@@ -644,11 +582,7 @@ export default function Inventory() {
                       stroke="currentColor"
                       strokeWidth={3}
                     >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M5 13l4 4L19 7"
-                      />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                     </svg>
                   )}
                 </div>
@@ -703,11 +637,7 @@ export default function Inventory() {
                       stroke="currentColor"
                       strokeWidth={3}
                     >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M5 13l4 4L19 7"
-                      />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                     </svg>
                   )}
                 </div>
@@ -782,13 +712,9 @@ export default function Inventory() {
       {/* Day JS Provider  */}
       <LocalizationProvider dateAdapter={AdapterDayjs}>
         {/* Action modals */}
-        {openmodal.createProduct && (
-          <CreateProducts setreloaddata={setreloaddata} />
-        )}
+        {openmodal.createProduct && <CreateProducts setreloaddata={setreloaddata} />}
         {openmodal.createCategory && <Category />}
-        {openmodal.createBanner && (
-          <BannerModal setreloaddata={setreloaddata} />
-        )}
+        {openmodal.createBanner && <BannerModal setreloaddata={setreloaddata} />}
         {openmodal.createPromotion && (
           <CreatePromotionModal
             searchparams={{
@@ -847,16 +773,10 @@ export default function Inventory() {
               isLoadingUpdate={isLoading.PUT}
               viewMode={viewMode}
               onFilterChange={handleFilter}
-              onFilterClick={() =>
-                setopenmodal((prev) => ({ ...prev, filteroption: true }))
-              }
+              onFilterClick={() => setopenmodal((prev) => ({ ...prev, filteroption: true }))}
               onLowStockClick={handleLowStockFilter}
-              onDiscountClick={() =>
-                setopenmodal((prev) => ({ ...prev, discount: true }))
-              }
-              onAddBannerClick={() =>
-                setopenmodal((prev) => ({ ...prev, createBanner: true }))
-              }
+              onDiscountClick={() => setopenmodal((prev) => ({ ...prev, discount: true }))}
+              onAddBannerClick={() => setopenmodal((prev) => ({ ...prev, createBanner: true }))}
               onDoneClick={handleDoneButton}
               onViewModeChange={setViewMode}
             />
@@ -878,7 +798,10 @@ export default function Inventory() {
                 {searchInput && (
                   <button
                     type="button"
-                    onClick={() => { setSearchInput(""); handleRemoveFilter("name"); }}
+                    onClick={() => {
+                      setSearchInput("");
+                      handleRemoveFilter("name");
+                    }}
                     className="text-gray-400 hover:text-gray-600 transition-colors"
                   >
                     <FontAwesomeIcon icon={faXmark} className="text-sm" />
@@ -887,7 +810,7 @@ export default function Inventory() {
               </div>
               <button
                 type="submit"
-                className="shrink-0 px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-xl shadow-sm hover:shadow-md hover:scale-105 transition-all"
+                className="shrink-0 px-4 py-2 bg-slate-600 text-white text-sm font-semibold rounded-xl shadow-sm hover:shadow-md hover:scale-105 transition-all"
               >
                 Search
               </button>
@@ -901,7 +824,10 @@ export default function Inventory() {
                     key={key}
                     className="inline-flex items-center gap-1.5 px-3 py-1 bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-medium rounded-full"
                   >
-                    <span>{label}{displayVal ? `: ${displayVal}` : ""}</span>
+                    <span>
+                      {label}
+                      {displayVal ? `: ${displayVal}` : ""}
+                    </span>
                     <button
                       type="button"
                       onClick={() => handleRemoveFilter(key)}
@@ -956,21 +882,15 @@ export default function Inventory() {
                           onClick={toggleSelectAll}
                           className="px-3 py-1.5 text-sm font-medium rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors"
                         >
-                          {selectedIds.size === currentData.length
-                            ? "Deselect All"
-                            : "Select All"}
+                          {selectedIds.size === currentData.length ? "Deselect All" : "Select All"}
                         </button>
-                        <span className="text-sm text-gray-500">
-                          {selectedIds.size} selected
-                        </span>
+                        <span className="text-sm text-gray-500">{selectedIds.size} selected</span>
                         <button
                           disabled={selectedIds.size === 0 || isLoading.DELETE}
                           onClick={openBulkDeleteConfirm}
                           className="px-3 py-1.5 text-sm font-medium rounded-lg bg-red-500 hover:bg-red-600 disabled:opacity-40 disabled:cursor-not-allowed text-white transition-colors"
                         >
-                          {isLoading.DELETE
-                            ? "Deleting…"
-                            : `Delete (${selectedIds.size})`}
+                          {isLoading.DELETE ? "Deleting…" : `Delete (${selectedIds.size})`}
                         </button>
                         <button
                           onClick={exitSelectMode}
@@ -997,7 +917,7 @@ export default function Inventory() {
           </motion.div>
         </div>
 
-        <div className="w-full h-fit">
+        <div className="w-full h-fit bg-white">
           <PaginationCustom
             page={page}
             setpage={setpage}

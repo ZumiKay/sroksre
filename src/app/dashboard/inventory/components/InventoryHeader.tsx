@@ -72,8 +72,7 @@ export const InventoryHeader: React.FC<InventoryHeaderProps> = ({
   onDoneClick,
   onViewModeChange,
 }) => {
-  const showNormalMode =
-    !isPromotionSelection && !isBannerSelection && !isManagingBanner;
+  const showNormalMode = !isPromotionSelection && !isBannerSelection && !isManagingBanner;
 
   return (
     <div className="w-full flex flex-row items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
@@ -98,18 +97,10 @@ export const InventoryHeader: React.FC<InventoryHeaderProps> = ({
           </div>
 
           <div className="shrink-0">
-            <SubInventoryMenu
-              data={createMenu as any}
-              open="subcreatemenu_ivt"
-            />
+            <SubInventoryMenu data={createMenu as any} open="subcreatemenu_ivt" />
           </div>
 
-          <StatBadge
-            icon={faBox}
-            label="Total"
-            value={itemTotal}
-            color="bg-blue-600"
-          />
+          <StatBadge icon={faBox} label="Total" value={itemTotal} color="bg-slate-600" />
 
           {type === "product" && (
             <StatBadge
@@ -122,12 +113,7 @@ export const InventoryHeader: React.FC<InventoryHeaderProps> = ({
           )}
 
           {type === "promotion" && (
-            <StatBadge
-              icon={faClock}
-              label="Expired"
-              value={promoexpire}
-              color="bg-orange-600"
-            />
+            <StatBadge icon={faClock} label="Expired" value={promoexpire} color="bg-orange-600" />
           )}
         </>
       ) : (
@@ -147,7 +133,7 @@ export const InventoryHeader: React.FC<InventoryHeaderProps> = ({
         <ActionButton
           icon={faPlus}
           label="Add New"
-          color="bg-green-600"
+          color="primary__button"
           onClick={onAddBannerClick}
         />
       )}
@@ -165,18 +151,12 @@ export const InventoryHeader: React.FC<InventoryHeaderProps> = ({
         >
           {isLoadingUpdate ? (
             <>
-              <FontAwesomeIcon
-                icon={faSpinner}
-                className="text-sm md:text-base"
-              />
+              <FontAwesomeIcon icon={faSpinner} className="text-sm md:text-base" />
               <span className="whitespace-nowrap">Processing...</span>
             </>
           ) : (
             <>
-              <FontAwesomeIcon
-                icon={faCheck}
-                className="text-sm md:text-base"
-              />
+              <FontAwesomeIcon icon={faCheck} className="text-sm md:text-base" />
               <span className="whitespace-nowrap">Done</span>
             </>
           )}
@@ -186,7 +166,7 @@ export const InventoryHeader: React.FC<InventoryHeaderProps> = ({
       <ActionButton
         icon={faFilter}
         label="Filter"
-        color={hasActiveFilters ? "bg-indigo-700" : "bg-blue-600"}
+        color={hasActiveFilters ? "bg-slate-600" : "bg-blue-600"}
         onClick={onFilterClick}
       />
 
@@ -242,9 +222,7 @@ const ViewModeToggle: React.FC<{
       type="button"
       onClick={() => onChange("card")}
       className={`px-2.5 md:px-3 py-1.5 md:py-2 transition-all ${
-        viewMode === "card"
-          ? "bg-indigo-600 text-white"
-          : "text-gray-600 hover:bg-gray-100"
+        viewMode === "card" ? "bg-slate-600 text-white" : "text-gray-600 hover:bg-gray-100"
       }`}
       title="Card View"
     >
@@ -254,9 +232,7 @@ const ViewModeToggle: React.FC<{
       type="button"
       onClick={() => onChange("list")}
       className={`px-2.5 md:px-3 py-1.5 md:py-2 transition-all ${
-        viewMode === "list"
-          ? "bg-indigo-600 text-white"
-          : "text-gray-600 hover:bg-gray-100"
+        viewMode === "list" ? "bg-slate-600 text-white" : "text-gray-600 hover:bg-gray-100"
       }`}
       title="List View"
     >

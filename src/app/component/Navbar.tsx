@@ -14,7 +14,12 @@ import {
   faBoxesStacked,
   faTrashCan,
   faCircle,
+  faArrowRight,
+  faClock,
+  faFire,
+  faLayerGroup,
 } from "@fortawesome/free-solid-svg-icons";
+import { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 import Logo from "../../../public/Image/Logo.svg";
 import Menu from "../../../public/Image/Menu.svg";
 import Search from "../../../public/Image/Search.svg";
@@ -23,15 +28,7 @@ import Profile from "../../../public/Image/profile.svg";
 import DefaultImage from "../../../public/Image/default.png";
 import ActiveBell from "../../../public/Image/blackbell.svg";
 import Bell from "../../../public/Image/whitebell.svg";
-import {
-  CSSProperties,
-  forwardRef,
-  memo,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { CSSProperties, forwardRef, memo, useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { AccountMenu, CartMenu } from "./SideMenu";
 import Link from "next/link";
@@ -53,13 +50,7 @@ import Homecontainermodal from "./HomePage/Modals";
 import { AnimatePresence } from "framer-motion";
 import SearchContainer from "./Modals/Search";
 import { CloseVector } from "./Asset";
-import {
-  Button,
-  Dropdown,
-  DropdownItem,
-  DropdownMenu,
-  DropdownTrigger,
-} from "@heroui/react";
+import { Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger } from "@heroui/react";
 import { useSocket } from "@/src/context/SocketContext";
 import React from "react";
 import { NotificationType, Usersessiontype } from "@/src/types/user.type";
@@ -75,8 +66,7 @@ export default function Navbar({
   session: Usersessiontype | null;
   loading?: boolean;
 }) {
-  const { cart, setcart, carttotal, setcarttotal, setopenmodal, openmodal } =
-    useGlobalContext();
+  const { cart, setcart, carttotal, setcarttotal, setopenmodal, openmodal } = useGlobalContext();
   const [categories, setcategories] = useState(false);
   const [profile, setprofile] = useState(false);
   const [opennotification, setnotification] = useState(false);
@@ -107,8 +97,7 @@ export default function Navbar({
 
   // Poll for new admin notifications every 30 seconds
   useDataRefresh({
-    onRefresh: (data: { id: number; checked: boolean }[]) =>
-      setchecknotify(data?.length ?? 0),
+    onRefresh: (data: { id: number; checked: boolean }[]) => setchecknotify(data?.length ?? 0),
     enabled: !!session && session.role === "ADMIN",
     endpoint: "/api/users/notification?ty=check",
     interval: 30000,
@@ -180,9 +169,7 @@ export default function Navbar({
             width={50}
             height={50}
             quality={50}
-            onClick={() =>
-              setopenmodal((prev) => ({ ...prev, searchcon: true }))
-            }
+            onClick={() => setopenmodal((prev) => ({ ...prev, searchcon: true }))}
           />
         </div>
         <div className="second_section  w-full h-fit relative top-2 flex justify-center">
@@ -202,9 +189,7 @@ export default function Navbar({
             width={50}
             height={50}
             quality={50}
-            onClick={() =>
-              setopenmodal((prev) => ({ ...prev, searchcon: true }))
-            }
+            onClick={() => setopenmodal((prev) => ({ ...prev, searchcon: true }))}
           />
 
           {session && session.role !== "ADMIN" && (
@@ -256,15 +241,11 @@ export default function Navbar({
             alt="profile"
             className="cart w-10 h-10 max-small_phone:w-8.75 max-small_phone:h-8.75 object-contain transition hover:-translate-y-2"
             onMouseEnter={() => session && setprofile(true)}
-            onClick={() =>
-              !session && router.push("/account", { scroll: false })
-            }
+            onClick={() => !session && router.push("/account", { scroll: false })}
           />
         </div>
 
-        <AnimatePresence>
-          {profile && <AccountMenu setProfile={setprofile} />}
-        </AnimatePresence>
+        <AnimatePresence>{profile && <AccountMenu setProfile={setprofile} />}</AnimatePresence>
 
         {openmodal?.homecontainer && (
           <Homecontainermodal setprofile={setprofile} isPhone={isMobile} />
@@ -274,18 +255,9 @@ export default function Navbar({
           {openmodal?.searchcon && <SearchContainer isMobile={isMobile} />}
         </AnimatePresence>
 
-        {cart && (
-          <CartMenu
-            img={DefaultImage}
-            setcart={setcart}
-            setcarttotal={setcarttotal}
-          />
-        )}
+        {cart && <CartMenu img={DefaultImage} setcart={setcart} setcarttotal={setcarttotal} />}
         {opennotification && (
-          <NotificationMenu
-            close={() => setnotification(false)}
-            ref={notiref}
-          />
+          <NotificationMenu close={() => setnotification(false)} ref={notiref} />
         )}
       </nav>
       <CookieConsent
@@ -302,28 +274,23 @@ export default function Navbar({
         expires={150}
       >
         This website uses cookies to enhance the user experience.{" "}
-        <Link
-          href={"/privacyandpolicy"}
-          style={{ fontSize: "10px", textDecoration: "underline" }}
-        >
+        <Link href={"/privacyandpolicy"} style={{ fontSize: "10px", textDecoration: "underline" }}>
           See Privacy And Policy Page
         </Link>
       </CookieConsent>
     </>
   );
 }
-const CategoriesContainer = (props: {
-  setopen: React.Dispatch<React.SetStateAction<boolean>>;
-}) => {
+const CategoriesContainer = (props: { setopen: React.Dispatch<React.SetStateAction<boolean>> }) => {
   const [allcate, setallcate] = useState<Array<CateogoryState>>();
   const [loading, setloading] = useState(false);
   const { isMobile } = useScreenSize();
   const router = useRouter();
+  const { setopen } = props;
 
   const fetchcate = useCallback(async () => {
     setloading(true);
     const request = await ApiRequest("/api/categories", undefined, "GET");
-    console.log({ request });
     if (request.success) {
       setallcate(request.data);
     }
@@ -333,171 +300,190 @@ const CategoriesContainer = (props: {
   useEffect(() => {
     fetchcate();
     document.body.style.overflow = "hidden";
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setopen(false);
+    };
+    window.addEventListener("keydown", handleKey);
     return () => {
       document.body.style.overflow = "auto";
+      window.removeEventListener("keydown", handleKey);
     };
-  }, [fetchcate]);
+  }, [fetchcate, setopen]);
+
+  const go = (url: string) => {
+    router.push(url);
+    router.refresh();
+    if (isMobile) setopen(false);
+  };
+
+  // Auto-filled lists (popular, latest) show as quick links; the rest as columns
+  const quickLinks = allcate?.filter((i) => i.type === "latest" || i.type === "popular") ?? [];
+  const columns = allcate?.filter((i) => i.type !== "latest" && i.type !== "popular") ?? [];
+
   return (
     <div
       onMouseLeave={() => props.setopen(false)}
-      className="categories__container w-full max-h-[calc(100vh-3.75rem)] min-h-[40vh] 
-      absolute top-14.25 left-0 z-99 bg-linear-to-b from-white to-gray-50 
-      shadow-xl border-t border-gray-200 flex flex-row gap-6 sm:gap-8 justify-start 
-      max-large_phone:justify-center items-start flex-wrap overflow-x-hidden 
-      pb-20 p-4 sm:p-6 overflow-y-auto"
+      className="categories__container absolute top-full left-0 z-99 w-full max-h-[calc(100vh-3.75rem)] overflow-y-auto overflow-x-hidden bg-white border-t border-gray-200 shadow-xl"
     >
-      <div className="w-full flex items-center justify-between pb-3 border-b border-gray-200 mb-2">
-        <h2 className="text-lg font-bold text-gray-800">Categories</h2>
-        <button
-          type="button"
-          onClick={() => props.setopen(false)}
-          className="p-1 rounded-full hover:bg-gray-200 transition-colors cursor-pointer"
-          aria-label="Close categories"
-        >
-          <CloseVector width="24px" height="24px" />
-        </button>
-      </div>
-      {loading ? (
-        <>
-          {[...Array(6)].map((_, idx) => (
-            <div
-              key={idx}
-              className="category flex flex-col w-55 max-small_phone:w-[90%] 
-              bg-white rounded-lg shadow-md p-5 border border-gray-100 animate-pulse"
-            >
-              <div className="w-full h-13 bg-gray-300 rounded-lg mb-4"></div>
-              <div className="flex flex-col gap-y-3">
-                <div className="w-full h-6 bg-gray-200 rounded-md"></div>
-                <div className="w-4/5 h-6 bg-gray-200 rounded-md"></div>
-                <div className="w-3/4 h-6 bg-gray-200 rounded-md"></div>
-                <div className="w-full h-6 bg-gray-200 rounded-md"></div>
-              </div>
-            </div>
-          ))}
-        </>
-      ) : !allcate || allcate.length === 0 ? (
-        <div className="w-full h-full flex flex-col items-center justify-center gap-4 py-20">
-          <svg
-            className="w-24 h-24 text-gray-300"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-8 pt-5 pb-10 flex flex-col gap-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-500">
+            Shop by category
+          </h2>
+          <button
+            type="button"
+            onClick={() => props.setopen(false)}
+            className="p-1.5 rounded-full text-gray-500 hover:bg-gray-100 transition-colors"
+            aria-label="Close categories"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={1.5}
-              d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
-            />
-          </svg>
-          <h3 className="text-xl font-semibold text-gray-600">
-            No Categories Available
-          </h3>
-          <p className="text-gray-500 text-center max-w-md">
-            There are currently no categories to display. Please check back
-            later.
-          </p>
+            <CloseVector width="20px" height="20px" />
+          </button>
         </div>
-      ) : (
-        <>
-          <div
-            className="category flex flex-col w-55 max-small_phone:w-[90%] 
-            bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 
-            p-5 border border-gray-100"
-          >
-            <h3
-              onClick={() => {
-                router.push("/product?all=1");
-                router.refresh();
-                isMobile && props.setopen(false);
-              }}
-              className="category_header w-full bg-linear-to-r from-incart to-[#5a6575] 
-              text-white font-semibold text-base transition-all duration-300 cursor-pointer 
-              hover:scale-105 hover:shadow-lg active:scale-95 rounded-lg p-3.5 
-              wrap-break-word text-center"
-            >
-              All Categories
-            </h3>
-          </div>
 
-          {allcate
-            ?.filter((i) => i.type !== "latest")
-            .map((i) => (
-              <div
-                key={i.id}
-                className="category flex flex-col w-55 max-small_phone:w-[90%] 
-                bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 
-                p-5 border border-gray-100"
-              >
-                <h3
-                  onClick={() => {
-                    router.push(
-                      `/product?${
-                        i.type === "normal" ? `pid=${i.id}` : `ppid=${i.id}`
-                      }`,
-                    );
-                    router.refresh();
-                    isMobile && props.setopen(false);
-                  }}
-                  className="category_header w-full bg-linear-to-r from-incart to-[#5a6575] 
-                  text-white font-semibold text-base transition-all duration-300 cursor-pointer 
-                  hover:scale-105 hover:shadow-lg active:scale-95 rounded-lg p-3.5 
-                  wrap-break-word text-center"
-                >
-                  {i.name}
-                </h3>
-                <div className="category_subheader w-full h-fit flex flex-col gap-y-3 pt-4 font-normal text-center">
-                  {i.subcategories
-                    .filter((i) => (i.isExpired ? !i.isExpired : true))
-                    .map((sub) => (
-                      <div
-                        key={sub.id}
-                        onClick={() => {
-                          router.push(
-                            `/product?pid=${i.id}${
-                              sub.type === "normal"
-                                ? `&cid=${sub.id}`
-                                : `&promoid=${sub.pid}`
-                            }`,
-                          );
-                          router.refresh();
-                          isMobile && props.setopen(false);
-                        }}
-                        className="subcategory cursor-pointer px-2 py-1.5 rounded-md 
-                        hover:bg-gray-100 transition-colors duration-200 text-gray-700 
-                        hover:text-incart text-sm"
-                      >
-                        <h4>{sub.name}</h4>
-                      </div>
-                    ))}
-                </div>
-              </div>
-            ))}
-          <div
-            className="category flex flex-col w-55 max-small_phone:w-[90%] 
-          bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 
-          p-5 border border-gray-100 gap-y-4"
-          >
-            {allcate
-              ?.filter((i) => i.type === "latest" || i.type === "popular")
-              .map((item, idx) => (
-                <h3
-                  key={idx}
-                  onClick={() => router.push(`/product?pid=${item.id}`)}
-                  className="category_header bg-linear-to-r from-incart to-[#5a6575] 
-                  text-white font-semibold text-base transition-all duration-300 cursor-pointer 
-                  hover:scale-105 hover:shadow-lg active:scale-95 rounded-lg p-3.5 
-                  wrap-break-word text-center"
-                >
-                  {item.name}
-                </h3>
+        {loading ? (
+          <>
+            <div className="flex flex-wrap gap-2">
+              {[...Array(3)].map((_, idx) => (
+                <div key={idx} className="w-32 h-10 rounded-full bg-gray-100 animate-pulse" />
               ))}
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-8 gap-y-8">
+              {[...Array(4)].map((_, idx) => (
+                <div key={idx} className="flex flex-col gap-3 animate-pulse">
+                  <div className="w-2/3 h-5 bg-gray-200 rounded-sm" />
+                  <div className="w-full h-4 bg-gray-100 rounded-sm" />
+                  <div className="w-4/5 h-4 bg-gray-100 rounded-sm" />
+                  <div className="w-3/5 h-4 bg-gray-100 rounded-sm" />
+                </div>
+              ))}
+            </div>
+          </>
+        ) : !allcate || allcate.length === 0 ? (
+          <div className="w-full flex flex-col items-center justify-center gap-3 py-16 text-center">
+            <span className="w-14 h-14 rounded-full bg-gray-100 text-gray-400 flex items-center justify-center">
+              <FontAwesomeIcon icon={faLayerGroup} className="text-xl" />
+            </span>
+            <h3 className="text-base font-semibold text-gray-700">No categories yet</h3>
+            <p className="text-sm text-gray-500 max-w-sm">
+              Check back soon, or browse everything we have.
+            </p>
+            <button
+              type="button"
+              onClick={() => go("/product?all=1")}
+              className="mt-1 h-10 px-5 rounded-full text-sm font-semibold bg-incart text-white hover:opacity-90 transition-opacity"
+            >
+              Shop all products
+            </button>
           </div>
-        </>
-      )}
+        ) : (
+          <>
+            {/* Quick links */}
+            <div className="flex flex-wrap gap-2">
+              <QuickLink
+                icon={faLayerGroup}
+                label="All products"
+                onClick={() => go("/product?all=1")}
+                primary
+              />
+              {quickLinks.map((item) => (
+                <QuickLink
+                  key={item.id}
+                  icon={item.type === "popular" ? faFire : faClock}
+                  label={item.name}
+                  onClick={() => go(`/product?pid=${item.id}`)}
+                />
+              ))}
+            </div>
+
+            {/* Category columns */}
+            {columns.length > 0 && (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-8 gap-y-8 max-small_phone:grid-cols-1">
+                {columns.map((i) => {
+                  const subs = i.subcategories.filter((s) => !s.isExpired);
+                  return (
+                    <div key={i.id} className="category flex flex-col gap-2 min-w-0">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          go(`/product?${i.type === "normal" ? `pid=${i.id}` : `ppid=${i.id}`}`)
+                        }
+                        className="category_header group flex items-center gap-2 text-left pb-2 border-b border-gray-200"
+                      >
+                        <span className="text-sm font-bold text-gray-900 group-hover:text-incart wrap-break-word">
+                          {i.name}
+                        </span>
+                        {i.type === "sale" && (
+                          <span className="shrink-0 text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-sm bg-red-50 text-red-600">
+                            Sale
+                          </span>
+                        )}
+                        <FontAwesomeIcon
+                          icon={faArrowRight}
+                          className="ml-auto text-[10px] text-gray-300 group-hover:text-incart group-hover:translate-x-0.5 transition"
+                        />
+                      </button>
+                      {subs.length > 0 && (
+                        <ul className="category_subheader flex flex-col">
+                          {subs.map((sub) => (
+                            <li key={sub.id}>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  go(
+                                    `/product?pid=${i.id}${
+                                      sub.type === "normal"
+                                        ? `&cid=${sub.id}`
+                                        : `&promoid=${sub.pid}`
+                                    }`,
+                                  )
+                                }
+                                className="subcategory w-full text-left text-sm text-gray-600 py-1.5 hover:text-incart hover:underline underline-offset-4 transition-colors wrap-break-word"
+                              >
+                                {sub.name}
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 };
+
+function QuickLink({
+  icon,
+  label,
+  onClick,
+  primary,
+}: {
+  icon: IconDefinition;
+  label: string;
+  onClick: () => void;
+  primary?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`inline-flex items-center gap-2 h-10 px-4 rounded-full text-sm font-semibold border transition-colors ${
+        primary
+          ? "bg-incart text-white border-incart hover:opacity-90"
+          : "bg-white text-gray-700 border-gray-300 hover:border-incart hover:text-incart"
+      }`}
+    >
+      <FontAwesomeIcon icon={icon} className="text-xs" />
+      {label}
+    </button>
+  );
+}
 export function DashboordNavBar({ session }: { session?: Sessiontype }) {
   const route = usePathname();
 
@@ -521,11 +507,7 @@ export function DashboordNavBar({ session }: { session?: Sessiontype }) {
           {session?.role === "ADMIN" ? "Order Management" : "My Order"}
         </h1>
       </Link>
-      <Link
-        hidden={session?.role !== "ADMIN"}
-        href={"/dashboard/inventory"}
-        className="shrink-0"
-      >
+      <Link hidden={session?.role !== "ADMIN"} href={"/dashboard/inventory"} className="shrink-0">
         <h1
           className={`navlink ${
             route === "/dashboard/inventory" ? "activelink" : ""
@@ -572,8 +554,7 @@ enum actiontype {
 
 const DROPDOWN_CLASSNAMES = {
   base: "before:bg-white/10",
-  content:
-    "p-1.5 border border-gray-200 bg-white/95 backdrop-blur-xl shadow-xl rounded-xl",
+  content: "p-1.5 border border-gray-200 bg-white/95 backdrop-blur-xl shadow-xl rounded-xl",
 };
 
 const ITEM_CLASSES = {
@@ -625,18 +606,13 @@ const COLOR_MAP: Record<string, string> = {
 };
 
 export const SubInventoryMenu = memo((props: Subinventorymenuprops) => {
-  const { setopenmodal, setglobalindex, setproduct, setbanner, setpromotion } =
-    useGlobalContext();
+  const { setopenmodal, setglobalindex, setproduct, setbanner, setpromotion } = useGlobalContext();
 
   const handleClick = useCallback(
     (obj: { value: string; opencon: string }) => {
       const index = props.index as number;
 
-      if (
-        props.type === "product" ||
-        props.type === "banner" ||
-        props.type === "promotion"
-      ) {
+      if (props.type === "product" || props.type === "banner" || props.type === "promotion") {
         if (obj.value === actiontype.EDIT) {
           setglobalindex((previndex) => ({
             ...previndex,
@@ -724,9 +700,7 @@ export const SubInventoryMenu = memo((props: Subinventorymenuprops) => {
               <span className="hidden md:inline font-extrabold tracking-wide uppercase text-xs">
                 Action
               </span>
-              <span className="md:hidden font-extrabold tracking-wide uppercase text-xs">
-                New
-              </span>
+              <span className="md:hidden font-extrabold tracking-wide uppercase text-xs">New</span>
             </div>
           )}
         </Button>
@@ -777,9 +751,7 @@ export const NotificationMenu = forwardRef(
     },
     ref,
   ) => {
-    const [notifydata, setnotifydata] = useState<
-      NotificationType[] | undefined
-    >(undefined);
+    const [notifydata, setnotifydata] = useState<NotificationType[] | undefined>(undefined);
 
     const [loading, setloading] = useState(false);
     const [page, setPage] = useState(1);
@@ -834,22 +806,16 @@ export const NotificationMenu = forwardRef(
     const handleChecked = async (id: number) => {
       if (checkedIds.current.has(id)) return;
       checkedIds.current.add(id);
-      setnotifydata((prev) =>
-        prev?.map((n) => (n.id === id ? { ...n, checked: true } : n)),
-      );
+      setnotifydata((prev) => prev?.map((n) => (n.id === id ? { ...n, checked: true } : n)));
       const checkednotify = CheckedNotification.bind(null, id);
       await checkednotify();
       router.refresh();
     };
 
     const handleDelete = async (id: number) => {
-      const makereq = await ApiRequest(
-        "/api/users/notification",
-        undefined,
-        "DELETE",
-        "JSON",
-        { id },
-      );
+      const makereq = await ApiRequest("/api/users/notification", undefined, "DELETE", "JSON", {
+        id,
+      });
       if (makereq.success) {
         checkedIds.current.delete(id);
         setnotifydata((prev) => prev?.filter((i) => i.id !== id));
@@ -872,9 +838,7 @@ export const NotificationMenu = forwardRef(
         >
           <CloseVector width="24px" height="24px" />
         </div>
-        <h3
-          className="font-bold bg-white text-lg w-full sticky top-0 z-10 text-left p-3 border-b border-gray-200"
-        >
+        <h3 className="font-bold bg-white text-lg w-full sticky top-0 z-10 text-left p-3 border-b border-gray-200">
           Notifications
         </h3>
 
@@ -907,18 +871,13 @@ export const NotificationMenu = forwardRef(
                     className="absolute top-3 right-3 text-gray-400 hover:text-red-500 transition duration-200 cursor-pointer p-1"
                     aria-label="Delete notification"
                   >
-                    <FontAwesomeIcon
-                      icon={faTrash}
-                      className={loading ? "animate-spin" : ""}
-                    />
+                    <FontAwesomeIcon icon={faTrash} className={loading ? "animate-spin" : ""} />
                   </button>
                 </div>
               ))}
 
           {loading && (
-            <Box
-              sx={{ display: "flex", justifyContent: "center", height: "50px" }}
-            >
+            <Box sx={{ display: "flex", justifyContent: "center", height: "50px" }}>
               <CircularProgress />
             </Box>
           )}

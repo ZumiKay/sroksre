@@ -1,20 +1,23 @@
 "use client";
-import {
-  BannerInitialize,
-  useGlobalContext,
-} from "@/src/context/GlobalContext";
-import { ChangeEvent, useCallback, useState, useMemo, memo } from "react";
+import { BannerInitialize, useGlobalContext } from "@/src/context/GlobalContext";
+import { useCallback, useState, memo } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-  faFlag,
-  faLayerGroup,
-  faExpand,
+  faBan,
   faBox,
-  faLink,
-  faFolderTree,
+  faCheck,
+  faCircleCheck,
+  faCircleInfo,
+  faCloudArrowUp,
+  faCompress,
+  faExpand,
+  faFlag,
   faFolder,
   faFolderOpen,
+  faFolderTree,
   faImage,
+  faLink,
+  faPen,
 } from "@fortawesome/free-solid-svg-icons";
 import {
   getChildCategoryForBanner,
@@ -25,13 +28,13 @@ import {
 import { ApiRequest, useEffectOnce } from "@/src/context/CustomHook";
 import { errorToast, successToast } from "../Loading";
 import { SecondaryModal } from "../Modals";
-import PrimaryButton, { Selection } from "../Button";
 import { SelectAndSearchProduct } from "../Banner";
 import { ImageUpload } from "./Image";
 import { DeleteTempImage } from "../../dashboard/inventory/varaint_action";
 import { Input } from "@heroui/react";
 import { ImageWithLoader } from "../ImageWithLoader";
-import { SelectType } from "@/src/types/productAction.type";
+import { ACCENTS, Field, ModalTitle, Option, OptionGroup, SectionCard } from "./FormSection";
+import { BannerState, SelectType } from "@/src/types/productAction.type";
 
 export const BannerType = [
   { label: "Normal", value: "normal" },
@@ -61,24 +64,6 @@ export const BannerModal = memo(function BannerModal({
 
   const [loading, setloading] = useState(false);
 
-  const Linktype = useMemo(
-    () => [
-      {
-        label: "Parent Category",
-        value: "parent",
-      },
-      {
-        label: "Sub Category",
-        value: "sub",
-      },
-      {
-        label: "Product",
-        value: "product",
-      },
-    ],
-    [],
-  );
-
   const handleCancel = useCallback(async () => {
     //delete temp image
 
@@ -94,35 +79,31 @@ export const BannerModal = memo(function BannerModal({
     setglobalindex({ ...globalindex, bannereditindex: -1 });
   }, [openmodal, globalindex, setopenmodal, setglobalindex]);
 
-  const getSelectItems = useCallback(
-    async (limit: number, value: string, type: string) => {
-      const getreq = (
-        type === "prod" ? getProductForBanner : getPromotionForBanner
-      ).bind(null, limit, value);
-      const request = await getreq();
+  const getSelectItems = useCallback(async (limit: number, value: string, type: string) => {
+    const getreq = (type === "prod" ? getProductForBanner : getPromotionForBanner).bind(
+      null,
+      limit,
+      value,
+    );
+    const request = await getreq();
 
-      if (request.success) {
-        return request;
-      }
-      return null;
-    },
-    [],
-  );
+    if (request.success) {
+      return request;
+    }
+    return null;
+  }, []);
 
-  const getCategory = useCallback(
-    async (type: "parent" | "child", value: string, pid: number) => {
-      const getreq =
-        type === "parent"
-          ? getParentCategoryForBanner.bind(null, value)
-          : getChildCategoryForBanner.bind(null, value, pid);
-      const request = await getreq();
-      if (request.success) {
-        return request;
-      }
-      return null;
-    },
-    [],
-  );
+  const getCategory = useCallback(async (type: "parent" | "child", value: string, pid: number) => {
+    const getreq =
+      type === "parent"
+        ? getParentCategoryForBanner.bind(null, value)
+        : getChildCategoryForBanner.bind(null, value, pid);
+    const request = await getreq();
+    if (request.success) {
+      return request;
+    }
+    return null;
+  }, []);
 
   useEffectOnce(() => {
     const fetchdata = async () => {
@@ -186,9 +167,7 @@ export const BannerModal = memo(function BannerModal({
           errorToast("Failed To Update");
           return;
         }
-        const idx = allbanner.findIndex(
-          (i) => i.id === globalindex.bannereditindex,
-        );
+        const idx = allbanner.findIndex((i) => i.id === globalindex.bannereditindex);
         allbanner[idx] = banner;
         setalldata({ banner: allbanner });
         setglobalindex((prev) => ({ ...prev, bannereditindex: -1 }));
@@ -211,24 +190,19 @@ export const BannerModal = memo(function BannerModal({
     setreloaddata,
   ]);
 
-  const handleChange = useCallback(
-    (event: ChangeEvent<HTMLSelectElement | HTMLInputElement>) => {
-      const { name, value } = event.target;
-
-      if (name === "type" || name === "linktype") {
-        setbanner((prev) => ({
-          ...prev,
-          linktype:
-            value === "product"
-              ? value
-              : value === "category"
-                ? "parent"
-                : undefined,
-          [name]: value,
-        }));
-      } else {
-        setbanner((prev) => ({ ...prev, [name]: value }));
-      }
+  // Changing the type resets the link target to that type's default.
+  const setField = useCallback(
+    (name: "name" | "type" | "size" | "linktype", value: string) => {
+      setbanner((prev) => {
+        if (name === "type") {
+          return {
+            ...prev,
+            type: value as BannerState["type"],
+            linktype: value === "product" ? "product" : value === "category" ? "parent" : undefined,
+          };
+        }
+        return { ...prev, [name]: value };
+      });
     },
     [setbanner],
   );
@@ -250,246 +224,205 @@ export const BannerModal = memo(function BannerModal({
     [setbanner],
   );
 
+  const openImageUpload = () => setopenmodal((prev) => ({ ...prev, imageupload: true }));
+
+  const isEdit = globalindex.bannereditindex !== -1;
+  const hasImage = banner.image?.url?.length > 0;
+
   return (
     <SecondaryModal
       open={openmodal.createBanner}
       size="full"
       placement="center"
-      footer={() => {
-        return (
-          <div className="actions_con w-full h-fit flex flex-row gap-4 p-4 bg-white border-t-2 border-gray-200">
-            <PrimaryButton
-              onClick={() => handleCreate()}
-              text={
-                globalindex.bannereditindex !== -1
-                  ? "Update Banner"
-                  : "Create Banner"
-              }
-              width="100%"
-              type="button"
-              status={loading ? "loading" : "authenticated"}
-              radius="12px"
-            />
-            <PrimaryButton
-              text="Cancel"
-              onClick={() => handleCancel()}
-              disable={loading}
-              color="lightcoral"
-              type="button"
-              width="100%"
-              radius="12px"
-            />
-          </div>
-        );
-      }}
-    >
-      <div className="bannermodal_content bg-gray-50 p-6 relative max-small_phone:rounded-none rounded-2xl w-full h-full max-small_phone:min-h-screen overflow-x-hidden flex flex-col gap-y-6 items-center will-change-auto">
-        {banner.image.url && (
-          <div
-            style={banner.size === "normal" ? { width: "100%" } : {}}
-            className="image_container flex flex-col w-fit items-center justify-center h-fit"
-          >
-            <div className="mb-3 text-center">
-              <h3 className="text-lg font-bold text-blue-600">
-                Banner Preview
-              </h3>
-              <p className="text-sm text-gray-500 mt-1">
-                This is how your banner will appear
-              </p>
-            </div>
-            <div
-              style={banner.size === "normal" ? { width: "100%" } : {}}
-              className="flex flex-col w-full max-w-[80%] max-large_phone:max-w-full max-h-[80vh] min-h-62.5 rounded-2xl overflow-hidden border-2 border-gray-200 shadow-lg bg-white"
-            >
-              <ImageWithLoader
-                src={banner.image.url}
-                alt={"Banner"}
-                width={600}
-                height={300}
-                className="w-full min-h-62.5 object-cover"
-                containerClassName="w-full h-full"
-                loading="lazy"
-                quality={75}
-                placeholder="blur"
-                blurDataURL="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNjAwIiBoZWlnaHQ9IjMwMCIgZmlsbD0iI2VlZSIvPjwvc3ZnPg=="
-              />
-            </div>
-          </div>
-        )}
-
-        <div className="bannerform flex flex-col gap-y-6 justify-start items-center w-full h-full">
-          <div className="w-full h-fit flex flex-col gap-y-6 bg-white rounded-2xl p-6 shadow-lg border-2 border-gray-200">
-            <div className="space-y-2">
-              <h4 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                <FontAwesomeIcon icon={faFlag} className="text-blue-500" />
-                Banner Details
-              </h4>
-              <p className="text-sm text-gray-500">
-                Configure your banner settings
-              </p>
-            </div>
-
-            <Input
-              size="lg"
-              name="name"
-              label="Banner Name"
-              labelPlacement="outside"
-              placeholder="Enter banner name"
-              type="text"
-              value={banner.name}
-              className="w-full font-bold"
-              onChange={handleChange}
-              classNames={{
-                label: "text-gray-700 font-semibold",
-                input: "bg-gray-50",
-              }}
-            />
-
-            <div className="grid grid-cols-2 gap-4 max-small_phone:grid-cols-1">
-              <div className="h-fit flex flex-col gap-y-3">
-                <label className="font-semibold text-base text-gray-700 flex items-center gap-2">
-                  <FontAwesomeIcon
-                    icon={faLayerGroup}
-                    className="text-purple-500"
-                  />
-                  Banner Type
-                </label>
-                <Selection
-                  data={BannerType}
-                  value={banner.type}
-                  name="type"
-                  onChange={handleChange}
-                />
-              </div>
-              <div className="h-fit flex flex-col gap-y-3">
-                <label className="font-semibold text-base text-gray-700 flex items-center gap-2">
-                  <FontAwesomeIcon icon={faExpand} className="text-green-500" />
-                  Banner Size
-                </label>
-                <Selection
-                  data={BannerSize}
-                  value={banner.size}
-                  name="size"
-                  onChange={handleChange}
-                />
-              </div>
-            </div>
-          </div>
-          <div className="w-full h-fit flex flex-row items-start gap-5 flex-wrap">
-            {banner.linktype === "product" && (
-              <div className="w-full h-fit flex flex-col gap-y-4 bg-blue-50 rounded-2xl p-6 shadow-md border-2 border-blue-200">
-                <label className="w-full h-fit text-lg font-bold text-gray-800 flex items-center gap-2">
-                  <FontAwesomeIcon icon={faBox} className="text-blue-500" />
-                  Select Products
-                </label>
-                <SelectAndSearchProduct
-                  getdata={(take, value) => getSelectItems(take, value, "prod")}
-                  onSelect={(value) =>
-                    handleSelectProduct("selectedproduct", value)
-                  }
-                  value={banner.selectedproduct}
-                />
-              </div>
-            )}
-            {banner.type !== "normal" && (
-              <div className="w-full h-fit flex flex-col gap-y-4 bg-orange-50 rounded-2xl p-6 shadow-md border-2 border-orange-200">
-                <label className="font-bold text-lg text-gray-800 flex items-center gap-2">
-                  <FontAwesomeIcon icon={faLink} className="text-orange-500" />
-                  Link Type
-                </label>
-                <Selection
-                  data={Linktype.filter((i) => {
-                    if (banner.type === "product") {
-                      return i.value === "product";
-                    } else {
-                      return i.value !== "product";
-                    }
-                  })}
-                  name="linktype"
-                  value={banner.linktype}
-                  onChange={handleChange}
-                />
-              </div>
-            )}
-          </div>
-
-          {banner.linktype === "parent" && (
-            <div className="w-full h-fit flex flex-col gap-y-4 bg-green-50 rounded-2xl p-6 shadow-md border-2 border-green-200">
-              <label className="w-full h-fit text-lg font-bold text-gray-800 flex items-center gap-2">
-                <FontAwesomeIcon
-                  icon={faFolderTree}
-                  className="text-green-500"
-                />
-                Parent Category
-              </label>
-              <SelectAndSearchProduct
-                getdata={(_, value) => getCategory("parent", value, 0)}
-                onSelect={(value) => handleSelectProduct("parentcate", value)}
-                value={banner.parentcate ? [banner.parentcate] : undefined}
-                placeholder="Select Parent Category"
-                singleselect
-              />
-            </div>
-          )}
-          {banner.linktype === "sub" && (
-            <div className="w-full h-fit flex flex-col gap-5 bg-indigo-50 rounded-2xl p-6 shadow-md border-2 border-indigo-200">
-              <div className="w-full h-fit flex flex-col gap-y-4">
-                <label className="w-full h-fit text-lg font-bold text-gray-800 flex items-center gap-2">
-                  <FontAwesomeIcon
-                    icon={faFolder}
-                    className="text-indigo-500"
-                  />
-                  Parent Category
-                </label>
-                <SelectAndSearchProduct
-                  getdata={(take, value) => getCategory("parent", value, 0)}
-                  onSelect={(value) => handleSelectProduct("parentcate", value)}
-                  value={banner.parentcate ? [banner.parentcate] : undefined}
-                  placeholder="Select Parent Category"
-                  singleselect
-                />
-              </div>
-              {banner.parentcate && (
-                <div className="w-full h-fit flex flex-col gap-y-4 animate-fade-in">
-                  <label className="w-full h-fit text-lg font-bold text-gray-800 flex items-center gap-2">
-                    <FontAwesomeIcon
-                      icon={faFolderOpen}
-                      className="text-purple-500"
-                    />
-                    Child Category
-                  </label>
-                  <SelectAndSearchProduct
-                    getdata={(_, value) =>
-                      getCategory(
-                        "child",
-                        value,
-                        parseInt(banner.parentcate?.value.toString() ?? "0"),
-                      )
-                    }
-                    onSelect={(value) =>
-                      handleSelectProduct("childcate", value)
-                    }
-                    value={banner.childcate ? [banner.childcate] : undefined}
-                    placeholder="Select Sub Category"
-                    singleselect
-                  />
-                </div>
-              )}
-            </div>
-          )}
+      footer={() => (
+        <div className="w-full flex flex-row items-center justify-end gap-3">
           <button
             type="button"
-            onClick={() => setopenmodal({ ...openmodal, imageupload: true })}
-            className="w-full h-16 rounded-2xl font-bold text-lg shadow-lg bg-blue-600 text-white hover:bg-blue-700 flex items-center justify-center gap-3 transition-colors duration-200"
+            onClick={() => handleCancel()}
+            disabled={loading}
+            className="h-10 px-5 rounded-lg text-sm font-semibold bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed max-small_phone:flex-1"
           >
-            <FontAwesomeIcon icon={faImage} className="text-2xl" />
-            <span>
-              {banner.image?.url.length > 0
-                ? "Change Banner Image"
-                : "Upload Banner Image"}
-            </span>
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={() => handleCreate()}
+            disabled={loading}
+            className="inline-flex items-center justify-center gap-2 h-10 px-5 rounded-lg text-sm font-semibold bg-slate-500 text-white shadow-sm hover:bg-blue-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed max-small_phone:flex-1"
+          >
+            {loading ? (
+              <span
+                aria-hidden="true"
+                className="w-4 h-4 rounded-full border-2 border-white/40 border-t-white animate-spin"
+              />
+            ) : (
+              <FontAwesomeIcon icon={faCheck} className="text-xs" />
+            )}
+            {isEdit ? "Save Changes" : "Create Banner"}
           </button>
         </div>
+      )}
+    >
+      <div className="bannermodal_content w-full max-w-2xl mx-auto flex flex-col gap-y-5 py-4">
+        <ModalTitle
+          icon={faFlag}
+          accent="blue"
+          title={isEdit ? "Edit Banner" : "New Banner"}
+          subtitle="Banners show on the home page. Pick a size, add an image, and optionally link it to products or a category."
+        />
+
+        <SectionCard icon={faPen} accent="blue" title="Basics">
+          <Input
+            size="lg"
+            name="name"
+            label="Name"
+            labelPlacement="outside"
+            placeholder="e.g. Summer Sale"
+            description="Only visible to admins."
+            type="text"
+            variant="bordered"
+            value={banner.name}
+            onChange={(e) => setField("name", e.target.value)}
+            classNames={{
+              label: "text-sm font-medium text-gray-700",
+              inputWrapper: "group-data-[focus=true]:border-blue-500 border-gray-300",
+            }}
+          />
+
+          <OptionGroup
+            label="Size"
+            options={SIZE_OPTIONS}
+            value={banner.size}
+            onChange={(value) => setField("size", value)}
+          />
+        </SectionCard>
+
+        <SectionCard
+          icon={faImage}
+          accent="purple"
+          title="Image"
+          hint="Cropped to fit the size above. If you change the size, upload the image again."
+        >
+          {hasImage ? (
+            <div className="rounded-xl border border-gray-200 overflow-hidden">
+              <div
+                className={`w-full bg-gray-100 ${
+                  banner.size === "small" ? "aspect-4/3 max-w-sm mx-auto" : "aspect-video"
+                }`}
+              >
+                <ImageWithLoader
+                  src={banner.image.url}
+                  alt={banner.name || "Banner preview"}
+                  width={800}
+                  height={450}
+                  className="w-full h-full object-contain"
+                  containerClassName="w-full h-full"
+                  quality={75}
+                />
+              </div>
+              <div className="flex items-center justify-between gap-3 px-4 py-3 border-t border-gray-200 bg-white">
+                <p className="text-sm text-gray-600 truncate flex items-center gap-2">
+                  <FontAwesomeIcon icon={faCircleCheck} className="text-green-500" />
+                  {banner.image.name || "Banner image"}
+                </p>
+                <button
+                  type="button"
+                  onClick={openImageUpload}
+                  className="shrink-0 h-9 px-4 rounded-lg text-sm font-semibold bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 transition-colors"
+                >
+                  Replace
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={openImageUpload}
+              className={`w-full flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-purple-300 bg-purple-50 text-purple-600 hover:border-purple-500 hover:bg-purple-100 transition-colors ${
+                banner.size === "small" ? "aspect-4/3 max-w-sm mx-auto" : "aspect-video"
+              }`}
+            >
+              <span className="w-12 h-12 rounded-full bg-white text-purple-600 flex items-center justify-center shadow-sm">
+                <FontAwesomeIcon icon={faCloudArrowUp} className="text-xl" />
+              </span>
+              <span className="text-sm font-semibold">Upload image</span>
+              <span className="text-xs text-purple-500">
+                {banner.size === "small" ? "Best at 1:1 or 4:3" : "Best at 16:9 or 4:3"}
+              </span>
+            </button>
+          )}
+        </SectionCard>
+
+        <SectionCard
+          icon={faLink}
+          accent="orange"
+          title="Link"
+          hint="What happens when a customer clicks the banner."
+        >
+          <OptionGroup
+            label="When clicked"
+            options={TYPE_OPTIONS}
+            value={banner.type}
+            onChange={(value) => setField("type", value)}
+          />
+
+          {banner.type === "product" && (
+            <Field label="Products" hint="Customers see these products when they open the banner.">
+              <SelectAndSearchProduct
+                getdata={(take, value) => getSelectItems(take, value, "prod")}
+                onSelect={(value) => handleSelectProduct("selectedproduct", value)}
+                value={banner.selectedproduct}
+              />
+            </Field>
+          )}
+
+          {banner.type === "category" && (
+            <>
+              <OptionGroup
+                label="Category level"
+                options={CATEGORY_LINK_OPTIONS}
+                value={banner.linktype}
+                onChange={(value) => setField("linktype", value)}
+              />
+              <Field label="Parent category">
+                <SelectAndSearchProduct
+                  getdata={(_, value) => getCategory("parent", value, 0)}
+                  onSelect={(value) => handleSelectProduct("parentcate", value)}
+                  value={banner.parentcate ? [banner.parentcate] : undefined}
+                  placeholder="Search parent categories"
+                  singleselect
+                />
+              </Field>
+              {banner.linktype === "sub" &&
+                (banner.parentcate ? (
+                  <Field label="Sub category">
+                    <SelectAndSearchProduct
+                      // Remount when the parent changes so old results clear
+                      key={banner.parentcate.value}
+                      getdata={(_, value) =>
+                        getCategory(
+                          "child",
+                          value,
+                          parseInt(banner.parentcate?.value.toString() ?? "0"),
+                        )
+                      }
+                      onSelect={(value) => handleSelectProduct("childcate", value)}
+                      value={banner.childcate ? [banner.childcate] : undefined}
+                      placeholder="Search sub categories"
+                      singleselect
+                    />
+                  </Field>
+                ) : (
+                  <p
+                    className={`text-sm rounded-lg border px-4 py-3 flex items-center gap-2 ${ACCENTS.amber.soft}`}
+                  >
+                    <FontAwesomeIcon icon={faCircleInfo} />
+                    Choose a parent category to see its sub categories.
+                  </p>
+                ))}
+            </>
+          )}
+        </SectionCard>
       </div>
 
       {openmodal.imageupload && (
@@ -504,3 +437,59 @@ export const BannerModal = memo(function BannerModal({
     </SecondaryModal>
   );
 });
+
+const SIZE_OPTIONS: Option[] = [
+  {
+    value: "normal",
+    label: "Normal",
+    description: "Full width, 16:9",
+    icon: faExpand,
+    accent: "slate",
+  },
+  {
+    value: "small",
+    label: "Small",
+    description: "Compact, 1:1 or 4:3",
+    icon: faCompress,
+    accent: "teal",
+  },
+];
+
+const TYPE_OPTIONS: Option[] = [
+  {
+    value: "normal",
+    label: "Nothing",
+    description: "Image only",
+    icon: faBan,
+    accent: "slate",
+  },
+  {
+    value: "product",
+    label: "Products",
+    description: "Show picked products",
+    icon: faBox,
+    accent: "green",
+  },
+  {
+    value: "category",
+    label: "Category",
+    description: "Open a category",
+    icon: faFolderTree,
+    accent: "orange",
+  },
+];
+
+const CATEGORY_LINK_OPTIONS: Option[] = [
+  {
+    value: "parent",
+    label: "Parent category",
+    icon: faFolder,
+    accent: "amber",
+  },
+  {
+    value: "sub",
+    label: "Sub category",
+    icon: faFolderOpen,
+    accent: "indigo",
+  },
+];
