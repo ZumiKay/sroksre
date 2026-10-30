@@ -13,6 +13,7 @@ import {
 import { ProductState } from "@/src/types/product.type";
 import { calculatePopularityScore } from "../categories/route";
 import { Homecontainer } from "@/prisma/generated/prisma/client";
+import { syncExpiredPromotions } from "@/src/lib/promotion";
 
 interface Paramtype {
   ty?: "short" | "detail";
@@ -92,6 +93,7 @@ async function fetchContainerById(id: string) {
 }
 
 export async function fetchContainers(ty: string) {
+  await syncExpiredPromotions();
   if (ty === "detail") {
     return Prisma.homecontainer.findMany({
       orderBy: { idx: "asc" },

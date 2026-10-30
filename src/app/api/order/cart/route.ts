@@ -24,6 +24,7 @@ import {
   VariantValueObjType,
 } from "@/src/types/product.type";
 import { getVariantDetail } from "@/src/app/checkout/helper";
+import { syncExpiredPromotions } from "@/src/lib/promotion";
 
 export const getVariantPriceBreakDownByActiveCart = (
   orderProduct: Productordertype[],
@@ -143,6 +144,7 @@ export async function PUT(req: NextRequest) {
   }
 }
 export async function GET(req: NextRequest) {
+  await syncExpiredPromotions();
   try {
     const url = req.nextUrl.toString();
     const { count } = extractQueryParams(url);

@@ -6,7 +6,7 @@ import { Orderpricetype } from "@/src/types/order.type";
 import { useGlobalContext } from "@/src/context/GlobalContext";
 import { SubInventoryMenu } from "@/src/app/component/Navbar";
 import Checkmark from "../../../../../public/Image/Checkmark.svg";
-import { ProductState, StockTypeEnum } from "@/src/types/product.type";
+import { ProductState } from "@/src/types/product.type";
 import { errorToast } from "@/src/app/component/Loading";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -15,8 +15,7 @@ import {
   faCheck,
   faTriangleExclamation,
 } from "@fortawesome/free-solid-svg-icons";
-import { Variantcontainer } from "@/src/app/component/Modals/VariantModal";
-import { UpdateStockModal } from "@/src/app/component/Modals/Stock";
+import { StockEditTarget } from "@/src/app/component/Modals/productStockTarget";
 
 interface SelectionProps {
   isSelectMode?: boolean;
@@ -28,6 +27,8 @@ interface ProductListItemProps extends SelectionProps {
   product: ProductState;
   index: number;
   reloaddata?: () => void;
+  /** Opens the page-level stock modal for this product */
+  onOpenStock?: (target: StockEditTarget) => void;
 }
 
 interface BannerListItemProps extends SelectionProps {
@@ -72,6 +73,7 @@ export const ProductListItem: React.FC<ProductListItemProps> = ({
   product,
   index,
   reloaddata,
+  onOpenStock,
   isSelectMode,
   isSelected = false,
   onToggleSelect,
@@ -82,7 +84,6 @@ export const ProductListItem: React.FC<ProductListItemProps> = ({
     setglobalindex,
     setopenmodal,
     setproduct,
-    openmodal,
     allData,
     setalldata,
   } = useGlobalContext();
@@ -90,11 +91,9 @@ export const ProductListItem: React.FC<ProductListItemProps> = ({
   const [hover, setHover] = useState(false);
   const [isImageLoading, setIsImageLoading] = useState(true);
 
-  // Same closename pattern as Card component: opens inline Variantcontainer
-  const closename = useMemo(
-    () => (product.stocktype && product.id ? product.stocktype + product.id : ""),
-    [product.stocktype, product.id],
-  );
+  const handleOpenStock = useCallback(() => {
+    if (product.id) onOpenStock?.({ id: product.id, stocktype: product.stocktype });
+  }, [onOpenStock, product.id, product.stocktype]);
 
   const hasVariantStock = !!product.Stock?.length;
 
@@ -102,8 +101,7 @@ export const ProductListItem: React.FC<ProductListItemProps> = ({
     (e: React.MouseEvent) => {
       e.stopPropagation();
       if (hasVariantStock) {
-        // Open inline stock variant editor (same as Card)
-        setopenmodal((prev) => ({ ...prev, [closename]: true }));
+        handleOpenStock();
       } else {
         // No variant stock — open variant editor so user can manage variants/stock
         setproduct((prev) => ({ ...prev, ...product, id: product.id }));
@@ -114,7 +112,7 @@ export const ProductListItem: React.FC<ProductListItemProps> = ({
         setopenmodal((prev) => ({ ...prev, addproductvariant: true }));
       }
     },
-    [hasVariantStock, closename, product, setopenmodal, setproduct, setglobalindex],
+    [hasVariantStock, handleOpenStock, product, setopenmodal, setproduct, setglobalindex],
   );
 
   const isProduct = useMemo(
@@ -288,20 +286,12 @@ export const ProductListItem: React.FC<ProductListItemProps> = ({
             index={product.id}
             stock={product.stock}
             stocktype={product.stocktype}
-            stockaction={() => {
-              setopenmodal((prev) => ({ ...prev, [closename]: true }));
-            }}
+            stockaction={handleOpenStock}
             reloaddata={reloaddata}
           />
         </div>
       )}
 
-      {/* Inline stock/variant modals — mirrors Card component behaviour */}
-      {openmodal?.[closename] && product.stocktype === StockTypeEnum.variants ? (
-        <Variantcontainer type="stock" editindex={product.id} closename={closename} />
-      ) : openmodal?.[closename] && product.stocktype === StockTypeEnum.normal && product.id ? (
-        <UpdateStockModal closename={closename} productId={product.id} />
-      ) : null}
     </motion.div>
   );
 };

@@ -2,6 +2,7 @@ import Prisma from "@/src/lib/prisma";
 import { calculateDiscountProductPrice } from "@/src/lib/utilities";
 import { format } from "date-fns";
 import { categorytype } from "../api/categories/route";
+import { syncExpiredPromotions } from "@/src/lib/promotion";
 
 export interface PromotionProduct {
   id: number;
@@ -36,6 +37,7 @@ export const fetchPromotion = async (
   page: number,
   show: number,
 ): Promise<Promotion | null> => {
+  await syncExpiredPromotions();
   const skip = (page - 1) * show;
 
   const promotion = await Prisma.promotion.findUnique({

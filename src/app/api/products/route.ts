@@ -9,6 +9,7 @@ import {
 import { extractQueryParams } from "../banner/route";
 import Prisma from "@/src/lib/prisma";
 import { Stocktype, VariantValueObjType } from "@/src/types/product.type";
+import { syncExpiredPromotions } from "@/src/lib/promotion";
 
 interface paramsType {
   ty: string;
@@ -45,6 +46,7 @@ const convertStockData = (stock: Array<Stocktype>) => {
   return Stock;
 };
 export async function GET(request: NextRequest) {
+  await syncExpiredPromotions();
   try {
     const url = request.nextUrl.toString();
     const {

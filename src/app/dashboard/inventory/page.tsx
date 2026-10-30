@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { redirect, useRouter, useSearchParams } from "next/navigation";
+import dynamic from "next/dynamic";
 import { motion } from "framer-motion";
 import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
@@ -17,6 +18,10 @@ import { PromotionProductsPanel } from "./components/PromotionProductsPanel";
 import PaginationCustom from "../../component/Pagination_Component";
 import { InventoryHeader } from "./components/InventoryHeader";
 import { ProductListItem, BannerListItem, PromotionListItem } from "./components/ListViewItems";
+import {
+  PRODUCT_STOCK_MODAL,
+  StockEditTarget,
+} from "../../component/Modals/productStockTarget";
 import { EmptyState, LoadingState } from "./components/EmptyAndLoadingStates";
 
 // Contexts & Hooks
@@ -41,6 +46,14 @@ import {
 import useCheckSession from "@/src/hooks/useCheckSession";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faSearch, faXmark } from "@fortawesome/free-solid-svg-icons";
+
+// Loaded only when an admin opens a product's stock editor. The `loading`
+// option gives it its own Suspense boundary; without one, the first open
+// suspends up to dashboard/loading.tsx and remounts the whole page.
+const ProductStockModal = dynamic(
+  () => import("../../component/Modals/ProductStockModal"),
+  { loading: () => null },
+);
 
 // Constants
 const DEFAULT_PARAMS = (type: string) => `?ty=${type}&p=1&limit=1`;
@@ -103,6 +116,17 @@ export default function Inventory() {
   const [itemscount, setitemcount] = useState(0);
   const [lowstock, setlowstock] = useState(0);
   const [reloaddata, setreloaddata] = useState(true);
+  const [stockTarget, setStockTarget] = useState<StockEditTarget | null>(null);
+
+  // Stable references so memoized cards don't re-render on every page render
+  const reloadData = useCallback(() => setreloaddata(true), [setreloaddata]);
+  const openStockModal = useCallback(
+    (target: StockEditTarget) => {
+      setStockTarget(target);
+      setopenmodal((prev) => ({ ...prev, [PRODUCT_STOCK_MODAL]: true }));
+    },
+    [setopenmodal],
+  );
   const [ty, settype] = useState(type);
   const [promoexpire, setpromoexpire] = useState(0);
   const [viewMode, setViewMode] = useState<"card" | "list">("card");
@@ -573,7 +597,8 @@ export default function Inventory() {
             stocktype={obj.stocktype}
             isAdmin={true}
             lowstock={obj.Stock?.length ? obj.lowstock : undefined}
-            reloaddata={() => setreloaddata(true)}
+            reloaddata={reloadData}
+            onOpenStock={openStockModal}
           />
         </div>
       ));
@@ -620,7 +645,7 @@ export default function Inventory() {
             index={idx}
             id={obj.id ?? 0}
             type="banner"
-            reloaddata={() => setreloaddata(true)}
+            reloaddata={reloadData}
           />
         </div>
       ));
@@ -677,7 +702,7 @@ export default function Inventory() {
             type="promotion"
             promodata={obj}
             isExpired={obj.isExpired}
-            reloaddata={() => setreloaddata(true)}
+            reloaddata={reloadData}
           />
         </div>
       ));
@@ -696,7 +721,8 @@ export default function Inventory() {
           isSelectMode={isSelectMode}
           isSelected={selectedIds.has(obj.id ?? 0)}
           onToggleSelect={() => toggleSelectId(obj.id ?? 0)}
-          reloaddata={() => setreloaddata(true)}
+          reloaddata={reloadData}
+          onOpenStock={openStockModal}
         />
       ));
     }
@@ -710,7 +736,7 @@ export default function Inventory() {
           isSelectMode={isSelectMode}
           isSelected={selectedIds.has(obj.id ?? 0)}
           onToggleSelect={() => toggleSelectId(obj.id ?? 0)}
-          reloaddata={() => setreloaddata(true)}
+          reloaddata={reloadData}
         />
       ));
     }
@@ -724,7 +750,7 @@ export default function Inventory() {
           isSelectMode={isSelectMode}
           isSelected={selectedIds.has(obj.id ?? 0)}
           onToggleSelect={() => toggleSelectId(obj.id ?? 0)}
-          reloaddata={() => setreloaddata(true)}
+          reloaddata={reloadData}
         />
       ));
     }
@@ -739,6 +765,9 @@ export default function Inventory() {
       <LocalizationProvider dateAdapter={AdapterDayjs}>
         {/* Action modals */}
         {openmodal.createProduct && <CreateProducts setreloaddata={setreloaddata} />}
+        {openmodal[PRODUCT_STOCK_MODAL] && stockTarget && (
+          <ProductStockModal key={stockTarget.id} target={stockTarget} />
+        )}
         {openmodal.createCategory && <Category />}
         {openmodal.createBanner && <BannerModal setreloaddata={setreloaddata} />}
         {openmodal.createPromotion && (
@@ -769,7 +798,7 @@ export default function Inventory() {
             type={ty}
             expired={expired}
             param={filtervalue}
-            reloadData={() => setreloaddata(true)}
+            reloadData={reloadData}
             setfilterdata={setfiltervalue as any}
             isSetPromotion={promotion.selectproduct}
             selectedFirst={selectedFirst}

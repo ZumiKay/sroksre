@@ -3,8 +3,10 @@ import { NextRequest } from "next/server";
 import { extractQueryParams } from "../../banner/route";
 import { getUser } from "@/src/lib/session";
 import { calculateDiscountProductPrice } from "@/src/lib/utilities";
+import { syncExpiredPromotions } from "@/src/lib/promotion";
 
 export async function GET(request: NextRequest) {
+  await syncExpiredPromotions();
   try {
     const URL = request.url.toString();
 

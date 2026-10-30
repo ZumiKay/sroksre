@@ -23,14 +23,12 @@ import {
   totalpricetype,
   VariantOptionsType,
 } from "@/src/types/order.type";
-import { Variantcontainer } from "./Modals/VariantModal";
-import { UpdateStockModal } from "./Modals/Stock";
+import { StockEditTarget } from "./Modals/productStockTarget";
 import { Chip, Skeleton } from "@heroui/react";
 import { ApiRequest, useScreenSize } from "@/src/context/CustomHook";
 import { SelectionCustom } from "./Pagination_Component";
 import {
   productcoverstype,
-  StockTypeEnum,
   VariantValueObjType,
 } from "@/src/types/product.type";
 import { PromotionState } from "@/src/types/productAction.type";
@@ -55,6 +53,8 @@ interface cardprops {
   isMobile?: boolean;
   isTablet?: boolean;
   reloaddata?: () => void;
+  /** Opens the page-level stock modal for this product (admin only) */
+  onOpenStock?: (target: StockEditTarget) => void;
 }
 const editactionMenu = [
   {
@@ -73,7 +73,6 @@ const Card = memo(function Card(props: cardprops) {
     promotion,
     setpromotion,
     setglobalindex,
-    openmodal,
     setopenmodal,
     allData,
     setalldata,
@@ -228,17 +227,10 @@ const Card = memo(function Card(props: cardprops) {
     [props.price, hasDiscount],
   );
 
-  const closename = useMemo(
-    () => (props.stocktype && props.id ? props.stocktype + props.id : ""),
-    [props.stocktype, props.id],
-  );
-
-  const handleLowStockClick = useCallback(() => {
-    setopenmodal((prev) => ({
-      ...prev,
-      [closename]: true,
-    }));
-  }, [closename, setopenmodal]);
+  const { onOpenStock, id: productId, stocktype } = props;
+  const handleOpenStock = useCallback(() => {
+    if (productId) onOpenStock?.({ id: productId, stocktype });
+  }, [onOpenStock, productId, stocktype]);
 
   const showLowStock = useMemo(
     () =>
@@ -246,32 +238,26 @@ const Card = memo(function Card(props: cardprops) {
         <PrimaryButton
           type="button"
           text="Low Stock"
-          onClick={handleLowStockClick}
+          onClick={handleOpenStock}
           width="100%"
           color="lightcoral"
         />
       ) : null,
-    [
-      promotion.selectproduct,
-      props.lowstock,
-      props.isAdmin,
-      handleLowStockClick,
-    ],
+    [promotion.selectproduct, props.lowstock, props.isAdmin, handleOpenStock],
   );
   //
   ///end
 
   return (
-    <>
-      <div
-        key={props.index}
-        ref={ref}
-        style={{ width: props.width, height: props.height }}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
-        onTouchStart={handleMouseEnter}
-        onTouchCancel={handleMouseLeave}
-        className={`card__container ${props.width ? "" : "w-full max-w-sm"} h-fit flex flex-col mx-auto
+    <div
+      key={props.index}
+      ref={ref}
+      style={{ width: props.width, height: props.height }}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      onTouchStart={handleMouseEnter}
+      onTouchCancel={handleMouseLeave}
+      className={`card__container ${props.width ? "" : "w-full max-w-sm"} h-fit flex flex-col mx-auto
        rounded-xl shadow-xs transition-all duration-300 overflow-hidden animate-fade-in
        ${
          promotion.selectproduct
@@ -281,114 +267,94 @@ const Card = memo(function Card(props: cardprops) {
            : "border border-gray-200 hover:border-gray-400 hover:shadow-md"
        }
         `}
-      >
-        <div
-          onClick={() => {
-            if (promotion.selectproduct) {
-              handleSelectDiscount(props.id as number, "create");
-            }
-          }}
-          className="cardimage__container flex flex-col justify-center items-center relative w-full h-full bg-gray-50 overflow-hidden"
-        >
-          <PrimaryPhoto
-            showcount={false}
-            data={props.img}
-            hover={hover}
-            isMobile={isMobile}
-            isTablet={isTablet}
-            disablePreview
-          />
-
-          {promotion.selectproduct && !isProduct && (
-            <div className="absolute inset-0 bg-orange-400/0 hover:bg-orange-400/10 transition-colors duration-200 flex items-center justify-center pointer-events-none">
-              <span className="opacity-0 group-hover:opacity-100 bg-orange-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-md">
-                Click to select
-              </span>
-            </div>
-          )}
-          {promotion.selectproduct && isProduct && (
-            <div className="absolute inset-0 bg-blue-500/10 pointer-events-none" />
-          )}
-          <span className="absolute top-3 right-3">
-            {shouldShowCheckmark ? (
-              <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center shadow-md shadow-blue-300">
-                {showCheckmark}
-              </div>
-            ) : showEditMenu && props.isAdmin ? (
-              <SubInventoryMenu
-                data={editactionMenu}
-                index={props.id}
-                type="product"
-                style={{ right: "0", top: 0 }}
-                open="createProduct"
-                stock={props.stock}
-                stocktype={props.stocktype}
-                reloaddata={props.reloaddata}
-                stockaction={() => {
-                  setopenmodal((prev) => ({
-                    ...prev,
-                    [closename]: true,
-                  }));
-                }}
-              />
-            ) : (
-              ""
-            )}
-          </span>
-        </div>
-        <div
-          onClick={() =>
-            !promotion.selectproduct &&
-            route.push(`/product/detail/${props.id}`)
+    >
+      <div
+        onClick={() => {
+          if (promotion.selectproduct) {
+            handleSelectDiscount(props.id as number, "create");
           }
-          className="card_detail w-full h-fit font-semibold flex flex-col justify-center gap-y-2 px-3 py-3 rounded-b-md text-sm"
-        >
-          <p className="card_info w-full max-w-100 h-fit text-lg">
-            {props.name.length > 0 ? props.name : "No Product Created"}
-          </p>
+        }}
+        className="cardimage__container flex flex-col justify-center items-center relative w-full h-full bg-gray-50 overflow-hidden"
+      >
+        <PrimaryPhoto
+          showcount={false}
+          data={props.img}
+          hover={hover}
+          isMobile={isMobile}
+          isTablet={isTablet}
+          disablePreview
+        />
 
-          {hasDiscount ? showDiscountPrice : showOriginalPrice}
-        </div>
-        {props.button && (
-          <PrimaryButton type="button" text="Add To Cart" width={"100%"} />
-        )}
-        {promotion.selectproduct && isProduct?.discount && (
-          <div className="px-3 pb-3">
-            <button
-              onClick={() => handleSelectDiscount(isProduct.id ?? 0, "edit")}
-              type="button"
-              className={`w-full py-2.5 rounded-xl font-bold text-sm transition-all duration-200 flex items-center justify-center gap-2 shadow-md hover:scale-[1.02] active:scale-[0.98] ${
-                isProduct?.discount?.percent === 0
-                  ? "bg-linear-to-r from-orange-500 to-red-500 text-white hover:from-orange-600 hover:to-red-600 shadow-orange-200"
-                  : "bg-linear-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-600 hover:to-indigo-700 shadow-blue-200"
-              }`}
-            >
-              <FontAwesomeIcon
-                icon={isProduct?.discount?.percent === 0 ? faPercent : faTag}
-                className="text-xs"
-              />
-              {isProduct?.discount?.percent === 0
-                ? "Set Discount"
-                : `Edit · ${isProduct.discount.percent}% off`}
-            </button>
+        {promotion.selectproduct && !isProduct && (
+          <div className="absolute inset-0 bg-orange-400/0 hover:bg-orange-400/10 transition-colors duration-200 flex items-center justify-center pointer-events-none">
+            <span className="opacity-0 group-hover:opacity-100 bg-orange-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-md">
+              Click to select
+            </span>
           </div>
         )}
-        {showLowStock}
+        {promotion.selectproduct && isProduct && (
+          <div className="absolute inset-0 bg-blue-500/10 pointer-events-none" />
+        )}
+        <span className="absolute top-3 right-3">
+          {shouldShowCheckmark ? (
+            <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center shadow-md shadow-blue-300">
+              {showCheckmark}
+            </div>
+          ) : showEditMenu && props.isAdmin ? (
+            <SubInventoryMenu
+              data={editactionMenu}
+              index={props.id}
+              type="product"
+              style={{ right: "0", top: 0 }}
+              open="createProduct"
+              stock={props.stock}
+              stocktype={props.stocktype}
+              reloaddata={props.reloaddata}
+              stockaction={handleOpenStock}
+            />
+          ) : (
+            ""
+          )}
+        </span>
       </div>
-      {openmodal?.[closename] && props.stocktype === StockTypeEnum.variants ? (
-        <Variantcontainer
-          type="stock"
-          editindex={props.id}
-          closename={closename}
-        />
-      ) : openmodal?.[closename] &&
-        props.stocktype === StockTypeEnum.normal &&
-        props.id ? (
-        <UpdateStockModal closename={closename} productId={props.id} />
-      ) : (
-        <> </>
+      <div
+        onClick={() =>
+          !promotion.selectproduct && route.push(`/product/detail/${props.id}`)
+        }
+        className="card_detail w-full h-fit font-semibold flex flex-col justify-center gap-y-2 px-3 py-3 rounded-b-md text-sm"
+      >
+        <p className="card_info w-full max-w-100 h-fit text-lg">
+          {props.name.length > 0 ? props.name : "No Product Created"}
+        </p>
+
+        {hasDiscount ? showDiscountPrice : showOriginalPrice}
+      </div>
+      {props.button && (
+        <PrimaryButton type="button" text="Add To Cart" width={"100%"} />
       )}
-    </>
+      {promotion.selectproduct && isProduct?.discount && (
+        <div className="px-3 pb-3">
+          <button
+            onClick={() => handleSelectDiscount(isProduct.id ?? 0, "edit")}
+            type="button"
+            className={`w-full py-2.5 rounded-xl font-bold text-sm transition-all duration-200 flex items-center justify-center gap-2 shadow-md hover:scale-[1.02] active:scale-[0.98] ${
+              isProduct?.discount?.percent === 0
+                ? "bg-linear-to-r from-orange-500 to-red-500 text-white hover:from-orange-600 hover:to-red-600 shadow-orange-200"
+                : "bg-linear-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-600 hover:to-indigo-700 shadow-blue-200"
+            }`}
+          >
+            <FontAwesomeIcon
+              icon={isProduct?.discount?.percent === 0 ? faPercent : faTag}
+              className="text-xs"
+            />
+            {isProduct?.discount?.percent === 0
+              ? "Set Discount"
+              : `Edit · ${isProduct.discount.percent}% off`}
+          </button>
+        </div>
+      )}
+      {showLowStock}
+    </div>
   );
 });
 

@@ -13,6 +13,7 @@ import {
   removeSpaceAndToLowerCase,
 } from "@/src/lib/utilities";
 import { cache } from "react";
+import { syncExpiredPromotions } from "@/src/lib/promotion";
 
 interface GetListProductReturnType {
   success: boolean;
@@ -42,6 +43,7 @@ export const GetListProduct = async (
   sort?: number,
   promoid?: string,
 ): Promise<GetListProductReturnType> => {
+  await syncExpiredPromotions();
   const data = {
     parentcate_id: parseInt(parentcate_id),
     childcate_id: childcate_id ? parseInt(childcate_id) : undefined,

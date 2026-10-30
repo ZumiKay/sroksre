@@ -11,6 +11,10 @@ import dayjs from "dayjs";
 import Prisma from "@/src/lib/prisma";
 import type { Prisma as PrismaTypes } from "@/prisma/generated/prisma/client";
 import { categorytype } from "../categories/route";
+import {
+  resetPromotionExpiryCheck,
+  syncExpiredPromotions,
+} from "@/src/lib/promotion";
 
 export async function POST(request: NextRequest) {
   try {
@@ -84,6 +88,7 @@ export async function POST(request: NextRequest) {
         data: { promotionId: result },
       }));
 
+    resetPromotionExpiryCheck();
     return Response.json({ data: { id: result } }, { status: 200 });
   } catch (error) {
     console.log("Create Promotion Error:", error);
@@ -244,6 +249,8 @@ export async function PUT(request: NextRequest) {
       }
     });
 
+    resetPromotionExpiryCheck();
+
     // Return success response
     return Response.json({ message: "Update Successfully" }, { status: 200 });
   } catch (error) {
@@ -316,6 +323,7 @@ interface customparamPromotion {
 }
 
 export async function GET(request: NextRequest) {
+  await syncExpiredPromotions();
   try {
     const URL = request.url.toString();
     const param: customparamPromotion = extractQueryParams(URL);

@@ -2,6 +2,7 @@ import Prisma from "@/src/lib/prisma";
 import { removeSpaceAndToLowerCase } from "@/src/lib/utilities";
 import { NextRequest } from "next/server";
 import { extractQueryParams } from "../../banner/route";
+import { syncExpiredPromotions } from "@/src/lib/promotion";
 
 interface paramsType {
   q?: string;
@@ -13,6 +14,7 @@ interface paramsType {
 }
 
 export async function GET(req: NextRequest) {
+  await syncExpiredPromotions();
   try {
     const {
       q,

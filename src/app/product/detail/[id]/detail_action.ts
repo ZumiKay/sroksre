@@ -5,6 +5,7 @@ import Prisma from "@/src/lib/prisma";
 import { calculateDiscountProductPrice } from "@/src/lib/utilities";
 import { CheckCart, Checkwishlist } from "./action";
 import { ProductState } from "@/src/types/product.type";
+import { syncExpiredPromotions } from "@/src/lib/promotion";
 
 interface Policytype {
   id: number;
@@ -17,6 +18,7 @@ interface Policytype {
 }
 
 export async function GetProductDetailById(pid: string) {
+  await syncExpiredPromotions();
   const id = parseInt(pid, 10);
 
   try {
