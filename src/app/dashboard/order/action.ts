@@ -1,6 +1,7 @@
 "use server";
 
 import Prisma from "@/src/lib/prisma";
+import { requireAdmin } from "@/src/lib/session";
 import { OrderReciptEmail } from "@/src/lib/utilities";
 import { revalidatePath } from "next/cache";
 import { Allstatus, totalpricetype } from "@/src/types/order.type";
@@ -221,6 +222,10 @@ export const updateOrderStatus = async (
   id: string,
   email: string,
 ): Promise<Returntype> => {
+  if (!(await requireAdmin())) {
+    return { success: false, message: "Unauthorized" };
+  }
+
   try {
     // Combine finding and updating the order in one step
     const updatedOrder = await Prisma.orders.update({
@@ -258,6 +263,10 @@ export const updateOrderSettings = async (
   vatPercent: number,
   shippingtype: string,
 ): Promise<Returntype> => {
+  if (!(await requireAdmin())) {
+    return { success: false, message: "Unauthorized" };
+  }
+
   try {
     const order = await Prisma.orders.findUnique({
       where: { id },
@@ -366,6 +375,10 @@ export const bulkUpdateOrderStatus = async (
   ids: string[],
   status: string,
 ): Promise<Returntype> => {
+  if (!(await requireAdmin())) {
+    return { success: false, message: "Unauthorized" };
+  }
+
   try {
     await Prisma.orders.updateMany({
       where: { id: { in: ids } },
@@ -419,6 +432,10 @@ export const bulkUpdateOrderStatus = async (
 export const bulkDeleteOrders = async (
   ids: string[],
 ): Promise<Returntype> => {
+  if (!(await requireAdmin())) {
+    return { success: false, message: "Unauthorized" };
+  }
+
   try {
     await Prisma.orders.deleteMany({ where: { id: { in: ids } } });
     revalidatePath("/dashboard/order");
@@ -430,6 +447,10 @@ export const bulkDeleteOrders = async (
 };
 
 export const deleteOrder = async (id: string): Promise<Returntype> => {
+  if (!(await requireAdmin())) {
+    return { success: false, message: "Unauthorized" };
+  }
+
   try {
     await Prisma.orders.delete({ where: { id } });
 
@@ -446,6 +467,10 @@ export const deleteOrder = async (id: string): Promise<Returntype> => {
  * @param filterdata - UserId must string use buyer_id (auto generated id in user model)
  */
 export const ExportOrderData = async (filterdata: Filterdatatype) => {
+  if (!(await requireAdmin())) {
+    return { success: false, message: "Unauthorized" };
+  }
+
   try {
     // Build where clause for database-level filtering
     const whereClause: OrdersWhereInput = {};

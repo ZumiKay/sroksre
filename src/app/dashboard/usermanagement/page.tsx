@@ -525,7 +525,6 @@ export default function UsermanagementPage() {
                     firstname={i.firstname}
                     lastname={i.lastname ?? ""}
                     email={i.email}
-                    uid={i.id?.toString() ?? "0"}
                     role={i.role as string}
                     phonenumber={i.phonenumber}
                     createdAt={i.createdAt ? new Date(i.createdAt) : undefined}

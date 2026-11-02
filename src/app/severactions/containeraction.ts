@@ -1,6 +1,7 @@
 "use server";
 
 import Prisma from "@/src/lib/prisma";
+import { requireAdmin } from "@/src/lib/session";
 import { caculateArrayPagination } from "@/src/lib/utilities";
 import {
   SortProductByLatestAddDate,
@@ -58,6 +59,10 @@ export interface Containertype {
 }
 
 export async function CreateContainer(data: Containertype) {
+  if (!(await requireAdmin())) {
+    return { success: false, message: "Unauthorized" };
+  }
+
   try {
     const create = await Prisma.homecontainer.findFirst({
       where: {

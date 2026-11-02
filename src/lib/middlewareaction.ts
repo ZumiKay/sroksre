@@ -76,3 +76,14 @@ export const VerifyApiRoute = (
   // Default: allow if not explicitly restricted
   return { success: true };
 };
+
+/**
+ * True when only admins may call this route. Mirrors VerifyApiRoute's
+ * order: public and user routes win over the admin list.
+ */
+export const isAdminOnlyRoute = (url: string, method: methodtype): boolean => {
+  const normalizedUrl = url.toLowerCase();
+  if (allPublicRoute.get(normalizedUrl)?.includes(method)) return false;
+  if (userRoute.get(normalizedUrl)?.includes(method)) return false;
+  return !!allAdminRoute.get(normalizedUrl)?.includes(method);
+};

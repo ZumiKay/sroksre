@@ -3,7 +3,12 @@
 "use server";
 
 import { NextRequest, NextResponse } from "next/server";
-import { VerifyApiRoute, methodtype } from "./lib/middlewareaction";
+import {
+  VerifyApiRoute,
+  isAdminOnlyRoute,
+  methodtype,
+} from "./lib/middlewareaction";
+import { isActiveAdminSession } from "./lib/adminGuard";
 
 import { getToken } from "next-auth/jwt";
 import { Role } from "@/prisma/generated/prisma/enums";
@@ -21,7 +26,11 @@ export default async function proxy(req: NextRequest) {
         return NextResponse.next();
       }
       if (url.includes("products") || url.includes("usermanagement")) {
-        if (token.role && token.role === "ADMIN") {
+        // The cookie's role can be days old; confirm with the database.
+        if (
+          token.role === "ADMIN" &&
+          (await isActiveAdminSession(token.sessionid))
+        ) {
           const nextUrl = req.nextUrl.clone();
           const searchparam = nextUrl.searchParams;
 
@@ -60,12 +69,22 @@ export default async function proxy(req: NextRequest) {
 
     const role = token?.role as Role;
 
-    const verifyroute = VerifyApiRoute(url.replace("/api", ""), method, role);
-    if (verifyroute.success) {
-      return NextResponse.next();
-    } else {
+    const route = url.replace("/api", "");
+    const verifyroute = VerifyApiRoute(route, method, role);
+    if (!verifyroute.success) {
       return NextResponse.error();
     }
+
+    // Admin routes: the cookie's role can be days old, so confirm the
+    // session is still live and the user is still an admin.
+    if (
+      isAdminOnlyRoute(route, method) &&
+      !(await isActiveAdminSession(token?.sessionid))
+    ) {
+      return NextResponse.error();
+    }
+
+    return NextResponse.next();
   }
 }
 export const config = {

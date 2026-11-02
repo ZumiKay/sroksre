@@ -1,0 +1,162 @@
+jest.mock("@/src/lib/prisma", () => ({
+  __esModule: true,
+  default: {
+    usersession: { findUnique: jest.fn(), deleteMany: jest.fn() },
+    user: { count: jest.fn(), deleteMany: jest.fn() },
+    wishlist: { deleteMany: jest.fn() },
+    orderproduct: { deleteMany: jest.fn() },
+    $transaction: jest.fn(),
+  },
+}));
+jest.mock("@/src/lib/session", () => ({ requireAdmin: jest.fn() }));
+jest.mock("next/cache", () => ({ revalidateTag: jest.fn() }));
+
+import Prisma from "@/src/lib/prisma";
+import { requireAdmin } from "@/src/lib/session";
+import { isActiveAdminSession } from "@/src/lib/adminGuard";
+import { isAdminOnlyRoute } from "@/src/lib/middlewareaction";
+import { DELETE, GET } from "@/src/app/api/users/route";
+import { hashToken } from "@/src/lib/userlib";
+import type { NextRequest } from "next/server";
+
+const db = Prisma as unknown as {
+  usersession: { findUnique: jest.Mock; deleteMany: jest.Mock };
+  user: { count: jest.Mock; deleteMany: jest.Mock };
+  wishlist: { deleteMany: jest.Mock };
+  orderproduct: { deleteMany: jest.Mock };
+  $transaction: jest.Mock;
+};
+const mockRequireAdmin = requireAdmin as jest.Mock;
+
+const req = (body: unknown) =>
+  ({ json: async () => body }) as unknown as NextRequest;
+
+const future = () => new Date(Date.now() + 60_000);
+
+beforeEach(() => {
+  jest.resetAllMocks();
+});
+
+describe("isActiveAdminSession", () => {
+  it("rejects a missing session id without querying the database", async () => {
+    expect(await isActiveAdminSession(undefined)).toBe(false);
+    expect(await isActiveAdminSession("")).toBe(false);
+    expect(db.usersession.findUnique).not.toHaveBeenCalled();
+  });
+
+  it("accepts a live session whose user is an admin in the database", async () => {
+    db.usersession.findUnique.mockResolvedValue({
+      revoked: false,
+      expireAt: future(),
+      user: { role: "ADMIN" },
+    });
+
+    expect(await isActiveAdminSession("sid")).toBe(true);
+    expect(db.usersession.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { refresh_token_hash: hashToken("sid") },
+      }),
+    );
+  });
+
+  it.each([
+    ["the session is gone", null],
+    [
+      "the session was revoked",
+      { revoked: true, expireAt: future(), user: { role: "ADMIN" } },
+    ],
+    [
+      "the session expired",
+      { revoked: false, expireAt: new Date(0), user: { role: "ADMIN" } },
+    ],
+    [
+      "the user is no longer an admin",
+      { revoked: false, expireAt: future(), user: { role: "USER" } },
+    ],
+  ])("rejects when %s", async (_, row) => {
+    db.usersession.findUnique.mockResolvedValue(row);
+    expect(await isActiveAdminSession("sid")).toBe(false);
+  });
+
+  it("fails closed when the database errors", async () => {
+    db.usersession.findUnique.mockRejectedValue(new Error("down"));
+    expect(await isActiveAdminSession("sid")).toBe(false);
+  });
+});
+
+describe("isAdminOnlyRoute", () => {
+  it("flags admin-only routes", () => {
+    expect(isAdminOnlyRoute("/users", "DELETE")).toBe(true);
+    expect(isAdminOnlyRoute("/products/crud", "POST")).toBe(true);
+  });
+
+  it("does not flag public, user or unlisted routes", () => {
+    expect(isAdminOnlyRoute("/products", "GET")).toBe(false);
+    expect(isAdminOnlyRoute("/order", "GET")).toBe(false);
+    expect(isAdminOnlyRoute("/promotion/check", "PUT")).toBe(false);
+  });
+});
+
+describe("/api/users", () => {
+  const admin = { userId: 1, sessionid: "sid" };
+
+  beforeEach(() => {
+    db.$transaction.mockImplementation((ops: unknown[]) => Promise.all(ops));
+    db.user.deleteMany.mockResolvedValue({ count: 2 });
+    db.user.count.mockResolvedValue(0);
+  });
+
+  it("GET refuses non-admins", async () => {
+    mockRequireAdmin.mockResolvedValue(null);
+    const res = await GET({} as NextRequest);
+    expect(res.status).toBe(403);
+  });
+
+  it("DELETE refuses non-admins without deleting anything", async () => {
+    mockRequireAdmin.mockResolvedValue(null);
+    const res = await DELETE(req({ id: 5 }));
+    expect(res.status).toBe(403);
+    expect(db.user.deleteMany).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["no id", {}],
+    ["an empty list", { userIds: [] }],
+    ["a non-numeric id", { userIds: [2, "abc"] }],
+    ["a negative id", { id: -1 }],
+  ])("DELETE rejects %s and never runs an unfiltered delete", async (_, body) => {
+    mockRequireAdmin.mockResolvedValue(admin);
+    const res = await DELETE(req(body));
+    expect(res.status).toBe(400);
+    expect(db.user.deleteMany).not.toHaveBeenCalled();
+    expect(db.wishlist.deleteMany).not.toHaveBeenCalled();
+  });
+
+  it("DELETE removes the selected users only", async () => {
+    mockRequireAdmin.mockResolvedValue(admin);
+    const res = await DELETE(req({ userIds: [2, 3, 3] }));
+
+    expect(res.status).toBe(200);
+    expect(db.user.deleteMany).toHaveBeenCalledWith({
+      where: { id: { in: [2, 3] }, role: { not: "ADMIN" } },
+    });
+    expect(db.wishlist.deleteMany).toHaveBeenCalledWith({
+      where: { uid: { in: [2, 3] } },
+    });
+  });
+
+  it("DELETE refuses to delete the caller's own account", async () => {
+    mockRequireAdmin.mockResolvedValue(admin);
+    const res = await DELETE(req({ userIds: [1, 2] }));
+    expect(res.status).toBe(400);
+    expect(db.user.deleteMany).not.toHaveBeenCalled();
+  });
+
+  it("DELETE refuses to delete admin accounts", async () => {
+    mockRequireAdmin.mockResolvedValue(admin);
+    db.user.count.mockResolvedValue(1);
+    const res = await DELETE(req({ id: 7 }));
+    expect(res.status).toBe(403);
+    expect(db.user.deleteMany).not.toHaveBeenCalled();
+  });
+});
