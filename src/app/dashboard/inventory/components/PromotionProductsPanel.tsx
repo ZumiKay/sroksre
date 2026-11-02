@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBoxOpen, faImage, faXmark } from "@fortawesome/free-solid-svg-icons";
-import { useGlobalContext } from "@/src/context/GlobalContext";
+import { useGlobalStore } from "@/src/context/GlobalContext";
 import { SecondaryModal } from "../../../component/Modals";
 import { ModalTitle } from "../../../component/Modals/FormSection";
 import { successToast } from "../../../component/Loading";
@@ -17,7 +17,10 @@ const formatPrice = (value: number) => `$${value.toFixed(2)}`;
  * discounts can be applied to exactly the products.
  */
 export const PromotionProductsPanel = ({ onClose }: { onClose: () => void }) => {
-  const { promotion, setpromotion, allData, setalldata } = useGlobalContext();
+  const promotion = useGlobalStore((s) => s.promotion);
+  const setpromotion = useGlobalStore((s) => s.setpromotion);
+  const allData = useGlobalStore((s) => s.allData);
+  const setalldata = useGlobalStore((s) => s.setalldata);
 
   // id 0 is the empty placeholder row from the initial promotion state
   const products = useMemo(

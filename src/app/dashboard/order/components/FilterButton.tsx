@@ -1,7 +1,7 @@
 "use client";
 
 import PrimaryButton from "@/src/app/component/Button";
-import { useGlobalContext } from "@/src/context/GlobalContext";
+import { useGlobalStore } from "@/src/context/GlobalContext";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FilterMenu } from "./FilterMenu";
 import { Filterdatatype } from "./types";
@@ -12,7 +12,8 @@ interface FilterButtonProps {
 }
 
 export const FilterButton = ({ data, isFilter }: FilterButtonProps) => {
-  const { openmodal, setopenmodal } = useGlobalContext();
+  const openmodal = useGlobalStore((s) => s.openmodal);
+  const setopenmodal = useGlobalStore((s) => s.setopenmodal);
   const router = useRouter();
   const searchParams = useSearchParams();
 

@@ -4,7 +4,7 @@ import { StaticImageData } from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import PrimaryButton from "../Button";
 import { CardSkeleton, SecondayCard } from "../Card";
-import { useGlobalContext } from "@/src/context/GlobalContext";
+import { useGlobalStore } from "@/src/context/GlobalContext";
 import {
   ApiRequest,
   Delayloading,
@@ -28,7 +28,7 @@ interface CartMenuProps {
 }
 
 export function CartMenu({ img, setcart, setcarttotal }: CartMenuProps) {
-  const { setreloadcart } = useGlobalContext();
+  const setreloadcart = useGlobalStore((s) => s.setreloadcart);
   const router = useRouter();
   const searchparams = useSearchParams();
   const [cartItem, setitem] = useState<Array<Productordertype> | []>([]);

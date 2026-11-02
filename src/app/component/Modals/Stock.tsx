@@ -1,6 +1,6 @@
 import {
   Productinitailizestate,
-  useGlobalContext,
+  useGlobalStore,
 } from "@/src/context/GlobalContext";
 import { errorToast, successToast } from "../Loading";
 import Modal from "../Modals";
@@ -27,7 +27,9 @@ export const UpdateStockModal = ({
   closename: string;
   productId?: number;
 }) => {
-  const { product, setproduct, setopenmodal } = useGlobalContext();
+  const product = useGlobalStore((s) => s.product);
+  const setproduct = useGlobalStore((s) => s.setproduct);
+  const setopenmodal = useGlobalStore((s) => s.setopenmodal);
   const [loading, setloading] = useState<Partial<Record<methodtype, boolean>>>(
     {},
   );

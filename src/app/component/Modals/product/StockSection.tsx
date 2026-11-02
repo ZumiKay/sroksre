@@ -4,7 +4,7 @@ import { ChangeEvent } from "react";
 import { Input } from "@heroui/react";
 import {
   ProductStockType,
-  useGlobalContext,
+  useGlobalStore,
 } from "@/src/context/GlobalContext";
 import PrimaryButton, { Selection } from "@/src/app/component/Button";
 import { VariantIcon } from "@/src/app/component/Asset";
@@ -26,7 +26,8 @@ export const StockSection = ({
   handleChange,
   onStocktypeChange,
 }: StockSectionProps) => {
-  const { product, setopenmodal } = useGlobalContext();
+  const product = useGlobalStore((s) => s.product);
+  const setopenmodal = useGlobalStore((s) => s.setopenmodal);
 
   return (
     <>

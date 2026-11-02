@@ -2,7 +2,7 @@ import { useCallback, useState } from "react";
 import Modal from "../Modals";
 import PrimaryButton from "../Button";
 import {
-  useGlobalContext,
+  useGlobalStore,
   BannerInitialize,
   Productinitailizestate,
   PromotionInitialize,
@@ -12,20 +12,18 @@ import { errorToast } from "../Loading";
 import { useRouter, useSearchParams } from "next/navigation";
 
 export const ConfirmModal = () => {
-  const {
-    openmodal,
-    setopenmodal,
-    isLoading,
-    setisLoading,
-    product,
-    setproduct,
-    banner,
-    setbanner,
-    setpromotion,
-    setinventoryfilter,
-    globalindex,
-    setglobalindex,
-  } = useGlobalContext();
+  const openmodal = useGlobalStore((s) => s.openmodal);
+  const setopenmodal = useGlobalStore((s) => s.setopenmodal);
+  const isLoading = useGlobalStore((s) => s.isLoading);
+  const setisLoading = useGlobalStore((s) => s.setisLoading);
+  const product = useGlobalStore((s) => s.product);
+  const setproduct = useGlobalStore((s) => s.setproduct);
+  const banner = useGlobalStore((s) => s.banner);
+  const setbanner = useGlobalStore((s) => s.setbanner);
+  const setpromotion = useGlobalStore((s) => s.setpromotion);
+  const setinventoryfilter = useGlobalStore((s) => s.setinventoryfilter);
+  const globalindex = useGlobalStore((s) => s.globalindex);
+  const setglobalindex = useGlobalStore((s) => s.setglobalindex);
   const router = useRouter();
   const searchParam = useSearchParams();
   const isDeleteLoading = isLoading.DELETE;
@@ -325,7 +323,8 @@ export const ConfirmModal = () => {
 };
 
 export const Alertmodal = () => {
-  const { openmodal, setopenmodal } = useGlobalContext();
+  const openmodal = useGlobalStore((s) => s.openmodal);
+  const setopenmodal = useGlobalStore((s) => s.setopenmodal);
   const handleClose = async () => {
     openmodal.alert.action && (await openmodal.alert.action());
     setopenmodal((prev) => ({

@@ -1,4 +1,4 @@
-import { useGlobalContext } from "@/src/context/GlobalContext";
+import { useGlobalStore } from "@/src/context/GlobalContext";
 import React, { ChangeEvent, useState } from "react";
 import PrimaryButton from "../Button";
 import {
@@ -309,7 +309,8 @@ export function ManageStockContainer({
   setreloaddata,
   isloading,
 }: ManageStockContainerProps) {
-  const { product, setproduct } = useGlobalContext();
+  const product = useGlobalStore((s) => s.product);
+  const setproduct = useGlobalStore((s) => s.setproduct);
   const [lowstock, setlowstock] = useState(0);
   const [loading, setloading] = useState(false);
 

@@ -2,7 +2,7 @@
 
 import { Checkoutproductcard } from "@/src/app/component/Checkout";
 import { SecondaryModal } from "@/src/app/component/Modals";
-import { useGlobalContext } from "@/src/context/GlobalContext";
+import { useGlobalStore } from "@/src/context/GlobalContext";
 import { Productordertype } from "@/src/types/order.type";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faBoxOpen, faShoppingBag } from "@fortawesome/free-solid-svg-icons";
@@ -18,7 +18,7 @@ export const OrderProductDetailsModal = ({
   setclose,
   data,
 }: OrderProductDetailsModalProps) => {
-  const { openmodal } = useGlobalContext();
+  const openmodal = useGlobalStore((s) => s.openmodal);
   const filteredProducts = data?.filter((i) => i.product) ?? [];
   const productCount = filteredProducts.length;
 

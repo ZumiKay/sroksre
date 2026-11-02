@@ -3,7 +3,7 @@
 import React, { useMemo, useCallback } from "react";
 import { Selection } from "@/src/app/component/Button";
 import { Skeleton } from "@heroui/react";
-import { useGlobalContext } from "@/src/context/GlobalContext";
+import { useGlobalStore } from "@/src/context/GlobalContext";
 import { Productordertype } from "@/src/types/order.type";
 
 export interface ErrorMessageType {
@@ -30,7 +30,8 @@ export const StockSelector = React.memo(
     isloading,
   }: StockSelectorProps) => {
     const showLowStock = useMemo(() => max > 0 && max <= 5, [max]);
-    const { setproductorderdetail, productorderdetail } = useGlobalContext();
+    const setproductorderdetail = useGlobalStore((s) => s.setproductorderdetail);
+    const productorderdetail = useGlobalStore((s) => s.productorderdetail);
 
     const quantityOptions = useMemo(
       () =>

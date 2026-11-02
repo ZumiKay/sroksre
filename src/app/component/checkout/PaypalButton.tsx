@@ -15,7 +15,7 @@ import {
   updateStatus,
 } from "@/src/app/checkout/action";
 import { ApiRequest } from "@/src/context/CustomHook";
-import { useGlobalContext } from "@/src/context/GlobalContext";
+import { useGlobalStore } from "@/src/context/GlobalContext";
 import { SendNotification, useSocket } from "@/src/context/SocketContext";
 import { errorToast, successToast } from "../Loading";
 import { OrderReceiptTemplate } from "../EmailTemplate";
@@ -121,7 +121,7 @@ export function Paypalbutton({
 }) {
   const router = useRouter();
   const socket = useSocket();
-  const { setcarttotal } = useGlobalContext();
+  const setcarttotal = useGlobalStore((s) => s.setcarttotal);
   const { handleCheckSession } = useCheckSession();
 
   const createOrder = async (): Promise<string> => {

@@ -7,7 +7,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTrash, faPlus, faChevronDown } from "@fortawesome/free-solid-svg-icons";
 import { TextField } from "@mui/material";
 
-import { useGlobalContext } from "@/src/context/GlobalContext";
+import { useGlobalStore } from "@/src/context/GlobalContext";
 import { ChangeEvent, useEffect, useState } from "react";
 import {
   AddPolicyOrQuestion,
@@ -45,7 +45,8 @@ export const PolicyButton = ({
   const [loading, setloading] = useState(false);
   const router = useRouter();
   const openstate = "editpolicy";
-  const { openmodal, setopenmodal } = useGlobalContext();
+  const openmodal = useGlobalStore((s) => s.openmodal);
+  const setopenmodal = useGlobalStore((s) => s.setopenmodal);
   const handleEdit = () => {
     if (ty === "edit") setopenmodal((prev) => ({ ...prev, [openstate]: true }));
 
@@ -108,7 +109,8 @@ export const SidePolicyBar = ({
   isAdmin?: boolean;
   data: sidebarContentType[];
 }) => {
-  const { openmodal, setopenmodal } = useGlobalContext();
+  const openmodal = useGlobalStore((s) => s.openmodal);
+  const setopenmodal = useGlobalStore((s) => s.setopenmodal);
   const [open, setopen] = useState(false);
   const router = useRouter();
   const searchparams = useSearchParams();
@@ -205,7 +207,8 @@ const deleteRequest = async (qid?: number, pid?: number, ppid?: number) => {
 
 export const AddPolicyModal = ({ qa, plc, edit, openstate }: Policydata) => {
   const router = useRouter();
-  const { openmodal, setopenmodal } = useGlobalContext();
+  const openmodal = useGlobalStore((s) => s.openmodal);
+  const setopenmodal = useGlobalStore((s) => s.setopenmodal);
   const [loading, setloading] = useState({ post: false, delete: false });
   const [isEdit, setisEdit] = useState<{ [key: string]: boolean }>({});
   const [state, setstate] = useState<Addpolicytype>({
@@ -549,7 +552,8 @@ export const QuestionCard = ({
   data: Addquestiontype;
 }) => {
   const openstate = `policyQ${idx}`;
-  const { openmodal, setopenmodal } = useGlobalContext();
+  const openmodal = useGlobalStore((s) => s.openmodal);
+  const setopenmodal = useGlobalStore((s) => s.setopenmodal);
   const [loading, setloading] = useState(false);
   const [open, setopen] = useState(false);
 

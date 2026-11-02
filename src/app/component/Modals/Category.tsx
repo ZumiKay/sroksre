@@ -2,7 +2,7 @@
 import {
   CateogoryInitailizestate,
   CateogoryState,
-  useGlobalContext,
+  useGlobalStore,
 } from "@/src/context/GlobalContext";
 import React, { ChangeEvent, useCallback, useEffect, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -54,7 +54,11 @@ export const GetPromotionSelection = async (search: string, limit: number = 1) =
   };
 };
 export const Category = () => {
-  const { openmodal, setopenmodal, category, setcategory, allData } = useGlobalContext();
+  const openmodal = useGlobalStore((s) => s.openmodal);
+  const setopenmodal = useGlobalStore((s) => s.setopenmodal);
+  const category = useGlobalStore((s) => s.category);
+  const setcategory = useGlobalStore((s) => s.setcategory);
+  const allData = useGlobalStore((s) => s.allData);
   const [show, setshow] = useState<"Create" | "Edit">("Create");
   const [loading, setloading] = useState(false);
   const [catetype, setcatetype] = useState<Categorytype>("normal");
@@ -353,7 +357,8 @@ function DetailsFields({
 }
 
 function CategoryDateRange() {
-  const { category, setcategory } = useGlobalContext();
+  const category = useGlobalStore((s) => s.category);
+  const setcategory = useGlobalStore((s) => s.setcategory);
   return (
     <DateRangePicker
       aria-label="Date range"
@@ -391,8 +396,12 @@ const EditCategory = ({
   setloading: React.Dispatch<React.SetStateAction<boolean>>;
   show: "Create" | "Edit";
 }) => {
-  const { allData, category, setcategory, setalldata, globalindex, setglobalindex } =
-    useGlobalContext();
+  const allData = useGlobalStore((s) => s.allData);
+  const category = useGlobalStore((s) => s.category);
+  const setcategory = useGlobalStore((s) => s.setcategory);
+  const setalldata = useGlobalStore((s) => s.setalldata);
+  const globalindex = useGlobalStore((s) => s.globalindex);
+  const setglobalindex = useGlobalStore((s) => s.setglobalindex);
   const [editindex, seteditindex] = useState(-1);
   const [tempcate, settempcate] = useState<CateogoryState[]>([]);
 

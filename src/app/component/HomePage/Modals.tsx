@@ -9,7 +9,7 @@ import {
   Containertype,
   CreateContainer,
 } from "../../severactions/containeraction";
-import { useGlobalContext } from "@/src/context/GlobalContext";
+import { useGlobalStore } from "@/src/context/GlobalContext";
 import { ApiRequest, useScreenSize } from "@/src/context/CustomHook";
 import { ContainerLoading, errorToast, successToast } from "../Loading";
 import { BannerModal } from "../Modals/Banner";
@@ -39,8 +39,10 @@ const Homecontainermodal = ({
   const { isMobile } = useScreenSize();
 
   const [loading, setloading] = useState(false);
-  const { openmodal, setopenmodal, globalindex, setglobalindex } =
-    useGlobalContext();
+  const openmodal = useGlobalStore((s) => s.openmodal);
+  const setopenmodal = useGlobalStore((s) => s.setopenmodal);
+  const globalindex = useGlobalStore((s) => s.globalindex);
+  const setglobalindex = useGlobalStore((s) => s.setglobalindex);
 
   const handleType = useCallback((type: string) => {
     setdata((prev) => ({

@@ -2,7 +2,7 @@
 
 import { ChangeEvent, useEffect, useState } from "react";
 import PrimaryButton, { Selection } from "../component/Button";
-import { useGlobalContext } from "@/src/context/GlobalContext";
+import { useGlobalStore } from "@/src/context/GlobalContext";
 import { SecondaryModal } from "../component/Modals";
 import { useRouter, useSearchParams } from "next/navigation";
 import { filtervaluetype, getFilterValue } from "./action";
@@ -40,7 +40,8 @@ export const ProductFilterButton = ({
   pcate?: string[];
   ccate?: string[];
 }) => {
-  const { openmodal, setopenmodal } = useGlobalContext();
+  const openmodal = useGlobalStore((s) => s.openmodal);
+  const setopenmodal = useGlobalStore((s) => s.setopenmodal);
   return (
     <>
       <div className="w-full h-[40px] flex flex-row items-center gap-x-5">
@@ -135,7 +136,8 @@ export const FilterContainer = ({
   latest?: boolean;
   promoid?: string;
 }) => {
-  const { setopenmodal, openmodal } = useGlobalContext();
+  const setopenmodal = useGlobalStore((s) => s.setopenmodal);
+  const openmodal = useGlobalStore((s) => s.openmodal);
   const [loading, setloading] = useState(false);
 
   const [filtervalue, setfiltervalue] = useState<filtervaluetype | undefined>(

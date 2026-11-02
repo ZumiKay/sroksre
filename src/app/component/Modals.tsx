@@ -3,7 +3,7 @@
 import { CSSProperties, FormHTMLAttributes, ReactNode, useEffect, useRef } from "react";
 import {
   GlobalIndexState,
-  useGlobalContext,
+  useGlobalStore,
 } from "@/src/context/GlobalContext";
 import {
   ModalBody,
@@ -49,8 +49,10 @@ export default function Modal({
     | string;
 }) {
   const ref = useRef<HTMLDivElement | null>(null);
-  const { setopenmodal, setglobalindex, globalindex, setalldata } =
-    useGlobalContext();
+  const setopenmodal = useGlobalStore((s) => s.setopenmodal);
+  const setglobalindex = useGlobalStore((s) => s.setglobalindex);
+  const globalindex = useGlobalStore((s) => s.globalindex);
+  const setalldata = useGlobalStore((s) => s.setalldata);
 
   useEffect(() => {
     document.body.style.overflowY = "hidden";

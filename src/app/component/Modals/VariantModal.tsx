@@ -1,7 +1,7 @@
 "use client";
 import {
   ProductStockType,
-  useGlobalContext,
+  useGlobalStore,
 } from "@/src/context/GlobalContext";
 import { errorToast } from "../Loading";
 import { SubmitEvent, useEffect, useState, useCallback, useMemo } from "react";
@@ -56,7 +56,10 @@ export const Variantcontainer = ({
   editindex?: number;
   closename?: string;
 }) => {
-  const { openmodal, setopenmodal, product, setproduct } = useGlobalContext();
+  const openmodal = useGlobalStore((s) => s.openmodal);
+  const setopenmodal = useGlobalStore((s) => s.setopenmodal);
+  const product = useGlobalStore((s) => s.product);
+  const setproduct = useGlobalStore((s) => s.setproduct);
 
   // Use custom hooks
   const variantManager = useVariantManager();

@@ -4,7 +4,7 @@ import ReactDOMServer from "react-dom/server";
 import { ChangeEvent, useEffect, useState } from "react";
 import { Selection } from "@/src/app/component/Button";
 import Modal, { SecondaryModal } from "@/src/app/component/Modals";
-import { useGlobalContext } from "@/src/context/GlobalContext";
+import { useGlobalStore } from "@/src/context/GlobalContext";
 import { Allstatus } from "@/src/types/order.type";
 import { useRouter, useSearchParams } from "next/navigation";
 import { OrderReceiptTemplate } from "@/src/app/component/EmailTemplate";
@@ -55,7 +55,7 @@ export const ActionModal = ({
   setclose,
 }: ActionModalProps) => {
   const [actiontype, setactiontype] = useState<string>(types);
-  const { openmodal } = useGlobalContext();
+  const openmodal = useGlobalStore((s) => s.openmodal);
   const router = useRouter();
   const searchParams = useSearchParams();
 

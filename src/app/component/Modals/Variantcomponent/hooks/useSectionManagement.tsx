@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo } from "react";
 import { VariantSectionType } from "@/src/types/product.type";
-import { useGlobalContext } from "@/src/context/GlobalContext";
+import { useGlobalStore } from "@/src/context/GlobalContext";
 import { ApiRequest } from "@/src/context/CustomHook";
 import { errorToast } from "../../../Loading";
 
@@ -25,7 +25,8 @@ export const useSectionManagement = ({
   setNew,
   settempVariantSectionId,
 }: UseSectionManagementProps) => {
-  const { product, setproduct } = useGlobalContext();
+  const product = useGlobalStore((s) => s.product);
+  const setproduct = useGlobalStore((s) => s.setproduct);
   const [loading, setLoading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 

@@ -1,5 +1,5 @@
 "use client";
-import { useGlobalContext } from "@/src/context/GlobalContext";
+import { useGlobalStore } from "@/src/context/GlobalContext";
 import PrimaryButton from "../../component/Button";
 import { ApiRequest, Delayloading } from "@/src/context/CustomHook";
 import {
@@ -40,14 +40,12 @@ export default function UsermanagementPage() {
   const sort = searchParam.get("sort") ?? undefined;
   const role = searchParam.get("role") ?? undefined;
 
-  const {
-    openmodal,
-    setopenmodal,
-    itemlength,
-    setitemlength,
-    setalldata,
-    allData,
-  } = useGlobalContext();
+  const openmodal = useGlobalStore((s) => s.openmodal);
+  const setopenmodal = useGlobalStore((s) => s.setopenmodal);
+  const itemlength = useGlobalStore((s) => s.itemlength);
+  const setitemlength = useGlobalStore((s) => s.setitemlength);
+  const setalldata = useGlobalStore((s) => s.setalldata);
+  const allData = useGlobalStore((s) => s.allData);
 
   const handleAdd = useCallback(() => {
     setopenmodal((prev) => ({ ...prev, createUser: true }));
@@ -611,7 +609,8 @@ const EnhancedUserCard = memo(
     isSelected: boolean;
     viewMode: "grid" | "list";
   }) => {
-    const { setopenmodal, setglobalindex } = useGlobalContext();
+    const setopenmodal = useGlobalStore((s) => s.setopenmodal);
+    const setglobalindex = useGlobalStore((s) => s.setglobalindex);
     const [isMounted, setIsMounted] = useState(false);
 
     // Prevent hydration mismatch for date formatting

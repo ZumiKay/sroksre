@@ -10,7 +10,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import dayjs from "dayjs";
 import { DateTimePicker } from "@mui/x-date-pickers";
 import { SecondaryModal } from "../Modals";
-import { useGlobalContext } from "@/src/context/GlobalContext";
+import { useGlobalStore } from "@/src/context/GlobalContext";
 import {
   ApiRequest,
   Delayloading,
@@ -83,8 +83,11 @@ export const FilterMenu = ({
   selectedFirst,
   onSelectedFirstChange,
 }: FilterMenuProps) => {
-  const { openmodal, setopenmodal, promotion, listproductfilval, globalindex } =
-    useGlobalContext();
+  const openmodal = useGlobalStore((s) => s.openmodal);
+  const setopenmodal = useGlobalStore((s) => s.setopenmodal);
+  const promotion = useGlobalStore((s) => s.promotion);
+  const listproductfilval = useGlobalStore((s) => s.listproductfilval);
+  const globalindex = useGlobalStore((s) => s.globalindex);
 
   const [loading, setloading] = useState(false);
   const [category, setcategory] = useState<CategoriesType | undefined>(

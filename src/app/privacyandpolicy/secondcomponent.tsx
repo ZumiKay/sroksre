@@ -5,7 +5,7 @@ import React, { ChangeEvent, useState, useMemo } from "react";
 import { showtype } from "../api/policy/route";
 import { ApiRequest, useScreenSize } from "@/src/context/CustomHook";
 import { errorToast } from "../component/Loading";
-import { useGlobalContext } from "@/src/context/GlobalContext";
+import { useGlobalStore } from "@/src/context/GlobalContext";
 import { useRouter } from "next/navigation";
 
 const showtypedata: Array<{ label: string; value: showtype }> = [
@@ -22,7 +22,7 @@ export const Showtypemodal = ({
   id: number;
   value: Set<string>;
 }) => {
-  const { setopenmodal } = useGlobalContext();
+  const setopenmodal = useGlobalStore((s) => s.setopenmodal);
   const router = useRouter();
   const [values, setValues] = React.useState(value ?? new Set([""]));
   const [loading, setloading] = useState(false);

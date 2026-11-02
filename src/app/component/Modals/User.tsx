@@ -1,4 +1,4 @@
-import { useGlobalContext, Userinitialize } from "@/src/context/GlobalContext";
+import { useGlobalStore, Userinitialize } from "@/src/context/GlobalContext";
 import React, { ChangeEvent, SubmitEvent, useEffect, useState } from "react";
 import { errorToast, successToast } from "../Loading";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -39,8 +39,11 @@ export const Createusermodal = ({
   setpage: React.Dispatch<React.SetStateAction<number>>;
   onSuccess?: () => void;
 }) => {
-  const { allData, globalindex, setglobalindex, openmodal, setopenmodal } =
-    useGlobalContext();
+  const allData = useGlobalStore((s) => s.allData);
+  const globalindex = useGlobalStore((s) => s.globalindex);
+  const setglobalindex = useGlobalStore((s) => s.setglobalindex);
+  const openmodal = useGlobalStore((s) => s.openmodal);
+  const setopenmodal = useGlobalStore((s) => s.setopenmodal);
   const [data, setdata] = useState<userdata>(Userinitialize);
   const [showpass, setshowpass] = useState({
     passowrd: false,
@@ -379,7 +382,10 @@ export const EditProfile = ({
     post: false,
     get: true,
   });
-  const { openmodal, setopenmodal, userinfo, setuserinfo } = useGlobalContext();
+  const openmodal = useGlobalStore((s) => s.openmodal);
+  const setopenmodal = useGlobalStore((s) => s.setopenmodal);
+  const userinfo = useGlobalStore((s) => s.userinfo);
+  const setuserinfo = useGlobalStore((s) => s.setuserinfo);
   const [data, setdata] = useState<editprofiledata>({
     name: {
       firstname: userinfo.firstname as string,

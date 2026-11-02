@@ -37,7 +37,7 @@ import {
   CateogoryState,
   Productinitailizestate,
   PromotionInitialize,
-  useGlobalContext,
+  useGlobalStore,
 } from "@/src/context/GlobalContext";
 import { ApiRequest, useScreenSize } from "@/src/context/CustomHook";
 import { errorToast, infoToast } from "./Loading";
@@ -65,7 +65,12 @@ export default function Navbar({
   session: Usersessiontype | null;
   loading?: boolean;
 }) {
-  const { cart, setcart, carttotal, setcarttotal, setopenmodal, openmodal } = useGlobalContext();
+  const cart = useGlobalStore((s) => s.cart);
+  const setcart = useGlobalStore((s) => s.setcart);
+  const carttotal = useGlobalStore((s) => s.carttotal);
+  const setcarttotal = useGlobalStore((s) => s.setcarttotal);
+  const setopenmodal = useGlobalStore((s) => s.setopenmodal);
+  const openmodal = useGlobalStore((s) => s.openmodal);
   const [categories, setcategories] = useState(false);
   const [profile, setprofile] = useState(false);
   const [opennotification, setnotification] = useState(false);
@@ -557,7 +562,11 @@ const COLOR_MAP: Record<string, string> = {
 };
 
 export const SubInventoryMenu = memo((props: Subinventorymenuprops) => {
-  const { setopenmodal, setglobalindex, setproduct, setbanner, setpromotion } = useGlobalContext();
+  const setopenmodal = useGlobalStore((s) => s.setopenmodal);
+  const setglobalindex = useGlobalStore((s) => s.setglobalindex);
+  const setproduct = useGlobalStore((s) => s.setproduct);
+  const setbanner = useGlobalStore((s) => s.setbanner);
+  const setpromotion = useGlobalStore((s) => s.setpromotion);
 
   const handleClick = useCallback(
     (obj: { value: string; opencon: string }) => {

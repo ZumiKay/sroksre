@@ -1,5 +1,5 @@
 "use client";
-import { useGlobalContext } from "@/src/context/GlobalContext";
+import { useGlobalStore } from "@/src/context/GlobalContext";
 import { StockCard } from "../Stock";
 import { useMemo, memo, useCallback } from "react";
 import {
@@ -200,7 +200,7 @@ const RenderStockCards = memo(
     selected,
     onToggleSelect,
   }: RenderStockCardsProps) => {
-    const { product } = useGlobalContext();
+    const product = useGlobalStore((s) => s.product);
 
     const stockValues = useMemo(
       () =>

@@ -4,7 +4,7 @@ import { ChangeEvent, useEffect, useState } from "react";
 import { Input, Textarea } from "@heroui/react";
 import PrimaryButton from "@/src/app/component/Button";
 import { errorToast } from "@/src/app/component/Loading";
-import { useGlobalContext } from "@/src/context/GlobalContext";
+import { useGlobalStore } from "@/src/context/GlobalContext";
 
 const inputClasses = {
   label: "text-sm font-semibold text-gray-700",
@@ -16,8 +16,11 @@ const inputClasses = {
 const normalDetailInitial = { info_title: "", info_value: "" };
 
 const NormalDetail = () => {
-  const { product, globalindex, setproduct, setglobalindex, setopenmodal } =
-    useGlobalContext();
+  const product = useGlobalStore((s) => s.product);
+  const globalindex = useGlobalStore((s) => s.globalindex);
+  const setproduct = useGlobalStore((s) => s.setproduct);
+  const setglobalindex = useGlobalStore((s) => s.setglobalindex);
+  const setopenmodal = useGlobalStore((s) => s.setopenmodal);
   const [index, setindex] = useState(-1);
   const [normaldetail, setnormal] = useState(normalDetailInitial);
 
@@ -116,7 +119,7 @@ const NormalDetail = () => {
 };
 
 export const DetailsModal = () => {
-  const { setopenmodal } = useGlobalContext();
+  const setopenmodal = useGlobalStore((s) => s.setopenmodal);
 
   return (
     <div

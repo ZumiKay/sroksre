@@ -2,7 +2,7 @@
 
 import { ChangeEvent, useEffect, useState } from "react";
 import { SecondaryModal } from "@/src/app/component/Modals";
-import { useGlobalContext } from "@/src/context/GlobalContext";
+import { useGlobalStore } from "@/src/context/GlobalContext";
 import { DateTimePicker, LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -46,7 +46,7 @@ export const FilterMenu = ({
   const router = useRouter();
   const searchParams = useSearchParams();
   const [filterdata, setfilterdata] = useState<Filterdatatype>({});
-  const { setopenmodal } = useGlobalContext();
+  const setopenmodal = useGlobalStore((s) => s.setopenmodal);
   const { isMobile } = useScreenSize();
   const { handleCheckSession } = useCheckSession();
 

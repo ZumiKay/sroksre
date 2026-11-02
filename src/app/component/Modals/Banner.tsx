@@ -1,7 +1,7 @@
 "use client";
 import {
   BannerInitialize,
-  useGlobalContext,
+  useGlobalStore,
 } from "@/src/context/GlobalContext";
 import { useCallback, useState, memo } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -60,16 +60,14 @@ export const BannerModal = memo(function BannerModal({
 }: {
   setreloaddata?: React.Dispatch<React.SetStateAction<boolean>>;
 }) {
-  const {
-    openmodal,
-    setopenmodal,
-    banner,
-    setbanner,
-    allData,
-    setalldata,
-    globalindex,
-    setglobalindex,
-  } = useGlobalContext();
+  const openmodal = useGlobalStore((s) => s.openmodal);
+  const setopenmodal = useGlobalStore((s) => s.setopenmodal);
+  const banner = useGlobalStore((s) => s.banner);
+  const setbanner = useGlobalStore((s) => s.setbanner);
+  const allData = useGlobalStore((s) => s.allData);
+  const setalldata = useGlobalStore((s) => s.setalldata);
+  const globalindex = useGlobalStore((s) => s.globalindex);
+  const setglobalindex = useGlobalStore((s) => s.setglobalindex);
 
   const [loading, setloading] = useState(false);
 

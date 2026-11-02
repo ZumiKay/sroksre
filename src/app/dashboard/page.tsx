@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import PrimaryButton from "../component/Button";
 import { ToggleDownMenu } from "../component/ToggleMenu";
 import Card from "../component/Card";
-import { useGlobalContext } from "@/src/context/GlobalContext";
+import { useGlobalStore } from "@/src/context/GlobalContext";
 import { ApiRequest, Delayloading } from "@/src/context/CustomHook";
 import { ContainerLoading } from "../component/Loading";
 import { EditProfile } from "../component/Modals/User";
@@ -24,7 +24,10 @@ interface userdata extends Userdatastate {
 }
 
 export default function UserDashboard() {
-  const { openmodal, setopenmodal, userinfo, setuserinfo } = useGlobalContext();
+  const openmodal = useGlobalStore((s) => s.openmodal);
+  const setopenmodal = useGlobalStore((s) => s.setopenmodal);
+  const userinfo = useGlobalStore((s) => s.userinfo);
+  const setuserinfo = useGlobalStore((s) => s.setuserinfo);
   const [userdata, setdata] = useState<userdata>({
     open: {
       whilist: false,

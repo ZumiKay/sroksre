@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { SecondaryModal } from "@/src/app/component/Modals";
-import { useGlobalContext } from "@/src/context/GlobalContext";
+import { useGlobalStore } from "@/src/context/GlobalContext";
 import { formatDate } from "@/src/app/component/EmailTemplate";
 import { AllorderStatus } from "../../page";
 import { OrderDetailType } from "../types";
@@ -50,7 +50,7 @@ export const DetailModal = ({
   isAdmin,
 }: DetailModalProps) => {
   const [view, setview] = useState<DetailView>("none");
-  const { openmodal } = useGlobalContext();
+  const openmodal = useGlobalStore((s) => s.openmodal);
 
   const titles: Record<DetailView, string> = {
     none: "Order Details",

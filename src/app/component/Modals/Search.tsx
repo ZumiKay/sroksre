@@ -1,7 +1,7 @@
 "use client";
 
 import Modal from "../Modals";
-import { useGlobalContext } from "@/src/context/GlobalContext";
+import { useGlobalStore } from "@/src/context/GlobalContext";
 import { motion } from "framer-motion";
 import { Orderpricetype } from "@/src/types/order.type";
 import { useEffect, useRef, useState } from "react";
@@ -32,7 +32,7 @@ interface Searchproducttype {
 // ─── SearchContainer ──────────────────────────────────────────────────────────
 
 export default function SearchContainer({ isMobile }: { isMobile: boolean }) {
-  const { setopenmodal } = useGlobalContext();
+  const setopenmodal = useGlobalStore((s) => s.setopenmodal);
   const [products, setProducts] = useState<Searchproducttype[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);

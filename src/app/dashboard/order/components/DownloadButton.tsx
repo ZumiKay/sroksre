@@ -10,7 +10,7 @@ import {
   faTable,
   faXmark,
 } from "@fortawesome/free-solid-svg-icons";
-import { useGlobalContext } from "@/src/context/GlobalContext";
+import { useGlobalStore } from "@/src/context/GlobalContext";
 import { totalpricetype } from "@/src/types/order.type";
 import { ExportOrderData } from "../action";
 import { errorToast } from "@/src/app/component/Loading";
@@ -20,7 +20,8 @@ import { FilterMenu } from "./FilterMenu";
 import { Filterdatatype } from "./types";
 
 export const DownloadButton = () => {
-  const { openmodal, setopenmodal } = useGlobalContext();
+  const openmodal = useGlobalStore((s) => s.openmodal);
+  const setopenmodal = useGlobalStore((s) => s.setopenmodal);
   const [open, setopen] = useState(false);
   const [totalcount, settotalcount] = useState(0);
   const [loading, setloading] = useState(false);

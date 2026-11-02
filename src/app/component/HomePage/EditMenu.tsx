@@ -29,7 +29,7 @@ import {
   Delayloading,
   useEffectOnce,
 } from "@/src/context/CustomHook";
-import { useGlobalContext } from "@/src/context/GlobalContext";
+import { useGlobalStore } from "@/src/context/GlobalContext";
 
 const SortableItem = ({
   id,
@@ -44,7 +44,8 @@ const SortableItem = ({
   onEdit: () => void;
   isEdit?: boolean;
 }) => {
-  const { setopenmodal, setglobalindex } = useGlobalContext();
+  const setopenmodal = useGlobalStore((s) => s.setopenmodal);
+  const setglobalindex = useGlobalStore((s) => s.setglobalindex);
   const {
     attributes,
     listeners,

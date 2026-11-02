@@ -2,7 +2,7 @@
 
 import { memo, useCallback } from "react";
 import React from "react";
-import { useGlobalContext } from "@/src/context/GlobalContext";
+import { useGlobalStore } from "@/src/context/GlobalContext";
 import { Containertype } from "../../../severactions/containeraction";
 import { AddIcon } from "../../Asset";
 import PrimaryButton from "../../Button";
@@ -15,7 +15,7 @@ export const CreateContainerType = memo(function CreateContainerType({
   data: Containertype;
   setdata: React.Dispatch<React.SetStateAction<Containertype>>;
 }) {
-  const { setopenmodal } = useGlobalContext();
+  const setopenmodal = useGlobalStore((s) => s.setopenmodal);
 
   const handleDelete = useCallback(
     (id: number) => {

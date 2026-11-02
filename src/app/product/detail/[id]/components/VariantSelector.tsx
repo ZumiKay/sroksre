@@ -2,7 +2,7 @@
 
 import React, { useMemo, useCallback } from "react";
 import { SelectContainer } from "@/src/app/component/Button";
-import { useGlobalContext } from "@/src/context/GlobalContext";
+import { useGlobalStore } from "@/src/context/GlobalContext";
 import { ProductState, VariantValueObjType } from "@/src/types/product.type";
 import {
   Productorderdetailtype,
@@ -50,7 +50,8 @@ export const VariantSelector = React.memo((props: VariantSelectorProps) => {
     setincart,
   } = props;
 
-  const { productorderdetail, setproductorderdetail } = useGlobalContext();
+  const productorderdetail = useGlobalStore((s) => s.productorderdetail);
+  const setproductorderdetail = useGlobalStore((s) => s.setproductorderdetail);
   const { fetchAvailableQuantity } = useStockCheck();
   const { checkInCart } = useCartCheck();
   const { computeOptionQty } = useOptionQuantity();

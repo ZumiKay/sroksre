@@ -3,7 +3,7 @@ import React, { useState, useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import { Orderpricetype } from "@/src/types/order.type";
-import { useGlobalContext } from "@/src/context/GlobalContext";
+import { useGlobalStore } from "@/src/context/GlobalContext";
 import { SubInventoryMenu } from "@/src/app/component/Navbar";
 import Checkmark from "../../../../../public/Image/Checkmark.svg";
 import { ProductState } from "@/src/types/product.type";
@@ -78,15 +78,13 @@ export const ProductListItem: React.FC<ProductListItemProps> = ({
   isSelected = false,
   onToggleSelect,
 }) => {
-  const {
-    promotion,
-    setpromotion,
-    setglobalindex,
-    setopenmodal,
-    setproduct,
-    allData,
-    setalldata,
-  } = useGlobalContext();
+  const promotion = useGlobalStore((s) => s.promotion);
+  const setpromotion = useGlobalStore((s) => s.setpromotion);
+  const setglobalindex = useGlobalStore((s) => s.setglobalindex);
+  const setopenmodal = useGlobalStore((s) => s.setopenmodal);
+  const setproduct = useGlobalStore((s) => s.setproduct);
+  const allData = useGlobalStore((s) => s.allData);
+  const setalldata = useGlobalStore((s) => s.setalldata);
 
   const [hover, setHover] = useState(false);
   const [isImageLoading, setIsImageLoading] = useState(true);
@@ -304,7 +302,9 @@ export const BannerListItem: React.FC<BannerListItemProps> = ({
   isSelected = false,
   onToggleSelect,
 }) => {
-  const { promotion, setpromotion, openmodal } = useGlobalContext();
+  const promotion = useGlobalStore((s) => s.promotion);
+  const setpromotion = useGlobalStore((s) => s.setpromotion);
+  const openmodal = useGlobalStore((s) => s.openmodal);
   const [hover, setHover] = useState(false);
 
   const isBanner = useMemo(
@@ -404,7 +404,7 @@ export const PromotionListItem: React.FC<PromotionListItemProps> = ({
   isSelected = false,
   onToggleSelect,
 }) => {
-  const { openmodal } = useGlobalContext();
+  const openmodal = useGlobalStore((s) => s.openmodal);
   const [hover, setHover] = useState(false);
 
   const actionMenu = useMemo(

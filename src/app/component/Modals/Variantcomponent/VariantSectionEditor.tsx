@@ -2,7 +2,7 @@ import { Key, useEffect, useState } from "react";
 import { Tabs, Tab, Card, CardBody } from "@heroui/react";
 import { PlusIcon } from "../../svg/icons";
 import PrimaryButton from "../../Button";
-import { useGlobalContext } from "@/src/context/GlobalContext";
+import { useGlobalStore } from "@/src/context/GlobalContext";
 import { errorToast } from "../../Loading";
 
 // Types
@@ -36,7 +36,7 @@ const VariantSectionEditor = ({
   seteditSectonId,
   setSuccessMessage,
 }: VariantSectionEditorProps) => {
-  const { product } = useGlobalContext();
+  const product = useGlobalStore((s) => s.product);
   const [tempVariantSectionId, settempVariantSectionId] = useState<number>(1);
   const [selectedTab, setSelectedTab] = useState<string>(
     newadd === "section-list" ? "list" : "create",

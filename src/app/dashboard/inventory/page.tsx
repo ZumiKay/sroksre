@@ -25,7 +25,7 @@ import {
 import { EmptyState, LoadingState } from "./components/EmptyAndLoadingStates";
 
 // Contexts & Hooks
-import { useGlobalContext, CateogoryState } from "@/src/context/GlobalContext";
+import { useGlobalStore, CateogoryState } from "@/src/context/GlobalContext";
 import { ApiRequest, Delayloading } from "@/src/context/CustomHook";
 
 // Utils & Types
@@ -91,19 +91,17 @@ export default function Inventory() {
   const promoids = searchParam.get("promoids") ?? undefined;
 
   // Global context
-  const {
-    openmodal,
-    setopenmodal,
-    allData,
-    setalldata,
-    isLoading,
-    setisLoading,
-    promotion,
-    setpromotion,
-    itemlength,
-    setitemlength,
-    globalindex,
-  } = useGlobalContext();
+  const openmodal = useGlobalStore((s) => s.openmodal);
+  const setopenmodal = useGlobalStore((s) => s.setopenmodal);
+  const allData = useGlobalStore((s) => s.allData);
+  const setalldata = useGlobalStore((s) => s.setalldata);
+  const isLoading = useGlobalStore((s) => s.isLoading);
+  const setisLoading = useGlobalStore((s) => s.setisLoading);
+  const promotion = useGlobalStore((s) => s.promotion);
+  const setpromotion = useGlobalStore((s) => s.setpromotion);
+  const itemlength = useGlobalStore((s) => s.itemlength);
+  const setitemlength = useGlobalStore((s) => s.setitemlength);
+  const globalindex = useGlobalStore((s) => s.globalindex);
   const { handleCheckSession } = useCheckSession();
 
   // Local state

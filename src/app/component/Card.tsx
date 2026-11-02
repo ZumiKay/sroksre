@@ -13,7 +13,7 @@ import {
 import { useRef, useState, useCallback, useMemo, memo } from "react";
 import { ImageWithLoader } from "./ImageWithLoader";
 import { PrimaryPhoto } from "./PhotoComponent";
-import { useGlobalContext } from "@/src/context/GlobalContext";
+import { useGlobalStore } from "@/src/context/GlobalContext";
 import Checkmark from "../../../public/Image/Checkmark.svg";
 import { SubInventoryMenu } from "./Navbar";
 import { errorToast } from "./Loading";
@@ -69,14 +69,12 @@ const editactionMenu = [
 ];
 
 const Card = memo(function Card(props: cardprops) {
-  const {
-    promotion,
-    setpromotion,
-    setglobalindex,
-    setopenmodal,
-    allData,
-    setalldata,
-  } = useGlobalContext();
+  const promotion = useGlobalStore((s) => s.promotion);
+  const setpromotion = useGlobalStore((s) => s.setpromotion);
+  const setglobalindex = useGlobalStore((s) => s.setglobalindex);
+  const setopenmodal = useGlobalStore((s) => s.setopenmodal);
+  const allData = useGlobalStore((s) => s.allData);
+  const setalldata = useGlobalStore((s) => s.setalldata);
   const route = useRouter();
   const isProduct = useMemo(
     () => promotion.Products.find((i) => i.id === props.id),
@@ -673,7 +671,9 @@ export const BannerCard = memo(function BannerCard({
   isExpired,
   reloaddata,
 }: Bannercardprops) {
-  const { promotion, setpromotion, openmodal } = useGlobalContext();
+  const promotion = useGlobalStore((s) => s.promotion);
+  const setpromotion = useGlobalStore((s) => s.setpromotion);
+  const openmodal = useGlobalStore((s) => s.openmodal);
 
   const isBanner = useMemo(
     () => promotion.banner_id === id,

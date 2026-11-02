@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect } from "react";
-import { useGlobalContext } from "@/src/context/GlobalContext";
+import { useGlobalStore } from "@/src/context/GlobalContext";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AllorderType } from "@/src/lib/utilities";
 import { AllorderStatus } from "../page";
@@ -39,7 +39,8 @@ export const ButtonSsr = ({
   orderdata,
   isAdmin,
 }: ButtonSsrProps) => {
-  const { openmodal, setopenmodal } = useGlobalContext();
+  const openmodal = useGlobalStore((s) => s.openmodal);
+  const setopenmodal = useGlobalStore((s) => s.setopenmodal);
   const router = useRouter();
   const searchParams = useSearchParams();
 

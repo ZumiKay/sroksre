@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useMemo } from "react";
 import PrimaryButton from "@/src/app/component/Button";
 import {
   Productdetailinitialize,
-  useGlobalContext,
+  useGlobalStore,
 } from "@/src/context/GlobalContext";
 import { ProductState } from "@/src/types/product.type";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -32,8 +32,9 @@ export const OptionSection = ({
   isInWishlist,
   isInCart,
 }: OptionSectionProps) => {
-  const { productorderdetail, setproductorderdetail, setcarttotal } =
-    useGlobalContext();
+  const productorderdetail = useGlobalStore((s) => s.productorderdetail);
+  const setproductorderdetail = useGlobalStore((s) => s.setproductorderdetail);
+  const setcarttotal = useGlobalStore((s) => s.setcarttotal);
   const [loading, setloading] = useState(false);
   const [errormess, seterrormess] = useState<ErrorMessageType>({
     option: "",

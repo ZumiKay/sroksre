@@ -1,5 +1,5 @@
 import { ApiRequest, Delayloading, useScreenSize } from "@/src/context/CustomHook";
-import { useGlobalContext } from "@/src/context/GlobalContext";
+import { useGlobalStore } from "@/src/context/GlobalContext";
 import { productcoverstype } from "@/src/types/product.type";
 import { ChangeEvent, useRef, useState, useCallback, useEffect } from "react";
 import { ContainerLoading, errorToast, infoToast, successToast } from "../Loading";
@@ -97,8 +97,13 @@ const uploadToVercel = async (
 };
 
 export const ImageUpload = (props: imageuploadprops) => {
-  const { product, setproduct, banner, setbanner, openmodal, setopenmodal, globalindex } =
-    useGlobalContext();
+  const product = useGlobalStore((s) => s.product);
+  const setproduct = useGlobalStore((s) => s.setproduct);
+  const banner = useGlobalStore((s) => s.banner);
+  const setbanner = useGlobalStore((s) => s.setbanner);
+  const openmodal = useGlobalStore((s) => s.openmodal);
+  const setopenmodal = useGlobalStore((s) => s.setopenmodal);
+  const globalindex = useGlobalStore((s) => s.globalindex);
   const [Imgurl, seturl] = useState<Imgurl[]>([]);
   const [Imgurltemp, seturltemp] = useState<Imgurl[]>([]);
   const [Files, setfiles] = useState<File[]>([]);

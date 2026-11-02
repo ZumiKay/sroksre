@@ -3,7 +3,7 @@
 import { ApiRequest } from "@/src/context/CustomHook";
 import {
   PromotionInitialize,
-  useGlobalContext,
+  useGlobalStore,
 } from "@/src/context/GlobalContext";
 import { useRouter, useSearchParams } from "next/navigation";
 import React, { ChangeEvent, SubmitEvent, useEffect, useState } from "react";
@@ -47,16 +47,14 @@ export const CreatePromotionModal = ({
   settype: (type: string) => void;
   setreloaddata: React.Dispatch<React.SetStateAction<boolean>>;
 }) => {
-  const {
-    openmodal,
-    setopenmodal,
-    promotion,
-    setpromotion,
-    setisLoading,
-    isLoading,
-    globalindex,
-    setglobalindex,
-  } = useGlobalContext();
+  const openmodal = useGlobalStore((s) => s.openmodal);
+  const setopenmodal = useGlobalStore((s) => s.setopenmodal);
+  const promotion = useGlobalStore((s) => s.promotion);
+  const setpromotion = useGlobalStore((s) => s.setpromotion);
+  const setisLoading = useGlobalStore((s) => s.setisLoading);
+  const isLoading = useGlobalStore((s) => s.isLoading);
+  const globalindex = useGlobalStore((s) => s.globalindex);
+  const setglobalindex = useGlobalStore((s) => s.setglobalindex);
 
   const [loading, setloading] = useState(false);
   const router = useRouter();
@@ -427,16 +425,14 @@ function PickRow({
 }
 
 export const DiscountModals = () => {
-  const {
-    promotion,
-    allData,
-    setalldata,
-    setpromotion,
-    globalindex,
-    setglobalindex,
-    openmodal,
-    setopenmodal,
-  } = useGlobalContext();
+  const promotion = useGlobalStore((s) => s.promotion);
+  const allData = useGlobalStore((s) => s.allData);
+  const setalldata = useGlobalStore((s) => s.setalldata);
+  const setpromotion = useGlobalStore((s) => s.setpromotion);
+  const globalindex = useGlobalStore((s) => s.globalindex);
+  const setglobalindex = useGlobalStore((s) => s.setglobalindex);
+  const openmodal = useGlobalStore((s) => s.openmodal);
+  const setopenmodal = useGlobalStore((s) => s.setopenmodal);
   const [discount, setdiscount] = useState<number>(0);
 
   // Forget which card opened the modal, so the next open starts clean
