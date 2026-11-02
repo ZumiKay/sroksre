@@ -2,26 +2,11 @@ import { useGlobalStore, Userinitialize } from "@/src/context/GlobalContext";
 import React, { ChangeEvent, SubmitEvent, useEffect, useState } from "react";
 import { errorToast, successToast } from "../Loading";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import {
-  faUserPlus,
-  faTrash,
-  faPlus,
-  faSave,
-} from "@fortawesome/free-solid-svg-icons";
-import {
-  ApiRequest,
-  useDetectKeyboardOpen,
-  useScreenSize,
-} from "@/src/context/CustomHook";
+import { faUserPlus, faTrash, faPlus, faSave } from "@fortawesome/free-solid-svg-icons";
+import { ApiRequest, useDetectKeyboardOpen, useScreenSize } from "@/src/context/CustomHook";
 import { SecondaryModal } from "../Modals";
 
-import {
-  FormControl,
-  IconButton,
-  InputAdornment,
-  InputLabel,
-  OutlinedInput,
-} from "@mui/material";
+import { FormControl, IconButton, InputAdornment, InputLabel, OutlinedInput } from "@mui/material";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import Visibility from "@mui/icons-material/Visibility";
 import PrimaryButton from "../Button";
@@ -90,9 +75,7 @@ export const Createusermodal = ({
       return;
     }
 
-    successToast(
-      `User ${editindex === -1 ? "Created" : "Updated"} Successfully`,
-    );
+    successToast(`User ${editindex === -1 ? "Created" : "Updated"} Successfully`);
     editindex === -1 && setdata(Userinitialize);
     setglobalindex((prev) => ({ ...prev, useredit: -1 }));
     setopenmodal((prev) => ({ ...prev, createUser: false }));
@@ -135,7 +118,7 @@ export const Createusermodal = ({
       closebtn
       header={() => (
         <div className="flex items-center gap-3 px-2">
-          <div className="w-10 h-10 rounded-lg bg-linear-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-lg bg-slate-500 flex items-center justify-center">
             <FontAwesomeIcon icon={faUserPlus} className="text-white text-lg" />
           </div>
           <div>
@@ -170,9 +153,7 @@ export const Createusermodal = ({
           </div>
 
           <div className="w-full">
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Last Name
-            </label>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Last Name</label>
             <TextInput
               type="text"
               name="lastname"
@@ -203,9 +184,7 @@ export const Createusermodal = ({
             <select
               name="role"
               value={data.role || "USER"}
-              onChange={(e) =>
-                setdata((prev) => ({ ...prev, role: e.target.value }) as never)
-              }
+              onChange={(e) => setdata((prev) => ({ ...prev, role: e.target.value }) as never)}
               disabled={globalindex.useredit !== -1 && data.role === "ADMIN"}
               className="w-full h-12.5 px-4 py-2 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-hidden transition-all bg-white text-gray-800 font-medium disabled:opacity-60 disabled:cursor-not-allowed disabled:bg-gray-100"
               required
@@ -227,9 +206,7 @@ export const Createusermodal = ({
 
           {data.phonenumber !== undefined && (
             <div className="w-full">
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Phone Number
-              </label>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Phone Number</label>
               <TextInput
                 type="tel"
                 name="phonenumber"
@@ -256,10 +233,7 @@ export const Createusermodal = ({
                 }}
                 variant="outlined"
               >
-                <InputLabel
-                  className="font-semibold"
-                  htmlFor="outlined-adornment-password"
-                >
+                <InputLabel className="font-semibold" htmlFor="outlined-adornment-password">
                   Password
                 </InputLabel>
                 <OutlinedInput
@@ -315,10 +289,7 @@ export const Createusermodal = ({
                 text="Delete User"
                 type="button"
                 textcolor="white"
-                disable={
-                  allData?.user &&
-                  allData.user[globalindex.useredit].role === "ADMIN"
-                }
+                disable={allData?.user && allData.user[globalindex.useredit].role === "ADMIN"}
                 onClick={() => handleDelete(data.id as number)}
                 width="100%"
                 height="54px"
@@ -399,14 +370,7 @@ export const EditProfile = ({
   const fetchdata = async (ty: typeof type) => {
     if (ty === "shipping") {
       const url = `/api/users/info?ty=${type}`;
-      const request = await ApiRequest(
-        url,
-        undefined,
-        "GET",
-        undefined,
-        undefined,
-        "userinfo",
-      );
+      const request = await ApiRequest(url, undefined, "GET", undefined, undefined, "userinfo");
       setloading((prev) => ({ ...prev, get: false }));
       if (request.success) {
         const addresses = request.data.map((addr: shippingtype) => ({
@@ -522,17 +486,13 @@ export const EditProfile = ({
     <SecondaryModal
       size={isMobile ? "full" : "2xl"}
       open={openmodal.editprofile}
-      onPageChange={(val) =>
-        setopenmodal((prev) => ({ ...prev, editprofile: val }))
-      }
+      onPageChange={(val) => setopenmodal((prev) => ({ ...prev, editprofile: val }))}
       placement="top"
       closebtn
     >
       <div
         style={
-          isKeyboardOpen && type === "shipping"
-            ? { minHeight: "100vh" }
-            : { minHeight: "100%" }
+          isKeyboardOpen && type === "shipping" ? { minHeight: "100vh" } : { minHeight: "100%" }
         }
         className="editprofile_container relative flex flex-col items-center gap-y-5 w-full h-full bg-white rounded-lg p-6"
       >
@@ -584,16 +544,8 @@ export const EditProfile = ({
         )}
         {type === "password" && (
           <>
-            <PasswordInput
-              type="userinfo"
-              name="oldpassword"
-              label="Old Password"
-            />{" "}
-            <PasswordInput
-              type="userinfo"
-              name="newpassword"
-              label="New Password"
-            />{" "}
+            <PasswordInput type="userinfo" name="oldpassword" label="Old Password" />{" "}
+            <PasswordInput type="userinfo" name="newpassword" label="New Password" />{" "}
           </>
         )}
         {type === "shipping" && (
