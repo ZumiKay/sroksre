@@ -81,6 +81,7 @@ export const ModelName = {
   Paragraph: 'Paragraph',
   Notification: 'Notification',
   LoginAttempt: 'LoginAttempt',
+  MfaRecoveryCode: 'MfaRecoveryCode',
   EmailVerification: 'EmailVerification'
 } as const
 
@@ -113,7 +114,10 @@ export const UserScalarFieldEnum = {
   password: 'password',
   whislist: 'whislist',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  totpSecret: 'totpSecret',
+  totpEnabledAt: 'totpEnabledAt',
+  lastTotpStep: 'lastTotpStep'
 } as const
 
 export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
@@ -156,7 +160,8 @@ export const UsersessionScalarFieldEnum = {
   device: 'device',
   userAgent: 'userAgent',
   ipAddress: 'ipAddress',
-  revoked: 'revoked'
+  revoked: 'revoked',
+  mfaVerified: 'mfaVerified'
 } as const
 
 export type UsersessionScalarFieldEnum = (typeof UsersessionScalarFieldEnum)[keyof typeof UsersessionScalarFieldEnum]
@@ -480,6 +485,17 @@ export const LoginAttemptScalarFieldEnum = {
 } as const
 
 export type LoginAttemptScalarFieldEnum = (typeof LoginAttemptScalarFieldEnum)[keyof typeof LoginAttemptScalarFieldEnum]
+
+
+export const MfaRecoveryCodeScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  codeHash: 'codeHash',
+  usedAt: 'usedAt',
+  createdAt: 'createdAt'
+} as const
+
+export type MfaRecoveryCodeScalarFieldEnum = (typeof MfaRecoveryCodeScalarFieldEnum)[keyof typeof MfaRecoveryCodeScalarFieldEnum]
 
 
 export const EmailVerificationScalarFieldEnum = {

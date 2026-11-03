@@ -244,6 +244,30 @@ export default function UserDashboard() {
           </a>
         </div>
 
+        {userinfo.role === "ADMIN" && (
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
+            <a
+              href="/dashboard/security"
+              className="w-full px-8 py-6 flex items-center justify-between bg-white text-gray-800 hover:bg-gray-50 transition-all group"
+            >
+              <div className="flex items-center gap-4">
+                <span className="text-2xl">🛡️</span>
+                <div className="text-left">
+                  <h3 className="text-xl font-bold max-large_phone:text-lg">
+                    Security
+                  </h3>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Two-factor login for your admin account
+                  </p>
+                </div>
+              </div>
+              <span className="text-gray-600 group-hover:translate-x-1 transition-transform">
+                →
+              </span>
+            </a>
+          </div>
+        )}
+
         {userinfo.role === "USER" && (
           <>
             {/* Wishlist Section */}

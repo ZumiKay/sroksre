@@ -13,7 +13,11 @@ jest.mock("next/cache", () => ({ revalidateTag: jest.fn() }));
 
 import Prisma from "@/src/lib/prisma";
 import { requireAdmin } from "@/src/lib/session";
-import { isActiveAdminSession } from "@/src/lib/adminGuard";
+import {
+  getAdminSessionStatus,
+  getOrderPageAccess,
+  isActiveAdminSession,
+} from "@/src/lib/adminGuard";
 import { isAdminOnlyRoute } from "@/src/lib/middlewareaction";
 import { DELETE, GET } from "@/src/app/api/users/route";
 import { hashToken } from "@/src/lib/userlib";
@@ -82,6 +86,109 @@ describe("isActiveAdminSession", () => {
     db.usersession.findUnique.mockRejectedValue(new Error("down"));
     expect(await isActiveAdminSession("sid")).toBe(false);
   });
+
+  describe("with ADMIN_MFA_REQUIRED=true", () => {
+    const original = process.env.ADMIN_MFA_REQUIRED;
+    beforeEach(() => {
+      process.env.ADMIN_MFA_REQUIRED = "true";
+    });
+    afterEach(() => {
+      process.env.ADMIN_MFA_REQUIRED = original;
+    });
+
+    const adminSession = (mfaVerified: boolean) => ({
+      revoked: false,
+      expireAt: future(),
+      mfaVerified,
+      user: { role: "ADMIN" },
+    });
+
+    it("asks an admin login without two-factor to set it up", async () => {
+      db.usersession.findUnique.mockResolvedValue(adminSession(false));
+      expect(await getAdminSessionStatus("sid")).toBe("mfa_required");
+      expect(await isActiveAdminSession("sid")).toBe(false);
+    });
+
+    it("lets a login that passed two-factor through", async () => {
+      db.usersession.findUnique.mockResolvedValue(adminSession(true));
+      expect(await getAdminSessionStatus("sid")).toBe("ok");
+    });
+
+    it("still denies non-admins outright", async () => {
+      db.usersession.findUnique.mockResolvedValue({
+        ...adminSession(true),
+        user: { role: "USER" },
+      });
+      expect(await getAdminSessionStatus("sid")).toBe("denied");
+    });
+  });
+
+  it("does not require two-factor while ADMIN_MFA_REQUIRED is off", async () => {
+    const original = process.env.ADMIN_MFA_REQUIRED;
+    process.env.ADMIN_MFA_REQUIRED = "false";
+    db.usersession.findUnique.mockResolvedValue({
+      revoked: false,
+      expireAt: future(),
+      mfaVerified: false,
+      user: { role: "ADMIN" },
+    });
+    expect(await getAdminSessionStatus("sid")).toBe("ok");
+    process.env.ADMIN_MFA_REQUIRED = original;
+  });
+});
+
+describe("getOrderPageAccess", () => {
+  const original = process.env.ADMIN_MFA_REQUIRED;
+  beforeEach(() => {
+    process.env.ADMIN_MFA_REQUIRED = "true";
+  });
+  afterEach(() => {
+    process.env.ADMIN_MFA_REQUIRED = original;
+  });
+
+  const session = (mfaVerified: boolean, role = "ADMIN") => ({
+    revoked: false,
+    expireAt: future(),
+    mfaVerified,
+    user: { role },
+  });
+  const admin = { role: "ADMIN", buyer_id: "admin-buyer" };
+
+  it("shows every order to an admin who passed two-factor", async () => {
+    db.usersession.findUnique.mockResolvedValue(session(true));
+    expect(await getOrderPageAccess(admin, "sid")).toEqual({ view: "all" });
+  });
+
+  it("sends an admin who hasn't passed two-factor to set it up", async () => {
+    db.usersession.findUnique.mockResolvedValue(session(false));
+    expect(await getOrderPageAccess(admin, "sid")).toEqual({
+      view: "setup_mfa",
+    });
+  });
+
+  it("denies an admin whose session was demoted or revoked", async () => {
+    db.usersession.findUnique.mockResolvedValue(session(true, "USER"));
+    expect(await getOrderPageAccess(admin, "sid")).toEqual({ view: "denied" });
+  });
+
+  it("limits a customer to their own orders", async () => {
+    expect(
+      await getOrderPageAccess({ role: "USER", buyer_id: "b-1" }, "sid"),
+    ).toEqual({ view: "own", buyerId: "b-1" });
+    expect(db.usersession.findUnique).not.toHaveBeenCalled();
+  });
+
+  it("never falls back to every order", async () => {
+    expect(await getOrderPageAccess({ role: "USER", buyer_id: "" }, "sid")).toEqual(
+      { view: "denied" },
+    );
+    expect(await getOrderPageAccess(undefined, "sid")).toEqual({
+      view: "denied",
+    });
+    expect(
+      await getOrderPageAccess({ role: "EDITOR", buyer_id: "b-1" }, "sid"),
+    ).toEqual({ view: "denied" });
+  });
 });
 
 describe("isAdminOnlyRoute", () => {
@@ -124,13 +231,16 @@ describe("/api/users", () => {
     ["an empty list", { userIds: [] }],
     ["a non-numeric id", { userIds: [2, "abc"] }],
     ["a negative id", { id: -1 }],
-  ])("DELETE rejects %s and never runs an unfiltered delete", async (_, body) => {
-    mockRequireAdmin.mockResolvedValue(admin);
-    const res = await DELETE(req(body));
-    expect(res.status).toBe(400);
-    expect(db.user.deleteMany).not.toHaveBeenCalled();
-    expect(db.wishlist.deleteMany).not.toHaveBeenCalled();
-  });
+  ])(
+    "DELETE rejects %s and never runs an unfiltered delete",
+    async (_, body) => {
+      mockRequireAdmin.mockResolvedValue(admin);
+      const res = await DELETE(req(body));
+      expect(res.status).toBe(400);
+      expect(db.user.deleteMany).not.toHaveBeenCalled();
+      expect(db.wishlist.deleteMany).not.toHaveBeenCalled();
+    },
+  );
 
   it("DELETE removes the selected users only", async () => {
     mockRequireAdmin.mockResolvedValue(admin);

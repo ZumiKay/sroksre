@@ -49,6 +49,13 @@ model User {
   Orderproduct       Orderproduct[]
   Tempimage          Tempimage[]
   emailVerifications EmailVerification[]
+  // Two-factor login (authenticator app). totpSecret is AES-GCM encrypted;
+  // set but with totpEnabledAt null while setup is unfinished.
+  totpSecret         String?
+  totpEnabledAt      DateTime?
+  // Last accepted 30-second step, so a code can't be used twice.
+  lastTotpStep       Int?
+  mfaRecoveryCodes   MfaRecoveryCode[]
 
   @@index([email])
   @@index([oauthId])
@@ -99,6 +106,8 @@ model Usersession {
   userAgent          String?
   ipAddress          String?
   revoked            Boolean   @default(false)
+  // True when this login passed the two-factor check.
+  mfaVerified        Boolean   @default(false)
 
   @@index([userId])
   @@index([expireAt])
@@ -496,6 +505,19 @@ enum VerificationPurpose {
   SIGNUP
   RESET_PASSWORD
   CHANGE_EMAIL
+  MFA_SETUP
+}
+
+// One-time backup codes for two-factor login. Only a SHA-256 hash is stored.
+model MfaRecoveryCode {
+  id        Int       @id @default(autoincrement())
+  userId    Int
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  codeHash  String
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
 }
 
 // Short-lived email codes / reset tokens. Only a SHA-256 hash is stored.

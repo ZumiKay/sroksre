@@ -40,6 +40,8 @@ const userRoute: Map<string, methodtype[]> = new Map([
   ["/order", ["POST", "PUT", "GET", "DELETE"]],
   ["/order/cart", ["POST", "GET", "DELETE"]],
   ["/users/info", ["GET", "DELETE"]],
+  // Two-factor setup; the handler itself requires an admin.
+  ["/users/mfa", ["GET", "POST"]],
   ["/users/logout", ["DELETE"]],
 ]);
 

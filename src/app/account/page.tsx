@@ -1,5 +1,5 @@
 "use client";
-import { ChangeEvent, SubmitEvent, useRef, useState } from "react";
+import { ChangeEvent, SubmitEvent, useEffect, useRef, useState } from "react";
 import type { TurnstileInstance } from "@marsidev/react-turnstile";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faDiscord, faGoogle } from "@fortawesome/free-brands-svg-icons";
@@ -34,6 +34,23 @@ export default function AuthenticatePage() {
     cid: false,
   });
   const turnstileRef = useRef<TurnstileInstance | undefined>(undefined);
+  // Second login step for accounts with two-factor on.
+  const [mfaStep, setMfaStep] = useState(false);
+  const [useRecoveryCode, setUseRecoveryCode] = useState(false);
+
+  // Google/Discord sign-in is refused for admins (see the NextAuth signIn callback).
+  useEffect(() => {
+    const error = new URLSearchParams(window.location.search).get("error");
+    if (error === "AdminPasswordLogin") {
+      errorToast("Admin accounts sign in with email and password");
+    }
+  }, []);
+
+  const leaveMfaStep = () => {
+    setMfaStep(false);
+    setUseRecoveryCode(false);
+    setdata((prev) => ({ ...prev, password: "", otp: "" }));
+  };
 
   const handleLogin = async (e: SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -44,9 +61,15 @@ export default function AuthenticatePage() {
 
     setloading("loading");
 
+    if (mfaStep && !data.otp?.trim()) {
+      errorToast("Enter your code");
+      return;
+    }
+
     signIn("credentials", {
       email: data.email,
       password: data.password,
+      otp: mfaStep ? (data.otp ?? "").trim() : "",
       redirect: false,
     })
       .then((res) => {
@@ -54,6 +77,15 @@ export default function AuthenticatePage() {
         if (res?.ok) {
           successToast("Logged In");
           router.replace("/dashboard");
+        }
+        if (res?.error === "MFA_REQUIRED") {
+          setMfaStep(true);
+          return;
+        }
+        if (res?.error === "MFA_INVALID") {
+          errorToast("Incorrect code, please try again");
+          setdata((prev) => ({ ...prev, otp: "" }));
+          return;
         }
         if (res?.error) {
           if (res.status === 401) {
@@ -205,7 +237,9 @@ export default function AuthenticatePage() {
                 ? "Join SrokSre today"
                 : type === "forget"
                   ? "Enter your email to reset your password"
-                  : "Login to your account"}
+                  : mfaStep
+                    ? "Two-factor verification"
+                    : "Login to your account"}
             </p>
           </div>
 
@@ -366,7 +400,7 @@ export default function AuthenticatePage() {
             </>
           ) : (
             <>
-              <div className="w-full space-y-2">
+              <div className={`w-full space-y-2 ${mfaStep ? "hidden" : ""}`}>
                 <label className="text-sm font-medium text-gray-700">Email Address</label>
                 <input
                   type="email"
@@ -378,7 +412,75 @@ export default function AuthenticatePage() {
                   required
                 />
               </div>
-              {type === "login" && (
+              {type === "login" && mfaStep && (
+                <>
+                  <div className="w-full space-y-2">
+                    <label className="text-sm font-medium text-gray-700">
+                      {useRecoveryCode ? "Recovery code" : "Code from your authenticator app"}
+                    </label>
+                    {useRecoveryCode ? (
+                      <input
+                        type="text"
+                        name="otp"
+                        autoComplete="off"
+                        autoFocus
+                        placeholder="XXXXX-XXXXX"
+                        value={data.otp ?? ""}
+                        onChange={handleChange}
+                        className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-hidden text-gray-700 text-center text-xl tracking-widest uppercase"
+                      />
+                    ) : (
+                      <input
+                        type="text"
+                        name="otp"
+                        inputMode="numeric"
+                        autoComplete="one-time-code"
+                        autoFocus
+                        maxLength={6}
+                        placeholder="000000"
+                        value={data.otp ?? ""}
+                        onChange={(e) =>
+                          setdata((prev) => ({
+                            ...prev,
+                            otp: e.target.value.replace(/\D/g, ""),
+                          }))
+                        }
+                        className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-hidden text-gray-700 text-center text-2xl tracking-widest"
+                      />
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setUseRecoveryCode((prev) => !prev);
+                        setdata((prev) => ({ ...prev, otp: "" }));
+                      }}
+                      className="w-full text-sm text-right text-blue-600 hover:text-blue-700 font-medium transition-colors"
+                    >
+                      {useRecoveryCode ? "Use the app code instead" : "Use a recovery code"}
+                    </button>
+                  </div>
+                  <div className="form_actions flex flex-col gap-y-3 w-full">
+                    <Button
+                      className="bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 w-full text-white font-semibold shadow-lg shadow-blue-500/30 transition-all"
+                      size="lg"
+                      type="submit"
+                      isLoading={loading === "loading"}
+                    >
+                      Verify
+                    </Button>
+                    <Button
+                      type="button"
+                      className="w-full border-2 border-gray-300 hover:border-gray-400 text-gray-700 font-semibold bg-white"
+                      size="lg"
+                      isDisabled={loading === "loading"}
+                      onPress={leaveMfaStep}
+                    >
+                      Back
+                    </Button>
+                  </div>
+                </>
+              )}
+              {type === "login" && !mfaStep && (
                 <>
                   <div className="w-full space-y-2">
                     <PasswordInput

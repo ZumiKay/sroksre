@@ -49,7 +49,7 @@ export const PaginationSSR = ({ total, pages, limit }: PaginationSSRProps) => {
   };
 
   return (
-    <div className="w-full h-fit mt-[10%] relative">
+    <div className="w-full h-fit relative">
       {isLoading && (
         <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 flex items-center justify-center rounded-lg min-h-24">
           <div className="flex flex-col items-center gap-3">

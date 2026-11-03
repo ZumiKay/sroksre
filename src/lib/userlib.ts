@@ -6,6 +6,7 @@ import { Role } from "@/prisma/generated/prisma/enums";
 import { userdata, Usersessiontype } from "../types/user.type";
 import { createHash, randomBytes } from "crypto";
 import bcryptjs from "bcryptjs";
+import { verifySecondFactor } from "./mfa";
 const { compare, genSaltSync, hashSync } = bcryptjs;
 
 export interface RegisterUser {
@@ -30,6 +31,8 @@ interface AuthReturnType {
   success: boolean;
   data?: Partial<Usersessiontype>;
   message?: string;
+  /** Set when the password was right but a two-factor code is missing or wrong. */
+  code?: "MFA_REQUIRED" | "MFA_INVALID";
 }
 
 //encode secret
@@ -192,6 +195,7 @@ const MAX_SESSIONS_PER_USER = 5;
 export const createUserSession = async (
   userId: number,
   deviceInfo: DeviceInfo,
+  { mfaVerified = false }: { mfaVerified?: boolean } = {},
 ): Promise<string> => {
   // Enforce session concurrency limit
   const activeSessions = await Prisma.usersession.count({
@@ -224,6 +228,7 @@ export const createUserSession = async (
       userId,
       expireAt: getOneWeekFromToday(),
       ...deviceInfo,
+      mfaVerified,
     },
   });
 
@@ -413,7 +418,7 @@ export const userlogin = async (
 
     const user = await Prisma.user.findUnique({
       where: { email: credential.email },
-      select: { id: true, password: true, role: true },
+      select: { id: true, password: true, role: true, totpEnabledAt: true },
     });
 
     if (!user) {
@@ -442,6 +447,36 @@ export const userlogin = async (
       };
     }
 
+    // Two-factor step. Failed attempts are only cleared once both factors
+    // pass, so wrong codes count toward the same lockout as wrong passwords.
+    let mfaVerified = false;
+    if (user.totpEnabledAt) {
+      const otp = typeof credential.otp === "string" ? credential.otp.trim() : "";
+      if (!otp) {
+        return {
+          success: false,
+          code: "MFA_REQUIRED",
+          message: "Enter the code from your authenticator app",
+        };
+      }
+
+      if (!(await verifySecondFactor(user.id, otp))) {
+        const attemptResult = await recordFailedLoginAttempt(identifier);
+        if (attemptResult.isLocked) {
+          return {
+            success: false,
+            message: `Too many failed attempts. Account is locked for ${attemptResult.remainingTime} minute(s).`,
+          };
+        }
+        return {
+          success: false,
+          code: "MFA_INVALID",
+          message: "Incorrect two-factor code",
+        };
+      }
+      mfaVerified = true;
+    }
+
     // Successful login - clear any failed attempts
     await clearLoginAttempts(identifier);
 
@@ -450,6 +485,7 @@ export const userlogin = async (
       data: {
         userId: user.id,
         role: user.role,
+        mfaVerified,
       },
     };
   } catch (error: unknown) {

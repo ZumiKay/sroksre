@@ -168,6 +168,11 @@ export type Notification = Prisma.NotificationModel
  */
 export type LoginAttempt = Prisma.LoginAttemptModel
 /**
+ * Model MfaRecoveryCode
+ * 
+ */
+export type MfaRecoveryCode = Prisma.MfaRecoveryCodeModel
+/**
  * Model EmailVerification
  * 
  */

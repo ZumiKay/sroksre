@@ -47,14 +47,16 @@ const minutes = (ms: number) => Math.round(ms / 60000);
 export function sendVerificationCodeEmail(
   to: string,
   code: string,
-  purpose: "signup" | "change_email",
+  purpose: "signup" | "change_email" | "mfa_setup",
 ) {
   const html = credentialEmailHtml({
     code,
     message:
       purpose === "signup"
         ? "Use this code to verify your email"
-        : "Use this code to confirm your new email",
+        : purpose === "mfa_setup"
+          ? "Use this code to set up two-factor login"
+          : "Use this code to confirm your new email",
     warn: `This code expires in ${minutes(VERIFICATION_CONFIG.CODE_TTL_MS)} minutes. If you didn't request it, you can ignore this email.`,
   });
   return handleEmail({ to, subject: "Email Verification", html });

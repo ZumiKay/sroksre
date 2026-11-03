@@ -83,6 +83,10 @@ export const issueChangeEmailCode = (userId: number, newEmail: string) =>
     VERIFICATION_CONFIG.CODE_TTL_MS,
   );
 
+/** Code sent to an admin's own email before they can set up 2FA. */
+export const issueMfaSetupCode = (userId: number, email: string) =>
+  issue(VerificationPurpose.MFA_SETUP, email, userId, newCode(), VERIFICATION_CONFIG.CODE_TTL_MS);
+
 export const issueResetToken = (userId: number, email: string) =>
   issue(
     VerificationPurpose.RESET_PASSWORD,

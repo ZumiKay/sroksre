@@ -8,7 +8,7 @@ import {
   isAdminOnlyRoute,
   methodtype,
 } from "./lib/middlewareaction";
-import { isActiveAdminSession } from "./lib/adminGuard";
+import { getAdminSessionStatus, isActiveAdminSession } from "./lib/adminGuard";
 
 import { getToken } from "next-auth/jwt";
 import { Role } from "@/prisma/generated/prisma/enums";
@@ -25,12 +25,24 @@ export default async function proxy(req: NextRequest) {
       if (url.includes("order")) {
         return NextResponse.next();
       }
-      if (url.includes("products") || url.includes("usermanagement")) {
+      if (
+        url.includes("products") ||
+        url.includes("usermanagement") ||
+        url.includes("inventory")
+      ) {
         // The cookie's role can be days old; confirm with the database.
-        if (
-          token.role === "ADMIN" &&
-          (await isActiveAdminSession(token.sessionid))
-        ) {
+        const status =
+          token.role === "ADMIN"
+            ? await getAdminSessionStatus(token.sessionid)
+            : "denied";
+
+        if (status === "mfa_required") {
+          return NextResponse.redirect(new URL("/dashboard/security", req.url));
+        }
+        if (status === "ok" && url.includes("inventory")) {
+          return NextResponse.next();
+        }
+        if (status === "ok") {
           const nextUrl = req.nextUrl.clone();
           const searchparam = nextUrl.searchParams;
 

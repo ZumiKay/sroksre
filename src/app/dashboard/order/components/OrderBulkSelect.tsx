@@ -24,12 +24,16 @@ import { bulkDeleteOrders, bulkUpdateOrderStatus } from "../action";
 interface BulkSelectContextType {
   selectedIds: Set<string>;
   toggle: (id: string) => void;
+  toggleAll: () => void;
+  allSelected: boolean;
   isEnabled: boolean;
 }
 
 const BulkSelectContext = createContext<BulkSelectContextType>({
   selectedIds: new Set(),
   toggle: () => {},
+  toggleAll: () => {},
+  allSelected: false,
   isEnabled: false,
 });
 
@@ -102,10 +106,12 @@ export function OrderBulkSelectProvider({
   const allSelected = orderIds.length > 0 && selectedIds.size === orderIds.length;
 
   return (
-    <BulkSelectContext.Provider value={{ selectedIds, toggle, isEnabled: isAdmin }}>
-      {/* Sticky bulk-action toolbar */}
+    <BulkSelectContext.Provider
+      value={{ selectedIds, toggle, toggleAll, allSelected, isEnabled: isAdmin }}
+    >
+      {/* Sticky bulk-action bar, shown above the table while rows are selected */}
       {isAdmin && selectedIds.size > 0 && (
-        <div className="sticky top-16 z-20 mb-4 flex flex-wrap items-center gap-3 bg-indigo-50 border border-indigo-200 rounded-2xl px-5 py-3 shadow-sm">
+        <div className="sticky top-16 z-20 flex flex-wrap items-center gap-3 bg-indigo-50 border-b border-indigo-200 px-5 py-3 shadow-sm">
           <span className="text-sm font-semibold text-indigo-700">
             {selectedIds.size} selected
           </span>
@@ -163,34 +169,36 @@ export function OrderBulkSelectProvider({
         </div>
       )}
 
-      {/* Select-all row above the table */}
-      {isAdmin && orderIds.length > 0 && (
-        <div className="flex items-center gap-2 px-1 pb-2">
-          <div
-            onClick={toggleAll}
-            className={`w-5 h-5 rounded border-2 flex items-center justify-center cursor-pointer transition-colors ${
-              allSelected
-                ? "bg-indigo-600 border-indigo-600"
-                : "bg-white border-gray-300 hover:border-indigo-400"
-            }`}
-          >
-            {allSelected && (
-              <FontAwesomeIcon icon={faCheck} className="text-white text-[10px]" />
-            )}
-          </div>
-          <span
-            onClick={toggleAll}
-            className="text-sm text-gray-500 cursor-pointer select-none hover:text-gray-700"
-          >
-            {selectedIds.size > 0
-              ? `${selectedIds.size} / ${orderIds.length} selected`
-              : "Select all"}
-          </span>
-        </div>
-      )}
-
       {children}
     </BulkSelectContext.Provider>
+  );
+}
+
+// ─── SelectAllCheckbox ────────────────────────────────────────────────────────
+
+/** Header checkbox: selects or clears every order on this page. */
+export function SelectAllCheckbox() {
+  const { toggleAll, allSelected, selectedIds, isEnabled } = useBulkSelect();
+  if (!isEnabled) return null;
+
+  return (
+    <button
+      type="button"
+      onClick={toggleAll}
+      aria-label={allSelected ? "Clear selection" : "Select all orders"}
+      title={
+        selectedIds.size > 0 ? `${selectedIds.size} selected` : "Select all"
+      }
+      className={`w-5 h-5 rounded border-2 flex items-center justify-center cursor-pointer transition-colors ${
+        allSelected
+          ? "bg-indigo-600 border-indigo-600"
+          : "bg-white border-gray-300 hover:border-indigo-400"
+      }`}
+    >
+      {allSelected && (
+        <FontAwesomeIcon icon={faCheck} className="text-white text-[10px]" />
+      )}
+    </button>
   );
 }
 

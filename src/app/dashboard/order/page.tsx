@@ -5,12 +5,15 @@ import {
   OrderDetailType,
   OrderBulkSelectProvider,
   RowCheckbox,
+  SelectAllCheckbox,
   PaginationSSR,
 } from "./OrderComponent";
 import { MultipleSelect } from "../../component/Button";
 import { getFilterOrder, GetOrder, purgeExpiredUnpaidOrders } from "./action";
 import { Productordertype, totalpricetype } from "@/src/types/order.type";
 import { getUser } from "@/src/lib/session";
+import { getOrderPageAccess } from "@/src/lib/adminGuard";
+import Prisma from "@/src/lib/prisma";
 import { notFound, redirect } from "next/navigation";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -33,7 +36,6 @@ import {
 import { OrderUserType } from "../../checkout/action";
 import { Suspense, cache } from "react";
 import type { Metadata } from "next";
-import { Role } from "@/prisma/generated/prisma/enums";
 import { getCheckoutdata } from "../../checkout/fetchaction";
 import { Allstatus } from "@/src/types/order.type";
 import Link from "next/link";
@@ -64,7 +66,6 @@ interface OrderStats {
   preparing: number;
   shipped: number;
   arrived: number;
-  totalRevenue: number;
 }
 
 export interface AllorderStatus {
@@ -76,13 +77,12 @@ export interface AllorderStatus {
   updatedAt: Date;
 }
 
-//Composite component
+// Page
 export default async function OrderManagement({
   searchParams,
 }: {
   searchParams: Promise<SearchParams>;
 }) {
-  // Get user with error handling
   const getuser = await getUser({
     userId: true,
     user: {
@@ -93,12 +93,14 @@ export default async function OrderManagement({
     },
   });
 
-  if (
-    !getuser ||
-    (getuser.user.role !== Role.USER && getuser.user.role !== Role.ADMIN)
-  ) {
-    return notFound();
-  }
+  // Admins see every order, so the 2FA rule for admin pages applies here
+  // too. Customers only ever see their own orders.
+  const access = await getOrderPageAccess(getuser?.user, getuser?.sessionid);
+  if (access.view === "setup_mfa") redirect("/dashboard/security");
+  if (access.view === "denied") notFound();
+
+  const isAdmin = access.view === "all";
+  const userId = access.view === "own" ? access.buyerId : undefined;
 
   // Parse and validate search parameters
   const resolvedSearchParams = await searchParams;
@@ -117,217 +119,264 @@ export default async function OrderManagement({
   const limit = Math.max(1, Math.min(100, parseInt(show as string) || 10));
   const selectedStatus = status ? (status as string).split(",") : undefined;
   const isFilter = Boolean(q || fromdate || todate || startprice || endprice);
+  const isFiltered = isFilter || !!selectedStatus;
 
   //Mark expired order
   await purgeExpiredUnpaidOrders();
 
-  const userId =
-    getuser.user.role === Role.USER ? getuser.user.buyer_id : undefined;
-
+  let data: Awaited<ReturnType<typeof loadOrders>>;
   try {
-    const [ordersResult, filterResult] = await Promise.all([
-      GetOrder(undefined, undefined, page, limit, userId),
-      isFilter || selectedStatus
-        ? getFilterOrder({
-            status: selectedStatus,
-            page,
-            limit,
-            search: q ? removeSpaceAndToLowerCase(q.toString()) : undefined,
-            startprice: parseFloat((startprice as string) ?? "0"),
-            endprice: parseFloat((endprice as string) ?? "0"),
-            fromdate: fromdate || undefined,
-            todate: todate || undefined,
-            userid: userId,
-          })
-        : Promise.resolve({ data: [], total: 0 }),
-    ]);
-
-    const orders =
-      (isFilter || selectedStatus
-        ? (filterResult as { data?: AllorderStatus[] }).data
-        : (ordersResult?.data as unknown as AllorderStatus[])) ?? undefined;
-
-    const totalOrders =
-      isFilter || selectedStatus
-        ? (filterResult.total ?? 0)
-        : (ordersResult?.total ?? 0);
-
-    const totalPages = Math.ceil(totalOrders / limit);
-
-    // Calculate statistics efficiently
-    const stats = calculateOrderStats(orders || [], totalOrders);
-
-    return (
-      <main className="order__container w-full min-h-screen bg-gray-50 p-5 md:p-8">
-        <OrderHeader stats={stats} />
-        <FilterSection
-          isFilter={isFilter}
-          filterData={{ todate, fromdate, q, startprice, endprice }}
-        />
-        <OrderBulkSelectProvider
-          orderIds={(orders ?? []).map((o) => o.id)}
-          isAdmin={getuser.user.role === Role.ADMIN}
-        >
-          <OrdersTable
-            orders={orders}
-            isAdmin={getuser.user.role === Role.ADMIN}
-            searchParams={resolvedSearchParams}
-          />
-        </OrderBulkSelectProvider>
-        {orders && orders.length > 0 && totalPages > 1 && (
-          <PaginationSection page={page} show={show} totalPages={totalPages} />
-        )}
-      </main>
-    );
+    data = await loadOrders({
+      page,
+      limit,
+      userId,
+      isFiltered,
+      filter: {
+        status: selectedStatus,
+        page,
+        limit,
+        search: q ? removeSpaceAndToLowerCase(q.toString()) : undefined,
+        startprice: parseFloat((startprice as string) ?? "0"),
+        endprice: parseFloat((endprice as string) ?? "0"),
+        fromdate: fromdate || undefined,
+        todate: todate || undefined,
+        userid: userId,
+      },
+    });
   } catch (error) {
     console.log("Error fetching orders:", error);
-    return (
-      <main className="order__container w-full min-h-screen bg-gray-50 p-5 md:p-8">
-        <div className="flex flex-col items-center justify-center h-[60vh] gap-4">
-          <div className="w-16 h-16 rounded-2xl bg-red-50 flex items-center justify-center">
-            <FontAwesomeIcon
-              icon={faExclamationTriangle}
-              className="text-red-400 text-2xl"
-            />
-          </div>
-          <div className="text-center">
-            <h2 className="text-xl font-bold text-gray-800 mb-1">
-              Error Loading Orders
-            </h2>
-            <p className="text-sm text-gray-500">Please try again later</p>
-          </div>
-        </div>
-      </main>
-    );
+    return <LoadError />;
   }
+
+  const { orders, totalOrders, stats } = data;
+  const totalPages = Math.ceil(totalOrders / limit);
+  const hasOrders = !!orders && orders.length > 0;
+
+  return (
+    <main className="order__container w-full min-h-screen bg-gray-50 p-5 md:p-8">
+      <div className="w-full max-w-350 mx-auto flex flex-col gap-6">
+        <OrderHeader isAdmin={isAdmin} />
+        <StatsGrid stats={stats} />
+
+        <section className="bg-white rounded-2xl shadow-xs border border-gray-100">
+          <FilterSection
+            isAdmin={isAdmin}
+            isFilter={isFilter}
+            filterData={{ todate, fromdate, q, startprice, endprice }}
+          />
+          <OrderBulkSelectProvider
+            orderIds={(orders ?? []).map((o) => o.id)}
+            isAdmin={isAdmin}
+          >
+            <OrdersTable
+              orders={orders}
+              isAdmin={isAdmin}
+              isFiltered={isFiltered}
+              searchParams={resolvedSearchParams}
+            />
+          </OrderBulkSelectProvider>
+          {hasOrders && (
+            <TableFooter
+              page={page}
+              limit={limit}
+              show={show}
+              totalOrders={totalOrders}
+              totalPages={totalPages}
+            />
+          )}
+        </section>
+      </div>
+    </main>
+  );
 }
 
-// Helper function to calculate stats
-function calculateOrderStats(
-  orders: AllorderStatus[],
-  totalOrders: number,
-): OrderStats {
+/** Loads the current page of orders, the matching total and the stat cards. */
+async function loadOrders({
+  page,
+  limit,
+  userId,
+  isFiltered,
+  filter,
+}: {
+  page: number;
+  limit: number;
+  userId?: string;
+  isFiltered: boolean;
+  filter: Parameters<typeof getFilterOrder>[0];
+}) {
+  const [ordersResult, filterResult, stats] = await Promise.all([
+    isFiltered ? null : GetOrder(undefined, undefined, page, limit, userId),
+    isFiltered ? getFilterOrder(filter) : null,
+    getOrderStats(userId),
+  ]);
+
+  const orders = isFiltered
+    ? (filterResult as { data?: AllorderStatus[] } | null)?.data
+    : (ordersResult?.data as unknown as AllorderStatus[] | undefined);
+
+  const totalOrders = isFiltered
+    ? (filterResult?.total ?? 0)
+    : (ordersResult?.total ?? 0);
+
+  return { orders, totalOrders, stats };
+}
+
+function LoadError() {
+  return (
+    <main className="order__container w-full min-h-screen bg-gray-50 p-5 md:p-8">
+      <div className="flex flex-col items-center justify-center h-[60vh] gap-4">
+        <div className="w-16 h-16 rounded-2xl bg-red-50 flex items-center justify-center">
+          <FontAwesomeIcon
+            icon={faExclamationTriangle}
+            className="text-red-400 text-2xl"
+          />
+        </div>
+        <div className="text-center">
+          <h2 className="text-xl font-bold text-gray-800 mb-1">
+            Error Loading Orders
+          </h2>
+          <p className="text-sm text-gray-500">Please try again later</p>
+        </div>
+      </div>
+    </main>
+  );
+}
+
+/**
+ * Order counts per status across all of the viewer's orders (not just the
+ * current page). `buyerId` limits it to one customer.
+ */
+async function getOrderStats(buyerId?: string): Promise<OrderStats> {
+  const groups = await Prisma.orders.groupBy({
+    by: ["status"],
+    where: buyerId ? { buyer_id: buyerId } : {},
+    _count: { _all: true },
+  });
+
+  const count = (status: Allstatus) =>
+    groups
+      .filter((g) => g.status?.toLowerCase() === status.toLowerCase())
+      .reduce((sum, g) => sum + g._count._all, 0);
+
   return {
-    total: totalOrders,
-    unpaid: orders.filter((o) => o.status?.toLowerCase() === "unpaid").length,
-    preparing: orders.filter((o) => o.status?.toLowerCase() === "preparing")
-      .length,
-    shipped: orders.filter((o) => o.status?.toLowerCase() === "shipped").length,
-    arrived: orders.filter((o) => o.status?.toLowerCase() === "arrived").length,
-    totalRevenue: orders.reduce(
-      (sum, o) => sum + ((o.price as totalpricetype)?.total ?? 0),
-      0,
-    ),
+    total: groups.reduce((sum, g) => sum + g._count._all, 0),
+    unpaid: count(Allstatus.unpaid),
+    preparing: count(Allstatus.prepareing),
+    shipped: count(Allstatus.shipped),
+    arrived: count(Allstatus.arrived),
   };
 }
 
-// Separate component for header section
-function OrderHeader({ stats }: { stats: OrderStats }) {
+// Page title
+function OrderHeader({ isAdmin }: { isAdmin: boolean }) {
+  return (
+    <header>
+      <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1">
+        Dashboard / Orders
+      </p>
+      <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 leading-tight">
+        {isAdmin ? "Order Management" : "My Orders"}
+      </h1>
+      <p className="text-sm text-gray-500 mt-1">
+        {isAdmin
+          ? "Track, filter, and manage all customer orders"
+          : "Track your orders and finish paying for unpaid ones"}
+      </p>
+    </header>
+  );
+}
+
+// Status count cards
+function StatsGrid({ stats }: { stats: OrderStats }) {
   const statisticsCards = [
     {
       icon: faShoppingCart,
       gradient: "from-blue-500 to-purple-600",
       textColor: "text-blue-600",
       label: "Total Orders",
-      value: stats.total.toString(),
+      value: stats.total,
     },
     {
       icon: faClock,
       gradient: "from-red-500 to-rose-600",
       textColor: "text-red-600",
       label: "Unpaid",
-      value: stats.unpaid.toString(),
+      value: stats.unpaid,
     },
     {
       icon: faSpinner,
       gradient: "from-indigo-500 to-blue-600",
       textColor: "text-indigo-600",
       label: "Preparing",
-      value: stats.preparing.toString(),
+      value: stats.preparing,
     },
     {
       icon: faTruck,
       gradient: "from-amber-500 to-orange-500",
       textColor: "text-amber-600",
       label: "Shipped",
-      value: stats.shipped.toString(),
+      value: stats.shipped,
     },
     {
       icon: faCheckCircle,
       gradient: "from-emerald-500 to-green-600",
       textColor: "text-emerald-600",
       label: "Arrived",
-      value: stats.arrived.toString(),
+      value: stats.arrived,
     },
   ];
 
   return (
-    <div className="w-full mb-8">
-      {/* Page title bar */}
-      <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between mb-7">
-        <div>
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1">
-            Dashboard / Orders
-          </p>
-          <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 leading-tight">
-            Order Management
-          </h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Track, filter, and manage all customer orders
-          </p>
-        </div>
-      </div>
-
-      {/* Stats grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-2">
-        {statisticsCards.map((card, idx) => (
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+      {statisticsCards.map((card) => (
+        <div
+          key={card.label}
+          className="bg-white p-4 rounded-2xl shadow-xs border border-gray-100 flex items-center gap-3 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
+        >
           <div
-            key={idx}
-            className="bg-white p-4 rounded-2xl shadow-xs border border-gray-100 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
+            className={`w-11 h-11 shrink-0 rounded-xl bg-linear-to-br ${card.gradient} flex items-center justify-center shadow-sm`}
           >
-            <div
-              className={`w-10 h-10 rounded-xl bg-linear-to-br ${card.gradient} flex items-center justify-center mb-3 shadow-sm`}
-            >
-              <FontAwesomeIcon
-                icon={card.icon}
-                className="text-white text-base"
-              />
-            </div>
-            <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-0.5">
+            <FontAwesomeIcon icon={card.icon} className="text-white text-base" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide truncate">
               {card.label}
             </p>
-            <p className={`text-2xl font-extrabold ${card.textColor}`}>
-              {card.value}
+            <p className={`text-2xl font-extrabold leading-tight ${card.textColor}`}>
+              {card.value.toLocaleString()}
             </p>
           </div>
-        ))}
-      </div>
+        </div>
+      ))}
     </div>
   );
 }
 
-// Separate component for filter section
+// Filter toolbar, top of the orders card
 function FilterSection({
+  isAdmin,
   isFilter,
   filterData,
 }: {
+  isAdmin: boolean;
   isFilter: boolean;
   filterData: Partial<SearchParams>;
 }) {
   const activeFilterCount = Object.values(filterData).filter(Boolean).length;
+  const hasDate = !!(filterData.fromdate || filterData.todate);
+  const hasPrice = !!(filterData.startprice || filterData.endprice);
 
   return (
-    <div className="bg-white rounded-2xl shadow-xs border border-gray-100 p-4 mb-6">
-      <div className="filter_container w-full flex flex-col md:flex-row items-start md:items-center gap-3">
+    <div className="border-b border-gray-100">
+      <div className="filter_container w-full p-4 flex flex-col md:flex-row items-start md:items-center gap-3">
         {/* Status multi-select */}
         <div className="w-full md:w-72 shrink-0">
           <MultipleSelect />
         </div>
 
-        {/* Divider */}
         <div className="hidden md:block h-10 w-px bg-gray-200" />
 
-        {/* Filter + Export buttons */}
+        {/* Filter + Export */}
         <div className="flex flex-row flex-wrap items-center gap-2">
           <div className="relative">
             <FilterButton isFilter={!isFilter} data={filterData} />
@@ -337,123 +386,125 @@ function FilterSection({
               </span>
             )}
           </div>
-          <DownloadButton />
+          {/* Export is admin-only on the server, so only admins see it */}
+          {isAdmin && <DownloadButton />}
         </div>
-
-        {/* Active filter summary chips */}
-        {isFilter && (
-          <div className="flex flex-wrap gap-1.5 md:ml-auto">
-            {filterData.q && (
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-medium border border-blue-100">
-                <FontAwesomeIcon icon={faFilter} className="text-[10px]" />
-                {`"${filterData.q}"`}
-              </span>
-            )}
-            {(filterData.fromdate || filterData.todate) && (
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-purple-50 text-purple-700 text-xs font-medium border border-purple-100">
-                <FontAwesomeIcon icon={faClock} className="text-[10px]" />
-                {filterData.fromdate ?? "…"} → {filterData.todate ?? "…"}
-              </span>
-            )}
-            {(filterData.startprice || filterData.endprice) && (
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-medium border border-emerald-100">
-                <FontAwesomeIcon icon={faDollarSign} className="text-[10px]" />
-                {filterData.startprice ?? "0"} – {filterData.endprice ?? "∞"}
-              </span>
-            )}
-          </div>
-        )}
       </div>
+
+      {/* Active filter chips */}
+      {isFilter && (
+        <div className="px-4 pb-3 flex flex-wrap items-center gap-1.5">
+          <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mr-1">
+            Active filters
+          </span>
+          {filterData.q && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-medium border border-blue-100">
+              <FontAwesomeIcon icon={faFilter} className="text-[10px]" />
+              {`"${filterData.q}"`}
+            </span>
+          )}
+          {hasDate && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-purple-50 text-purple-700 text-xs font-medium border border-purple-100">
+              <FontAwesomeIcon icon={faClock} className="text-[10px]" />
+              {filterData.fromdate ?? "…"} → {filterData.todate ?? "…"}
+            </span>
+          )}
+          {hasPrice && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-medium border border-emerald-100">
+              <FontAwesomeIcon icon={faDollarSign} className="text-[10px]" />
+              {filterData.startprice ?? "0"} – {filterData.endprice ?? "∞"}
+            </span>
+          )}
+        </div>
+      )}
     </div>
   );
 }
 
-// Separate component for orders table
+const TH = "text-left px-3 font-semibold text-xs uppercase tracking-wider";
+
+// Orders table
 function OrdersTable({
   orders,
   isAdmin,
+  isFiltered,
   searchParams,
 }: {
   orders: AllorderStatus[] | undefined;
   isAdmin: boolean;
+  isFiltered: boolean;
   searchParams?: SearchParams;
 }) {
   const colSpan = isAdmin ? 9 : 7;
 
+  const emptyHint = isFiltered
+    ? "Try changing or clearing the filters"
+    : isAdmin
+      ? "Orders will appear here once customers make purchases"
+      : "Orders you place will show up here";
+
   return (
-    <div className="bg-white rounded-2xl shadow-xs border border-gray-100 overflow-hidden">
-      <div className="w-full overflow-x-auto">
-        <div className="orderlist min-w-237.5 w-full">
-          <table width="100%" className="ordertable">
-            <thead>
-              <tr className="bg-linear-to-r from-gray-900 to-gray-700 text-white h-12">
-                {isAdmin && <th className="pl-6 pr-1 w-10" />}
-                <th className="text-left pl-6 pr-3 font-semibold text-xs uppercase tracking-wider">
-                  Order ID
+    <div className="w-full overflow-x-auto">
+      <div className="orderlist min-w-237.5 w-full">
+        <table width="100%" className="ordertable">
+          <thead>
+            <tr className="bg-linear-to-r from-gray-900 to-gray-700 text-white h-12">
+              {isAdmin && (
+                <th className="pl-6 pr-1 w-10">
+                  <SelectAllCheckbox />
                 </th>
-                <th className="text-left px-3 font-semibold text-xs uppercase tracking-wider">
-                  Details
-                </th>
-                <th className="text-left px-3 font-semibold text-xs uppercase tracking-wider">
-                  Products
-                </th>
-                <th className="text-left px-3 font-semibold text-xs uppercase tracking-wider">
-                  Amount
-                </th>
-                <th className="text-left px-3 font-semibold text-xs uppercase tracking-wider">
-                  Shipping
-                </th>
-                <th className="text-left px-3 font-semibold text-xs uppercase tracking-wider">
-                  Status
-                </th>
-                {isAdmin && (
-                  <th className="text-left px-3 font-semibold text-xs uppercase tracking-wider">
-                    Actions
-                  </th>
-                )}
-                <th className="pr-6"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {!orders || orders.length === 0 ? (
-                <tr>
-                  <td colSpan={colSpan} className="py-24">
-                    <div className="flex flex-col items-center justify-center gap-3">
-                      <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center">
-                        <FontAwesomeIcon
-                          icon={faShoppingBag}
-                          className="text-gray-300 text-2xl"
-                        />
-                      </div>
-                      <div className="text-center">
-                        <p className="text-base font-semibold text-gray-500">
-                          No orders found
-                        </p>
-                        <p className="text-xs text-gray-400 mt-0.5">
-                          Orders will appear here once customers make purchases
-                        </p>
-                      </div>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                orders.map((order, idx) => (
-                  <Suspense
-                    key={order.id}
-                    fallback={<OrderRowSkeleton isAdmin={isAdmin} />}
-                  >
-                    <DataRow
-                      idx={idx + 1}
-                      data={order}
-                      param={searchParams as never}
-                      isAdmin={isAdmin}
-                    />
-                  </Suspense>
-                ))
               )}
-            </tbody>
-          </table>
-        </div>
+              <th className={`${TH} pl-6`}>Order</th>
+              <th className={TH}>Details</th>
+              <th className={TH}>Products</th>
+              <th className={TH}>Amount</th>
+              <th className={TH}>Shipping</th>
+              <th className={TH}>Status</th>
+              {isAdmin && <th className={TH}>Actions</th>}
+              <th className="pr-6">
+                <span className="sr-only">Checkout</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {!orders || orders.length === 0 ? (
+              <tr>
+                <td colSpan={colSpan} className="py-24">
+                  <div className="flex flex-col items-center justify-center gap-3">
+                    <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center">
+                      <FontAwesomeIcon
+                        icon={faShoppingBag}
+                        className="text-gray-300 text-2xl"
+                      />
+                    </div>
+                    <div className="text-center">
+                      <p className="text-base font-semibold text-gray-500">
+                        No orders found
+                      </p>
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        {emptyHint}
+                      </p>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            ) : (
+              orders.map((order, idx) => (
+                <Suspense
+                  key={order.id}
+                  fallback={<OrderRowSkeleton isAdmin={isAdmin} />}
+                >
+                  <DataRow
+                    idx={idx + 1}
+                    data={order}
+                    param={searchParams as never}
+                    isAdmin={isAdmin}
+                  />
+                </Suspense>
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   );
@@ -463,6 +514,11 @@ function OrdersTable({
 function OrderRowSkeleton({ isAdmin }: { isAdmin: boolean }) {
   return (
     <tr className="animate-pulse">
+      {isAdmin && (
+        <td className="pl-6 pr-1 py-4">
+          <div className="w-5 h-5 bg-gray-100 rounded"></div>
+        </td>
+      )}
       <td className="pl-6 pr-3 py-4">
         <div className="h-4 bg-gray-100 rounded-md w-20 mb-1.5"></div>
         <div className="h-3 bg-gray-100 rounded-md w-14"></div>
@@ -492,25 +548,38 @@ function OrderRowSkeleton({ isAdmin }: { isAdmin: boolean }) {
   );
 }
 
-// Pagination section component
-function PaginationSection({
+// Bottom of the orders card: range summary + pagination
+function TableFooter({
   page,
+  limit,
   show,
+  totalOrders,
   totalPages,
 }: {
   page: number;
+  limit: number;
   show: string;
+  totalOrders: number;
   totalPages: number;
 }) {
+  const from = (page - 1) * limit + 1;
+  const to = Math.min(page * limit, totalOrders);
+
   return (
-    <div className="w-full flex flex-col sm:flex-row items-center justify-between gap-3 mt-6 px-1">
-      <p className="text-xs text-gray-400 font-medium">
-        Page <span className="font-semibold text-gray-600">{page}</span> of{" "}
-        <span className="font-semibold text-gray-600">{totalPages}</span>
+    <div className="w-full flex flex-col lg:flex-row items-center justify-between gap-4 px-6 py-4 border-t border-gray-100">
+      <p className="text-xs text-gray-400 font-medium shrink-0">
+        Showing{" "}
+        <span className="font-semibold text-gray-600">
+          {from}–{to}
+        </span>{" "}
+        of <span className="font-semibold text-gray-600">{totalOrders}</span>{" "}
+        orders
       </p>
-      <div className="bg-white rounded-xl shadow-xs border border-gray-100 px-4 py-2">
-        <PaginationSSR total={totalPages} pages={page} limit={show} />
-      </div>
+      {totalPages > 1 && (
+        <div className="w-full lg:w-auto">
+          <PaginationSSR total={totalPages} pages={page} limit={show} />
+        </div>
+      )}
     </div>
   );
 }
@@ -538,27 +607,27 @@ const getOrderData = cache(
       redirect("/dashboard/order");
     }
 
+    let data;
     try {
-      const data = await (ty !== AllorderType.orderaction
+      data = await (ty !== AllorderType.orderaction
         ? GetOrder(oid, ty as string)
         : getCheckoutdata(oid));
-
-      if (!data) {
-        redirect("/dashboard/order");
-      }
-
-      const resultData = (data as any)?.data ?? data;
-
-      if (ty === AllorderType.orderdetail) {
-        return resultData as unknown as OrderDetailType;
-      } else if (ty === AllorderType.orderproduct) {
-        return resultData as unknown as Productordertype[];
-      } else if (isAdmin && ty === AllorderType.orderaction) {
-        return resultData as unknown as OrderUserType;
-      }
     } catch (error) {
       console.log(`Error fetching order data for ${oid}:`, error);
       return null;
+    }
+
+    // redirect() throws, so it has to stay outside the try block.
+    if (!data) redirect("/dashboard/order");
+
+    const resultData = (data as any)?.data ?? data;
+
+    if (ty === AllorderType.orderdetail) {
+      return resultData as unknown as OrderDetailType;
+    } else if (ty === AllorderType.orderproduct) {
+      return resultData as unknown as Productordertype[];
+    } else if (isAdmin && ty === AllorderType.orderaction) {
+      return resultData as unknown as OrderUserType;
     }
 
     return null;

@@ -21,6 +21,7 @@ export interface Usersessiontype {
   userAgent?: string;
   ipAddress?: string;
   revoked?: boolean;
+  mfaVerified?: boolean;
   cexp?: number; //expiration in seconds
 }
 
@@ -55,6 +56,8 @@ export interface userdata {
   role?: Role;
   agreement?: boolean;
   cid?: string;
+  /** Two-factor code (authenticator app or recovery code) at login */
+  otp?: string;
   recapcha: string | null;
 }
 
@@ -105,4 +108,6 @@ export interface JwtType {
   jti: string;
   isExpired?: boolean;
   deviceInfo?: DeviceInfo;
+  /** Set on sign-in when the login passed two-factor */
+  mfaVerified?: boolean;
 }
