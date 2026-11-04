@@ -10,6 +10,18 @@ import {
 import { ApiRequest } from "@/src/context/CustomHook";
 import { errorToast } from "../Loading";
 import { useRouter, useSearchParams } from "next/navigation";
+import {
+  DeleteConfirmAction,
+  DeleteConfirmFields,
+  DeleteConfirmValues,
+} from "../DeleteConfirmFields";
+
+// Deletes that need a password or code first (checked again on the server).
+const CONFIRM_ACTION: Partial<Record<string, DeleteConfirmAction>> = {
+  userinfo: "delete_account",
+  user: "delete_users",
+  users: "delete_users",
+};
 
 export const ConfirmModal = () => {
   const openmodal = useGlobalStore((s) => s.openmodal);
@@ -29,6 +41,12 @@ export const ConfirmModal = () => {
   const isDeleteLoading = isLoading.DELETE;
   const [isProcessing, setIsProcessing] = useState(false);
   const loading = isDeleteLoading || isProcessing;
+  const confirmAction = openmodal.confirmmodal.type
+    ? CONFIRM_ACTION[openmodal.confirmmodal.type]
+    : undefined;
+  const [identity, setIdentity] = useState<DeleteConfirmValues>({
+    ready: false,
+  });
 
   const handleConfirm = useCallback(
     async (confirm: boolean) => {
@@ -128,7 +146,7 @@ export const ConfirmModal = () => {
             ? "/api/banner"
             : type === "promotion"
               ? "/api/promotion"
-              : type === "user"
+              : type === "user" || type === "users"
                 ? "/api/users"
                 : "/api/users/info";
 
@@ -139,16 +157,28 @@ export const ConfirmModal = () => {
           setglobalindex((prev) => ({ ...prev, promotioneditindex: -1 }));
           setopenmodal((prev) => ({ ...prev, createPromotion: false }));
         } else {
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const { ready, ...proof } = identity;
+          const body =
+            type === "userinfo"
+              ? proof
+              : type === "users"
+                ? { userIds: openmodal.confirmmodal.ids ?? [], ...proof }
+                : type === "user"
+                  ? { id: index, ...proof }
+                  : { id: index };
+
           const deleteRequest = await ApiRequest(
             URL,
             setisLoading,
             "DELETE",
             "JSON",
-            type !== "userinfo" ? { id: index } : {},
+            body,
           );
 
           if (!deleteRequest.success) {
-            errorToast("Failed To Delete");
+            // Keep the dialog open so a mistyped password or code can be fixed.
+            errorToast(deleteRequest.message || "Failed To Delete");
             return;
           }
 
@@ -177,12 +207,13 @@ export const ConfirmModal = () => {
           confirm: false,
           closecon: "",
           index: -1,
+          ids: undefined,
           type: undefined,
         },
       }));
        
     },
-    [openmodal, searchParam],
+    [openmodal, searchParam, identity],
   );
 
   const onConfirm = useCallback(
@@ -294,6 +325,14 @@ export const ConfirmModal = () => {
           </p>
         </div>
 
+        {confirmAction && (
+          <DeleteConfirmFields
+            action={confirmAction}
+            disabled={loading}
+            onChange={setIdentity}
+          />
+        )}
+
         {/* Buttons */}
         <div className="w-full flex flex-row gap-x-3">
           <PrimaryButton
@@ -313,6 +352,7 @@ export const ConfirmModal = () => {
             width="100%"
             height="44px"
             status={loading ? "loading" : "authenticated"}
+            disable={!!confirmAction && !identity.ready}
             onClick={onConfirm}
             color="#EF4444"
           />

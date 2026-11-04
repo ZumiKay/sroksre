@@ -103,7 +103,11 @@ export const Createusermodal = ({
         closecon: "createUser",
         index: id,
         type: "user",
-        onDelete: () => setpage(1),
+        onDelete: () => {
+          setpage(1);
+          // Reload even when already on page 1, where setpage changes nothing.
+          onSuccess?.();
+        },
       },
     }));
   };

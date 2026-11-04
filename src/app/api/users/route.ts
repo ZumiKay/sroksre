@@ -2,6 +2,8 @@ import { NextRequest } from "next/server";
 import Prisma from "@/src/lib/prisma";
 import { calculatePagination, IsNumber, removeSpaceAndToLowerCase } from "@/src/lib/utilities";
 import { requireAdmin } from "@/src/lib/session";
+import { confirmIdentity } from "@/src/lib/confirmIdentity";
+import { deleteUsersWithData } from "@/src/lib/accountDeletion";
 import { revalidateTag } from "next/cache";
 
 import type { Prisma as PrismaTypes } from "@/prisma/generated/prisma/client";
@@ -82,12 +84,15 @@ export async function GET(request: NextRequest) {
       where: whereClause,
     });
 
-    const { startIndex, endIndex } = calculatePagination(total, safeLt, safePage);
+    const { startIndex } = calculatePagination(total, safeLt, safePage);
 
+    // A page past the end just comes back empty. (The old take of
+    // endIndex - startIndex + 1 went negative there, and Prisma reads a
+    // negative take backwards.)
     const result = await Prisma.user.findMany({
       where: whereClause,
       orderBy,
-      take: endIndex - startIndex + 1,
+      take: safeLt,
       skip: startIndex,
     });
 
@@ -95,7 +100,13 @@ export async function GET(request: NextRequest) {
 
     return Response.json(
       {
-        data: result.map((user) => ({ ...user, password: null })),
+        // Never send secrets to the browser, even encrypted.
+        data: result.map((user) => ({
+          ...user,
+          password: null,
+          totpSecret: undefined,
+          lastTotpStep: undefined,
+        })),
         total,
         totalpage,
       },
@@ -110,7 +121,9 @@ export async function GET(request: NextRequest) {
 const MAX_BULK_DELETE = 100;
 
 /**
- * Self account cannot be delete */
+ * Deletes customers. Body: { userIds | id, code?, password? }.
+ * Needs the admin's current 2FA code (or password without 2FA), and never
+ * deletes the caller or other admins. */
 export async function DELETE(request: NextRequest) {
   const admin = await requireAdmin();
   if (!admin) {
@@ -141,17 +154,15 @@ export async function DELETE(request: NextRequest) {
       return Response.json({ message: "Admin accounts can't be deleted" }, { status: 403 });
     }
 
-    const [, , , deleted] = await Prisma.$transaction([
-      Prisma.wishlist.deleteMany({ where: { uid: { in: ids } } }),
-      Prisma.orderproduct.deleteMany({ where: { user_id: { in: ids } } }),
-      Prisma.usersession.deleteMany({ where: { userId: { in: ids } } }),
-      Prisma.user.deleteMany({
-        where: { id: { in: ids }, role: { not: Role.ADMIN } },
-      }),
-    ]);
+    const confirmed = await confirmIdentity(admin.userId, "delete_users", body ?? {});
+    if (!confirmed.ok) {
+      return Response.json({ message: confirmed.message }, { status: confirmed.status });
+    }
+
+    const deleted = await deleteUsersWithData(ids);
 
     revalidateTag("usermanagement", "max");
-    return Response.json({ message: "User Deleted", deleted: deleted.count }, { status: 200 });
+    return Response.json({ message: "User Deleted", deleted }, { status: 200 });
   } catch (error) {
     console.log("User Delete", error);
     return Response.json({ message: "Failed To Delete" }, { status: 500 });

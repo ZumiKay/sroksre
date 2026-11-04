@@ -38,7 +38,8 @@ export const VerificationPurpose = {
   SIGNUP: 'SIGNUP',
   RESET_PASSWORD: 'RESET_PASSWORD',
   CHANGE_EMAIL: 'CHANGE_EMAIL',
-  MFA_SETUP: 'MFA_SETUP'
+  MFA_SETUP: 'MFA_SETUP',
+  DELETE_ACCOUNT: 'DELETE_ACCOUNT'
 } as const
 
 export type VerificationPurpose = (typeof VerificationPurpose)[keyof typeof VerificationPurpose]

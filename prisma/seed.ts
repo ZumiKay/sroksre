@@ -1,3 +1,5 @@
+// Must come first: src/lib/prisma reads DATABASE_URL when it is imported.
+import "dotenv/config";
 import Prisma from "@/src/lib/prisma";
 import bcrypt from "bcryptjs";
 import { seedAll } from "./seed/product/seed";

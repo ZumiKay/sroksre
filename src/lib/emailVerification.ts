@@ -87,6 +87,9 @@ export const issueChangeEmailCode = (userId: number, newEmail: string) =>
 export const issueMfaSetupCode = (userId: number, email: string) =>
   issue(VerificationPurpose.MFA_SETUP, email, userId, newCode(), VERIFICATION_CONFIG.CODE_TTL_MS);
 
+export const issueDeleteAccountCode = (userId: number, email: string) =>
+  issue(VerificationPurpose.DELETE_ACCOUNT, email, userId, newCode(), VERIFICATION_CONFIG.CODE_TTL_MS);
+
 export const issueResetToken = (userId: number, email: string) =>
   issue(
     VerificationPurpose.RESET_PASSWORD,

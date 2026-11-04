@@ -37,7 +37,10 @@ export type confirmmodaltype = {
     | "promotion"
     | "promotioncancel"
     | "user"
+    | "users"
     | "userinfo";
+  /** User ids for type "users" (bulk delete). */
+  ids?: number[];
   onDelete?: () => void;
   onAsyncDelete?: () => Promise<void>;
 };

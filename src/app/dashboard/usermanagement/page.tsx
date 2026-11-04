@@ -56,6 +56,9 @@ export default function UsermanagementPage() {
   const [bulkAction, setBulkAction] = useState<string>("");
   const [searchTerm, setSearchTerm] = useState(search ?? "");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  // Bumped after a create, edit or delete to load the list again.
+  const [reloadKey, setReloadKey] = useState(0);
+  const reload = useCallback(() => setReloadKey((k) => k + 1), []);
   const [stats, setStats] = useState({
     totalUsers: 0,
     adminUsers: 0,
@@ -67,7 +70,7 @@ export default function UsermanagementPage() {
   useEffect(() => {
     fetchdata();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, showperpage, search, role, sort]);
+  }, [page, showperpage, search, role, sort, reloadKey]);
 
   const calculateStats = useCallback(() => {
     if (allData?.user) {
@@ -120,6 +123,18 @@ export default function UsermanagementPage() {
         errorToast("Error Occured");
         return;
       }
+
+      // Deleting the last users on the last page leaves it empty: step back
+      // to the new last page (this effect runs again with it).
+      const totalpage = user.totalpage ?? 0;
+      if ((user.data?.length ?? 0) === 0 && page > 1 && totalpage > 0) {
+        const param = new URLSearchParams(window.location.search);
+        param.set("p", `${totalpage}`);
+        router.replace(`?${param}`, { scroll: false });
+        setpage(totalpage);
+        return;
+      }
+
       setitemlength({
         total: user.total ?? 0,
         totalpage: user.totalpage ?? 0,
@@ -128,7 +143,7 @@ export default function UsermanagementPage() {
       setalldata({ user: user.data });
     };
     await Delayloading(asyncfetch, setloading, 150);
-  }, [search, page, showperpage, role, sort, setitemlength, setalldata, handleCheckSession]);
+  }, [search, page, showperpage, role, sort, setitemlength, setalldata, router]);
 
   const handleSelectShow = useCallback(
     (value: string) => {
@@ -203,20 +218,32 @@ export default function UsermanagementPage() {
     const isValidSession = await handleCheckSession();
     if (!isValidSession) return;
 
+    if (bulkAction === "delete") {
+      // The confirm dialog asks for the admin's 2FA code (or password) and
+      // sends the delete itself.
+      setopenmodal((prev) => ({
+        ...prev,
+        confirmmodal: {
+          open: true,
+          confirm: false,
+          closecon: "",
+          type: "users",
+          ids: selectedUsers,
+          Warn: `Delete ${selectedUsers.length} user${selectedUsers.length === 1 ? "" : "s"}?`,
+          onDelete: () => {
+            successToast("Users deleted successfully");
+            setSelectedUsers([]);
+            reload();
+          },
+        },
+      }));
+      setBulkAction("");
+      return;
+    }
+
     setloading(true);
     try {
-      if (bulkAction === "delete") {
-        const result = await ApiRequest("/api/users", undefined, "DELETE", "JSON", {
-          userIds: selectedUsers,
-        });
-        if (result.success) {
-          successToast("Users deleted successfully");
-          setSelectedUsers([]);
-          fetchdata();
-        } else {
-          errorToast(result.message ?? "Failed to delete users");
-        }
-      } else if (bulkAction === "role") {
+      if (bulkAction === "role") {
         // Handle role change
         successToast("Role update feature coming soon");
       }
@@ -225,7 +252,7 @@ export default function UsermanagementPage() {
     }
     setloading(false);
     setBulkAction("");
-  }, [bulkAction, selectedUsers, fetchdata]);
+  }, [bulkAction, selectedUsers, reload, setopenmodal]);
 
   // Memoize users list to avoid recalculating on every render
   const usersList = useMemo(() => (allData?.user as UserState[]) || [], [allData?.user]);
@@ -565,10 +592,7 @@ export default function UsermanagementPage() {
       {openmodal.createUser && (
         <Createusermodal
           setpage={setpage}
-          onSuccess={() => {
-            // Refetch data after successful create/update
-            fetchdata();
-          }}
+          onSuccess={reload}
         />
       )}
       {openmodal.filteroption && <FilterMenu type="usermanagement" />}

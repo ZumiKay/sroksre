@@ -2,17 +2,22 @@ jest.mock("@/src/lib/prisma", () => ({
   __esModule: true,
   default: {
     usersession: { findUnique: jest.fn(), deleteMany: jest.fn() },
-    user: { count: jest.fn(), deleteMany: jest.fn() },
+    user: { count: jest.fn(), deleteMany: jest.fn(), findMany: jest.fn() },
     wishlist: { deleteMany: jest.fn() },
     orderproduct: { deleteMany: jest.fn() },
     $transaction: jest.fn(),
   },
 }));
+// Files in src/lib import "./prisma"; Jest keys that apart from the alias,
+// so point it at the same mock.
+jest.mock("../../lib/prisma", () => jest.requireMock("@/src/lib/prisma"));
 jest.mock("@/src/lib/session", () => ({ requireAdmin: jest.fn() }));
+jest.mock("@/src/lib/confirmIdentity", () => ({ confirmIdentity: jest.fn() }));
 jest.mock("next/cache", () => ({ revalidateTag: jest.fn() }));
 
 import Prisma from "@/src/lib/prisma";
 import { requireAdmin } from "@/src/lib/session";
+import { confirmIdentity } from "@/src/lib/confirmIdentity";
 import {
   getAdminSessionStatus,
   getOrderPageAccess,
@@ -25,12 +30,13 @@ import type { NextRequest } from "next/server";
 
 const db = Prisma as unknown as {
   usersession: { findUnique: jest.Mock; deleteMany: jest.Mock };
-  user: { count: jest.Mock; deleteMany: jest.Mock };
+  user: { count: jest.Mock; deleteMany: jest.Mock; findMany: jest.Mock };
   wishlist: { deleteMany: jest.Mock };
   orderproduct: { deleteMany: jest.Mock };
   $transaction: jest.Mock;
 };
 const mockRequireAdmin = requireAdmin as jest.Mock;
+const mockConfirmIdentity = confirmIdentity as jest.Mock;
 
 const req = (body: unknown) =>
   ({ json: async () => body }) as unknown as NextRequest;
@@ -211,12 +217,31 @@ describe("/api/users", () => {
     db.$transaction.mockImplementation((ops: unknown[]) => Promise.all(ops));
     db.user.deleteMany.mockResolvedValue({ count: 2 });
     db.user.count.mockResolvedValue(0);
+    mockConfirmIdentity.mockResolvedValue({ ok: true });
   });
 
   it("GET refuses non-admins", async () => {
     mockRequireAdmin.mockResolvedValue(null);
     const res = await GET({} as NextRequest);
     expect(res.status).toBe(403);
+  });
+
+  it("GET pages correctly past a shrunken end and hides secrets", async () => {
+    mockRequireAdmin.mockResolvedValue(admin);
+    db.user.count.mockResolvedValue(3); // page 2 of 10 is now past the end
+    db.user.findMany.mockResolvedValue([
+      { id: 9, password: "hash", totpSecret: "v1:enc", lastTotpStep: 5 },
+    ]);
+
+    const res = await GET({
+      nextUrl: { searchParams: new URLSearchParams("p=2&lt=10") },
+    } as unknown as NextRequest);
+    const body = await res.json();
+
+    expect(db.user.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ take: 10, skip: 10 }),
+    );
+    expect(body.data[0]).toEqual({ id: 9, password: null });
   });
 
   it("DELETE refuses non-admins without deleting anything", async () => {
@@ -253,6 +278,25 @@ describe("/api/users", () => {
     expect(db.wishlist.deleteMany).toHaveBeenCalledWith({
       where: { uid: { in: [2, 3] } },
     });
+  });
+
+  it("DELETE needs the admin to confirm with a code first", async () => {
+    mockRequireAdmin.mockResolvedValue(admin);
+    mockConfirmIdentity.mockResolvedValue({
+      ok: false,
+      status: 400,
+      message: "Incorrect or already used two-factor code",
+    });
+
+    const res = await DELETE(req({ userIds: [2], code: "000000" }));
+
+    expect(res.status).toBe(400);
+    expect(mockConfirmIdentity).toHaveBeenCalledWith(1, "delete_users", {
+      userIds: [2],
+      code: "000000",
+    });
+    expect(db.user.deleteMany).not.toHaveBeenCalled();
+    expect(db.wishlist.deleteMany).not.toHaveBeenCalled();
   });
 
   it("DELETE refuses to delete the caller's own account", async () => {

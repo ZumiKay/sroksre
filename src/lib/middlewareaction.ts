@@ -42,6 +42,8 @@ const userRoute: Map<string, methodtype[]> = new Map([
   ["/users/info", ["GET", "DELETE"]],
   // Two-factor setup; the handler itself requires an admin.
   ["/users/mfa", ["GET", "POST"]],
+  // Confirm a delete; the handler checks admin rights for "delete_users".
+  ["/users/confirm", ["GET", "POST"]],
   ["/users/logout", ["DELETE"]],
 ]);
 

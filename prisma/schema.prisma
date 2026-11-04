@@ -506,6 +506,7 @@ enum VerificationPurpose {
   RESET_PASSWORD
   CHANGE_EMAIL
   MFA_SETUP
+  DELETE_ACCOUNT
 }
 
 // One-time backup codes for two-factor login. Only a SHA-256 hash is stored.
