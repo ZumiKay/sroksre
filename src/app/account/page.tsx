@@ -13,16 +13,21 @@ import { PasswordInput } from "../component/FormComponent";
 import TurnstileContainer from "../component/TurnstileComponent";
 import { Button, Checkbox } from "@heroui/react";
 import { userdata } from "@/src/types/user.type";
+import { PasswordVerification } from "./PasswordVerification";
 
 const validatePassword = (password: string) => {
-  return password.length >= 8 && /[!@#$%^&*(),.?":{}|<>]/.test(password) && /\d/.test(password);
+  return (
+    password.length >= 8 &&
+    /[!@#$%^&*(),.?":{}|<>]/.test(password) &&
+    /\d/.test(password)
+  );
 };
 export default function AuthenticatePage() {
   const router = useRouter();
   const [type, settype] = useState<"login" | "register" | "forget">("login");
-  const [loading, setloading] = useState<"authenticated" | "loading" | "unauthenticated">(
-    "unauthenticated",
-  );
+  const [loading, setloading] = useState<
+    "authenticated" | "loading" | "unauthenticated"
+  >("unauthenticated");
   const [data, setdata] = useState<userdata>({
     email: "",
     password: "",
@@ -104,7 +109,12 @@ export default function AuthenticatePage() {
 
   const handleRegisterUser = async () => {
     //Validate user input data
-    if (!data.password || !data.firstname || !data.confirmpassword || !data.recapcha) {
+    if (
+      !data.password ||
+      !data.firstname ||
+      !data.confirmpassword ||
+      !data.recapcha
+    ) {
       errorToast("Fill in all required");
       return;
     }
@@ -126,7 +136,13 @@ export default function AuthenticatePage() {
 
     setloading("loading");
 
-    const request = await ApiRequest("/api/auth/register", undefined, "POST", "JSON", data);
+    const request = await ApiRequest(
+      "/api/auth/register",
+      undefined,
+      "POST",
+      "JSON",
+      data,
+    );
     setloading("authenticated");
 
     // Turnstile tokens are single-use
@@ -138,7 +154,7 @@ export default function AuthenticatePage() {
       if (error === "false") {
         errorToast("Invalid Password");
       } else {
-        request.message && errorToast(request.message);
+        if (request.message) errorToast(request.message);
       }
       return;
     }
@@ -247,7 +263,9 @@ export default function AuthenticatePage() {
             <div className="w-full space-y-4">
               {!verify.email ? (
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">Email Address</label>
+                  <label className="text-sm font-medium text-gray-700">
+                    Email Address
+                  </label>
                   <input
                     type="email"
                     name="email"
@@ -260,7 +278,9 @@ export default function AuthenticatePage() {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-700">Verification Code</label>
+                  <label className="text-sm font-medium text-gray-700">
+                    Verification Code
+                  </label>
                   <input
                     type="text"
                     inputMode="numeric"
@@ -281,7 +301,9 @@ export default function AuthenticatePage() {
               {verify.email && verify.cid && (
                 <>
                   <div className="w-full space-y-2">
-                    <label className="text-sm font-medium text-gray-700">First Name</label>
+                    <label className="text-sm font-medium text-gray-700">
+                      First Name
+                    </label>
                     <input
                       type="text"
                       className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-hidden text-gray-700"
@@ -293,7 +315,9 @@ export default function AuthenticatePage() {
                     />
                   </div>
                   <div className="w-full space-y-2">
-                    <label className="text-sm font-medium text-gray-700">Last Name</label>
+                    <label className="text-sm font-medium text-gray-700">
+                      Last Name
+                    </label>
                     <input
                       type="text"
                       className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-hidden text-gray-700"
@@ -333,7 +357,9 @@ export default function AuthenticatePage() {
                   <div className="w-full flex justify-center">
                     <TurnstileContainer
                       ref={turnstileRef}
-                      setcaptchaValue={(value) => setdata((prev) => ({ ...prev, recapcha: value }))}
+                      setcaptchaValue={(value) =>
+                        setdata((prev) => ({ ...prev, recapcha: value }))
+                      }
                     />
                   </div>
                   <div className="w-full">
@@ -383,7 +409,9 @@ export default function AuthenticatePage() {
                     height="40px"
                     radius="10px"
                     status={loading}
-                    onClick={() => handleConfirm(!verify.email ? "email" : "cid")}
+                    onClick={() =>
+                      handleConfirm(!verify.email ? "email" : "cid")
+                    }
                   />
                 )}
                 <PrimaryButton
@@ -401,7 +429,9 @@ export default function AuthenticatePage() {
           ) : (
             <>
               <div className={`w-full space-y-2 ${mfaStep ? "hidden" : ""}`}>
-                <label className="text-sm font-medium text-gray-700">Email Address</label>
+                <label className="text-sm font-medium text-gray-700">
+                  Email Address
+                </label>
                 <input
                   type="email"
                   name="email"
@@ -416,7 +446,9 @@ export default function AuthenticatePage() {
                 <>
                   <div className="w-full space-y-2">
                     <label className="text-sm font-medium text-gray-700">
-                      {useRecoveryCode ? "Recovery code" : "Code from your authenticator app"}
+                      {useRecoveryCode
+                        ? "Recovery code"
+                        : "Code from your authenticator app"}
                     </label>
                     {useRecoveryCode ? (
                       <input
@@ -456,7 +488,9 @@ export default function AuthenticatePage() {
                       }}
                       className="w-full text-sm text-right text-blue-600 hover:text-blue-700 font-medium transition-colors"
                     >
-                      {useRecoveryCode ? "Use the app code instead" : "Use a recovery code"}
+                      {useRecoveryCode
+                        ? "Use the app code instead"
+                        : "Use a recovery code"}
                     </button>
                   </div>
                   <div className="form_actions flex flex-col gap-y-3 w-full">
@@ -510,7 +544,9 @@ export default function AuthenticatePage() {
                       Login
                     </Button>
                     <div className="text-center">
-                      <span className="text-gray-600 text-sm">Don&apos;t have an account? </span>
+                      <span className="text-gray-600 text-sm">
+                        Don&apos;t have an account?{" "}
+                      </span>
                       <span
                         onClick={() => {
                           setdata(Userinitialize);
@@ -527,7 +563,9 @@ export default function AuthenticatePage() {
                         <div className="w-full border-t border-gray-300"></div>
                       </div>
                       <div className="relative flex justify-center text-sm">
-                        <span className="px-2 bg-white text-gray-500">Or continue with</span>
+                        <span className="px-2 bg-white text-gray-500">
+                          Or continue with
+                        </span>
                       </div>
                     </div>
 
@@ -537,7 +575,10 @@ export default function AuthenticatePage() {
                         onClick={() => servicesSignIn("google")}
                         className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-gray-700 font-medium"
                       >
-                        <FontAwesomeIcon icon={faGoogle} className="text-lg text-red-500" />
+                        <FontAwesomeIcon
+                          icon={faGoogle}
+                          className="text-lg text-red-500"
+                        />
                         <span>Continue with Gmail</span>
                       </button>
                       <button
@@ -581,45 +622,3 @@ export default function AuthenticatePage() {
     </>
   );
 }
-
-const PasswordRequirement = [
-  { label: "8 Characters", value: "char" },
-  { label: "Contain special character", value: "spec" },
-  { label: "Contain number", value: "num" },
-];
-
-export const PasswordVerification = ({ password }: { password: string }) => {
-  // Function to check if the password meets the requirements
-  const validatePassword = (password: string) => ({
-    char: password.length >= 8,
-    spec: /[!@#$%^&*(),.?":{}|<>]/.test(password),
-    num: /\d/.test(password),
-  });
-
-  const validationStatus: Record<string, any> = validatePassword(password);
-
-  return (
-    <div className="password_verification w-full h-fit flex flex-col gap-3 bg-linear-to-br from-gray-50 to-blue-50 p-4 rounded-lg border border-gray-200">
-      <p className="text-sm font-semibold text-gray-700">Password requirements:</p>
-      <ul className="space-y-2">
-        {PasswordRequirement.map((requirement, idx) => {
-          const isValid = validationStatus[requirement.value];
-          return (
-            <li key={idx} className="flex items-center gap-2 text-sm font-medium">
-              <span
-                className={`shrink-0 w-5 h-5 rounded-full flex items-center justify-center ${
-                  !isValid ? "bg-red-100 text-red-600" : "bg-green-100 text-green-600"
-                }`}
-              >
-                {isValid ? "✓" : "×"}
-              </span>
-              <span className={!isValid ? "text-gray-600" : "text-green-700"}>
-                {requirement.label}
-              </span>
-            </li>
-          );
-        })}
-      </ul>
-    </div>
-  );
-};

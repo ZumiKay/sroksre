@@ -6,15 +6,19 @@ import { verifyUser } from "./action";
 import PrimaryButton from "../../component/Button";
 import { type ChangeEvent, useCallback, useState, memo } from "react";
 import { PasswordInput } from "../../component/FormComponent";
-import { PasswordVerification } from "../page";
+import { PasswordVerification } from "../PasswordVerification";
 
 // Style constants
-const CONTAINER_CLASSES = "min-h-[50vh] w-full flex flex-col gap-y-5 items-center justify-center";
-const HEADING_CLASSES = "text-2xl font-bold w-full max-w-md h-fit p-5 text-center rounded-lg";
+const CONTAINER_CLASSES =
+  "min-h-[50vh] w-full flex flex-col gap-y-5 items-center justify-center";
+const HEADING_CLASSES =
+  "text-2xl font-bold w-full max-w-md h-fit p-5 text-center rounded-lg";
 const SUCCESS_HEADING_CLASSES =
   "text-2xl font-black w-full max-w-md text-incart h-fit p-5 text-center rounded-lg";
-const ERROR_MESSAGE_CLASSES = "text-lg font-semibold w-full max-w-md h-fit text-center";
-const FORM_CLASSES = "resetform flex flex-col gap-y-5 items-center w-full max-w-md h-fit";
+const ERROR_MESSAGE_CLASSES =
+  "text-lg font-semibold w-full max-w-md h-fit text-center";
+const FORM_CLASSES =
+  "resetform flex flex-col gap-y-5 items-center w-full max-w-md h-fit";
 
 const BUTTON_CONFIG = {
   height: "50px",
@@ -39,22 +43,24 @@ const SubmitButton = memo(() => {
 
 SubmitButton.displayName = "SubmitButton";
 
-const SuccessState = memo(({ onBackToLogin }: { onBackToLogin: () => void }) => (
-  <>
-    <h1 className={SUCCESS_HEADING_CLASSES} role="status" aria-live="polite">
-      Password Updated
-    </h1>
-    <PrimaryButton
-      type="button"
-      text="Back To Login"
-      color="lightcoral"
-      width="100%"
-      {...BUTTON_CONFIG}
-      onClick={onBackToLogin}
-      aria-label="Navigate back to login page"
-    />
-  </>
-));
+const SuccessState = memo(
+  ({ onBackToLogin }: { onBackToLogin: () => void }) => (
+    <>
+      <h1 className={SUCCESS_HEADING_CLASSES} role="status" aria-live="polite">
+        Password Updated
+      </h1>
+      <PrimaryButton
+        type="button"
+        text="Back To Login"
+        color="lightcoral"
+        width="100%"
+        {...BUTTON_CONFIG}
+        onClick={onBackToLogin}
+        aria-label="Navigate back to login page"
+      />
+    </>
+  ),
+);
 
 SuccessState.displayName = "SuccessState";
 
@@ -71,9 +77,12 @@ export default function ResetPasswordForm({ token }: ResetPasswordFormProps) {
   const router = useRouter();
 
   // Optimized password change handler - only updates when password field changes
-  const handlePasswordChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
-    setPassword(e.target.value);
-  }, []);
+  const handlePasswordChange = useCallback(
+    (e: ChangeEvent<HTMLInputElement>) => {
+      setPassword(e.target.value);
+    },
+    [],
+  );
 
   // Simplified navigation handler
   const handleBackToLogin = useCallback(() => {
@@ -113,7 +122,11 @@ export default function ResetPasswordForm({ token }: ResetPasswordFormProps) {
               type="auth"
               onChange={handlePasswordChange}
             />
-            <PasswordInput label="Confirm Password" name="confirmpassword" type="auth" />
+            <PasswordInput
+              label="Confirm Password"
+              name="confirmpassword"
+              type="auth"
+            />
             <PasswordVerification password={password} />
             <SubmitButton />
           </form>
