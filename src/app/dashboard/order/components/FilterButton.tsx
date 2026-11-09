@@ -7,11 +7,11 @@ import { FilterMenu } from "./FilterMenu";
 import { Filterdatatype } from "./types";
 
 interface FilterButtonProps {
-  data: Filterdatatype;
+  data?: Filterdatatype;
   isFilter: boolean;
 }
 
-export const FilterButton = ({ data, isFilter }: FilterButtonProps) => {
+export const FilterButton = ({ isFilter }: FilterButtonProps) => {
   const openmodal = useGlobalStore((s) => s.openmodal);
   const setopenmodal = useGlobalStore((s) => s.setopenmodal);
   const router = useRouter();
@@ -32,15 +32,16 @@ export const FilterButton = ({ data, isFilter }: FilterButtonProps) => {
   };
 
   return (
-    <>
+    <div className="w-full sm:w-auto h-fit flex flex-wrap items-center gap-2 sm:gap-3">
       <PrimaryButton
         onClick={handleOpen}
         type="button"
         text={isFilter ? "Filter" : "Filtered"}
-        color={!isFilter ? "black" : undefined}
+        color={isFilter ? "black" : "gray"}
         radius="10px"
         height="40px"
-        width="150px"
+        width="auto"
+        style={{ minWidth: "110px", padding: "0.5rem 1rem" }}
       />
 
       {!isFilter && (
@@ -50,7 +51,8 @@ export const FilterButton = ({ data, isFilter }: FilterButtonProps) => {
           color="red"
           radius="10px"
           height="40px"
-          width="150px"
+          width="auto"
+          style={{ minWidth: "110px", padding: "0.5rem 1rem" }}
           onClick={handleClear}
         />
       )}
@@ -62,6 +64,6 @@ export const FilterButton = ({ data, isFilter }: FilterButtonProps) => {
           type="filter"
         />
       )}
-    </>
+    </div>
   );
 };

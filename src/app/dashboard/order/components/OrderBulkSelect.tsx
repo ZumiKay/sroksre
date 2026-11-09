@@ -111,17 +111,17 @@ export function OrderBulkSelectProvider({
     >
       {/* Sticky bulk-action bar, shown above the table while rows are selected */}
       {isAdmin && selectedIds.size > 0 && (
-        <div className="sticky top-16 z-20 flex flex-wrap items-center gap-3 bg-indigo-50 border-b border-indigo-200 px-5 py-3 shadow-sm">
-          <span className="text-sm font-semibold text-indigo-700">
+        <div className="sticky top-0 sm:top-16 z-20 flex flex-wrap items-center gap-2 sm:gap-3 bg-indigo-50 border-b border-indigo-200 px-3 sm:px-5 py-2.5 sm:py-3 shadow-xs">
+          <span className="text-xs sm:text-sm font-semibold text-indigo-700 shrink-0">
             {selectedIds.size} selected
           </span>
-          <div className="h-4 w-px bg-indigo-200 shrink-0" />
+          <div className="hidden sm:block h-4 w-px bg-indigo-200 shrink-0" />
 
           {/* Status selector */}
           <select
             value={bulkStatus}
             onChange={(e) => setBulkStatus(e.target.value)}
-            className="h-9 px-3 text-sm border border-indigo-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            className="h-8 sm:h-9 px-2 sm:px-3 text-xs sm:text-sm border border-indigo-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400 flex-1 sm:flex-initial min-w-[110px]"
           >
             <option value="">Set status…</option>
             {Object.values(Allstatus).map((s) => (
@@ -132,13 +132,13 @@ export function OrderBulkSelectProvider({
           <button
             disabled={!bulkStatus || !!loadingAction}
             onClick={handleBulkUpdateStatus}
-            className="inline-flex items-center gap-1.5 h-9 px-4 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold transition-colors"
+            className="inline-flex items-center gap-1 sm:gap-1.5 h-8 sm:h-9 px-2.5 sm:px-4 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs sm:text-sm font-semibold transition-colors shrink-0"
           >
             {loadingAction === "status" ? (
               <Spinner />
             ) : (
               <>
-                <FontAwesomeIcon icon={faRotate} className="text-xs" />
+                <FontAwesomeIcon icon={faRotate} className="text-[10px] sm:text-xs" />
                 Update
               </>
             )}
@@ -147,13 +147,13 @@ export function OrderBulkSelectProvider({
           <button
             disabled={!!loadingAction}
             onClick={handleBulkDelete}
-            className="inline-flex items-center gap-1.5 h-9 px-4 rounded-lg bg-red-600 hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold transition-colors"
+            className="inline-flex items-center gap-1 sm:gap-1.5 h-8 sm:h-9 px-2.5 sm:px-4 rounded-lg bg-red-600 hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs sm:text-sm font-semibold transition-colors shrink-0"
           >
             {loadingAction === "delete" ? (
               <Spinner />
             ) : (
               <>
-                <FontAwesomeIcon icon={faTrash} className="text-xs" />
+                <FontAwesomeIcon icon={faTrash} className="text-[10px] sm:text-xs" />
                 Delete ({selectedIds.size})
               </>
             )}
@@ -161,9 +161,9 @@ export function OrderBulkSelectProvider({
 
           <button
             onClick={clearSelection}
-            className="ml-auto inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-indigo-200 hover:bg-indigo-100 text-indigo-600 text-sm font-medium transition-colors"
+            className="ml-auto inline-flex items-center gap-1 h-8 sm:h-9 px-2 sm:px-3 rounded-lg border border-indigo-200 hover:bg-indigo-100 text-indigo-600 text-xs sm:text-sm font-medium transition-colors shrink-0"
           >
-            <FontAwesomeIcon icon={faXmark} className="text-xs" />
+            <FontAwesomeIcon icon={faXmark} className="text-[10px] sm:text-xs" />
             Clear
           </button>
         </div>

@@ -28,7 +28,15 @@ import Profile from "../../../public/Image/profile.svg";
 import DefaultImage from "../../../public/Image/default.png";
 import ActiveBell from "../../../public/Image/blackbell.svg";
 import Bell from "../../../public/Image/whitebell.svg";
-import { CSSProperties, forwardRef, memo, useCallback, useEffect, useRef, useState } from "react";
+import {
+  CSSProperties,
+  forwardRef,
+  memo,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { useRouter } from "next/navigation";
 import { AccountMenu, CartMenu } from "./SideMenu";
 import Link from "next/link";
@@ -49,7 +57,13 @@ import Homecontainermodal from "./HomePage/Modals";
 import { AnimatePresence } from "framer-motion";
 import SearchContainer from "./Modals/Search";
 import { CloseVector } from "./Asset";
-import { Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger } from "@heroui/react";
+import {
+  Button,
+  Dropdown,
+  DropdownItem,
+  DropdownMenu,
+  DropdownTrigger,
+} from "@heroui/react";
 import { useSocket } from "@/src/context/SocketContext";
 import React from "react";
 import { NotificationType, Usersessiontype } from "@/src/types/user.type";
@@ -82,14 +96,15 @@ export default function Navbar({
   const socket = useSocket();
 
   const router = useRouter();
-  const navref = useRef<any>(null);
-  const notiref = useRef<any>(null);
+  const navref = useRef<HTMLElement | HTMLImageElement>(null);
+  const notiref = useRef<HTMLDivElement>(null);
 
   // Initialize cart total from server-side data
   useEffect(() => {
     if (initialCartCount && !carttotal) {
       setcarttotal(initialCartCount);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialCartCount]);
 
   // Use optimized data refresh hook for cart
@@ -101,7 +116,8 @@ export default function Navbar({
 
   // Poll for new admin notifications every 30 seconds
   useDataRefresh({
-    onRefresh: (data: { id: number; checked: boolean }[]) => setchecknotify(data?.length ?? 0),
+    onRefresh: (data: { id: number; checked: boolean }[]) =>
+      setchecknotify(data?.length ?? 0),
     enabled: !!session && session.role === "ADMIN",
     endpoint: "/api/users/notification?ty=check",
     interval: 30000,
@@ -111,7 +127,8 @@ export default function Navbar({
   useEffect(() => {
     if (session && session.role !== "ADMIN") {
       // Store refresh function in global context if needed
-      (window as any).__refreshCart = refreshCart;
+      (window as unknown as { [x: string]: unknown }).__refreshCart =
+        refreshCart;
     }
   }, [session, refreshCart]);
 
@@ -119,7 +136,7 @@ export default function Navbar({
     if (session?.role === "ADMIN") {
       if (!socket) return;
 
-      const handleNotification = (data: NotificationType) => {
+      const handleNotification = () => {
         infoToast("New Notification");
         setchecknotify((prev) => (prev ?? 0) + 1);
       };
@@ -157,7 +174,9 @@ export default function Navbar({
         <div className="first_section  w-1/2 h-full flex items-center pl-3">
           <Image
             className="menu_icon w-7.5 h-7.5 object-fill transition rounded-md"
-            onClick={() => setcategories(!categories)}
+            onClick={() => {
+              setcategories(!categories);
+            }}
             src={Menu}
             alt="menu"
             width={100}
@@ -173,7 +192,9 @@ export default function Navbar({
             width={50}
             height={50}
             quality={50}
-            onClick={() => setopenmodal((prev) => ({ ...prev, searchcon: true }))}
+            onClick={() =>
+              setopenmodal((prev) => ({ ...prev, searchcon: true }))
+            }
           />
         </div>
         <div className="second_section  w-full h-fit relative top-2 flex justify-center">
@@ -193,7 +214,9 @@ export default function Navbar({
             width={50}
             height={50}
             quality={50}
-            onClick={() => setopenmodal((prev) => ({ ...prev, searchcon: true }))}
+            onClick={() =>
+              setopenmodal((prev) => ({ ...prev, searchcon: true }))
+            }
           />
 
           {session && session.role !== "ADMIN" && (
@@ -220,7 +243,7 @@ export default function Navbar({
             <>
               <div className="w-7.5 h-7.5 max-smallest_tablet:w-6.25 max-smallest_tablet:h-6.25 max-small_phone:w-6.25 max-small_phone:h-6.25 relative">
                 <Image
-                  ref={navref}
+                  ref={navref as never}
                   src={!opennotification ? Bell : ActiveBell}
                   alt="notification"
                   onClick={() => setnotification(!opennotification)}
@@ -245,11 +268,18 @@ export default function Navbar({
             alt="profile"
             className="cart w-10 h-10 max-small_phone:w-8.75 max-small_phone:h-8.75 object-contain transition hover:-translate-y-2"
             onMouseEnter={() => session && setprofile(true)}
-            onClick={() => !session && router.push("/account", { scroll: false })}
+
+            onClick={() =>
+              !session
+                ? router.push("/account", { scroll: false })
+                : setprofile(true)
+            }
           />
         </div>
 
-        <AnimatePresence>{profile && <AccountMenu setProfile={setprofile} />}</AnimatePresence>
+        <AnimatePresence>
+          {profile && <AccountMenu setProfile={setprofile} />}
+        </AnimatePresence>
 
         {openmodal?.homecontainer && (
           <Homecontainermodal setprofile={setprofile} isPhone={isMobile} />
@@ -259,9 +289,18 @@ export default function Navbar({
           {openmodal?.searchcon && <SearchContainer isMobile={isMobile} />}
         </AnimatePresence>
 
-        {cart && <CartMenu img={DefaultImage} setcart={setcart} setcarttotal={setcarttotal} />}
+        {cart && (
+          <CartMenu
+            img={DefaultImage}
+            setcart={setcart}
+            setcarttotal={setcarttotal}
+          />
+        )}
         {opennotification && (
-          <NotificationMenu close={() => setnotification(false)} ref={notiref} />
+          <NotificationMenu
+            close={() => setnotification(false)}
+            ref={notiref}
+          />
         )}
       </nav>
       <CookieConsent
@@ -278,14 +317,19 @@ export default function Navbar({
         expires={150}
       >
         This website uses cookies to enhance the user experience.{" "}
-        <Link href={"/privacyandpolicy"} style={{ fontSize: "10px", textDecoration: "underline" }}>
+        <Link
+          href={"/privacyandpolicy"}
+          style={{ fontSize: "10px", textDecoration: "underline" }}
+        >
           See Privacy And Policy Page
         </Link>
       </CookieConsent>
     </>
   );
 }
-const CategoriesContainer = (props: { setopen: React.Dispatch<React.SetStateAction<boolean>> }) => {
+const CategoriesContainer = (props: {
+  setopen: React.Dispatch<React.SetStateAction<boolean>>;
+}) => {
   const [allcate, setallcate] = useState<Array<CateogoryState>>();
   const [loading, setloading] = useState(false);
   const { isMobile } = useScreenSize();
@@ -321,8 +365,10 @@ const CategoriesContainer = (props: { setopen: React.Dispatch<React.SetStateActi
   };
 
   // Auto-filled lists (popular, latest) show as quick links; the rest as columns
-  const quickLinks = allcate?.filter((i) => i.type === "latest" || i.type === "popular") ?? [];
-  const columns = allcate?.filter((i) => i.type !== "latest" && i.type !== "popular") ?? [];
+  const quickLinks =
+    allcate?.filter((i) => i.type === "latest" || i.type === "popular") ?? [];
+  const columns =
+    allcate?.filter((i) => i.type !== "latest" && i.type !== "popular") ?? [];
 
   return (
     <div
@@ -349,7 +395,10 @@ const CategoriesContainer = (props: { setopen: React.Dispatch<React.SetStateActi
           <>
             <div className="flex flex-wrap gap-2">
               {[...Array(3)].map((_, idx) => (
-                <div key={idx} className="w-32 h-10 rounded-full bg-slate-100 animate-pulse" />
+                <div
+                  key={idx}
+                  className="w-32 h-10 rounded-full bg-slate-100 animate-pulse"
+                />
               ))}
             </div>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-8 gap-y-8">
@@ -368,7 +417,9 @@ const CategoriesContainer = (props: { setopen: React.Dispatch<React.SetStateActi
             <span className="w-14 h-14 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center">
               <FontAwesomeIcon icon={faLayerGroup} className="text-xl" />
             </span>
-            <h3 className="text-base font-semibold text-slate-700">No categories yet</h3>
+            <h3 className="text-base font-semibold text-slate-700">
+              No categories yet
+            </h3>
             <p className="text-sm text-slate-500 max-w-sm">
               Check back soon, or browse everything we have.
             </p>
@@ -406,11 +457,16 @@ const CategoriesContainer = (props: { setopen: React.Dispatch<React.SetStateActi
                 {columns.map((i) => {
                   const subs = i.subcategories.filter((s) => !s.isExpired);
                   return (
-                    <div key={i.id} className="category flex flex-col gap-2 min-w-0">
+                    <div
+                      key={i.id}
+                      className="category flex flex-col gap-2 min-w-0"
+                    >
                       <button
                         type="button"
                         onClick={() =>
-                          go(`/product?${i.type === "normal" ? `pid=${i.id}` : `ppid=${i.id}`}`)
+                          go(
+                            `/product?${i.type === "normal" ? `pid=${i.id}` : `ppid=${i.id}`}`,
+                          )
                         }
                         className="category_header group flex items-center gap-2 text-left pb-2 border-b border-slate-200"
                       >
@@ -510,7 +566,8 @@ enum actiontype {
 
 const DROPDOWN_CLASSNAMES = {
   base: "before:bg-white/10",
-  content: "p-1.5 border border-gray-200 bg-white/95 backdrop-blur-xl shadow-xl rounded-xl",
+  content:
+    "p-1.5 border border-gray-200 bg-white/95 backdrop-blur-xl shadow-xl rounded-xl",
 };
 
 const ITEM_CLASSES = {
@@ -541,7 +598,7 @@ const BUTTON_CLASS_TYPE =
 const BUTTON_CLASS_CREATE =
   "group relative overflow-hidden font-bold transition-all duration-300 bg-linear-to-br from-green-500 via-emerald-500 to-teal-600 hover:from-green-600 hover:via-emerald-600 hover:to-teal-700 text-white shadow-lg hover:shadow-2xl hover:shadow-emerald-500/50 hover:scale-105 active:scale-95 min-w-27.5 md:min-w-35 h-9 md:h-11 text-xs md:text-sm rounded-xl md:rounded-2xl before:absolute before:inset-0 before:bg-linear-to-r before:from-transparent before:via-white/20 before:to-transparent before:translate-x-[-200%] hover:before:translate-x-[200%] before:transition-transform before:duration-700";
 
-const ICON_MAP: Record<string, any> = {
+const ICON_MAP: Record<string, IconDefinition> = {
   Product: faBox,
   Category: faFolder,
   Banner: faImage,
@@ -572,7 +629,11 @@ export const SubInventoryMenu = memo((props: Subinventorymenuprops) => {
     (obj: { value: string; opencon: string }) => {
       const index = props.index as number;
 
-      if (props.type === "product" || props.type === "banner" || props.type === "promotion") {
+      if (
+        props.type === "product" ||
+        props.type === "banner" ||
+        props.type === "promotion"
+      ) {
         if (obj.value === actiontype.EDIT) {
           setglobalindex((previndex) => ({
             ...previndex,
@@ -660,7 +721,9 @@ export const SubInventoryMenu = memo((props: Subinventorymenuprops) => {
               <span className="hidden md:inline font-extrabold tracking-wide uppercase text-xs">
                 Action
               </span>
-              <span className="md:hidden font-extrabold tracking-wide uppercase text-xs">New</span>
+              <span className="md:hidden font-extrabold tracking-wide uppercase text-xs">
+                New
+              </span>
             </div>
           )}
         </Button>
@@ -711,7 +774,9 @@ export const NotificationMenu = forwardRef(
     },
     ref,
   ) => {
-    const [notifydata, setnotifydata] = useState<NotificationType[] | undefined>(undefined);
+    const [notifydata, setnotifydata] = useState<
+      NotificationType[] | undefined
+    >(undefined);
 
     const [loading, setloading] = useState(false);
     const [page, setPage] = useState(1);
@@ -766,16 +831,24 @@ export const NotificationMenu = forwardRef(
     const handleChecked = async (id: number) => {
       if (checkedIds.current.has(id)) return;
       checkedIds.current.add(id);
-      setnotifydata((prev) => prev?.map((n) => (n.id === id ? { ...n, checked: true } : n)));
+      setnotifydata((prev) =>
+        prev?.map((n) => (n.id === id ? { ...n, checked: true } : n)),
+      );
       const checkednotify = CheckedNotification.bind(null, id);
       await checkednotify();
       router.refresh();
     };
 
     const handleDelete = async (id: number) => {
-      const makereq = await ApiRequest("/api/users/notification", undefined, "DELETE", "JSON", {
-        id,
-      });
+      const makereq = await ApiRequest(
+        "/api/users/notification",
+        undefined,
+        "DELETE",
+        "JSON",
+        {
+          id,
+        },
+      );
       if (makereq.success) {
         checkedIds.current.delete(id);
         setnotifydata((prev) => prev?.filter((i) => i.id !== id));
@@ -786,7 +859,7 @@ export const NotificationMenu = forwardRef(
 
     return (
       <aside
-        ref={ref as any}
+        ref={ref as never}
         onScroll={() => {
           handleScroll();
         }}
@@ -820,8 +893,12 @@ export const NotificationMenu = forwardRef(
                       {!n.checked && (
                         <span className="w-2.5 h-2.5 bg-red-500 rounded-full absolute top-3 right-8"></span>
                       )}
-                      <h3 className="font-bold text-base text-gray-900">{n.type}</h3>
-                      <p className="text-sm text-gray-600 line-clamp-2">{n.content}</p>
+                      <h3 className="font-bold text-base text-gray-900">
+                        {n.type}
+                      </h3>
+                      <p className="text-sm text-gray-600 line-clamp-2">
+                        {n.content}
+                      </p>
                       <p className="text-xs text-gray-400">{n.createdAt}</p>
                     </div>
                   </Link>
@@ -831,13 +908,18 @@ export const NotificationMenu = forwardRef(
                     className="absolute top-3 right-3 text-gray-400 hover:text-red-500 transition duration-200 cursor-pointer p-1"
                     aria-label="Delete notification"
                   >
-                    <FontAwesomeIcon icon={faTrash} className={loading ? "animate-spin" : ""} />
+                    <FontAwesomeIcon
+                      icon={faTrash}
+                      className={loading ? "animate-spin" : ""}
+                    />
                   </button>
                 </div>
               ))}
 
           {loading && (
-            <Box sx={{ display: "flex", justifyContent: "center", height: "50px" }}>
+            <Box
+              sx={{ display: "flex", justifyContent: "center", height: "50px" }}
+            >
               <CircularProgress />
             </Box>
           )}
