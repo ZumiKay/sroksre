@@ -1,29 +1,28 @@
-import { createCipheriv, createDecipheriv, createHash, randomInt, randomBytes } from "crypto";
+import {
+  createCipheriv,
+  createDecipheriv,
+  createHash,
+  randomInt,
+  randomBytes,
+} from "crypto";
 import * as OTPAuth from "otpauth";
 import QRCode from "qrcode";
 import Prisma from "./prisma";
 
 /**
  * Two-factor login with an authenticator app (TOTP, RFC 6238).
- *
- * - The shared secret is stored AES-256-GCM encrypted with MFA_ENCRYPTION_KEY.
- * - A code is accepted within ±1 step (30 s) of the server clock, and each
- *   step can be used once (User.lastTotpStep).
- * - Recovery codes are single-use; only their SHA-256 hash is stored.
  */
 export const MFA_CONFIG = {
   ISSUER: "SrokSre",
   PERIOD_SECONDS: 30,
   DIGITS: 6,
-  /** Steps of clock drift allowed either side of now. */
   WINDOW: 1,
   RECOVERY_CODE_COUNT: 10,
 } as const;
 
 /** When true, admin pages and APIs require a login that passed 2FA. */
-export const isAdminMfaRequired = () => process.env.ADMIN_MFA_REQUIRED === "true";
-
-// ── Secret encryption ─────────────────────────────────────────────────────────
+export const isAdminMfaRequired = () =>
+  process.env.ADMIN_MFA_REQUIRED === "true";
 
 export class MfaConfigError extends Error {}
 
@@ -31,12 +30,14 @@ function encryptionKey(): Buffer {
   const raw = process.env.MFA_ENCRYPTION_KEY;
   const key = raw ? Buffer.from(raw, "base64") : Buffer.alloc(0);
   if (key.length !== 32) {
-    throw new MfaConfigError("MFA_ENCRYPTION_KEY must be set to 32 random bytes, base64-encoded");
+    throw new MfaConfigError(
+      "MFA_ENCRYPTION_KEY must be set to 32 random bytes, base64-encoded",
+    );
   }
   return key;
 }
 
-/** True when MFA_ENCRYPTION_KEY is set correctly. */
+//check env config
 export function isMfaConfigured(): boolean {
   try {
     encryptionKey();
@@ -63,11 +64,16 @@ export function decryptSecret(stored: string): string {
   if (version !== "v1" || !iv || !tag || !data) {
     throw new Error("Unknown 2FA secret format");
   }
-  const decipher = createDecipheriv("aes-256-gcm", encryptionKey(), Buffer.from(iv, "base64"));
-  decipher.setAuthTag(Buffer.from(tag, "base64"));
-  return Buffer.concat([decipher.update(Buffer.from(data, "base64")), decipher.final()]).toString(
-    "utf8",
+  const decipher = createDecipheriv(
+    "aes-256-gcm",
+    encryptionKey(),
+    Buffer.from(iv, "base64"),
   );
+  decipher.setAuthTag(Buffer.from(tag, "base64"));
+  return Buffer.concat([
+    decipher.update(Buffer.from(data, "base64")),
+    decipher.final(),
+  ]).toString("utf8");
 }
 
 // TOTP (Time-Based One-Time password) codes
@@ -136,12 +142,11 @@ export async function consumeTotpCode(
   return claimed.count === 1;
 }
 
-// ── Recovery codes ────────────────────────────────────────────────────────────
-
 const RECOVERY_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const RECOVERY_CODE_LENGTH = 10;
 
-const sha256 = (value: string) => createHash("sha256").update(value).digest("hex");
+const sha256 = (value: string) =>
+  createHash("sha256").update(value).digest("hex");
 
 export const normalizeRecoveryCode = (input: string) =>
   input.toUpperCase().replace(/[^A-Z0-9]/g, "");
@@ -156,7 +161,10 @@ function newRecoveryCode(): string {
 
 /** Replaces all of a user's recovery codes. Returns the new codes (shown once). */
 export async function replaceRecoveryCodes(userId: number): Promise<string[]> {
-  const codes = Array.from({ length: MFA_CONFIG.RECOVERY_CODE_COUNT }, newRecoveryCode);
+  const codes = Array.from(
+    { length: MFA_CONFIG.RECOVERY_CODE_COUNT },
+    newRecoveryCode,
+  );
   await Prisma.$transaction([
     Prisma.mfaRecoveryCode.deleteMany({ where: { userId } }),
     Prisma.mfaRecoveryCode.createMany({
@@ -170,7 +178,10 @@ export async function replaceRecoveryCodes(userId: number): Promise<string[]> {
 }
 
 /** Uses up one recovery code. Returns false if it's wrong or already used. */
-export async function consumeRecoveryCode(userId: number, input: unknown): Promise<boolean> {
+export async function consumeRecoveryCode(
+  userId: number,
+  input: unknown,
+): Promise<boolean> {
   if (typeof input !== "string") return false;
   const normalized = normalizeRecoveryCode(input);
   if (normalized.length !== RECOVERY_CODE_LENGTH) return false;
@@ -182,16 +193,18 @@ export async function consumeRecoveryCode(userId: number, input: unknown): Promi
   return used.count > 0;
 }
 
-/** Login second step: accepts an app code or a recovery code. */
-export async function verifySecondFactor(userId: number, code: string): Promise<boolean> {
+/** Second step verify */
+export async function verifySecondFactor(
+  userId: number,
+  code: string,
+): Promise<boolean> {
   const trimmed = code.trim();
   return looksLikeTotp(trimmed)
     ? consumeTotpCode(userId, trimmed)
     : consumeRecoveryCode(userId, trimmed);
 }
 
-// ── Setup and status ──────────────────────────────────────────────────────────
-
+//Confirmation for the account mfa status
 export async function getMfaStatus(userId: number) {
   const [user, recoveryCodesLeft] = await Promise.all([
     Prisma.user.findUnique({
@@ -208,8 +221,7 @@ export async function getMfaStatus(userId: number) {
 }
 
 /**
- * Starts (or restarts) setup: saves a new secret, not yet enabled, and
- * returns what the user needs to add it to their app.
+ * Initial steps to start the mfaSetup
  */
 export async function startMfaSetup(userId: number, accountName: string) {
   const secret = createTotpSecret();
@@ -224,8 +236,7 @@ export async function startMfaSetup(userId: number, accountName: string) {
 }
 
 /**
- * Finishes setup with the first code from the app. Marks the current login
- * as verified, signs out every other login (they never passed 2FA) and
+ * Marks the current login as verified, signs out every other login (they never passed 2FA) and
  * returns the recovery codes.
  */
 export async function enableMfa(

@@ -4,9 +4,8 @@
  *
  *   npm run mfa:reset -- admin@example.com
  *
- * Needs database access, so it can only be run by someone with access to
- * the server, not by someone who only has a login.
- */
+ * Needs database access
+ * */
 import "dotenv/config";
 import Prisma from "@/src/lib/prisma";
 import { resetMfa } from "@/src/lib/mfa";

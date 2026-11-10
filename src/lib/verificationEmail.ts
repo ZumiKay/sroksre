@@ -1,9 +1,7 @@
 import { handleEmail } from "@/src/app/checkout/action";
 import { VERIFICATION_CONFIG } from "./emailVerification";
 
-// Verification emails are built and sent on the server only. The markup
-// mirrors CredentialEmail (src/app/component/EmailTemplate.tsx) as a plain
-// string, because route handlers can't import react-dom/server.
+// Verification emails are built and sent on the server only
 
 const LOGO_URL =
   "https://firebasestorage.googleapis.com/v0/b/sroksre-442c0.appspot.com/o/sideImage%2FLogo3.png?alt=media&token=e9bda37b-3cc7-400b-9680-01d3b2bf2064";

@@ -27,7 +27,7 @@ import {
 import { Role, VerificationPurpose } from "@/prisma/generated/prisma/enums";
 
 /**
- * Two-factor setup for admins (Dashboard → Security).
+ * Two-factor setup for admins.
  *
  * GET  → status
  * POST { action: "send-email-code" }               email a setup code
@@ -54,7 +54,7 @@ async function currentAdmin() {
   };
 }
 
-// Wrong codes on this page share a lockout (5 tries → 15 minutes).
+// Wrong codes on this page share a lockout (5 tries / 15 minutes).
 const lockKey = (userId: number) => `mfa-setup:${userId}`;
 
 async function lockedMessage(userId: number) {
@@ -100,12 +100,22 @@ export async function POST(request: NextRequest) {
 
         const issued = await issueMfaSetupCode(admin.id, admin.email);
         if (!issued.ok) {
-          return json({ message: "Please wait a minute before requesting another code" }, 429);
+          return json(
+            { message: "Please wait a minute before requesting another code" },
+            429,
+          );
         }
-        const sent = await sendVerificationCodeEmail(admin.email, issued.secret, "mfa_setup");
+        const sent = await sendVerificationCodeEmail(
+          admin.email,
+          issued.secret,
+          "mfa_setup",
+        );
         if (!sent.success) {
           await deleteVerification(issued.id);
-          return json({ message: "Failed to send email, please try again" }, 502);
+          return json(
+            { message: "Failed to send email, please try again" },
+            502,
+          );
         }
         return json({ message: `Code sent to ${admin.email}` });
       }
@@ -130,7 +140,11 @@ export async function POST(request: NextRequest) {
         const locked = await lockedMessage(admin.id);
         if (locked) return json({ message: locked }, 429);
 
-        const recoveryCodes = await enableMfa(admin.id, body.code, hashToken(admin.sessionid));
+        const recoveryCodes = await enableMfa(
+          admin.id,
+          body.code,
+          hashToken(admin.sessionid),
+        );
         if (!recoveryCodes) {
           await recordFailedLoginAttempt(lockKey(admin.id));
           return json({ message: "Incorrect code, please try again" }, 400);
@@ -156,7 +170,10 @@ export async function POST(request: NextRequest) {
     }
   } catch (error) {
     if (error instanceof MfaConfigError) {
-      return json({ message: "Two-factor isn't configured on the server yet" }, 500);
+      return json(
+        { message: "Two-factor isn't configured on the server yet" },
+        500,
+      );
     }
     console.log("MFA route error:", error);
     return json({ message: "Something went wrong" }, 500);
