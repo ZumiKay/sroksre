@@ -18,7 +18,7 @@ import { ProductState } from "@/src/types/product.type";
  * Handles all 5 stock flavours: normal, variant, variant+price/qty,
  * variant+section, and variant+section+price/qty.
  */
-async function createProductInDb(
+export async function createProductInDb(
   productData: ProductState,
   parentCategoryId: number,
   childCategoryId: number,

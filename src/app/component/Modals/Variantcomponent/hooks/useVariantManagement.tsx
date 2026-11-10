@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { useGlobalContext } from "@/src/context/GlobalContext";
+import { useGlobalStore } from "@/src/context/GlobalContext";
 import { ApiRequest } from "@/src/context/CustomHook";
 import { errorToast } from "../../../Loading";
 
@@ -16,7 +16,8 @@ export const useVariantManagement = ({
   setaccessFromSection,
   setSuccessMessage,
 }: UseVariantManagementProps) => {
-  const { product, setproduct } = useGlobalContext();
+  const product = useGlobalStore((s) => s.product);
+  const setproduct = useGlobalStore((s) => s.setproduct);
   const [loading, setLoading] = useState(false);
 
   const handleAddVariant = useCallback(

@@ -426,7 +426,9 @@ export const ModelName = {
   Policy: 'Policy',
   Paragraph: 'Paragraph',
   Notification: 'Notification',
-  LoginAttempt: 'LoginAttempt'
+  LoginAttempt: 'LoginAttempt',
+  MfaRecoveryCode: 'MfaRecoveryCode',
+  EmailVerification: 'EmailVerification'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -442,7 +444,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "wishlist" | "address" | "usersession" | "parentcategories" | "childcategories" | "products" | "productcategory" | "productcover" | "tempimage" | "producttype" | "orders" | "orderproduct" | "banner" | "homecontainer" | "containeritems" | "promotion" | "answers" | "questions" | "info" | "variant" | "variantSection" | "varianttemplate" | "stock" | "stockvalue" | "question" | "policy" | "paragraph" | "notification" | "loginAttempt"
+    modelProps: "user" | "wishlist" | "address" | "usersession" | "parentcategories" | "childcategories" | "products" | "productcategory" | "productcover" | "tempimage" | "producttype" | "orders" | "orderproduct" | "banner" | "homecontainer" | "containeritems" | "promotion" | "answers" | "questions" | "info" | "variant" | "variantSection" | "varianttemplate" | "stock" | "stockvalue" | "question" | "policy" | "paragraph" | "notification" | "loginAttempt" | "mfaRecoveryCode" | "emailVerification"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -2666,6 +2668,154 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    MfaRecoveryCode: {
+      payload: Prisma.$MfaRecoveryCodePayload<ExtArgs>
+      fields: Prisma.MfaRecoveryCodeFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.MfaRecoveryCodeFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MfaRecoveryCodePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.MfaRecoveryCodeFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MfaRecoveryCodePayload>
+        }
+        findFirst: {
+          args: Prisma.MfaRecoveryCodeFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MfaRecoveryCodePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.MfaRecoveryCodeFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MfaRecoveryCodePayload>
+        }
+        findMany: {
+          args: Prisma.MfaRecoveryCodeFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MfaRecoveryCodePayload>[]
+        }
+        create: {
+          args: Prisma.MfaRecoveryCodeCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MfaRecoveryCodePayload>
+        }
+        createMany: {
+          args: Prisma.MfaRecoveryCodeCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.MfaRecoveryCodeCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MfaRecoveryCodePayload>[]
+        }
+        delete: {
+          args: Prisma.MfaRecoveryCodeDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MfaRecoveryCodePayload>
+        }
+        update: {
+          args: Prisma.MfaRecoveryCodeUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MfaRecoveryCodePayload>
+        }
+        deleteMany: {
+          args: Prisma.MfaRecoveryCodeDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.MfaRecoveryCodeUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.MfaRecoveryCodeUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MfaRecoveryCodePayload>[]
+        }
+        upsert: {
+          args: Prisma.MfaRecoveryCodeUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$MfaRecoveryCodePayload>
+        }
+        aggregate: {
+          args: Prisma.MfaRecoveryCodeAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateMfaRecoveryCode>
+        }
+        groupBy: {
+          args: Prisma.MfaRecoveryCodeGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MfaRecoveryCodeGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.MfaRecoveryCodeCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.MfaRecoveryCodeCountAggregateOutputType> | number
+        }
+      }
+    }
+    EmailVerification: {
+      payload: Prisma.$EmailVerificationPayload<ExtArgs>
+      fields: Prisma.EmailVerificationFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.EmailVerificationFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailVerificationPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.EmailVerificationFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailVerificationPayload>
+        }
+        findFirst: {
+          args: Prisma.EmailVerificationFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailVerificationPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.EmailVerificationFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailVerificationPayload>
+        }
+        findMany: {
+          args: Prisma.EmailVerificationFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailVerificationPayload>[]
+        }
+        create: {
+          args: Prisma.EmailVerificationCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailVerificationPayload>
+        }
+        createMany: {
+          args: Prisma.EmailVerificationCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.EmailVerificationCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailVerificationPayload>[]
+        }
+        delete: {
+          args: Prisma.EmailVerificationDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailVerificationPayload>
+        }
+        update: {
+          args: Prisma.EmailVerificationUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailVerificationPayload>
+        }
+        deleteMany: {
+          args: Prisma.EmailVerificationDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.EmailVerificationUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.EmailVerificationUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailVerificationPayload>[]
+        }
+        upsert: {
+          args: Prisma.EmailVerificationUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$EmailVerificationPayload>
+        }
+        aggregate: {
+          args: Prisma.EmailVerificationAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateEmailVerification>
+        }
+        groupBy: {
+          args: Prisma.EmailVerificationGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.EmailVerificationGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.EmailVerificationCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.EmailVerificationCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -2717,9 +2867,11 @@ export const UserScalarFieldEnum = {
   phonenumber: 'phonenumber',
   password: 'password',
   whislist: 'whislist',
-  vfy: 'vfy',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  totpSecret: 'totpSecret',
+  totpEnabledAt: 'totpEnabledAt',
+  lastTotpStep: 'lastTotpStep'
 } as const
 
 export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
@@ -2762,7 +2914,8 @@ export const UsersessionScalarFieldEnum = {
   device: 'device',
   userAgent: 'userAgent',
   ipAddress: 'ipAddress',
-  revoked: 'revoked'
+  revoked: 'revoked',
+  mfaVerified: 'mfaVerified'
 } as const
 
 export type UsersessionScalarFieldEnum = (typeof UsersessionScalarFieldEnum)[keyof typeof UsersessionScalarFieldEnum]
@@ -3088,6 +3241,31 @@ export const LoginAttemptScalarFieldEnum = {
 export type LoginAttemptScalarFieldEnum = (typeof LoginAttemptScalarFieldEnum)[keyof typeof LoginAttemptScalarFieldEnum]
 
 
+export const MfaRecoveryCodeScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  codeHash: 'codeHash',
+  usedAt: 'usedAt',
+  createdAt: 'createdAt'
+} as const
+
+export type MfaRecoveryCodeScalarFieldEnum = (typeof MfaRecoveryCodeScalarFieldEnum)[keyof typeof MfaRecoveryCodeScalarFieldEnum]
+
+
+export const EmailVerificationScalarFieldEnum = {
+  id: 'id',
+  purpose: 'purpose',
+  email: 'email',
+  userId: 'userId',
+  tokenHash: 'tokenHash',
+  attempts: 'attempts',
+  expiresAt: 'expiresAt',
+  createdAt: 'createdAt'
+} as const
+
+export type EmailVerificationScalarFieldEnum = (typeof EmailVerificationScalarFieldEnum)[keyof typeof EmailVerificationScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -3230,6 +3408,20 @@ export type FloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, '
  * Reference to a field of type 'Float[]'
  */
 export type ListFloatFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Float[]'>
+    
+
+
+/**
+ * Reference to a field of type 'VerificationPurpose'
+ */
+export type EnumVerificationPurposeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'VerificationPurpose'>
+    
+
+
+/**
+ * Reference to a field of type 'VerificationPurpose[]'
+ */
+export type ListEnumVerificationPurposeFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'VerificationPurpose[]'>
     
 
 /**
@@ -3413,6 +3605,8 @@ export type GlobalOmitConfig = {
   paragraph?: Prisma.ParagraphOmit
   notification?: Prisma.NotificationOmit
   loginAttempt?: Prisma.LoginAttemptOmit
+  mfaRecoveryCode?: Prisma.MfaRecoveryCodeOmit
+  emailVerification?: Prisma.EmailVerificationOmit
 }
 
 /* Types for Logging */

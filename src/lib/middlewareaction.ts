@@ -29,7 +29,8 @@ const allPublicRoute: Map<string, methodtype[]> = new Map([
   ["/categories/select", ["GET"]],
   ["/auth/register", ["POST"]],
   ["/order/cart/check", ["POST"]],
-  ["/users/vfy", ["POST", "DELETE", "GET"]],
+  ["/users/vfy", ["POST"]],
+  ["/users/vfy/check", ["POST"]],
 ]);
 
 const userRoute: Map<string, methodtype[]> = new Map([
@@ -39,6 +40,10 @@ const userRoute: Map<string, methodtype[]> = new Map([
   ["/order", ["POST", "PUT", "GET", "DELETE"]],
   ["/order/cart", ["POST", "GET", "DELETE"]],
   ["/users/info", ["GET", "DELETE"]],
+  // Two-factor setup; the handler itself requires an admin.
+  ["/users/mfa", ["GET", "POST"]],
+  // Confirm a delete; the handler checks admin rights for "delete_users".
+  ["/users/confirm", ["GET", "POST"]],
   ["/users/logout", ["DELETE"]],
 ]);
 
@@ -74,4 +79,15 @@ export const VerifyApiRoute = (
 
   // Default: allow if not explicitly restricted
   return { success: true };
+};
+
+/**
+ * True when only admins may call this route. Mirrors VerifyApiRoute's
+ * order: public and user routes win over the admin list.
+ */
+export const isAdminOnlyRoute = (url: string, method: methodtype): boolean => {
+  const normalizedUrl = url.toLowerCase();
+  if (allPublicRoute.get(normalizedUrl)?.includes(method)) return false;
+  if (userRoute.get(normalizedUrl)?.includes(method)) return false;
+  return !!allAdminRoute.get(normalizedUrl)?.includes(method);
 };

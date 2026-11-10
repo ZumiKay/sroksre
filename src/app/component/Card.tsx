@@ -3,11 +3,17 @@
 import Image, { StaticImageData } from "next/image";
 import PrimaryButton from "./Button";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faPercent, faTag, faTrash } from "@fortawesome/free-solid-svg-icons";
+import {
+  faCheck,
+  faImage,
+  faPercent,
+  faTag,
+  faTrash,
+} from "@fortawesome/free-solid-svg-icons";
 import { useRef, useState, useCallback, useMemo, memo } from "react";
 import { ImageWithLoader } from "./ImageWithLoader";
 import { PrimaryPhoto } from "./PhotoComponent";
-import { useGlobalContext } from "@/src/context/GlobalContext";
+import { useGlobalStore } from "@/src/context/GlobalContext";
 import Checkmark from "../../../public/Image/Checkmark.svg";
 import { SubInventoryMenu } from "./Navbar";
 import { errorToast } from "./Loading";
@@ -17,21 +23,16 @@ import {
   totalpricetype,
   VariantOptionsType,
 } from "@/src/types/order.type";
-import { Variantcontainer } from "./Modals/VariantModal";
-import { UpdateStockModal } from "./Modals/Stock";
+import { StockEditTarget } from "./Modals/productStockTarget";
 import { Chip, Skeleton } from "@heroui/react";
-import {
-  ApiRequest,
-  useClickOutside,
-  useScreenSize,
-} from "@/src/context/CustomHook";
+import { ApiRequest, useScreenSize } from "@/src/context/CustomHook";
 import { SelectionCustom } from "./Pagination_Component";
 import {
   productcoverstype,
-  StockTypeEnum,
   VariantValueObjType,
 } from "@/src/types/product.type";
 import { PromotionState } from "@/src/types/productAction.type";
+import dayjs from "dayjs";
 
 interface cardprops {
   name: string;
@@ -52,6 +53,8 @@ interface cardprops {
   isMobile?: boolean;
   isTablet?: boolean;
   reloaddata?: () => void;
+  /** Opens the page-level stock modal for this product (admin only) */
+  onOpenStock?: (target: StockEditTarget) => void;
 }
 const editactionMenu = [
   {
@@ -66,15 +69,12 @@ const editactionMenu = [
 ];
 
 const Card = memo(function Card(props: cardprops) {
-  const {
-    promotion,
-    setpromotion,
-    setglobalindex,
-    openmodal,
-    setopenmodal,
-    allData,
-    setalldata,
-  } = useGlobalContext();
+  const promotion = useGlobalStore((s) => s.promotion);
+  const setpromotion = useGlobalStore((s) => s.setpromotion);
+  const setglobalindex = useGlobalStore((s) => s.setglobalindex);
+  const setopenmodal = useGlobalStore((s) => s.setopenmodal);
+  const allData = useGlobalStore((s) => s.allData);
+  const setalldata = useGlobalStore((s) => s.setalldata);
   const route = useRouter();
   const isProduct = useMemo(
     () => promotion.Products.find((i) => i.id === props.id),
@@ -108,6 +108,8 @@ const Card = memo(function Card(props: cardprops) {
           if (!isProduct) {
             const option = {
               id: id,
+              name: props.name,
+              cover: props.img?.[0]?.url,
               discount: {
                 percent: 0,
                 newprice: "",
@@ -135,6 +137,8 @@ const Card = memo(function Card(props: cardprops) {
           } else {
             promo.push({
               id: id,
+              name: props.name,
+              cover: props.img?.[0]?.url,
               discount: {
                 percent: 0,
                 newprice: "",
@@ -147,7 +151,10 @@ const Card = memo(function Card(props: cardprops) {
         setpromotion((prev) => ({
           ...prev,
           Products: promo,
-          tempproduct: temp,
+          // Accumulate: earlier removals must survive later toggles
+          tempproduct: Array.from(
+            new Set([...(prev.tempproduct ?? []), ...temp]),
+          ),
         }));
       } else {
         setglobalindex((prev) => ({ ...prev, promotionproductedit: id }));
@@ -209,24 +216,19 @@ const Card = memo(function Card(props: cardprops) {
           -{hasDiscount?.percent ?? 0}%
         </p>
         <p className="text-sm font-medium">
-          {hasDiscount?.newprice ? `$${hasDiscount?.newprice}` : ""}
+          {hasDiscount?.newprice
+            ? `$${Number(hasDiscount.newprice).toFixed(2)}`
+            : ""}
         </p>
       </div>
     ),
     [props.price, hasDiscount],
   );
 
-  const closename = useMemo(
-    () => (props.stocktype && props.id ? props.stocktype + props.id : ""),
-    [props.stocktype, props.id],
-  );
-
-  const handleLowStockClick = useCallback(() => {
-    setopenmodal((prev) => ({
-      ...prev,
-      [closename]: true,
-    }));
-  }, [closename, setopenmodal]);
+  const { onOpenStock, id: productId, stocktype } = props;
+  const handleOpenStock = useCallback(() => {
+    if (productId) onOpenStock?.({ id: productId, stocktype });
+  }, [onOpenStock, productId, stocktype]);
 
   const showLowStock = useMemo(
     () =>
@@ -234,32 +236,26 @@ const Card = memo(function Card(props: cardprops) {
         <PrimaryButton
           type="button"
           text="Low Stock"
-          onClick={handleLowStockClick}
+          onClick={handleOpenStock}
           width="100%"
           color="lightcoral"
         />
       ) : null,
-    [
-      promotion.selectproduct,
-      props.lowstock,
-      props.isAdmin,
-      handleLowStockClick,
-    ],
+    [promotion.selectproduct, props.lowstock, props.isAdmin, handleOpenStock],
   );
   //
   ///end
 
   return (
-    <>
-      <div
-        key={props.index}
-        ref={ref}
-        style={{ width: props.width, height: props.height }}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
-        onTouchStart={handleMouseEnter}
-        onTouchCancel={handleMouseLeave}
-        className={`card__container ${props.width ? "" : "w-full max-w-sm"} h-fit flex flex-col mx-auto
+    <div
+      key={props.index}
+      ref={ref}
+      style={{ width: props.width, height: props.height }}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      onTouchStart={handleMouseEnter}
+      onTouchCancel={handleMouseLeave}
+      className={`card__container ${props.width ? "" : "w-full max-w-sm"} h-fit flex flex-col mx-auto
        rounded-xl shadow-xs transition-all duration-300 overflow-hidden animate-fade-in
        ${
          promotion.selectproduct
@@ -269,114 +265,94 @@ const Card = memo(function Card(props: cardprops) {
            : "border border-gray-200 hover:border-gray-400 hover:shadow-md"
        }
         `}
-      >
-        <div
-          onClick={() => {
-            if (promotion.selectproduct) {
-              handleSelectDiscount(props.id as number, "create");
-            }
-          }}
-          className="cardimage__container flex flex-col justify-center items-center relative w-full h-full bg-gray-50 overflow-hidden"
-        >
-          <PrimaryPhoto
-            showcount={false}
-            data={props.img}
-            hover={hover}
-            isMobile={isMobile}
-            isTablet={isTablet}
-            disablePreview
-          />
-
-          {promotion.selectproduct && !isProduct && (
-            <div className="absolute inset-0 bg-orange-400/0 hover:bg-orange-400/10 transition-colors duration-200 flex items-center justify-center pointer-events-none">
-              <span className="opacity-0 group-hover:opacity-100 bg-orange-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-md">
-                Click to select
-              </span>
-            </div>
-          )}
-          {promotion.selectproduct && isProduct && (
-            <div className="absolute inset-0 bg-blue-500/10 pointer-events-none" />
-          )}
-          <span className="absolute top-3 right-3">
-            {shouldShowCheckmark ? (
-              <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center shadow-md shadow-blue-300">
-                {showCheckmark}
-              </div>
-            ) : showEditMenu && props.isAdmin ? (
-              <SubInventoryMenu
-                data={editactionMenu}
-                index={props.id}
-                type="product"
-                style={{ right: "0", top: 0 }}
-                open="createProduct"
-                stock={props.stock}
-                stocktype={props.stocktype}
-                reloaddata={props.reloaddata}
-                stockaction={() => {
-                  setopenmodal((prev) => ({
-                    ...prev,
-                    [closename]: true,
-                  }));
-                }}
-              />
-            ) : (
-              ""
-            )}
-          </span>
-        </div>
-        <div
-          onClick={() =>
-            !promotion.selectproduct &&
-            route.push(`/product/detail/${props.id}`)
+    >
+      <div
+        onClick={() => {
+          if (promotion.selectproduct) {
+            handleSelectDiscount(props.id as number, "create");
           }
-          className="card_detail w-full h-fit font-semibold flex flex-col justify-center gap-y-2 px-3 py-3 rounded-b-md text-sm"
-        >
-          <p className="card_info w-full max-w-100 h-fit text-lg">
-            {props.name.length > 0 ? props.name : "No Product Created"}
-          </p>
+        }}
+        className="cardimage__container flex flex-col justify-center items-center relative w-full h-full bg-gray-50 overflow-hidden"
+      >
+        <PrimaryPhoto
+          showcount={false}
+          data={props.img}
+          hover={hover}
+          isMobile={isMobile}
+          isTablet={isTablet}
+          disablePreview
+        />
 
-          {hasDiscount ? showDiscountPrice : showOriginalPrice}
-        </div>
-        {props.button && (
-          <PrimaryButton type="button" text="Add To Cart" width={"100%"} />
-        )}
-        {promotion.selectproduct && isProduct?.discount && (
-          <div className="px-3 pb-3">
-            <button
-              onClick={() => handleSelectDiscount(isProduct.id ?? 0, "edit")}
-              type="button"
-              className={`w-full py-2.5 rounded-xl font-bold text-sm transition-all duration-200 flex items-center justify-center gap-2 shadow-md hover:scale-[1.02] active:scale-[0.98] ${
-                isProduct?.discount?.percent === 0
-                  ? "bg-linear-to-r from-orange-500 to-red-500 text-white hover:from-orange-600 hover:to-red-600 shadow-orange-200"
-                  : "bg-linear-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-600 hover:to-indigo-700 shadow-blue-200"
-              }`}
-            >
-              <FontAwesomeIcon
-                icon={isProduct?.discount?.percent === 0 ? faPercent : faTag}
-                className="text-xs"
-              />
-              {isProduct?.discount?.percent === 0
-                ? "Set Discount"
-                : `Edit · ${isProduct.discount.percent}% off`}
-            </button>
+        {promotion.selectproduct && !isProduct && (
+          <div className="absolute inset-0 bg-orange-400/0 hover:bg-orange-400/10 transition-colors duration-200 flex items-center justify-center pointer-events-none">
+            <span className="opacity-0 group-hover:opacity-100 bg-orange-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-md">
+              Click to select
+            </span>
           </div>
         )}
-        {showLowStock}
+        {promotion.selectproduct && isProduct && (
+          <div className="absolute inset-0 bg-blue-500/10 pointer-events-none" />
+        )}
+        <span className="absolute top-3 right-3">
+          {shouldShowCheckmark ? (
+            <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center shadow-md shadow-blue-300">
+              {showCheckmark}
+            </div>
+          ) : showEditMenu && props.isAdmin ? (
+            <SubInventoryMenu
+              data={editactionMenu}
+              index={props.id}
+              type="product"
+              style={{ right: "0", top: 0 }}
+              open="createProduct"
+              stock={props.stock}
+              stocktype={props.stocktype}
+              reloaddata={props.reloaddata}
+              stockaction={handleOpenStock}
+            />
+          ) : (
+            ""
+          )}
+        </span>
       </div>
-      {openmodal?.[closename] && props.stocktype === StockTypeEnum.variants ? (
-        <Variantcontainer
-          type="stock"
-          editindex={props.id}
-          closename={closename}
-        />
-      ) : openmodal?.[closename] &&
-        props.stocktype === StockTypeEnum.normal &&
-        props.id ? (
-        <UpdateStockModal closename={closename} productId={props.id} />
-      ) : (
-        <> </>
+      <div
+        onClick={() =>
+          !promotion.selectproduct && route.push(`/product/detail/${props.id}`)
+        }
+        className="card_detail w-full h-fit font-semibold flex flex-col justify-center gap-y-2 px-3 py-3 rounded-b-md text-sm"
+      >
+        <p className="card_info w-full max-w-100 h-fit text-lg">
+          {props.name.length > 0 ? props.name : "No Product Created"}
+        </p>
+
+        {hasDiscount ? showDiscountPrice : showOriginalPrice}
+      </div>
+      {props.button && (
+        <PrimaryButton type="button" text="Add To Cart" width={"100%"} />
       )}
-    </>
+      {promotion.selectproduct && isProduct?.discount && (
+        <div className="px-3 pb-3">
+          <button
+            onClick={() => handleSelectDiscount(isProduct.id ?? 0, "edit")}
+            type="button"
+            className={`w-full py-2.5 rounded-xl font-bold text-sm transition-all duration-200 flex items-center justify-center gap-2 shadow-md hover:scale-[1.02] active:scale-[0.98] ${
+              isProduct?.discount?.percent === 0
+                ? "bg-linear-to-r from-orange-500 to-red-500 text-white hover:from-orange-600 hover:to-red-600 shadow-orange-200"
+                : "bg-linear-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-600 hover:to-indigo-700 shadow-blue-200"
+            }`}
+          >
+            <FontAwesomeIcon
+              icon={isProduct?.discount?.percent === 0 ? faPercent : faTag}
+              className="text-xs"
+            />
+            {isProduct?.discount?.percent === 0
+              ? "Set Discount"
+              : `Edit · ${isProduct.discount.percent}% off`}
+          </button>
+        </div>
+      )}
+      {showLowStock}
+    </div>
   );
 });
 
@@ -690,18 +666,22 @@ export const BannerCard = memo(function BannerCard({
   index,
   id,
   type,
+  promodata,
+  bannersize,
   isExpired,
   reloaddata,
 }: Bannercardprops) {
-  const { promotion, setpromotion, openmodal } = useGlobalContext();
+  const promotion = useGlobalStore((s) => s.promotion);
+  const setpromotion = useGlobalStore((s) => s.setpromotion);
+  const openmodal = useGlobalStore((s) => s.openmodal);
 
-  const [hover, sethover] = useState(false);
   const isBanner = useMemo(
     () => promotion.banner_id === id,
     [promotion.banner_id, id],
   );
-
-  const ref = useClickOutside(() => sethover(false));
+  const isSelecting = promotion.selectbanner;
+  const isPicked = isSelecting && isBanner;
+  const hasImage = !!data.url;
 
   const actionMenu = useMemo(
     () => [
@@ -718,7 +698,6 @@ export const BannerCard = memo(function BannerCard({
   );
 
   const handleSelectBanner = useCallback(() => {
-    sethover(true);
     if (promotion.selectbanner) {
       const ID = isBanner ? 0 : (id as number);
       setpromotion((prev) => ({
@@ -727,109 +706,96 @@ export const BannerCard = memo(function BannerCard({
       }));
     }
   }, [promotion.selectbanner, isBanner, id, setpromotion]);
+
+  // Promotions show when they end; banners show their size
+  const endDate = promodata?.expireAt ? dayjs(promodata.expireAt) : undefined;
+  const meta =
+    type === "promotion"
+      ? endDate?.isValid()
+        ? `${isExpired ? "Ended" : "Ends"} ${endDate.format("MMM D, YYYY")}`
+        : "Promotion"
+      : `Banner${bannersize ? ` · ${bannersize === "small" ? "Small" : "Normal"}` : ""}`;
+
   return (
     <div
-      ref={ref}
       key={index}
       onClick={handleSelectBanner}
-      className={`Banner__container group relative w-full h-full transition-all duration-300 ease-in-out
-        rounded-lg overflow-hidden shadow-md hover:shadow-2xl hover:-translate-y-2 
-        border border-gray-200 hover:border-gray-400 cursor-pointer
-        ${
-          isBanner && promotion.selectbanner
-            ? "ring-4 ring-blue-500 ring-offset-2"
-            : ""
-        }`}
+      aria-pressed={isSelecting ? isPicked : undefined}
+      className={`Banner__container group relative w-full h-full flex flex-col bg-white rounded-xl overflow-hidden border transition-all duration-200 ${
+        isPicked
+          ? "border-slate-900 ring-2 ring-slate-900"
+          : isSelecting
+            ? "border-slate-200 hover:border-slate-400 cursor-pointer"
+            : "border-slate-200 hover:border-slate-300 hover:shadow-md"
+      }`}
     >
-      {isExpired && (
-        <div
-          className="status absolute top-0 left-0 right-0 z-10 px-3 py-2 sm:px-4 sm:py-2.5 
-          bg-linear-to-r from-red-500 to-red-600 backdrop-blur-xs"
-        >
-          <p className="font-bold text-sm sm:text-base md:text-lg text-white text-center flex items-center justify-center gap-2">
-            <span className="inline-block w-2 h-2 bg-white rounded-full animate-pulse"></span>
-            Expired
-          </p>
-        </div>
-      )}
-
-      <div className="relative w-full aspect-video sm:aspect-2/1 md:aspect-21/9 overflow-hidden bg-gray-100">
-        <ImageWithLoader
-          src={data.url ?? ""}
-          alt={data.name || "Banner"}
-          className="banner w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-          containerClassName="w-full h-full"
-          loading="lazy"
-          width={600}
-          height={600}
-        />
-        <div className="absolute inset-0 bg-linear-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-      </div>
-
-      <div className="p-3 sm:p-4 bg-linear-to-br from-incart to-[#3a4350]">
-        <p className="text-base sm:text-lg md:text-xl font-bold text-white wrap-break-word line-clamp-2 group-hover:text-blue-200 transition-colors duration-200">
-          {data.name.length === 0 ? "No name" : data.name}
-        </p>
-      </div>
-
-      <span className="action_container absolute top-2 right-2 sm:top-3 sm:right-3 z-20">
-        {type === "banner" && isBanner && promotion.selectbanner && (
-          <div className="bg-white rounded-full p-1 sm:p-1.5 shadow-lg">
-            <Image
-              src={Checkmark}
-              alt="checkmark"
-              width={100}
-              height={100}
-              className="w-6 h-6 sm:w-8 sm:h-8 object-contain"
-            />
+      <div className="relative w-full flex-1 min-h-0 aspect-2/1 overflow-hidden bg-slate-100">
+        {hasImage ? (
+          <ImageWithLoader
+            src={data.url}
+            alt={data.name || "Banner"}
+            className={`banner w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 ${
+              isExpired ? "grayscale opacity-60" : ""
+            }`}
+            containerClassName="w-full h-full"
+            loading="lazy"
+            width={600}
+            height={600}
+          />
+        ) : (
+          <div className="w-full h-full flex flex-col items-center justify-center gap-1.5 text-slate-400">
+            <FontAwesomeIcon icon={faImage} className="text-xl" />
+            <span className="text-xs font-medium">No banner image</span>
           </div>
         )}
-        {hover && !promotion.selectbanner && !openmodal.managebanner && (
-          <div className="bg-white rounded-lg shadow-xl">
-            <SubInventoryMenu
-              data={actionMenu}
-              type={type}
-              style={{ top: "0", right: "0" }}
-              index={id}
-              reloaddata={reloaddata}
-            />
+
+        {isExpired && (
+          <span className="status absolute bottom-2.5 left-2.5 z-10 inline-flex items-center gap-1.5 rounded-full bg-white/95 border border-red-200 px-2.5 py-1 text-xs font-semibold text-red-600 shadow-xs">
+            <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+            Expired
+          </span>
+        )}
+
+        {isSelecting && !isPicked && (
+          <div className="absolute inset-0 flex items-center justify-center bg-slate-900/0 group-hover:bg-slate-900/30 transition-colors pointer-events-none">
+            <span className="opacity-0 group-hover:opacity-100 transition-opacity rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-900 shadow-sm">
+              Click to select
+            </span>
           </div>
+        )}
+      </div>
+
+      <div className="shrink-0 flex flex-col gap-0.5 px-4 py-3 border-t border-slate-100">
+        <p className="text-sm font-semibold text-slate-900 line-clamp-1 wrap-break-word">
+          {data.name.length === 0 ? "Untitled" : data.name}
+        </p>
+        <p className="text-xs text-slate-500">{meta}</p>
+      </div>
+
+      <span className="action_container absolute top-2.5 right-2.5 z-20">
+        {isPicked ? (
+          <span
+            aria-label="Selected"
+            className="w-7 h-7 rounded-full bg-slate-900 text-white flex items-center justify-center shadow-md"
+          >
+            <FontAwesomeIcon icon={faCheck} className="text-xs" />
+          </span>
+        ) : (
+          !isSelecting &&
+          !openmodal.managebanner && (
+            // Always visible on touch screens; fades in on hover elsewhere
+            <div className="transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100">
+              <SubInventoryMenu
+                data={actionMenu}
+                type={type}
+                style={{ top: "0", right: "0" }}
+                index={id}
+                reloaddata={reloaddata}
+              />
+            </div>
+          )
         )}
       </span>
     </div>
   );
 });
-
-export const UserCard = ({
-  uid,
-  firstname,
-  lastname,
-  email,
-  index,
-}: {
-  index: number;
-  uid: string;
-  firstname: string;
-  lastname?: string;
-  email: string;
-}) => {
-  const { setopenmodal, setglobalindex } = useGlobalContext();
-  const handleEdit = () => {
-    setglobalindex((prev) => ({ ...prev, useredit: index }));
-    setopenmodal((prev) => ({ ...prev, createUser: true }));
-  };
-  return (
-    <div
-      key={index}
-      onClick={() => handleEdit()}
-      className="usercard_container max-smallest_phone:w-68.75 w-82.5 h-25 rounded-lg border-2 border-black flex flex-col justify-center items-center gap-y-5 p-2 transition hover:bg-black hover:text-white"
-    >
-      <h3 className="text-md font-bold w-full text-center wrap-break-word">
-        {`${firstname} ${lastname}`} #{uid}
-      </h3>
-      <h3 className="text-md text-center font-bold w-full wrap-break-word">
-        {email}
-      </h3>
-    </div>
-  );
-};

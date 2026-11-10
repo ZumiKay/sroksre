@@ -9,6 +9,3 @@
 export { ShowPrice, ShowPriceWithOptions } from "./components/PriceDisplay";
 export { OptionSection } from "./components/OptionSection";
 export { ButtonForSimilarProd } from "./components/ButtonForSimilarProd";
-
-// Export types for external use
-export type { ErrorMessageType } from "./components/StockSelector";

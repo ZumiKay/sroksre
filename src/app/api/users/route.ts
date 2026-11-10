@@ -1,11 +1,9 @@
 import { NextRequest } from "next/server";
 import Prisma from "@/src/lib/prisma";
-import {
-  calculatePagination,
-  IsNumber,
-  removeSpaceAndToLowerCase,
-} from "@/src/lib/utilities";
-import { UserState } from "@/src/types/user.type";
+import { calculatePagination, IsNumber, removeSpaceAndToLowerCase } from "@/src/lib/utilities";
+import { requireAdmin } from "@/src/lib/session";
+import { confirmIdentity } from "@/src/lib/confirmIdentity";
+import { deleteUsersWithData } from "@/src/lib/accountDeletion";
 import { revalidateTag } from "next/cache";
 
 import type { Prisma as PrismaTypes } from "@/prisma/generated/prisma/client";
@@ -20,6 +18,10 @@ interface Userparam {
 }
 
 export async function GET(request: NextRequest) {
+  if (!(await requireAdmin())) {
+    return Response.json({ message: "Unauthorized" }, { status: 403 });
+  }
+
   try {
     const searchParams = request.nextUrl.searchParams;
     const params: Userparam = {
@@ -27,12 +29,8 @@ export async function GET(request: NextRequest) {
       p: parseInt(searchParams.get("p") ?? "1", 10),
       search: searchParams.get("search") ?? undefined,
       sort:
-        (searchParams.get("sort") as
-          | "newest"
-          | "oldest"
-          | "name"
-          | "name-desc"
-          | null) ?? undefined,
+        (searchParams.get("sort") as "newest" | "oldest" | "name" | "name-desc" | null) ??
+        undefined,
       role: (searchParams.get("role") as Role | "all" | null) ?? undefined,
     };
 
@@ -86,16 +84,15 @@ export async function GET(request: NextRequest) {
       where: whereClause,
     });
 
-    const { startIndex, endIndex } = calculatePagination(
-      total,
-      safeLt,
-      safePage,
-    );
+    const { startIndex } = calculatePagination(total, safeLt, safePage);
 
+    // A page past the end just comes back empty. (The old take of
+    // endIndex - startIndex + 1 went negative there, and Prisma reads a
+    // negative take backwards.)
     const result = await Prisma.user.findMany({
       where: whereClause,
       orderBy,
-      take: endIndex - startIndex + 1,
+      take: safeLt,
       skip: startIndex,
     });
 
@@ -103,7 +100,13 @@ export async function GET(request: NextRequest) {
 
     return Response.json(
       {
-        data: result.map((user) => ({ ...user, password: null })),
+        // Never send secrets to the browser, even encrypted.
+        data: result.map((user) => ({
+          ...user,
+          password: null,
+          totpSecret: undefined,
+          lastTotpStep: undefined,
+        })),
         total,
         totalpage,
       },
@@ -115,40 +118,53 @@ export async function GET(request: NextRequest) {
   }
 }
 
+const MAX_BULK_DELETE = 100;
+
+/**
+ * Deletes customers. Body: { userIds | id, code?, password? }.
+ * Needs the admin's current 2FA code (or password without 2FA), and never
+ * deletes the caller or other admins. */
 export async function DELETE(request: NextRequest) {
+  const admin = await requireAdmin();
+  if (!admin) {
+    return Response.json({ message: "Unauthorized" }, { status: 403 });
+  }
+
   try {
-    const { id, type } = await request.json();
+    const body = await request.json().catch(() => null);
+    const rawIds: unknown[] = Array.isArray(body?.userIds) ? body.userIds : [body?.id];
+    const ids = [...new Set(rawIds.map(Number))];
 
-    await Prisma.wishlist.deleteMany({ where: { uid: id } });
-    await Prisma.orderproduct.deleteMany({ where: { user_id: id } });
-    await Prisma.usersession.deleteMany({ where: { userId: id } });
-    await Prisma.user.deleteMany({ where: { id: id } });
+    if (
+      ids.length === 0 ||
+      ids.length > MAX_BULK_DELETE ||
+      !ids.every((id) => Number.isInteger(id) && id > 0)
+    ) {
+      return Response.json({ message: "Invalid user id" }, { status: 400 });
+    }
 
-    return Response.json({ message: "User Deleted" }, { status: 200 });
+    if (ids.includes(admin.userId)) {
+      return Response.json({ message: "You can't delete your own account here" }, { status: 400 });
+    }
+
+    const adminTargets = await Prisma.user.count({
+      where: { id: { in: ids }, role: Role.ADMIN },
+    });
+    if (adminTargets > 0) {
+      return Response.json({ message: "Admin accounts can't be deleted" }, { status: 403 });
+    }
+
+    const confirmed = await confirmIdentity(admin.userId, "delete_users", body ?? {});
+    if (!confirmed.ok) {
+      return Response.json({ message: confirmed.message }, { status: confirmed.status });
+    }
+
+    const deleted = await deleteUsersWithData(ids);
+
+    revalidateTag("usermanagement", "max");
+    return Response.json({ message: "User Deleted", deleted }, { status: 200 });
   } catch (error) {
     console.log("User Delete", error);
     return Response.json({ message: "Failed To Delete" }, { status: 500 });
-  }
-}
-
-export async function PUT(request: NextRequest) {
-  try {
-    const updateData: UserState = await request.json();
-    delete updateData.password;
-    delete updateData.confirmpassword;
-    delete updateData.createdAt;
-    delete updateData.updatedAt;
-
-    await Prisma.user.update({
-      where: {
-        id: updateData.id,
-      },
-      data: { ...updateData },
-    });
-    revalidateTag("usermanagement", "max");
-    return Response.json({ message: "User Updated" }, { status: 200 });
-  } catch (error) {
-    console.log("Edit User", error);
-    return Response.json({ message: "Failed To Update User" }, { status: 500 });
   }
 }

@@ -1,25 +1,19 @@
 "use client";
-import { ChangeEvent, SubmitEvent, useRef, useState } from "react";
+import { ChangeEvent, SubmitEvent, useEffect, useRef, useState } from "react";
 import type { TurnstileInstance } from "@marsidev/react-turnstile";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faDiscord, faGoogle } from "@fortawesome/free-brands-svg-icons";
 import PrimaryButton from "../component/Button";
 import { signIn } from "next-auth/react";
-import {
-  ContainerLoading,
-  errorToast,
-  successToast,
-} from "../component/Loading";
+import { errorToast, successToast } from "../component/Loading";
 import { useRouter } from "next/navigation";
-import { useGlobalContext, Userinitialize } from "@/src/context/GlobalContext";
+import { Userinitialize } from "@/src/context/GlobalContext";
 import { ApiRequest } from "@/src/context/CustomHook";
-import ReactDOMServer from "react-dom/server";
-import { CredentialEmail } from "../component/EmailTemplate";
-import { SendVfyEmail } from "./actions";
 import { PasswordInput } from "../component/FormComponent";
 import TurnstileContainer from "../component/TurnstileComponent";
 import { Button, Checkbox } from "@heroui/react";
 import { userdata } from "@/src/types/user.type";
+import { PasswordVerification } from "./PasswordVerification";
 
 const validatePassword = (password: string) => {
   return (
@@ -30,7 +24,6 @@ const validatePassword = (password: string) => {
 };
 export default function AuthenticatePage() {
   const router = useRouter();
-  const { setisLoading, isLoading } = useGlobalContext();
   const [type, settype] = useState<"login" | "register" | "forget">("login");
   const [loading, setloading] = useState<
     "authenticated" | "loading" | "unauthenticated"
@@ -46,6 +39,23 @@ export default function AuthenticatePage() {
     cid: false,
   });
   const turnstileRef = useRef<TurnstileInstance | undefined>(undefined);
+  // Second login step for accounts with two-factor on.
+  const [mfaStep, setMfaStep] = useState(false);
+  const [useRecoveryCode, setUseRecoveryCode] = useState(false);
+
+  // Google/Discord sign-in is refused for admins (see the NextAuth signIn callback).
+  useEffect(() => {
+    const error = new URLSearchParams(window.location.search).get("error");
+    if (error === "AdminPasswordLogin") {
+      errorToast("Admin accounts sign in with email and password");
+    }
+  }, []);
+
+  const leaveMfaStep = () => {
+    setMfaStep(false);
+    setUseRecoveryCode(false);
+    setdata((prev) => ({ ...prev, password: "", otp: "" }));
+  };
 
   const handleLogin = async (e: SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -56,9 +66,15 @@ export default function AuthenticatePage() {
 
     setloading("loading");
 
+    if (mfaStep && !data.otp?.trim()) {
+      errorToast("Enter your code");
+      return;
+    }
+
     signIn("credentials", {
       email: data.email,
       password: data.password,
+      otp: mfaStep ? (data.otp ?? "").trim() : "",
       redirect: false,
     })
       .then((res) => {
@@ -66,6 +82,15 @@ export default function AuthenticatePage() {
         if (res?.ok) {
           successToast("Logged In");
           router.replace("/dashboard");
+        }
+        if (res?.error === "MFA_REQUIRED") {
+          setMfaStep(true);
+          return;
+        }
+        if (res?.error === "MFA_INVALID") {
+          errorToast("Incorrect code, please try again");
+          setdata((prev) => ({ ...prev, otp: "" }));
+          return;
         }
         if (res?.error) {
           if (res.status === 401) {
@@ -111,7 +136,6 @@ export default function AuthenticatePage() {
 
     setloading("loading");
 
-    // The Turnstile token (data.recapcha) is verified by the register API
     const request = await ApiRequest(
       "/api/auth/register",
       undefined,
@@ -121,7 +145,7 @@ export default function AuthenticatePage() {
     );
     setloading("authenticated");
 
-    // Turnstile tokens are single-use: get a fresh one for any retry
+    // Turnstile tokens are single-use
     turnstileRef.current?.reset();
     setdata((prev) => ({ ...prev, recapcha: null }));
 
@@ -130,7 +154,7 @@ export default function AuthenticatePage() {
       if (error === "false") {
         errorToast("Invalid Password");
       } else {
-        request.message && errorToast(request.message);
+        if (request.message) errorToast(request.message);
       }
       return;
     }
@@ -144,87 +168,47 @@ export default function AuthenticatePage() {
     const { value, name, checked } = e.target;
     setdata({ ...data, [name]: name === "agreement" ? checked : value });
   };
+
+  /*Reset account hnadler using email/code verfification*/
   const handleConfirm = async (types: "email" | "cid") => {
     const isEmailType = types === "email";
-    const URL = `/api/users/vfy${types === "cid" ? `?cid=${data.cid}` : ""}`;
 
-    if (isEmailType && !data.email) {
+    if (!data.email) {
       errorToast("Email Required");
-      return setloading("authenticated");
+      return;
+    }
+    if (!isEmailType && !/^\d{6}$/.test(data.cid ?? "")) {
+      errorToast("Enter the 6-digit code");
+      return;
     }
 
     setloading("loading");
-    const requestBody = isEmailType ? { email: data.email, type } : undefined;
-    const method = isEmailType ? "POST" : "GET";
+    const verifyreq = isEmailType
+      ? await ApiRequest("/api/users/vfy", undefined, "POST", "JSON", {
+          email: data.email,
+          type: type === "register" ? "register" : "forgot",
+        })
+      : await ApiRequest("/api/users/vfy/check", undefined, "POST", "JSON", {
+          email: data.email,
+          code: data.cid,
+        });
+    setloading("authenticated");
 
-    // Make API request
-    const verifyreq = await ApiRequest(
-      URL,
-      undefined,
-      method,
-      "JSON",
-      requestBody,
-    );
+    if (!verifyreq.success) {
+      errorToast(verifyreq.message ?? "Error Occurred");
+      return;
+    }
 
-    if (types === "cid") setloading("authenticated");
-
-    if (verifyreq.success) {
-      const vfydata = verifyreq.data;
-
-      if (isEmailType && data.email) {
-        const emailSubject =
-          type === "register" ? "Email Verification" : "Reset Password";
-        const emailTemplate = ReactDOMServer.renderToString(
-          <CredentialEmail {...vfydata} />,
-        );
-        const sendemail = SendVfyEmail.bind(
-          null,
-          emailTemplate,
-          data.email,
-          emailSubject,
-        );
-
-        const makereq = await sendemail();
-        setloading("authenticated");
-
-        if (!makereq.success) {
-          errorToast("Error occurred");
-          return;
-        }
-
-        successToast("Please Check Your Email");
-        setdata((prev) => ({ ...prev, password: "", confirmpassword: "" }));
-      }
-
-      if (type === "register") {
-        setverify((prev) => ({ ...prev, [types]: true }));
-        if (vfydata?.id) setdata((prev) => ({ ...prev, id: vfydata.id }));
-      }
+    if (type === "register") {
+      if (isEmailType) successToast("Please Check Your Email");
+      setverify((prev) => ({ ...prev, [types]: true }));
     } else {
-      // Handle error scenario
-      setloading("authenticated");
-      errorToast(verifyreq.error ?? "Error Occurred");
-
-      if (type === "register") {
-        setverify((prev) => ({ ...prev, [types]: false }));
-      }
+      successToast(verifyreq.message ?? "Please Check Your Email");
     }
   };
 
-  const handleBack = async () => {
-    if (verify.email) {
-      const deletecid = await ApiRequest(
-        "/api/users/vfy",
-        setisLoading,
-        "DELETE",
-        "JSON",
-        { type: "email", cid: data.cid },
-      );
-      if (!deletecid.success) {
-        errorToast("Error Occured");
-        return;
-      }
-    }
+  const handleBack = () => {
+    setdata(Userinitialize);
     settype("login");
     setverify({ cid: false, email: false });
   };
@@ -269,7 +253,9 @@ export default function AuthenticatePage() {
                 ? "Join SrokSre today"
                 : type === "forget"
                   ? "Enter your email to reset your password"
-                  : "Login to your account"}
+                  : mfaStep
+                    ? "Two-factor verification"
+                    : "Login to your account"}
             </p>
           </div>
 
@@ -296,9 +282,12 @@ export default function AuthenticatePage() {
                     Verification Code
                   </label>
                   <input
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    maxLength={6}
                     name="cid"
-                    value={data.cid}
+                    value={data.cid ?? ""}
                     placeholder="Enter 6-digit code"
                     className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-hidden text-gray-700 text-center text-2xl tracking-widest"
                     onChange={handleChange}
@@ -432,14 +421,14 @@ export default function AuthenticatePage() {
                   width="100%"
                   height="40px"
                   radius="10px"
-                  status={isLoading.DELETE ? "loading" : "authenticated"}
+                  status={loading === "loading" ? "loading" : "authenticated"}
                   onClick={() => handleBack()}
                 />
               </div>
             </>
           ) : (
             <>
-              <div className="w-full space-y-2">
+              <div className={`w-full space-y-2 ${mfaStep ? "hidden" : ""}`}>
                 <label className="text-sm font-medium text-gray-700">
                   Email Address
                 </label>
@@ -453,7 +442,79 @@ export default function AuthenticatePage() {
                   required
                 />
               </div>
-              {type === "login" && (
+              {type === "login" && mfaStep && (
+                <>
+                  <div className="w-full space-y-2">
+                    <label className="text-sm font-medium text-gray-700">
+                      {useRecoveryCode
+                        ? "Recovery code"
+                        : "Code from your authenticator app"}
+                    </label>
+                    {useRecoveryCode ? (
+                      <input
+                        type="text"
+                        name="otp"
+                        autoComplete="off"
+                        autoFocus
+                        placeholder="XXXXX-XXXXX"
+                        value={data.otp ?? ""}
+                        onChange={handleChange}
+                        className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-hidden text-gray-700 text-center text-xl tracking-widest uppercase"
+                      />
+                    ) : (
+                      <input
+                        type="text"
+                        name="otp"
+                        inputMode="numeric"
+                        autoComplete="one-time-code"
+                        autoFocus
+                        maxLength={6}
+                        placeholder="000000"
+                        value={data.otp ?? ""}
+                        onChange={(e) =>
+                          setdata((prev) => ({
+                            ...prev,
+                            otp: e.target.value.replace(/\D/g, ""),
+                          }))
+                        }
+                        className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-hidden text-gray-700 text-center text-2xl tracking-widest"
+                      />
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setUseRecoveryCode((prev) => !prev);
+                        setdata((prev) => ({ ...prev, otp: "" }));
+                      }}
+                      className="w-full text-sm text-right text-blue-600 hover:text-blue-700 font-medium transition-colors"
+                    >
+                      {useRecoveryCode
+                        ? "Use the app code instead"
+                        : "Use a recovery code"}
+                    </button>
+                  </div>
+                  <div className="form_actions flex flex-col gap-y-3 w-full">
+                    <Button
+                      className="bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 w-full text-white font-semibold shadow-lg shadow-blue-500/30 transition-all"
+                      size="lg"
+                      type="submit"
+                      isLoading={loading === "loading"}
+                    >
+                      Verify
+                    </Button>
+                    <Button
+                      type="button"
+                      className="w-full border-2 border-gray-300 hover:border-gray-400 text-gray-700 font-semibold bg-white"
+                      size="lg"
+                      isDisabled={loading === "loading"}
+                      onPress={leaveMfaStep}
+                    >
+                      Back
+                    </Button>
+                  </div>
+                </>
+              )}
+              {type === "login" && !mfaStep && (
                 <>
                   <div className="w-full space-y-2">
                     <PasswordInput
@@ -561,52 +622,3 @@ export default function AuthenticatePage() {
     </>
   );
 }
-
-const PasswordRequirement = [
-  { label: "8 Characters", value: "char" },
-  { label: "Contain special character", value: "spec" },
-  { label: "Contain number", value: "num" },
-];
-
-export const PasswordVerification = ({ password }: { password: string }) => {
-  // Function to check if the password meets the requirements
-  const validatePassword = (password: string) => ({
-    char: password.length >= 8,
-    spec: /[!@#$%^&*(),.?":{}|<>]/.test(password),
-    num: /\d/.test(password),
-  });
-
-  const validationStatus: Record<string, any> = validatePassword(password);
-
-  return (
-    <div className="password_verification w-full h-fit flex flex-col gap-3 bg-linear-to-br from-gray-50 to-blue-50 p-4 rounded-lg border border-gray-200">
-      <p className="text-sm font-semibold text-gray-700">
-        Password requirements:
-      </p>
-      <ul className="space-y-2">
-        {PasswordRequirement.map((requirement, idx) => {
-          const isValid = validationStatus[requirement.value];
-          return (
-            <li
-              key={idx}
-              className="flex items-center gap-2 text-sm font-medium"
-            >
-              <span
-                className={`shrink-0 w-5 h-5 rounded-full flex items-center justify-center ${
-                  !isValid
-                    ? "bg-red-100 text-red-600"
-                    : "bg-green-100 text-green-600"
-                }`}
-              >
-                {isValid ? "✓" : "×"}
-              </span>
-              <span className={!isValid ? "text-gray-600" : "text-green-700"}>
-                {requirement.label}
-              </span>
-            </li>
-          );
-        })}
-      </ul>
-    </div>
-  );
-};

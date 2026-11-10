@@ -8,7 +8,7 @@ import {
   useState,
 } from "react";
 import "../globals.css";
-import { useGlobalContext } from "@/src/context/GlobalContext";
+import { useGlobalStore } from "@/src/context/GlobalContext";
 import { AnimatePresence, motion } from "framer-motion";
 import ReactSelect from "react-select/async";
 import makeAnimated from "react-select/animated";
@@ -50,8 +50,11 @@ export interface ToggleMenuProps {
 }
 
 function ToggleMenu(props: ToggleMenuProps) {
-  const { openmodal, product, setproduct, setopenmodal, setglobalindex } =
-    useGlobalContext();
+  const openmodal = useGlobalStore((s) => s.openmodal);
+  const product = useGlobalStore((s) => s.product);
+  const setproduct = useGlobalStore((s) => s.setproduct);
+  const setopenmodal = useGlobalStore((s) => s.setopenmodal);
+  const setglobalindex = useGlobalStore((s) => s.setglobalindex);
   const [open, setopen] = useState(false);
   const handleEdit = (index: number) => {
     setglobalindex((prev) => ({ ...prev, productdetailindex: index }));
@@ -227,7 +230,10 @@ export interface AddSubCategoryMenuProps {
 export const AddSubCategoryMenu = React.memo(function AddSubCategoryMenu({
   index,
 }: AddSubCategoryMenuProps) {
-  const { category, setcategory, setopenmodal, allData } = useGlobalContext();
+  const category = useGlobalStore((s) => s.category);
+  const setcategory = useGlobalStore((s) => s.setcategory);
+  const setopenmodal = useGlobalStore((s) => s.setopenmodal);
+  const allData = useGlobalStore((s) => s.allData);
   const [name, setname] = useState("");
   const [editIdx, setedit] = useState(-1);
 
@@ -569,7 +575,8 @@ const getOptions = async (value: string, selectedvalue?: string[]) => {
 };
 
 export const SearchAndMultiSelect = React.memo(function SearchAndMultiSelect() {
-  const { product, setproduct } = useGlobalContext();
+  const product = useGlobalStore((s) => s.product);
+  const setproduct = useGlobalStore((s) => s.setproduct);
 
   const [selected, setselected] = useState<SelectType[] | undefined>(undefined);
 

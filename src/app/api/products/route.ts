@@ -9,6 +9,7 @@ import {
 import { extractQueryParams } from "../banner/route";
 import Prisma from "@/src/lib/prisma";
 import { Stocktype, VariantValueObjType } from "@/src/types/product.type";
+import { syncExpiredPromotions } from "@/src/lib/promotion";
 
 interface paramsType {
   ty: string;
@@ -24,9 +25,9 @@ interface paramsType {
   dc?: string;
   ds?: string;
   dt?: string;
-  vr?: number;
-  vs?: number;
-  sp?: number;
+  vr?: number; //variant id
+  vs?: number; //variant stock
+  sp?: number; //select promotion
 }
 
 const convertStockData = (stock: Array<Stocktype>) => {
@@ -45,6 +46,7 @@ const convertStockData = (stock: Array<Stocktype>) => {
   return Stock;
 };
 export async function GET(request: NextRequest) {
+  await syncExpiredPromotions();
   try {
     const url = request.nextUrl.toString();
     const {
@@ -64,6 +66,12 @@ export async function GET(request: NextRequest) {
     } = extractQueryParams(url) as unknown as paramsType;
 
     const productId = promotionid ? parseInt(promotionid, 10) : undefined;
+    // Picked promotion products to list first ("sel=1,2,3")
+    const selectedIds = new URL(request.url).searchParams
+      .get("sel")
+      ?.split(",")
+      .map((id) => parseInt(id, 10))
+      .filter((id) => Number.isInteger(id) && id > 0);
 
     let response;
     if (ty === "all" || ty === "filter" || ty === "detail") {
@@ -81,6 +89,7 @@ export async function GET(request: NextRequest) {
         detailText,
         selectPromotion,
         promotionIds?.toString(),
+        selectedIds,
       );
 
       const total = await Prisma.products.count();

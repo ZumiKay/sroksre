@@ -14,7 +14,12 @@ import {
   faBoxesStacked,
   faTrashCan,
   faCircle,
+  faArrowRight,
+  faClock,
+  faFire,
+  faLayerGroup,
 } from "@fortawesome/free-solid-svg-icons";
+import { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 import Logo from "../../../public/Image/Logo.svg";
 import Menu from "../../../public/Image/Menu.svg";
 import Search from "../../../public/Image/Search.svg";
@@ -32,7 +37,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { AccountMenu, CartMenu } from "./SideMenu";
 import Link from "next/link";
 import {
@@ -40,8 +45,7 @@ import {
   CateogoryState,
   Productinitailizestate,
   PromotionInitialize,
-  Sessiontype,
-  useGlobalContext,
+  useGlobalStore,
 } from "@/src/context/GlobalContext";
 import { ApiRequest, useScreenSize } from "@/src/context/CustomHook";
 import { errorToast, infoToast } from "./Loading";
@@ -75,8 +79,12 @@ export default function Navbar({
   session: Usersessiontype | null;
   loading?: boolean;
 }) {
-  const { cart, setcart, carttotal, setcarttotal, setopenmodal, openmodal } =
-    useGlobalContext();
+  const cart = useGlobalStore((s) => s.cart);
+  const setcart = useGlobalStore((s) => s.setcart);
+  const carttotal = useGlobalStore((s) => s.carttotal);
+  const setcarttotal = useGlobalStore((s) => s.setcarttotal);
+  const setopenmodal = useGlobalStore((s) => s.setopenmodal);
+  const openmodal = useGlobalStore((s) => s.openmodal);
   const [categories, setcategories] = useState(false);
   const [profile, setprofile] = useState(false);
   const [opennotification, setnotification] = useState(false);
@@ -84,18 +92,19 @@ export default function Navbar({
     initialNotificationCount,
   );
 
-  const { isTablet, isMobile } = useScreenSize();
+  const { isMobile } = useScreenSize();
   const socket = useSocket();
 
   const router = useRouter();
-  const navref = useRef<any>(null);
-  const notiref = useRef<any>(null);
+  const navref = useRef<HTMLElement | HTMLImageElement>(null);
+  const notiref = useRef<HTMLDivElement>(null);
 
   // Initialize cart total from server-side data
   useEffect(() => {
     if (initialCartCount && !carttotal) {
       setcarttotal(initialCartCount);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialCartCount]);
 
   // Use optimized data refresh hook for cart
@@ -118,7 +127,8 @@ export default function Navbar({
   useEffect(() => {
     if (session && session.role !== "ADMIN") {
       // Store refresh function in global context if needed
-      (window as any).__refreshCart = refreshCart;
+      (window as unknown as { [x: string]: unknown }).__refreshCart =
+        refreshCart;
     }
   }, [session, refreshCart]);
 
@@ -126,7 +136,7 @@ export default function Navbar({
     if (session?.role === "ADMIN") {
       if (!socket) return;
 
-      const handleNotification = (data: NotificationType) => {
+      const handleNotification = () => {
         infoToast("New Notification");
         setchecknotify((prev) => (prev ?? 0) + 1);
       };
@@ -164,7 +174,9 @@ export default function Navbar({
         <div className="first_section  w-1/2 h-full flex items-center pl-3">
           <Image
             className="menu_icon w-7.5 h-7.5 object-fill transition rounded-md"
-            onClick={() => setcategories(!categories)}
+            onClick={() => {
+              setcategories(!categories);
+            }}
             src={Menu}
             alt="menu"
             width={100}
@@ -231,7 +243,7 @@ export default function Navbar({
             <>
               <div className="w-7.5 h-7.5 max-smallest_tablet:w-6.25 max-smallest_tablet:h-6.25 max-small_phone:w-6.25 max-small_phone:h-6.25 relative">
                 <Image
-                  ref={navref}
+                  ref={navref as never}
                   src={!opennotification ? Bell : ActiveBell}
                   alt="notification"
                   onClick={() => setnotification(!opennotification)}
@@ -256,8 +268,11 @@ export default function Navbar({
             alt="profile"
             className="cart w-10 h-10 max-small_phone:w-8.75 max-small_phone:h-8.75 object-contain transition hover:-translate-y-2"
             onMouseEnter={() => session && setprofile(true)}
+
             onClick={() =>
-              !session && router.push("/account", { scroll: false })
+              !session
+                ? router.push("/account", { scroll: false })
+                : setprofile(true)
             }
           />
         </div>
@@ -319,11 +334,11 @@ const CategoriesContainer = (props: {
   const [loading, setloading] = useState(false);
   const { isMobile } = useScreenSize();
   const router = useRouter();
+  const { setopen } = props;
 
   const fetchcate = useCallback(async () => {
     setloading(true);
     const request = await ApiRequest("/api/categories", undefined, "GET");
-    console.log({ request });
     if (request.success) {
       setallcate(request.data);
     }
@@ -333,221 +348,200 @@ const CategoriesContainer = (props: {
   useEffect(() => {
     fetchcate();
     document.body.style.overflow = "hidden";
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setopen(false);
+    };
+    window.addEventListener("keydown", handleKey);
     return () => {
       document.body.style.overflow = "auto";
+      window.removeEventListener("keydown", handleKey);
     };
-  }, [fetchcate]);
+  }, [fetchcate, setopen]);
+
+  const go = (url: string) => {
+    router.push(url);
+    router.refresh();
+    if (isMobile) setopen(false);
+  };
+
+  // Auto-filled lists (popular, latest) show as quick links; the rest as columns
+  const quickLinks =
+    allcate?.filter((i) => i.type === "latest" || i.type === "popular") ?? [];
+  const columns =
+    allcate?.filter((i) => i.type !== "latest" && i.type !== "popular") ?? [];
+
   return (
     <div
       onMouseLeave={() => props.setopen(false)}
-      className="categories__container w-full max-h-[calc(100vh-3.75rem)] min-h-[40vh] 
-      absolute top-14.25 left-0 z-99 bg-linear-to-b from-white to-gray-50 
-      shadow-xl border-t border-gray-200 flex flex-row gap-6 sm:gap-8 justify-start 
-      max-large_phone:justify-center items-start flex-wrap overflow-x-hidden 
-      pb-20 p-4 sm:p-6 overflow-y-auto"
+      className="categories__container absolute top-full left-0 z-99 w-full max-h-[calc(100vh-3.75rem)] overflow-y-auto overflow-x-hidden bg-white border-t border-slate-200 shadow-xl"
     >
-      <div className="w-full flex items-center justify-between pb-3 border-b border-gray-200 mb-2">
-        <h2 className="text-lg font-bold text-gray-800">Categories</h2>
-        <button
-          type="button"
-          onClick={() => props.setopen(false)}
-          className="p-1 rounded-full hover:bg-gray-200 transition-colors cursor-pointer"
-          aria-label="Close categories"
-        >
-          <CloseVector width="24px" height="24px" />
-        </button>
-      </div>
-      {loading ? (
-        <>
-          {[...Array(6)].map((_, idx) => (
-            <div
-              key={idx}
-              className="category flex flex-col w-55 max-small_phone:w-[90%] 
-              bg-white rounded-lg shadow-md p-5 border border-gray-100 animate-pulse"
-            >
-              <div className="w-full h-13 bg-gray-300 rounded-lg mb-4"></div>
-              <div className="flex flex-col gap-y-3">
-                <div className="w-full h-6 bg-gray-200 rounded-md"></div>
-                <div className="w-4/5 h-6 bg-gray-200 rounded-md"></div>
-                <div className="w-3/4 h-6 bg-gray-200 rounded-md"></div>
-                <div className="w-full h-6 bg-gray-200 rounded-md"></div>
-              </div>
-            </div>
-          ))}
-        </>
-      ) : !allcate || allcate.length === 0 ? (
-        <div className="w-full h-full flex flex-col items-center justify-center gap-4 py-20">
-          <svg
-            className="w-24 h-24 text-gray-300"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-8 pt-5 pb-10 flex flex-col gap-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-slate-500">
+            Shop by category
+          </h2>
+          <button
+            type="button"
+            onClick={() => props.setopen(false)}
+            className="p-1.5 rounded-full text-slate-500 hover:bg-slate-100 transition-colors"
+            aria-label="Close categories"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={1.5}
-              d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
-            />
-          </svg>
-          <h3 className="text-xl font-semibold text-gray-600">
-            No Categories Available
-          </h3>
-          <p className="text-gray-500 text-center max-w-md">
-            There are currently no categories to display. Please check back
-            later.
-          </p>
+            <CloseVector width="20px" height="20px" />
+          </button>
         </div>
-      ) : (
-        <>
-          <div
-            className="category flex flex-col w-55 max-small_phone:w-[90%] 
-            bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 
-            p-5 border border-gray-100"
-          >
-            <h3
-              onClick={() => {
-                router.push("/product?all=1");
-                router.refresh();
-                isMobile && props.setopen(false);
-              }}
-              className="category_header w-full bg-linear-to-r from-incart to-[#5a6575] 
-              text-white font-semibold text-base transition-all duration-300 cursor-pointer 
-              hover:scale-105 hover:shadow-lg active:scale-95 rounded-lg p-3.5 
-              wrap-break-word text-center"
-            >
-              All Categories
-            </h3>
-          </div>
 
-          {allcate
-            ?.filter((i) => i.type !== "latest")
-            .map((i) => (
-              <div
-                key={i.id}
-                className="category flex flex-col w-55 max-small_phone:w-[90%] 
-                bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 
-                p-5 border border-gray-100"
-              >
-                <h3
-                  onClick={() => {
-                    router.push(
-                      `/product?${
-                        i.type === "normal" ? `pid=${i.id}` : `ppid=${i.id}`
-                      }`,
-                    );
-                    router.refresh();
-                    isMobile && props.setopen(false);
-                  }}
-                  className="category_header w-full bg-linear-to-r from-incart to-[#5a6575] 
-                  text-white font-semibold text-base transition-all duration-300 cursor-pointer 
-                  hover:scale-105 hover:shadow-lg active:scale-95 rounded-lg p-3.5 
-                  wrap-break-word text-center"
-                >
-                  {i.name}
-                </h3>
-                <div className="category_subheader w-full h-fit flex flex-col gap-y-3 pt-4 font-normal text-center">
-                  {i.subcategories
-                    .filter((i) => (i.isExpired ? !i.isExpired : true))
-                    .map((sub) => (
-                      <div
-                        key={sub.id}
-                        onClick={() => {
-                          router.push(
-                            `/product?pid=${i.id}${
-                              sub.type === "normal"
-                                ? `&cid=${sub.id}`
-                                : `&promoid=${sub.pid}`
-                            }`,
-                          );
-                          router.refresh();
-                          isMobile && props.setopen(false);
-                        }}
-                        className="subcategory cursor-pointer px-2 py-1.5 rounded-md 
-                        hover:bg-gray-100 transition-colors duration-200 text-gray-700 
-                        hover:text-incart text-sm"
-                      >
-                        <h4>{sub.name}</h4>
-                      </div>
-                    ))}
-                </div>
-              </div>
-            ))}
-          <div
-            className="category flex flex-col w-55 max-small_phone:w-[90%] 
-          bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 
-          p-5 border border-gray-100 gap-y-4"
-          >
-            {allcate
-              ?.filter((i) => i.type === "latest" || i.type === "popular")
-              .map((item, idx) => (
-                <h3
+        {loading ? (
+          <>
+            <div className="flex flex-wrap gap-2">
+              {[...Array(3)].map((_, idx) => (
+                <div
                   key={idx}
-                  onClick={() => router.push(`/product?pid=${item.id}`)}
-                  className="category_header bg-linear-to-r from-incart to-[#5a6575] 
-                  text-white font-semibold text-base transition-all duration-300 cursor-pointer 
-                  hover:scale-105 hover:shadow-lg active:scale-95 rounded-lg p-3.5 
-                  wrap-break-word text-center"
-                >
-                  {item.name}
-                </h3>
+                  className="w-32 h-10 rounded-full bg-slate-100 animate-pulse"
+                />
               ))}
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-8 gap-y-8">
+              {[...Array(4)].map((_, idx) => (
+                <div key={idx} className="flex flex-col gap-3 animate-pulse">
+                  <div className="w-2/3 h-5 bg-slate-200 rounded-sm" />
+                  <div className="w-full h-4 bg-slate-100 rounded-sm" />
+                  <div className="w-4/5 h-4 bg-slate-100 rounded-sm" />
+                  <div className="w-3/5 h-4 bg-slate-100 rounded-sm" />
+                </div>
+              ))}
+            </div>
+          </>
+        ) : !allcate || allcate.length === 0 ? (
+          <div className="w-full flex flex-col items-center justify-center gap-3 py-16 text-center">
+            <span className="w-14 h-14 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center">
+              <FontAwesomeIcon icon={faLayerGroup} className="text-xl" />
+            </span>
+            <h3 className="text-base font-semibold text-slate-700">
+              No categories yet
+            </h3>
+            <p className="text-sm text-slate-500 max-w-sm">
+              Check back soon, or browse everything we have.
+            </p>
+            <button
+              type="button"
+              onClick={() => go("/product?all=1")}
+              className="mt-1 h-10 px-5 rounded-full text-sm font-semibold bg-slate-900 text-white hover:bg-slate-800 transition-colors"
+            >
+              Shop all products
+            </button>
           </div>
-        </>
-      )}
+        ) : (
+          <>
+            {/* Quick links */}
+            <div className="flex flex-wrap gap-2">
+              <QuickLink
+                icon={faLayerGroup}
+                label="All products"
+                onClick={() => go("/product?all=1")}
+                primary
+              />
+              {quickLinks.map((item) => (
+                <QuickLink
+                  key={item.id}
+                  icon={item.type === "popular" ? faFire : faClock}
+                  label={item.name}
+                  onClick={() => go(`/product?pid=${item.id}`)}
+                />
+              ))}
+            </div>
+
+            {/* Category columns */}
+            {columns.length > 0 && (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-8 gap-y-8 max-small_phone:grid-cols-1">
+                {columns.map((i) => {
+                  const subs = i.subcategories.filter((s) => !s.isExpired);
+                  return (
+                    <div
+                      key={i.id}
+                      className="category flex flex-col gap-2 min-w-0"
+                    >
+                      <button
+                        type="button"
+                        onClick={() =>
+                          go(
+                            `/product?${i.type === "normal" ? `pid=${i.id}` : `ppid=${i.id}`}`,
+                          )
+                        }
+                        className="category_header group flex items-center gap-2 text-left pb-2 border-b border-slate-200"
+                      >
+                        <span className="text-sm font-bold text-slate-900 group-hover:text-slate-600 wrap-break-word">
+                          {i.name}
+                        </span>
+                        {i.type === "sale" && (
+                          <span className="shrink-0 text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-sm border border-red-200 text-red-600">
+                            Sale
+                          </span>
+                        )}
+                        <FontAwesomeIcon
+                          icon={faArrowRight}
+                          className="ml-auto text-[10px] text-slate-300 group-hover:text-slate-600 group-hover:translate-x-0.5 transition"
+                        />
+                      </button>
+                      {subs.length > 0 && (
+                        <ul className="category_subheader flex flex-col">
+                          {subs.map((sub) => (
+                            <li key={sub.id}>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  go(
+                                    `/product?pid=${i.id}${
+                                      sub.type === "normal"
+                                        ? `&cid=${sub.id}`
+                                        : `&promoid=${sub.pid}`
+                                    }`,
+                                  )
+                                }
+                                className="subcategory w-full text-left text-sm text-slate-600 py-1.5 hover:text-slate-900 hover:underline underline-offset-4 transition-colors wrap-break-word"
+                              >
+                                {sub.name}
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 };
-export function DashboordNavBar({ session }: { session?: Sessiontype }) {
-  const route = usePathname();
 
+function QuickLink({
+  icon,
+  label,
+  onClick,
+  primary,
+}: {
+  icon: IconDefinition;
+  label: string;
+  onClick: () => void;
+  primary?: boolean;
+}) {
   return (
-    <nav className="dashboardNav__container flex flex-row w-full items-center gap-2 sm:gap-4 overflow-x-auto px-3 sm:px-6 bg-[#F3F3F3] h-16 sm:h-17.5 sm:justify-evenly">
-      <Link href={"/dashboard"} className="shrink-0">
-        <h1
-          className={`navlink ${
-            route === "/dashboard" ? "activelink" : ""
-          } text-sm sm:text-base font-bold bg-white px-4 py-2 transition text-center rounded-md whitespace-nowrap`}
-        >
-          My Profile
-        </h1>
-      </Link>
-      <Link href={"/dashboard/order"} className="shrink-0">
-        <h1
-          className={`navlink ${
-            route === "/dashboard/order" ? "activelink" : ""
-          } text-sm sm:text-base font-bold bg-white px-4 py-2 transition text-center rounded-md whitespace-nowrap`}
-        >
-          {session?.role === "ADMIN" ? "Order Management" : "My Order"}
-        </h1>
-      </Link>
-      <Link
-        hidden={session?.role !== "ADMIN"}
-        href={"/dashboard/inventory"}
-        className="shrink-0"
-      >
-        <h1
-          className={`navlink ${
-            route === "/dashboard/inventory" ? "activelink" : ""
-          } text-sm sm:text-base font-bold bg-white px-4 py-2 transition text-center rounded-md whitespace-nowrap`}
-        >
-          Inventory
-        </h1>
-      </Link>
-      <Link
-        hidden={session?.role !== "ADMIN"}
-        href={"/dashboard/usermanagement"}
-        className="shrink-0"
-      >
-        <h1
-          className={`navlink ${
-            route === "/dashboard/usermanagement" ? "activelink" : ""
-          } text-sm sm:text-base font-bold bg-white px-4 py-2 transition text-center rounded-md whitespace-nowrap`}
-        >
-          User Management
-        </h1>
-      </Link>
-    </nav>
+    <button
+      type="button"
+      onClick={onClick}
+      className={`inline-flex items-center gap-2 h-10 px-4 rounded-full text-sm font-semibold border transition-colors ${
+        primary
+          ? "bg-slate-900 text-white border-slate-900 hover:bg-slate-800"
+          : "bg-white text-slate-700 border-slate-300 hover:border-slate-900 hover:text-slate-900"
+      }`}
+    >
+      <FontAwesomeIcon icon={icon} className="text-xs" />
+      {label}
+    </button>
   );
 }
 interface Subinventorymenuprops {
@@ -604,7 +598,7 @@ const BUTTON_CLASS_TYPE =
 const BUTTON_CLASS_CREATE =
   "group relative overflow-hidden font-bold transition-all duration-300 bg-linear-to-br from-green-500 via-emerald-500 to-teal-600 hover:from-green-600 hover:via-emerald-600 hover:to-teal-700 text-white shadow-lg hover:shadow-2xl hover:shadow-emerald-500/50 hover:scale-105 active:scale-95 min-w-27.5 md:min-w-35 h-9 md:h-11 text-xs md:text-sm rounded-xl md:rounded-2xl before:absolute before:inset-0 before:bg-linear-to-r before:from-transparent before:via-white/20 before:to-transparent before:translate-x-[-200%] hover:before:translate-x-[200%] before:transition-transform before:duration-700";
 
-const ICON_MAP: Record<string, any> = {
+const ICON_MAP: Record<string, IconDefinition> = {
   Product: faBox,
   Category: faFolder,
   Banner: faImage,
@@ -625,8 +619,11 @@ const COLOR_MAP: Record<string, string> = {
 };
 
 export const SubInventoryMenu = memo((props: Subinventorymenuprops) => {
-  const { setopenmodal, setglobalindex, setproduct, setbanner, setpromotion } =
-    useGlobalContext();
+  const setopenmodal = useGlobalStore((s) => s.setopenmodal);
+  const setglobalindex = useGlobalStore((s) => s.setglobalindex);
+  const setproduct = useGlobalStore((s) => s.setproduct);
+  const setbanner = useGlobalStore((s) => s.setbanner);
+  const setpromotion = useGlobalStore((s) => s.setpromotion);
 
   const handleClick = useCallback(
     (obj: { value: string; opencon: string }) => {
@@ -694,7 +691,7 @@ export const SubInventoryMenu = memo((props: Subinventorymenuprops) => {
     ],
   );
   return (
-    <Dropdown classNames={DROPDOWN_CLASSNAMES}>
+    <Dropdown classNames={DROPDOWN_CLASSNAMES} disableAnimation>
       <DropdownTrigger>
         <Button
           color={props.type ? "default" : "success"}
@@ -848,7 +845,9 @@ export const NotificationMenu = forwardRef(
         undefined,
         "DELETE",
         "JSON",
-        { id },
+        {
+          id,
+        },
       );
       if (makereq.success) {
         checkedIds.current.delete(id);
@@ -860,7 +859,7 @@ export const NotificationMenu = forwardRef(
 
     return (
       <aside
-        ref={ref as any}
+        ref={ref as never}
         onScroll={() => {
           handleScroll();
         }}
@@ -872,9 +871,7 @@ export const NotificationMenu = forwardRef(
         >
           <CloseVector width="24px" height="24px" />
         </div>
-        <h3
-          className="font-bold bg-white text-lg w-full sticky top-0 z-10 text-left p-3 border-b border-gray-200"
-        >
+        <h3 className="font-bold bg-white text-lg w-full sticky top-0 z-10 text-left p-3 border-b border-gray-200">
           Notifications
         </h3>
 
@@ -896,8 +893,12 @@ export const NotificationMenu = forwardRef(
                       {!n.checked && (
                         <span className="w-2.5 h-2.5 bg-red-500 rounded-full absolute top-3 right-8"></span>
                       )}
-                      <h3 className="font-bold text-base text-gray-900">{n.type}</h3>
-                      <p className="text-sm text-gray-600 line-clamp-2">{n.content}</p>
+                      <h3 className="font-bold text-base text-gray-900">
+                        {n.type}
+                      </h3>
+                      <p className="text-sm text-gray-600 line-clamp-2">
+                        {n.content}
+                      </p>
                       <p className="text-xs text-gray-400">{n.createdAt}</p>
                     </div>
                   </Link>

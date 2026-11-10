@@ -2,7 +2,7 @@
 
 import React, { useMemo } from "react";
 import { ProductState } from "@/src/types/product.type";
-import { useGlobalContext } from "@/src/context/GlobalContext";
+import { useGlobalStore } from "@/src/context/GlobalContext";
 import { calculateAdditionalPrice } from "../utils/productHelpers";
 
 interface ShowPriceProps {
@@ -44,7 +44,7 @@ interface ShowPriceWithOptionsProps {
 
 export const ShowPriceWithOptions = React.memo(
   ({ price, discount, Variant }: ShowPriceWithOptionsProps) => {
-    const { productorderdetail } = useGlobalContext();
+    const productorderdetail = useGlobalStore((s) => s.productorderdetail);
 
     const additionalPrice = useMemo(() => {
       return calculateAdditionalPrice(productorderdetail?.details, Variant);

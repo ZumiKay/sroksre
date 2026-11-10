@@ -62,6 +62,7 @@ export const authOptions: NextAuthOptions = {
           label: "Password",
           type: "password",
         },
+        otp: { label: "Two-factor code", type: "text" },
       },
       async authorize(credentials, req: any): Promise<any> {
         if (!credentials?.email || !credentials?.password) {
@@ -69,6 +70,10 @@ export const authOptions: NextAuthOptions = {
         }
 
         const login = await userlogin(credentials as userdata, req);
+        if (login.code) {
+          // Shown to the login page as `error`, so it can ask for the code.
+          throw new Error(login.code);
+        }
         if (!login.success || !login.data) {
           return null;
         }
@@ -76,6 +81,7 @@ export const authOptions: NextAuthOptions = {
         return {
           id: login.data.userId,
           role: login.data.role,
+          mfaVerified: login.data.mfaVerified ?? false,
           deviceInfo: extractDeviceInfo(req),
         };
       },
@@ -111,9 +117,20 @@ export const authOptions: NextAuthOptions = {
 
   //Callback
   callbacks: {
-    async signIn({ user, account }): Promise<boolean> {
+    async signIn({ user, account }): Promise<boolean | string> {
       // Handle OAuth authentication (Google, Discord)
       if (account?.provider !== "credentials" && user.email && user.name) {
+        // Admins must sign in with password + two-factor code. Without this,
+        // anyone who gets into the admin's Google or Discord account would
+        // get full admin access.
+        const existing = await Prisma.user.findUnique({
+          where: { email: user.email },
+          select: { role: true },
+        });
+        if (existing?.role === "ADMIN") {
+          return "/account?error=AdminPasswordLogin";
+        }
+
         const result = await handleCheckandRegisterUser({
           data: {
             firstname: user.name,
@@ -171,6 +188,7 @@ export const authOptions: NextAuthOptions = {
             userAgent: "unknown",
             ipAddress: "unkown",
           },
+          { mfaVerified: sessionData.mfaVerified === true },
         );
 
         return {

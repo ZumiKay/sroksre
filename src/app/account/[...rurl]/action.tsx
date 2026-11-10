@@ -1,15 +1,15 @@
 "use server";
 
-import Prisma from "@/src/lib/prisma";
 import { hashPassword } from "@/src/lib/userlib";
 import { checkpassword } from "@/src/lib/utilities";
+import { resetPasswordWithToken } from "@/src/lib/emailVerification";
 
 interface returntype {
   message: string;
   success: boolean;
 }
 
-/**Use for verify user of reset password form
+/**Reset password with the token from the emailed reset link
  * @param prevState (optional) ,
  * @param formData,
  * @returns success and message
@@ -19,52 +19,32 @@ export const verifyUser = async (
   formData: FormData,
 ): Promise<returntype> => {
   try {
-    const dt = {
-      password: formData.get("password"),
-      cfpassword: formData.get("confirmpassword"),
-      cid: formData.get("cid"),
-    };
+    const token = formData.get("token");
+    const password = formData.get("password");
+    const cfpassword = formData.get("confirmpassword");
 
-    if (dt.cid) {
-      const check = checkpassword(dt.password as string);
-      if (!check.isValid) {
-        return {
-          message: check.error,
-          success: false,
-        };
-      }
-      if (dt.password !== dt.cfpassword) {
-        return { message: "Confirm Password Not Match", success: false };
-      }
+    if (typeof password !== "string") {
+      return { message: "Password Required", success: false };
+    }
 
-      const password = hashPassword(dt.password as string);
-      const user = await Prisma.user.findFirst({
-        where: { vfy: dt.cid as string },
-        select: { id: true },
-      });
+    const check = checkpassword(password);
+    if (!check.isValid) {
+      return { message: check.error, success: false };
+    }
+    if (password !== cfpassword) {
+      return { message: "Confirm Password Not Match", success: false };
+    }
 
-      await Prisma.user.updateMany({
-        where: {
-          vfy: dt.cid as string,
-        },
-        data: {
-          password: password,
-          vfy: null,
-        },
-      });
-
-      //Delete Session
-      await Prisma.usersession.deleteMany({ where: { userId: user?.id } });
-
+    // Changes the password, uses up the token and logs out all sessions.
+    const updated = await resetPasswordWithToken(token, hashPassword(password));
+    if (!updated) {
       return {
-        message: "Password Updated",
-        success: true,
+        message: "This reset link is invalid or has expired",
+        success: false,
       };
     }
-    return {
-      message: "Not Found",
-      success: false,
-    };
+
+    return { message: "Password Updated", success: true };
   } catch (error) {
     console.log("Change Password", error);
     return {

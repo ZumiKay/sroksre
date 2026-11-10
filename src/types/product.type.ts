@@ -18,25 +18,6 @@ export interface ProductInfo {
   info_type: InventoryType;
 }
 
-export const DefaultSize: Array<infovaluetype> = [
-  {
-    val: "S",
-    qty: 1,
-  },
-  {
-    val: "M",
-    qty: 1,
-  },
-  {
-    val: "XL",
-    qty: 1,
-  },
-  {
-    val: "2XL",
-    qty: 1,
-  },
-];
-
 export interface productcoverstype {
   url: string;
   type: string;
@@ -158,11 +139,3 @@ export interface Listproductfilter {
   text: Array<string>;
   order?: string;
 }
-
-export const FiltervalueInitialize: FilterValue = {
-  parentcate: 0,
-  childcate: 0,
-  status: "",
-  name: "",
-  email: "",
-};

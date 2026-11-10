@@ -3,8 +3,14 @@ import { NextRequest } from "next/server";
 import { extractQueryParams } from "../../banner/route";
 import { getUser } from "@/src/lib/session";
 import { calculateDiscountProductPrice } from "@/src/lib/utilities";
+import { syncExpiredPromotions } from "@/src/lib/promotion";
+import { confirmIdentity } from "@/src/lib/confirmIdentity";
+import { deleteUsersWithData } from "@/src/lib/accountDeletion";
+import { getAdminSessionStatus } from "@/src/lib/adminGuard";
+import { Role } from "@/prisma/generated/prisma/enums";
 
 export async function GET(request: NextRequest) {
+  await syncExpiredPromotions();
   try {
     const URL = request.url.toString();
 
@@ -95,18 +101,44 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function DELETE() {
-  const user = await getUser();
-
-  if (!user) {
-    return Response.json({}, { status: 401 });
+/**
+ * Deletes the caller's own account. Body: { password?, emailCode?, code? },
+ * whichever confirmIdentity asks for. Admins also need a session that passed
+ * 2FA, and the last admin account can't be deleted.
+ */
+export async function DELETE(request: NextRequest) {
+  const user = await getUser({ user: { select: { role: true } } });
+  if (!user?.userId) {
+    return Response.json({ message: "Unauthorized" }, { status: 401 });
   }
-  try {
-    await Prisma.user.delete({ where: { id: user.userId } });
 
-    return Response.json({}, { status: 200 });
+  try {
+    if (user.user?.role === Role.ADMIN) {
+      if ((await getAdminSessionStatus(user.sessionid)) !== "ok") {
+        return Response.json(
+          { message: "Finish two-factor login before deleting this account" },
+          { status: 403 },
+        );
+      }
+      const admins = await Prisma.user.count({ where: { role: Role.ADMIN } });
+      if (admins <= 1) {
+        return Response.json(
+          { message: "The last admin account can't be deleted" },
+          { status: 403 },
+        );
+      }
+    }
+
+    const body = await request.json().catch(() => ({}));
+    const confirmed = await confirmIdentity(user.userId, "delete_account", body ?? {});
+    if (!confirmed.ok) {
+      return Response.json({ message: confirmed.message }, { status: confirmed.status });
+    }
+
+    await deleteUsersWithData([user.userId], { includeAdmins: true });
+    return Response.json({ message: "Account deleted" }, { status: 200 });
   } catch (error) {
     console.log("Delete User", error);
-    return Response.json({}, { status: 500 });
+    return Response.json({ message: "Failed to delete account" }, { status: 500 });
   }
 }

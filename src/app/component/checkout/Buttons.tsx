@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useGlobalContext } from "@/src/context/GlobalContext";
+import { useGlobalStore } from "@/src/context/GlobalContext";
 import PrimaryButton from "../Button";
 import { useState } from "react";
 import { terminateCheckoutSession } from "@/src/app/checkout/action";
@@ -21,7 +21,7 @@ export const BackAndEdit = ({
   step: number;
   orderId: string;
 }) => {
-  const { setcart } = useGlobalContext();
+  const setcart = useGlobalStore((s) => s.setcart);
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();

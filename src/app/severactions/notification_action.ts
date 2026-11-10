@@ -53,9 +53,15 @@ export const SaveUserNotification = async (
 export const CheckedNotification = async (
   id: number,
 ): Promise<ActionReturnType> => {
+  const user = await getUser();
+  if (!user?.userId) {
+    return { success: false };
+  }
+
   try {
-    await Prisma.notification.update({
-      where: { id },
+    // Only the owner can mark a notification as read.
+    await Prisma.notification.updateMany({
+      where: { id, userid: user.userId },
       data: { checked: true },
     });
 

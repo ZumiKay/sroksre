@@ -1,6 +1,7 @@
 "use client";
-import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { redirect, useRouter, useSearchParams } from "next/navigation";
+import dynamic from "next/dynamic";
 import { motion } from "framer-motion";
 import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
@@ -12,21 +13,19 @@ import { FilterMenu } from "../../component/SideMenu";
 import { CreateProducts } from "../../component/Modals/Product";
 import { Category } from "../../component/Modals/Category";
 import { BannerModal } from "../../component/Modals/Banner";
-import {
-  CreatePromotionModal,
-  DiscountModals,
-} from "../../component/Modals/Promotion";
+import { CreatePromotionModal, DiscountModals } from "../../component/Modals/Promotion";
+import { PromotionProductsPanel } from "./components/PromotionProductsPanel";
 import PaginationCustom from "../../component/Pagination_Component";
 import { InventoryHeader } from "./components/InventoryHeader";
+import { ProductListItem, BannerListItem, PromotionListItem } from "./components/ListViewItems";
 import {
-  ProductListItem,
-  BannerListItem,
-  PromotionListItem,
-} from "./components/ListViewItems";
+  PRODUCT_STOCK_MODAL,
+  StockEditTarget,
+} from "../../component/Modals/productStockTarget";
 import { EmptyState, LoadingState } from "./components/EmptyAndLoadingStates";
 
 // Contexts & Hooks
-import { useGlobalContext, CateogoryState } from "@/src/context/GlobalContext";
+import { useGlobalStore, CateogoryState } from "@/src/context/GlobalContext";
 import { ApiRequest, Delayloading } from "@/src/context/CustomHook";
 
 // Utils & Types
@@ -42,10 +41,19 @@ import {
   transformProductData,
   transformBannerData,
   transformPromotionData,
+  toCardDiscount,
 } from "./utils/apiBuilder";
 import useCheckSession from "@/src/hooks/useCheckSession";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faSearch, faXmark, faFilterCircleXmark } from "@fortawesome/free-solid-svg-icons";
+import { faSearch, faXmark } from "@fortawesome/free-solid-svg-icons";
+
+// Loaded only when an admin opens a product's stock editor. The `loading`
+// option gives it its own Suspense boundary; without one, the first open
+// suspends up to dashboard/loading.tsx and remounts the whole page.
+const ProductStockModal = dynamic(
+  () => import("../../component/Modals/ProductStockModal"),
+  { loading: () => null },
+);
 
 // Constants
 const DEFAULT_PARAMS = (type: string) => `?ty=${type}&p=1&limit=1`;
@@ -53,7 +61,7 @@ const DEFAULT_PARAMS = (type: string) => `?ty=${type}&p=1&limit=1`;
 // Filter chip key → human-readable label mapping
 const FILTER_CHIP_LABELS: Record<string, string> = {
   name: "Name",
-  status: "Status",
+  status: "Stock",
   parentcate: "Category",
   childcate: "Subcategory",
   expiredate: "Expire before",
@@ -83,28 +91,40 @@ export default function Inventory() {
   const promoids = searchParam.get("promoids") ?? undefined;
 
   // Global context
-  const {
-    openmodal,
-    setopenmodal,
-    allData,
-    setalldata,
-    isLoading,
-    setisLoading,
-    promotion,
-    setpromotion,
-    itemlength,
-    setitemlength,
-    globalindex,
-  } = useGlobalContext();
+  const openmodal = useGlobalStore((s) => s.openmodal);
+  const setopenmodal = useGlobalStore((s) => s.setopenmodal);
+  const allData = useGlobalStore((s) => s.allData);
+  const setalldata = useGlobalStore((s) => s.setalldata);
+  const isLoading = useGlobalStore((s) => s.isLoading);
+  const setisLoading = useGlobalStore((s) => s.setisLoading);
+  const promotion = useGlobalStore((s) => s.promotion);
+  const setpromotion = useGlobalStore((s) => s.setpromotion);
+  const itemlength = useGlobalStore((s) => s.itemlength);
+  const setitemlength = useGlobalStore((s) => s.setitemlength);
+  const globalindex = useGlobalStore((s) => s.globalindex);
   const { handleCheckSession } = useCheckSession();
 
   // Local state
   const [loaded, setloaded] = useState(false);
+  const [showPromoProducts, setShowPromoProducts] = useState(false);
+  // While picking promotion products, list the picked ones first (on unless turned off)
+  const [selectedFirst, setSelectedFirst] = useState(searchParam.get("selectedfirst") !== "0");
   const [show, setshow] = useState(limit ?? "1");
   const [page, setpage] = useState(p ? parseInt(p) : 1);
   const [itemscount, setitemcount] = useState(0);
   const [lowstock, setlowstock] = useState(0);
   const [reloaddata, setreloaddata] = useState(true);
+  const [stockTarget, setStockTarget] = useState<StockEditTarget | null>(null);
+
+  // Stable references so memoized cards don't re-render on every page render
+  const reloadData = useCallback(() => setreloaddata(true), [setreloaddata]);
+  const openStockModal = useCallback(
+    (target: StockEditTarget) => {
+      setStockTarget(target);
+      setopenmodal((prev) => ({ ...prev, [PRODUCT_STOCK_MODAL]: true }));
+    },
+    [setopenmodal],
+  );
   const [ty, settype] = useState(type);
   const [promoexpire, setpromoexpire] = useState(0);
   const [viewMode, setViewMode] = useState<"card" | "list">("card");
@@ -132,10 +152,7 @@ export default function Inventory() {
     [filtervalue],
   );
 
-  const currentData = useMemo(
-    () => allData?.[type as string] || [],
-    [allData, type],
-  );
+  const currentData = useMemo(() => allData?.[type as string] || [], [allData, type]);
 
   //Check user session
   useEffect(() => {
@@ -163,9 +180,7 @@ export default function Inventory() {
   // Validation searchParams
   useEffect(() => {
     if (!type) {
-      return redirect(
-        `/dashboard/inventory${DEFAULT_PARAMS(type ?? "product")}`,
-      );
+      return redirect(`/dashboard/inventory${DEFAULT_PARAMS(type || "product")}`);
     }
 
     const isValid =
@@ -182,16 +197,7 @@ export default function Inventory() {
     if (reloaddata) {
       fetchdata(promotion.id);
     }
-  }, [
-    reloaddata,
-    type,
-    p,
-    limit,
-    parentcate,
-    childcate,
-    expired,
-    promotion.id,
-  ]);
+  }, [reloaddata, type, p, limit, parentcate, childcate, expired, promotion.id]);
 
   const fetchdata = useCallback(
     async (pid?: number) => {
@@ -207,16 +213,15 @@ export default function Inventory() {
             filtervalue,
             !!promotion.selectproduct,
             pid,
-            promoids,
+            // From state, not the URL: the URL updates a moment after Apply
+            filtervalue.promoids,
+            selectedFirst
+              ? promotion.Products.map((product) => product.id).filter((id) => id !== 0)
+              : undefined,
           );
           transformFunction = transformProductData;
         } else if (ty === "banner") {
-          apiUrl = buildBannerApiUrl(
-            page,
-            show,
-            filtervalue,
-            !!promotion.selectbanner,
-          );
+          apiUrl = buildBannerApiUrl(page, show, filtervalue, !!promotion.selectbanner);
           transformFunction = transformBannerData;
         } else if (ty === "promotion") {
           apiUrl = buildPromotionApiUrl(page, show, filtervalue);
@@ -224,14 +229,7 @@ export default function Inventory() {
         }
 
         const makerequest = async () => {
-          const response = await ApiRequest(
-            apiUrl,
-            undefined,
-            "GET",
-            undefined,
-            undefined,
-            ty,
-          );
+          const response = await ApiRequest(apiUrl, undefined, "GET", undefined, undefined, ty);
 
           if (response.success) {
             let modifieddata = response.data?.map(transformFunction);
@@ -240,22 +238,24 @@ export default function Inventory() {
             if (ty === "product") {
               setlowstock(response.lowstock as number);
 
-              // Merge discount data for promotion products
-              if (promotion.selectproduct && type === "product") {
-                const productMap = new Map(
-                  promotion.Products.map((product) => [
-                    product.id,
-                    product.discount,
-                  ]),
-                );
+              // While picking products for a promotion, unsaved picks win over saved
+              // discounts, and products being removed show no discount.
+              const isPicking = !!promotion.selectproduct && type === "product";
+              const pickedPercent = new Map(
+                isPicking
+                  ? promotion.Products.map((product) => [product.id, product.discount?.percent])
+                  : [],
+              );
+              const removedIds = new Set(isPicking ? (promotion.tempproduct ?? []) : []);
 
-                modifieddata = modifieddata.map((item: any) => {
-                  if (productMap.has(item.id)) {
-                    return { ...item, discount: productMap.get(item.id) };
-                  }
-                  return item;
-                });
-              }
+              modifieddata = modifieddata.map((item: any) => {
+                const percent = pickedPercent.has(item.id)
+                  ? pickedPercent.get(item.id)
+                  : removedIds.has(item.id)
+                    ? undefined
+                    : item.discount?.percent;
+                return { ...item, discount: toCardDiscount(item.price, percent) };
+              });
             }
 
             // Handle promotion-specific data
@@ -295,7 +295,7 @@ export default function Inventory() {
       filtervalue,
       promotion,
       type,
-      promoids,
+      selectedFirst,
       setalldata,
       setitemlength,
       setpromotion,
@@ -304,6 +304,7 @@ export default function Inventory() {
 
   const handleShowPerPage = useCallback(
     (value: number | string) => {
+      if (!value) return;
       const param = new URLSearchParams(searchParam);
       param.set("p", "1");
       param.set("limit", value.toString());
@@ -330,13 +331,7 @@ export default function Inventory() {
               type: updateType,
             };
 
-      const updatereq = await ApiRequest(
-        "/api/promotion",
-        setisLoading,
-        "PUT",
-        "JSON",
-        data,
-      );
+      const updatereq = await ApiRequest("/api/promotion", setisLoading, "PUT", "JSON", data);
 
       if (updatereq.success) {
         return true;
@@ -351,10 +346,7 @@ export default function Inventory() {
   const handleDoneButton = useCallback(async () => {
     if (promotion.selectbanner || promotion.selectproduct) {
       if (promotion.selectproduct && promotion.tempproduct) {
-        const success = await handleUpdateProductBannerPromotion(
-          promotion,
-          "product",
-        );
+        const success = await handleUpdateProductBannerPromotion(promotion, "product");
         if (!success) {
           errorToast("Failed to update");
           return;
@@ -364,10 +356,7 @@ export default function Inventory() {
         promotion.banner_id &&
         globalindex.promotioneditindex !== -1
       ) {
-        const success = await handleUpdateProductBannerPromotion(
-          promotion,
-          "banner",
-        );
+        const success = await handleUpdateProductBannerPromotion(promotion, "banner");
         if (!success) {
           errorToast("Error Occurred");
           return;
@@ -375,15 +364,12 @@ export default function Inventory() {
       }
     }
     setopenmodal((prev) => ({ ...prev, createPromotion: true }));
-  }, [
-    promotion,
-    globalindex,
-    handleUpdateProductBannerPromotion,
-    setopenmodal,
-  ]);
+  }, [promotion, globalindex, handleUpdateProductBannerPromotion, setopenmodal]);
 
   const handleFilter = useCallback(
     async (value: string) => {
+      // "-- None --" is not a valid type; keep the current one
+      if (!value) return;
       const params = new URLSearchParams(searchParam);
 
       // Reset filter params
@@ -396,10 +382,11 @@ export default function Inventory() {
       params.set("ty", value);
       params.set("p", "1");
       params.set("limit", "1");
-
       setpage(1);
       setshow("1");
       settype(value);
+      setfiltervalue({});
+      setSearchInput("");
       router.push(`?${params}`, { scroll: false });
       setreloaddata(true);
     },
@@ -437,12 +424,14 @@ export default function Inventory() {
 
   const handleRemoveFilter = useCallback(
     (key: string) => {
+      // A subcategory only makes sense under its category
+      const keys = key === "parentcate" ? ["parentcate", "childcate"] : [key];
       const params = new URLSearchParams(searchParam);
-      params.delete(key);
+      keys.forEach((k) => params.delete(k));
       params.set("p", "1");
       setfiltervalue((prev) => {
         const next = { ...prev };
-        delete (next as any)[key];
+        keys.forEach((k) => delete (next as any)[k]);
         return next;
       });
       if (key === "name") setSearchInput("");
@@ -484,7 +473,14 @@ export default function Inventory() {
           displayVal = childCateNameMap[String(raw)] ?? String(raw);
         } else if (key === "expiredate") {
           displayVal = dayjs(raw).format("MMM D, YYYY");
-        } else if (key === "expired" || key === "promoids") {
+        } else if (key === "status") {
+          displayVal = raw === "Low" ? "Low stock" : String(raw);
+        } else if (key === "promoids") {
+          const count = String(raw).split(",").filter(Boolean).length;
+          displayVal = `${count} selected`;
+        } else if (key === "bannertype" || key === "bannersize") {
+          displayVal = String(raw).charAt(0).toUpperCase() + String(raw).slice(1);
+        } else if (key === "expired") {
           displayVal = "";
         }
         const label = FILTER_CHIP_LABELS[key] ?? key;
@@ -508,12 +504,8 @@ export default function Inventory() {
   }, []);
 
   const toggleSelectAll = useCallback(() => {
-    const ids: number[] = (currentData as any[])
-      .map((item) => item.id)
-      .filter(Boolean);
-    setSelectedIds((prev) =>
-      prev.size === ids.length ? new Set() : new Set(ids),
-    );
+    const ids: number[] = (currentData as any[]).map((item) => item.id).filter(Boolean);
+    setSelectedIds((prev) => (prev.size === ids.length ? new Set() : new Set(ids)));
   }, [currentData]);
 
   const handleBulkDelete = useCallback(async () => {
@@ -584,11 +576,7 @@ export default function Inventory() {
                       stroke="currentColor"
                       strokeWidth={3}
                     >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M5 13l4 4L19 7"
-                      />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                     </svg>
                   )}
                 </div>
@@ -607,7 +595,8 @@ export default function Inventory() {
             stocktype={obj.stocktype}
             isAdmin={true}
             lowstock={obj.Stock?.length ? obj.lowstock : undefined}
-            reloaddata={() => setreloaddata(true)}
+            reloaddata={reloadData}
+            onOpenStock={openStockModal}
           />
         </div>
       ));
@@ -641,11 +630,7 @@ export default function Inventory() {
                       stroke="currentColor"
                       strokeWidth={3}
                     >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M5 13l4 4L19 7"
-                      />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                     </svg>
                   )}
                 </div>
@@ -658,7 +643,7 @@ export default function Inventory() {
             index={idx}
             id={obj.id ?? 0}
             type="banner"
-            reloaddata={() => setreloaddata(true)}
+            reloaddata={reloadData}
           />
         </div>
       ));
@@ -700,11 +685,7 @@ export default function Inventory() {
                       stroke="currentColor"
                       strokeWidth={3}
                     >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M5 13l4 4L19 7"
-                      />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                     </svg>
                   )}
                 </div>
@@ -717,8 +698,9 @@ export default function Inventory() {
             index={idx}
             id={obj.id ?? 0}
             type="promotion"
+            promodata={obj}
             isExpired={obj.isExpired}
-            reloaddata={() => setreloaddata(true)}
+            reloaddata={reloadData}
           />
         </div>
       ));
@@ -737,7 +719,8 @@ export default function Inventory() {
           isSelectMode={isSelectMode}
           isSelected={selectedIds.has(obj.id ?? 0)}
           onToggleSelect={() => toggleSelectId(obj.id ?? 0)}
-          reloaddata={() => setreloaddata(true)}
+          reloaddata={reloadData}
+          onOpenStock={openStockModal}
         />
       ));
     }
@@ -751,7 +734,7 @@ export default function Inventory() {
           isSelectMode={isSelectMode}
           isSelected={selectedIds.has(obj.id ?? 0)}
           onToggleSelect={() => toggleSelectId(obj.id ?? 0)}
-          reloaddata={() => setreloaddata(true)}
+          reloaddata={reloadData}
         />
       ));
     }
@@ -765,7 +748,7 @@ export default function Inventory() {
           isSelectMode={isSelectMode}
           isSelected={selectedIds.has(obj.id ?? 0)}
           onToggleSelect={() => toggleSelectId(obj.id ?? 0)}
-          reloaddata={() => setreloaddata(true)}
+          reloaddata={reloadData}
         />
       ));
     }
@@ -779,13 +762,12 @@ export default function Inventory() {
       {/* Day JS Provider  */}
       <LocalizationProvider dateAdapter={AdapterDayjs}>
         {/* Action modals */}
-        {openmodal.createProduct && (
-          <CreateProducts setreloaddata={setreloaddata} />
+        {openmodal.createProduct && <CreateProducts setreloaddata={setreloaddata} />}
+        {openmodal[PRODUCT_STOCK_MODAL] && stockTarget && (
+          <ProductStockModal key={stockTarget.id} target={stockTarget} />
         )}
         {openmodal.createCategory && <Category />}
-        {openmodal.createBanner && (
-          <BannerModal setreloaddata={setreloaddata} />
-        )}
+        {openmodal.createBanner && <BannerModal setreloaddata={setreloaddata} />}
         {openmodal.createPromotion && (
           <CreatePromotionModal
             searchparams={{
@@ -814,14 +796,19 @@ export default function Inventory() {
             type={ty}
             expired={expired}
             param={filtervalue}
-            reloadData={() => setreloaddata(true)}
+            reloadData={reloadData}
             setfilterdata={setfiltervalue as any}
             isSetPromotion={promotion.selectproduct}
+            selectedFirst={selectedFirst}
+            onSelectedFirstChange={setSelectedFirst}
           />
         )}
 
         {/**Discount edit modal */}
         {openmodal.discount && <DiscountModals />}
+        {showPromoProducts && (
+          <PromotionProductsPanel onClose={() => setShowPromoProducts(false)} />
+        )}
 
         <div className="inventory__container w-full h-full min-h-screen relative flex flex-col items-center pb-50 bg-linear-to-b from-gray-50 to-white">
           {/* Header */}
@@ -840,20 +827,14 @@ export default function Inventory() {
               isPromotionSelection={!!promotion.selectproduct}
               isBannerSelection={!!promotion.selectbanner}
               isManagingBanner={!!openmodal.managebanner}
-              isMultipleProducts={promotion.Products.length > 1}
+              promotionProductCount={promotion.Products.filter((p) => p.id !== 0).length}
               isLoadingUpdate={isLoading.PUT}
               viewMode={viewMode}
               onFilterChange={handleFilter}
-              onFilterClick={() =>
-                setopenmodal((prev) => ({ ...prev, filteroption: true }))
-              }
+              onFilterClick={() => setopenmodal((prev) => ({ ...prev, filteroption: true }))}
               onLowStockClick={handleLowStockFilter}
-              onDiscountClick={() =>
-                setopenmodal((prev) => ({ ...prev, discount: true }))
-              }
-              onAddBannerClick={() =>
-                setopenmodal((prev) => ({ ...prev, createBanner: true }))
-              }
+              onDiscountClick={() => setShowPromoProducts(true)}
+              onAddBannerClick={() => setopenmodal((prev) => ({ ...prev, createBanner: true }))}
               onDoneClick={handleDoneButton}
               onViewModeChange={setViewMode}
             />
@@ -863,28 +844,33 @@ export default function Inventory() {
           <div className="w-[95%] max-smallest_phone:w-full mt-6 flex flex-col gap-3">
             {/* Inline search bar */}
             <form onSubmit={handleInlineSearch} className="flex items-center gap-2">
-              <div className="flex-1 flex items-center gap-2 bg-white border-2 border-gray-200 rounded-xl px-3 py-2 shadow-sm focus-within:border-indigo-400 transition-colors">
-                <FontAwesomeIcon icon={faSearch} className="text-gray-400 text-sm shrink-0" />
+              <div className="flex-1 flex items-center gap-2 h-10 bg-white border border-slate-300 rounded-lg px-3 transition-colors hover:border-slate-400 focus-within:border-slate-900 focus-within:ring-2 focus-within:ring-slate-200">
+                <FontAwesomeIcon icon={faSearch} className="text-slate-400 text-sm shrink-0" />
                 <input
-                  type="text"
+                  type="search"
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
-                  placeholder={`Search ${type ?? "items"}...`}
-                  className="flex-1 text-sm outline-none bg-transparent text-gray-700 placeholder-gray-400"
+                  placeholder={`Search ${type ?? "items"} by name`}
+                  aria-label={`Search ${type ?? "items"} by name`}
+                  className="flex-1 min-w-0 text-sm outline-none bg-transparent text-slate-900 placeholder:text-slate-400 [&::-webkit-search-cancel-button]:hidden"
                 />
                 {searchInput && (
                   <button
                     type="button"
-                    onClick={() => { setSearchInput(""); handleRemoveFilter("name"); }}
-                    className="text-gray-400 hover:text-gray-600 transition-colors"
+                    aria-label="Clear search"
+                    onClick={() => {
+                      setSearchInput("");
+                      handleRemoveFilter("name");
+                    }}
+                    className="w-6 h-6 flex items-center justify-center rounded-md text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-colors"
                   >
-                    <FontAwesomeIcon icon={faXmark} className="text-sm" />
+                    <FontAwesomeIcon icon={faXmark} className="text-xs" />
                   </button>
                 )}
               </div>
               <button
                 type="submit"
-                className="shrink-0 px-4 py-2 bg-linear-to-r from-indigo-500 to-purple-600 text-white text-sm font-semibold rounded-xl shadow-sm hover:shadow-md hover:scale-105 transition-all"
+                className="shrink-0 h-10 px-4 bg-slate-900 text-white text-sm font-semibold rounded-lg hover:bg-slate-800 transition-colors"
               >
                 Search
               </button>
@@ -893,30 +879,37 @@ export default function Inventory() {
             {/* Active filter chips */}
             {activeFilterChips.length > 0 && (
               <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs font-medium text-slate-500">Filters:</span>
                 {activeFilterChips.map(({ key, label, displayVal }) => (
                   <span
                     key={key}
-                    className="inline-flex items-center gap-1.5 px-3 py-1 bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-medium rounded-full"
+                    className="inline-flex items-center gap-1 h-7 pl-2.5 pr-1 bg-white border border-slate-300 text-slate-700 text-xs rounded-full"
                   >
-                    <span>{label}{displayVal ? `: ${displayVal}` : ""}</span>
+                    <span>
+                      <span className="text-slate-500">{label}</span>
+                      {displayVal ? (
+                        <span className="font-semibold text-slate-900">: {displayVal}</span>
+                      ) : null}
+                    </span>
                     <button
                       type="button"
                       onClick={() => handleRemoveFilter(key)}
-                      className="text-indigo-400 hover:text-indigo-700 transition-colors leading-none"
+                      className="w-5 h-5 flex items-center justify-center rounded-full text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-colors"
                       aria-label={`Remove ${label} filter`}
                     >
                       <FontAwesomeIcon icon={faXmark} className="text-[10px]" />
                     </button>
                   </span>
                 ))}
-                <button
-                  type="button"
-                  onClick={handleClearAllFilters}
-                  className="inline-flex items-center gap-1.5 px-3 py-1 bg-red-50 border border-red-200 text-red-600 text-xs font-medium rounded-full hover:bg-red-100 transition-colors"
-                >
-                  <FontAwesomeIcon icon={faFilterCircleXmark} className="text-[10px]" />
-                  Clear all
-                </button>
+                {activeFilterChips.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={handleClearAllFilters}
+                    className="h-7 px-2 text-xs font-medium text-slate-600 underline-offset-4 hover:text-slate-900 hover:underline"
+                  >
+                    Clear all
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -953,21 +946,15 @@ export default function Inventory() {
                           onClick={toggleSelectAll}
                           className="px-3 py-1.5 text-sm font-medium rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors"
                         >
-                          {selectedIds.size === currentData.length
-                            ? "Deselect All"
-                            : "Select All"}
+                          {selectedIds.size === currentData.length ? "Deselect All" : "Select All"}
                         </button>
-                        <span className="text-sm text-gray-500">
-                          {selectedIds.size} selected
-                        </span>
+                        <span className="text-sm text-gray-500">{selectedIds.size} selected</span>
                         <button
                           disabled={selectedIds.size === 0 || isLoading.DELETE}
                           onClick={openBulkDeleteConfirm}
                           className="px-3 py-1.5 text-sm font-medium rounded-lg bg-red-500 hover:bg-red-600 disabled:opacity-40 disabled:cursor-not-allowed text-white transition-colors"
                         >
-                          {isLoading.DELETE
-                            ? "Deleting…"
-                            : `Delete (${selectedIds.size})`}
+                          {isLoading.DELETE ? "Deleting…" : `Delete (${selectedIds.size})`}
                         </button>
                         <button
                           onClick={exitSelectMode}
@@ -994,7 +981,7 @@ export default function Inventory() {
           </motion.div>
         </div>
 
-        <div className="w-full h-fit">
+        <div className="w-full h-fit bg-white">
           <PaginationCustom
             page={page}
             setpage={setpage}

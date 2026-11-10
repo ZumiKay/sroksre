@@ -12,6 +12,7 @@ import { calculateDiscountProductPrice } from "@/src/lib/utilities";
 
 import { revalidatePath } from "next/cache";
 import { ProductState } from "@/src/types/product.type";
+import { syncExpiredPromotions } from "@/src/lib/promotion";
 
 interface returntype {
   success: boolean;
@@ -138,6 +139,7 @@ export const getRelatedProduct = async (
   child_id?: number,
   promoid?: number,
 ) => {
+  await syncExpiredPromotions();
   try {
     let maxprod = false;
     const result = await Prisma.products.findMany({

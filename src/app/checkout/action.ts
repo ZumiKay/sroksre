@@ -46,6 +46,7 @@ import {
   StockableItem,
 } from "./stock";
 import nodemailer from "nodemailer";
+import { syncExpiredPromotions } from "@/src/lib/promotion";
 
 interface Returntype<k = string> {
   success: boolean;
@@ -148,6 +149,7 @@ export async function createOrder(data: {
   price: totalpricetype;
   incartProduct: number[];
 }): Promise<Returntype<any>> {
+  await syncExpiredPromotions();
   const user = await getUser({
     user: {
       select: {
@@ -836,6 +838,7 @@ const generateAccessToken = async () => {
 };
 
 export async function createPaypalOrder(orderId: string): Promise<Returntype> {
+  await syncExpiredPromotions();
   try {
     const orderState = await checkOrder(orderId);
 

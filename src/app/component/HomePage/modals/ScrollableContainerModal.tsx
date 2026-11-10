@@ -2,7 +2,7 @@
 
 import { ChangeEvent, memo, useCallback, useMemo } from "react";
 import React from "react";
-import { useGlobalContext } from "@/src/context/GlobalContext";
+import { useGlobalStore } from "@/src/context/GlobalContext";
 import { Containertype } from "../../../severactions/containeraction";
 import { AddIcon } from "../../Asset";
 import PrimaryButton, { Selection } from "../../Button";
@@ -24,7 +24,7 @@ export const ScrollableContainerModal = memo(function ScrollableContainerModal({
   data: Containertype;
   setdata: React.Dispatch<React.SetStateAction<Containertype>>;
 }) {
-  const { setopenmodal } = useGlobalContext();
+  const setopenmodal = useGlobalStore((s) => s.setopenmodal);
 
   const handleChange = useCallback(
     (e: ChangeEvent<HTMLInputElement>) => {

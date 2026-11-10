@@ -1,17 +1,21 @@
 "use client";
-import React, { useState, useCallback, useMemo, useEffect } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import { Orderpricetype } from "@/src/types/order.type";
-import { useGlobalContext } from "@/src/context/GlobalContext";
+import { useGlobalStore } from "@/src/context/GlobalContext";
 import { SubInventoryMenu } from "@/src/app/component/Navbar";
 import Checkmark from "../../../../../public/Image/Checkmark.svg";
-import { ProductState, StockTypeEnum } from "@/src/types/product.type";
+import { ProductState } from "@/src/types/product.type";
 import { errorToast } from "@/src/app/component/Loading";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faImage, faClock, faCheck, faTriangleExclamation } from "@fortawesome/free-solid-svg-icons";
-import { Variantcontainer } from "@/src/app/component/Modals/VariantModal";
-import { UpdateStockModal } from "@/src/app/component/Modals/Stock";
+import {
+  faImage,
+  faClock,
+  faCheck,
+  faTriangleExclamation,
+} from "@fortawesome/free-solid-svg-icons";
+import { StockEditTarget } from "@/src/app/component/Modals/productStockTarget";
 
 interface SelectionProps {
   isSelectMode?: boolean;
@@ -23,6 +27,8 @@ interface ProductListItemProps extends SelectionProps {
   product: ProductState;
   index: number;
   reloaddata?: () => void;
+  /** Opens the page-level stock modal for this product */
+  onOpenStock?: (target: StockEditTarget) => void;
 }
 
 interface BannerListItemProps extends SelectionProps {
@@ -67,29 +73,25 @@ export const ProductListItem: React.FC<ProductListItemProps> = ({
   product,
   index,
   reloaddata,
+  onOpenStock,
   isSelectMode,
   isSelected = false,
   onToggleSelect,
 }) => {
-  const {
-    promotion,
-    setpromotion,
-    setglobalindex,
-    setopenmodal,
-    setproduct,
-    openmodal,
-    allData,
-    setalldata,
-  } = useGlobalContext();
+  const promotion = useGlobalStore((s) => s.promotion);
+  const setpromotion = useGlobalStore((s) => s.setpromotion);
+  const setglobalindex = useGlobalStore((s) => s.setglobalindex);
+  const setopenmodal = useGlobalStore((s) => s.setopenmodal);
+  const setproduct = useGlobalStore((s) => s.setproduct);
+  const allData = useGlobalStore((s) => s.allData);
+  const setalldata = useGlobalStore((s) => s.setalldata);
 
   const [hover, setHover] = useState(false);
   const [isImageLoading, setIsImageLoading] = useState(true);
 
-  // Same closename pattern as Card component: opens inline Variantcontainer
-  const closename = useMemo(
-    () => (product.stocktype && product.id ? product.stocktype + product.id : ""),
-    [product.stocktype, product.id],
-  );
+  const handleOpenStock = useCallback(() => {
+    if (product.id) onOpenStock?.({ id: product.id, stocktype: product.stocktype });
+  }, [onOpenStock, product.id, product.stocktype]);
 
   const hasVariantStock = !!product.Stock?.length;
 
@@ -97,8 +99,7 @@ export const ProductListItem: React.FC<ProductListItemProps> = ({
     (e: React.MouseEvent) => {
       e.stopPropagation();
       if (hasVariantStock) {
-        // Open inline stock variant editor (same as Card)
-        setopenmodal((prev) => ({ ...prev, [closename]: true }));
+        handleOpenStock();
       } else {
         // No variant stock — open variant editor so user can manage variants/stock
         setproduct((prev) => ({ ...prev, ...product, id: product.id }));
@@ -109,7 +110,7 @@ export const ProductListItem: React.FC<ProductListItemProps> = ({
         setopenmodal((prev) => ({ ...prev, addproductvariant: true }));
       }
     },
-    [hasVariantStock, closename, product, setopenmodal, setproduct, setglobalindex],
+    [hasVariantStock, handleOpenStock, product, setopenmodal, setproduct, setglobalindex],
   );
 
   const isProduct = useMemo(
@@ -136,6 +137,8 @@ export const ProductListItem: React.FC<ProductListItemProps> = ({
         if (!isProduct) {
           promo.push({
             id: product.id,
+            name: product.name,
+            cover: product.covers?.[0]?.url,
             discount: {
               percent: 0,
               newprice: "",
@@ -161,6 +164,8 @@ export const ProductListItem: React.FC<ProductListItemProps> = ({
         } else {
           promo.push({
             id: product.id,
+            name: product.name,
+            cover: product.covers?.[0]?.url,
             discount: {
               percent: 0,
               newprice: "",
@@ -173,7 +178,8 @@ export const ProductListItem: React.FC<ProductListItemProps> = ({
       setpromotion((prev) => ({
         ...prev,
         Products: promo,
-        tempproduct: temp,
+        // Accumulate: earlier removals must survive later toggles
+        tempproduct: Array.from(new Set([...(prev.tempproduct ?? []), ...temp])),
       }));
     }
   }, [promotion, product, isProduct, allData, setpromotion, setalldata]);
@@ -230,21 +236,13 @@ export const ProductListItem: React.FC<ProductListItemProps> = ({
         )}
         {isProduct && promotion.selectproduct && (
           <div className="absolute top-1 right-1 bg-white rounded-full p-1 shadow-lg">
-            <Image
-              src={Checkmark}
-              alt="Selected"
-              width={20}
-              height={20}
-              className="w-5 h-5"
-            />
+            <Image src={Checkmark} alt="Selected" width={20} height={20} className="w-5 h-5" />
           </div>
         )}
       </div>
 
       <div className="flex-1 min-w-0">
-        <h3 className="text-lg font-bold text-gray-800 truncate">
-          {product.name}
-        </h3>
+        <h3 className="text-lg font-bold text-gray-800 truncate">{product.name}</h3>
         <div className="flex items-center gap-4 mt-2 flex-wrap">
           <span className="text-xl font-bold text-indigo-600">
             ${parseFloat(product.price.toString()).toFixed(2)}
@@ -259,9 +257,7 @@ export const ProductListItem: React.FC<ProductListItemProps> = ({
           {product.stock !== undefined && (
             <span
               className={`px-2 py-1 rounded-full text-xs font-bold ${
-                !product.lowstock
-                  ? "bg-green-100 text-green-600"
-                  : "bg-red-100 text-red-600"
+                !product.lowstock ? "bg-green-100 text-green-600" : "bg-red-100 text-red-600"
               }`}
             >
               Stock: {product.stock}
@@ -288,27 +284,12 @@ export const ProductListItem: React.FC<ProductListItemProps> = ({
             index={product.id}
             stock={product.stock}
             stocktype={product.stocktype}
-            stockaction={() => {
-              setopenmodal((prev) => ({ ...prev, [closename]: true }));
-            }}
+            stockaction={handleOpenStock}
             reloaddata={reloaddata}
           />
         </div>
       )}
 
-      {/* Inline stock/variant modals — mirrors Card component behaviour */}
-      {openmodal?.[closename] &&
-      product.stocktype === StockTypeEnum.variants ? (
-        <Variantcontainer
-          type="stock"
-          editindex={product.id}
-          closename={closename}
-        />
-      ) : openmodal?.[closename] &&
-        product.stocktype === StockTypeEnum.normal &&
-        product.id ? (
-        <UpdateStockModal closename={closename} productId={product.id} />
-      ) : null}
     </motion.div>
   );
 };
@@ -321,7 +302,9 @@ export const BannerListItem: React.FC<BannerListItemProps> = ({
   isSelected = false,
   onToggleSelect,
 }) => {
-  const { promotion, setpromotion, openmodal } = useGlobalContext();
+  const promotion = useGlobalStore((s) => s.promotion);
+  const setpromotion = useGlobalStore((s) => s.setpromotion);
+  const openmodal = useGlobalStore((s) => s.openmodal);
   const [hover, setHover] = useState(false);
 
   const isBanner = useMemo(
@@ -385,21 +368,13 @@ export const BannerListItem: React.FC<BannerListItemProps> = ({
         />
         {isBanner && promotion.selectbanner && (
           <div className="absolute top-1 right-1 bg-white rounded-full p-1 shadow-lg">
-            <Image
-              src={Checkmark}
-              alt="Selected"
-              width={20}
-              height={20}
-              className="w-5 h-5"
-            />
+            <Image src={Checkmark} alt="Selected" width={20} height={20} className="w-5 h-5" />
           </div>
         )}
       </div>
 
       <div className="flex-1 min-w-0">
-        <h3 className="text-lg font-bold text-gray-800 truncate">
-          {banner.name}
-        </h3>
+        <h3 className="text-lg font-bold text-gray-800 truncate">{banner.name}</h3>
         <div className="flex items-center gap-2 mt-2">
           <span className="px-2 py-1 bg-blue-100 text-blue-600 rounded-full text-xs font-bold">
             {banner.size}
@@ -407,19 +382,16 @@ export const BannerListItem: React.FC<BannerListItemProps> = ({
         </div>
       </div>
 
-      {hover &&
-        !promotion.selectbanner &&
-        !openmodal.managebanner &&
-        !isSelectMode && (
-          <div className="shrink-0 z-10" onClick={(e) => e.stopPropagation()}>
-            <SubInventoryMenu
-              data={actionMenu}
-              type="banner"
-              index={banner.id}
-              reloaddata={reloaddata}
-            />
-          </div>
-        )}
+      {hover && !promotion.selectbanner && !openmodal.managebanner && !isSelectMode && (
+        <div className="shrink-0 z-10" onClick={(e) => e.stopPropagation()}>
+          <SubInventoryMenu
+            data={actionMenu}
+            type="banner"
+            index={banner.id}
+            reloaddata={reloaddata}
+          />
+        </div>
+      )}
     </motion.div>
   );
 };
@@ -432,7 +404,7 @@ export const PromotionListItem: React.FC<PromotionListItemProps> = ({
   isSelected = false,
   onToggleSelect,
 }) => {
-  const { openmodal } = useGlobalContext();
+  const openmodal = useGlobalStore((s) => s.openmodal);
   const [hover, setHover] = useState(false);
 
   const actionMenu = useMemo(
@@ -501,9 +473,7 @@ export const PromotionListItem: React.FC<PromotionListItemProps> = ({
       </div>
 
       <div className={`flex-1 min-w-0 ${promotion.isExpired ? "mt-6" : ""}`}>
-        <h3 className="text-lg font-bold text-gray-800 truncate">
-          {promotion.name}
-        </h3>
+        <h3 className="text-lg font-bold text-gray-800 truncate">{promotion.name}</h3>
         <div className="flex items-center gap-2 mt-2">
           {promotion.isExpired ? (
             <span className="px-2 py-1 bg-red-100 text-red-600 rounded-full text-xs font-bold">

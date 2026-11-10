@@ -4,12 +4,11 @@ import { useEffect, useState } from "react";
 import PrimaryButton from "../component/Button";
 import { ToggleDownMenu } from "../component/ToggleMenu";
 import Card from "../component/Card";
-import { useGlobalContext } from "@/src/context/GlobalContext";
+import { useGlobalStore } from "@/src/context/GlobalContext";
 import { ApiRequest, Delayloading } from "@/src/context/CustomHook";
 import { ContainerLoading } from "../component/Loading";
 import { EditProfile } from "../component/Modals/User";
 import { signOut } from "next-auth/react";
-import React from "react";
 import { Userdatastate } from "@/src/types/user.type";
 import { ProductState } from "@/src/types/product.type";
 import { Orderpricetype } from "@/src/types/order.type";
@@ -25,7 +24,10 @@ interface userdata extends Userdatastate {
 }
 
 export default function UserDashboard() {
-  const { openmodal, setopenmodal, userinfo, setuserinfo } = useGlobalContext();
+  const openmodal = useGlobalStore((s) => s.openmodal);
+  const setopenmodal = useGlobalStore((s) => s.setopenmodal);
+  const userinfo = useGlobalStore((s) => s.userinfo);
+  const setuserinfo = useGlobalStore((s) => s.setuserinfo);
   const [userdata, setdata] = useState<userdata>({
     open: {
       whilist: false,
@@ -241,6 +243,30 @@ export default function UserDashboard() {
             </span>
           </a>
         </div>
+
+        {userinfo.role === "ADMIN" && (
+          <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
+            <a
+              href="/dashboard/security"
+              className="w-full px-8 py-6 flex items-center justify-between bg-white text-gray-800 hover:bg-gray-50 transition-all group"
+            >
+              <div className="flex items-center gap-4">
+                <span className="text-2xl">🛡️</span>
+                <div className="text-left">
+                  <h3 className="text-xl font-bold max-large_phone:text-lg">
+                    Security
+                  </h3>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Two-factor login for your admin account
+                  </p>
+                </div>
+              </div>
+              <span className="text-gray-600 group-hover:translate-x-1 transition-transform">
+                →
+              </span>
+            </a>
+          </div>
+        )}
 
         {userinfo.role === "USER" && (
           <>

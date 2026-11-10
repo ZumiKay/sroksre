@@ -1,76 +1,22 @@
-import Prisma from "@/src/lib/prisma";
+import {
+  resetPromotionExpiryCheck,
+  revertExpiredPromotions,
+} from "@/src/lib/promotion";
 
 export async function PUT() {
   try {
-    const expiredPromotions = await Prisma.promotion.findMany({
-      where: {
-        expireAt: {
-          lte: new Date(),
-        },
-      },
-      select: {
-        id: true,
-        Products: {
-          select: { id: true },
-        },
-        banner: { select: { id: true } },
-      },
-    });
-
-    if (expiredPromotions.length === 0) {
-      return new Response(
-        JSON.stringify({ message: "No Expired Promotions Found" }),
-        {
-          status: 200,
-        },
-      );
-    }
-
-    const productIds = expiredPromotions.flatMap((promo) =>
-      promo.Products.map((product) => product.id),
-    );
-
-    const promotionIds = expiredPromotions.map((promo) => promo.id);
-
-    const bannerIds = expiredPromotions
-      .map((promo) => promo.banner?.id)
-      .filter((id): id is number => id !== undefined);
-
-    const tasks = [];
-
-    if (bannerIds.length > 0) {
-      tasks.push(
-        Prisma.banner.updateMany({
-          where: { id: { in: bannerIds } },
-          data: { promotionId: null },
-        }),
-      );
-    }
-
-    if (productIds.length > 0) {
-      tasks.push(
-        Prisma.products.updateMany({
-          where: { id: { in: productIds } },
-          data: { discount: null },
-        }),
-      );
-    }
-
-    if (promotionIds.length > 0) {
-      tasks.push(
-        Prisma.childcategories.deleteMany({
-          where: { pid: { in: promotionIds } },
-        }),
-      );
-    }
-
-    await Promise.all(tasks);
+    const reverted = await revertExpiredPromotions();
+    resetPromotionExpiryCheck();
 
     return Response.json(
-      { message: "Updated Expired Promotions" },
       {
-        status: 200,
+        message:
+          reverted > 0
+            ? "Updated Expired Promotions"
+            : "No Expired Promotions Found",
+        reverted,
       },
+      { status: 200 },
     );
   } catch (error) {
     console.log("Error checking expired promotions:", error);

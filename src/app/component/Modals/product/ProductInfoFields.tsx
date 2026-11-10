@@ -2,7 +2,7 @@
 
 import { ChangeEvent } from "react";
 import { Input, Textarea } from "@heroui/react";
-import { useGlobalContext } from "@/src/context/GlobalContext";
+import { useGlobalStore } from "@/src/context/GlobalContext";
 
 const inputClasses = {
   label: "text-sm font-semibold text-gray-700",
@@ -20,7 +20,7 @@ export const ProductInfoFields = ({
   handleChange,
   loading,
 }: ProductInfoFieldsProps) => {
-  const { product } = useGlobalContext();
+  const product = useGlobalStore((s) => s.product);
 
   return (
     <>

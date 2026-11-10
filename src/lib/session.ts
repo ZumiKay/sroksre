@@ -2,11 +2,30 @@
 
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/src/app/api/auth/[...nextauth]/route";
-// Sessiontype is defined in GlobalContext.tsx and needs to stay there
 import Prisma from "./prisma";
 import { Usersessiontype } from "../types/user.type";
 import { hashToken } from "./userlib";
 import { UsersessionSelect } from "@/prisma/generated/prisma/models";
+import { isActiveAdminSession } from "./adminGuard";
+
+/**
+ * Returns the current session if the user is an admin right now, else null.
+ * Call at the top of every admin-only server action and route handler:
+ * server actions can be called directly, without going through the proxy.
+ */
+export async function requireAdmin(): Promise<Usersessiontype | null> {
+  try {
+    const session = (await getServerSession(
+      authOptions,
+    )) as unknown as Usersessiontype | null;
+
+    if (!session?.sessionid) return null;
+    return (await isActiveAdminSession(session.sessionid)) ? session : null;
+  } catch (error) {
+    console.log("requireAdmin error:", error);
+    return null;
+  }
+}
 
 /**
  * Verify if a session exists and is valid in the database

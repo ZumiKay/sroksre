@@ -1,6 +1,7 @@
 "use server";
 
 import Prisma from "@/src/lib/prisma";
+import { requireAdmin } from "@/src/lib/session";
 import { revalidatePath } from "next/cache";
 
 interface returntype {
@@ -35,6 +36,10 @@ export interface Addpolicyandquestiontype {
 export const AddPolicyOrQuestion = async (
   data: Addpolicyandquestiontype
 ): Promise<returntype> => {
+  if (!(await requireAdmin())) {
+    return { success: false, message: "Unauthorized" };
+  }
+
   try {
     const { question, policy } = data;
 
@@ -72,21 +77,6 @@ export const AddPolicyOrQuestion = async (
   }
 };
 
-export const getPolicy = async (qid?: number, pid?: number) => {
-  if (!qid && !pid) {
-    return { success: false, message: "Invalid data" };
-  }
-
-  const result = await (qid
-    ? Prisma.question.findUnique({ where: { id: qid } })
-    : Prisma.policy.findUnique({
-        where: { id: pid },
-        include: { Paragraph: true },
-      }));
-
-  return { success: true, data: result };
-};
-
 interface deletepolicytype {
   pid?: number;
   qid?: number;
@@ -98,6 +88,10 @@ export const DeleteQP = async ({
   qid,
   ppid,
 }: deletepolicytype): Promise<returntype> => {
+  if (!(await requireAdmin())) {
+    return { success: false, message: "Unauthorized" };
+  }
+
   try {
     if (!pid && !qid && !ppid) {
       return { success: false, message: "Invalid request" };

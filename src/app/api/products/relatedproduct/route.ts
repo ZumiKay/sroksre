@@ -3,6 +3,7 @@ import { extractQueryParams } from "../../banner/route";
 import { ProductState } from "@/src/types/product.type";
 import { calculateDiscountProductPrice } from "@/src/lib/utilities";
 import Prisma from "@/src/lib/prisma";
+import { syncExpiredPromotions } from "@/src/lib/promotion";
 
 interface GetRelatedProductParamType {
   targetId?: number;
@@ -12,6 +13,7 @@ interface GetRelatedProductParamType {
   promoid?: number;
 }
 export async function GET(req: NextRequest) {
+  await syncExpiredPromotions();
   try {
     const {
       targetId,

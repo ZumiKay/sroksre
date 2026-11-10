@@ -38,11 +38,7 @@ import {
   isCheckoutSessionExpired,
   buildStockAdjustments,
 } from "@/src/app/checkout/stock";
-import {
-  renewCheckoutSession,
-  terminateCheckoutSession,
-  releaseStock,
-} from "@/src/app/checkout/action";
+import { renewCheckoutSession, terminateCheckoutSession } from "@/src/app/checkout/action";
 
 describe("Checkout Session & Stock Hold/Release Tests", () => {
   beforeEach(() => {

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect } from "react";
-import { useGlobalContext } from "@/src/context/GlobalContext";
+import { useGlobalStore } from "@/src/context/GlobalContext";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AllorderType } from "@/src/lib/utilities";
 import { AllorderStatus } from "../page";
@@ -17,14 +17,16 @@ import {
 export interface ButtonSsrProps {
   id: string;
   idx: number;
-  width: string;
-  height: string;
+  width?: string;
+  height?: string;
   name: string;
   color?: string;
   orderdata?: AllorderStatus;
   type: string;
   data?: ModalDataType;
   isAdmin: boolean;
+  className?: string;
+  skipModal?: boolean;
 }
 
 export const ButtonSsr = ({
@@ -38,8 +40,11 @@ export const ButtonSsr = ({
   data,
   orderdata,
   isAdmin,
+  className,
+  skipModal = false,
 }: ButtonSsrProps) => {
-  const { openmodal, setopenmodal } = useGlobalContext();
+  const openmodal = useGlobalStore((s) => s.openmodal);
+  const setopenmodal = useGlobalStore((s) => s.setopenmodal);
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -125,15 +130,15 @@ export const ButtonSsr = ({
       <button
         type="button"
         onClick={handleClick}
-        className="relative min-w-25 px-4 py-2 rounded-xl font-medium text-white text-center
+        className={`relative min-w-0 sm:min-w-25 px-3 sm:px-4 py-2 rounded-xl font-medium text-white text-center
                    bg-linear-to-r from-blue-600 to-purple-600
                    hover:from-blue-700 hover:to-purple-700
                    active:scale-95
-                   shadow-md hover:shadow-lg
+                   shadow-xs hover:shadow-md
                    transition-all duration-200 ease-in-out
                    focus:outline-hidden focus:ring-2 focus:ring-purple-500 focus:ring-offset-2
                    disabled:opacity-50 disabled:cursor-not-allowed
-                   whitespace-normal wrap-break-words leading-tight"
+                   whitespace-nowrap text-xs sm:text-sm leading-tight ${className ?? ""}`}
         style={{
           width: width === "auto" ? undefined : width,
           minHeight: height === "auto" ? undefined : height,
@@ -143,7 +148,7 @@ export const ButtonSsr = ({
         <span className="relative z-10 block">{name}</span>
         <div className="absolute inset-0 rounded-xl bg-linear-to-r from-blue-400 to-purple-400 opacity-0 hover:opacity-20 transition-opacity duration-200" />
       </button>
-      {renderModal}
+      {!skipModal && renderModal}
     </>
   );
 };

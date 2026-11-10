@@ -37,7 +37,3 @@ export type filterinventorytype =
   | "promotion"
   | "usermanagement"
   | string;
-
-export interface Allrefstate {
-  filterref: HTMLDivElement | null;
-}

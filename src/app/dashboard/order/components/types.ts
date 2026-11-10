@@ -5,24 +5,6 @@ import { shippingtype } from "@/src/app/component/Modals/User";
 import { OrderUserType } from "@/src/app/checkout/action";
 import dayjs from "dayjs";
 
-export interface DownloadData {
-  orderID: string;
-  orderDate: string;
-  buyer: string;
-  product: [
-    {
-      productid: string;
-      productname: string;
-      quantity: number;
-      price: number;
-      discount: number;
-    },
-  ];
-  shippingtype: string;
-  shippingprice?: number;
-  totalprice: number;
-}
-
 export interface OrderDetailType {
   user: userdata;
   shipping: shippingtype;

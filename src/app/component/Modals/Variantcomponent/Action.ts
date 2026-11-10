@@ -1,7 +1,8 @@
 "use server";
 
-import { Stocktype, Varianttype } from "@/src/types/product.type";
+import { Varianttype } from "@/src/types/product.type";
 import Prisma from "@/src/lib/prisma";
+import { requireAdmin } from "@/src/lib/session";
 
 export interface VariantTemplateType {
   id?: number;
@@ -10,6 +11,10 @@ export interface VariantTemplateType {
 }
 
 export async function CreateVariantTemplate(data: VariantTemplateType) {
+  if (!(await requireAdmin())) {
+    return { success: false, message: "Unauthorized" };
+  }
+
   try {
     if (data.name && data.variant) {
       await Prisma.varianttemplate.create({

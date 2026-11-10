@@ -1,6 +1,6 @@
 "use client";
 
-import { useGlobalContext } from "@/src/context/GlobalContext";
+import { useGlobalStore } from "@/src/context/GlobalContext";
 import { PrimaryPhoto } from "@/src/app/component/PhotoComponent";
 import PrimaryButton from "@/src/app/component/Button";
 import { useScreenSize } from "@/src/context/CustomHook";
@@ -11,7 +11,9 @@ interface ImageSectionProps {
 }
 
 export const ImageSection = ({ loading }: ImageSectionProps) => {
-  const { product, openmodal, setopenmodal } = useGlobalContext();
+  const product = useGlobalStore((s) => s.product);
+  const openmodal = useGlobalStore((s) => s.openmodal);
+  const setopenmodal = useGlobalStore((s) => s.setopenmodal);
   const { isMobile, isTablet } = useScreenSize();
 
   return (

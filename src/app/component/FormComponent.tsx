@@ -1,6 +1,6 @@
 "use client";
 
-import { useGlobalContext } from "@/src/context/GlobalContext";
+import { useGlobalStore } from "@/src/context/GlobalContext";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import {
@@ -35,7 +35,7 @@ export const PasswordInput = ({
   variant?: "outlined" | "standard" | "filled";
 }) => {
   const [showPassword, setShowPassword] = useState(false);
-  const { setuserinfo } = useGlobalContext();
+  const setuserinfo = useGlobalStore((s) => s.setuserinfo);
 
   const handleClickShowPassword = () => setShowPassword((show) => !show);
 

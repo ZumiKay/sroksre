@@ -1,4 +1,4 @@
-import { Address, User } from "@/prisma/generated/prisma/client";
+import { Address } from "@/prisma/generated/prisma/client";
 import {
   ProductState,
   VariantSectionType,
@@ -11,14 +11,6 @@ export type OrderInfoParamTyType =
   | "shipping"
   | "shippingbyid"
   | "ordermanagement";
-export type Orderstatus =
-  | "Incart"
-  | "Unpaid"
-  | "Paid"
-  | "Preparing"
-  | "Shipped"
-  | "Arrived"
-  | "Problem";
 
 export enum Allstatus {
   incart = "Incart",

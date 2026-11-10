@@ -1,4 +1,5 @@
 import dayjs from "dayjs";
+import { Orderpricetype } from "@/src/types/order.type";
 
 interface FilterParams {
   status?: string;
@@ -19,6 +20,7 @@ export const buildProductApiUrl = (
   promotionSelectProduct: boolean,
   pid?: number,
   promoids?: string,
+  selectedIds?: number[],
 ): string => {
   const { status, name, childcate, parentcate } = filtervalue;
 
@@ -44,6 +46,9 @@ export const buildProductApiUrl = (
     if (pid) params.append("pid", pid.toString());
     if (promotionSelectProduct) params.append("sp", "1");
     if (promoids) params.append("pids", promoids);
+    if (promotionSelectProduct && selectedIds && selectedIds.length > 0) {
+      params.append("sel", selectedIds.join(","));
+    }
 
     return `/api/products?${params.toString()}`;
   }
@@ -108,7 +113,21 @@ export const buildPromotionApiUrl = (
   return `/api/promotion?ty=all&lt=${show}&p=${page ?? "1"}`;
 };
 
-// Data transformation functions
+export const toCardDiscount = (
+  rawPrice: number | string,
+  percent?: number,
+): Orderpricetype | undefined => {
+  const price = parseFloat(rawPrice.toString());
+  if (!percent || percent <= 0 || isNaN(price)) return undefined;
+  return {
+    price,
+    discount: {
+      percent,
+      newprice: parseFloat((price - (price * percent) / 100).toFixed(2)),
+    },
+  };
+};
+
 export const transformProductData = (item: any) => ({
   ...item,
   category: {

@@ -1,13 +1,8 @@
 "use client";
-import { useGlobalContext } from "@/src/context/GlobalContext";
-import PrimaryButton from "../../component/Button";
+import { useGlobalStore } from "@/src/context/GlobalContext";
 import { ApiRequest, Delayloading } from "@/src/context/CustomHook";
-import {
-  ContainerLoading,
-  errorToast,
-  successToast,
-} from "../../component/Loading";
-import React, { useCallback, useEffect, useState, useMemo, memo } from "react";
+import { ContainerLoading, errorToast, successToast } from "../../component/Loading";
+import { useCallback, useEffect, useState, useMemo, memo } from "react";
 import { FilterMenu } from "../../component/SideMenu";
 import { Createusermodal } from "../../component/Modals/User";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -27,25 +22,11 @@ import {
   faUserShield,
   faUser,
   faUserPlus,
+  faUserPen,
+  faCheck,
+  faXmark,
+  IconDefinition,
 } from "@fortawesome/free-solid-svg-icons";
-
-interface usermangementFilterType {
-  search?: string;
-  lt?: string;
-  p?: string;
-  sort?: string;
-  role?: string;
-}
-
-interface UserType {
-  id: number;
-  firstname: string;
-  lastname?: string;
-  email: string;
-  role: string;
-  phonenumber?: string;
-  createdAt: string;
-}
 export default function UsermanagementPage() {
   const router = useRouter();
   const searchParam = useSearchParams();
@@ -58,26 +39,26 @@ export default function UsermanagementPage() {
   const sort = searchParam.get("sort") ?? undefined;
   const role = searchParam.get("role") ?? undefined;
 
-  const {
-    openmodal,
-    setopenmodal,
-    itemlength,
-    setitemlength,
-    setalldata,
-    allData,
-  } = useGlobalContext();
+  const openmodal = useGlobalStore((s) => s.openmodal);
+  const setopenmodal = useGlobalStore((s) => s.setopenmodal);
+  const itemlength = useGlobalStore((s) => s.itemlength);
+  const setitemlength = useGlobalStore((s) => s.setitemlength);
+  const setalldata = useGlobalStore((s) => s.setalldata);
+  const allData = useGlobalStore((s) => s.allData);
 
   const handleAdd = useCallback(() => {
     setopenmodal((prev) => ({ ...prev, createUser: true }));
   }, [setopenmodal]);
   const [page, setpage] = useState(parseInt(p ?? "1"));
   const [showperpage, setshow] = useState(lt ?? "10");
-  const [isFilter, setisFilter] = useState(!!search);
   const [loading, setloading] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<number[]>([]);
   const [bulkAction, setBulkAction] = useState<string>("");
   const [searchTerm, setSearchTerm] = useState(search ?? "");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  // Bumped after a create, edit or delete to load the list again.
+  const [reloadKey, setReloadKey] = useState(0);
+  const reload = useCallback(() => setReloadKey((k) => k + 1), []);
   const [stats, setStats] = useState({
     totalUsers: 0,
     adminUsers: 0,
@@ -89,7 +70,7 @@ export default function UsermanagementPage() {
   useEffect(() => {
     fetchdata();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, showperpage, search, role, sort]);
+  }, [page, showperpage, search, role, sort, reloadKey]);
 
   const calculateStats = useCallback(() => {
     if (allData?.user) {
@@ -142,6 +123,18 @@ export default function UsermanagementPage() {
         errorToast("Error Occured");
         return;
       }
+
+      // Deleting the last users on the last page leaves it empty: step back
+      // to the new last page (this effect runs again with it).
+      const totalpage = user.totalpage ?? 0;
+      if ((user.data?.length ?? 0) === 0 && page > 1 && totalpage > 0) {
+        const param = new URLSearchParams(window.location.search);
+        param.set("p", `${totalpage}`);
+        router.replace(`?${param}`, { scroll: false });
+        setpage(totalpage);
+        return;
+      }
+
       setitemlength({
         total: user.total ?? 0,
         totalpage: user.totalpage ?? 0,
@@ -150,16 +143,7 @@ export default function UsermanagementPage() {
       setalldata({ user: user.data });
     };
     await Delayloading(asyncfetch, setloading, 150);
-  }, [
-    search,
-    page,
-    showperpage,
-    role,
-    sort,
-    setitemlength,
-    setalldata,
-    handleCheckSession,
-  ]);
+  }, [search, page, showperpage, role, sort, setitemlength, setalldata, router]);
 
   const handleSelectShow = useCallback(
     (value: string) => {
@@ -212,9 +196,7 @@ export default function UsermanagementPage() {
 
   const handleSelectUser = useCallback((userId: number) => {
     setSelectedUsers((prev) =>
-      prev.includes(userId)
-        ? prev.filter((id) => id !== userId)
-        : [...prev, userId],
+      prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId],
     );
   }, []);
 
@@ -236,24 +218,32 @@ export default function UsermanagementPage() {
     const isValidSession = await handleCheckSession();
     if (!isValidSession) return;
 
+    if (bulkAction === "delete") {
+      // The confirm dialog asks for the admin's 2FA code (or password) and
+      // sends the delete itself.
+      setopenmodal((prev) => ({
+        ...prev,
+        confirmmodal: {
+          open: true,
+          confirm: false,
+          closecon: "",
+          type: "users",
+          ids: selectedUsers,
+          Warn: `Delete ${selectedUsers.length} user${selectedUsers.length === 1 ? "" : "s"}?`,
+          onDelete: () => {
+            successToast("Users deleted successfully");
+            setSelectedUsers([]);
+            reload();
+          },
+        },
+      }));
+      setBulkAction("");
+      return;
+    }
+
     setloading(true);
     try {
-      if (bulkAction === "delete") {
-        const result = await ApiRequest(
-          "/api/users",
-          undefined,
-          "DELETE",
-          "JSON",
-          { userIds: selectedUsers },
-        );
-        if (result.success) {
-          successToast("Users deleted successfully");
-          setSelectedUsers([]);
-          fetchdata();
-        } else {
-          errorToast(result.message ?? "Failed to delete users");
-        }
-      } else if (bulkAction === "role") {
+      if (bulkAction === "role") {
         // Handle role change
         successToast("Role update feature coming soon");
       }
@@ -262,13 +252,10 @@ export default function UsermanagementPage() {
     }
     setloading(false);
     setBulkAction("");
-  }, [bulkAction, selectedUsers, fetchdata]);
+  }, [bulkAction, selectedUsers, reload, setopenmodal]);
 
   // Memoize users list to avoid recalculating on every render
-  const usersList = useMemo(
-    () => (allData?.user as UserState[]) || [],
-    [allData?.user],
-  );
+  const usersList = useMemo(() => (allData?.user as UserState[]) || [], [allData?.user]);
 
   const handleExportUsers = useCallback(() => {
     if (!usersList || usersList.length === 0) {
@@ -301,35 +288,34 @@ export default function UsermanagementPage() {
     successToast("Users exported successfully");
   }, [usersList]);
 
-  // Memoize toggle view mode handler
-  const toggleViewMode = useCallback(() => {
-    setViewMode((prev) => (prev === "grid" ? "list" : "grid"));
-  }, []);
-
   // Memoize statistics cards
   const statisticsCards = useMemo(
     () => [
       {
         icon: faUsers,
-        gradient: "from-blue-500 to-purple-600",
+        color: "slate-600",
+        textColor: "text-blue-600",
         label: "Total Users",
         value: stats.totalUsers,
       },
       {
         icon: faUserShield,
-        gradient: "from-green-500 to-emerald-600",
+        color: "red-500",
+        textColor: "text-red-600",
         label: "Admins",
         value: stats.adminUsers,
       },
       {
         icon: faUser,
-        gradient: "from-orange-500 to-red-600",
+        color: "green-500",
+        textColor: "text-emerald-600",
         label: "Regular Users",
         value: stats.regularUsers,
       },
       {
         icon: faUserPlus,
-        gradient: "from-pink-500 to-purple-600",
+        color: "orange-500",
+        textColor: "text-amber-600",
         label: "New This Month",
         value: stats.newThisMonth,
       },
@@ -340,225 +326,232 @@ export default function UsermanagementPage() {
   return (
     <>
       <title>User Management | SrokSre</title>
-      <div className="usermanagement_container relative w-full h-full min-h-screen bg-linear-to-br from-gray-50 to-gray-100 p-6 md:p-8">
+      <main className="usermanagement_container relative w-full min-h-screen bg-gray-50 p-5 md:p-8">
         {loading && <ContainerLoading />}
 
         {/* Header Section */}
         <div className="w-full mb-8">
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6">
+          <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between mb-7">
             <div>
-              <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-2">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1">
+                Dashboard / Users
+              </p>
+              <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 leading-tight">
                 User Management
               </h1>
-              <p className="text-gray-600">
+              <p className="text-sm text-gray-500 mt-1">
                 Manage and monitor all users in your system
               </p>
             </div>
-            <div className="flex gap-3">
-              <button
-                onClick={toggleViewMode}
-                className="px-4 py-2 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 transition-colors"
-                title="Toggle view mode"
-              >
-                <FontAwesomeIcon icon={viewMode === "grid" ? faList : faGrip} />
-              </button>
+            <div className="flex items-center gap-1 self-start md:self-auto bg-white rounded-xl shadow-xs border border-gray-100 p-1">
+              {(
+                [
+                  { mode: "grid", icon: faGrip, title: "Grid view" },
+                  { mode: "list", icon: faList, title: "List view" },
+                ] as const
+              ).map(({ mode, icon, title }) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => setViewMode(mode)}
+                  title={title}
+                  aria-pressed={viewMode === mode}
+                  className={`w-9 h-9 rounded-lg flex items-center justify-center transition-colors ${
+                    viewMode === mode ? "bg-gray-900 text-white" : "text-gray-500 hover:bg-gray-100"
+                  }`}
+                >
+                  <FontAwesomeIcon icon={icon} className="text-sm" />
+                </button>
+              ))}
             </div>
           </div>
 
           {/* Statistics Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-2">
             {statisticsCards.map((card, idx) => (
               <div
                 key={idx}
-                className="bg-white p-5 rounded-xl shadow-xs border border-gray-200 hover:shadow-md transition-shadow"
+                className="bg-white p-4 rounded-2xl shadow-xs border border-gray-100 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
               >
-                <div className="flex items-center justify-between mb-3">
-                  <div
-                    className={`w-12 h-12 rounded-lg bg-linear-to-br ${card.gradient} flex items-center justify-center`}
-                  >
-                    <FontAwesomeIcon
-                      icon={card.icon}
-                      className="text-white text-xl"
-                    />
-                  </div>
+                <div
+                  className={`w-10 h-10 rounded-xl bg-${card.color}  flex items-center justify-center mb-3 shadow-sm`}
+                >
+                  <FontAwesomeIcon icon={card.icon} className="text-white text-base" />
                 </div>
-                <p className="text-sm text-gray-500 font-medium">
+                <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-0.5">
                   {card.label}
                 </p>
-                <p className="text-3xl font-bold text-gray-800">{card.value}</p>
+                <p className={`text-2xl font-extrabold ${card.textColor}`}>{card.value}</p>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Search and Filter Bar */}
-        <div className="bg-white rounded-xl shadow-xs border border-gray-200 p-4 mb-6">
-          <div className="flex flex-col lg:flex-row gap-3">
+        {/* Search, Filter and Actions */}
+        <div className="bg-white rounded-2xl shadow-xs border border-gray-100 p-4 mb-6">
+          <div className="w-full flex flex-col xl:flex-row items-stretch xl:items-center gap-3">
             {/* Search Input */}
             <div className="flex-1 flex gap-2">
-              <div className="relative flex-1">
-                <FontAwesomeIcon
-                  icon={faSearch}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                />
+              <div className="flex-1 flex items-center gap-2 h-10 bg-white border border-gray-200 rounded-lg px-3 transition-colors hover:border-gray-300 focus-within:border-gray-900 focus-within:ring-2 focus-within:ring-gray-200">
+                <FontAwesomeIcon icon={faSearch} className="text-gray-400 text-sm shrink-0" />
                 <input
                   type="text"
                   placeholder="Search by name or email..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-hidden transition-all"
+                  className="flex-1 min-w-0 text-sm outline-none bg-transparent text-gray-900 placeholder:text-gray-400"
                 />
               </div>
               <button
+                type="button"
                 onClick={handleSearch}
-                className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                className="shrink-0 h-10 px-4 bg-gray-900 hover:bg-gray-800 text-white text-sm font-semibold rounded-lg transition-colors"
               >
                 Search
               </button>
             </div>
 
-            {/* Sort Dropdown */}
-            <select
-              value={sort || "newest"}
-              onChange={(e) => handleSort(e.target.value)}
-              className="px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-hidden transition-all bg-white"
-            >
-              <option value="newest">Newest First</option>
-              <option value="oldest">Oldest First</option>
-              <option value="name">Name (A-Z)</option>
-              <option value="name-desc">Name (Z-A)</option>
-            </select>
-
-            {/* Role Filter */}
-            <select
-              value={role || "all"}
-              onChange={(e) => handleRoleFilter(e.target.value)}
-              className="px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-hidden transition-all bg-white"
-            >
-              <option value="all">All Roles</option>
-              <option value="ADMIN">Admin</option>
-              <option value="USER">User</option>
-              <option value="EDITOR">Editor</option>
-            </select>
-          </div>
-        </div>
-
-        {/* Action Buttons and Bulk Actions */}
-        <div className="flex flex-col md:flex-row gap-3 justify-between items-start md:items-center">
-          <div className="flex flex-wrap gap-3">
-            <PrimaryButton
-              type="button"
-              text="Add User"
-              onClick={() => handleAdd()}
-              color="#3B82F6"
-              hoverColor="#2563EB"
-              Icon={
-                <FontAwesomeIcon
-                  icon={faPlus}
-                  className="font-bold text-base"
-                />
-              }
-              width="160px"
-              radius="12px"
-              textcolor="white"
-            />
-            <PrimaryButton
-              type="button"
-              text="Export Users"
-              onClick={handleExportUsers}
-              color="#10B981"
-              hoverColor="#059669"
-              Icon={<FontAwesomeIcon icon={faDownload} className="text-base" />}
-              width="160px"
-              radius="12px"
-              textcolor="white"
-            />
-          </div>
-
-          {/* Bulk Actions */}
-          {selectedUsers.length > 0 && (
-            <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-lg border border-gray-200 shadow-xs">
-              <span className="text-sm font-medium text-gray-700">
-                {selectedUsers.length} selected
-              </span>
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Sort Dropdown */}
               <select
-                value={bulkAction}
-                onChange={(e) => setBulkAction(e.target.value)}
-                className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-hidden"
+                value={sort || "newest"}
+                onChange={(e) => handleSort(e.target.value)}
+                className="h-10 px-3 text-sm text-gray-700 border border-gray-200 rounded-lg bg-white hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-200 transition-colors"
               >
-                <option value="">Select Action</option>
-                <option value="delete">Delete</option>
-                <option value="role">Change Role</option>
+                <option value="newest">Newest First</option>
+                <option value="oldest">Oldest First</option>
+                <option value="name">Name (A-Z)</option>
+                <option value="name-desc">Name (Z-A)</option>
               </select>
-              <button
-                onClick={handleBulkAction}
-                className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg font-medium transition-colors"
+
+              {/* Role Filter */}
+              <select
+                value={role || "all"}
+                onChange={(e) => handleRoleFilter(e.target.value)}
+                className="h-10 px-3 text-sm text-gray-700 border border-gray-200 rounded-lg bg-white hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-200 transition-colors"
               >
-                Apply
+                <option value="all">All Roles</option>
+                <option value="ADMIN">Admin</option>
+                <option value="USER">User</option>
+                <option value="EDITOR">Editor</option>
+              </select>
+
+              {/* Divider */}
+              <div className="hidden md:block h-10 w-px bg-gray-200 mx-1" />
+
+              {/* Action Buttons */}
+              <button
+                type="button"
+                onClick={handleAdd}
+                className="inline-flex items-center gap-2 h-10 px-4 rounded-[10px] bg-slate-600 hover:bg-blue-700 text-white text-sm font-semibold shadow-sm active:scale-[0.98] transition-all"
+              >
+                <FontAwesomeIcon icon={faPlus} className="text-xs" />
+                Add User
+              </button>
+              <button
+                type="button"
+                onClick={handleExportUsers}
+                className="inline-flex items-center gap-2 h-10 px-4 rounded-[10px] bg-linear-to-r from-emerald-500 to-teal-600 hover:opacity-90 text-white text-sm font-semibold shadow-sm active:scale-[0.98] transition-all"
+              >
+                <FontAwesomeIcon icon={faDownload} className="text-xs" />
+                Export
               </button>
             </div>
-          )}
+          </div>
         </div>
-        {/* Bulk Selection Header */}
-        {allData?.user && allData.user.length > 0 && (
-          <div className="bg-white rounded-lg shadow-xs border border-gray-200 p-3 mb-4">
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={selectedUsers.length === allData.user.length}
-                onChange={handleSelectAll}
-                className="w-5 h-5 rounded-sm border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 cursor-pointer"
-              />
-              <span className="text-sm font-medium text-gray-700">
-                Select All ({allData.user.length} users)
-              </span>
-            </label>
+
+        {/* Bulk Actions */}
+        {selectedUsers.length > 0 && (
+          <div className="sticky top-16 z-20 mb-4 flex flex-wrap items-center gap-3 bg-indigo-50 border border-indigo-200 rounded-2xl px-5 py-3 shadow-sm">
+            <span className="text-sm font-semibold text-indigo-700">
+              {selectedUsers.length} selected
+            </span>
+            <div className="h-4 w-px bg-indigo-200 shrink-0" />
+            <select
+              value={bulkAction}
+              onChange={(e) => setBulkAction(e.target.value)}
+              className="h-9 px-3 text-sm border border-indigo-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            >
+              <option value="">Select action…</option>
+              <option value="delete">Delete</option>
+              <option value="role">Change Role</option>
+            </select>
+            <button
+              type="button"
+              disabled={!bulkAction}
+              onClick={handleBulkAction}
+              className="inline-flex items-center gap-1.5 h-9 px-4 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold transition-colors"
+            >
+              Apply
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedUsers([])}
+              className="ml-auto inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-indigo-200 hover:bg-indigo-100 text-indigo-600 text-sm font-medium transition-colors"
+            >
+              <FontAwesomeIcon icon={faXmark} className="text-xs" />
+              Clear
+            </button>
           </div>
         )}
 
-        {/* User Cards Grid/List */}
+        {/* Select-all row */}
+        {allData?.user && allData.user.length > 0 && (
+          <div className="flex items-center gap-2 px-1 pb-3">
+            <SelectBox
+              checked={selectedUsers.length === allData.user.length}
+              onToggle={handleSelectAll}
+              label="Select all users"
+            />
+            <span
+              onClick={handleSelectAll}
+              className="text-sm text-gray-500 cursor-pointer select-none hover:text-gray-700"
+            >
+              {selectedUsers.length > 0
+                ? `${selectedUsers.length} / ${allData.user.length} selected`
+                : `Select all (${allData.user.length} users)`}
+            </span>
+          </div>
+        )}
+
+        {/* User Cards */}
         <div className="userlist w-full h-fit">
           {!allData || !allData.user || allData.user.length === 0 ? (
-            <div className="w-full flex flex-col items-center justify-center py-20 bg-white rounded-xl shadow-xs border border-gray-200">
-              <div className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center mb-4">
-                <FontAwesomeIcon
-                  icon={faUsers}
-                  className="text-gray-400 text-4xl"
-                />
+            <div className="w-full flex flex-col items-center justify-center gap-3 py-24 bg-white rounded-2xl shadow-xs border border-gray-100">
+              <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center">
+                <FontAwesomeIcon icon={faUsers} className="text-gray-300 text-2xl" />
               </div>
-              <p className="text-xl font-semibold text-gray-600 mb-2">
-                No Users Found
-              </p>
-              <p className="text-sm text-gray-400">
-                Try adjusting your filters or add a new user
-              </p>
+              <div className="text-center">
+                <p className="text-base font-semibold text-gray-500">No users found</p>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  Try adjusting your filters or add a new user
+                </p>
+              </div>
             </div>
           ) : (
             <div
               className={
                 viewMode === "grid"
-                  ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-                  : "flex flex-col gap-4"
+                  ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
+                  : "flex flex-col gap-3"
               }
             >
               {allData?.user?.map((i, idx: number) => (
                 <div key={i.id || idx} className="relative">
-                  <label className="absolute top-3 left-3 z-10 cursor-pointer">
-                    <input
-                      type="checkbox"
+                  <div className="absolute top-4 left-4 z-10">
+                    <SelectBox
                       checked={selectedUsers.includes(i.id || idx)}
-                      onChange={() => handleSelectUser(i.id || idx)}
-                      className="w-5 h-5 rounded-sm border-gray-300 text-blue-600 focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                      onToggle={() => handleSelectUser(i.id || idx)}
+                      label={`Select ${i.firstname}`}
                     />
-                  </label>
+                  </div>
 
                   <EnhancedUserCard
                     index={idx}
                     firstname={i.firstname}
                     lastname={i.lastname ?? ""}
                     email={i.email}
-                    uid={i.id?.toString() ?? "0"}
                     role={i.role as string}
                     phonenumber={i.phonenumber}
                     createdAt={i.createdAt ? new Date(i.createdAt) : undefined}
@@ -570,10 +563,15 @@ export default function UsermanagementPage() {
             </div>
           )}
         </div>
+
         {/* Pagination */}
         {itemlength.totalpage ? (
-          <div className="w-full h-fit mt-12 flex justify-center">
-            <div className="bg-white rounded-xl shadow-xs border border-gray-200 p-4">
+          <div className="w-full flex flex-col sm:flex-row items-center justify-between gap-3 mt-6 px-1">
+            <p className="text-xs text-gray-400 font-medium">
+              Page <span className="font-semibold text-gray-600">{page}</span> of{" "}
+              <span className="font-semibold text-gray-600">{itemlength.totalpage}</span>
+            </p>
+            <div className="bg-white rounded-xl shadow-xs border border-gray-100 px-4 py-2">
               <PaginationCustom
                 count={itemlength.totalpage}
                 page={page}
@@ -589,28 +587,53 @@ export default function UsermanagementPage() {
         ) : (
           ""
         )}
-      </div>
+      </main>
 
       {openmodal.createUser && (
         <Createusermodal
           setpage={setpage}
-          onSuccess={() => {
-            // Refetch data after successful create/update
-            fetchdata();
-          }}
+          onSuccess={reload}
         />
       )}
-      {openmodal.filteroption && (
-        <FilterMenu type="usermanagement" setisFilter={setisFilter} />
-      )}
+      {openmodal.filteroption && <FilterMenu type="usermanagement" />}
     </>
+  );
+}
+
+// Checkbox styled like the order management page
+function SelectBox({
+  checked,
+  onToggle,
+  label,
+}: {
+  checked: boolean;
+  onToggle: () => void;
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      role="checkbox"
+      aria-checked={checked}
+      aria-label={label}
+      onClick={(e) => {
+        e.stopPropagation();
+        onToggle();
+      }}
+      className={`w-5 h-5 rounded border-2 flex items-center justify-center cursor-pointer transition-colors shrink-0 ${
+        checked
+          ? "bg-indigo-600 border-indigo-600"
+          : "bg-white border-gray-300 hover:border-indigo-400"
+      }`}
+    >
+      {checked && <FontAwesomeIcon icon={faCheck} className="text-white text-[10px]" />}
+    </button>
   );
 }
 
 // Enhanced User Card Component - Memoized for performance
 const EnhancedUserCard = memo(
   ({
-    uid,
     firstname,
     lastname,
     email,
@@ -622,7 +645,6 @@ const EnhancedUserCard = memo(
     viewMode,
   }: {
     index: number;
-    uid: string;
     firstname: string;
     lastname?: string;
     email: string;
@@ -632,7 +654,8 @@ const EnhancedUserCard = memo(
     isSelected: boolean;
     viewMode: "grid" | "list";
   }) => {
-    const { setopenmodal, setglobalindex } = useGlobalContext();
+    const setopenmodal = useGlobalStore((s) => s.setopenmodal);
+    const setglobalindex = useGlobalStore((s) => s.setglobalindex);
     const [isMounted, setIsMounted] = useState(false);
 
     // Prevent hydration mismatch for date formatting
@@ -645,100 +668,68 @@ const EnhancedUserCard = memo(
       setopenmodal((prev) => ({ ...prev, createUser: true }));
     }, [index, setglobalindex, setopenmodal]);
 
-    const getRoleColor = useMemo(
-      () => (role: string) => {
-        switch (role) {
-          case "ADMIN":
-            return "bg-red-100 text-red-700 border-red-200";
-          case "EDITOR":
-            return "bg-blue-100 text-blue-700 border-blue-200";
-          case "USER":
-          default:
-            return "bg-green-100 text-green-700 border-green-200";
-        }
-      },
-      [],
-    );
-
-    const getRoleIcon = useMemo(
-      () => (role: string) => {
-        switch (role) {
-          case "ADMIN":
-            return "fa-user-shield";
-          case "EDITOR":
-            return "fa-user-pen";
-          case "USER":
-          default:
-            return "fa-user";
-        }
-      },
-      [],
-    );
-
-    const roleColor = useMemo(() => getRoleColor(role), [role, getRoleColor]);
-    const roleIcon = useMemo(() => getRoleIcon(role), [role, getRoleIcon]);
-    const firstLetter = useMemo(
-      () => firstname.charAt(0).toUpperCase(),
-      [firstname],
-    );
-    const fullName = useMemo(
-      () => `${firstname} ${lastname || ""}`,
-      [firstname, lastname],
-    );
+    const roleColor = ROLE_STYLES[role]?.color ?? ROLE_STYLES.USER.color;
+    const roleIcon = ROLE_STYLES[role]?.icon ?? ROLE_STYLES.USER.icon;
+    const firstLetter = useMemo(() => firstname.charAt(0).toUpperCase(), [firstname]);
+    const fullName = useMemo(() => `${firstname} ${lastname || ""}`, [firstname, lastname]);
     const formattedDate = useMemo(
       () => (isMounted && createdAt ? createdAt.toLocaleDateString() : ""),
       [createdAt, isMounted],
+    );
+
+    const cardState = isSelected
+      ? "border-indigo-300 ring-2 ring-indigo-500/30 shadow-md"
+      : "border-gray-100 hover:shadow-md hover:-translate-y-0.5";
+
+    const roleBadge = (
+      <span
+        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border ${roleColor}`}
+      >
+        <FontAwesomeIcon icon={roleIcon} className="text-[10px]" />
+        {role}
+      </span>
+    );
+
+    const editButton = (
+      <button
+        type="button"
+        aria-label={`Edit ${fullName}`}
+        onClick={(e) => {
+          e.stopPropagation();
+          handleEdit();
+        }}
+        className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+      >
+        <FontAwesomeIcon icon={faEdit} className="text-sm" />
+      </button>
     );
 
     if (viewMode === "list") {
       return (
         <div
           onClick={handleEdit}
-          className={`w-full bg-white rounded-xl border-2 p-4 pl-12 transition-all duration-200 cursor-pointer hover:shadow-lg ${
-            isSelected
-              ? "border-blue-500 shadow-md"
-              : "border-gray-200 hover:border-blue-300"
-          }`}
+          className={`w-full bg-white rounded-2xl border shadow-xs px-4 py-3 pl-12 transition-all duration-200 cursor-pointer ${cardState}`}
         >
           <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-4 flex-1 min-w-0">
-              <div className="w-12 h-12 rounded-full bg-linear-to-br from-blue-500 to-purple-600 flex items-center justify-center shrink-0">
-                <span className="text-white font-bold text-lg">
-                  {firstLetter}
-                </span>
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              <div className="w-10 h-10 rounded-xl bg-linear-to-br from-blue-500 to-purple-600 flex items-center justify-center shrink-0 shadow-sm">
+                <span className="text-white font-bold text-base">{firstLetter}</span>
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="text-lg font-bold text-gray-800 truncate">
-                  {fullName}
-                </h3>
-                <p className="text-sm text-gray-500 truncate">{email}</p>
+                <h3 className="text-sm font-semibold text-gray-900 truncate">{fullName}</h3>
+                <p className="text-xs text-gray-500 truncate">{email}</p>
               </div>
             </div>
             <div className="flex items-center gap-4 shrink-0">
-              <span
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold border ${roleColor}`}
-              >
-                <i className={`fa-solid ${roleIcon} mr-1`}></i>
-                {role}
-              </span>
+              {roleBadge}
               {phonenumber && (
-                <span className="text-sm text-gray-600 hidden lg:block">
-                  <FontAwesomeIcon icon={faPhone} className="mr-1" />
+                <span className="text-xs text-gray-500 hidden lg:block">
+                  <FontAwesomeIcon icon={faPhone} className="mr-1.5 text-gray-400" />
                   {phonenumber}
                 </span>
               )}
-              <span className="text-xs text-gray-400 hidden xl:block">
-                {formattedDate}
-              </span>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleEdit();
-                }}
-                className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-              >
-                <FontAwesomeIcon icon={faEdit} className="text-gray-600" />
-              </button>
+              <span className="text-xs text-gray-400 hidden xl:block">{formattedDate}</span>
+              {editButton}
             </div>
           </div>
         </div>
@@ -748,47 +739,28 @@ const EnhancedUserCard = memo(
     return (
       <div
         onClick={handleEdit}
-        className={`bg-white rounded-xl border-2 p-6 pt-10 transition-all duration-200 cursor-pointer hover:shadow-lg ${
-          isSelected
-            ? "border-blue-500 shadow-md"
-            : "border-gray-200 hover:border-blue-300"
-        }`}
+        className={`bg-white rounded-2xl border shadow-xs p-5 pt-10 transition-all duration-200 cursor-pointer ${cardState}`}
       >
         <div className="flex flex-col items-center gap-4">
-          <div className="w-20 h-20 rounded-full bg-linear-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+          <div className="w-16 h-16 rounded-2xl bg-slate-600 flex items-center justify-center shadow-sm">
             <span className="text-white font-bold text-2xl">{firstLetter}</span>
           </div>
           <div className="text-center w-full">
-            <h3 className="text-lg font-bold text-gray-800 truncate mb-1">
-              {fullName}
-            </h3>
-            <p className="text-sm text-gray-500 truncate mb-2">{email}</p>
-            <span
-              className={`inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold border ${roleColor}`}
-            >
-              <i className={`fa-solid ${roleIcon} mr-1`}></i>
-              {role}
-            </span>
+            <h3 className="text-base font-semibold text-gray-900 truncate mb-0.5">{fullName}</h3>
+            <p className="text-xs text-gray-500 truncate mb-2.5">{email}</p>
+            {roleBadge}
           </div>
           {phonenumber && (
             <div className="w-full pt-3 border-t border-gray-100">
-              <p className="text-xs text-gray-600 text-center">
-                <FontAwesomeIcon icon={faPhone} className="mr-1" />
+              <p className="text-xs text-gray-500 text-center">
+                <FontAwesomeIcon icon={faPhone} className="mr-1.5 text-gray-400" />
                 {phonenumber}
               </p>
             </div>
           )}
           <div className="w-full flex items-center justify-between pt-3 border-t border-gray-100">
             <span className="text-xs text-gray-400">{formattedDate}</span>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleEdit();
-              }}
-              className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-            >
-              <FontAwesomeIcon icon={faEdit} className="text-gray-600" />
-            </button>
+            {editButton}
           </div>
         </div>
       </div>
@@ -797,3 +769,18 @@ const EnhancedUserCard = memo(
 );
 
 EnhancedUserCard.displayName = "EnhancedUserCard";
+
+const ROLE_STYLES: Record<string, { color: string; icon: IconDefinition }> = {
+  ADMIN: {
+    color: "bg-red-50 text-red-700 border-red-100",
+    icon: faUserShield,
+  },
+  EDITOR: {
+    color: "bg-blue-50 text-blue-700 border-blue-100",
+    icon: faUserPen,
+  },
+  USER: {
+    color: "bg-emerald-50 text-emerald-700 border-emerald-100",
+    icon: faUser,
+  },
+};

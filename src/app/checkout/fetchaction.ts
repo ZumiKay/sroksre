@@ -17,6 +17,7 @@ import {
   VariantSectionType,
 } from "@/src/types/product.type";
 import { userdata } from "../account/actions";
+import { syncExpiredPromotions } from "@/src/lib/promotion";
 
 /** Get Specific Order Details
  * @param orderid
@@ -27,6 +28,7 @@ export const getCheckoutdata = async (
   orderid?: string,
   userid?: string,
 ): Promise<Ordertype | null> => {
+  await syncExpiredPromotions();
   const result = await Prisma.orders.findFirst({
     where: {
       ...(orderid ? { id: orderid } : {}),

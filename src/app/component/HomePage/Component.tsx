@@ -1,11 +1,6 @@
 "use client";
 import { Button, Card, Skeleton } from "@heroui/react";
-import {
-  AnimatePresence,
-  motion,
-  useScroll,
-  useTransform,
-} from "framer-motion";
+import { AnimatePresence, motion, useScroll, useTransform } from "framer-motion";
 
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import Image from "next/image";
@@ -83,9 +78,7 @@ export const SlideShow = (props: bannerprops) => {
     if (side === "next") {
       setCurrentSlide((prev) => (prev + 1) % props.data.length);
     } else {
-      setCurrentSlide((prev) =>
-        prev === 0 ? props.data.length - 1 : prev - 1,
-      );
+      setCurrentSlide((prev) => (prev === 0 ? props.data.length - 1 : prev - 1));
     }
   };
 
@@ -97,18 +90,23 @@ export const SlideShow = (props: bannerprops) => {
             (data, idx) =>
               idx === currentSlide && (
                 <div key={idx} className="w-full h-auto relative">
-                  <motion.img
+                  <motion.div
                     initial={{ opacity: 0, scale: 1.1 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 1.2, ease: "easeOut" }}
-                    alt={data.name}
-                    src={data.img}
-                    className="w-full h-auto min-h-[260px] sm:min-h-[380px] md:min-h-[480px] object-cover relative"
-                    width={1000}
-                    height={1000}
-                    loading="lazy"
-                  />
+                    className="w-full h-auto"
+                  >
+                    <Image
+                      alt={data.name ?? `Slide ${idx + 1}`}
+                      src={data.img}
+                      preload={true}
+                      width={1000}
+                      height={1000}
+                      sizes="100vw"
+                      className="w-full h-auto min-h-[260px] sm:min-h-[380px] md:min-h-[480px] object-cover relative"
+                    />
+                  </motion.div>
                   {/* Gradient overlay for better text readability */}
                   <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/30 to-transparent pointer-events-none" />
                   <motion.h3
@@ -119,9 +117,7 @@ export const SlideShow = (props: bannerprops) => {
                       ease: "easeInOut",
                       delay: 0.3,
                     }}
-                    onClick={() =>
-                      data.link && (window.location.href = data.link)
-                    }
+                    onClick={() => data.link && (window.location.href = data.link)}
                     className="title w-[90%] cursor-pointer text-2xl sm:text-4xl md:text-5xl text-white font-bold absolute bottom-6 sm:bottom-12 left-4 sm:left-8 drop-shadow-2xl hover:text-blue-300 transition-colors duration-300 line-clamp-2"
                   >
                     {data.name}
@@ -137,18 +133,11 @@ export const SlideShow = (props: bannerprops) => {
           <Button
             className="bg-linear-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold max-w-md rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
             size="lg"
-            onPress={() =>
-              router.replace(props.data[currentSlide].link as string)
-            }
+            onPress={() => router.replace(props.data[currentSlide].link as string)}
           >
             <span className="flex items-center gap-2">
               Learn More
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -194,12 +183,7 @@ export const SlideShow = (props: bannerprops) => {
         onClick={() => handleNavigate("prev")}
       >
         <div className="arrow text-[28px] grid place-content-center bg-linear-to-br from-gray-900 to-black backdrop-blur-xs border-2 border-white/30 w-15 h-15 rounded-full text-white shadow-2xl hover:shadow-blue-500/50 transition-all duration-300 hover:border-blue-400">
-          <svg
-            className="w-6 h-6"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -214,18 +198,8 @@ export const SlideShow = (props: bannerprops) => {
         onClick={() => handleNavigate("next")}
       >
         <div className="arrow text-[28px] grid place-content-center bg-linear-to-br from-gray-900 to-black backdrop-blur-xs border-2 border-white/30 w-15 h-15 rounded-full text-white shadow-2xl hover:shadow-blue-500/50 transition-all duration-300 hover:border-blue-400">
-          <svg
-            className="w-6 h-6"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={3}
-              d="M9 5l7 7-7 7"
-            />
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" />
           </svg>
         </div>
       </div>
@@ -255,17 +229,22 @@ const CategoryCard = (props: Categorycardprops) => {
       className="cate_card relative w-85 max-smallest_tablet:w-full rounded-3xl overflow-hidden shadow-xl hover:shadow-2xl transition-shadow duration-500 group cursor-pointer select-none"
       onClick={() => props.data.link && router.push(props.data.link)}
     >
-      {/* Image */}
       <div className="relative h-115 overflow-hidden">
-        <motion.img
+        <motion.div
           initial={{ scale: 1.08, opacity: 0 }}
           whileInView={{ scale: 1, opacity: 1 }}
           transition={{ duration: 0.9, ease: "easeOut" }}
-          className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
-          src={props.data.image.url}
-          alt={props.data.image.name}
-          loading="lazy"
-        />
+          className="relative w-full h-full"
+        >
+          <Image
+            fill
+            sizes="(max-width: 650px) 100vw, 340px"
+            className="object-cover transition-transform duration-700 ease-out group-hover:scale-110"
+            preload={true}
+            src={props.data.image.url}
+            alt={props.data.image.name}
+          />
+        </motion.div>
         <div className="absolute inset-0 bg-linear-to-t from-black/75 via-black/20 to-transparent" />
 
         <div className="absolute bottom-0 left-0 right-0 px-6 pb-6 flex items-end justify-between gap-3">
@@ -280,11 +259,7 @@ const CategoryCard = (props: Categorycardprops) => {
               strokeWidth={2.5}
               viewBox="0 0 24 24"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M9 5l7 7-7 7"
-              />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
             </svg>
           </span>
         </div>
@@ -359,15 +334,17 @@ export const Banner: React.FC<BannerProps> = (props) => {
       className="w-full h-auto max-h-[90vh] flex flex-col overflow-hidden bg-white relative rounded-2xl shadow-2xl"
       ref={imgref}
     >
-      <motion.img
-        src={props.data.image.url}
-        alt={props.data.image.name}
-        style={{ translateY }}
-        loading="lazy"
-        width={600}
-        height={600}
-        className="object-cover w-full h-auto max-h-[90vh] min-h-[260px] sm:min-h-[400px] md:min-h-[500px]"
-      />
+      <motion.div style={{ translateY }} className="w-full h-auto">
+        <Image
+          src={props.data.image.url}
+          alt={props.data.image.name}
+          preload={true}
+          width={600}
+          height={600}
+          sizes="100vw"
+          className="object-cover w-full h-auto max-h-[90vh] min-h-[260px] sm:min-h-[400px] md:min-h-[500px]"
+        />
+      </motion.div>
       {/* Gradient overlay for better text visibility */}
       <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/30 to-transparent pointer-events-none" />
       <motion.h3
@@ -419,6 +396,7 @@ export const ProductCard = (props: ProductCardProps) => {
         <Image
           src={props.img.url}
           alt={props.img.name}
+          preload={true}
           width={"600"}
           height={"600"}
           loading="lazy"
@@ -444,10 +422,7 @@ export const ProductCard = (props: ProductCardProps) => {
               {`$${props.price.price.toFixed(2)}`}
             </h3>
             <div className="ml-auto bg-red-50 text-red-600 px-3 py-1 rounded-full text-sm font-semibold">
-              Save $
-              {(
-                props.price.price - (props.price.discount.newprice || 0)
-              ).toFixed(2)}
+              Save ${(props.price.price - (props.price.discount.newprice || 0)).toFixed(2)}
             </div>
           </div>
         ) : (

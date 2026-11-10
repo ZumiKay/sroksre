@@ -18,7 +18,7 @@ import {
   Productorderdetailtype,
   Productordertype,
 } from "@/src/types/order.type";
-import { StockTypeEnum, VariantValueObjType } from "@/src/types/product.type";
+import { StockTypeEnum } from "@/src/types/product.type";
 import { Usersessiontype } from "@/src/types/user.type";
 
 //Mock prisma

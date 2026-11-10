@@ -5,7 +5,7 @@ import {
   SubcategoriesState,
 } from "@/src/context/GlobalContext";
 import { SelectionCustom } from "@/src/app/component/Pagination_Component";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const CategorySkeleton = () => (
   <div className="w-full flex flex-col gap-4">

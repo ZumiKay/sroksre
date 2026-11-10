@@ -80,7 +80,9 @@ export const ModelName = {
   Policy: 'Policy',
   Paragraph: 'Paragraph',
   Notification: 'Notification',
-  LoginAttempt: 'LoginAttempt'
+  LoginAttempt: 'LoginAttempt',
+  MfaRecoveryCode: 'MfaRecoveryCode',
+  EmailVerification: 'EmailVerification'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -111,9 +113,11 @@ export const UserScalarFieldEnum = {
   phonenumber: 'phonenumber',
   password: 'password',
   whislist: 'whislist',
-  vfy: 'vfy',
   createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
+  updatedAt: 'updatedAt',
+  totpSecret: 'totpSecret',
+  totpEnabledAt: 'totpEnabledAt',
+  lastTotpStep: 'lastTotpStep'
 } as const
 
 export type UserScalarFieldEnum = (typeof UserScalarFieldEnum)[keyof typeof UserScalarFieldEnum]
@@ -156,7 +160,8 @@ export const UsersessionScalarFieldEnum = {
   device: 'device',
   userAgent: 'userAgent',
   ipAddress: 'ipAddress',
-  revoked: 'revoked'
+  revoked: 'revoked',
+  mfaVerified: 'mfaVerified'
 } as const
 
 export type UsersessionScalarFieldEnum = (typeof UsersessionScalarFieldEnum)[keyof typeof UsersessionScalarFieldEnum]
@@ -480,6 +485,31 @@ export const LoginAttemptScalarFieldEnum = {
 } as const
 
 export type LoginAttemptScalarFieldEnum = (typeof LoginAttemptScalarFieldEnum)[keyof typeof LoginAttemptScalarFieldEnum]
+
+
+export const MfaRecoveryCodeScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  codeHash: 'codeHash',
+  usedAt: 'usedAt',
+  createdAt: 'createdAt'
+} as const
+
+export type MfaRecoveryCodeScalarFieldEnum = (typeof MfaRecoveryCodeScalarFieldEnum)[keyof typeof MfaRecoveryCodeScalarFieldEnum]
+
+
+export const EmailVerificationScalarFieldEnum = {
+  id: 'id',
+  purpose: 'purpose',
+  email: 'email',
+  userId: 'userId',
+  tokenHash: 'tokenHash',
+  attempts: 'attempts',
+  expiresAt: 'expiresAt',
+  createdAt: 'createdAt'
+} as const
+
+export type EmailVerificationScalarFieldEnum = (typeof EmailVerificationScalarFieldEnum)[keyof typeof EmailVerificationScalarFieldEnum]
 
 
 export const SortOrder = {

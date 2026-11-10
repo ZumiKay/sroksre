@@ -6,7 +6,7 @@ import { verifyUser } from "./action";
 import PrimaryButton from "../../component/Button";
 import { type ChangeEvent, useCallback, useState, memo } from "react";
 import { PasswordInput } from "../../component/FormComponent";
-import { PasswordVerification } from "../page";
+import { PasswordVerification } from "../PasswordVerification";
 
 // Style constants
 const CONTAINER_CLASSES =
@@ -26,7 +26,6 @@ const BUTTON_CONFIG = {
   radius: "10px",
 } as const;
 
-// Memoized submit button to prevent unnecessary re-renders
 const SubmitButton = memo(() => {
   const { pending } = useFormStatus();
 
@@ -44,7 +43,6 @@ const SubmitButton = memo(() => {
 
 SubmitButton.displayName = "SubmitButton";
 
-// Success state component - extracted for better code organization
 const SuccessState = memo(
   ({ onBackToLogin }: { onBackToLogin: () => void }) => (
     <>
@@ -67,10 +65,10 @@ const SuccessState = memo(
 SuccessState.displayName = "SuccessState";
 
 interface ResetPasswordFormProps {
-  cid: string;
+  token: string;
 }
 
-export default function ResetPasswordForm({ cid }: ResetPasswordFormProps) {
+export default function ResetPasswordForm({ token }: ResetPasswordFormProps) {
   const [password, setPassword] = useState("");
   const [state, formAction] = useFormState(verifyUser, {
     message: "",
@@ -117,7 +115,7 @@ export default function ResetPasswordForm({ cid }: ResetPasswordFormProps) {
             className={FORM_CLASSES}
             aria-labelledby="reset-password-heading"
           >
-            <input value={cid} name="cid" type="hidden" readOnly />
+            <input value={token} name="token" type="hidden" readOnly />
             <PasswordInput
               label="Password"
               name="password"

@@ -1,66 +1,46 @@
-import {
-  PromotionProductState,
-  PromotionState,
-} from "@/src/types/productAction.type";
 import { createRandomNormalStockProduct } from "../product";
 import { generateExpirationDate } from "@/src/lib/userlib";
-import { Products, Promotion } from "@/prisma/generated/prisma/client";
+import { ProductState } from "@/src/types/product.type";
 
 export interface PrepareDataForPromotionType {
+  /** Number of promotions. */
   count: number;
+  /** New products to create in each promotion. */
   productCount: number;
+  /** Discount % per promotion, by position. Missing entries get a random one. */
   discountPercent?: Array<number>;
+  /** 1-based position of a promotion that expires after 1 second (for testing cleanup). */
   expiredCount?: number;
 }
 
-/**
- *
- * @param count - promotion
- * @param productCount - product of each promotion
- * @param discountPercent - custom Discount Percent
- * @returns
- */
-
-interface PreparePromotionType extends Promotion {
-  Products: Products;
+export interface PreparedPromotion {
+  name: string;
+  description: string;
+  expireAt: Date;
+  discount: number;
+  products: ProductState[];
 }
+
+/** A random discount from 5% to 50%, in steps of 5. */
+const randomDiscount = () => (Math.floor(Math.random() * 10) + 1) * 5;
+
+/** Builds promotion data with complete normal-stock products (not saved yet). */
 export const PrepareDataForPromotion = ({
   count,
   productCount,
   discountPercent,
   expiredCount,
-}: PrepareDataForPromotionType): Array<PreparePromotionType> => {
-  let i = 0;
-  const result: Array<PreparePromotionType> = [];
-  do {
-    i++;
-
-    const normalStockProducts = createRandomNormalStockProduct({
-      count: productCount,
-    });
-
-    const percent = discountPercent?.[i - 1];
-
-    const products: Array<Partial<Products>> = normalStockProducts.map(
-      (p, idx) => ({
-        id: p.id ?? idx,
-        ...(percent !== undefined && {
-          discount: percent,
-        }),
-      }),
-    );
-
-    const preparedPromo: Partial<PreparePromotionType> = {
-      name: `Promotion #${i}`,
-      description: `Description for promotion #${i}`,
-      Products: products as never,
-      expireAt: (expiredCount === i
-        ? generateExpirationDate(1, "seconds")
-        : generateExpirationDate(4, "days")) as never,
+}: PrepareDataForPromotionType): PreparedPromotion[] =>
+  Array.from({ length: count }, (_, idx) => {
+    const n = idx + 1;
+    return {
+      name: `Promotion #${n}`,
+      description: `Description for promotion #${n}`,
+      expireAt:
+        expiredCount === n
+          ? generateExpirationDate(1, "seconds")
+          : generateExpirationDate(4, "days"),
+      discount: discountPercent?.[idx] ?? randomDiscount(),
+      products: createRandomNormalStockProduct({ count: productCount }),
     };
-
-    result.push(preparedPromo as never);
-  } while (i < count);
-
-  return result;
-};
+  });

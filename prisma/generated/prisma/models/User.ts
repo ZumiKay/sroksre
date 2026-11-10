@@ -28,10 +28,12 @@ export type AggregateUser = {
 
 export type UserAvgAggregateOutputType = {
   id: number | null
+  lastTotpStep: number | null
 }
 
 export type UserSumAggregateOutputType = {
   id: number | null
+  lastTotpStep: number | null
 }
 
 export type UserMinAggregateOutputType = {
@@ -45,9 +47,11 @@ export type UserMinAggregateOutputType = {
   role: $Enums.Role | null
   phonenumber: string | null
   password: string | null
-  vfy: string | null
   createdAt: Date | null
   updatedAt: Date | null
+  totpSecret: string | null
+  totpEnabledAt: Date | null
+  lastTotpStep: number | null
 }
 
 export type UserMaxAggregateOutputType = {
@@ -61,9 +65,11 @@ export type UserMaxAggregateOutputType = {
   role: $Enums.Role | null
   phonenumber: string | null
   password: string | null
-  vfy: string | null
   createdAt: Date | null
   updatedAt: Date | null
+  totpSecret: string | null
+  totpEnabledAt: Date | null
+  lastTotpStep: number | null
 }
 
 export type UserCountAggregateOutputType = {
@@ -78,19 +84,23 @@ export type UserCountAggregateOutputType = {
   phonenumber: number
   password: number
   whislist: number
-  vfy: number
   createdAt: number
   updatedAt: number
+  totpSecret: number
+  totpEnabledAt: number
+  lastTotpStep: number
   _all: number
 }
 
 
 export type UserAvgAggregateInputType = {
   id?: true
+  lastTotpStep?: true
 }
 
 export type UserSumAggregateInputType = {
   id?: true
+  lastTotpStep?: true
 }
 
 export type UserMinAggregateInputType = {
@@ -104,9 +114,11 @@ export type UserMinAggregateInputType = {
   role?: true
   phonenumber?: true
   password?: true
-  vfy?: true
   createdAt?: true
   updatedAt?: true
+  totpSecret?: true
+  totpEnabledAt?: true
+  lastTotpStep?: true
 }
 
 export type UserMaxAggregateInputType = {
@@ -120,9 +132,11 @@ export type UserMaxAggregateInputType = {
   role?: true
   phonenumber?: true
   password?: true
-  vfy?: true
   createdAt?: true
   updatedAt?: true
+  totpSecret?: true
+  totpEnabledAt?: true
+  lastTotpStep?: true
 }
 
 export type UserCountAggregateInputType = {
@@ -137,9 +151,11 @@ export type UserCountAggregateInputType = {
   phonenumber?: true
   password?: true
   whislist?: true
-  vfy?: true
   createdAt?: true
   updatedAt?: true
+  totpSecret?: true
+  totpEnabledAt?: true
+  lastTotpStep?: true
   _all?: true
 }
 
@@ -241,9 +257,11 @@ export type UserGroupByOutputType = {
   phonenumber: string | null
   password: string
   whislist: runtime.JsonValue | null
-  vfy: string | null
   createdAt: Date
   updatedAt: Date
+  totpSecret: string | null
+  totpEnabledAt: Date | null
+  lastTotpStep: number | null
   _count: UserCountAggregateOutputType | null
   _avg: UserAvgAggregateOutputType | null
   _sum: UserSumAggregateOutputType | null
@@ -281,9 +299,11 @@ export type UserWhereInput = {
   phonenumber?: Prisma.StringNullableFilter<"User"> | string | null
   password?: Prisma.StringFilter<"User"> | string
   whislist?: Prisma.JsonNullableFilter<"User">
-  vfy?: Prisma.StringNullableFilter<"User"> | string | null
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"User"> | Date | string
+  totpSecret?: Prisma.StringNullableFilter<"User"> | string | null
+  totpEnabledAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
+  lastTotpStep?: Prisma.IntNullableFilter<"User"> | number | null
   products?: Prisma.ProductsListRelationFilter
   questions?: Prisma.QuestionsListRelationFilter
   sessions?: Prisma.UsersessionListRelationFilter
@@ -293,6 +313,8 @@ export type UserWhereInput = {
   Wishlist?: Prisma.WishlistListRelationFilter
   Orderproduct?: Prisma.OrderproductListRelationFilter
   Tempimage?: Prisma.TempimageListRelationFilter
+  emailVerifications?: Prisma.EmailVerificationListRelationFilter
+  mfaRecoveryCodes?: Prisma.MfaRecoveryCodeListRelationFilter
 }
 
 export type UserOrderByWithRelationInput = {
@@ -307,9 +329,11 @@ export type UserOrderByWithRelationInput = {
   phonenumber?: Prisma.SortOrderInput | Prisma.SortOrder
   password?: Prisma.SortOrder
   whislist?: Prisma.SortOrderInput | Prisma.SortOrder
-  vfy?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  totpSecret?: Prisma.SortOrderInput | Prisma.SortOrder
+  totpEnabledAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  lastTotpStep?: Prisma.SortOrderInput | Prisma.SortOrder
   products?: Prisma.ProductsOrderByRelationAggregateInput
   questions?: Prisma.QuestionsOrderByRelationAggregateInput
   sessions?: Prisma.UsersessionOrderByRelationAggregateInput
@@ -319,6 +343,8 @@ export type UserOrderByWithRelationInput = {
   Wishlist?: Prisma.WishlistOrderByRelationAggregateInput
   Orderproduct?: Prisma.OrderproductOrderByRelationAggregateInput
   Tempimage?: Prisma.TempimageOrderByRelationAggregateInput
+  emailVerifications?: Prisma.EmailVerificationOrderByRelationAggregateInput
+  mfaRecoveryCodes?: Prisma.MfaRecoveryCodeOrderByRelationAggregateInput
 }
 
 export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -336,9 +362,11 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   lastname?: Prisma.StringNullableFilter<"User"> | string | null
   role?: Prisma.EnumRoleFilter<"User"> | $Enums.Role
   whislist?: Prisma.JsonNullableFilter<"User">
-  vfy?: Prisma.StringNullableFilter<"User"> | string | null
   createdAt?: Prisma.DateTimeFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"User"> | Date | string
+  totpSecret?: Prisma.StringNullableFilter<"User"> | string | null
+  totpEnabledAt?: Prisma.DateTimeNullableFilter<"User"> | Date | string | null
+  lastTotpStep?: Prisma.IntNullableFilter<"User"> | number | null
   products?: Prisma.ProductsListRelationFilter
   questions?: Prisma.QuestionsListRelationFilter
   sessions?: Prisma.UsersessionListRelationFilter
@@ -348,6 +376,8 @@ export type UserWhereUniqueInput = Prisma.AtLeast<{
   Wishlist?: Prisma.WishlistListRelationFilter
   Orderproduct?: Prisma.OrderproductListRelationFilter
   Tempimage?: Prisma.TempimageListRelationFilter
+  emailVerifications?: Prisma.EmailVerificationListRelationFilter
+  mfaRecoveryCodes?: Prisma.MfaRecoveryCodeListRelationFilter
 }, "id" | "buyer_id" | "email" | "phonenumber" | "password">
 
 export type UserOrderByWithAggregationInput = {
@@ -362,9 +392,11 @@ export type UserOrderByWithAggregationInput = {
   phonenumber?: Prisma.SortOrderInput | Prisma.SortOrder
   password?: Prisma.SortOrder
   whislist?: Prisma.SortOrderInput | Prisma.SortOrder
-  vfy?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  totpSecret?: Prisma.SortOrderInput | Prisma.SortOrder
+  totpEnabledAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  lastTotpStep?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.UserCountOrderByAggregateInput
   _avg?: Prisma.UserAvgOrderByAggregateInput
   _max?: Prisma.UserMaxOrderByAggregateInput
@@ -387,9 +419,11 @@ export type UserScalarWhereWithAggregatesInput = {
   phonenumber?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
   password?: Prisma.StringWithAggregatesFilter<"User"> | string
   whislist?: Prisma.JsonNullableWithAggregatesFilter<"User">
-  vfy?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"User"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"User"> | Date | string
+  totpSecret?: Prisma.StringNullableWithAggregatesFilter<"User"> | string | null
+  totpEnabledAt?: Prisma.DateTimeNullableWithAggregatesFilter<"User"> | Date | string | null
+  lastTotpStep?: Prisma.IntNullableWithAggregatesFilter<"User"> | number | null
 }
 
 export type UserCreateInput = {
@@ -403,9 +437,11 @@ export type UserCreateInput = {
   phonenumber?: string | null
   password: string
   whislist?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  vfy?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  totpSecret?: string | null
+  totpEnabledAt?: Date | string | null
+  lastTotpStep?: number | null
   products?: Prisma.ProductsCreateNestedManyWithoutUserInput
   questions?: Prisma.QuestionsCreateNestedManyWithoutUserInput
   sessions?: Prisma.UsersessionCreateNestedManyWithoutUserInput
@@ -415,6 +451,8 @@ export type UserCreateInput = {
   Wishlist?: Prisma.WishlistCreateNestedManyWithoutUserInput
   Orderproduct?: Prisma.OrderproductCreateNestedManyWithoutUserInput
   Tempimage?: Prisma.TempimageCreateNestedManyWithoutUserInput
+  emailVerifications?: Prisma.EmailVerificationCreateNestedManyWithoutUserInput
+  mfaRecoveryCodes?: Prisma.MfaRecoveryCodeCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateInput = {
@@ -429,9 +467,11 @@ export type UserUncheckedCreateInput = {
   phonenumber?: string | null
   password: string
   whislist?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  vfy?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  totpSecret?: string | null
+  totpEnabledAt?: Date | string | null
+  lastTotpStep?: number | null
   products?: Prisma.ProductsUncheckedCreateNestedManyWithoutUserInput
   questions?: Prisma.QuestionsUncheckedCreateNestedManyWithoutUserInput
   sessions?: Prisma.UsersessionUncheckedCreateNestedManyWithoutUserInput
@@ -441,6 +481,8 @@ export type UserUncheckedCreateInput = {
   Wishlist?: Prisma.WishlistUncheckedCreateNestedManyWithoutUserInput
   Orderproduct?: Prisma.OrderproductUncheckedCreateNestedManyWithoutUserInput
   Tempimage?: Prisma.TempimageUncheckedCreateNestedManyWithoutUserInput
+  emailVerifications?: Prisma.EmailVerificationUncheckedCreateNestedManyWithoutUserInput
+  mfaRecoveryCodes?: Prisma.MfaRecoveryCodeUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserUpdateInput = {
@@ -454,9 +496,11 @@ export type UserUpdateInput = {
   phonenumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   password?: Prisma.StringFieldUpdateOperationsInput | string
   whislist?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  vfy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  totpSecret?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  totpEnabledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastTotpStep?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   products?: Prisma.ProductsUpdateManyWithoutUserNestedInput
   questions?: Prisma.QuestionsUpdateManyWithoutUserNestedInput
   sessions?: Prisma.UsersessionUpdateManyWithoutUserNestedInput
@@ -466,6 +510,8 @@ export type UserUpdateInput = {
   Wishlist?: Prisma.WishlistUpdateManyWithoutUserNestedInput
   Orderproduct?: Prisma.OrderproductUpdateManyWithoutUserNestedInput
   Tempimage?: Prisma.TempimageUpdateManyWithoutUserNestedInput
+  emailVerifications?: Prisma.EmailVerificationUpdateManyWithoutUserNestedInput
+  mfaRecoveryCodes?: Prisma.MfaRecoveryCodeUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateInput = {
@@ -480,9 +526,11 @@ export type UserUncheckedUpdateInput = {
   phonenumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   password?: Prisma.StringFieldUpdateOperationsInput | string
   whislist?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  vfy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  totpSecret?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  totpEnabledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastTotpStep?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   products?: Prisma.ProductsUncheckedUpdateManyWithoutUserNestedInput
   questions?: Prisma.QuestionsUncheckedUpdateManyWithoutUserNestedInput
   sessions?: Prisma.UsersessionUncheckedUpdateManyWithoutUserNestedInput
@@ -492,6 +540,8 @@ export type UserUncheckedUpdateInput = {
   Wishlist?: Prisma.WishlistUncheckedUpdateManyWithoutUserNestedInput
   Orderproduct?: Prisma.OrderproductUncheckedUpdateManyWithoutUserNestedInput
   Tempimage?: Prisma.TempimageUncheckedUpdateManyWithoutUserNestedInput
+  emailVerifications?: Prisma.EmailVerificationUncheckedUpdateManyWithoutUserNestedInput
+  mfaRecoveryCodes?: Prisma.MfaRecoveryCodeUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateManyInput = {
@@ -506,9 +556,11 @@ export type UserCreateManyInput = {
   phonenumber?: string | null
   password: string
   whislist?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  vfy?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  totpSecret?: string | null
+  totpEnabledAt?: Date | string | null
+  lastTotpStep?: number | null
 }
 
 export type UserUpdateManyMutationInput = {
@@ -522,9 +574,11 @@ export type UserUpdateManyMutationInput = {
   phonenumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   password?: Prisma.StringFieldUpdateOperationsInput | string
   whislist?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  vfy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  totpSecret?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  totpEnabledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastTotpStep?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 export type UserUncheckedUpdateManyInput = {
@@ -539,9 +593,11 @@ export type UserUncheckedUpdateManyInput = {
   phonenumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   password?: Prisma.StringFieldUpdateOperationsInput | string
   whislist?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  vfy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  totpSecret?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  totpEnabledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastTotpStep?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 export type UserCountOrderByAggregateInput = {
@@ -556,13 +612,16 @@ export type UserCountOrderByAggregateInput = {
   phonenumber?: Prisma.SortOrder
   password?: Prisma.SortOrder
   whislist?: Prisma.SortOrder
-  vfy?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  totpSecret?: Prisma.SortOrder
+  totpEnabledAt?: Prisma.SortOrder
+  lastTotpStep?: Prisma.SortOrder
 }
 
 export type UserAvgOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  lastTotpStep?: Prisma.SortOrder
 }
 
 export type UserMaxOrderByAggregateInput = {
@@ -576,9 +635,11 @@ export type UserMaxOrderByAggregateInput = {
   role?: Prisma.SortOrder
   phonenumber?: Prisma.SortOrder
   password?: Prisma.SortOrder
-  vfy?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  totpSecret?: Prisma.SortOrder
+  totpEnabledAt?: Prisma.SortOrder
+  lastTotpStep?: Prisma.SortOrder
 }
 
 export type UserMinOrderByAggregateInput = {
@@ -592,13 +653,16 @@ export type UserMinOrderByAggregateInput = {
   role?: Prisma.SortOrder
   phonenumber?: Prisma.SortOrder
   password?: Prisma.SortOrder
-  vfy?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
+  totpSecret?: Prisma.SortOrder
+  totpEnabledAt?: Prisma.SortOrder
+  lastTotpStep?: Prisma.SortOrder
 }
 
 export type UserSumOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  lastTotpStep?: Prisma.SortOrder
 }
 
 export type UserScalarRelationFilter = {
@@ -625,6 +689,18 @@ export type EnumRoleFieldUpdateOperationsInput = {
 
 export type DateTimeFieldUpdateOperationsInput = {
   set?: Date | string
+}
+
+export type NullableDateTimeFieldUpdateOperationsInput = {
+  set?: Date | string | null
+}
+
+export type NullableIntFieldUpdateOperationsInput = {
+  set?: number | null
+  increment?: number
+  decrement?: number
+  multiply?: number
+  divide?: number
 }
 
 export type IntFieldUpdateOperationsInput = {
@@ -765,6 +841,36 @@ export type UserUpdateOneRequiredWithoutNotificationNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutNotificationInput, Prisma.UserUpdateWithoutNotificationInput>, Prisma.UserUncheckedUpdateWithoutNotificationInput>
 }
 
+export type UserCreateNestedOneWithoutMfaRecoveryCodesInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutMfaRecoveryCodesInput, Prisma.UserUncheckedCreateWithoutMfaRecoveryCodesInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutMfaRecoveryCodesInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneRequiredWithoutMfaRecoveryCodesNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutMfaRecoveryCodesInput, Prisma.UserUncheckedCreateWithoutMfaRecoveryCodesInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutMfaRecoveryCodesInput
+  upsert?: Prisma.UserUpsertWithoutMfaRecoveryCodesInput
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutMfaRecoveryCodesInput, Prisma.UserUpdateWithoutMfaRecoveryCodesInput>, Prisma.UserUncheckedUpdateWithoutMfaRecoveryCodesInput>
+}
+
+export type UserCreateNestedOneWithoutEmailVerificationsInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutEmailVerificationsInput, Prisma.UserUncheckedCreateWithoutEmailVerificationsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutEmailVerificationsInput
+  connect?: Prisma.UserWhereUniqueInput
+}
+
+export type UserUpdateOneWithoutEmailVerificationsNestedInput = {
+  create?: Prisma.XOR<Prisma.UserCreateWithoutEmailVerificationsInput, Prisma.UserUncheckedCreateWithoutEmailVerificationsInput>
+  connectOrCreate?: Prisma.UserCreateOrConnectWithoutEmailVerificationsInput
+  upsert?: Prisma.UserUpsertWithoutEmailVerificationsInput
+  disconnect?: Prisma.UserWhereInput | boolean
+  delete?: Prisma.UserWhereInput | boolean
+  connect?: Prisma.UserWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.UserUpdateToOneWithWhereWithoutEmailVerificationsInput, Prisma.UserUpdateWithoutEmailVerificationsInput>, Prisma.UserUncheckedUpdateWithoutEmailVerificationsInput>
+}
+
 export type UserCreateWithoutWishlistInput = {
   buyer_id?: string
   oauthId?: string | null
@@ -776,9 +882,11 @@ export type UserCreateWithoutWishlistInput = {
   phonenumber?: string | null
   password: string
   whislist?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  vfy?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  totpSecret?: string | null
+  totpEnabledAt?: Date | string | null
+  lastTotpStep?: number | null
   products?: Prisma.ProductsCreateNestedManyWithoutUserInput
   questions?: Prisma.QuestionsCreateNestedManyWithoutUserInput
   sessions?: Prisma.UsersessionCreateNestedManyWithoutUserInput
@@ -787,6 +895,8 @@ export type UserCreateWithoutWishlistInput = {
   Notification?: Prisma.NotificationCreateNestedManyWithoutUserInput
   Orderproduct?: Prisma.OrderproductCreateNestedManyWithoutUserInput
   Tempimage?: Prisma.TempimageCreateNestedManyWithoutUserInput
+  emailVerifications?: Prisma.EmailVerificationCreateNestedManyWithoutUserInput
+  mfaRecoveryCodes?: Prisma.MfaRecoveryCodeCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutWishlistInput = {
@@ -801,9 +911,11 @@ export type UserUncheckedCreateWithoutWishlistInput = {
   phonenumber?: string | null
   password: string
   whislist?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  vfy?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  totpSecret?: string | null
+  totpEnabledAt?: Date | string | null
+  lastTotpStep?: number | null
   products?: Prisma.ProductsUncheckedCreateNestedManyWithoutUserInput
   questions?: Prisma.QuestionsUncheckedCreateNestedManyWithoutUserInput
   sessions?: Prisma.UsersessionUncheckedCreateNestedManyWithoutUserInput
@@ -812,6 +924,8 @@ export type UserUncheckedCreateWithoutWishlistInput = {
   Notification?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   Orderproduct?: Prisma.OrderproductUncheckedCreateNestedManyWithoutUserInput
   Tempimage?: Prisma.TempimageUncheckedCreateNestedManyWithoutUserInput
+  emailVerifications?: Prisma.EmailVerificationUncheckedCreateNestedManyWithoutUserInput
+  mfaRecoveryCodes?: Prisma.MfaRecoveryCodeUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutWishlistInput = {
@@ -841,9 +955,11 @@ export type UserUpdateWithoutWishlistInput = {
   phonenumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   password?: Prisma.StringFieldUpdateOperationsInput | string
   whislist?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  vfy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  totpSecret?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  totpEnabledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastTotpStep?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   products?: Prisma.ProductsUpdateManyWithoutUserNestedInput
   questions?: Prisma.QuestionsUpdateManyWithoutUserNestedInput
   sessions?: Prisma.UsersessionUpdateManyWithoutUserNestedInput
@@ -852,6 +968,8 @@ export type UserUpdateWithoutWishlistInput = {
   Notification?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   Orderproduct?: Prisma.OrderproductUpdateManyWithoutUserNestedInput
   Tempimage?: Prisma.TempimageUpdateManyWithoutUserNestedInput
+  emailVerifications?: Prisma.EmailVerificationUpdateManyWithoutUserNestedInput
+  mfaRecoveryCodes?: Prisma.MfaRecoveryCodeUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutWishlistInput = {
@@ -866,9 +984,11 @@ export type UserUncheckedUpdateWithoutWishlistInput = {
   phonenumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   password?: Prisma.StringFieldUpdateOperationsInput | string
   whislist?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  vfy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  totpSecret?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  totpEnabledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastTotpStep?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   products?: Prisma.ProductsUncheckedUpdateManyWithoutUserNestedInput
   questions?: Prisma.QuestionsUncheckedUpdateManyWithoutUserNestedInput
   sessions?: Prisma.UsersessionUncheckedUpdateManyWithoutUserNestedInput
@@ -877,6 +997,8 @@ export type UserUncheckedUpdateWithoutWishlistInput = {
   Notification?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   Orderproduct?: Prisma.OrderproductUncheckedUpdateManyWithoutUserNestedInput
   Tempimage?: Prisma.TempimageUncheckedUpdateManyWithoutUserNestedInput
+  emailVerifications?: Prisma.EmailVerificationUncheckedUpdateManyWithoutUserNestedInput
+  mfaRecoveryCodes?: Prisma.MfaRecoveryCodeUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutAddressesInput = {
@@ -890,9 +1012,11 @@ export type UserCreateWithoutAddressesInput = {
   phonenumber?: string | null
   password: string
   whislist?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  vfy?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  totpSecret?: string | null
+  totpEnabledAt?: Date | string | null
+  lastTotpStep?: number | null
   products?: Prisma.ProductsCreateNestedManyWithoutUserInput
   questions?: Prisma.QuestionsCreateNestedManyWithoutUserInput
   sessions?: Prisma.UsersessionCreateNestedManyWithoutUserInput
@@ -901,6 +1025,8 @@ export type UserCreateWithoutAddressesInput = {
   Wishlist?: Prisma.WishlistCreateNestedManyWithoutUserInput
   Orderproduct?: Prisma.OrderproductCreateNestedManyWithoutUserInput
   Tempimage?: Prisma.TempimageCreateNestedManyWithoutUserInput
+  emailVerifications?: Prisma.EmailVerificationCreateNestedManyWithoutUserInput
+  mfaRecoveryCodes?: Prisma.MfaRecoveryCodeCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutAddressesInput = {
@@ -915,9 +1041,11 @@ export type UserUncheckedCreateWithoutAddressesInput = {
   phonenumber?: string | null
   password: string
   whislist?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  vfy?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  totpSecret?: string | null
+  totpEnabledAt?: Date | string | null
+  lastTotpStep?: number | null
   products?: Prisma.ProductsUncheckedCreateNestedManyWithoutUserInput
   questions?: Prisma.QuestionsUncheckedCreateNestedManyWithoutUserInput
   sessions?: Prisma.UsersessionUncheckedCreateNestedManyWithoutUserInput
@@ -926,6 +1054,8 @@ export type UserUncheckedCreateWithoutAddressesInput = {
   Wishlist?: Prisma.WishlistUncheckedCreateNestedManyWithoutUserInput
   Orderproduct?: Prisma.OrderproductUncheckedCreateNestedManyWithoutUserInput
   Tempimage?: Prisma.TempimageUncheckedCreateNestedManyWithoutUserInput
+  emailVerifications?: Prisma.EmailVerificationUncheckedCreateNestedManyWithoutUserInput
+  mfaRecoveryCodes?: Prisma.MfaRecoveryCodeUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutAddressesInput = {
@@ -955,9 +1085,11 @@ export type UserUpdateWithoutAddressesInput = {
   phonenumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   password?: Prisma.StringFieldUpdateOperationsInput | string
   whislist?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  vfy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  totpSecret?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  totpEnabledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastTotpStep?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   products?: Prisma.ProductsUpdateManyWithoutUserNestedInput
   questions?: Prisma.QuestionsUpdateManyWithoutUserNestedInput
   sessions?: Prisma.UsersessionUpdateManyWithoutUserNestedInput
@@ -966,6 +1098,8 @@ export type UserUpdateWithoutAddressesInput = {
   Wishlist?: Prisma.WishlistUpdateManyWithoutUserNestedInput
   Orderproduct?: Prisma.OrderproductUpdateManyWithoutUserNestedInput
   Tempimage?: Prisma.TempimageUpdateManyWithoutUserNestedInput
+  emailVerifications?: Prisma.EmailVerificationUpdateManyWithoutUserNestedInput
+  mfaRecoveryCodes?: Prisma.MfaRecoveryCodeUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutAddressesInput = {
@@ -980,9 +1114,11 @@ export type UserUncheckedUpdateWithoutAddressesInput = {
   phonenumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   password?: Prisma.StringFieldUpdateOperationsInput | string
   whislist?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  vfy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  totpSecret?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  totpEnabledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastTotpStep?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   products?: Prisma.ProductsUncheckedUpdateManyWithoutUserNestedInput
   questions?: Prisma.QuestionsUncheckedUpdateManyWithoutUserNestedInput
   sessions?: Prisma.UsersessionUncheckedUpdateManyWithoutUserNestedInput
@@ -991,6 +1127,8 @@ export type UserUncheckedUpdateWithoutAddressesInput = {
   Wishlist?: Prisma.WishlistUncheckedUpdateManyWithoutUserNestedInput
   Orderproduct?: Prisma.OrderproductUncheckedUpdateManyWithoutUserNestedInput
   Tempimage?: Prisma.TempimageUncheckedUpdateManyWithoutUserNestedInput
+  emailVerifications?: Prisma.EmailVerificationUncheckedUpdateManyWithoutUserNestedInput
+  mfaRecoveryCodes?: Prisma.MfaRecoveryCodeUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutSessionsInput = {
@@ -1004,9 +1142,11 @@ export type UserCreateWithoutSessionsInput = {
   phonenumber?: string | null
   password: string
   whislist?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  vfy?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  totpSecret?: string | null
+  totpEnabledAt?: Date | string | null
+  lastTotpStep?: number | null
   products?: Prisma.ProductsCreateNestedManyWithoutUserInput
   questions?: Prisma.QuestionsCreateNestedManyWithoutUserInput
   addresses?: Prisma.AddressCreateNestedManyWithoutUserInput
@@ -1015,6 +1155,8 @@ export type UserCreateWithoutSessionsInput = {
   Wishlist?: Prisma.WishlistCreateNestedManyWithoutUserInput
   Orderproduct?: Prisma.OrderproductCreateNestedManyWithoutUserInput
   Tempimage?: Prisma.TempimageCreateNestedManyWithoutUserInput
+  emailVerifications?: Prisma.EmailVerificationCreateNestedManyWithoutUserInput
+  mfaRecoveryCodes?: Prisma.MfaRecoveryCodeCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutSessionsInput = {
@@ -1029,9 +1171,11 @@ export type UserUncheckedCreateWithoutSessionsInput = {
   phonenumber?: string | null
   password: string
   whislist?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  vfy?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  totpSecret?: string | null
+  totpEnabledAt?: Date | string | null
+  lastTotpStep?: number | null
   products?: Prisma.ProductsUncheckedCreateNestedManyWithoutUserInput
   questions?: Prisma.QuestionsUncheckedCreateNestedManyWithoutUserInput
   addresses?: Prisma.AddressUncheckedCreateNestedManyWithoutUserInput
@@ -1040,6 +1184,8 @@ export type UserUncheckedCreateWithoutSessionsInput = {
   Wishlist?: Prisma.WishlistUncheckedCreateNestedManyWithoutUserInput
   Orderproduct?: Prisma.OrderproductUncheckedCreateNestedManyWithoutUserInput
   Tempimage?: Prisma.TempimageUncheckedCreateNestedManyWithoutUserInput
+  emailVerifications?: Prisma.EmailVerificationUncheckedCreateNestedManyWithoutUserInput
+  mfaRecoveryCodes?: Prisma.MfaRecoveryCodeUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutSessionsInput = {
@@ -1069,9 +1215,11 @@ export type UserUpdateWithoutSessionsInput = {
   phonenumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   password?: Prisma.StringFieldUpdateOperationsInput | string
   whislist?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  vfy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  totpSecret?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  totpEnabledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastTotpStep?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   products?: Prisma.ProductsUpdateManyWithoutUserNestedInput
   questions?: Prisma.QuestionsUpdateManyWithoutUserNestedInput
   addresses?: Prisma.AddressUpdateManyWithoutUserNestedInput
@@ -1080,6 +1228,8 @@ export type UserUpdateWithoutSessionsInput = {
   Wishlist?: Prisma.WishlistUpdateManyWithoutUserNestedInput
   Orderproduct?: Prisma.OrderproductUpdateManyWithoutUserNestedInput
   Tempimage?: Prisma.TempimageUpdateManyWithoutUserNestedInput
+  emailVerifications?: Prisma.EmailVerificationUpdateManyWithoutUserNestedInput
+  mfaRecoveryCodes?: Prisma.MfaRecoveryCodeUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutSessionsInput = {
@@ -1094,9 +1244,11 @@ export type UserUncheckedUpdateWithoutSessionsInput = {
   phonenumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   password?: Prisma.StringFieldUpdateOperationsInput | string
   whislist?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  vfy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  totpSecret?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  totpEnabledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastTotpStep?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   products?: Prisma.ProductsUncheckedUpdateManyWithoutUserNestedInput
   questions?: Prisma.QuestionsUncheckedUpdateManyWithoutUserNestedInput
   addresses?: Prisma.AddressUncheckedUpdateManyWithoutUserNestedInput
@@ -1105,6 +1257,8 @@ export type UserUncheckedUpdateWithoutSessionsInput = {
   Wishlist?: Prisma.WishlistUncheckedUpdateManyWithoutUserNestedInput
   Orderproduct?: Prisma.OrderproductUncheckedUpdateManyWithoutUserNestedInput
   Tempimage?: Prisma.TempimageUncheckedUpdateManyWithoutUserNestedInput
+  emailVerifications?: Prisma.EmailVerificationUncheckedUpdateManyWithoutUserNestedInput
+  mfaRecoveryCodes?: Prisma.MfaRecoveryCodeUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutProductsInput = {
@@ -1118,9 +1272,11 @@ export type UserCreateWithoutProductsInput = {
   phonenumber?: string | null
   password: string
   whislist?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  vfy?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  totpSecret?: string | null
+  totpEnabledAt?: Date | string | null
+  lastTotpStep?: number | null
   questions?: Prisma.QuestionsCreateNestedManyWithoutUserInput
   sessions?: Prisma.UsersessionCreateNestedManyWithoutUserInput
   addresses?: Prisma.AddressCreateNestedManyWithoutUserInput
@@ -1129,6 +1285,8 @@ export type UserCreateWithoutProductsInput = {
   Wishlist?: Prisma.WishlistCreateNestedManyWithoutUserInput
   Orderproduct?: Prisma.OrderproductCreateNestedManyWithoutUserInput
   Tempimage?: Prisma.TempimageCreateNestedManyWithoutUserInput
+  emailVerifications?: Prisma.EmailVerificationCreateNestedManyWithoutUserInput
+  mfaRecoveryCodes?: Prisma.MfaRecoveryCodeCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutProductsInput = {
@@ -1143,9 +1301,11 @@ export type UserUncheckedCreateWithoutProductsInput = {
   phonenumber?: string | null
   password: string
   whislist?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  vfy?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  totpSecret?: string | null
+  totpEnabledAt?: Date | string | null
+  lastTotpStep?: number | null
   questions?: Prisma.QuestionsUncheckedCreateNestedManyWithoutUserInput
   sessions?: Prisma.UsersessionUncheckedCreateNestedManyWithoutUserInput
   addresses?: Prisma.AddressUncheckedCreateNestedManyWithoutUserInput
@@ -1154,6 +1314,8 @@ export type UserUncheckedCreateWithoutProductsInput = {
   Wishlist?: Prisma.WishlistUncheckedCreateNestedManyWithoutUserInput
   Orderproduct?: Prisma.OrderproductUncheckedCreateNestedManyWithoutUserInput
   Tempimage?: Prisma.TempimageUncheckedCreateNestedManyWithoutUserInput
+  emailVerifications?: Prisma.EmailVerificationUncheckedCreateNestedManyWithoutUserInput
+  mfaRecoveryCodes?: Prisma.MfaRecoveryCodeUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutProductsInput = {
@@ -1183,9 +1345,11 @@ export type UserUpdateWithoutProductsInput = {
   phonenumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   password?: Prisma.StringFieldUpdateOperationsInput | string
   whislist?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  vfy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  totpSecret?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  totpEnabledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastTotpStep?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   questions?: Prisma.QuestionsUpdateManyWithoutUserNestedInput
   sessions?: Prisma.UsersessionUpdateManyWithoutUserNestedInput
   addresses?: Prisma.AddressUpdateManyWithoutUserNestedInput
@@ -1194,6 +1358,8 @@ export type UserUpdateWithoutProductsInput = {
   Wishlist?: Prisma.WishlistUpdateManyWithoutUserNestedInput
   Orderproduct?: Prisma.OrderproductUpdateManyWithoutUserNestedInput
   Tempimage?: Prisma.TempimageUpdateManyWithoutUserNestedInput
+  emailVerifications?: Prisma.EmailVerificationUpdateManyWithoutUserNestedInput
+  mfaRecoveryCodes?: Prisma.MfaRecoveryCodeUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutProductsInput = {
@@ -1208,9 +1374,11 @@ export type UserUncheckedUpdateWithoutProductsInput = {
   phonenumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   password?: Prisma.StringFieldUpdateOperationsInput | string
   whislist?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  vfy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  totpSecret?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  totpEnabledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastTotpStep?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   questions?: Prisma.QuestionsUncheckedUpdateManyWithoutUserNestedInput
   sessions?: Prisma.UsersessionUncheckedUpdateManyWithoutUserNestedInput
   addresses?: Prisma.AddressUncheckedUpdateManyWithoutUserNestedInput
@@ -1219,6 +1387,8 @@ export type UserUncheckedUpdateWithoutProductsInput = {
   Wishlist?: Prisma.WishlistUncheckedUpdateManyWithoutUserNestedInput
   Orderproduct?: Prisma.OrderproductUncheckedUpdateManyWithoutUserNestedInput
   Tempimage?: Prisma.TempimageUncheckedUpdateManyWithoutUserNestedInput
+  emailVerifications?: Prisma.EmailVerificationUncheckedUpdateManyWithoutUserNestedInput
+  mfaRecoveryCodes?: Prisma.MfaRecoveryCodeUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutTempimageInput = {
@@ -1232,9 +1402,11 @@ export type UserCreateWithoutTempimageInput = {
   phonenumber?: string | null
   password: string
   whislist?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  vfy?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  totpSecret?: string | null
+  totpEnabledAt?: Date | string | null
+  lastTotpStep?: number | null
   products?: Prisma.ProductsCreateNestedManyWithoutUserInput
   questions?: Prisma.QuestionsCreateNestedManyWithoutUserInput
   sessions?: Prisma.UsersessionCreateNestedManyWithoutUserInput
@@ -1243,6 +1415,8 @@ export type UserCreateWithoutTempimageInput = {
   Notification?: Prisma.NotificationCreateNestedManyWithoutUserInput
   Wishlist?: Prisma.WishlistCreateNestedManyWithoutUserInput
   Orderproduct?: Prisma.OrderproductCreateNestedManyWithoutUserInput
+  emailVerifications?: Prisma.EmailVerificationCreateNestedManyWithoutUserInput
+  mfaRecoveryCodes?: Prisma.MfaRecoveryCodeCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutTempimageInput = {
@@ -1257,9 +1431,11 @@ export type UserUncheckedCreateWithoutTempimageInput = {
   phonenumber?: string | null
   password: string
   whislist?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  vfy?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  totpSecret?: string | null
+  totpEnabledAt?: Date | string | null
+  lastTotpStep?: number | null
   products?: Prisma.ProductsUncheckedCreateNestedManyWithoutUserInput
   questions?: Prisma.QuestionsUncheckedCreateNestedManyWithoutUserInput
   sessions?: Prisma.UsersessionUncheckedCreateNestedManyWithoutUserInput
@@ -1268,6 +1444,8 @@ export type UserUncheckedCreateWithoutTempimageInput = {
   Notification?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   Wishlist?: Prisma.WishlistUncheckedCreateNestedManyWithoutUserInput
   Orderproduct?: Prisma.OrderproductUncheckedCreateNestedManyWithoutUserInput
+  emailVerifications?: Prisma.EmailVerificationUncheckedCreateNestedManyWithoutUserInput
+  mfaRecoveryCodes?: Prisma.MfaRecoveryCodeUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutTempimageInput = {
@@ -1297,9 +1475,11 @@ export type UserUpdateWithoutTempimageInput = {
   phonenumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   password?: Prisma.StringFieldUpdateOperationsInput | string
   whislist?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  vfy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  totpSecret?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  totpEnabledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastTotpStep?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   products?: Prisma.ProductsUpdateManyWithoutUserNestedInput
   questions?: Prisma.QuestionsUpdateManyWithoutUserNestedInput
   sessions?: Prisma.UsersessionUpdateManyWithoutUserNestedInput
@@ -1308,6 +1488,8 @@ export type UserUpdateWithoutTempimageInput = {
   Notification?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   Wishlist?: Prisma.WishlistUpdateManyWithoutUserNestedInput
   Orderproduct?: Prisma.OrderproductUpdateManyWithoutUserNestedInput
+  emailVerifications?: Prisma.EmailVerificationUpdateManyWithoutUserNestedInput
+  mfaRecoveryCodes?: Prisma.MfaRecoveryCodeUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutTempimageInput = {
@@ -1322,9 +1504,11 @@ export type UserUncheckedUpdateWithoutTempimageInput = {
   phonenumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   password?: Prisma.StringFieldUpdateOperationsInput | string
   whislist?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  vfy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  totpSecret?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  totpEnabledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastTotpStep?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   products?: Prisma.ProductsUncheckedUpdateManyWithoutUserNestedInput
   questions?: Prisma.QuestionsUncheckedUpdateManyWithoutUserNestedInput
   sessions?: Prisma.UsersessionUncheckedUpdateManyWithoutUserNestedInput
@@ -1333,6 +1517,8 @@ export type UserUncheckedUpdateWithoutTempimageInput = {
   Notification?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   Wishlist?: Prisma.WishlistUncheckedUpdateManyWithoutUserNestedInput
   Orderproduct?: Prisma.OrderproductUncheckedUpdateManyWithoutUserNestedInput
+  emailVerifications?: Prisma.EmailVerificationUncheckedUpdateManyWithoutUserNestedInput
+  mfaRecoveryCodes?: Prisma.MfaRecoveryCodeUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutOrdersInput = {
@@ -1346,9 +1532,11 @@ export type UserCreateWithoutOrdersInput = {
   phonenumber?: string | null
   password: string
   whislist?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  vfy?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  totpSecret?: string | null
+  totpEnabledAt?: Date | string | null
+  lastTotpStep?: number | null
   products?: Prisma.ProductsCreateNestedManyWithoutUserInput
   questions?: Prisma.QuestionsCreateNestedManyWithoutUserInput
   sessions?: Prisma.UsersessionCreateNestedManyWithoutUserInput
@@ -1357,6 +1545,8 @@ export type UserCreateWithoutOrdersInput = {
   Wishlist?: Prisma.WishlistCreateNestedManyWithoutUserInput
   Orderproduct?: Prisma.OrderproductCreateNestedManyWithoutUserInput
   Tempimage?: Prisma.TempimageCreateNestedManyWithoutUserInput
+  emailVerifications?: Prisma.EmailVerificationCreateNestedManyWithoutUserInput
+  mfaRecoveryCodes?: Prisma.MfaRecoveryCodeCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutOrdersInput = {
@@ -1371,9 +1561,11 @@ export type UserUncheckedCreateWithoutOrdersInput = {
   phonenumber?: string | null
   password: string
   whislist?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  vfy?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  totpSecret?: string | null
+  totpEnabledAt?: Date | string | null
+  lastTotpStep?: number | null
   products?: Prisma.ProductsUncheckedCreateNestedManyWithoutUserInput
   questions?: Prisma.QuestionsUncheckedCreateNestedManyWithoutUserInput
   sessions?: Prisma.UsersessionUncheckedCreateNestedManyWithoutUserInput
@@ -1382,6 +1574,8 @@ export type UserUncheckedCreateWithoutOrdersInput = {
   Wishlist?: Prisma.WishlistUncheckedCreateNestedManyWithoutUserInput
   Orderproduct?: Prisma.OrderproductUncheckedCreateNestedManyWithoutUserInput
   Tempimage?: Prisma.TempimageUncheckedCreateNestedManyWithoutUserInput
+  emailVerifications?: Prisma.EmailVerificationUncheckedCreateNestedManyWithoutUserInput
+  mfaRecoveryCodes?: Prisma.MfaRecoveryCodeUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutOrdersInput = {
@@ -1411,9 +1605,11 @@ export type UserUpdateWithoutOrdersInput = {
   phonenumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   password?: Prisma.StringFieldUpdateOperationsInput | string
   whislist?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  vfy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  totpSecret?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  totpEnabledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastTotpStep?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   products?: Prisma.ProductsUpdateManyWithoutUserNestedInput
   questions?: Prisma.QuestionsUpdateManyWithoutUserNestedInput
   sessions?: Prisma.UsersessionUpdateManyWithoutUserNestedInput
@@ -1422,6 +1618,8 @@ export type UserUpdateWithoutOrdersInput = {
   Wishlist?: Prisma.WishlistUpdateManyWithoutUserNestedInput
   Orderproduct?: Prisma.OrderproductUpdateManyWithoutUserNestedInput
   Tempimage?: Prisma.TempimageUpdateManyWithoutUserNestedInput
+  emailVerifications?: Prisma.EmailVerificationUpdateManyWithoutUserNestedInput
+  mfaRecoveryCodes?: Prisma.MfaRecoveryCodeUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutOrdersInput = {
@@ -1436,9 +1634,11 @@ export type UserUncheckedUpdateWithoutOrdersInput = {
   phonenumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   password?: Prisma.StringFieldUpdateOperationsInput | string
   whislist?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  vfy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  totpSecret?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  totpEnabledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastTotpStep?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   products?: Prisma.ProductsUncheckedUpdateManyWithoutUserNestedInput
   questions?: Prisma.QuestionsUncheckedUpdateManyWithoutUserNestedInput
   sessions?: Prisma.UsersessionUncheckedUpdateManyWithoutUserNestedInput
@@ -1447,6 +1647,8 @@ export type UserUncheckedUpdateWithoutOrdersInput = {
   Wishlist?: Prisma.WishlistUncheckedUpdateManyWithoutUserNestedInput
   Orderproduct?: Prisma.OrderproductUncheckedUpdateManyWithoutUserNestedInput
   Tempimage?: Prisma.TempimageUncheckedUpdateManyWithoutUserNestedInput
+  emailVerifications?: Prisma.EmailVerificationUncheckedUpdateManyWithoutUserNestedInput
+  mfaRecoveryCodes?: Prisma.MfaRecoveryCodeUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutOrderproductInput = {
@@ -1460,9 +1662,11 @@ export type UserCreateWithoutOrderproductInput = {
   phonenumber?: string | null
   password: string
   whislist?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  vfy?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  totpSecret?: string | null
+  totpEnabledAt?: Date | string | null
+  lastTotpStep?: number | null
   products?: Prisma.ProductsCreateNestedManyWithoutUserInput
   questions?: Prisma.QuestionsCreateNestedManyWithoutUserInput
   sessions?: Prisma.UsersessionCreateNestedManyWithoutUserInput
@@ -1471,6 +1675,8 @@ export type UserCreateWithoutOrderproductInput = {
   Notification?: Prisma.NotificationCreateNestedManyWithoutUserInput
   Wishlist?: Prisma.WishlistCreateNestedManyWithoutUserInput
   Tempimage?: Prisma.TempimageCreateNestedManyWithoutUserInput
+  emailVerifications?: Prisma.EmailVerificationCreateNestedManyWithoutUserInput
+  mfaRecoveryCodes?: Prisma.MfaRecoveryCodeCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutOrderproductInput = {
@@ -1485,9 +1691,11 @@ export type UserUncheckedCreateWithoutOrderproductInput = {
   phonenumber?: string | null
   password: string
   whislist?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  vfy?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  totpSecret?: string | null
+  totpEnabledAt?: Date | string | null
+  lastTotpStep?: number | null
   products?: Prisma.ProductsUncheckedCreateNestedManyWithoutUserInput
   questions?: Prisma.QuestionsUncheckedCreateNestedManyWithoutUserInput
   sessions?: Prisma.UsersessionUncheckedCreateNestedManyWithoutUserInput
@@ -1496,6 +1704,8 @@ export type UserUncheckedCreateWithoutOrderproductInput = {
   Notification?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
   Wishlist?: Prisma.WishlistUncheckedCreateNestedManyWithoutUserInput
   Tempimage?: Prisma.TempimageUncheckedCreateNestedManyWithoutUserInput
+  emailVerifications?: Prisma.EmailVerificationUncheckedCreateNestedManyWithoutUserInput
+  mfaRecoveryCodes?: Prisma.MfaRecoveryCodeUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutOrderproductInput = {
@@ -1525,9 +1735,11 @@ export type UserUpdateWithoutOrderproductInput = {
   phonenumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   password?: Prisma.StringFieldUpdateOperationsInput | string
   whislist?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  vfy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  totpSecret?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  totpEnabledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastTotpStep?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   products?: Prisma.ProductsUpdateManyWithoutUserNestedInput
   questions?: Prisma.QuestionsUpdateManyWithoutUserNestedInput
   sessions?: Prisma.UsersessionUpdateManyWithoutUserNestedInput
@@ -1536,6 +1748,8 @@ export type UserUpdateWithoutOrderproductInput = {
   Notification?: Prisma.NotificationUpdateManyWithoutUserNestedInput
   Wishlist?: Prisma.WishlistUpdateManyWithoutUserNestedInput
   Tempimage?: Prisma.TempimageUpdateManyWithoutUserNestedInput
+  emailVerifications?: Prisma.EmailVerificationUpdateManyWithoutUserNestedInput
+  mfaRecoveryCodes?: Prisma.MfaRecoveryCodeUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutOrderproductInput = {
@@ -1550,9 +1764,11 @@ export type UserUncheckedUpdateWithoutOrderproductInput = {
   phonenumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   password?: Prisma.StringFieldUpdateOperationsInput | string
   whislist?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  vfy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  totpSecret?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  totpEnabledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastTotpStep?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   products?: Prisma.ProductsUncheckedUpdateManyWithoutUserNestedInput
   questions?: Prisma.QuestionsUncheckedUpdateManyWithoutUserNestedInput
   sessions?: Prisma.UsersessionUncheckedUpdateManyWithoutUserNestedInput
@@ -1561,6 +1777,8 @@ export type UserUncheckedUpdateWithoutOrderproductInput = {
   Notification?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
   Wishlist?: Prisma.WishlistUncheckedUpdateManyWithoutUserNestedInput
   Tempimage?: Prisma.TempimageUncheckedUpdateManyWithoutUserNestedInput
+  emailVerifications?: Prisma.EmailVerificationUncheckedUpdateManyWithoutUserNestedInput
+  mfaRecoveryCodes?: Prisma.MfaRecoveryCodeUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutQuestionsInput = {
@@ -1574,9 +1792,11 @@ export type UserCreateWithoutQuestionsInput = {
   phonenumber?: string | null
   password: string
   whislist?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  vfy?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  totpSecret?: string | null
+  totpEnabledAt?: Date | string | null
+  lastTotpStep?: number | null
   products?: Prisma.ProductsCreateNestedManyWithoutUserInput
   sessions?: Prisma.UsersessionCreateNestedManyWithoutUserInput
   addresses?: Prisma.AddressCreateNestedManyWithoutUserInput
@@ -1585,6 +1805,8 @@ export type UserCreateWithoutQuestionsInput = {
   Wishlist?: Prisma.WishlistCreateNestedManyWithoutUserInput
   Orderproduct?: Prisma.OrderproductCreateNestedManyWithoutUserInput
   Tempimage?: Prisma.TempimageCreateNestedManyWithoutUserInput
+  emailVerifications?: Prisma.EmailVerificationCreateNestedManyWithoutUserInput
+  mfaRecoveryCodes?: Prisma.MfaRecoveryCodeCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutQuestionsInput = {
@@ -1599,9 +1821,11 @@ export type UserUncheckedCreateWithoutQuestionsInput = {
   phonenumber?: string | null
   password: string
   whislist?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  vfy?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  totpSecret?: string | null
+  totpEnabledAt?: Date | string | null
+  lastTotpStep?: number | null
   products?: Prisma.ProductsUncheckedCreateNestedManyWithoutUserInput
   sessions?: Prisma.UsersessionUncheckedCreateNestedManyWithoutUserInput
   addresses?: Prisma.AddressUncheckedCreateNestedManyWithoutUserInput
@@ -1610,6 +1834,8 @@ export type UserUncheckedCreateWithoutQuestionsInput = {
   Wishlist?: Prisma.WishlistUncheckedCreateNestedManyWithoutUserInput
   Orderproduct?: Prisma.OrderproductUncheckedCreateNestedManyWithoutUserInput
   Tempimage?: Prisma.TempimageUncheckedCreateNestedManyWithoutUserInput
+  emailVerifications?: Prisma.EmailVerificationUncheckedCreateNestedManyWithoutUserInput
+  mfaRecoveryCodes?: Prisma.MfaRecoveryCodeUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutQuestionsInput = {
@@ -1639,9 +1865,11 @@ export type UserUpdateWithoutQuestionsInput = {
   phonenumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   password?: Prisma.StringFieldUpdateOperationsInput | string
   whislist?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  vfy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  totpSecret?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  totpEnabledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastTotpStep?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   products?: Prisma.ProductsUpdateManyWithoutUserNestedInput
   sessions?: Prisma.UsersessionUpdateManyWithoutUserNestedInput
   addresses?: Prisma.AddressUpdateManyWithoutUserNestedInput
@@ -1650,6 +1878,8 @@ export type UserUpdateWithoutQuestionsInput = {
   Wishlist?: Prisma.WishlistUpdateManyWithoutUserNestedInput
   Orderproduct?: Prisma.OrderproductUpdateManyWithoutUserNestedInput
   Tempimage?: Prisma.TempimageUpdateManyWithoutUserNestedInput
+  emailVerifications?: Prisma.EmailVerificationUpdateManyWithoutUserNestedInput
+  mfaRecoveryCodes?: Prisma.MfaRecoveryCodeUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutQuestionsInput = {
@@ -1664,9 +1894,11 @@ export type UserUncheckedUpdateWithoutQuestionsInput = {
   phonenumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   password?: Prisma.StringFieldUpdateOperationsInput | string
   whislist?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  vfy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  totpSecret?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  totpEnabledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastTotpStep?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   products?: Prisma.ProductsUncheckedUpdateManyWithoutUserNestedInput
   sessions?: Prisma.UsersessionUncheckedUpdateManyWithoutUserNestedInput
   addresses?: Prisma.AddressUncheckedUpdateManyWithoutUserNestedInput
@@ -1675,6 +1907,8 @@ export type UserUncheckedUpdateWithoutQuestionsInput = {
   Wishlist?: Prisma.WishlistUncheckedUpdateManyWithoutUserNestedInput
   Orderproduct?: Prisma.OrderproductUncheckedUpdateManyWithoutUserNestedInput
   Tempimage?: Prisma.TempimageUncheckedUpdateManyWithoutUserNestedInput
+  emailVerifications?: Prisma.EmailVerificationUncheckedUpdateManyWithoutUserNestedInput
+  mfaRecoveryCodes?: Prisma.MfaRecoveryCodeUncheckedUpdateManyWithoutUserNestedInput
 }
 
 export type UserCreateWithoutNotificationInput = {
@@ -1688,9 +1922,11 @@ export type UserCreateWithoutNotificationInput = {
   phonenumber?: string | null
   password: string
   whislist?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  vfy?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  totpSecret?: string | null
+  totpEnabledAt?: Date | string | null
+  lastTotpStep?: number | null
   products?: Prisma.ProductsCreateNestedManyWithoutUserInput
   questions?: Prisma.QuestionsCreateNestedManyWithoutUserInput
   sessions?: Prisma.UsersessionCreateNestedManyWithoutUserInput
@@ -1699,6 +1935,8 @@ export type UserCreateWithoutNotificationInput = {
   Wishlist?: Prisma.WishlistCreateNestedManyWithoutUserInput
   Orderproduct?: Prisma.OrderproductCreateNestedManyWithoutUserInput
   Tempimage?: Prisma.TempimageCreateNestedManyWithoutUserInput
+  emailVerifications?: Prisma.EmailVerificationCreateNestedManyWithoutUserInput
+  mfaRecoveryCodes?: Prisma.MfaRecoveryCodeCreateNestedManyWithoutUserInput
 }
 
 export type UserUncheckedCreateWithoutNotificationInput = {
@@ -1713,9 +1951,11 @@ export type UserUncheckedCreateWithoutNotificationInput = {
   phonenumber?: string | null
   password: string
   whislist?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  vfy?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
+  totpSecret?: string | null
+  totpEnabledAt?: Date | string | null
+  lastTotpStep?: number | null
   products?: Prisma.ProductsUncheckedCreateNestedManyWithoutUserInput
   questions?: Prisma.QuestionsUncheckedCreateNestedManyWithoutUserInput
   sessions?: Prisma.UsersessionUncheckedCreateNestedManyWithoutUserInput
@@ -1724,6 +1964,8 @@ export type UserUncheckedCreateWithoutNotificationInput = {
   Wishlist?: Prisma.WishlistUncheckedCreateNestedManyWithoutUserInput
   Orderproduct?: Prisma.OrderproductUncheckedCreateNestedManyWithoutUserInput
   Tempimage?: Prisma.TempimageUncheckedCreateNestedManyWithoutUserInput
+  emailVerifications?: Prisma.EmailVerificationUncheckedCreateNestedManyWithoutUserInput
+  mfaRecoveryCodes?: Prisma.MfaRecoveryCodeUncheckedCreateNestedManyWithoutUserInput
 }
 
 export type UserCreateOrConnectWithoutNotificationInput = {
@@ -1753,9 +1995,11 @@ export type UserUpdateWithoutNotificationInput = {
   phonenumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   password?: Prisma.StringFieldUpdateOperationsInput | string
   whislist?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  vfy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  totpSecret?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  totpEnabledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastTotpStep?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   products?: Prisma.ProductsUpdateManyWithoutUserNestedInput
   questions?: Prisma.QuestionsUpdateManyWithoutUserNestedInput
   sessions?: Prisma.UsersessionUpdateManyWithoutUserNestedInput
@@ -1764,6 +2008,8 @@ export type UserUpdateWithoutNotificationInput = {
   Wishlist?: Prisma.WishlistUpdateManyWithoutUserNestedInput
   Orderproduct?: Prisma.OrderproductUpdateManyWithoutUserNestedInput
   Tempimage?: Prisma.TempimageUpdateManyWithoutUserNestedInput
+  emailVerifications?: Prisma.EmailVerificationUpdateManyWithoutUserNestedInput
+  mfaRecoveryCodes?: Prisma.MfaRecoveryCodeUpdateManyWithoutUserNestedInput
 }
 
 export type UserUncheckedUpdateWithoutNotificationInput = {
@@ -1778,9 +2024,11 @@ export type UserUncheckedUpdateWithoutNotificationInput = {
   phonenumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   password?: Prisma.StringFieldUpdateOperationsInput | string
   whislist?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
-  vfy?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  totpSecret?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  totpEnabledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastTotpStep?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   products?: Prisma.ProductsUncheckedUpdateManyWithoutUserNestedInput
   questions?: Prisma.QuestionsUncheckedUpdateManyWithoutUserNestedInput
   sessions?: Prisma.UsersessionUncheckedUpdateManyWithoutUserNestedInput
@@ -1789,6 +2037,268 @@ export type UserUncheckedUpdateWithoutNotificationInput = {
   Wishlist?: Prisma.WishlistUncheckedUpdateManyWithoutUserNestedInput
   Orderproduct?: Prisma.OrderproductUncheckedUpdateManyWithoutUserNestedInput
   Tempimage?: Prisma.TempimageUncheckedUpdateManyWithoutUserNestedInput
+  emailVerifications?: Prisma.EmailVerificationUncheckedUpdateManyWithoutUserNestedInput
+  mfaRecoveryCodes?: Prisma.MfaRecoveryCodeUncheckedUpdateManyWithoutUserNestedInput
+}
+
+export type UserCreateWithoutMfaRecoveryCodesInput = {
+  buyer_id?: string
+  oauthId?: string | null
+  type?: string | null
+  firstname: string
+  lastname?: string | null
+  email: string
+  role?: $Enums.Role
+  phonenumber?: string | null
+  password: string
+  whislist?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  totpSecret?: string | null
+  totpEnabledAt?: Date | string | null
+  lastTotpStep?: number | null
+  products?: Prisma.ProductsCreateNestedManyWithoutUserInput
+  questions?: Prisma.QuestionsCreateNestedManyWithoutUserInput
+  sessions?: Prisma.UsersessionCreateNestedManyWithoutUserInput
+  addresses?: Prisma.AddressCreateNestedManyWithoutUserInput
+  Orders?: Prisma.OrdersCreateNestedManyWithoutUserInput
+  Notification?: Prisma.NotificationCreateNestedManyWithoutUserInput
+  Wishlist?: Prisma.WishlistCreateNestedManyWithoutUserInput
+  Orderproduct?: Prisma.OrderproductCreateNestedManyWithoutUserInput
+  Tempimage?: Prisma.TempimageCreateNestedManyWithoutUserInput
+  emailVerifications?: Prisma.EmailVerificationCreateNestedManyWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutMfaRecoveryCodesInput = {
+  id?: number
+  buyer_id?: string
+  oauthId?: string | null
+  type?: string | null
+  firstname: string
+  lastname?: string | null
+  email: string
+  role?: $Enums.Role
+  phonenumber?: string | null
+  password: string
+  whislist?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  totpSecret?: string | null
+  totpEnabledAt?: Date | string | null
+  lastTotpStep?: number | null
+  products?: Prisma.ProductsUncheckedCreateNestedManyWithoutUserInput
+  questions?: Prisma.QuestionsUncheckedCreateNestedManyWithoutUserInput
+  sessions?: Prisma.UsersessionUncheckedCreateNestedManyWithoutUserInput
+  addresses?: Prisma.AddressUncheckedCreateNestedManyWithoutUserInput
+  Orders?: Prisma.OrdersUncheckedCreateNestedManyWithoutUserInput
+  Notification?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
+  Wishlist?: Prisma.WishlistUncheckedCreateNestedManyWithoutUserInput
+  Orderproduct?: Prisma.OrderproductUncheckedCreateNestedManyWithoutUserInput
+  Tempimage?: Prisma.TempimageUncheckedCreateNestedManyWithoutUserInput
+  emailVerifications?: Prisma.EmailVerificationUncheckedCreateNestedManyWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutMfaRecoveryCodesInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutMfaRecoveryCodesInput, Prisma.UserUncheckedCreateWithoutMfaRecoveryCodesInput>
+}
+
+export type UserUpsertWithoutMfaRecoveryCodesInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutMfaRecoveryCodesInput, Prisma.UserUncheckedUpdateWithoutMfaRecoveryCodesInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutMfaRecoveryCodesInput, Prisma.UserUncheckedCreateWithoutMfaRecoveryCodesInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutMfaRecoveryCodesInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutMfaRecoveryCodesInput, Prisma.UserUncheckedUpdateWithoutMfaRecoveryCodesInput>
+}
+
+export type UserUpdateWithoutMfaRecoveryCodesInput = {
+  buyer_id?: Prisma.StringFieldUpdateOperationsInput | string
+  oauthId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  type?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  firstname?: Prisma.StringFieldUpdateOperationsInput | string
+  lastname?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
+  phonenumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  password?: Prisma.StringFieldUpdateOperationsInput | string
+  whislist?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  totpSecret?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  totpEnabledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastTotpStep?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  products?: Prisma.ProductsUpdateManyWithoutUserNestedInput
+  questions?: Prisma.QuestionsUpdateManyWithoutUserNestedInput
+  sessions?: Prisma.UsersessionUpdateManyWithoutUserNestedInput
+  addresses?: Prisma.AddressUpdateManyWithoutUserNestedInput
+  Orders?: Prisma.OrdersUpdateManyWithoutUserNestedInput
+  Notification?: Prisma.NotificationUpdateManyWithoutUserNestedInput
+  Wishlist?: Prisma.WishlistUpdateManyWithoutUserNestedInput
+  Orderproduct?: Prisma.OrderproductUpdateManyWithoutUserNestedInput
+  Tempimage?: Prisma.TempimageUpdateManyWithoutUserNestedInput
+  emailVerifications?: Prisma.EmailVerificationUpdateManyWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutMfaRecoveryCodesInput = {
+  id?: Prisma.IntFieldUpdateOperationsInput | number
+  buyer_id?: Prisma.StringFieldUpdateOperationsInput | string
+  oauthId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  type?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  firstname?: Prisma.StringFieldUpdateOperationsInput | string
+  lastname?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
+  phonenumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  password?: Prisma.StringFieldUpdateOperationsInput | string
+  whislist?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  totpSecret?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  totpEnabledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastTotpStep?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  products?: Prisma.ProductsUncheckedUpdateManyWithoutUserNestedInput
+  questions?: Prisma.QuestionsUncheckedUpdateManyWithoutUserNestedInput
+  sessions?: Prisma.UsersessionUncheckedUpdateManyWithoutUserNestedInput
+  addresses?: Prisma.AddressUncheckedUpdateManyWithoutUserNestedInput
+  Orders?: Prisma.OrdersUncheckedUpdateManyWithoutUserNestedInput
+  Notification?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
+  Wishlist?: Prisma.WishlistUncheckedUpdateManyWithoutUserNestedInput
+  Orderproduct?: Prisma.OrderproductUncheckedUpdateManyWithoutUserNestedInput
+  Tempimage?: Prisma.TempimageUncheckedUpdateManyWithoutUserNestedInput
+  emailVerifications?: Prisma.EmailVerificationUncheckedUpdateManyWithoutUserNestedInput
+}
+
+export type UserCreateWithoutEmailVerificationsInput = {
+  buyer_id?: string
+  oauthId?: string | null
+  type?: string | null
+  firstname: string
+  lastname?: string | null
+  email: string
+  role?: $Enums.Role
+  phonenumber?: string | null
+  password: string
+  whislist?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  totpSecret?: string | null
+  totpEnabledAt?: Date | string | null
+  lastTotpStep?: number | null
+  products?: Prisma.ProductsCreateNestedManyWithoutUserInput
+  questions?: Prisma.QuestionsCreateNestedManyWithoutUserInput
+  sessions?: Prisma.UsersessionCreateNestedManyWithoutUserInput
+  addresses?: Prisma.AddressCreateNestedManyWithoutUserInput
+  Orders?: Prisma.OrdersCreateNestedManyWithoutUserInput
+  Notification?: Prisma.NotificationCreateNestedManyWithoutUserInput
+  Wishlist?: Prisma.WishlistCreateNestedManyWithoutUserInput
+  Orderproduct?: Prisma.OrderproductCreateNestedManyWithoutUserInput
+  Tempimage?: Prisma.TempimageCreateNestedManyWithoutUserInput
+  mfaRecoveryCodes?: Prisma.MfaRecoveryCodeCreateNestedManyWithoutUserInput
+}
+
+export type UserUncheckedCreateWithoutEmailVerificationsInput = {
+  id?: number
+  buyer_id?: string
+  oauthId?: string | null
+  type?: string | null
+  firstname: string
+  lastname?: string | null
+  email: string
+  role?: $Enums.Role
+  phonenumber?: string | null
+  password: string
+  whislist?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Date | string
+  updatedAt?: Date | string
+  totpSecret?: string | null
+  totpEnabledAt?: Date | string | null
+  lastTotpStep?: number | null
+  products?: Prisma.ProductsUncheckedCreateNestedManyWithoutUserInput
+  questions?: Prisma.QuestionsUncheckedCreateNestedManyWithoutUserInput
+  sessions?: Prisma.UsersessionUncheckedCreateNestedManyWithoutUserInput
+  addresses?: Prisma.AddressUncheckedCreateNestedManyWithoutUserInput
+  Orders?: Prisma.OrdersUncheckedCreateNestedManyWithoutUserInput
+  Notification?: Prisma.NotificationUncheckedCreateNestedManyWithoutUserInput
+  Wishlist?: Prisma.WishlistUncheckedCreateNestedManyWithoutUserInput
+  Orderproduct?: Prisma.OrderproductUncheckedCreateNestedManyWithoutUserInput
+  Tempimage?: Prisma.TempimageUncheckedCreateNestedManyWithoutUserInput
+  mfaRecoveryCodes?: Prisma.MfaRecoveryCodeUncheckedCreateNestedManyWithoutUserInput
+}
+
+export type UserCreateOrConnectWithoutEmailVerificationsInput = {
+  where: Prisma.UserWhereUniqueInput
+  create: Prisma.XOR<Prisma.UserCreateWithoutEmailVerificationsInput, Prisma.UserUncheckedCreateWithoutEmailVerificationsInput>
+}
+
+export type UserUpsertWithoutEmailVerificationsInput = {
+  update: Prisma.XOR<Prisma.UserUpdateWithoutEmailVerificationsInput, Prisma.UserUncheckedUpdateWithoutEmailVerificationsInput>
+  create: Prisma.XOR<Prisma.UserCreateWithoutEmailVerificationsInput, Prisma.UserUncheckedCreateWithoutEmailVerificationsInput>
+  where?: Prisma.UserWhereInput
+}
+
+export type UserUpdateToOneWithWhereWithoutEmailVerificationsInput = {
+  where?: Prisma.UserWhereInput
+  data: Prisma.XOR<Prisma.UserUpdateWithoutEmailVerificationsInput, Prisma.UserUncheckedUpdateWithoutEmailVerificationsInput>
+}
+
+export type UserUpdateWithoutEmailVerificationsInput = {
+  buyer_id?: Prisma.StringFieldUpdateOperationsInput | string
+  oauthId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  type?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  firstname?: Prisma.StringFieldUpdateOperationsInput | string
+  lastname?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
+  phonenumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  password?: Prisma.StringFieldUpdateOperationsInput | string
+  whislist?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  totpSecret?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  totpEnabledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastTotpStep?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  products?: Prisma.ProductsUpdateManyWithoutUserNestedInput
+  questions?: Prisma.QuestionsUpdateManyWithoutUserNestedInput
+  sessions?: Prisma.UsersessionUpdateManyWithoutUserNestedInput
+  addresses?: Prisma.AddressUpdateManyWithoutUserNestedInput
+  Orders?: Prisma.OrdersUpdateManyWithoutUserNestedInput
+  Notification?: Prisma.NotificationUpdateManyWithoutUserNestedInput
+  Wishlist?: Prisma.WishlistUpdateManyWithoutUserNestedInput
+  Orderproduct?: Prisma.OrderproductUpdateManyWithoutUserNestedInput
+  Tempimage?: Prisma.TempimageUpdateManyWithoutUserNestedInput
+  mfaRecoveryCodes?: Prisma.MfaRecoveryCodeUpdateManyWithoutUserNestedInput
+}
+
+export type UserUncheckedUpdateWithoutEmailVerificationsInput = {
+  id?: Prisma.IntFieldUpdateOperationsInput | number
+  buyer_id?: Prisma.StringFieldUpdateOperationsInput | string
+  oauthId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  type?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  firstname?: Prisma.StringFieldUpdateOperationsInput | string
+  lastname?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  email?: Prisma.StringFieldUpdateOperationsInput | string
+  role?: Prisma.EnumRoleFieldUpdateOperationsInput | $Enums.Role
+  phonenumber?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  password?: Prisma.StringFieldUpdateOperationsInput | string
+  whislist?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  totpSecret?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  totpEnabledAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  lastTotpStep?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  products?: Prisma.ProductsUncheckedUpdateManyWithoutUserNestedInput
+  questions?: Prisma.QuestionsUncheckedUpdateManyWithoutUserNestedInput
+  sessions?: Prisma.UsersessionUncheckedUpdateManyWithoutUserNestedInput
+  addresses?: Prisma.AddressUncheckedUpdateManyWithoutUserNestedInput
+  Orders?: Prisma.OrdersUncheckedUpdateManyWithoutUserNestedInput
+  Notification?: Prisma.NotificationUncheckedUpdateManyWithoutUserNestedInput
+  Wishlist?: Prisma.WishlistUncheckedUpdateManyWithoutUserNestedInput
+  Orderproduct?: Prisma.OrderproductUncheckedUpdateManyWithoutUserNestedInput
+  Tempimage?: Prisma.TempimageUncheckedUpdateManyWithoutUserNestedInput
+  mfaRecoveryCodes?: Prisma.MfaRecoveryCodeUncheckedUpdateManyWithoutUserNestedInput
 }
 
 
@@ -1806,6 +2316,8 @@ export type UserCountOutputType = {
   Wishlist: number
   Orderproduct: number
   Tempimage: number
+  emailVerifications: number
+  mfaRecoveryCodes: number
 }
 
 export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1818,6 +2330,8 @@ export type UserCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.I
   Wishlist?: boolean | UserCountOutputTypeCountWishlistArgs
   Orderproduct?: boolean | UserCountOutputTypeCountOrderproductArgs
   Tempimage?: boolean | UserCountOutputTypeCountTempimageArgs
+  emailVerifications?: boolean | UserCountOutputTypeCountEmailVerificationsArgs
+  mfaRecoveryCodes?: boolean | UserCountOutputTypeCountMfaRecoveryCodesArgs
 }
 
 /**
@@ -1893,6 +2407,20 @@ export type UserCountOutputTypeCountTempimageArgs<ExtArgs extends runtime.Types.
   where?: Prisma.TempimageWhereInput
 }
 
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountEmailVerificationsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.EmailVerificationWhereInput
+}
+
+/**
+ * UserCountOutputType without action
+ */
+export type UserCountOutputTypeCountMfaRecoveryCodesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.MfaRecoveryCodeWhereInput
+}
+
 
 export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -1906,9 +2434,11 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   phonenumber?: boolean
   password?: boolean
   whislist?: boolean
-  vfy?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  totpSecret?: boolean
+  totpEnabledAt?: boolean
+  lastTotpStep?: boolean
   products?: boolean | Prisma.User$productsArgs<ExtArgs>
   questions?: boolean | Prisma.User$questionsArgs<ExtArgs>
   sessions?: boolean | Prisma.User$sessionsArgs<ExtArgs>
@@ -1918,6 +2448,8 @@ export type UserSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   Wishlist?: boolean | Prisma.User$WishlistArgs<ExtArgs>
   Orderproduct?: boolean | Prisma.User$OrderproductArgs<ExtArgs>
   Tempimage?: boolean | Prisma.User$TempimageArgs<ExtArgs>
+  emailVerifications?: boolean | Prisma.User$emailVerificationsArgs<ExtArgs>
+  mfaRecoveryCodes?: boolean | Prisma.User$mfaRecoveryCodesArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["user"]>
 
@@ -1933,9 +2465,11 @@ export type UserSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   phonenumber?: boolean
   password?: boolean
   whislist?: boolean
-  vfy?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  totpSecret?: boolean
+  totpEnabledAt?: boolean
+  lastTotpStep?: boolean
 }, ExtArgs["result"]["user"]>
 
 export type UserSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -1950,9 +2484,11 @@ export type UserSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensio
   phonenumber?: boolean
   password?: boolean
   whislist?: boolean
-  vfy?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  totpSecret?: boolean
+  totpEnabledAt?: boolean
+  lastTotpStep?: boolean
 }, ExtArgs["result"]["user"]>
 
 export type UserSelectScalar = {
@@ -1967,12 +2503,14 @@ export type UserSelectScalar = {
   phonenumber?: boolean
   password?: boolean
   whislist?: boolean
-  vfy?: boolean
   createdAt?: boolean
   updatedAt?: boolean
+  totpSecret?: boolean
+  totpEnabledAt?: boolean
+  lastTotpStep?: boolean
 }
 
-export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "buyer_id" | "oauthId" | "type" | "firstname" | "lastname" | "email" | "role" | "phonenumber" | "password" | "whislist" | "vfy" | "createdAt" | "updatedAt", ExtArgs["result"]["user"]>
+export type UserOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "buyer_id" | "oauthId" | "type" | "firstname" | "lastname" | "email" | "role" | "phonenumber" | "password" | "whislist" | "createdAt" | "updatedAt" | "totpSecret" | "totpEnabledAt" | "lastTotpStep", ExtArgs["result"]["user"]>
 export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   products?: boolean | Prisma.User$productsArgs<ExtArgs>
   questions?: boolean | Prisma.User$questionsArgs<ExtArgs>
@@ -1983,6 +2521,8 @@ export type UserInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   Wishlist?: boolean | Prisma.User$WishlistArgs<ExtArgs>
   Orderproduct?: boolean | Prisma.User$OrderproductArgs<ExtArgs>
   Tempimage?: boolean | Prisma.User$TempimageArgs<ExtArgs>
+  emailVerifications?: boolean | Prisma.User$emailVerificationsArgs<ExtArgs>
+  mfaRecoveryCodes?: boolean | Prisma.User$mfaRecoveryCodesArgs<ExtArgs>
   _count?: boolean | Prisma.UserCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type UserIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -2000,6 +2540,8 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     Wishlist: Prisma.$WishlistPayload<ExtArgs>[]
     Orderproduct: Prisma.$OrderproductPayload<ExtArgs>[]
     Tempimage: Prisma.$TempimagePayload<ExtArgs>[]
+    emailVerifications: Prisma.$EmailVerificationPayload<ExtArgs>[]
+    mfaRecoveryCodes: Prisma.$MfaRecoveryCodePayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: number
@@ -2013,9 +2555,11 @@ export type $UserPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
     phonenumber: string | null
     password: string
     whislist: runtime.JsonValue | null
-    vfy: string | null
     createdAt: Date
     updatedAt: Date
+    totpSecret: string | null
+    totpEnabledAt: Date | null
+    lastTotpStep: number | null
   }, ExtArgs["result"]["user"]>
   composites: {}
 }
@@ -2419,6 +2963,8 @@ export interface Prisma__UserClient<T, Null = never, ExtArgs extends runtime.Typ
   Wishlist<T extends Prisma.User$WishlistArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$WishlistArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$WishlistPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   Orderproduct<T extends Prisma.User$OrderproductArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$OrderproductArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$OrderproductPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   Tempimage<T extends Prisma.User$TempimageArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$TempimageArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$TempimagePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  emailVerifications<T extends Prisma.User$emailVerificationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$emailVerificationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$EmailVerificationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  mfaRecoveryCodes<T extends Prisma.User$mfaRecoveryCodesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.User$mfaRecoveryCodesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$MfaRecoveryCodePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2459,9 +3005,11 @@ export interface UserFieldRefs {
   readonly phonenumber: Prisma.FieldRef<"User", 'String'>
   readonly password: Prisma.FieldRef<"User", 'String'>
   readonly whislist: Prisma.FieldRef<"User", 'Json'>
-  readonly vfy: Prisma.FieldRef<"User", 'String'>
   readonly createdAt: Prisma.FieldRef<"User", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"User", 'DateTime'>
+  readonly totpSecret: Prisma.FieldRef<"User", 'String'>
+  readonly totpEnabledAt: Prisma.FieldRef<"User", 'DateTime'>
+  readonly lastTotpStep: Prisma.FieldRef<"User", 'Int'>
 }
     
 
@@ -3068,6 +3616,54 @@ export type User$TempimageArgs<ExtArgs extends runtime.Types.Extensions.Internal
   take?: number
   skip?: number
   distinct?: Prisma.TempimageScalarFieldEnum | Prisma.TempimageScalarFieldEnum[]
+}
+
+/**
+ * User.emailVerifications
+ */
+export type User$emailVerificationsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the EmailVerification
+   */
+  select?: Prisma.EmailVerificationSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the EmailVerification
+   */
+  omit?: Prisma.EmailVerificationOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.EmailVerificationInclude<ExtArgs> | null
+  where?: Prisma.EmailVerificationWhereInput
+  orderBy?: Prisma.EmailVerificationOrderByWithRelationInput | Prisma.EmailVerificationOrderByWithRelationInput[]
+  cursor?: Prisma.EmailVerificationWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.EmailVerificationScalarFieldEnum | Prisma.EmailVerificationScalarFieldEnum[]
+}
+
+/**
+ * User.mfaRecoveryCodes
+ */
+export type User$mfaRecoveryCodesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the MfaRecoveryCode
+   */
+  select?: Prisma.MfaRecoveryCodeSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the MfaRecoveryCode
+   */
+  omit?: Prisma.MfaRecoveryCodeOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.MfaRecoveryCodeInclude<ExtArgs> | null
+  where?: Prisma.MfaRecoveryCodeWhereInput
+  orderBy?: Prisma.MfaRecoveryCodeOrderByWithRelationInput | Prisma.MfaRecoveryCodeOrderByWithRelationInput[]
+  cursor?: Prisma.MfaRecoveryCodeWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.MfaRecoveryCodeScalarFieldEnum | Prisma.MfaRecoveryCodeScalarFieldEnum[]
 }
 
 /**

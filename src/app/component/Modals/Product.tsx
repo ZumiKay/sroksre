@@ -1,14 +1,10 @@
-import {
-  ApiRequest,
-  Delayloading,
-  useScreenSize,
-} from "@/src/context/CustomHook";
+import { ApiRequest, Delayloading } from "@/src/context/CustomHook";
 import {
   CateogoryState,
   Productinitailizestate,
   ProductStockType,
   SubcategoriesState,
-  useGlobalContext,
+  useGlobalStore,
 } from "@/src/context/GlobalContext";
 import React, {
   ChangeEvent,
@@ -54,18 +50,14 @@ export function CreateProducts({
 }: {
   setreloaddata: React.Dispatch<React.SetStateAction<boolean>>;
 }) {
-  const {
-    openmodal,
-    setopenmodal,
-    product,
-    setproduct,
-    globalindex,
-    setglobalindex,
-    isLoading,
-    setisLoading,
-  } = useGlobalContext();
-
-  const { isMobile } = useScreenSize();
+  const openmodal = useGlobalStore((s) => s.openmodal);
+  const setopenmodal = useGlobalStore((s) => s.setopenmodal);
+  const product = useGlobalStore((s) => s.product);
+  const setproduct = useGlobalStore((s) => s.setproduct);
+  const globalindex = useGlobalStore((s) => s.globalindex);
+  const setglobalindex = useGlobalStore((s) => s.setglobalindex);
+  const isLoading = useGlobalStore((s) => s.isLoading);
+  const setisLoading = useGlobalStore((s) => s.setisLoading);
 
   const detailref = useRef<HTMLDivElement>(null);
   const [loading, setloading] = useState(false);

@@ -26,29 +26,36 @@ enum Imagetemptype {
 }
 
 model User {
-  id           Int            @id @default(autoincrement())
-  buyer_id     String         @unique @default(uuid()) //For Order ReF
-  oauthId      String?
-  type         String? //For Classify OAuth
-  firstname    String
-  lastname     String?
-  email        String         @unique
-  role         Role           @default(USER)
-  phonenumber  String?        @unique
-  password     String         @unique
-  whislist     Json?
-  vfy          String?
-  products     Products[]
-  questions    Questions[]
-  sessions     Usersession[]
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
-  addresses    Address[]
-  Orders       Orders[]
-  Notification Notification[]
-  Wishlist     Wishlist[]
-  Orderproduct Orderproduct[]
-  Tempimage    Tempimage[]
+  id                 Int                 @id @default(autoincrement())
+  buyer_id           String              @unique @default(uuid()) //For Order ReF
+  oauthId            String?
+  type               String? //For Classify OAuth
+  firstname          String
+  lastname           String?
+  email              String              @unique
+  role               Role                @default(USER)
+  phonenumber        String?             @unique
+  password           String              @unique
+  whislist           Json?
+  products           Products[]
+  questions          Questions[]
+  sessions           Usersession[]
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  addresses          Address[]
+  Orders             Orders[]
+  Notification       Notification[]
+  Wishlist           Wishlist[]
+  Orderproduct       Orderproduct[]
+  Tempimage          Tempimage[]
+  emailVerifications EmailVerification[]
+  // Two-factor login (authenticator app). totpSecret is AES-GCM encrypted;
+  // set but with totpEnabledAt null while setup is unfinished.
+  totpSecret         String?
+  totpEnabledAt      DateTime?
+  // Last accepted 30-second step, so a code can't be used twice.
+  lastTotpStep       Int?
+  mfaRecoveryCodes   MfaRecoveryCode[]
 
   @@index([email])
   @@index([oauthId])
@@ -99,6 +106,8 @@ model Usersession {
   userAgent          String?
   ipAddress          String?
   revoked            Boolean   @default(false)
+  // True when this login passed the two-factor check.
+  mfaVerified        Boolean   @default(false)
 
   @@index([userId])
   @@index([expireAt])
@@ -490,4 +499,42 @@ model LoginAttempt {
   @@index([identifier])
   @@index([isLocked])
   @@index([lockedUntil])
+}
+
+enum VerificationPurpose {
+  SIGNUP
+  RESET_PASSWORD
+  CHANGE_EMAIL
+  MFA_SETUP
+  DELETE_ACCOUNT
+}
+
+// One-time backup codes for two-factor login. Only a SHA-256 hash is stored.
+model MfaRecoveryCode {
+  id        Int       @id @default(autoincrement())
+  userId    Int
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  codeHash  String
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+}
+
+// Short-lived email codes / reset tokens. Only a SHA-256 hash is stored.
+model EmailVerification {
+  id        Int                 @id @default(autoincrement())
+  purpose   VerificationPurpose
+  email     String
+  userId    Int?
+  user      User?               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String
+  attempts  Int                 @default(0)
+  expiresAt DateTime
+  createdAt DateTime            @default(now())
+
+  @@index([email, purpose])
+  @@index([userId, purpose])
+  @@index([tokenHash])
+  @@index([expiresAt])
 }

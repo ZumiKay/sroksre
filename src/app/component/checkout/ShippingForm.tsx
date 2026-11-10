@@ -46,32 +46,6 @@ const SELECT_CLASS =
   "w-full h-12 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 font-medium text-sm bg-white text-gray-700 appearance-none cursor-pointer";
 
 // -----------------------------------------------------------------------------
-// SelectionSSR – URL-driven address selector (server-side routing)
-// -----------------------------------------------------------------------------
-
-export function SelectionSSR(props: {
-  selectedvalue?: string;
-  data: Array<{ label: string; value: number }>;
-}) {
-  // Kept for compatibility – use SelectionCustom for client-driven usage
-  // This component drives address selection via URL search params
-  return (
-    <select
-      value={props.selectedvalue}
-      className="select__container border border-black rounded-md w-full h-full p-2"
-      // onChange intentionally omitted: consumers should use SelectionCustom instead
-    >
-      <option value="">None</option>
-      {props.data.map((item) => (
-        <option key={item.value} value={item.value}>
-          {item.label}
-        </option>
-      ))}
-    </select>
-  );
-}
-
-// -----------------------------------------------------------------------------
 // ShippingForm
 // -----------------------------------------------------------------------------
 

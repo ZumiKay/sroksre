@@ -215,6 +215,63 @@ const handleRelatedProductsUpdate = async (
   }
 };
 
+type FilterableProduct = {
+  name: string;
+  parentcategory_id: number | null;
+  childcategory_id: number | null;
+  stock: number | null;
+  Stock?: Array<{ Stockvalue: Array<{ qty: number }> }>;
+};
+
+/** Variant products use per-variant stock; normal products use `stock`. */
+const isLowStockProduct = (prod: FilterableProduct): boolean => {
+  if (prod.Stock && prod.Stock.length > 0) {
+    return prod.Stock.some((stock) => stock.Stockvalue.some((v) => v.qty <= 5));
+  }
+  return prod.stock !== null && prod.stock !== undefined && prod.stock <= 5;
+};
+
+/** Name / category / low-stock filters used by the inventory product list. */
+const matchesInventoryFilters = (
+  prod: FilterableProduct,
+  filters: {
+    query?: string;
+    parent_cate?: number;
+    child_cate?: number;
+    sk?: string;
+  },
+): boolean => {
+  const { query, parent_cate, child_cate, sk } = filters;
+  if (
+    query &&
+    !removeSpaceAndToLowerCase(prod.name).includes(
+      removeSpaceAndToLowerCase(query.toString()),
+    )
+  ) {
+    return false;
+  }
+  if (parent_cate && prod.parentcategory_id !== parent_cate) return false;
+  if (child_cate && prod.childcategory_id !== child_cate) return false;
+  if (sk === "Low" && !isLowStockProduct(prod)) return false;
+  return true;
+};
+
+/**
+ * Moves the products picked for a promotion to the front (in pick order),
+ * keeping everything else in its original order.
+ */
+const putSelectedFirst = <T extends { id: number }>(
+  items: T[],
+  ids?: number[],
+): T[] => {
+  if (!ids || ids.length === 0) return items;
+  const rank = new Map(ids.map((id, idx) => [id, idx]));
+  const picked = items
+    .filter((item) => rank.has(item.id))
+    .sort((a, b) => (rank.get(a.id) ?? 0) - (rank.get(b.id) ?? 0));
+  return [...picked, ...items.filter((item) => !rank.has(item.id))];
+};
+
 const mapWithDiscount = (products: any[]): any[] =>
   products.map((i) => ({
     ...i,
@@ -642,6 +699,7 @@ export const GetAllProduct = async (
   detailtext?: string,
   selectpromo?: number,
   promotionids?: string,
+  selectedids?: number[],
 ): Promise<GetProductReturnType> => {
   try {
     let totalproduct: number = 0;
@@ -705,46 +763,17 @@ export const GetAllProduct = async (
         });
 
         products = products
-          .filter((prod) => {
-            const isName =
-              query &&
-              removeSpaceAndToLowerCase(prod.name).includes(
-                removeSpaceAndToLowerCase(query),
-              );
+          .filter((prod) =>
+            matchesInventoryFilters(prod, {
+              query,
+              parent_cate,
+              child_cate,
+              sk,
+            }),
+          )
+          .map((prod) => ({ ...prod, lowstock: isLowStockProduct(prod) }));
 
-            const isPid = parent_cate && prod.parentcategory_id === parent_cate;
-            const isChildId =
-              child_cate && prod.childcategory_id === child_cate;
-
-            const isLowStock =
-              sk && sk === "Low" && prod.Stock
-                ? prod.Stock.some((stock) =>
-                    stock.Stockvalue.some((i) => i.qty <= 5),
-                  )
-                : prod.stock
-                  ? prod.stock <= 5
-                  : false;
-
-            const conditions = [
-              query ? isName : true,
-              parent_cate ? isPid : true,
-              child_cate ? isChildId : true,
-              sk ? isLowStock : true,
-            ];
-
-            return conditions.every((i) => i);
-          })
-          .map((prod) => {
-            let isLowStock = false;
-            if (prod.Stock && prod.Stock.length > 0) {
-              isLowStock = prod.Stock.some((stock) =>
-                stock.Stockvalue.some((sub) => sub.qty <= 5),
-              );
-            } else if (prod.stock !== null && prod.stock !== undefined) {
-              isLowStock = prod.stock <= 5;
-            }
-            return { ...prod, lowstock: isLowStock };
-          });
+        products = putSelectedFirst(products, selectedids);
 
         lowstock = products.filter((p) => (p as any).lowstock).length;
         totalproduct = products.length;
@@ -824,14 +853,31 @@ export const GetAllProduct = async (
             },
           },
           promotion_id: true,
+          stock: true,
+          parentcategory_id: true,
+          childcategory_id: true,
+          Stock: {
+            select: { Stockvalue: { select: { qty: true } } },
+          },
         },
         orderBy: {
           id: "asc",
         },
       });
 
-      totalproduct = product.length;
-      allproduct = caculateArrayPagination(product, page, limit);
+      const filtered = product
+        .filter((prod) =>
+          matchesInventoryFilters(prod, { query, parent_cate, child_cate, sk }),
+        )
+        .map((prod) => ({ ...prod, lowstock: isLowStockProduct(prod) }));
+
+      lowstock = filtered.filter((prod) => prod.lowstock).length;
+      totalproduct = filtered.length;
+      allproduct = caculateArrayPagination(
+        putSelectedFirst(filtered, selectedids),
+        page,
+        limit,
+      );
     }
 
     return {

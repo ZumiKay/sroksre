@@ -1,7 +1,7 @@
 "use client";
 import { TextField } from "@mui/material";
 import PrimaryButton from "../component/Button";
-import { ChangeEvent, SubmitEvent, useEffect, useState } from "react";
+import { ChangeEvent, SubmitEvent, useState } from "react";
 import { contacttype, SendInquiry } from "./action";
 import { successToast } from "../component/Loading";
 

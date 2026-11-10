@@ -10,7 +10,7 @@ import { signOut, useSession } from "next-auth/react";
 import { usePathname, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import PrimaryButton from "../Button";
-import { useGlobalContext } from "@/src/context/GlobalContext";
+import { useGlobalStore } from "@/src/context/GlobalContext";
 import {
   ApiRequest,
   Delayloading,
@@ -84,7 +84,8 @@ export default function AccountMenu({ setProfile }: AccountMenuProps) {
     session as never,
   );
   const memorizedStatus = useMemo(() => status, [status]);
-  const { openmodal, setopenmodal } = useGlobalContext();
+  const openmodal = useGlobalStore((s) => s.openmodal);
+  const setopenmodal = useGlobalStore((s) => s.setopenmodal);
   const [loading, setloading] = useState(false);
   const [Homeitems, sethomeitems] = useState<Homeitemtype[]>([]);
   const [isEdit, setisEdit] = useState(false);

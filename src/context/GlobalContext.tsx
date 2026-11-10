@@ -1,25 +1,11 @@
 "use client";
-import React, { useContext, useState } from "react";
+import React, { useContext, useState, useSyncExternalStore } from "react";
 import { Ordertype, Productordertype } from "../types/order.type";
 import { Categorytype } from "../app/api/categories/route";
 import { confirmmodaltype, userdata, Userdatastate } from "../types/user.type";
-import {
-  Listproductfilter,
-  ProductState,
-  StockTypeEnum,
-} from "../types/product.type";
-import {
-  AllDataState,
-  Allrefstate,
-  filterinventorytype,
-  ItemLength,
-} from "../types/global.type";
-import {
-  BannerState,
-  PromotionProductState,
-  PromotionState,
-} from "../types/productAction.type";
-import { Role } from "@/prisma/generated/prisma/enums";
+import { Listproductfilter, ProductState, StockTypeEnum } from "../types/product.type";
+import { AllDataState, filterinventorytype, ItemLength } from "../types/global.type";
+import { BannerState, PromotionProductState, PromotionState } from "../types/productAction.type";
 import dayjs from "dayjs";
 
 type alerttype = {
@@ -99,15 +85,6 @@ export interface LoadingState {
   DELETE: boolean;
   IMAGE: any;
 }
-export interface Sessiontype {
-  id?: number;
-  email?: string;
-  name?: string;
-  image?: string;
-  role?: Role;
-  status?: string;
-  sessionid?: string;
-}
 
 //Initail State
 //
@@ -148,9 +125,6 @@ const OpenmodalinitialState: OpenModalState = {
     closecon: "",
   },
 };
-export const Allrefinitialize: Allrefstate = {
-  filterref: null,
-};
 export const CateogoryInitailizestate: CateogoryState = {
   name: "",
   description: "",
@@ -170,14 +144,6 @@ export const Productinitailizestate: ProductState = {
   },
   details: [],
   relatedproductid: [],
-};
-export const AllDataInitialize: AllDataState = {
-  product: [],
-  banner: [],
-  category: [],
-  promotion: [],
-  filteredData: [],
-  user: [],
 };
 export const ItemlengthInitialize: ItemLength = {
   total: 0,
@@ -247,171 +213,153 @@ export const Productdetailinitialize: Productordertype = {
   price: { price: 0 },
 };
 
-//
-//
-//
-///////////////////////
-interface ContextType {
+// Global store
+type Setter<T> = React.Dispatch<React.SetStateAction<T>>;
+
+interface GlobalValues {
   openmodal: OpenModalState;
-  setopenmodal: React.Dispatch<React.SetStateAction<OpenModalState>>;
   globalindex: GlobalIndexState;
-  setglobalindex: React.Dispatch<React.SetStateAction<GlobalIndexState>>;
   product: ProductState;
-  setproduct: React.Dispatch<React.SetStateAction<ProductState>>;
   category: CateogoryState;
-  setcategory: React.Dispatch<React.SetStateAction<CateogoryState>>;
   banner: BannerState;
-  setbanner: React.Dispatch<React.SetStateAction<BannerState>>;
   promotion: PromotionState;
-  setpromotion: React.Dispatch<React.SetStateAction<PromotionState>>;
   allData?: AllDataState;
-  setalldata: React.Dispatch<React.SetStateAction<AllDataState | undefined>>;
   isLoading: LoadingState;
-  setisLoading: React.Dispatch<React.SetStateAction<LoadingState>>;
   itemlength: ItemLength;
-  setitemlength: React.Dispatch<React.SetStateAction<ItemLength>>;
   inventoryfilter: filterinventorytype;
-  setinventoryfilter: React.Dispatch<React.SetStateAction<filterinventorytype>>;
   userinfo: Userdatastate;
   page: number;
-  setpage: React.Dispatch<React.SetStateAction<number>>;
-  setuserinfo: React.Dispatch<React.SetStateAction<Userdatastate>>;
   productorderdetail: Productordertype;
-  setproductorderdetail: React.Dispatch<React.SetStateAction<Productordertype>>;
   user: userdata;
-  setuser: React.Dispatch<React.SetStateAction<userdata>>;
   listproductfilval: Listproductfilter;
-  setproductfilval: React.Dispatch<React.SetStateAction<Listproductfilter>>;
   error: boolean;
-  seterror: React.Dispatch<React.SetStateAction<boolean>>;
   reloaddata: boolean;
-  setreloaddata: React.Dispatch<React.SetStateAction<boolean>>;
   reloadcart: boolean;
-  setreloadcart: React.Dispatch<React.SetStateAction<boolean>>;
   order: Ordertype | undefined;
-  setorder: React.Dispatch<React.SetStateAction<Ordertype | undefined>>;
   cart: boolean;
-  setcart: React.Dispatch<React.SetStateAction<boolean>>;
   carttotal: number;
-  setcarttotal: React.Dispatch<React.SetStateAction<number>>;
 }
-const GlobalContext = React.createContext<ContextType | null>(null);
 
-export const GlobalContextProvider = ({
-  children,
-}: {
-  children: React.ReactNode;
-}) => {
-  const [openmodal, setopenmodal] = useState(OpenmodalinitialState);
-  const [category, setcategory] = useState(CateogoryInitailizestate);
-  const [globalindex, setglobalindex] = useState(GlobalIndexInitializeState);
-  const [product, setproduct] = useState(Productinitailizestate);
-  const [banner, setbanner] = useState(BannerInitialize);
-  const [promotion, setpromotion] = useState(PromotionInitialize);
-  const [allData, setalldata] = useState<AllDataState | undefined>(undefined);
-  const [isLoading, setisLoading] = useState(LoadingStateInitialized);
-  const [itemlength, setitemlength] = useState(ItemlengthInitialize);
-  const [user, setuser] = useState(Userinitialize);
-  const [page, setpage] = useState(1);
-  const [userinfo, setuserinfo] = useState({});
-  const [error, seterror] = useState<boolean>(false);
-  const [reloaddata, setreloaddata] = useState(true);
-  const [reloadcart, setreloadcart] = useState(true);
-  const [order, setorder] = useState<Ordertype | undefined>(undefined);
-  const [cart, setcart] = useState(false);
-  const [carttotal, setcarttotal] = useState(0);
-  const [productorderdetail, setproductorderdetail] =
-    useState<Productordertype>(Productdetailinitialize);
+interface GlobalSetters {
+  setopenmodal: Setter<OpenModalState>;
+  setglobalindex: Setter<GlobalIndexState>;
+  setproduct: Setter<ProductState>;
+  setcategory: Setter<CateogoryState>;
+  setbanner: Setter<BannerState>;
+  setpromotion: Setter<PromotionState>;
+  setalldata: Setter<AllDataState | undefined>;
+  setisLoading: Setter<LoadingState>;
+  setitemlength: Setter<ItemLength>;
+  setinventoryfilter: Setter<filterinventorytype>;
+  setuserinfo: Setter<Userdatastate>;
+  setpage: Setter<number>;
+  setproductorderdetail: Setter<Productordertype>;
+  setuser: Setter<userdata>;
+  setproductfilval: Setter<Listproductfilter>;
+  seterror: Setter<boolean>;
+  setreloaddata: Setter<boolean>;
+  setreloadcart: Setter<boolean>;
+  setorder: Setter<Ordertype | undefined>;
+  setcart: Setter<boolean>;
+  setcarttotal: Setter<number>;
+}
 
-  const [listproductfilval, setproductfilval] = useState<Listproductfilter>({
-    size: [],
-    color: [],
-    text: [],
-    order: "",
-  });
-  const [inventoryfilter, setinventoryfilter] =
-    useState<filterinventorytype>("product");
+export type GlobalState = GlobalValues & GlobalSetters;
 
-  return (
-    <GlobalContext.Provider
-      value={{
-        productorderdetail,
-        setproductorderdetail,
-        listproductfilval,
-        setproductfilval,
-        error,
-        reloaddata,
-        setreloaddata,
-        order,
-        cart,
-        setcart,
-        reloadcart,
-        setreloadcart,
-        setorder,
-        seterror,
-        promotion,
-        setpromotion,
-        userinfo,
-        setuserinfo,
-        page,
-        setpage,
-        banner,
-        setbanner,
-        openmodal,
-        setopenmodal,
-        product,
-        setproduct,
-        globalindex,
-        setglobalindex,
-        category,
-        setcategory,
-        allData,
-        setalldata,
-        isLoading,
-        setisLoading,
-        itemlength,
-        setitemlength,
-        inventoryfilter,
-        setinventoryfilter,
-        user,
-        setuser,
-        carttotal,
-        setcarttotal,
-      }}
-    >
-      {children}
-    </GlobalContext.Provider>
-  );
+const initialValues = (): GlobalValues => ({
+  openmodal: OpenmodalinitialState,
+  globalindex: GlobalIndexInitializeState,
+  product: Productinitailizestate,
+  category: CateogoryInitailizestate,
+  banner: BannerInitialize,
+  promotion: PromotionInitialize,
+  allData: undefined,
+  isLoading: LoadingStateInitialized,
+  itemlength: ItemlengthInitialize,
+  inventoryfilter: "product",
+  userinfo: {},
+  page: 1,
+  productorderdetail: Productdetailinitialize,
+  user: Userinitialize,
+  listproductfilval: { size: [], color: [], text: [], order: "" },
+  error: false,
+  reloaddata: true,
+  reloadcart: true,
+  order: undefined,
+  cart: false,
+  carttotal: 0,
+});
+
+// Setter name for each value, e.g. allData -> setalldata
+const setterNames: { [K in keyof GlobalValues]-?: keyof GlobalSetters } = {
+  openmodal: "setopenmodal",
+  globalindex: "setglobalindex",
+  product: "setproduct",
+  category: "setcategory",
+  banner: "setbanner",
+  promotion: "setpromotion",
+  allData: "setalldata",
+  isLoading: "setisLoading",
+  itemlength: "setitemlength",
+  inventoryfilter: "setinventoryfilter",
+  userinfo: "setuserinfo",
+  page: "setpage",
+  productorderdetail: "setproductorderdetail",
+  user: "setuser",
+  listproductfilval: "setproductfilval",
+  error: "seterror",
+  reloaddata: "setreloaddata",
+  reloadcart: "setreloadcart",
+  order: "setorder",
+  cart: "setcart",
+  carttotal: "setcarttotal",
 };
-export const useGlobalContext = () => {
-  const context = useContext(GlobalContext);
-  if (!context) {
-    throw new Error("Context Not Found");
-  } else {
-    return context;
+
+interface GlobalStore {
+  getState: () => GlobalState;
+  subscribe: (listener: () => void) => () => void;
+}
+
+const createGlobalStore = (): GlobalStore => {
+  const listeners = new Set<() => void>();
+  let state = initialValues() as GlobalState;
+
+  const setters = {} as Record<keyof GlobalSetters, Setter<unknown>>;
+  for (const key of Object.keys(setterNames) as (keyof GlobalValues)[]) {
+    setters[setterNames[key]] = (action) => {
+      const prev = state[key];
+      const next =
+        typeof action === "function" ? (action as (p: unknown) => unknown)(prev) : action;
+      if (Object.is(prev, next)) return;
+      state = { ...state, [key]: next };
+      listeners.forEach((listener) => listener());
+    };
   }
-};
-type closecontype =
-  | "createProduct"
-  | "createBanner"
-  | "createPromotion"
-  | "createCategory"
-  | "addsubcategory"
-  | "createUser";
-export const SaveCheck = (
-  confirm: boolean,
-  closecon: closecontype,
-  openmodal: OpenModalState,
-  open?: boolean,
-  deletecallback?: any,
-) => {
+  state = { ...state, ...(setters as unknown as GlobalSetters) };
+
   return {
-    ...openmodal,
-    confirmmodal: {
-      open: open ?? false,
-      confirm: confirm,
-      closecon: closecon,
-      deletecallback: deletecallback,
+    getState: () => state,
+    subscribe: (listener) => {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
     },
   };
 };
+
+// The context only carries the store object, which never changes, so it
+const GlobalStoreContext = React.createContext<GlobalStore | null>(null);
+
+export const GlobalContextProvider = ({ children }: { children: React.ReactNode }) => {
+  const [store] = useState(createGlobalStore);
+
+  return <GlobalStoreContext.Provider value={store}>{children}</GlobalStoreContext.Provider>;
+};
+
+export function useGlobalStore<T>(selector: (state: GlobalState) => T): T {
+  const store = useContext(GlobalStoreContext);
+  if (!store) {
+    throw new Error("useGlobalStore must be used inside GlobalContextProvider");
+  }
+  const getSnapshot = () => selector(store.getState());
+  return useSyncExternalStore(store.subscribe, getSnapshot, getSnapshot);
+}

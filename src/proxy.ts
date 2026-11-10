@@ -1,7 +1,14 @@
+//Middleware
+//
 "use server";
 
 import { NextRequest, NextResponse } from "next/server";
-import { VerifyApiRoute, methodtype } from "./lib/middlewareaction";
+import {
+  VerifyApiRoute,
+  isAdminOnlyRoute,
+  methodtype,
+} from "./lib/middlewareaction";
+import { getAdminSessionStatus, isActiveAdminSession } from "./lib/adminGuard";
 
 import { getToken } from "next-auth/jwt";
 import { Role } from "@/prisma/generated/prisma/enums";
@@ -18,8 +25,24 @@ export default async function proxy(req: NextRequest) {
       if (url.includes("order")) {
         return NextResponse.next();
       }
-      if (url.includes("products") || url.includes("usermanagement")) {
-        if (token.role && token.role === "ADMIN") {
+      if (
+        url.includes("products") ||
+        url.includes("usermanagement") ||
+        url.includes("inventory")
+      ) {
+        // The cookie's role can be days old; confirm with the database.
+        const status =
+          token.role === "ADMIN"
+            ? await getAdminSessionStatus(token.sessionid)
+            : "denied";
+
+        if (status === "mfa_required") {
+          return NextResponse.redirect(new URL("/dashboard/security", req.url));
+        }
+        if (status === "ok" && url.includes("inventory")) {
+          return NextResponse.next();
+        }
+        if (status === "ok") {
           const nextUrl = req.nextUrl.clone();
           const searchparam = nextUrl.searchParams;
 
@@ -58,12 +81,22 @@ export default async function proxy(req: NextRequest) {
 
     const role = token?.role as Role;
 
-    const verifyroute = VerifyApiRoute(url.replace("/api", ""), method, role);
-    if (verifyroute.success) {
-      return NextResponse.next();
-    } else {
+    const route = url.replace("/api", "");
+    const verifyroute = VerifyApiRoute(route, method, role);
+    if (!verifyroute.success) {
       return NextResponse.error();
     }
+
+    // Admin routes: the cookie's role can be days old, so confirm the
+    // session is still live and the user is still an admin.
+    if (
+      isAdminOnlyRoute(route, method) &&
+      !(await isActiveAdminSession(token?.sessionid))
+    ) {
+      return NextResponse.error();
+    }
+
+    return NextResponse.next();
   }
 }
 export const config = {

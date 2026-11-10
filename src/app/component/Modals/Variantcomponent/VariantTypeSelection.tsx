@@ -5,16 +5,9 @@ import { Selection } from "../../Button";
 import TemplateContainer, { AddTemplateModal } from "./TemplateContainer";
 import { NormalSkeleton } from "../../Banner";
 import { ModalOpenState } from "../types";
-import {
-  useVariantManager,
-  UseVariantManagerReturn,
-} from "./hooks/useVariantManager";
-import {
-  useTemplateManager,
-  UseTemplateManagerReturn,
-} from "./hooks/useTemplateManager";
+import { UseVariantManagerReturn } from "./hooks/useVariantManager";
+import { UseTemplateManagerReturn } from "./hooks/useTemplateManager";
 import { VariantTypeEnum } from "@/src/types/product.type";
-import { SelectType } from "@/src/types/productAction.type";
 
 interface VariantTypeSelectionProps {
   variantManager: UseVariantManagerReturn;
@@ -25,11 +18,6 @@ interface VariantTypeSelectionProps {
   onSelectTemplate: (id: number) => void;
   setSuccessMessage?: React.Dispatch<React.SetStateAction<string>>;
 }
-
-const VariantTypeSelectionOptions: Array<SelectType> = [
-  { label: "Color", value: VariantTypeEnum.color },
-  { label: "Text", value: VariantTypeEnum.text },
-];
 
 export const VariantTypeSelection: React.FC<VariantTypeSelectionProps> = ({
   variantManager,

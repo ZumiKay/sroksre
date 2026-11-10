@@ -113,7 +113,6 @@ const CircleSvg = ({
   </div>
 );
 
-export default CircleSvg;
 
 // -----------------------------------------------------------------------------
 // StepComponent

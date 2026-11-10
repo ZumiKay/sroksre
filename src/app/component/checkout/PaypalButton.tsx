@@ -15,7 +15,7 @@ import {
   updateStatus,
 } from "@/src/app/checkout/action";
 import { ApiRequest } from "@/src/context/CustomHook";
-import { useGlobalContext } from "@/src/context/GlobalContext";
+import { useGlobalStore } from "@/src/context/GlobalContext";
 import { SendNotification, useSocket } from "@/src/context/SocketContext";
 import { errorToast, successToast } from "../Loading";
 import { OrderReceiptTemplate } from "../EmailTemplate";
@@ -84,7 +84,9 @@ function PaypalButtonWrapper({
         }}
         onError={(err) => {
           setIsProcessing(false);
-          console.error("PayPal error:", err);
+          if (process.env.NODE_ENV !== "production") {
+            console.error("PayPal error:", err);
+          }
           errorToast("Payment error occurred. Please try again.");
         }}
         onCancel={() => {
@@ -119,7 +121,7 @@ export function Paypalbutton({
 }) {
   const router = useRouter();
   const socket = useSocket();
-  const { setcarttotal } = useGlobalContext();
+  const setcarttotal = useGlobalStore((s) => s.setcarttotal);
   const { handleCheckSession } = useCheckSession();
 
   const createOrder = async (): Promise<string> => {
@@ -136,7 +138,9 @@ export function Paypalbutton({
     if (request.data.id) return request.data.id;
 
     const details = request.data?.details ?? [];
-    console.error("[PayPal] createOrder details:", JSON.stringify(details, null, 2));
+    if (process.env.NODE_ENV !== "production") {
+      console.error("[PayPal] createOrder details:", JSON.stringify(details, null, 2));
+    }
     const detail = details[0];
     const msg = detail
       ? `${detail.issue}: ${detail.description}${detail.field ? ` [field: ${detail.field}]` : ""} (${request.data.debug_id})`
@@ -206,7 +210,9 @@ export function Paypalbutton({
       setcarttotal(0);
       router.refresh();
     } catch (error) {
-      console.error("Payment error", error);
+      if (process.env.NODE_ENV !== "production") {
+        console.error("Payment error", error);
+      }
       errorToast("Payment failed, please try again!");
     }
   };

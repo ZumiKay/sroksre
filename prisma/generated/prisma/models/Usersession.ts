@@ -45,6 +45,7 @@ export type UsersessionMinAggregateOutputType = {
   userAgent: string | null
   ipAddress: string | null
   revoked: boolean | null
+  mfaVerified: boolean | null
 }
 
 export type UsersessionMaxAggregateOutputType = {
@@ -58,6 +59,7 @@ export type UsersessionMaxAggregateOutputType = {
   userAgent: string | null
   ipAddress: string | null
   revoked: boolean | null
+  mfaVerified: boolean | null
 }
 
 export type UsersessionCountAggregateOutputType = {
@@ -71,6 +73,7 @@ export type UsersessionCountAggregateOutputType = {
   userAgent: number
   ipAddress: number
   revoked: number
+  mfaVerified: number
   _all: number
 }
 
@@ -94,6 +97,7 @@ export type UsersessionMinAggregateInputType = {
   userAgent?: true
   ipAddress?: true
   revoked?: true
+  mfaVerified?: true
 }
 
 export type UsersessionMaxAggregateInputType = {
@@ -107,6 +111,7 @@ export type UsersessionMaxAggregateInputType = {
   userAgent?: true
   ipAddress?: true
   revoked?: true
+  mfaVerified?: true
 }
 
 export type UsersessionCountAggregateInputType = {
@@ -120,6 +125,7 @@ export type UsersessionCountAggregateInputType = {
   userAgent?: true
   ipAddress?: true
   revoked?: true
+  mfaVerified?: true
   _all?: true
 }
 
@@ -220,6 +226,7 @@ export type UsersessionGroupByOutputType = {
   userAgent: string | null
   ipAddress: string | null
   revoked: boolean
+  mfaVerified: boolean
   _count: UsersessionCountAggregateOutputType | null
   _avg: UsersessionAvgAggregateOutputType | null
   _sum: UsersessionSumAggregateOutputType | null
@@ -256,6 +263,7 @@ export type UsersessionWhereInput = {
   userAgent?: Prisma.StringNullableFilter<"Usersession"> | string | null
   ipAddress?: Prisma.StringNullableFilter<"Usersession"> | string | null
   revoked?: Prisma.BoolFilter<"Usersession"> | boolean
+  mfaVerified?: Prisma.BoolFilter<"Usersession"> | boolean
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
 }
 
@@ -270,6 +278,7 @@ export type UsersessionOrderByWithRelationInput = {
   userAgent?: Prisma.SortOrderInput | Prisma.SortOrder
   ipAddress?: Prisma.SortOrderInput | Prisma.SortOrder
   revoked?: Prisma.SortOrder
+  mfaVerified?: Prisma.SortOrder
   user?: Prisma.UserOrderByWithRelationInput
 }
 
@@ -287,6 +296,7 @@ export type UsersessionWhereUniqueInput = Prisma.AtLeast<{
   userAgent?: Prisma.StringNullableFilter<"Usersession"> | string | null
   ipAddress?: Prisma.StringNullableFilter<"Usersession"> | string | null
   revoked?: Prisma.BoolFilter<"Usersession"> | boolean
+  mfaVerified?: Prisma.BoolFilter<"Usersession"> | boolean
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
 }, "sessionid" | "refresh_token_hash">
 
@@ -301,6 +311,7 @@ export type UsersessionOrderByWithAggregationInput = {
   userAgent?: Prisma.SortOrderInput | Prisma.SortOrder
   ipAddress?: Prisma.SortOrderInput | Prisma.SortOrder
   revoked?: Prisma.SortOrder
+  mfaVerified?: Prisma.SortOrder
   _count?: Prisma.UsersessionCountOrderByAggregateInput
   _avg?: Prisma.UsersessionAvgOrderByAggregateInput
   _max?: Prisma.UsersessionMaxOrderByAggregateInput
@@ -322,6 +333,7 @@ export type UsersessionScalarWhereWithAggregatesInput = {
   userAgent?: Prisma.StringNullableWithAggregatesFilter<"Usersession"> | string | null
   ipAddress?: Prisma.StringNullableWithAggregatesFilter<"Usersession"> | string | null
   revoked?: Prisma.BoolWithAggregatesFilter<"Usersession"> | boolean
+  mfaVerified?: Prisma.BoolWithAggregatesFilter<"Usersession"> | boolean
 }
 
 export type UsersessionCreateInput = {
@@ -334,6 +346,7 @@ export type UsersessionCreateInput = {
   userAgent?: string | null
   ipAddress?: string | null
   revoked?: boolean
+  mfaVerified?: boolean
   user: Prisma.UserCreateNestedOneWithoutSessionsInput
 }
 
@@ -348,6 +361,7 @@ export type UsersessionUncheckedCreateInput = {
   userAgent?: string | null
   ipAddress?: string | null
   revoked?: boolean
+  mfaVerified?: boolean
 }
 
 export type UsersessionUpdateInput = {
@@ -360,6 +374,7 @@ export type UsersessionUpdateInput = {
   userAgent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ipAddress?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   revoked?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  mfaVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
   user?: Prisma.UserUpdateOneRequiredWithoutSessionsNestedInput
 }
 
@@ -374,6 +389,7 @@ export type UsersessionUncheckedUpdateInput = {
   userAgent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ipAddress?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   revoked?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  mfaVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
 export type UsersessionCreateManyInput = {
@@ -387,6 +403,7 @@ export type UsersessionCreateManyInput = {
   userAgent?: string | null
   ipAddress?: string | null
   revoked?: boolean
+  mfaVerified?: boolean
 }
 
 export type UsersessionUpdateManyMutationInput = {
@@ -399,6 +416,7 @@ export type UsersessionUpdateManyMutationInput = {
   userAgent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ipAddress?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   revoked?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  mfaVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
 export type UsersessionUncheckedUpdateManyInput = {
@@ -412,6 +430,7 @@ export type UsersessionUncheckedUpdateManyInput = {
   userAgent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ipAddress?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   revoked?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  mfaVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
 export type UsersessionListRelationFilter = {
@@ -435,6 +454,7 @@ export type UsersessionCountOrderByAggregateInput = {
   userAgent?: Prisma.SortOrder
   ipAddress?: Prisma.SortOrder
   revoked?: Prisma.SortOrder
+  mfaVerified?: Prisma.SortOrder
 }
 
 export type UsersessionAvgOrderByAggregateInput = {
@@ -452,6 +472,7 @@ export type UsersessionMaxOrderByAggregateInput = {
   userAgent?: Prisma.SortOrder
   ipAddress?: Prisma.SortOrder
   revoked?: Prisma.SortOrder
+  mfaVerified?: Prisma.SortOrder
 }
 
 export type UsersessionMinOrderByAggregateInput = {
@@ -465,6 +486,7 @@ export type UsersessionMinOrderByAggregateInput = {
   userAgent?: Prisma.SortOrder
   ipAddress?: Prisma.SortOrder
   revoked?: Prisma.SortOrder
+  mfaVerified?: Prisma.SortOrder
 }
 
 export type UsersessionSumOrderByAggregateInput = {
@@ -513,10 +535,6 @@ export type UsersessionUncheckedUpdateManyWithoutUserNestedInput = {
   deleteMany?: Prisma.UsersessionScalarWhereInput | Prisma.UsersessionScalarWhereInput[]
 }
 
-export type NullableDateTimeFieldUpdateOperationsInput = {
-  set?: Date | string | null
-}
-
 export type BoolFieldUpdateOperationsInput = {
   set?: boolean
 }
@@ -531,6 +549,7 @@ export type UsersessionCreateWithoutUserInput = {
   userAgent?: string | null
   ipAddress?: string | null
   revoked?: boolean
+  mfaVerified?: boolean
 }
 
 export type UsersessionUncheckedCreateWithoutUserInput = {
@@ -543,6 +562,7 @@ export type UsersessionUncheckedCreateWithoutUserInput = {
   userAgent?: string | null
   ipAddress?: string | null
   revoked?: boolean
+  mfaVerified?: boolean
 }
 
 export type UsersessionCreateOrConnectWithoutUserInput = {
@@ -585,6 +605,7 @@ export type UsersessionScalarWhereInput = {
   userAgent?: Prisma.StringNullableFilter<"Usersession"> | string | null
   ipAddress?: Prisma.StringNullableFilter<"Usersession"> | string | null
   revoked?: Prisma.BoolFilter<"Usersession"> | boolean
+  mfaVerified?: Prisma.BoolFilter<"Usersession"> | boolean
 }
 
 export type UsersessionCreateManyUserInput = {
@@ -597,6 +618,7 @@ export type UsersessionCreateManyUserInput = {
   userAgent?: string | null
   ipAddress?: string | null
   revoked?: boolean
+  mfaVerified?: boolean
 }
 
 export type UsersessionUpdateWithoutUserInput = {
@@ -609,6 +631,7 @@ export type UsersessionUpdateWithoutUserInput = {
   userAgent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ipAddress?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   revoked?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  mfaVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
 export type UsersessionUncheckedUpdateWithoutUserInput = {
@@ -621,6 +644,7 @@ export type UsersessionUncheckedUpdateWithoutUserInput = {
   userAgent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ipAddress?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   revoked?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  mfaVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
 export type UsersessionUncheckedUpdateManyWithoutUserInput = {
@@ -633,6 +657,7 @@ export type UsersessionUncheckedUpdateManyWithoutUserInput = {
   userAgent?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   ipAddress?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   revoked?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  mfaVerified?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
 
@@ -648,6 +673,7 @@ export type UsersessionSelect<ExtArgs extends runtime.Types.Extensions.InternalA
   userAgent?: boolean
   ipAddress?: boolean
   revoked?: boolean
+  mfaVerified?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["usersession"]>
 
@@ -662,6 +688,7 @@ export type UsersessionSelectCreateManyAndReturn<ExtArgs extends runtime.Types.E
   userAgent?: boolean
   ipAddress?: boolean
   revoked?: boolean
+  mfaVerified?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["usersession"]>
 
@@ -676,6 +703,7 @@ export type UsersessionSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.E
   userAgent?: boolean
   ipAddress?: boolean
   revoked?: boolean
+  mfaVerified?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["usersession"]>
 
@@ -690,9 +718,10 @@ export type UsersessionSelectScalar = {
   userAgent?: boolean
   ipAddress?: boolean
   revoked?: boolean
+  mfaVerified?: boolean
 }
 
-export type UsersessionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"sessionid" | "refresh_token_hash" | "userId" | "createdAt" | "expireAt" | "lastUsed" | "device" | "userAgent" | "ipAddress" | "revoked", ExtArgs["result"]["usersession"]>
+export type UsersessionOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"sessionid" | "refresh_token_hash" | "userId" | "createdAt" | "expireAt" | "lastUsed" | "device" | "userAgent" | "ipAddress" | "revoked" | "mfaVerified", ExtArgs["result"]["usersession"]>
 export type UsersessionInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
 }
@@ -719,6 +748,7 @@ export type $UsersessionPayload<ExtArgs extends runtime.Types.Extensions.Interna
     userAgent: string | null
     ipAddress: string | null
     revoked: boolean
+    mfaVerified: boolean
   }, ExtArgs["result"]["usersession"]>
   composites: {}
 }
@@ -1153,6 +1183,7 @@ export interface UsersessionFieldRefs {
   readonly userAgent: Prisma.FieldRef<"Usersession", 'String'>
   readonly ipAddress: Prisma.FieldRef<"Usersession", 'String'>
   readonly revoked: Prisma.FieldRef<"Usersession", 'Boolean'>
+  readonly mfaVerified: Prisma.FieldRef<"Usersession", 'Boolean'>
 }
     
 
