@@ -1,13 +1,11 @@
 "use client";
 
-import ReactDOMServer from "react-dom/server";
 import { ChangeEvent, useEffect, useState } from "react";
 import { Selection } from "@/src/app/component/Button";
 import Modal, { SecondaryModal } from "@/src/app/component/Modals";
 import { useGlobalStore } from "@/src/context/GlobalContext";
 import { Allstatus } from "@/src/types/order.type";
 import { useRouter, useSearchParams } from "next/navigation";
-import { OrderReceiptTemplate } from "@/src/app/component/EmailTemplate";
 import {
   deleteOrder,
   updateOrderSettings,
@@ -93,12 +91,17 @@ export const ActionModal = ({
             </button>
           ) : (
             <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center shrink-0">
-              <FontAwesomeIcon icon={faBolt} className="text-slate-500 text-sm" />
+              <FontAwesomeIcon
+                icon={faBolt}
+                className="text-slate-500 text-sm"
+              />
             </div>
           )}
           <div className="flex-1 min-w-0">
             <h3 className="text-base font-bold text-gray-900">Order Actions</h3>
-            <p className="text-xs text-gray-400">{subTitles[actiontype] ?? ""}</p>
+            <p className="text-xs text-gray-400">
+              {subTitles[actiontype] ?? ""}
+            </p>
           </div>
         </div>
 
@@ -108,10 +111,18 @@ export const ActionModal = ({
             <ActionMenu setactiontype={setactiontype} />
           )}
           {actiontype === "status" && (
-            <UpdateStatus setactiontype={setactiontype} oid={oid} order={order} />
+            <UpdateStatus
+              setactiontype={setactiontype}
+              oid={oid}
+              order={order}
+            />
           )}
           {actiontype === "settings" && (
-            <EditSettings setactiontype={setactiontype} oid={oid} order={order} />
+            <EditSettings
+              setactiontype={setactiontype}
+              oid={oid}
+              order={order}
+            />
           )}
           {actiontype === "delete" && (
             <OrderAlert settype={setactiontype} oid={oid} close={setclose} />
@@ -172,7 +183,10 @@ const ActionMenu = ({ setactiontype }: ActionMenuProps) => (
         <div
           className={`w-9 h-9 rounded-xl ${item.iconBg} flex items-center justify-center shrink-0`}
         >
-          <FontAwesomeIcon icon={item.icon} className={`${item.iconColor} text-sm`} />
+          <FontAwesomeIcon
+            icon={item.icon}
+            className={`${item.iconColor} text-sm`}
+          />
         </div>
         <div className="flex-1">
           <p className="text-sm font-semibold text-gray-800">{item.label}</p>
@@ -228,18 +242,8 @@ const UpdateStatus = ({ setactiontype, oid, order }: UpdateStatusProps) => {
       return;
     }
 
-    const emailTemplate = ReactDOMServer.renderToStaticMarkup(
-      <OrderReceiptTemplate
-        order={{ ...order, status: status as any }}
-        isAdmin={false}
-      />,
-    );
-    const update = await updateOrderStatus.bind(
-      null,
-      status as any,
-      oid,
-      emailTemplate,
-    )();
+    // The server renders the customer email from the database.
+    const update = await updateOrderStatus(status, oid);
     setloading(false);
 
     if (!update.success) {
@@ -355,7 +359,9 @@ const EditSettings = ({ setactiontype, oid, order }: EditSettingsProps) => {
     router.refresh();
   };
 
-  const selectedShipping = Shippingservice.find((s) => s.value === shippingtype);
+  const selectedShipping = Shippingservice.find(
+    (s) => s.value === shippingtype,
+  );
 
   return (
     <div className="flex flex-col gap-5">
@@ -376,7 +382,8 @@ const EditSettings = ({ setactiontype, oid, order }: EditSettingsProps) => {
         />
         {price?.subtotal && vatPercent > 0 && (
           <p className="text-xs text-violet-600 font-medium">
-            ≈ ${((price.subtotal * vatPercent) / 100).toFixed(2)} added to subtotal
+            ≈ ${((price.subtotal * vatPercent) / 100).toFixed(2)} added to
+            subtotal
           </p>
         )}
       </div>

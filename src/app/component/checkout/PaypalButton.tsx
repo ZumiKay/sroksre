@@ -1,24 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import ReactDOMServer from "react-dom/server";
 import { useRouter } from "next/navigation";
 import {
   PayPalScriptProvider,
   PayPalButtons,
   usePayPalScriptReducer,
 } from "@paypal/react-paypal-js";
-import { Allstatus, Ordertype } from "@/src/types/order.type";
-import {
-  captureOrder,
-  createPaypalOrder,
-  updateStatus,
-} from "@/src/app/checkout/action";
-import { ApiRequest } from "@/src/context/CustomHook";
+import { Ordertype } from "@/src/types/order.type";
+import { confirmPayment, createPaypalOrder } from "@/src/app/checkout/action";
 import { useGlobalStore } from "@/src/context/GlobalContext";
 import { SendNotification, useSocket } from "@/src/context/SocketContext";
 import { errorToast, successToast } from "../Loading";
-import { OrderReceiptTemplate } from "../EmailTemplate";
 import useCheckSession from "@/src/hooks/useCheckSession";
 
 // -----------------------------------------------------------------------------
@@ -139,7 +132,10 @@ export function Paypalbutton({
 
     const details = request.data?.details ?? [];
     if (process.env.NODE_ENV !== "production") {
-      console.error("[PayPal] createOrder details:", JSON.stringify(details, null, 2));
+      console.error(
+        "[PayPal] createOrder details:",
+        JSON.stringify(details, null, 2),
+      );
     }
     const detail = details[0];
     const msg = detail
@@ -149,49 +145,19 @@ export function Paypalbutton({
     throw new Error(msg);
   };
 
-  const handleApprove = async (data: any, actions: any) => {
+  const handleApprove = async (_data: unknown, actions: unknown) => {
     try {
-      const request = await captureOrder.bind(null, data.orderID)();
-      if (!request.success) {
-        errorToast(request.message ?? "Server error");
-        return;
-      }
+      // The server captures and verifies the payment itself; the browser only
+      // reports that the buyer approved it in PayPal.
+      const result = await confirmPayment(orderId);
 
-      const orderData = request.data;
-      const errorDetail = orderData?.details?.[0];
-
-      if (errorDetail?.issue === "INSTRUMENT_DECLINED") {
-        return actions.restart();
-      } else if (errorDetail) {
-        throw new Error(`${errorDetail.description} (${orderData.debug_id})`);
-      } else if (!orderData.purchase_units) {
-        throw new Error(JSON.stringify(orderData));
-      }
-
-      const policyRes = await ApiRequest(
-        "/api/policy?type=email",
-        undefined,
-        "GET",
-      );
-      if (!policyRes.success) throw new Error("Error Occurred");
-
-      const paidOrder = { ...order, status: Allstatus.paid };
-      const htmltemplate = ReactDOMServer.renderToString(
-        <OrderReceiptTemplate order={paidOrder} isAdmin={false} />,
-      );
-      const adminhtmltemplate = ReactDOMServer.renderToString(
-        <OrderReceiptTemplate order={paidOrder} isAdmin={true} />,
-      );
-
-      const makeReq = await updateStatus.bind(
-        null,
-        orderId,
-        htmltemplate,
-        adminhtmltemplate,
-      )();
-
-      if (!makeReq.success) {
-        errorToast(makeReq.message ?? "");
+      if (!result.success) {
+        if (result.message === "INSTRUMENT_DECLINED") {
+          const restart = (actions as { restart?: () => Promise<void> | void })
+            ?.restart;
+          if (restart) return await restart();
+        }
+        errorToast(result.message ?? "Payment failed, please try again!");
         return;
       }
 

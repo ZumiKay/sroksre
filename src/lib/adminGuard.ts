@@ -10,11 +10,6 @@ import { isAdminMfaRequired } from "./mfa";
  */
 export type AdminSessionStatus = "ok" | "mfa_required" | "denied";
 
-/**
- * Looks up the session in the database instead of trusting the login cookie.
- * The role inside the cookie can be up to 7 days old, so revoking an admin's
- * sessions or changing their role takes effect on their next request.
- */
 export async function getAdminSessionStatus(
   sessionid: unknown,
 ): Promise<AdminSessionStatus> {
@@ -48,7 +43,6 @@ export async function getAdminSessionStatus(
   }
 }
 
-/** True when the session may use admin pages and APIs right now. */
 export async function isActiveAdminSession(
   sessionid: unknown,
 ): Promise<boolean> {

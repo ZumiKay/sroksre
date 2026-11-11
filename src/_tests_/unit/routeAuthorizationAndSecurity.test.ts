@@ -25,6 +25,15 @@ describe("Route Authorization & Security Unit Tests", () => {
         const res = VerifyApiRoute("/categories", "GET", null);
         expect(res.success).toBe(true);
       });
+
+      it("lets PayPal reach POST /paypal/webhook (signature checked in the handler)", () => {
+        expect(VerifyApiRoute("/paypal/webhook", "POST", null).success).toBe(
+          true,
+        );
+        expect(VerifyApiRoute("/paypal/webhook", "GET", null).success).toBe(
+          false,
+        );
+      });
     });
 
     describe("User-level Protected Routes", () => {
@@ -56,9 +65,15 @@ describe("Route Authorization & Security Unit Tests", () => {
       });
 
       it("allows ADMIN role to call /products/crud POST, PUT, and DELETE", () => {
-        expect(VerifyApiRoute("/products/crud", "POST", Role.ADMIN).success).toBe(true);
-        expect(VerifyApiRoute("/products/crud", "PUT", Role.ADMIN).success).toBe(true);
-        expect(VerifyApiRoute("/products/crud", "DELETE", Role.ADMIN).success).toBe(true);
+        expect(
+          VerifyApiRoute("/products/crud", "POST", Role.ADMIN).success,
+        ).toBe(true);
+        expect(
+          VerifyApiRoute("/products/crud", "PUT", Role.ADMIN).success,
+        ).toBe(true);
+        expect(
+          VerifyApiRoute("/products/crud", "DELETE", Role.ADMIN).success,
+        ).toBe(true);
       });
 
       it("rejects USER role from modifying categories", () => {
@@ -75,7 +90,9 @@ describe("Route Authorization & Security Unit Tests", () => {
 
   describe("timingSafeEquals", () => {
     it("returns true for identical secret strings", () => {
-      expect(timingSafeEquals("super_secret_token_123", "super_secret_token_123")).toBe(true);
+      expect(
+        timingSafeEquals("super_secret_token_123", "super_secret_token_123"),
+      ).toBe(true);
     });
 
     it("returns false for different length tokens without timing leaks", () => {

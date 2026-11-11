@@ -37,8 +37,12 @@ import {
   isValidOrderId,
   isCheckoutSessionExpired,
   buildStockAdjustments,
+  StockableItem,
 } from "@/src/app/checkout/stock";
-import { renewCheckoutSession, terminateCheckoutSession } from "@/src/app/checkout/action";
+import {
+  renewCheckoutSession,
+  terminateCheckoutSession,
+} from "@/src/app/checkout/action";
 
 describe("Checkout Session & Stock Hold/Release Tests", () => {
   beforeEach(() => {
@@ -78,7 +82,7 @@ describe("Checkout Session & Stock Hold/Release Tests", () => {
     });
 
     it("evaluates expiry against renewedAt when renewedAt is present", () => {
-      const createdAt = new Date(now - (CHECKOUT_SESSION_LIMIT_MS * 2)); // created 2 hours ago
+      const createdAt = new Date(now - CHECKOUT_SESSION_LIMIT_MS * 2); // created 2 hours ago
       const renewedAt = new Date(now - 10 * 60 * 1000); // renewed 10 mins ago (active)
       expect(isCheckoutSessionExpired(createdAt, renewedAt, now)).toBe(false);
 
@@ -100,7 +104,7 @@ describe("Checkout Session & Stock Hold/Release Tests", () => {
         },
       ];
 
-      buildStockAdjustments(items as any, "decrement");
+      buildStockAdjustments(items as StockableItem[], "decrement");
       expect(Prisma.products.updateMany).toHaveBeenCalledWith({
         where: { AND: [{ id: 10 }, { stock: { gte: 2 } }] },
         data: { stock: { decrement: 2 } },
@@ -119,7 +123,7 @@ describe("Checkout Session & Stock Hold/Release Tests", () => {
         },
       ];
 
-      buildStockAdjustments(items as any, "increment");
+      buildStockAdjustments(items as StockableItem[], "increment");
       expect(Prisma.products.updateMany).toHaveBeenCalledWith({
         where: { id: 10 },
         data: { stock: { increment: 2 } },
@@ -142,13 +146,13 @@ describe("Checkout Session & Stock Hold/Release Tests", () => {
         },
       ];
 
-      buildStockAdjustments(items as any, "decrement");
+      buildStockAdjustments(items as StockableItem[], "decrement");
       expect(Prisma.stockvalue.updateMany).toHaveBeenCalledWith({
         where: { AND: [{ id: { in: [501, 502] } }, { qty: { gte: 1 } }] },
         data: { qty: { decrement: 1 } },
       });
 
-      buildStockAdjustments(items as any, "increment");
+      buildStockAdjustments(items as StockableItem[], "increment");
       expect(Prisma.stockvalue.updateMany).toHaveBeenCalledWith({
         where: { id: { in: [501, 502] } },
         data: { qty: { increment: 1 } },
@@ -189,7 +193,7 @@ describe("Checkout Session & Stock Hold/Release Tests", () => {
         expect.objectContaining({
           where: { id: "ORDER_123456" },
           data: expect.objectContaining({ renewedAt: expect.any(Date) }),
-        })
+        }),
       );
     });
   });
@@ -226,7 +230,9 @@ describe("Checkout Session & Stock Hold/Release Tests", () => {
           },
         },
       ]);
-      (Prisma.orderproduct.updateMany as jest.Mock).mockResolvedValue({ count: 1 });
+      (Prisma.orderproduct.updateMany as jest.Mock).mockResolvedValue({
+        count: 1,
+      });
       (Prisma.orders.update as jest.Mock).mockResolvedValue({});
       (Prisma.$transaction as jest.Mock).mockResolvedValue([]);
 

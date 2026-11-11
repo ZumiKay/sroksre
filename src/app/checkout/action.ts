@@ -4,65 +4,62 @@ import Prisma from "@/src/lib/prisma";
 import {
   Allstatus,
   Ordertype,
-  Productorderdetailtype,
   Productordertype,
   ShippingTypeEnum,
   totalpricetype,
 } from "@/src/types/order.type";
 import { getUser } from "@/src/lib/session";
-import { Orderproduct } from "@/prisma/generated/prisma/client";
-import { revalidatePath } from "next/cache";
 import {
-  CountryCode,
-  Paypalamounttype,
-  Paypalitemtype,
-  PaypalshippingType,
-  PurcahseUnitType,
-  Shippingservice,
-} from "@/src/context/Checkoutcontext";
+  Orderproduct,
+  Prisma as PrismaType,
+} from "@/prisma/generated/prisma/client";
+import { revalidatePath } from "next/cache";
+import { Shippingservice } from "@/src/context/Checkoutcontext";
 import {
   calculateDiscountProductPrice,
   encrypt,
   generateRandomNumber,
-  OrderReciptEmail,
 } from "@/src/lib/utilities";
 import { shippingtype } from "../component/Modals/User";
-import { formatDate } from "../component/EmailTemplate";
-import {
-  ProductStockType,
-  VariantValueObjType,
-} from "@/src/types/product.type";
-import { canPlaceOrder } from "./helper";
-import { getCheckoutdata } from "./fetchaction";
-import {
-  SaveNotification,
-  SaveUserNotification,
-} from "@/src/app/severactions/notification_action";
-import { generateInvoicePdf } from "../api/order/helper";
+import { VariantValueObjType } from "@/src/types/product.type";
 import {
   buildStockAdjustments,
   isCheckoutSessionExpired,
   isValidOrderId,
   StockableItem,
 } from "./stock";
-import nodemailer from "nodemailer";
 import { syncExpiredPromotions } from "@/src/lib/promotion";
+import {
+  createPaypalCheckoutOrder,
+  type PaypalOrderResponse,
+} from "@/src/lib/paypal";
+import { buildPaypalPurchaseUnit, settlePaypalPayment } from "./payment";
 
-interface Returntype<k = string> {
-  success: boolean;
-  data?: any;
-  message?: k;
-  status?: number;
-}
+export type Returntype<T = void, K = string> =
+  | ([T] extends [void]
+      ? { success: true; data?: undefined; message?: K; status?: number }
+      : { success: true; data: T; message?: K; status?: number })
+  | {
+      success: false;
+      data?: undefined;
+      message?: K;
+      status?: number;
+    };
 
-/** Hold stock for the given cart items (called at checkout start). */
-export async function holdStockForItems(items: StockableItem[]) {
+/**
+ * Hold stock for the given cart items (called at checkout start).
+ * Not exported: every export of a "use server" file is a public endpoint.
+ */
+async function holdStockForItems(items: StockableItem[]) {
   const ops = buildStockAdjustments(items, "decrement");
   if (ops.length > 0) await Prisma.$transaction(ops);
 }
 
-/** Release all stock holds for an order (called on session termination/expiry). */
-export async function releaseStock(orderId: string) {
+/**
+ * Release all stock holds for an order (called on session termination/expiry).
+ * Not exported: every export of a "use server" file is a public endpoint.
+ */
+async function releaseStock(orderId: string) {
   const orderProducts = await Prisma.orderproduct.findMany({
     where: { orderId },
     select: {
@@ -81,8 +78,7 @@ export async function releaseStock(orderId: string) {
   if (ops.length > 0) await Prisma.$transaction(ops);
 }
 
-// ─── Session expiry ───────────────────────────────────────────────────────────
-
+// Session expiration
 const expireUnpaidOrderIfNeeded = async (order: {
   id: string;
   status: string;
@@ -98,7 +94,6 @@ const expireUnpaidOrderIfNeeded = async (order: {
   }
 
   // Release held stock, then mark the order and all its items as abandoned.
-  // We intentionally do NOT delete so that order history is preserved.
   await releaseStock(order.id);
   await Promise.all([
     Prisma.orders.update({
@@ -148,7 +143,7 @@ export async function getOrderAddress(orderId: string) {
 export async function createOrder(data: {
   price: totalpricetype;
   incartProduct: number[];
-}): Promise<Returntype<any>> {
+}): Promise<Returntype<{ orderId: string; encrypt: string }>> {
   await syncExpiredPromotions();
   const user = await getUser({
     user: {
@@ -189,7 +184,6 @@ export async function createOrder(data: {
       user_id: user.userId,
       status: Allstatus.incart,
       // Accept items that are unlinked OR already linked to the existing
-      // checkout session (so re-clicking checkout doesn't fail).
       ...(preCheckOrder
         ? { OR: [{ orderId: null }, { orderId: preCheckOrder.id }] }
         : { orderId: null }),
@@ -299,7 +293,7 @@ export async function createOrder(data: {
           id: generateID,
           buyer_id: user.user.buyer_id as string,
           status: Allstatus.unpaid,
-          price: serverPrice as any,
+          price: serverPrice as unknown as PrismaType.InputJsonValue,
           shippingtype: ShippingTypeEnum.pickup,
         },
       });
@@ -307,7 +301,7 @@ export async function createOrder(data: {
     } else {
       await Prisma.orders.update({
         where: { id: checkOrder.id },
-        data: { price: serverPrice as any },
+        data: { price: serverPrice as unknown as PrismaType.InputJsonValue },
       });
       orderId = checkOrder?.id as string;
     }
@@ -330,8 +324,6 @@ export async function createOrder(data: {
     );
 
     // Only hold stock for items newly entering this checkout session.
-    // Items already linked to the existing order (re-checkout scenario)
-    // already have their stock held — don't double-decrement.
     const newlyLinkedItems = cartItems.filter(
       (i) => i.orderId !== checkOrder?.id,
     );
@@ -356,7 +348,7 @@ export async function createOrder(data: {
  */
 export async function renewCheckoutSession(
   orderId: string,
-): Promise<Returntype<string> & { renewedAt?: string }> {
+): Promise<Returntype & { renewedAt?: string }> {
   if (!isValidOrderId(orderId)) {
     return { success: false, message: "Invalid order" };
   }
@@ -377,7 +369,7 @@ export async function renewCheckoutSession(
 
 /**
  * Explicitly terminate a checkout session (user navigates away).
- * Releases stock holds, unlinks orderproducts back to the cart (orderId → null,
+ * Releases stock holds, unlinks orderproducts back to the cart (orderId = null,
  * status kept as incart so the user can resume shopping), and marks the order
  * as abandoned for history — without deleting any records.
  */
@@ -477,197 +469,59 @@ export async function getOrderProduct(
   return { success: true, data: getProduct };
 }
 
-// ─── Out-of-stock check ───────────────────────────────────────────────────────
-
-async function getOutOfStockProducts(productIds: number[]) {
-  if (productIds.length === 0) return [];
-
-  const products = await Prisma.products.findMany({
-    where: { id: { in: productIds } },
-    select: {
-      id: true,
-      name: true,
-      stocktype: true,
-      stock: true,
-      Stock: {
-        select: {
-          Stockvalue: { select: { id: true, qty: true } },
-        },
-      },
-      Variant: {
-        select: { id: true, qty: true, option_value: true },
-      },
-    },
-  });
-
-  const outOfStock: Array<{ id: number; name: string }> = [];
-
-  for (const product of products) {
-    let isOOS = false;
-
-    if (product.stocktype === ProductStockType.stock) {
-      // Normal stock: Products.stock
-      if ((product.stock ?? 0) <= 0) isOOS = true;
-    } else {
-      // Variant stock: Stock → Stockvalue.qty
-      const hasOOSStockvalue = product.Stock.some((s) =>
-        s.Stockvalue.some((sv) => sv.qty <= 0),
-      );
-      if (hasOOSStockvalue) isOOS = true;
-    }
-
-    // Variant with qty field, and option_value items with qty
-    if (!isOOS) {
-      for (const variant of product.Variant) {
-        if (
-          variant.qty !== null &&
-          variant.qty !== undefined &&
-          variant.qty <= 0
-        ) {
-          isOOS = true;
-          break;
-        }
-        const opts = (variant.option_value ?? []) as (
-          | string
-          | VariantValueObjType
-        )[];
-        const hasOOSOption = opts.some(
-          (opt) =>
-            typeof opt !== "string" && opt.qty !== undefined && opt.qty <= 0,
-        );
-        if (hasOOSOption) {
-          isOOS = true;
-          break;
-        }
-      }
-    }
-
-    if (isOOS) outOfStock.push({ id: product.id, name: product.name });
-  }
-
-  return outOfStock;
-}
-
 export interface OrderUserType extends Ordertype {
   Orderproduct: Productordertype[];
   createdAt: Date;
-  // shipping already defined in Ordertype
 }
 
-export async function updateStatus(
-  orderid: string,
-  html: string,
-  adminhtml: string,
-): Promise<Returntype> {
-  const order = await getCheckoutdata(orderid);
+//Confirm payment
 
-  if (!order || !canPlaceOrder(order) || !order.user || !order.user.email) {
-    return { success: false, status: 400 };
-  }
+/**
+ * Confirm a PayPal payment for a local order, entirely on the server.
+ *
+ * The browser only says "the buyer approved in PayPal". This checks who owns
+ * the order; settlePaypalPayment (shared with the PayPal webhook) checks the
+ * amount, captures, and marks the order paid.
+ */
+export async function confirmPayment(orderId: string): Promise<Returntype> {
   try {
-    // Stock was already decremented when the checkout session started (holdStockForItems).
-    // Here we only update order/product status and amount_sold.
+    // Login + ownership + checkout-session expiry.
+    const orderState = await checkOrder(orderId);
+    if (!orderState) {
+      return {
+        success: false,
+        message: "Checkout session expired",
+        status: 410,
+      };
+    }
 
-    await Promise.all([
-      Prisma.products.updateMany({
-        where: {
-          id: {
-            in: order.Orderproduct.filter((i) => i.productId).map(
-              (i) => i.productId,
-            ) as number[],
-          },
-        },
-        data: { amount_sold: { increment: 1 } },
-      }),
-      Prisma.orders.update({
-        where: { id: orderid },
-        data: { status: Allstatus.paid },
-      }),
-      Prisma.orderproduct.updateMany({
-        where: { orderId: orderid },
-        data: { status: Allstatus.paid },
-      }),
-    ]);
+    if (orderState.status === Allstatus.paid) {
+      return { success: true, message: "Payment already confirmed" };
+    }
+    if (orderState.status !== Allstatus.unpaid) {
+      return {
+        success: false,
+        message: "Order is no longer unpaid",
+        status: 409,
+      };
+    }
 
-    // Prepare email sending concurrently
-    const emailSubject = `Order #${order.id} receipt and processing for shipping`;
-    const htmltemplate = OrderReciptEmail(html);
-
-    const createInvoice = await generateInvoicePdf({
-      id: order.id as string,
-      product: order.Orderproduct.filter((i) => i.product).map((prob) => ({
-        id: prob.product?.id as number,
-        name: prob.product?.name as string,
-        price: prob.price,
-        selectedVariant: prob.selectedvariant as any,
-        quantity: prob.quantity,
-        totalprice:
-          prob.quantity *
-          (prob.price.discount?.newprice ??
-            prob.price.price + (prob.price.extra ?? 0)),
-      })),
-      price: order.price as unknown as totalpricetype,
-      shipping: order.shipping as any,
-      createdAt: formatDate(order.createdAt as Date),
+    const record = await Prisma.orders.findUnique({
+      where: { id: orderId },
+      select: { paypalOrderId: true },
     });
-
-    await Promise.all([
-      SendOrderEmail(
-        htmltemplate,
-        order.user.email as string,
-        emailSubject,
-        createInvoice,
-      ),
-      SendOrderEmail(
-        adminhtml,
-        process.env.EMAIL as string,
-        `Order #${order.id} request`,
-        createInvoice,
-      ),
-    ]);
-
-    // ── Order notifications ──────────────────────────────────────────────────
-    const notifPromises: Promise<any>[] = [
-      SaveNotification({
-        type: "order",
-        content: `New order #${order.id} has been placed`,
-        link: `/dashboard/order/${order.id}`,
-        checked: false,
-      }),
-    ];
-    if (order.user?.id) {
-      notifPromises.push(
-        SaveUserNotification(order.user.id, {
-          type: "order",
-          content: `Your order #${order.id} has been confirmed and is being processed`,
-          link: `/account/orders`,
-          checked: false,
-        }),
-      );
-    }
-    await Promise.all(notifPromises);
-
-    // ── Out-of-stock notifications for admin ─────────────────────────────────
-    const productIds = order.Orderproduct.filter((i) => i.productId).map(
-      (i) => i.productId as number,
-    );
-    const oosProducts = await getOutOfStockProducts(productIds);
-    if (oosProducts.length > 0) {
-      await Promise.all(
-        oosProducts.map((p) =>
-          SaveNotification({
-            type: "stock",
-            content: `"${p.name}" is out of stock`,
-            link: `/dashboard/products/${p.id}`,
-            checked: false,
-          }),
-        ),
-      );
+    const paypalOrderId = record?.paypalOrderId;
+    if (!paypalOrderId) {
+      return {
+        success: false,
+        message: "No PayPal payment found for this order",
+        status: 400,
+      };
     }
 
-    return { success: true, message: "Payment completed" };
+    return await settlePaypalPayment(orderId, paypalOrderId);
   } catch (error) {
-    console.log("Update status error:", error);
+    console.log("Confirm payment error:", error);
     return { success: false, message: "Error occurred", status: 500 };
   }
 }
@@ -708,7 +562,7 @@ export async function handleShippingAddress(
     }
 
     if (!shipId && shippingdata && user) {
-      //create shipping addresss
+      //Create shipping addresss
       const create = await Prisma.address.create({
         data: {
           userId: isSave === "1" ? user.userId : undefined,
@@ -800,7 +654,7 @@ export async function updateShippingService(
       },
       data: {
         shippingtype,
-        price: updatePrice as any,
+        price: updatePrice as unknown as PrismaType.InputJsonValue,
       },
     });
 
@@ -812,32 +666,10 @@ export async function updateShippingService(
   }
 }
 
-//Paypal Handler
-
-const generateAccessToken = async () => {
-  const paypal_id = process.env.NEXT_PUBLIC_PAYPAL_ID as string;
-  const paypal_secret = process.env.PAYPAL_KEY as string;
-
-  try {
-    const auth = Buffer.from(paypal_id + ":" + paypal_secret).toString(
-      "base64",
-    );
-    const response = await fetch(`${process.env.PAYPAL_BASE}/v1/oauth2/token`, {
-      method: "POST",
-      body: "grant_type=client_credentials",
-      headers: {
-        Authorization: `Basic ${auth}`,
-      },
-    });
-    const data = await response.json();
-    return data.access_token;
-  } catch (error) {
-    console.log("Failed to generate Access Token:", error);
-    return null;
-  }
-};
-
-export async function createPaypalOrder(orderId: string): Promise<Returntype> {
+//Create paypal order
+export async function createPaypalOrder(
+  orderId: string,
+): Promise<Returntype<PaypalOrderResponse>> {
   await syncExpiredPromotions();
   try {
     const orderState = await checkOrder(orderId);
@@ -858,323 +690,40 @@ export async function createPaypalOrder(orderId: string): Promise<Returntype> {
       };
     }
 
-    const accessToken = await generateAccessToken();
-
-    const order = await Prisma.orders.findUnique({
-      where: { id: orderId },
-      select: {
-        id: true,
-        buyer_id: true,
-        status: true,
-        estimate: true,
-        price: true,
-        shippingtype: true,
-        shipping: true,
-        user: {
-          select: {
-            id: true,
-            firstname: true,
-            lastname: true,
-            email: true,
-          },
-        },
-        Orderproduct: {
-          select: {
-            id: true,
-            details: true,
-            quantity: true,
-            product: {
-              select: {
-                id: true,
-                covers: {
-                  select: {
-                    id: true,
-                    url: true,
-                  },
-                },
-                name: true,
-                price: true,
-                discount: true,
-                Variant: {
-                  select: {
-                    id: true,
-                    price: true,
-                    option_title: true,
-                    option_value: true,
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-    });
-
-    if (!order) {
+    const purchase_units = await buildPaypalPurchaseUnit(orderId);
+    if (!purchase_units) {
       return { success: false, message: "Invalid Order", status: 404 };
     }
 
-    if (!accessToken) {
-      return { success: false, message: "Invalid Token" };
-    }
-    const currency_code = "USD";
-    const orderPrice = order.price as unknown as totalpricetype;
-    const shippingtype = Shippingservice.find(
-      (i) => i.value === order.shippingtype,
-    );
-    const url = `${process.env.PAYPAL_BASE}/v2/checkout/orders`;
-    const header = {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${accessToken}`,
-    };
-
-    const orderItems: Paypalitemtype[] = order.Orderproduct.map((i) => {
-      const baseDiscountedPrice = i.product.discount
-        ? (calculateDiscountProductPrice({
-            price: i.product.price,
-            discount: i.product.discount,
-          }).discount?.newprice ?? i.product.price)
-        : i.product.price;
-
-      // Add variant option extra price
-      const details = (i.details as Productorderdetailtype[]) ?? [];
-      const variantExtra = details.reduce((sum, detail) => {
-        if (!detail.value) return sum;
-        const variant = (i.product.Variant ?? []).find(
-          (v) => v.id === detail.variant_id,
-        );
-        if (!variant) return sum;
-        const variantLevelPrice = variant.price;
-        if (variantLevelPrice) {
-          return sum + parseFloat(variantLevelPrice.toString());
-        }
-        const option = (
-          variant.option_value as (string | VariantValueObjType)[]
-        ).find((opt) =>
-          typeof opt === "string"
-            ? opt === detail.value
-            : opt.val === detail.value,
-        );
-        if (option && typeof option !== "string" && option.price) {
-          return sum + parseFloat(option.price.toString());
-        }
-        return sum;
-      }, 0);
-
-      const unitPrice = parseFloat(
-        (baseDiscountedPrice + variantExtra).toFixed(2),
-      );
-
-      // Build variant description: "Title: value, Title: value"
-      const variantDescription = details
-        .map((detail) => {
-          if (!detail.value) return null;
-          const variant = (i.product.Variant ?? []).find(
-            (v) => v.id === detail.variant_id,
-          );
-          if (!variant) return null;
-          const option = (
-            variant.option_value as (string | VariantValueObjType)[]
-          ).find((opt) =>
-            typeof opt === "string"
-              ? opt === detail.value
-              : opt.val === detail.value,
-          );
-          const displayValue =
-            typeof option === "string"
-              ? option
-              : (option?.name ?? option?.val ?? detail.value);
-          const title = (variant as any).option_title;
-          return title ? `${title}: ${displayValue}` : displayValue;
-        })
-        .filter(Boolean)
-        .join(", ");
-
-      return {
-        name: i.product.name.slice(0, 127), // PayPal max 127 chars
-        quantity: i.quantity.toString(),
-        ...(variantDescription && {
-          description: variantDescription.slice(0, 127),
-        }),
-        unit_amount: {
-          currency_code,
-          value: unitPrice.toFixed(2),
-        },
-      };
-    });
-
-    // Derive item_total from rounded unit prices so PayPal's validation passes:
-    // PayPal checks sum(unit_amount * quantity) == item_total exactly.
-    const computedItemTotal = orderItems
-      .reduce(
-        (sum, item) =>
-          sum + parseFloat(item.unit_amount.value) * parseInt(item.quantity),
-        0,
-      )
-      .toFixed(2);
-    const shippingValue = orderPrice.shipping?.toFixed(2) ?? "0.00";
-    const computedTotal = (
-      parseFloat(computedItemTotal) + parseFloat(shippingValue)
-    ).toFixed(2);
-
-    const orderAmount: Paypalamounttype = {
-      currency_code,
-      value: computedTotal,
-      breakdown: {
-        shipping: {
-          currency_code,
-          value: shippingValue,
-        },
-        item_total: { currency_code, value: computedItemTotal },
-      },
-    };
-
-    const isPickup = shippingtype?.value === "Pickup";
-    const shipping = order.shipping;
-    // address_line_2: house ID and commune (songkhat) — secondary details
-    const address_line_2 = [shipping?.houseId, shipping?.songkhat]
-      .filter(Boolean)
-      .join(", ");
-
-    const orderShipping: PaypalshippingType = {
-      type: isPickup ? undefined : "SHIPPING",
-      ...(!isPickup &&
-        shipping?.street && {
-          address: {
-            address_line_1: shipping.street,
-            ...(address_line_2 && { address_line_2 }),
-            // admin_area_2 = city (required by PayPal) → district
-            ...(shipping.district && { admin_area_2: shipping.district }),
-            // admin_area_1 = state/province
-            ...(shipping.province && { admin_area_1: shipping.province }),
-            ...(shipping.postalcode && { postal_code: shipping.postalcode }),
-            country_code: CountryCode.cambodia,
-          },
-        }),
-    };
-
-    const purchase_units: PurcahseUnitType = {
-      amount: orderAmount,
-      items: orderItems,
-      shipping: orderShipping,
-    };
-    const payload = {
+    const request = await createPaypalCheckoutOrder({
       intent: "CAPTURE",
       purchase_units: [purchase_units],
-    };
-
-    console.log("[PayPal] payload:", JSON.stringify(payload, null, 2));
-
-    const request = await fetch(url, {
-      headers: header,
-      method: "POST",
-      body: JSON.stringify(payload),
     });
 
-    const jsonResponse = await request.json();
-
-    if (!request.ok) {
-      console.error(
-        "[PayPal] error response:",
-        JSON.stringify(jsonResponse, null, 2),
-      );
+    if (request.tokenError) {
+      return { success: false, message: "Invalid Token" };
     }
 
-    return { success: true, data: jsonResponse, status: request.status };
+    if (!request.ok || !request.data.id) {
+      console.error(
+        "[PayPal] create order failed:",
+        request.status,
+        request.data.debug_id,
+        JSON.stringify(request.data.details ?? []),
+      );
+      return { success: true, data: request.data, status: request.status };
+    }
+
+    // Bind the PayPal order to this checkout. Only this ID can be captured
+    // for the order later; the browser never chooses which PayPal order to pay.
+    await Prisma.orders.updateMany({
+      where: { id: orderId, status: Allstatus.unpaid },
+      data: { paypalOrderId: request.data.id },
+    });
+
+    return { success: true, data: request.data, status: request.status };
   } catch (error) {
     console.log("Paypal Error", error);
     return { success: false, status: 500 };
   }
 }
-
-export async function captureOrder(orderId: string): Promise<Returntype> {
-  try {
-    const accessToken = await generateAccessToken();
-    const url = `${process.env.PAYPAL_BASE}/v2/checkout/orders/${orderId}/capture`;
-    const header = {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${accessToken}`,
-    };
-
-    const request = await fetch(url, {
-      method: "POST",
-      headers: header,
-    });
-    const jsonResponse = await request.json();
-    return { success: true, data: jsonResponse };
-  } catch (error) {
-    console.log("Capture Order", error);
-    return { success: false, status: 500 };
-  }
-}
-
-//helper function
-
-const createMailTransporter = () =>
-  nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-      user: process.env.EMAIL,
-      pass: process.env.EMAIL_APPKEY,
-    },
-  });
-
-export const SendOrderEmail = async (
-  html: string,
-  to: string,
-  subject: string,
-  attachment?: Uint8Array,
-) => {
-  try {
-    const transporter = createMailTransporter();
-    const mailoptions = {
-      from: `SrokSre <${process.env.EMAIL}>`,
-      to: `<${to}>`,
-      subject: subject,
-      html: html,
-    };
-
-    await transporter.sendMail({
-      ...mailoptions,
-      attachments: attachment
-        ? [
-            {
-              filename: `Invoice.pdf`,
-              content: Buffer.from(attachment),
-              contentType: "apllication/pdf",
-            },
-          ]
-        : [],
-    });
-  } catch (error) {
-    console.log("Send email", error);
-    throw new Error("Email can't sent");
-  }
-};
-
-interface Emaildata {
-  to: string;
-  subject: string;
-  from?: string;
-  html?: string;
-  message?: string;
-  warn?: string;
-  title?: string;
-}
-export const handleEmail = async (data: Emaildata) => {
-  const transporter = createMailTransporter();
-
-  const mailoptions = {
-    from: data.from ? data.from : `SrokSre <${process.env.EMAIL}>`,
-    to: `<${data.to}>`,
-    subject: data.subject,
-    html: OrderReciptEmail(data.html ?? ""),
-  };
-  try {
-    await transporter.sendMail(mailoptions);
-    return { success: true };
-  } catch (error) {
-    console.log("Send Email", error);
-    return { success: false };
-  }
-};

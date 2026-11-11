@@ -1,4 +1,5 @@
-"use server";
+// Server-only data helpers. Deliberately not "use server": these must not be
+// callable from the browser (they return buyer details for any order ID).
 
 import {
   Ordertype,
@@ -89,8 +90,7 @@ export const getCheckoutdata = async (
         );
 
         let selectedVariantDetails:
-          | Array<string | VariantValueObjType>
-          | OrderSelectedVariantType;
+          Array<string | VariantValueObjType> | OrderSelectedVariantType;
 
         if (hasVariantSection) {
           // Grouped by variant sections
@@ -103,8 +103,7 @@ export const getCheckoutdata = async (
           orderProduct.product.Variant.forEach((variant, idx) => {
             const detailValue = detail[idx].value;
             const optionValues = variant.option_value as (
-              | string
-              | VariantValueObjType
+              string | VariantValueObjType
             )[];
 
             const matchedValue = optionValues.find((val) =>
@@ -154,8 +153,7 @@ export const getCheckoutdata = async (
             (variant, idx) => {
               const detailValue = detail[idx].value;
               const optionValues = variant.option_value as (
-                | string
-                | VariantValueObjType
+                string | VariantValueObjType
               )[];
 
               return optionValues.find((val) =>

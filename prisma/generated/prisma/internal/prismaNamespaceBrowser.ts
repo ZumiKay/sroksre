@@ -253,6 +253,8 @@ export type ProducttypeScalarFieldEnum = (typeof ProducttypeScalarFieldEnum)[key
 
 export const OrdersScalarFieldEnum = {
   id: 'id',
+  paypalOrderId: 'paypalOrderId',
+  paypalCaptureId: 'paypalCaptureId',
   buyer_id: 'buyer_id',
   status: 'status',
   estimate: 'estimate',

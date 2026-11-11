@@ -9,7 +9,7 @@ import {
   PaginationSSR,
 } from "./OrderComponent";
 import { MultipleSelect } from "../../component/Button";
-import { getFilterOrder, GetOrder, purgeExpiredUnpaidOrders } from "./action";
+import { getFilterOrder, GetOrder, purgeExpiredUnpaidOrders } from "./data";
 import { Productordertype, totalpricetype } from "@/src/types/order.type";
 import { getUser } from "@/src/lib/session";
 import { getOrderPageAccess } from "@/src/lib/adminGuard";

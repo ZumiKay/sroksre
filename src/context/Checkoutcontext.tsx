@@ -73,6 +73,8 @@ export interface PaypalshippingType {
 }
 
 export interface PurcahseUnitType {
+  /** Local order ID, echoed back by PayPal so payments can be matched. */
+  custom_id?: string;
   items: Array<Paypalitemtype>;
   amount: Paypalamounttype;
   shipping?: PaypalshippingType;

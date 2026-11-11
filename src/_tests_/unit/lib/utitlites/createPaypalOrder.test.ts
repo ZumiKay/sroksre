@@ -51,9 +51,9 @@ const mockCalculateDiscount =
   utilities.calculateDiscountProductPrice as jest.Mock;
 
 const mockPrisma = Prisma as unknown as {
-  orders: { findUnique: jest.Mock };
+  orders: { findUnique: jest.Mock; updateMany: jest.Mock };
 };
-mockPrisma.orders = { findUnique: jest.fn() };
+mockPrisma.orders = { findUnique: jest.fn(), updateMany: jest.fn() };
 
 const mockFetch = jest.fn();
 global.fetch = mockFetch;
@@ -143,6 +143,8 @@ beforeEach(() => {
       mockFetchResponse({ id: "PAYPAL-ORDER-123", status: "CREATED" }), // PayPal order creation
     );
 
+  mockPrisma.orders.updateMany.mockResolvedValue({ count: 1 });
+
   mockCalculateDiscount.mockReturnValue({ discount: { newprice: 8 } });
 });
 
@@ -227,6 +229,44 @@ describe("createPaypalOrder", () => {
         status: "CREATED",
       });
       expect(result.status).toBe(200);
+    });
+
+    it("binds the PayPal order ID to the local unpaid order", async () => {
+      await createPaypalOrder(ORDER_ID);
+
+      expect(mockPrisma.orders.updateMany).toHaveBeenCalledWith({
+        where: { id: ORDER_ID, status: Allstatus.unpaid },
+        data: { paypalOrderId: "PAYPAL-ORDER-123" },
+      });
+    });
+
+    it("sends the local order ID as custom_id", async () => {
+      await createPaypalOrder(ORDER_ID);
+
+      const [, options] = mockFetch.mock.calls[1];
+      const payload = JSON.parse(options.body);
+      expect(payload.purchase_units[0].custom_id).toBe(ORDER_ID);
+    });
+
+    it("does not bind anything when PayPal rejects the order", async () => {
+      mockFetch
+        .mockReset()
+        .mockResolvedValueOnce(
+          mockFetchResponse({ access_token: "test-token" }),
+        )
+        .mockResolvedValueOnce(
+          mockFetchResponse(
+            { name: "UNPROCESSABLE_ENTITY", details: [{ issue: "X" }] },
+            false,
+            422,
+          ),
+        );
+
+      const result = await createPaypalOrder(ORDER_ID);
+
+      expect(result.success).toBe(true);
+      expect(result.status).toBe(422);
+      expect(mockPrisma.orders.updateMany).not.toHaveBeenCalled();
     });
 
     it("includes correct item name, quantity, and unit_amount", async () => {

@@ -31,6 +31,8 @@ const allPublicRoute: Map<string, methodtype[]> = new Map([
   ["/order/cart/check", ["POST"]],
   ["/users/vfy", ["POST"]],
   ["/users/vfy/check", ["POST"]],
+  // Called by PayPal, not a user; the handler verifies PayPal's signature.
+  ["/paypal/webhook", ["POST"]],
 ]);
 
 const userRoute: Map<string, methodtype[]> = new Map([

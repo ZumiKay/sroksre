@@ -120,9 +120,6 @@ export default async function Checkoutpage({
   );
 }
 
-export const calculatePrice = async (price: number, percent: number) =>
-  price - (price * percent) / 100;
-
 const OrderSummary = async ({ orderId }: { orderId: string }) => {
   const orderData = await getCheckoutdata(orderId);
 
@@ -135,7 +132,9 @@ const OrderSummary = async ({ orderId }: { orderId: string }) => {
       <input type="hidden" name="summary" value={"summary"} />
       <div className="flex items-center gap-3 mb-6 sm:mb-8">
         <div className="w-1 h-8 bg-linear-to-b from-blue-600 to-blue-400 rounded-full"></div>
-        <h3 className="text-2xl sm:text-3xl font-bold text-gray-800">Order Summary</h3>
+        <h3 className="text-2xl sm:text-3xl font-bold text-gray-800">
+          Order Summary
+        </h3>
       </div>
 
       <div className="productlist w-full h-full flex flex-col gap-y-6">
@@ -143,7 +142,7 @@ const OrderSummary = async ({ orderId }: { orderId: string }) => {
           const price = order.price;
           const total =
             order.quantity *
-            (price.discount?.newprice ?? (price.price + (price.extra ?? 0)));
+            (price.discount?.newprice ?? price.price + (price.extra ?? 0));
           if (!order.product) return null;
 
           return (

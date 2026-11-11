@@ -1,4 +1,4 @@
-import { handleEmail } from "@/src/app/checkout/action";
+import { handleEmail } from "@/src/lib/email";
 import { VERIFICATION_CONFIG } from "./emailVerification";
 
 // Verification emails are built and sent on the server only

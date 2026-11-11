@@ -5,12 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Usersessiontype } from "../types/user.type";
 
 /**
- * Validates the user's session and exposes a `sessionExpired` flag.
- *
- * When the session is confirmed expired by the server, `sessionExpired` flips
- * to `true`. The caller is responsible for rendering the <SessionExpiredModal>
- * based on this flag — the hook never triggers a hard sign-out directly.
- *
+ * Validates the user's session and exposes a sessionExpired flag.
  * Network/transient failures do NOT set `sessionExpired`; the user stays
  * logged in and the failed action is simply blocked.
  */
@@ -19,7 +14,6 @@ const useCheckSession = () => {
   const [sessionExpired, setSessionExpired] = useState(false);
   const isHandlingRef = useRef(false);
 
-  // Expose for tests / consumers that need to reset the flag (e.g. after modal closes)
   const clearSessionExpired = useCallback(() => {
     setSessionExpired(false);
   }, []);
@@ -54,7 +48,7 @@ const useCheckSession = () => {
     if (!usersession) return false;
 
     // Session was already marked expired by the server
-    if ((data as any)?.expires === "0") {
+    if (data?.expires === "0") {
       if (!isHandlingRef.current) {
         isHandlingRef.current = true;
         setSessionExpired(true);

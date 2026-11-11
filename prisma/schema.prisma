@@ -230,19 +230,21 @@ model Producttype {
 }
 
 model Orders {
-  id           String         @id
-  buyer_id     String
-  status       String
-  estimate     DateTime?
-  price        Json
-  shippingtype String         @default("Normal")
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
-  renewedAt    DateTime?
-  shipping_id  Int?
-  shipping     Address?       @relation(fields: [shipping_id], references: [id])
-  user         User           @relation(fields: [buyer_id], references: [buyer_id], onDelete: Cascade)
-  Orderproduct Orderproduct[]
+  id              String         @id
+  paypalOrderId   String?        @unique
+  paypalCaptureId String?        @unique
+  buyer_id        String
+  status          String
+  estimate        DateTime?
+  price           Json
+  shippingtype    String         @default("Normal")
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  renewedAt       DateTime?
+  shipping_id     Int?
+  shipping        Address?       @relation(fields: [shipping_id], references: [id])
+  user            User           @relation(fields: [buyer_id], references: [buyer_id], onDelete: Cascade)
+  Orderproduct    Orderproduct[]
 
   @@index([buyer_id])
   @@index([status])

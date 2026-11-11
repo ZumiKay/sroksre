@@ -36,6 +36,8 @@ export type OrdersSumAggregateOutputType = {
 
 export type OrdersMinAggregateOutputType = {
   id: string | null
+  paypalOrderId: string | null
+  paypalCaptureId: string | null
   buyer_id: string | null
   status: string | null
   estimate: Date | null
@@ -48,6 +50,8 @@ export type OrdersMinAggregateOutputType = {
 
 export type OrdersMaxAggregateOutputType = {
   id: string | null
+  paypalOrderId: string | null
+  paypalCaptureId: string | null
   buyer_id: string | null
   status: string | null
   estimate: Date | null
@@ -60,6 +64,8 @@ export type OrdersMaxAggregateOutputType = {
 
 export type OrdersCountAggregateOutputType = {
   id: number
+  paypalOrderId: number
+  paypalCaptureId: number
   buyer_id: number
   status: number
   estimate: number
@@ -83,6 +89,8 @@ export type OrdersSumAggregateInputType = {
 
 export type OrdersMinAggregateInputType = {
   id?: true
+  paypalOrderId?: true
+  paypalCaptureId?: true
   buyer_id?: true
   status?: true
   estimate?: true
@@ -95,6 +103,8 @@ export type OrdersMinAggregateInputType = {
 
 export type OrdersMaxAggregateInputType = {
   id?: true
+  paypalOrderId?: true
+  paypalCaptureId?: true
   buyer_id?: true
   status?: true
   estimate?: true
@@ -107,6 +117,8 @@ export type OrdersMaxAggregateInputType = {
 
 export type OrdersCountAggregateInputType = {
   id?: true
+  paypalOrderId?: true
+  paypalCaptureId?: true
   buyer_id?: true
   status?: true
   estimate?: true
@@ -207,6 +219,8 @@ export type OrdersGroupByArgs<ExtArgs extends runtime.Types.Extensions.InternalA
 
 export type OrdersGroupByOutputType = {
   id: string
+  paypalOrderId: string | null
+  paypalCaptureId: string | null
   buyer_id: string
   status: string
   estimate: Date | null
@@ -243,6 +257,8 @@ export type OrdersWhereInput = {
   OR?: Prisma.OrdersWhereInput[]
   NOT?: Prisma.OrdersWhereInput | Prisma.OrdersWhereInput[]
   id?: Prisma.StringFilter<"Orders"> | string
+  paypalOrderId?: Prisma.StringNullableFilter<"Orders"> | string | null
+  paypalCaptureId?: Prisma.StringNullableFilter<"Orders"> | string | null
   buyer_id?: Prisma.StringFilter<"Orders"> | string
   status?: Prisma.StringFilter<"Orders"> | string
   estimate?: Prisma.DateTimeNullableFilter<"Orders"> | Date | string | null
@@ -259,6 +275,8 @@ export type OrdersWhereInput = {
 
 export type OrdersOrderByWithRelationInput = {
   id?: Prisma.SortOrder
+  paypalOrderId?: Prisma.SortOrderInput | Prisma.SortOrder
+  paypalCaptureId?: Prisma.SortOrderInput | Prisma.SortOrder
   buyer_id?: Prisma.SortOrder
   status?: Prisma.SortOrder
   estimate?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -275,6 +293,8 @@ export type OrdersOrderByWithRelationInput = {
 
 export type OrdersWhereUniqueInput = Prisma.AtLeast<{
   id?: string
+  paypalOrderId?: string
+  paypalCaptureId?: string
   AND?: Prisma.OrdersWhereInput | Prisma.OrdersWhereInput[]
   OR?: Prisma.OrdersWhereInput[]
   NOT?: Prisma.OrdersWhereInput | Prisma.OrdersWhereInput[]
@@ -290,10 +310,12 @@ export type OrdersWhereUniqueInput = Prisma.AtLeast<{
   shipping?: Prisma.XOR<Prisma.AddressNullableScalarRelationFilter, Prisma.AddressWhereInput> | null
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
   Orderproduct?: Prisma.OrderproductListRelationFilter
-}, "id">
+}, "id" | "paypalOrderId" | "paypalCaptureId">
 
 export type OrdersOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
+  paypalOrderId?: Prisma.SortOrderInput | Prisma.SortOrder
+  paypalCaptureId?: Prisma.SortOrderInput | Prisma.SortOrder
   buyer_id?: Prisma.SortOrder
   status?: Prisma.SortOrder
   estimate?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -315,6 +337,8 @@ export type OrdersScalarWhereWithAggregatesInput = {
   OR?: Prisma.OrdersScalarWhereWithAggregatesInput[]
   NOT?: Prisma.OrdersScalarWhereWithAggregatesInput | Prisma.OrdersScalarWhereWithAggregatesInput[]
   id?: Prisma.StringWithAggregatesFilter<"Orders"> | string
+  paypalOrderId?: Prisma.StringNullableWithAggregatesFilter<"Orders"> | string | null
+  paypalCaptureId?: Prisma.StringNullableWithAggregatesFilter<"Orders"> | string | null
   buyer_id?: Prisma.StringWithAggregatesFilter<"Orders"> | string
   status?: Prisma.StringWithAggregatesFilter<"Orders"> | string
   estimate?: Prisma.DateTimeNullableWithAggregatesFilter<"Orders"> | Date | string | null
@@ -328,6 +352,8 @@ export type OrdersScalarWhereWithAggregatesInput = {
 
 export type OrdersCreateInput = {
   id: string
+  paypalOrderId?: string | null
+  paypalCaptureId?: string | null
   status: string
   estimate?: Date | string | null
   price: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -342,6 +368,8 @@ export type OrdersCreateInput = {
 
 export type OrdersUncheckedCreateInput = {
   id: string
+  paypalOrderId?: string | null
+  paypalCaptureId?: string | null
   buyer_id: string
   status: string
   estimate?: Date | string | null
@@ -356,6 +384,8 @@ export type OrdersUncheckedCreateInput = {
 
 export type OrdersUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  paypalOrderId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  paypalCaptureId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
   estimate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   price?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -370,6 +400,8 @@ export type OrdersUpdateInput = {
 
 export type OrdersUncheckedUpdateInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  paypalOrderId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  paypalCaptureId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   buyer_id?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.StringFieldUpdateOperationsInput | string
   estimate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -384,6 +416,8 @@ export type OrdersUncheckedUpdateInput = {
 
 export type OrdersCreateManyInput = {
   id: string
+  paypalOrderId?: string | null
+  paypalCaptureId?: string | null
   buyer_id: string
   status: string
   estimate?: Date | string | null
@@ -397,6 +431,8 @@ export type OrdersCreateManyInput = {
 
 export type OrdersUpdateManyMutationInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  paypalOrderId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  paypalCaptureId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
   estimate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   price?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -408,6 +444,8 @@ export type OrdersUpdateManyMutationInput = {
 
 export type OrdersUncheckedUpdateManyInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  paypalOrderId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  paypalCaptureId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   buyer_id?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.StringFieldUpdateOperationsInput | string
   estimate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -431,6 +469,8 @@ export type OrdersOrderByRelationAggregateInput = {
 
 export type OrdersCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  paypalOrderId?: Prisma.SortOrder
+  paypalCaptureId?: Prisma.SortOrder
   buyer_id?: Prisma.SortOrder
   status?: Prisma.SortOrder
   estimate?: Prisma.SortOrder
@@ -448,6 +488,8 @@ export type OrdersAvgOrderByAggregateInput = {
 
 export type OrdersMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  paypalOrderId?: Prisma.SortOrder
+  paypalCaptureId?: Prisma.SortOrder
   buyer_id?: Prisma.SortOrder
   status?: Prisma.SortOrder
   estimate?: Prisma.SortOrder
@@ -460,6 +502,8 @@ export type OrdersMaxOrderByAggregateInput = {
 
 export type OrdersMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  paypalOrderId?: Prisma.SortOrder
+  paypalCaptureId?: Prisma.SortOrder
   buyer_id?: Prisma.SortOrder
   status?: Prisma.SortOrder
   estimate?: Prisma.SortOrder
@@ -581,6 +625,8 @@ export type OrdersUpdateOneWithoutOrderproductNestedInput = {
 
 export type OrdersCreateWithoutUserInput = {
   id: string
+  paypalOrderId?: string | null
+  paypalCaptureId?: string | null
   status: string
   estimate?: Date | string | null
   price: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -594,6 +640,8 @@ export type OrdersCreateWithoutUserInput = {
 
 export type OrdersUncheckedCreateWithoutUserInput = {
   id: string
+  paypalOrderId?: string | null
+  paypalCaptureId?: string | null
   status: string
   estimate?: Date | string | null
   price: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -636,6 +684,8 @@ export type OrdersScalarWhereInput = {
   OR?: Prisma.OrdersScalarWhereInput[]
   NOT?: Prisma.OrdersScalarWhereInput | Prisma.OrdersScalarWhereInput[]
   id?: Prisma.StringFilter<"Orders"> | string
+  paypalOrderId?: Prisma.StringNullableFilter<"Orders"> | string | null
+  paypalCaptureId?: Prisma.StringNullableFilter<"Orders"> | string | null
   buyer_id?: Prisma.StringFilter<"Orders"> | string
   status?: Prisma.StringFilter<"Orders"> | string
   estimate?: Prisma.DateTimeNullableFilter<"Orders"> | Date | string | null
@@ -649,6 +699,8 @@ export type OrdersScalarWhereInput = {
 
 export type OrdersCreateWithoutShippingInput = {
   id: string
+  paypalOrderId?: string | null
+  paypalCaptureId?: string | null
   status: string
   estimate?: Date | string | null
   price: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -662,6 +714,8 @@ export type OrdersCreateWithoutShippingInput = {
 
 export type OrdersUncheckedCreateWithoutShippingInput = {
   id: string
+  paypalOrderId?: string | null
+  paypalCaptureId?: string | null
   buyer_id: string
   status: string
   estimate?: Date | string | null
@@ -701,6 +755,8 @@ export type OrdersUpdateManyWithWhereWithoutShippingInput = {
 
 export type OrdersCreateWithoutOrderproductInput = {
   id: string
+  paypalOrderId?: string | null
+  paypalCaptureId?: string | null
   status: string
   estimate?: Date | string | null
   price: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -714,6 +770,8 @@ export type OrdersCreateWithoutOrderproductInput = {
 
 export type OrdersUncheckedCreateWithoutOrderproductInput = {
   id: string
+  paypalOrderId?: string | null
+  paypalCaptureId?: string | null
   buyer_id: string
   status: string
   estimate?: Date | string | null
@@ -743,6 +801,8 @@ export type OrdersUpdateToOneWithWhereWithoutOrderproductInput = {
 
 export type OrdersUpdateWithoutOrderproductInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  paypalOrderId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  paypalCaptureId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
   estimate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   price?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -756,6 +816,8 @@ export type OrdersUpdateWithoutOrderproductInput = {
 
 export type OrdersUncheckedUpdateWithoutOrderproductInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  paypalOrderId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  paypalCaptureId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   buyer_id?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.StringFieldUpdateOperationsInput | string
   estimate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -769,6 +831,8 @@ export type OrdersUncheckedUpdateWithoutOrderproductInput = {
 
 export type OrdersCreateManyUserInput = {
   id: string
+  paypalOrderId?: string | null
+  paypalCaptureId?: string | null
   status: string
   estimate?: Date | string | null
   price: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -781,6 +845,8 @@ export type OrdersCreateManyUserInput = {
 
 export type OrdersUpdateWithoutUserInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  paypalOrderId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  paypalCaptureId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
   estimate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   price?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -794,6 +860,8 @@ export type OrdersUpdateWithoutUserInput = {
 
 export type OrdersUncheckedUpdateWithoutUserInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  paypalOrderId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  paypalCaptureId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
   estimate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   price?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -807,6 +875,8 @@ export type OrdersUncheckedUpdateWithoutUserInput = {
 
 export type OrdersUncheckedUpdateManyWithoutUserInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  paypalOrderId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  paypalCaptureId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
   estimate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   price?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -819,6 +889,8 @@ export type OrdersUncheckedUpdateManyWithoutUserInput = {
 
 export type OrdersCreateManyShippingInput = {
   id: string
+  paypalOrderId?: string | null
+  paypalCaptureId?: string | null
   buyer_id: string
   status: string
   estimate?: Date | string | null
@@ -831,6 +903,8 @@ export type OrdersCreateManyShippingInput = {
 
 export type OrdersUpdateWithoutShippingInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  paypalOrderId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  paypalCaptureId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   status?: Prisma.StringFieldUpdateOperationsInput | string
   estimate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   price?: Prisma.JsonNullValueInput | runtime.InputJsonValue
@@ -844,6 +918,8 @@ export type OrdersUpdateWithoutShippingInput = {
 
 export type OrdersUncheckedUpdateWithoutShippingInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  paypalOrderId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  paypalCaptureId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   buyer_id?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.StringFieldUpdateOperationsInput | string
   estimate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -857,6 +933,8 @@ export type OrdersUncheckedUpdateWithoutShippingInput = {
 
 export type OrdersUncheckedUpdateManyWithoutShippingInput = {
   id?: Prisma.StringFieldUpdateOperationsInput | string
+  paypalOrderId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  paypalCaptureId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   buyer_id?: Prisma.StringFieldUpdateOperationsInput | string
   status?: Prisma.StringFieldUpdateOperationsInput | string
   estimate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
@@ -900,6 +978,8 @@ export type OrdersCountOutputTypeCountOrderproductArgs<ExtArgs extends runtime.T
 
 export type OrdersSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
+  paypalOrderId?: boolean
+  paypalCaptureId?: boolean
   buyer_id?: boolean
   status?: boolean
   estimate?: boolean
@@ -917,6 +997,8 @@ export type OrdersSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs =
 
 export type OrdersSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
+  paypalOrderId?: boolean
+  paypalCaptureId?: boolean
   buyer_id?: boolean
   status?: boolean
   estimate?: boolean
@@ -932,6 +1014,8 @@ export type OrdersSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extens
 
 export type OrdersSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
+  paypalOrderId?: boolean
+  paypalCaptureId?: boolean
   buyer_id?: boolean
   status?: boolean
   estimate?: boolean
@@ -947,6 +1031,8 @@ export type OrdersSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extens
 
 export type OrdersSelectScalar = {
   id?: boolean
+  paypalOrderId?: boolean
+  paypalCaptureId?: boolean
   buyer_id?: boolean
   status?: boolean
   estimate?: boolean
@@ -958,7 +1044,7 @@ export type OrdersSelectScalar = {
   shipping_id?: boolean
 }
 
-export type OrdersOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "buyer_id" | "status" | "estimate" | "price" | "shippingtype" | "createdAt" | "updatedAt" | "renewedAt" | "shipping_id", ExtArgs["result"]["orders"]>
+export type OrdersOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "paypalOrderId" | "paypalCaptureId" | "buyer_id" | "status" | "estimate" | "price" | "shippingtype" | "createdAt" | "updatedAt" | "renewedAt" | "shipping_id", ExtArgs["result"]["orders"]>
 export type OrdersInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   shipping?: boolean | Prisma.Orders$shippingArgs<ExtArgs>
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -983,6 +1069,8 @@ export type $OrdersPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: string
+    paypalOrderId: string | null
+    paypalCaptureId: string | null
     buyer_id: string
     status: string
     estimate: Date | null
@@ -1419,6 +1507,8 @@ export interface Prisma__OrdersClient<T, Null = never, ExtArgs extends runtime.T
  */
 export interface OrdersFieldRefs {
   readonly id: Prisma.FieldRef<"Orders", 'String'>
+  readonly paypalOrderId: Prisma.FieldRef<"Orders", 'String'>
+  readonly paypalCaptureId: Prisma.FieldRef<"Orders", 'String'>
   readonly buyer_id: Prisma.FieldRef<"Orders", 'String'>
   readonly status: Prisma.FieldRef<"Orders", 'String'>
   readonly estimate: Prisma.FieldRef<"Orders", 'DateTime'>
