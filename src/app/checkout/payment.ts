@@ -1,7 +1,7 @@
 // Server-only payment settlement, shared by the confirmPayment server action
-// and the PayPal webhook. Deliberately NOT "use server": nothing here does an
-// auth check, so none of it may be callable from the browser.
-
+//
+//
+//
 import Prisma from "@/src/lib/prisma";
 import {
   Allstatus,
@@ -31,7 +31,7 @@ import { getCheckoutdata } from "./fetchaction";
 import {
   SaveNotification,
   SaveUserNotification,
-} from "@/src/app/severactions/notification_action";
+} from "@/src/lib/notification";
 import { generateInvoicePdf } from "../api/order/helper";
 import {
   capturePaypalOrder,
@@ -40,6 +40,7 @@ import {
 } from "@/src/lib/paypal";
 import { SendOrderEmail } from "@/src/lib/email";
 import { renderOrderReceiptHtml } from "./orderReceipt";
+import { PAYPAL_STATUS_ENUM } from "./helper";
 
 export interface SettleResult {
   success: boolean;
@@ -190,7 +191,6 @@ export async function buildPaypalPurchaseUnit(
   });
 
   // Derive item_total from rounded unit prices so PayPal's validation passes:
-  // PayPal checks sum(unit_amount * quantity) == item_total exactly.
   const computedItemTotal = orderItems
     .reduce(
       (sum, item) =>
@@ -250,11 +250,8 @@ export async function buildPaypalPurchaseUnit(
 }
 
 /**
- * Verify a PayPal order against the local order, capture it if needed, and
- * mark the local order paid exactly once. Callers must have already decided
- * the caller is allowed to settle this order (owner session or verified
- * PayPal webhook).
- */
+ * Verify a PayPal order against the local order */
+
 export async function settlePaypalPayment(
   orderId: string,
   paypalOrderId: string,
@@ -267,11 +264,6 @@ export async function settlePaypalPayment(
   // Verify the PayPal order before charging anything.
   const lookup = await getPaypalOrder(paypalOrderId);
   if (!lookup.ok) {
-    console.error(
-      "[PayPal] order lookup failed:",
-      lookup.status,
-      lookup.data.debug_id,
-    );
     return {
       success: false,
       message: "Unable to verify payment",
@@ -284,13 +276,6 @@ export async function settlePaypalPayment(
     lookupUnit?.custom_id !== orderId ||
     !paypalAmountMatches(lookupUnit?.amount, expected.amount)
   ) {
-    console.error("[PayPal] order does not match local order", {
-      orderId,
-      paypalOrderId,
-      custom_id: lookupUnit?.custom_id,
-      amount: lookupUnit?.amount,
-      expected: expected.amount,
-    });
     return {
       success: false,
       message: "Order total has changed, please try again",
@@ -299,22 +284,23 @@ export async function settlePaypalPayment(
   }
 
   let paid = lookup.data;
-  if (lookup.data.status === "APPROVED") {
+  if (lookup.data.status === PAYPAL_STATUS_ENUM.approved) {
     const capture = await capturePaypalOrder(paypalOrderId, orderId);
-    if (capture.data.details?.[0]?.issue === "INSTRUMENT_DECLINED") {
-      return { success: false, message: "INSTRUMENT_DECLINED", status: 402 };
+    if (
+      capture.data.details?.[0]?.issue ===
+      PAYPAL_STATUS_ENUM.instrument_declined
+    ) {
+      return {
+        success: false,
+        message: PAYPAL_STATUS_ENUM.instrument_declined,
+        status: 402,
+      };
     }
     if (!capture.ok) {
-      console.error(
-        "[PayPal] capture failed:",
-        capture.status,
-        capture.data.debug_id,
-        JSON.stringify(capture.data.details ?? []),
-      );
       return { success: false, message: "Payment failed", status: 402 };
     }
     paid = capture.data;
-  } else if (lookup.data.status !== "COMPLETED") {
+  } else if (lookup.data.status !== PAYPAL_STATUS_ENUM.completed) {
     // Not approved yet (or voided): never mark paid.
     return {
       success: false,
@@ -325,18 +311,11 @@ export async function settlePaypalPayment(
 
   const captured = paid.purchase_units?.[0]?.payments?.captures?.[0];
   if (
-    paid.status !== "COMPLETED" ||
-    captured?.status !== "COMPLETED" ||
+    paid.status !== PAYPAL_STATUS_ENUM.completed ||
+    captured?.status !== PAYPAL_STATUS_ENUM.completed ||
     !captured.id ||
     !paypalAmountMatches(captured.amount, expected.amount)
   ) {
-    console.error("[PayPal] capture not completed or amount mismatch", {
-      orderId,
-      paypalOrderId,
-      status: paid.status,
-      capture: captured,
-      expected: expected.amount,
-    });
     return {
       success: false,
       message: "Payment was not completed",
@@ -344,7 +323,7 @@ export async function settlePaypalPayment(
     };
   }
 
-  // Atomic unpaid -> paid. A replayed or concurrent call matches 0 rows.
+  //Check for concurrent order
   const updated = await Prisma.orders.updateMany({
     where: { id: orderId, status: Allstatus.unpaid, paypalOrderId },
     data: { status: Allstatus.paid, paypalCaptureId: captured.id },
@@ -383,7 +362,7 @@ export async function settlePaypalPayment(
 }
 
 /**
- * Side effects after an order has been marked paid. Runs once per order
+ * Final verfication after an order has been marked paid. Runs once per order
  * (guarded by the conditional update in settlePaypalPayment). Failures here are
  * logged, not returned: the payment itself already succeeded.
  */
@@ -463,9 +442,9 @@ async function finalizePaidOrder(order: Ordertype): Promise<void> {
     if (order.user?.id) {
       notifPromises.push(
         SaveUserNotification(order.user.id, {
-          type: "order",
+          type: "Order update",
           content: `Your order #${orderId} has been confirmed and is being processed`,
-          link: `/account/orders`,
+          link: `/dashboard/order?q=${encodeURIComponent(orderId)}`,
           checked: false,
         }),
       );

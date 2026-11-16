@@ -1,6 +1,3 @@
-// Server-only data helpers. Deliberately not "use server": these must not be
-// callable from the browser (they return buyer details for any order ID).
-
 import {
   Ordertype,
   Orderpricetype,
@@ -30,7 +27,7 @@ export const getCheckoutdata = async (
   userid?: string,
 ): Promise<Ordertype | null> => {
   await syncExpiredPromotions();
-  const result = await Prisma.orders.findFirst({
+  const result = (await Prisma.orders.findFirst({
     where: {
       ...(orderid ? { id: orderid } : {}),
       ...(userid ? { user: { buyer_id: userid } } : {}),
@@ -77,7 +74,7 @@ export const getCheckoutdata = async (
         },
       },
     },
-  });
+  })) as unknown as Ordertype;
 
   if (!result) return null;
 
@@ -85,7 +82,7 @@ export const getCheckoutdata = async (
     (orderProduct) => {
       {
         const detail = orderProduct.details as Productorderdetailtype[];
-        const hasVariantSection = orderProduct.product.Variant.some(
+        const hasVariantSection = orderProduct?.product?.Variant?.some(
           (variant) => variant.variantSection,
         );
 
@@ -98,9 +95,9 @@ export const getCheckoutdata = async (
             number | null,
             Array<string | VariantValueObjType>
           >();
-          const sectionInfoMap = new Map<number, any>();
+          const sectionInfoMap = new Map<number, VariantSectionType>();
 
-          orderProduct.product.Variant.forEach((variant, idx) => {
+          orderProduct?.product?.Variant?.forEach((variant, idx) => {
             const detailValue = detail[idx].value;
             const optionValues = variant.option_value as (
               string | VariantValueObjType
@@ -134,7 +131,7 @@ export const getCheckoutdata = async (
           sectionMap.forEach((variants, sectionId) => {
             if (sectionId) {
               variantsection.push({
-                variantSection: sectionInfoMap.get(sectionId),
+                variantSection: sectionInfoMap.get(sectionId) ?? {},
                 variants,
               });
             } else {
@@ -148,8 +145,7 @@ export const getCheckoutdata = async (
             variant: variant.length > 0 ? variant : undefined,
           };
         } else {
-          // No sections - return flat array
-          selectedVariantDetails = orderProduct.product.Variant.map(
+          selectedVariantDetails = orderProduct?.product?.Variant?.map(
             (variant, idx) => {
               const detailValue = detail[idx].value;
               const optionValues = variant.option_value as (
@@ -168,11 +164,11 @@ export const getCheckoutdata = async (
         // Compute extra price from variant options (per-value or variant-level)
         const variantExtra = detail.reduce((extraSum, d) => {
           if (!d.value) return extraSum;
-          const variant = orderProduct.product.Variant.find(
+          const variant = orderProduct?.product?.Variant?.find(
             (v) => v.id === d.variant_id,
           );
           if (!variant) return extraSum;
-          const variantLevelPrice = (variant as any).price;
+          const variantLevelPrice = variant.price;
           if (variantLevelPrice) {
             return extraSum + parseFloat(variantLevelPrice.toString());
           }
@@ -188,8 +184,8 @@ export const getCheckoutdata = async (
         }, 0);
 
         const basePrice = calculateDiscountProductPrice({
-          price: orderProduct.product.price,
-          discount: orderProduct.product.discount ?? undefined,
+          price: orderProduct?.product?.price ?? 0,
+          discount: (orderProduct?.product?.discount ?? 0) as number,
         });
 
         const finalProductPrice: Orderpricetype =

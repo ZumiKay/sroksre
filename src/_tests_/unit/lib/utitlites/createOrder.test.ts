@@ -37,7 +37,7 @@ jest.mock("@/src/app/checkout/helper", () => ({ canPlaceOrder: jest.fn() }));
 jest.mock("@/src/app/checkout/fetchaction", () => ({
   getCheckoutdata: jest.fn(),
 }));
-jest.mock("@/src/app/severactions/notification_action", () => ({
+jest.mock("@/src/lib/notification", () => ({
   SaveNotification: jest.fn(),
   SaveUserNotification: jest.fn(),
 }));

@@ -1,21 +1,20 @@
 "use client";
 
-import { ChangeEvent, useEffect, useState } from "react";
+import { ChangeEvent, useState } from "react";
 import { Selection } from "@/src/app/component/Button";
 import Modal, { SecondaryModal } from "@/src/app/component/Modals";
 import { useGlobalStore } from "@/src/context/GlobalContext";
 import { Allstatus } from "@/src/types/order.type";
-import { useRouter, useSearchParams } from "next/navigation";
 import {
   deleteOrder,
   updateOrderSettings,
   updateOrderStatus,
 } from "../../action";
 import { errorToast, successToast } from "@/src/app/component/Loading";
-import { OrderUserType } from "@/src/app/checkout/action";
+import type { OrderUserType } from "@/src/app/checkout/action";
 import useCheckSession from "@/src/hooks/useCheckSession";
 import { Shippingservice } from "@/src/context/Checkoutcontext";
-import { totalpricetype } from "@/src/types/order.type";
+import type { totalpricetype } from "@/src/types/order.type";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faRotate,
@@ -28,14 +27,22 @@ import {
   faCheck,
 } from "@fortawesome/free-solid-svg-icons";
 
-// ─── Shared ───────────────────────────────────────────────────────────────────
-
-/** Spinner indicator used inside action buttons */
 const Spinner = () => (
   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
 );
 
-// ─── ActionModal ──────────────────────────────────────────────────────────────
+// Static data hoisted out of render so child props keep a stable identity.
+const SUB_TITLES: Record<string, string> = {
+  none: "Choose an action",
+  status: "Update order status",
+  settings: "Edit order settings",
+  delete: "Confirm deletion",
+};
+const STATUS_OPTIONS = Object.values(Allstatus);
+const SHIPPING_OPTIONS = Shippingservice.map((s) => ({
+  label: `${s.type} — $${s.price.toFixed(2)}`,
+  value: s.value,
+}));
 
 interface ActionModalProps {
   types: "none" | "action" | "status";
@@ -53,29 +60,17 @@ export const ActionModal = ({
   setclose,
 }: ActionModalProps) => {
   const [actiontype, setactiontype] = useState<string>(types);
-  const openmodal = useGlobalStore((s) => s.openmodal);
-  const router = useRouter();
-  const searchParams = useSearchParams();
+  // Subscribe to this modal's flag only, not the whole openmodal map.
+  const isOpen = useGlobalStore((s) => Boolean(s.openmodal[close]));
 
-  const handleClose = () => {
-    const url = new URLSearchParams(searchParams);
-    url.delete("id");
-    url.delete("ty");
-    setclose();
-    router.push(`?${url}`, { scroll: false });
-  };
-
-  const subTitles: Record<string, string> = {
-    none: "Choose an action",
-    status: "Update order status",
-    settings: "Edit order settings",
-    delete: "Confirm deletion",
-  };
+  // `setclose` already strips `id`/`ty` from the URL and navigates once;
+  // navigating again here re-rendered the whole order page a second time.
+  const handleClose = () => setclose();
 
   return (
     <SecondaryModal
       size="lg"
-      open={openmodal[close] as boolean}
+      open={isOpen}
       onPageChange={handleClose}
       closebtn
     >
@@ -100,7 +95,7 @@ export const ActionModal = ({
           <div className="flex-1 min-w-0">
             <h3 className="text-base font-bold text-gray-900">Order Actions</h3>
             <p className="text-xs text-gray-400">
-              {subTitles[actiontype] ?? ""}
+              {SUB_TITLES[actiontype] ?? ""}
             </p>
           </div>
         </div>
@@ -132,8 +127,6 @@ export const ActionModal = ({
     </SecondaryModal>
   );
 };
-
-// ─── ActionMenu ───────────────────────────────────────────────────────────────
 
 interface ActionMenuProps {
   setactiontype: (type: string) => void;
@@ -201,8 +194,6 @@ const ActionMenu = ({ setactiontype }: ActionMenuProps) => (
   </div>
 );
 
-// ─── UpdateStatus ─────────────────────────────────────────────────────────────
-
 interface UpdateStatusProps {
   setactiontype: (type: string) => void;
   oid: string;
@@ -220,14 +211,9 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 const UpdateStatus = ({ setactiontype, oid, order }: UpdateStatusProps) => {
-  const router = useRouter();
   const [status, setstatus] = useState(order?.status ?? "");
   const [loading, setloading] = useState(false);
   const { handleCheckSession } = useCheckSession();
-
-  useEffect(() => {
-    setstatus(order?.status);
-  }, [order?.status]);
 
   const handleSelect = (e: ChangeEvent<HTMLSelectElement>) => {
     setstatus(e.target.value as typeof order.status);
@@ -250,8 +236,8 @@ const UpdateStatus = ({ setactiontype, oid, order }: UpdateStatusProps) => {
       errorToast(update.message);
       return;
     }
+    // The action revalidates the path, so fresh data arrives in its response.
     successToast(update.message);
-    router.refresh();
   };
 
   const isUnchanged = !status || status === order?.status;
@@ -278,7 +264,7 @@ const UpdateStatus = ({ setactiontype, oid, order }: UpdateStatusProps) => {
         <Selection
           default="Select status"
           value={status}
-          data={Object.values(Allstatus)}
+          data={STATUS_OPTIONS}
           onChange={handleSelect}
         />
       </div>
@@ -310,8 +296,6 @@ const UpdateStatus = ({ setactiontype, oid, order }: UpdateStatusProps) => {
   );
 };
 
-// ─── EditSettings ─────────────────────────────────────────────────────────────
-
 interface EditSettingsProps {
   setactiontype: (type: string) => void;
   oid: string;
@@ -319,7 +303,6 @@ interface EditSettingsProps {
 }
 
 const EditSettings = ({ setactiontype, oid, order }: EditSettingsProps) => {
-  const router = useRouter();
   const [loading, setloading] = useState(false);
   const { handleCheckSession } = useCheckSession();
 
@@ -343,20 +326,15 @@ const EditSettings = ({ setactiontype, oid, order }: EditSettingsProps) => {
       return;
     }
 
-    const result = await updateOrderSettings.bind(
-      null,
-      oid,
-      vatPercent,
-      shippingtype,
-    )();
+    const result = await updateOrderSettings(oid, vatPercent, shippingtype);
     setloading(false);
 
     if (!result.success) {
       errorToast(result.message);
       return;
     }
+    // The action revalidates the path, so fresh data arrives in its response.
     successToast(result.message);
-    router.refresh();
   };
 
   const selectedShipping = Shippingservice.find(
@@ -396,10 +374,7 @@ const EditSettings = ({ setactiontype, oid, order }: EditSettingsProps) => {
         <Selection
           default="Select shipping"
           value={shippingtype}
-          data={Shippingservice.map((s) => ({
-            label: `${s.type} — $${s.price.toFixed(2)}`,
-            value: s.value,
-          }))}
+          data={SHIPPING_OPTIONS}
           onChange={(e: ChangeEvent<HTMLSelectElement>) =>
             setShippingtype(e.target.value)
           }
@@ -438,8 +413,6 @@ const EditSettings = ({ setactiontype, oid, order }: EditSettingsProps) => {
   );
 };
 
-// ─── OrderAlert ───────────────────────────────────────────────────────────────
-
 interface OrderAlertProps {
   settype: (type: string) => void;
   oid: string;
@@ -451,7 +424,7 @@ export const OrderAlert = ({ settype, oid, close }: OrderAlertProps) => {
 
   const handleYes = async () => {
     setloading(true);
-    const result = await deleteOrder.bind(null, oid)();
+    const result = await deleteOrder(oid);
     setloading(false);
     if (!result.success) {
       errorToast(result.message);

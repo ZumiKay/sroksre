@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React from "react";
 import { useGlobalStore } from "@/src/context/GlobalContext";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { AllorderType } from "@/src/lib/utilities";
 import { AllorderStatus } from "../page";
 import { ModalDataType } from "./types";
@@ -43,24 +43,20 @@ export const ButtonSsr = ({
   className,
   skipModal = false,
 }: ButtonSsrProps) => {
-  const openmodal = useGlobalStore((s) => s.openmodal);
+  const clickedtype = `${type}${idx}`;
+  // Subscribe to this button's own flag so opening one modal doesn't
+  // re-render every button in the table.
+  const isModalOpen = useGlobalStore((s) => Boolean(s.openmodal[clickedtype]));
   const setopenmodal = useGlobalStore((s) => s.setopenmodal);
   const router = useRouter();
-  const searchParams = useSearchParams();
-
-  useEffect(() => {
-    console.log("===Product===", data?.product);
-  }, [data]);
-
-  const clickedtype = React.useMemo(() => `${type}${idx}`, [type, idx]);
 
   const handleClick = React.useCallback(() => {
-    const param = new URLSearchParams(searchParams);
+    const param = new URLSearchParams(window.location.search);
     param.set("id", id);
     param.set("ty", type);
     setopenmodal((prev) => ({ ...prev, [clickedtype]: true }));
     router.push(`?${param.toString()}`);
-  }, [searchParams, id, type, clickedtype, setopenmodal, router]);
+  }, [id, type, clickedtype, setopenmodal, router]);
 
   const handleClose = React.useCallback(() => {
     const url = new URL(window.location.href);
@@ -69,8 +65,6 @@ export const ButtonSsr = ({
     setopenmodal((prev) => ({ ...prev, [clickedtype]: false }));
     router.replace(url.pathname + url.search);
   }, [clickedtype, setopenmodal, router]);
-
-  const isModalOpen = openmodal[clickedtype];
 
   const renderModal = React.useMemo(() => {
     if (!isModalOpen) return null;

@@ -114,11 +114,16 @@ export default function Navbar({
     endpoint: "/api/order/cart?count=1",
   });
 
-  // Poll for new admin notifications every 30 seconds
+  // The initial count arrives after the first render; keep the dot in sync.
+  useEffect(() => {
+    setchecknotify(initialNotificationCount);
+  }, [initialNotificationCount]);
+
+  // Poll for unread notifications every 30 seconds (admins and customers)
   useDataRefresh({
     onRefresh: (data: { id: number; checked: boolean }[]) =>
       setchecknotify(data?.length ?? 0),
-    enabled: !!session && session.role === "ADMIN",
+    enabled: !!session,
     endpoint: "/api/users/notification?ty=check",
     interval: 30000,
   });
@@ -239,7 +244,7 @@ export default function Navbar({
             </div>
           )}
 
-          {session?.role === "ADMIN" && (
+          {session && (
             <>
               <div className="w-7.5 h-7.5 max-smallest_tablet:w-6.25 max-smallest_tablet:h-6.25 max-small_phone:w-6.25 max-small_phone:h-6.25 relative">
                 <Image

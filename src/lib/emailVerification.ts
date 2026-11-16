@@ -16,7 +16,8 @@ export const VERIFICATION_CONFIG = {
   RESEND_COOLDOWN_MS: 60 * 1000,
 } as const;
 
-const sha256 = (value: string) => createHash("sha256").update(value).digest("hex");
+const sha256 = (value: string) =>
+  createHash("sha256").update(value).digest("hex");
 
 const hashesMatch = (a: string, b: string) => {
   const left = Buffer.from(a, "hex");
@@ -26,12 +27,14 @@ const hashesMatch = (a: string, b: string) => {
 
 const newCode = () => randomInt(0, 1_000_000).toString().padStart(6, "0");
 
-const scopeOf = (purpose: VerificationPurpose, email: string, userId: number | null) =>
-  userId ? { purpose, userId } : { purpose, email };
+const scopeOf = (
+  purpose: VerificationPurpose,
+  email: string,
+  userId: number | null,
+) => (userId ? { purpose, userId } : { purpose, email });
 
 export type IssueResult =
-  | { ok: true; id: number; secret: string }
-  | { ok: false; reason: "cooldown" };
+  { ok: true; id: number; secret: string } | { ok: false; reason: "cooldown" };
 
 async function issue(
   purpose: VerificationPurpose,
@@ -72,7 +75,13 @@ async function issue(
 }
 
 export const issueSignupCode = (email: string) =>
-  issue(VerificationPurpose.SIGNUP, email, null, newCode(), VERIFICATION_CONFIG.CODE_TTL_MS);
+  issue(
+    VerificationPurpose.SIGNUP,
+    email,
+    null,
+    newCode(),
+    VERIFICATION_CONFIG.CODE_TTL_MS,
+  );
 
 export const issueChangeEmailCode = (userId: number, newEmail: string) =>
   issue(
@@ -85,10 +94,22 @@ export const issueChangeEmailCode = (userId: number, newEmail: string) =>
 
 /** Code sent to an admin's own email before they can set up 2FA. */
 export const issueMfaSetupCode = (userId: number, email: string) =>
-  issue(VerificationPurpose.MFA_SETUP, email, userId, newCode(), VERIFICATION_CONFIG.CODE_TTL_MS);
+  issue(
+    VerificationPurpose.MFA_SETUP,
+    email,
+    userId,
+    newCode(),
+    VERIFICATION_CONFIG.CODE_TTL_MS,
+  );
 
 export const issueDeleteAccountCode = (userId: number, email: string) =>
-  issue(VerificationPurpose.DELETE_ACCOUNT, email, userId, newCode(), VERIFICATION_CONFIG.CODE_TTL_MS);
+  issue(
+    VerificationPurpose.DELETE_ACCOUNT,
+    email,
+    userId,
+    newCode(),
+    VERIFICATION_CONFIG.CODE_TTL_MS,
+  );
 
 export const issueResetToken = (userId: number, email: string) =>
   issue(
@@ -136,13 +157,18 @@ export async function checkCode({
 
   // Claim an attempt atomically so parallel guesses can't exceed the limit.
   const claimed = await Prisma.emailVerification.updateMany({
-    where: { id: record.id, attempts: { lt: VERIFICATION_CONFIG.MAX_ATTEMPTS } },
+    where: {
+      id: record.id,
+      attempts: { lt: VERIFICATION_CONFIG.MAX_ATTEMPTS },
+    },
     data: { attempts: { increment: 1 } },
   });
   if (claimed.count === 0) return { ok: false, reason: "too_many_attempts" };
 
   const valid =
-    typeof code === "string" && /^\d{6}$/.test(code) && hashesMatch(sha256(code), record.tokenHash);
+    typeof code === "string" &&
+    /^\d{6}$/.test(code) &&
+    hashesMatch(sha256(code), record.tokenHash);
   if (!valid) return { ok: false, reason: "invalid" };
 
   return {
@@ -175,10 +201,8 @@ export async function findResetToken(token: unknown) {
 }
 
 /**
- * Use a reset token: set the new password hash, delete the token and log
- * the user out everywhere, all in one transaction. Returns false if the
- * token is invalid, expired or was already used.
- */
+ * Use a reset token
+ * */
 export async function resetPasswordWithToken(
   token: unknown,
   passwordHash: string,

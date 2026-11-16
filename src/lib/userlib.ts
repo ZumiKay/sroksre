@@ -7,6 +7,7 @@ import { userdata, Usersessiontype } from "../types/user.type";
 import { createHash, randomBytes } from "crypto";
 import bcryptjs from "bcryptjs";
 import { verifySecondFactor } from "./mfa";
+import { NextRequest } from "next/server";
 const { compare, genSaltSync, hashSync } = bcryptjs;
 
 export interface RegisterUser {
@@ -36,7 +37,9 @@ interface AuthReturnType {
 }
 
 //encode secret
-export const secretkey = new TextEncoder().encode(process.env.JWT_SECRET as string);
+export const secretkey = new TextEncoder().encode(
+  process.env.JWT_SECRET as string,
+);
 
 /**@requires For Usersession ONLY */
 const generateSessionId = (): string => {
@@ -60,14 +63,16 @@ export async function createUniqueSessionId(): Promise<string> {
   }
 }
 
-export const extractDeviceInfo = (request: Request | any): DeviceInfo => {
-  // Handle both Request object and NextAuth req object
+export const extractDeviceInfo = (request: NextRequest): DeviceInfo => {
   const getHeader = (name: string) => {
     if (request.headers?.get) {
       return request.headers.get(name);
     }
     // Handle plain object headers (NextAuth format)
-    return request.headers?.[name] || request.headers?.[name.toLowerCase()];
+    return (
+      request.headers?.[name as never] ||
+      request.headers?.[name.toLowerCase() as never]
+    );
   };
 
   const userAgent = getHeader("user-agent") || "Unknown";
@@ -194,7 +199,7 @@ const MAX_SESSIONS_PER_USER = 5;
 // Helper function to create user session
 export const createUserSession = async (
   userId: number,
-  deviceInfo: DeviceInfo,
+  deviceInfo: Partial<DeviceInfo>,
   { mfaVerified = false }: { mfaVerified?: boolean } = {},
 ): Promise<string> => {
   // Enforce session concurrency limit
@@ -227,7 +232,7 @@ export const createUserSession = async (
       refresh_token_hash: hashToken(refreshToken),
       userId,
       expireAt: getOneWeekFromToday(),
-      ...deviceInfo,
+      ...(deviceInfo as DeviceInfo),
       mfaVerified,
     },
   });
@@ -336,12 +341,17 @@ export const recordFailedLoginAttempt = async (
 
     // Reset attempts if last attempt was outside the window
     const shouldReset = existingAttempt.lastAttemptAt < attemptWindowStart;
-    const newAttemptCount = shouldReset ? 1 : existingAttempt.failedAttempts + 1;
+    const newAttemptCount = shouldReset
+      ? 1
+      : existingAttempt.failedAttempts + 1;
 
     // Check if account should be locked
     const shouldLock = newAttemptCount >= LOGIN_ATTEMPT_CONFIG.MAX_ATTEMPTS;
     const lockedUntil = shouldLock
-      ? new Date(now.getTime() + LOGIN_ATTEMPT_CONFIG.LOCKOUT_DURATION_MINUTES * 60 * 1000)
+      ? new Date(
+          now.getTime() +
+            LOGIN_ATTEMPT_CONFIG.LOCKOUT_DURATION_MINUTES * 60 * 1000,
+        )
       : null;
 
     await Prisma.loginAttempt.update({
@@ -356,7 +366,9 @@ export const recordFailedLoginAttempt = async (
 
     return {
       isLocked: shouldLock,
-      remainingTime: shouldLock ? LOGIN_ATTEMPT_CONFIG.LOCKOUT_DURATION_MINUTES : undefined,
+      remainingTime: shouldLock
+        ? LOGIN_ATTEMPT_CONFIG.LOCKOUT_DURATION_MINUTES
+        : undefined,
       attempts: newAttemptCount,
     };
   } catch (error) {
@@ -397,7 +409,6 @@ export const clearLoginAttempts = async (identifier: string): Promise<void> => {
  */
 export const userlogin = async (
   credential: userdata,
-  req: Request | any,
 ): Promise<AuthReturnType> => {
   try {
     // Validate email exists
@@ -427,7 +438,10 @@ export const userlogin = async (
       return { success: false, message: "Incorrect Information" };
     }
 
-    const isValidPassword = await compare(credential.password as string, user.password);
+    const isValidPassword = await compare(
+      credential.password as string,
+      user.password,
+    );
 
     if (!isValidPassword) {
       // Record failed attempt
@@ -440,7 +454,8 @@ export const userlogin = async (
         };
       }
 
-      const remainingAttempts = LOGIN_ATTEMPT_CONFIG.MAX_ATTEMPTS - attemptResult.attempts;
+      const remainingAttempts =
+        LOGIN_ATTEMPT_CONFIG.MAX_ATTEMPTS - attemptResult.attempts;
       return {
         success: false,
         message: `Incorrect Information. ${remainingAttempts} attempt(s) remaining before account lockout.`,
@@ -451,7 +466,8 @@ export const userlogin = async (
     // pass, so wrong codes count toward the same lockout as wrong passwords.
     let mfaVerified = false;
     if (user.totpEnabledAt) {
-      const otp = typeof credential.otp === "string" ? credential.otp.trim() : "";
+      const otp =
+        typeof credential.otp === "string" ? credential.otp.trim() : "";
       if (!otp) {
         return {
           success: false,
@@ -517,7 +533,9 @@ interface RegisterReturnType {
   message?: string;
 }
 
-export const registerUser = async (data: RegisterUser): Promise<RegisterReturnType> => {
+export const registerUser = async (
+  data: RegisterUser,
+): Promise<RegisterReturnType> => {
   try {
     validateUserInput.parse(data);
 
@@ -603,7 +621,10 @@ export const handleCheckandRegisterUser = async ({
 export const getOAuthInfo = async (
   oauthId: string,
   email: string,
-  deviceInfo?: Pick<Usersessiontype, "device" | "userAgent" | "ipAddress"> | null,
+  deviceInfo?: Pick<
+    Usersessiontype,
+    "device" | "userAgent" | "ipAddress"
+  > | null,
 ): Promise<{
   id: number;
   oauthId: string;
@@ -624,7 +645,10 @@ export const getOAuthInfo = async (
       ipAddress: "Unknown",
     };
 
-    const sessionid = await createUserSession(user.id, (deviceInfo as any) || defaultDeviceInfo);
+    const sessionid = await createUserSession(
+      user.id,
+      deviceInfo || defaultDeviceInfo,
+    );
 
     return {
       id: user.id,

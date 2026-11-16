@@ -10,7 +10,11 @@ import {
 } from "./OrderComponent";
 import { MultipleSelect } from "../../component/Button";
 import { getFilterOrder, GetOrder, purgeExpiredUnpaidOrders } from "./data";
-import { Productordertype, totalpricetype } from "@/src/types/order.type";
+import {
+  Ordertype,
+  Productordertype,
+  totalpricetype,
+} from "@/src/types/order.type";
 import { getUser } from "@/src/lib/session";
 import { getOrderPageAccess } from "@/src/lib/adminGuard";
 import Prisma from "@/src/lib/prisma";
@@ -234,7 +238,9 @@ function LoadError() {
           <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-1">
             Error Loading Orders
           </h2>
-          <p className="text-xs sm:text-sm text-gray-500">Please try again later</p>
+          <p className="text-xs sm:text-sm text-gray-500">
+            Please try again later
+          </p>
         </div>
       </div>
     </main>
@@ -405,13 +411,19 @@ function FilterSection({
           </span>
           {filterData.q && (
             <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-medium border border-blue-100 max-w-full truncate">
-              <FontAwesomeIcon icon={faFilter} className="text-[10px] shrink-0" />
+              <FontAwesomeIcon
+                icon={faFilter}
+                className="text-[10px] shrink-0"
+              />
               <span className="truncate">{`"${filterData.q}"`}</span>
             </span>
           )}
           {hasDate && (
             <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-purple-50 text-purple-700 text-xs font-medium border border-purple-100 max-w-full truncate">
-              <FontAwesomeIcon icon={faClock} className="text-[10px] shrink-0" />
+              <FontAwesomeIcon
+                icon={faClock}
+                className="text-[10px] shrink-0"
+              />
               <span className="truncate">
                 {filterData.fromdate ?? "…"} → {filterData.todate ?? "…"}
               </span>
@@ -419,7 +431,10 @@ function FilterSection({
           )}
           {hasPrice && (
             <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-medium border border-emerald-100">
-              <FontAwesomeIcon icon={faDollarSign} className="text-[10px] shrink-0" />
+              <FontAwesomeIcon
+                icon={faDollarSign}
+                className="text-[10px] shrink-0"
+              />
               <span>
                 {filterData.startprice ?? "0"} – {filterData.endprice ?? "∞"}
               </span>
@@ -461,7 +476,9 @@ function OrdersTable({
         <div className="lg:hidden flex items-center justify-between px-4 py-2.5 bg-gray-50/80 border-b border-gray-100 text-xs">
           <div className="flex items-center gap-2.5">
             <SelectAllCheckbox />
-            <span className="font-semibold text-gray-700">Select all orders</span>
+            <span className="font-semibold text-gray-700">
+              Select all orders
+            </span>
           </div>
         </div>
       )}
@@ -495,7 +512,10 @@ function OrdersTable({
             <tbody className="divide-y divide-gray-100 block lg:table-row-group p-3 sm:p-4 lg:p-0">
               {!orders || orders.length === 0 ? (
                 <tr className="block lg:table-row">
-                  <td colSpan={colSpan} className="block lg:table-cell py-16 sm:py-24">
+                  <td
+                    colSpan={colSpan}
+                    className="block lg:table-cell py-16 sm:py-24"
+                  >
                     <div className="flex flex-col items-center justify-center gap-3">
                       <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gray-100 flex items-center justify-center">
                         <FontAwesomeIcon
@@ -587,7 +607,9 @@ function OrderRowSkeleton({ isAdmin }: { isAdmin: boolean }) {
             <div className="flex gap-2 pt-1">
               <div className="h-9 bg-gray-100 rounded-xl flex-1"></div>
               <div className="h-9 bg-gray-100 rounded-xl flex-1"></div>
-              {isAdmin && <div className="h-9 bg-gray-100 rounded-xl flex-1"></div>}
+              {isAdmin && (
+                <div className="h-9 bg-gray-100 rounded-xl flex-1"></div>
+              )}
             </div>
           </div>
         </td>
@@ -668,7 +690,7 @@ const getOrderData = cache(
     // redirect() throws, so it has to stay outside the try block.
     if (!data) redirect("/dashboard/order");
 
-    const resultData = (data as any)?.data ?? data;
+    const resultData = (data as unknown as { data: Ordertype })?.data ?? data;
 
     if (ty === AllorderType.orderdetail) {
       return resultData as unknown as OrderDetailType;
@@ -741,7 +763,9 @@ export async function DataRow({
             >
               #{data.id.slice(0, 8).toUpperCase()}
             </span>
-            <span className="text-[11px] text-gray-400 mt-0.5">{orderDate}</span>
+            <span className="text-[11px] text-gray-400 mt-0.5">
+              {orderDate}
+            </span>
           </div>
         </td>
 
@@ -789,7 +813,10 @@ export async function DataRow({
         <td className="px-3 py-4">
           {shippingLabel ? (
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-100 text-gray-600 text-xs font-medium capitalize">
-              <FontAwesomeIcon icon={faTruck} className="text-[10px] shrink-0" />
+              <FontAwesomeIcon
+                icon={faTruck}
+                className="text-[10px] shrink-0"
+              />
               {shippingLabel}
             </span>
           ) : (
@@ -886,8 +913,13 @@ export async function DataRow({
 
               {shippingLabel ? (
                 <span className="inline-flex items-center gap-1.5 text-gray-600 font-medium capitalize">
-                  <FontAwesomeIcon icon={faTruck} className="text-[10px] text-gray-400 shrink-0" />
-                  <span className="truncate max-w-[150px] sm:max-w-none">{shippingLabel}</span>
+                  <FontAwesomeIcon
+                    icon={faTruck}
+                    className="text-[10px] text-gray-400 shrink-0"
+                  />
+                  <span className="truncate max-w-[150px] sm:max-w-none">
+                    {shippingLabel}
+                  </span>
                 </span>
               ) : (
                 <span className="text-gray-400 italic">No shipping info</span>

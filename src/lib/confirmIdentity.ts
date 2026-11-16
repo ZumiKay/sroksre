@@ -14,16 +14,7 @@ import {
 import { VerificationPurpose } from "@/prisma/generated/prisma/enums";
 
 /**
- * Re-checks who is at the keyboard before a destructive action, so an open
- * session alone isn't enough.
- *
- * - "delete_account" (deleting your own account): your password, or an
- *   emailed code for Google/Discord accounts, which never chose a password.
- *   Plus a current authenticator code if 2FA is on.
- * - "delete_users" (admin deleting customers): a current authenticator code,
- *   or the password if the admin hasn't set up 2FA.
- *
- * Wrong answers share one lockout per user: 5 tries, then 15 minutes.
+ * Re-checks who is at the keyboard
  */
 export type ConfirmAction = "delete_account" | "delete_users";
 
@@ -40,8 +31,7 @@ export interface ConfirmInput {
 }
 
 export type ConfirmResult =
-  | { ok: true }
-  | { ok: false; status: 400 | 404 | 429; message: string };
+  { ok: true } | { ok: false; status: 400 | 404 | 429; message: string };
 
 type ConfirmUser = {
   oauthId: string | null;

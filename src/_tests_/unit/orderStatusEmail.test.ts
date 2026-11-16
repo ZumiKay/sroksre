@@ -22,6 +22,7 @@ jest.mock("@/src/app/checkout/fetchaction", () => ({
   getCheckoutdata: jest.fn(),
 }));
 jest.mock("@/src/app/dashboard/order/OrderComponent", () => ({}));
+jest.mock("@/src/lib/notification", () => ({ notifyOrderStatus: jest.fn() }));
 
 import {
   bulkUpdateOrderStatus,
@@ -33,6 +34,7 @@ import { SendOrderEmail } from "@/src/lib/email";
 import { renderOrderReceiptHtml } from "@/src/app/checkout/orderReceipt";
 import { getCheckoutdata } from "@/src/app/checkout/fetchaction";
 import { Allstatus } from "@/src/types/order.type";
+import { notifyOrderStatus } from "@/src/lib/notification";
 
 const mockUpdateMany = Prisma.orders.updateMany as unknown as jest.Mock;
 const mockFindMany = Prisma.orders.findMany as unknown as jest.Mock;
@@ -93,6 +95,23 @@ describe("updateOrderStatus", () => {
     )(Allstatus.shipped, ORDER_ID, "<h1>phish</h1>");
 
     expect(mockSend.mock.calls[0][0]).not.toContain("phish");
+  });
+
+  it("notifies the customer in-app about the new status", async () => {
+    await updateOrderStatus(Allstatus.shipped, ORDER_ID);
+
+    expect(notifyOrderStatus).toHaveBeenCalledWith(
+      [ORDER_ID],
+      Allstatus.shipped,
+    );
+  });
+
+  it("does not notify when the order is missing", async () => {
+    mockUpdateMany.mockResolvedValue({ count: 0 });
+
+    await updateOrderStatus(Allstatus.shipped, ORDER_ID);
+
+    expect(notifyOrderStatus).not.toHaveBeenCalled();
   });
 
   it("sends no email when abandoning an order", async () => {

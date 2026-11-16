@@ -42,6 +42,8 @@ const userRoute: Map<string, methodtype[]> = new Map([
   ["/order", ["POST", "PUT", "GET", "DELETE"]],
   ["/order/cart", ["POST", "GET", "DELETE"]],
   ["/users/info", ["GET", "DELETE"]],
+  // Own notifications only; the handler scopes every query to the caller.
+  ["/users/notification", ["GET", "DELETE"]],
   // Two-factor setup; the handler itself requires an admin.
   ["/users/mfa", ["GET", "POST"]],
   // Confirm a delete; the handler checks admin rights for "delete_users".
@@ -83,10 +85,6 @@ export const VerifyApiRoute = (
   return { success: true };
 };
 
-/**
- * True when only admins may call this route. Mirrors VerifyApiRoute's
- * order: public and user routes win over the admin list.
- */
 export const isAdminOnlyRoute = (url: string, method: methodtype): boolean => {
   const normalizedUrl = url.toLowerCase();
   if (allPublicRoute.get(normalizedUrl)?.includes(method)) return false;

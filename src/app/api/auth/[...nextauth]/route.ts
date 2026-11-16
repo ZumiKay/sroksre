@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import NextAuth from "next-auth/next";
 import GoogleProvider from "next-auth/providers/google";
 import DiscordProvider from "next-auth/providers/discord";
@@ -17,6 +18,7 @@ import { NextAuthOptions } from "next-auth";
 import { generateRandomPassword } from "@/src/lib/utilities";
 import Prisma from "@/src/lib/prisma";
 import { JwtType, userdata } from "@/src/types/user.type";
+import { NextRequest } from "next/server";
 
 /**Authentication Features
  * [✓] Credentail / Oauth (Discord , Google)
@@ -64,12 +66,12 @@ export const authOptions: NextAuthOptions = {
         },
         otp: { label: "Two-factor code", type: "text" },
       },
-      async authorize(credentials, req: any): Promise<any> {
+      async authorize(credentials, req): Promise<any> {
         if (!credentials?.email || !credentials?.password) {
           return null;
         }
 
-        const login = await userlogin(credentials as userdata, req);
+        const login = await userlogin(credentials as userdata);
         if (login.code) {
           // Shown to the login page as `error`, so it can ask for the code.
           throw new Error(login.code);
@@ -82,7 +84,7 @@ export const authOptions: NextAuthOptions = {
           id: login.data.userId,
           role: login.data.role,
           mfaVerified: login.data.mfaVerified ?? false,
-          deviceInfo: extractDeviceInfo(req),
+          deviceInfo: extractDeviceInfo(req as unknown as NextRequest),
         };
       },
     }),

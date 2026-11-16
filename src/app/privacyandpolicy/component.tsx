@@ -591,7 +591,7 @@ export const QuestionCard = ({
           <motion.span
             animate={{ rotate: open ? 180 : 0 }}
             transition={{ duration: 0.2 }}
-            className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 text-gray-500"
+            className="shrink-0 w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 text-gray-500"
           >
             <FontAwesomeIcon icon={faChevronDown} className="text-xs" />
           </motion.span>

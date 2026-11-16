@@ -48,27 +48,22 @@ export default function NavbarWrapper() {
       // Mark as successfully fetched
       hasFetchedRef.current = true;
 
-      // Fetch role-specific data in parallel for better performance
-      if (userSession && userSession.role !== "ADMIN") {
-        // Fetch cart count for non-admin users
-        const cartResponse = await ApiRequest(
-          API_ENDPOINTS.CART_COUNT,
-          undefined,
-          "GET",
-        );
-        if (cartResponse.success) {
-          setInitialCartCount(cartResponse.data || 0);
-        }
-      } else if (userSession?.role === "ADMIN") {
-        // Fetch notification count for admin users
-        const notificationResponse = await ApiRequest(
-          API_ENDPOINTS.NOTIFICATION_CHECK,
-          undefined,
-          "GET",
-        );
-        if (notificationResponse.success) {
-          setInitialNotificationCount(notificationResponse.data?.length || 0);
-        }
+      if (!userSession) return;
+
+      // Unread notifications for everyone (admins: store events, customers:
+      // their order status); cart count for customers only. In parallel.
+      const [notificationResponse, cartResponse] = await Promise.all([
+        ApiRequest(API_ENDPOINTS.NOTIFICATION_CHECK, undefined, "GET"),
+        userSession.role !== "ADMIN"
+          ? ApiRequest(API_ENDPOINTS.CART_COUNT, undefined, "GET")
+          : null,
+      ]);
+
+      if (notificationResponse.success) {
+        setInitialNotificationCount(notificationResponse.data?.length || 0);
+      }
+      if (cartResponse?.success) {
+        setInitialCartCount(cartResponse.data || 0);
       }
     } catch (error) {
       console.log("Error fetching initial data:", error);

@@ -6,10 +6,12 @@ import { OrderReciptEmail } from "@/src/lib/utilities";
 import { revalidatePath } from "next/cache";
 import { Allstatus, totalpricetype } from "@/src/types/order.type";
 import { escapeHtml, SendOrderEmail } from "@/src/lib/email";
+import { notifyOrderStatus } from "@/src/lib/notification";
 import { renderOrderReceiptHtml } from "../../checkout/orderReceipt";
 import { getCheckoutdata } from "../../checkout/fetchaction";
 import { Filterdatatype } from "./OrderComponent";
 import { OrdersWhereInput } from "@/prisma/generated/prisma/models";
+import { JsonNullValueInput } from "@/prisma/generated/prisma/internal/prismaNamespace";
 
 interface Returntype<t = undefined> {
   success: boolean;
@@ -41,6 +43,10 @@ export const updateOrderStatus = async (
     if (updatedOrder.count === 0) {
       return { success: false, message: "Order not found" };
     }
+    revalidatePath("/dashboard/order");
+
+    // In-app notification for the customer (skips Abandoned, never throws).
+    await notifyOrderStatus([id], status);
 
     // Send email notification unless the order is being abandoned. The email
     // is rendered here from the database; the browser never supplies HTML.
@@ -101,7 +107,10 @@ export const updateOrderSettings = async (
 
     await Prisma.orders.update({
       where: { id },
-      data: { price: updatedPrice as any, shippingtype },
+      data: {
+        price: updatedPrice as unknown as JsonNullValueInput,
+        shippingtype,
+      },
     });
 
     revalidatePath("/dashboard/order");
@@ -129,6 +138,9 @@ export const bulkUpdateOrderStatus = async (
       data: { status },
     });
     revalidatePath("/dashboard/order");
+
+    // In-app notification for each customer (skips Abandoned, never throws).
+    await notifyOrderStatus(ids, status);
 
     // Send email notification to each affected user, except for Abandoned status
     if (status !== Allstatus.abandoned) {

@@ -49,7 +49,7 @@ jest.mock("@/src/app/component/Modals/User", () => ({}));
 jest.mock("@/src/app/checkout/fetchaction", () => ({
   getCheckoutdata: jest.fn(),
 }));
-jest.mock("@/src/app/severactions/notification_action", () => ({
+jest.mock("@/src/lib/notification", () => ({
   SaveNotification: jest.fn().mockResolvedValue(undefined),
   SaveUserNotification: jest.fn().mockResolvedValue(undefined),
 }));

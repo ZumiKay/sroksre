@@ -1,11 +1,8 @@
-// Server-only order reads. Deliberately NOT "use server": these do no auth
-// check of their own (the order page decides who may see what), so they must
-// not be callable from the browser.
-
 import Prisma from "@/src/lib/prisma";
 import { Allstatus, totalpricetype } from "@/src/types/order.type";
 import { Orderproduct, Orders } from "@/prisma/generated/prisma/client";
 import { getCheckoutdata } from "../../checkout/fetchaction";
+import { OrdersWhereInput } from "@/prisma/generated/prisma/models";
 
 const AllorderType = {
   orderdetail: "orderdetail",
@@ -116,7 +113,7 @@ export const getFilterOrder = async ({
 }: filtertype) => {
   try {
     // Build where clause with database-level filtering
-    const whereClause: any = {};
+    const whereClause: OrdersWhereInput = {};
 
     if (userid) {
       whereClause.buyer_id = userid;
@@ -222,8 +219,6 @@ export const purgeExpiredUnpaidOrders = async (): Promise<void> => {
   try {
     const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
-    // Find the specific orders that are expiring so we can scope the
-    // orderproduct update to only their rows.
     const expiredOrders = await Prisma.orders.findMany({
       where: {
         status: Allstatus.unpaid,
@@ -235,7 +230,6 @@ export const purgeExpiredUnpaidOrders = async (): Promise<void> => {
     const expiredOrderIds = expiredOrders.map((o) => o.id);
 
     await Promise.all([
-      // 1. Expire standalone cart items (not yet in any checkout session)
       Prisma.orderproduct.updateMany({
         where: {
           orderId: null,
@@ -245,14 +239,12 @@ export const purgeExpiredUnpaidOrders = async (): Promise<void> => {
         data: { status: Allstatus.abandoned },
       }),
 
-      // 2. Expire the unpaid orders themselves
       ...(expiredOrderIds.length > 0
         ? [
             Prisma.orders.updateMany({
               where: { id: { in: expiredOrderIds } },
               data: { status: Allstatus.abandoned },
             }),
-            // 3. Expire orderproducts belonging to those orders
             Prisma.orderproduct.updateMany({
               where: {
                 orderId: { in: expiredOrderIds },

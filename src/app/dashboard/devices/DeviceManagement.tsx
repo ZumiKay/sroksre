@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import useCheckSession from "@/src/hooks/useCheckSession";
 
 interface Session {
@@ -28,10 +28,10 @@ export default function DeviceManagement() {
 
   // Prevent hydration mismatch for date formatting
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsMounted(true);
   }, []);
-
-  const fetchSessions = async () => {
+  const fetchSessions = useCallback(async () => {
     const isValidSession = await handleCheckSession();
     if (!isValidSession) return;
 
@@ -48,11 +48,12 @@ export default function DeviceManagement() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [handleCheckSession]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchSessions();
-  }, [data]);
+  }, [data, fetchSessions, handleCheckSession]);
 
   const handleLogoutDevice = async (sessionId: string) => {
     if (!confirm("Are you sure you want to logout this device?")) return;

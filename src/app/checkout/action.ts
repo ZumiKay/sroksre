@@ -48,7 +48,6 @@ export type Returntype<T = void, K = string> =
 
 /**
  * Hold stock for the given cart items (called at checkout start).
- * Not exported: every export of a "use server" file is a public endpoint.
  */
 async function holdStockForItems(items: StockableItem[]) {
   const ops = buildStockAdjustments(items, "decrement");
@@ -56,8 +55,7 @@ async function holdStockForItems(items: StockableItem[]) {
 }
 
 /**
- * Release all stock holds for an order (called on session termination/expiry).
- * Not exported: every export of a "use server" file is a public endpoint.
+ * Release all stock holds for an order (called on session expiry).
  */
 async function releaseStock(orderId: string) {
   const orderProducts = await Prisma.orderproduct.findMany({
@@ -164,7 +162,7 @@ export async function createOrder(data: {
     return { success: false, message: "No valid cart items" };
   }
 
-  // We'll check for existing order first so we can also accept items
+  // Check for existing order first so we can also accept items
   // already linked to it (handles the case where user navigates back
   // without terminating the session and clicks checkout again).
   let preCheckOrder = await Prisma.orders.findFirst({
@@ -257,7 +255,6 @@ export async function createOrder(data: {
     totalVariantExtra += variantExtra * item.quantity;
     return sum + basePrice * item.quantity;
   }, 0);
-
   const pickupService = Shippingservice.find((s) => s.value === "Pickup");
   const defaultShipping = pickupService?.price ?? 0;
   const extra =
@@ -369,10 +366,8 @@ export async function renewCheckoutSession(
 
 /**
  * Explicitly terminate a checkout session (user navigates away).
- * Releases stock holds, unlinks orderproducts back to the cart (orderId = null,
- * status kept as incart so the user can resume shopping), and marks the order
- * as abandoned for history — without deleting any records.
- */
+ * Releases stock holds, unlinks orderproducts back to the cart
+ * */
 export async function terminateCheckoutSession(
   orderId: string,
 ): Promise<Returntype> {
@@ -391,8 +386,8 @@ export async function terminateCheckoutSession(
     }
 
     await releaseStock(orderId);
-    // Unlink orderproducts so they return to the user's cart (orderId = null),
-    // then mark the order itself as abandoned for history.
+
+    //Marked order as abandoned
     await Promise.all([
       Prisma.orderproduct.updateMany({
         where: { orderId },
@@ -474,14 +469,8 @@ export interface OrderUserType extends Ordertype {
   createdAt: Date;
 }
 
-//Confirm payment
-
 /**
- * Confirm a PayPal payment for a local order, entirely on the server.
- *
- * The browser only says "the buyer approved in PayPal". This checks who owns
- * the order; settlePaypalPayment (shared with the PayPal webhook) checks the
- * amount, captures, and marks the order paid.
+ * Confirm a PayPal payment for a local order.
  */
 export async function confirmPayment(orderId: string): Promise<Returntype> {
   try {
@@ -714,8 +703,7 @@ export async function createPaypalOrder(
       return { success: true, data: request.data, status: request.status };
     }
 
-    // Bind the PayPal order to this checkout. Only this ID can be captured
-    // for the order later; the browser never chooses which PayPal order to pay.
+    // Bind the PayPal order to this checkout.The browser never chooses which PayPal order to pay.
     await Prisma.orders.updateMany({
       where: { id: orderId, status: Allstatus.unpaid },
       data: { paypalOrderId: request.data.id },

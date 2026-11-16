@@ -14,19 +14,10 @@ import { SendNotification, useSocket } from "@/src/context/SocketContext";
 import { errorToast, successToast } from "../Loading";
 import useCheckSession from "@/src/hooks/useCheckSession";
 
-// -----------------------------------------------------------------------------
-// PaypalButtonWrapper – renders the PayPal button UI with loading states
-// -----------------------------------------------------------------------------
-
 function PaypalButtonWrapper({
-  orderId,
-  order,
-  encripyid,
   onCreateOrder,
   onApproveOrder,
 }: {
-  orderId: string;
-  encripyid: string;
   order: Ordertype;
   onCreateOrder: () => Promise<string>;
   onApproveOrder: (data: unknown, actions: unknown) => Promise<void>;
@@ -98,10 +89,6 @@ function PaypalButtonWrapper({
     </div>
   );
 }
-
-// -----------------------------------------------------------------------------
-// Paypalbutton – public component
-// -----------------------------------------------------------------------------
 
 export function Paypalbutton({
   orderId,
@@ -193,9 +180,7 @@ export function Paypalbutton({
       }}
     >
       <PaypalButtonWrapper
-        orderId={orderId}
         order={order}
-        encripyid={encripyid}
         onCreateOrder={createOrder}
         onApproveOrder={handleApprove}
       />

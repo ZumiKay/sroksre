@@ -1,6 +1,10 @@
 import { NextRequest } from "next/server";
 import Prisma from "@/src/lib/prisma";
-import { calculatePagination, IsNumber, removeSpaceAndToLowerCase } from "@/src/lib/utilities";
+import {
+  calculatePagination,
+  IsNumber,
+  removeSpaceAndToLowerCase,
+} from "@/src/lib/utilities";
 import { requireAdmin } from "@/src/lib/session";
 import { confirmIdentity } from "@/src/lib/confirmIdentity";
 import { deleteUsersWithData } from "@/src/lib/accountDeletion";
@@ -29,8 +33,8 @@ export async function GET(request: NextRequest) {
       p: parseInt(searchParams.get("p") ?? "1", 10),
       search: searchParams.get("search") ?? undefined,
       sort:
-        (searchParams.get("sort") as "newest" | "oldest" | "name" | "name-desc" | null) ??
-        undefined,
+        (searchParams.get("sort") as
+          "newest" | "oldest" | "name" | "name-desc" | null) ?? undefined,
       role: (searchParams.get("role") as Role | "all" | null) ?? undefined,
     };
 
@@ -86,9 +90,6 @@ export async function GET(request: NextRequest) {
 
     const { startIndex } = calculatePagination(total, safeLt, safePage);
 
-    // A page past the end just comes back empty. (The old take of
-    // endIndex - startIndex + 1 went negative there, and Prisma reads a
-    // negative take backwards.)
     const result = await Prisma.user.findMany({
       where: whereClause,
       orderBy,
@@ -120,10 +121,6 @@ export async function GET(request: NextRequest) {
 
 const MAX_BULK_DELETE = 100;
 
-/**
- * Deletes customers. Body: { userIds | id, code?, password? }.
- * Needs the admin's current 2FA code (or password without 2FA), and never
- * deletes the caller or other admins. */
 export async function DELETE(request: NextRequest) {
   const admin = await requireAdmin();
   if (!admin) {
@@ -132,7 +129,9 @@ export async function DELETE(request: NextRequest) {
 
   try {
     const body = await request.json().catch(() => null);
-    const rawIds: unknown[] = Array.isArray(body?.userIds) ? body.userIds : [body?.id];
+    const rawIds: unknown[] = Array.isArray(body?.userIds)
+      ? body.userIds
+      : [body?.id];
     const ids = [...new Set(rawIds.map(Number))];
 
     if (
@@ -144,19 +143,32 @@ export async function DELETE(request: NextRequest) {
     }
 
     if (ids.includes(admin.userId)) {
-      return Response.json({ message: "You can't delete your own account here" }, { status: 400 });
+      return Response.json(
+        { message: "You can't delete your own account here" },
+        { status: 400 },
+      );
     }
 
     const adminTargets = await Prisma.user.count({
       where: { id: { in: ids }, role: Role.ADMIN },
     });
     if (adminTargets > 0) {
-      return Response.json({ message: "Admin accounts can't be deleted" }, { status: 403 });
+      return Response.json(
+        { message: "Admin accounts can't be deleted" },
+        { status: 403 },
+      );
     }
 
-    const confirmed = await confirmIdentity(admin.userId, "delete_users", body ?? {});
+    const confirmed = await confirmIdentity(
+      admin.userId,
+      "delete_users",
+      body ?? {},
+    );
     if (!confirmed.ok) {
-      return Response.json({ message: confirmed.message }, { status: confirmed.status });
+      return Response.json(
+        { message: confirmed.message },
+        { status: confirmed.status },
+      );
     }
 
     const deleted = await deleteUsersWithData(ids);

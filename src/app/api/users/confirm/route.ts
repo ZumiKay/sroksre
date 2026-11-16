@@ -11,8 +11,6 @@ import {
 import { sendVerificationCodeEmail } from "@/src/lib/verificationEmail";
 
 /**
- * What the current user must enter to confirm a delete (see confirmIdentity).
- *
  * GET  ?action=delete_account|delete_users   → { password, emailCode, totp }
  * POST { action: "delete_account" }          → emails a confirmation code
  */

@@ -16,17 +16,16 @@ const requestSchema = z.object({
   type: z.enum(["register", "forgot"]),
 });
 
-// Same reply whether or not the account exists, so this can't be used to
-// find out which emails are registered.
 const RESET_SENT_MESSAGE =
   "If an account exists for this email, a reset link has been sent";
 
 /**
  * Send a sign-up code or a password reset link by email.
- * The code / link is never included in the response.
  */
 export async function POST(request: NextRequest) {
-  const parsed = requestSchema.safeParse(await request.json().catch(() => null));
+  const parsed = requestSchema.safeParse(
+    await request.json().catch(() => null),
+  );
   if (!parsed.success) {
     return Response.json({ message: "Invalid email" }, { status: 400 });
   }

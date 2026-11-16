@@ -1,5 +1,4 @@
 // Server-only PayPal REST helpers.
-// Intentionally NOT a "use server" module: nothing here may be callable from the browser.
 
 export interface PaypalAmount {
   currency_code?: string;

@@ -5,7 +5,6 @@ import {
   Productordertype,
   totalpricetype,
   VariantOptionsType,
-  VariantPriceBreakdown,
 } from "@/src/types/order.type";
 import { getUser } from "@/src/lib/session";
 import Prisma from "@/src/lib/prisma";
@@ -25,13 +24,6 @@ import {
 } from "@/src/types/product.type";
 import { getVariantDetail } from "@/src/app/checkout/helper";
 import { syncExpiredPromotions } from "@/src/lib/promotion";
-
-export const getVariantPriceBreakDownByActiveCart = (
-  orderProduct: Productordertype[],
-  optionsPrice: VariantOptionsType[],
-): VariantPriceBreakdown => {
-  return getVariantPriceBreakDownByActiveCart(orderProduct, optionsPrice);
-};
 
 const buildFinalCartPrice = (
   basePrice: Productordertype["price"],
@@ -253,14 +245,24 @@ export async function GET(req: NextRequest) {
       if (maxqty === 0 && !item.product.Stock?.length) {
         let optionQty = Infinity;
         for (const d of detail) {
-          const variant = item.product.Variant?.find((v) => v.id === d.variant_id);
-          if (!variant) continue;
-          const option = (variant.option_value as (string | VariantValueObjType)[]).find(
-            (opt) => (typeof opt === "string" ? opt === d.value : opt.val === d.value),
+          const variant = item.product.Variant?.find(
+            (v) => v.id === d.variant_id,
           );
-          if (option && typeof option !== "string" && option.qty !== undefined) {
+          if (!variant) continue;
+          const option = (
+            variant.option_value as (string | VariantValueObjType)[]
+          ).find((opt) =>
+            typeof opt === "string" ? opt === d.value : opt.val === d.value,
+          );
+          if (
+            option &&
+            typeof option !== "string" &&
+            option.qty !== undefined
+          ) {
             const oQty =
-              typeof option.qty === "number" ? option.qty : parseInt(option.qty as string || "0");
+              typeof option.qty === "number"
+                ? option.qty
+                : parseInt((option.qty as string) || "0");
             optionQty = Math.min(optionQty, oQty);
           }
         }

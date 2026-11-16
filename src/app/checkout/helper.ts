@@ -9,6 +9,12 @@ import {
 } from "@/src/types/order.type";
 import { Varianttype, VariantValueObjType } from "@/src/types/product.type";
 
+export enum PAYPAL_STATUS_ENUM {
+  approved = "APPROVED",
+  instrument_declined = "INSTRUMENT_DECLINED",
+  completed = "COMPLETED",
+}
+
 export function hasValidBuyer(order: Ordertype): boolean {
   return !!(order.buyer_id && order.user && order.user.email);
 }

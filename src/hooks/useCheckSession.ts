@@ -6,9 +6,7 @@ import { Usersessiontype } from "../types/user.type";
 
 /**
  * Validates the user's session and exposes a sessionExpired flag.
- * Network/transient failures do NOT set `sessionExpired`; the user stays
- * logged in and the failed action is simply blocked.
- */
+ * Network/transient failures do NOT set sessionExpired */
 const useCheckSession = () => {
   const { status, data, update } = useSession();
   const [sessionExpired, setSessionExpired] = useState(false);
@@ -18,7 +16,7 @@ const useCheckSession = () => {
     setSessionExpired(false);
   }, []);
 
-  // Immediately detect an already-expired session on mount / session data change
+  // Immediately detect an already-expired session on mount
   useEffect(() => {
     if (
       status === "authenticated" &&
@@ -38,8 +36,7 @@ const useCheckSession = () => {
   }, [status, data?.expires]);
 
   /**
-   * Call before any server action. Returns `true` if the session is valid,
-   * `false` (and sets `sessionExpired` when appropriate) if not.
+   * Call before any server action.
    */
   const handleCheckSession = useCallback(async (): Promise<boolean> => {
     if (status === "loading" || isHandlingRef.current) return false;
@@ -77,10 +74,8 @@ const useCheckSession = () => {
           return false;
         }
 
-        // null/undefined → transient failure (network blip, cold start). Keep user in.
         return true;
       } catch {
-        // Network or unexpected error — do NOT sign out. Let the action proceed
         // optimistically; if the session is truly dead the server action will fail.
         return true;
       }

@@ -40,7 +40,7 @@ export function SessionExpiredModal() {
   }, []);
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+    <div className="fixed inset-0 z-9999 flex items-center justify-center bg-black/60 backdrop-blur-sm">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-8 flex flex-col items-center gap-6 text-center">
         {/* Icon */}
         <div className="w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center">

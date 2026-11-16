@@ -78,12 +78,23 @@ export async function GET(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
+    const user = await getUser();
+    if (!user?.userId) {
+      return Response.json({ message: "Unauthorized" }, { status: 401 });
+    }
+
     const { id }: { id: number } = await req.json();
-    if (!id) {
+    if (!id || typeof id !== "number") {
       return Response.json(null, { status: 404 });
     }
 
-    await Prisma.notification.delete({ where: { id } });
+    // Only the owner can delete a notification.
+    const deleted = await Prisma.notification.deleteMany({
+      where: { id, userid: user.userId },
+    });
+    if (deleted.count === 0) {
+      return Response.json({ message: "Not found" }, { status: 404 });
+    }
 
     return Response.json({ message: "Delete Successfully" }, { status: 200 });
   } catch (error) {

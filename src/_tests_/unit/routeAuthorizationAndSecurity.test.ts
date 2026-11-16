@@ -51,6 +51,27 @@ describe("Route Authorization & Security Unit Tests", () => {
         const res = VerifyApiRoute("/order/cart", "POST", Role.ADMIN);
         expect(res.success).toBe(true);
       });
+
+      it("lets customers read and delete their own notifications", () => {
+        expect(
+          VerifyApiRoute("/users/notification", "GET", Role.USER).success,
+        ).toBe(true);
+        expect(
+          VerifyApiRoute("/users/notification", "DELETE", Role.USER).success,
+        ).toBe(true);
+      });
+
+      it("does not let customers create notifications through the API", () => {
+        expect(
+          VerifyApiRoute("/users/notification", "POST", Role.USER).success,
+        ).toBe(false);
+      });
+
+      it("rejects unauthenticated requests to /users/notification", () => {
+        expect(
+          VerifyApiRoute("/users/notification", "GET", null).success,
+        ).toBe(false);
+      });
     });
 
     describe("Admin-only Protected Routes", () => {
