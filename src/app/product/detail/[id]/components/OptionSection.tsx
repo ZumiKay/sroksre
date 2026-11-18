@@ -1,20 +1,24 @@
 "use client";
 
 import { useEffect, useState, useCallback, useMemo } from "react";
-import PrimaryButton from "@/src/app/component/Button";
 import {
   Productdetailinitialize,
   useGlobalStore,
 } from "@/src/context/GlobalContext";
 import { ProductState } from "@/src/types/product.type";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faHeart } from "@fortawesome/free-solid-svg-icons";
+import {
+  faCartShopping,
+  faCheck,
+  faHeart,
+} from "@fortawesome/free-solid-svg-icons";
 import {
   addToWishlistService,
   addToCartService,
 } from "../services/productService";
 import { ShowVariantSections, ShowOptionandStock } from "./VariantSections";
 import { ErrorMessageType } from "./StockSelector";
+import { isVariantActive } from "@/src/lib/variantCondition";
 
 interface OptionSectionProps {
   data: Pick<
@@ -35,6 +39,7 @@ export const OptionSection = ({
   const productorderdetail = useGlobalStore((s) => s.productorderdetail);
   const setproductorderdetail = useGlobalStore((s) => s.setproductorderdetail);
   const setcarttotal = useGlobalStore((s) => s.setcarttotal);
+  const setcart = useGlobalStore((s) => s.setcart);
   const [loading, setloading] = useState(false);
   const [errormess, seterrormess] = useState<ErrorMessageType>({
     option: "",
@@ -42,14 +47,22 @@ export const OptionSection = ({
   });
   const [qty, setqty] = useState(0);
   const [incart, setincart] = useState(isInCart);
+  const [inWishlist, setInWishlist] = useState(isInWishlist);
 
-  // Initialize product detail options
+  // Start each product with a clean selection; simple-stock products
+  // default to a quantity of 1 so Add to Cart works straight away
   useEffect(() => {
-    setproductorderdetail((prev) => ({
-      ...prev,
-      id: data.id as number,
-    }));
-  }, [data.id, data.stocktype, data.Variant, setproductorderdetail]);
+    setproductorderdetail((prev) =>
+      prev.id === data.id
+        ? prev
+        : {
+            ...Productdetailinitialize,
+            id: data.id as number,
+            quantity:
+              data.stocktype === "stock" && (data.stock ?? 0) > 0 ? 1 : 0,
+          },
+    );
+  }, [data.id, data.stocktype, data.stock, setproductorderdetail]);
 
   // A different product clears any leftover error text
   const [syncedProduct, setSyncedProduct] = useState({
@@ -76,7 +89,8 @@ export const OptionSection = ({
   const handleWishlist = useCallback(async () => {
     setloading(true);
     try {
-      await addToWishlistService(data.id ?? 0);
+      const result = await addToWishlistService(data.id ?? 0);
+      if (result.success) setInWishlist(true);
     } finally {
       setloading(false);
     }
@@ -172,6 +186,9 @@ export const OptionSection = ({
     return hasQty || hasDetails;
   }, [productorderdetail]);
 
+  // Real problems (e.g. out of stock, missing required option) are shown
+  // as errors; "what to do next" guidance is shown as a neutral hint
+  const isError = !!(errormess?.qty || errormess?.option);
   const currentErrorMessage = useMemo(() => {
     if (errormess?.qty || errormess?.option) {
       return errormess.qty || errormess.option || "";
@@ -188,36 +205,49 @@ export const OptionSection = ({
       const validDetails = details?.filter((i) => i) ?? [];
       const hasSelectedOptions = validDetails.some((i) => i.value.length !== 0);
 
+      // Name the required options (including unlocked add-ons) still missing
+      const variants = data.Variant ?? [];
+      const missing = variants.filter(
+        (v) =>
+          v.id &&
+          !v.optional &&
+          isVariantActive(v, variants, validDetails) &&
+          !validDetails.some((d) => d.variant_id === v.id && d.value),
+      );
+
       if (!hasSelectedOptions) {
-        return "Please select an option";
+        return missing.length > 0
+          ? `Choose ${missing.map((v) => v.option_title).join(", ")}`
+          : "Choose an option";
+      } else if (missing.length > 0) {
+        return `Choose ${missing.map((v) => v.option_title).join(", ")}`;
       } else if (!hasQty) {
-        return "Please select quantity";
+        return loading ? "Checking availability…" : "Choose a quantity";
       }
     }
 
     return "";
-  }, [errormess.qty, errormess.option, data, productorderdetail]);
+  }, [errormess.qty, errormess.option, data, productorderdetail, loading]);
+
+  const cartDisabled =
+    !incart && (productorderdetail?.quantity === 0 || isAdmin || loading);
 
   return (
-    <div className="w-full h-fit flex flex-col gap-y-5">
-      {loading && (
-        <div className="w-full h-1 bg-blue-500 animate-pulse rounded-full"></div>
-      )}
-      <div className="w-full flex flex-row items-center justify-between gap-x-3">
-        <h3 className="error_mess text-lg text-red-500 font-bold flex-1 transition-opacity duration-200">
-          {currentErrorMessage}
-        </h3>
-        {hasSelections && (
+    <div className="w-full flex flex-col gap-y-6">
+      {hasSelections && (
+        <div className="flex justify-end -mb-4">
           <button
+            type="button"
             onClick={handleClearAllSelections}
             disabled={loading}
-            className="px-4 py-2 text-sm font-medium text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed border border-red-300 hover:border-red-400"
+            className="text-sm font-medium text-gray-500 underline-offset-4 hover:text-gray-900 hover:underline disabled:opacity-50"
           >
-            Clear All
+            Clear selections
           </button>
-        )}
-      </div>
-      <div className="w-full h-fit overflow-x-hidden overflow-y-auto flex flex-col gap-y-5 pl-2 pb-5">
+        </div>
+      )}
+
+      <div className="w-full flex flex-col gap-y-6">
         {data.Variantsection && data.Variantsection.length > 0 ? (
           <ShowVariantSections
             prob={data}
@@ -243,31 +273,58 @@ export const OptionSection = ({
         )}
       </div>
 
-      <div className="product_action w-full pt-2 flex flex-col items-center gap-y-2">
-        <PrimaryButton
-          type="submit"
-          text={incart ? "In Cart" : "Add To Cart"}
-          disable={
-            productorderdetail?.quantity === 0 || incart || isAdmin || loading
-          }
-          onClick={handleCart}
-          status={loading ? "loading" : "authenticated"}
-          color="white"
-          textcolor="black"
-          border="1px solid black"
-          radius="10px"
-          width="99%"
-        />
-        <PrimaryButton
-          type="button"
-          text={isInWishlist ? "In Wishlist" : "Add To Wishlist"}
-          color="black"
-          radius="10px"
-          width="100%"
-          disable={loading}
-          Icon={<FontAwesomeIcon icon={faHeart} />}
-          onClick={() => !isInWishlist && handleWishlist()}
-        />
+      <div className="product_action flex flex-col gap-y-3">
+        <p
+          role={isError ? "alert" : "status"}
+          className={`min-h-5 text-sm ${
+            isError ? "font-semibold text-red-600" : "text-gray-500"
+          }`}
+        >
+          {isAdmin && !isError
+            ? "Admin accounts can't add items to the cart."
+            : currentErrorMessage}
+        </p>
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={incart ? () => setcart(true) : handleCart}
+            disabled={cartDisabled}
+            className={`flex h-12 flex-1 items-center justify-center gap-2 rounded-xl text-sm font-semibold transition-colors outline-none focus-visible:ring-4 focus-visible:ring-gray-300 disabled:cursor-not-allowed ${
+              incart
+                ? "border border-gray-900 bg-white text-gray-900 hover:bg-gray-50"
+                : "bg-gray-900 text-white hover:bg-black disabled:bg-gray-200 disabled:text-gray-500"
+            }`}
+          >
+            {loading ? (
+              <span className="h-5 w-5 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+            ) : incart ? (
+              <>
+                <FontAwesomeIcon icon={faCheck} />
+                In cart · View cart
+              </>
+            ) : (
+              <>
+                <FontAwesomeIcon icon={faCartShopping} />
+                Add to cart
+              </>
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={() => !inWishlist && handleWishlist()}
+            disabled={loading}
+            aria-pressed={inWishlist}
+            aria-label={inWishlist ? "In wishlist" : "Add to wishlist"}
+            title={inWishlist ? "In wishlist" : "Add to wishlist"}
+            className={`grid h-12 w-12 shrink-0 place-content-center rounded-xl border transition-colors outline-none focus-visible:ring-4 focus-visible:ring-gray-300 disabled:opacity-50 ${
+              inWishlist
+                ? "border-red-200 bg-red-50 text-red-500"
+                : "border-gray-300 bg-white text-gray-500 hover:border-gray-500 hover:text-gray-900"
+            }`}
+          >
+            <FontAwesomeIcon icon={faHeart} />
+          </button>
+        </div>
       </div>
     </div>
   );

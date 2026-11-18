@@ -1,4 +1,5 @@
 import { Stocktype } from "@/src/types/product.type";
+import { availableStockQuantity } from "@/src/lib/stockMatch";
 
 /**
  * Calculates available quantity based on selected variant values.
@@ -18,57 +19,8 @@ import { Stocktype } from "@/src/types/product.type";
 export const calculateAvailableQuantity = (
   variantstock: Stocktype[],
   selectedVariants: Array<{ variant_id: number; value: string }>,
-): number => {
-  // Early exit: Filter and validate selected values once
-  const selectedValues = selectedVariants
-    .map((i) => i.value)
-    .filter((val) => val && val.length > 0);
-
-  if (selectedValues.length === 0) {
-    return 0;
-  }
-
-  // Pre-create Set for O(1) lookup
-  const selectedValuesSet = new Set(selectedValues);
-  const selectedCount = selectedValuesSet.size;
-
-  let partialMatchQtySum = 0;
-
-  // Flatten stock values for single iteration
-  for (const stock of variantstock) {
-    for (const variant of stock.Stockvalue) {
-      // Filter once and create Set
-      const filteredVariant = variant.variant_val.filter(
-        (val) => val && val !== "null" && val.length > 0,
-      );
-
-      // Skip early if fewer values than selected
-      if (filteredVariant.length < selectedCount) {
-        continue;
-      }
-
-      const filteredVariantSet = new Set(filteredVariant);
-
-      // Check if all selected values are present
-      const allSelectedValuesMatch = selectedValues.every((val) =>
-        filteredVariantSet.has(val),
-      );
-
-      if (!allSelectedValuesMatch) {
-        continue;
-      }
-
-      // Check for exact match
-      if (filteredVariant.length === selectedCount) {
-        // Exact match found - return immediately
-        return variant.qty;
-      }
-
-      // Partial match - accumulate quantity
-      partialMatchQtySum += variant.qty;
-    }
-  }
-
-  // Return sum of partial matches (or 0 if none found)
-  return partialMatchQtySum;
-};
+): number =>
+  availableStockQuantity(
+    variantstock.flatMap((stock) => stock.Stockvalue),
+    selectedVariants.map((i) => i.value),
+  );

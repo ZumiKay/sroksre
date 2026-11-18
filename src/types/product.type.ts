@@ -38,6 +38,15 @@ export enum VariantTypeEnum {
   color = "COLOR",
   text = "TEXT",
 }
+/**
+ * Add-on condition: the variant can only be picked when the variant named
+ * `variant` (by option_title) has one of `values` selected.
+ */
+export interface VariantCondition {
+  variant: string;
+  values: string[];
+}
+
 export interface Varianttype {
   id?: number;
   tempId?: number;
@@ -48,6 +57,7 @@ export interface Varianttype {
   qty?: number;
   optional?: boolean;
   sectionId?: number;
+  condition?: VariantCondition | null;
   product_id?: number;
   variantSection?: VariantSectionType;
   [key: string]: unknown;

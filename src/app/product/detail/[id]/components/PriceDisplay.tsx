@@ -5,33 +5,68 @@ import { ProductState } from "@/src/types/product.type";
 import { useGlobalStore } from "@/src/context/GlobalContext";
 import { calculateAdditionalPrice } from "../utils/productHelpers";
 
+const money = (n: number) => `$${n.toFixed(2)}`;
+
+/** Big current price, with the old price and saving when discounted */
+const PriceBlock = ({
+  current,
+  original,
+  percent,
+  optionsExtra = 0,
+}: {
+  current: number;
+  original?: number;
+  percent?: number;
+  optionsExtra?: number;
+}) => (
+  <div className="flex flex-col gap-y-1">
+    <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+      <span className="text-3xl font-bold tracking-tight text-gray-900">
+        {money(current)}
+      </span>
+      {original !== undefined && original > current && (
+        <>
+          <span className="text-lg text-gray-400 line-through">
+            {money(original)}
+          </span>
+          {percent ? (
+            <span className="rounded-full bg-red-50 px-2.5 py-0.5 text-sm font-semibold text-red-600">
+              -{percent}%
+            </span>
+          ) : null}
+        </>
+      )}
+    </div>
+    {original !== undefined && original > current && (
+      <p className="text-sm font-medium text-green-700">
+        You save {money(original - current)}
+      </p>
+    )}
+    {optionsExtra > 0 && (
+      <p className="text-sm text-gray-500">
+        Includes +{money(optionsExtra)} for selected options
+      </p>
+    )}
+  </div>
+);
+
 interface ShowPriceProps {
   price: number;
   discount: ProductState["discount"];
 }
 
 export const ShowPrice = React.memo(({ price, discount }: ShowPriceProps) => {
-  const priceString = useMemo(() => price.toFixed(2), [price]);
   const isDiscount = typeof discount !== "number" && discount?.discount;
-  const discountPrice = useMemo(
-    () =>
-      isDiscount && isDiscount.newprice ? isDiscount.newprice.toFixed(2) : null,
-    [isDiscount],
-  );
-
-  if (isDiscount) {
+  if (isDiscount && isDiscount.newprice) {
     return (
-      <div className="discount_section text-lg flex flex-row items-center justify-start gap-x-5 font-semibold">
-        <h3 className="oldprice line-through w-fit font-normal">
-          {`$ ${priceString}`}
-        </h3>
-        <h3 className="w-fit text-red-400">{`-${isDiscount.percent}%`}</h3>
-        <h3 className="w-fit">{`$ ${discountPrice}`}</h3>
-      </div>
+      <PriceBlock
+        current={isDiscount.newprice}
+        original={price}
+        percent={isDiscount.percent}
+      />
     );
   }
-
-  return <h3 className="text-lg font-bold w-full">{`$${priceString}`}</h3>;
+  return <PriceBlock current={price} />;
 });
 
 ShowPrice.displayName = "ShowPrice";
@@ -46,89 +81,26 @@ export const ShowPriceWithOptions = React.memo(
   ({ price, discount, Variant }: ShowPriceWithOptionsProps) => {
     const productorderdetail = useGlobalStore((s) => s.productorderdetail);
 
-    const additionalPrice = useMemo(() => {
-      return calculateAdditionalPrice(productorderdetail?.details, Variant);
-    }, [productorderdetail, Variant]);
-
-    const basePrice = useMemo(() => price, [price]);
-    const totalPrice = useMemo(
-      () => basePrice + additionalPrice,
-      [basePrice, additionalPrice],
+    const additionalPrice = useMemo(
+      () => calculateAdditionalPrice(productorderdetail?.details, Variant),
+      [productorderdetail, Variant],
     );
 
     const isDiscount = typeof discount !== "number" && discount?.discount;
-    const discountPrice = useMemo(() => {
-      if (isDiscount && isDiscount.newprice) {
-        return isDiscount.newprice + additionalPrice;
-      }
-      return null;
-    }, [additionalPrice, isDiscount]);
-
-    const basePriceString = useMemo(() => basePrice.toFixed(2), [basePrice]);
-    const totalPriceString = useMemo(() => totalPrice.toFixed(2), [totalPrice]);
-    const discountPriceString = useMemo(
-      () => (discountPrice ? discountPrice.toFixed(2) : null),
-      [discountPrice],
-    );
-
-    if (isDiscount) {
+    if (isDiscount && isDiscount.newprice) {
       return (
-        <div className="flex flex-col gap-y-2">
-          <div className="discount_section text-lg flex flex-row items-center justify-start gap-x-5 font-semibold">
-            <h3 className="oldprice line-through w-fit font-normal">
-              {`$ ${totalPriceString}`}
-            </h3>
-            <h3 className="w-fit text-red-400">{`-${isDiscount.percent}%`}</h3>
-            <h3 className="w-fit">{`$ ${discountPriceString}`}</h3>
-          </div>
-          {additionalPrice > 0 && (
-            <PriceBreakdown
-              basePrice={isDiscount.newprice?.toFixed(2) || "0.00"}
-              additionalPrice={additionalPrice.toFixed(2)}
-            />
-          )}
-        </div>
+        <PriceBlock
+          current={isDiscount.newprice + additionalPrice}
+          original={price + additionalPrice}
+          percent={isDiscount.percent}
+          optionsExtra={additionalPrice}
+        />
       );
     }
-
     return (
-      <div className="flex flex-col gap-y-2">
-        <h3 className="text-lg font-bold w-full">{`$${totalPriceString}`}</h3>
-        {additionalPrice > 0 && (
-          <PriceBreakdown
-            basePrice={basePriceString}
-            additionalPrice={additionalPrice.toFixed(2)}
-          />
-        )}
-      </div>
+      <PriceBlock current={price + additionalPrice} optionsExtra={additionalPrice} />
     );
   },
 );
 
 ShowPriceWithOptions.displayName = "ShowPriceWithOptions";
-
-interface PriceBreakdownProps {
-  basePrice: string;
-  additionalPrice: string;
-}
-
-const PriceBreakdown = React.memo(
-  ({ basePrice, additionalPrice }: PriceBreakdownProps) => {
-    return (
-      <div className="flex flex-col gap-y-1 text-sm text-gray-600">
-        <div className="flex items-center gap-x-2">
-          <span>Base price:</span>
-          <span className="font-semibold">${basePrice}</span>
-        </div>
-        <div className="flex items-center gap-x-2">
-          <span>Options price:</span>
-          <span className="font-semibold text-blue-600">
-            +${additionalPrice}
-          </span>
-        </div>
-      </div>
-    );
-  },
-);
-
-PriceBreakdown.displayName = "PriceBreakdown";

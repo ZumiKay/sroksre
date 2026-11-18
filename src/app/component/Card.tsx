@@ -17,7 +17,7 @@ import { useGlobalStore } from "@/src/context/GlobalContext";
 import Checkmark from "../../../public/Image/Checkmark.svg";
 import { SubInventoryMenu } from "./Navbar";
 import { errorToast } from "./Loading";
-import { useRouter } from "next/navigation";
+import Link, { useLinkStatus } from "next/link";
 import {
   Orderpricetype,
   totalpricetype,
@@ -68,6 +68,21 @@ const editactionMenu = [
   },
 ];
 
+/** Spinner shown over a card while its product page is loading */
+const CardLinkPending = () => {
+  const { pending } = useLinkStatus();
+  return (
+    <span
+      aria-hidden
+      className={`absolute inset-0 grid place-content-center bg-white/50 transition-opacity duration-200 ${
+        pending ? "opacity-100" : "opacity-0 pointer-events-none"
+      }`}
+    >
+      <span className="w-8 h-8 rounded-full border-3 border-gray-300 border-t-gray-900 animate-spin" />
+    </span>
+  );
+};
+
 const Card = memo(function Card(props: cardprops) {
   const promotion = useGlobalStore((s) => s.promotion);
   const setpromotion = useGlobalStore((s) => s.setpromotion);
@@ -75,7 +90,6 @@ const Card = memo(function Card(props: cardprops) {
   const setopenmodal = useGlobalStore((s) => s.setopenmodal);
   const allData = useGlobalStore((s) => s.allData);
   const setalldata = useGlobalStore((s) => s.setalldata);
-  const route = useRouter();
   const isProduct = useMemo(
     () => promotion.Products.find((i) => i.id === props.id),
     [promotion.Products, props.id],
@@ -245,7 +259,7 @@ const Card = memo(function Card(props: cardprops) {
       onMouseLeave={handleMouseLeave}
       onTouchStart={handleMouseEnter}
       onTouchCancel={handleMouseLeave}
-      className={`card__container ${props.width ? "" : "w-full max-w-sm"} h-fit flex flex-col mx-auto
+      className={`card__container group relative ${props.width ? "" : "w-full max-w-sm"} h-fit flex flex-col mx-auto
        rounded-xl shadow-xs transition-all duration-300 overflow-hidden animate-fade-in
        ${
          promotion.selectproduct
@@ -256,6 +270,17 @@ const Card = memo(function Card(props: cardprops) {
        }
         `}
     >
+      {/* The whole card opens the product, except while picking products
+          for a promotion */}
+      {!promotion.selectproduct && props.id && (
+        <Link
+          href={`/product/detail/${props.id}`}
+          aria-label={props.name}
+          className="absolute inset-0 z-1 rounded-xl outline-none focus-visible:ring-4 focus-visible:ring-blue-300"
+        >
+          <CardLinkPending />
+        </Link>
+      )}
       <div
         onClick={() => {
           if (promotion.selectproduct) {
@@ -283,7 +308,7 @@ const Card = memo(function Card(props: cardprops) {
         {promotion.selectproduct && isProduct && (
           <div className="absolute inset-0 bg-blue-500/10 pointer-events-none" />
         )}
-        <span className="absolute top-3 right-3">
+        <span className="absolute top-3 right-3 z-2">
           {shouldShowCheckmark ? (
             <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center shadow-md shadow-blue-300">
               {showCheckmark}
@@ -305,13 +330,8 @@ const Card = memo(function Card(props: cardprops) {
           )}
         </span>
       </div>
-      <div
-        onClick={() =>
-          !promotion.selectproduct && route.push(`/product/detail/${props.id}`)
-        }
-        className="card_detail w-full h-fit font-semibold flex flex-col justify-center gap-y-2 px-3 py-3 rounded-b-md text-sm"
-      >
-        <p className="card_info w-full max-w-100 h-fit text-lg">
+      <div className="card_detail w-full h-fit font-semibold flex flex-col justify-center gap-y-2 px-3 py-3 rounded-b-md text-sm">
+        <p className="card_info w-full max-w-100 h-fit text-lg line-clamp-2 group-hover:underline underline-offset-4">
           {props.name.length > 0 ? props.name : "No Product Created"}
         </p>
 
@@ -341,7 +361,7 @@ const Card = memo(function Card(props: cardprops) {
           </button>
         </div>
       )}
-      {showLowStock}
+      {showLowStock && <div className="relative z-2">{showLowStock}</div>}
     </div>
   );
 });

@@ -1,4 +1,6 @@
 import Prisma from "../prisma";
+import { Prisma as PrismaTypes } from "@/prisma/generated/prisma/client";
+import { removeConditionsOn } from "../variantCondition";
 import {
   VariantSectionType,
   Varianttype,
@@ -126,6 +128,12 @@ export const handleUpdateProductVariant = async (
         optional: val.optional,
       };
 
+      // Add-on condition: null clears it, undefined leaves it unchanged
+      if (val.condition !== undefined) {
+        (data as Record<string, unknown>).condition =
+          val.condition === null ? PrismaTypes.DbNull : val.condition;
+      }
+
       // Only include sectionId if it's a valid number, otherwise set to null or disconnect
       if (val.sectionId !== undefined) {
         if (val.sectionId === null || val.sectionId === 0) {
@@ -237,6 +245,7 @@ export const handleDeleteVariant = async (
       where: { id: { in: variantIds } },
       select: {
         id: true,
+        option_title: true,
         option_value: true,
       },
     });
@@ -296,6 +305,29 @@ export const handleDeleteVariant = async (
         id: { in: variantIds },
       },
     });
+
+    // Add-ons that depended on a deleted variant become always available
+    const remaining = await Prisma.variant.findMany({
+      where: { product_id: prodId },
+      select: {
+        id: true,
+        option_title: true,
+        option_value: true,
+        condition: true,
+      },
+    });
+    const { changed } = removeConditionsOn(
+      remaining as unknown as Array<Varianttype>,
+      isVariant.map((v) => v.option_title),
+    );
+    await Promise.all(
+      changed.map((v) =>
+        Prisma.variant.update({
+          where: { id: v.id },
+          data: { condition: PrismaTypes.DbNull },
+        }),
+      ),
+    );
 
     return { success: true };
   } catch (error) {

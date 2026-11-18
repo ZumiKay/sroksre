@@ -1,13 +1,14 @@
 "use client";
 
 import React, { useMemo } from "react";
-import { ProductState } from "@/src/types/product.type";
+import { ProductState, Varianttype } from "@/src/types/product.type";
 import { VariantSelector } from "./VariantSelector";
 import { StockSelector, ErrorMessageType } from "./StockSelector";
 import {
   separateVariantsBySections,
   sortVariantsByRequired,
 } from "../utils/productHelpers";
+import { orderWithAddons } from "@/src/lib/variantCondition";
 
 interface VariantSectionProps {
   prob: Pick<
@@ -42,13 +43,29 @@ export const ShowVariantSections = (props: VariantSectionProps) => {
   // Get variants that are not in any section, separated by required/optional
   const { requiredVariantsNotInSection, optionalVariantsNotInSection } =
     useMemo(
-      () => separateVariantsBySections(prob.Variant || []),
+      () => {
+        const groups = separateVariantsBySections(prob.Variant || []);
+        return {
+          requiredVariantsNotInSection: orderWithAddons(
+            groups.requiredVariantsNotInSection,
+          ),
+          optionalVariantsNotInSection: orderWithAddons(
+            groups.optionalVariantsNotInSection,
+          ),
+        };
+      },
       [prob.Variant],
     );
 
   // Sort variant sections to place required variants before optional ones
   const sortedVariantSections = useMemo(() => {
-    return prob.Variantsection?.map(sortVariantsByRequired);
+    return prob.Variantsection?.map((section) => {
+      const sorted = sortVariantsByRequired(section);
+      return {
+        ...sorted,
+        Variants: orderWithAddons((sorted.Variants ?? []) as Varianttype[]),
+      };
+    });
   }, [prob.Variantsection]);
 
   return (
@@ -56,9 +73,9 @@ export const ShowVariantSections = (props: VariantSectionProps) => {
       {sortedVariantSections?.map((section) => (
         <div
           key={section.id}
-          className="w-full h-fit flex flex-col gap-y-3 p-4 bg-linear-to-br from-purple-50 to-blue-50 rounded-lg border-2 border-purple-200"
+          className="w-full h-fit flex flex-col gap-y-3 p-4 rounded-2xl border border-gray-200 bg-gray-50/60"
         >
-          <h3 className="text-xl font-bold text-purple-800 mb-2">
+          <h3 className="text-base font-semibold text-gray-900">
             {section.name}
           </h3>
           <div className="flex flex-col gap-y-5">
@@ -182,13 +199,13 @@ export const ShowOptionandStock = (props: VariantSectionProps) => {
     )
   ) : prob.Variant ? (
     <>
-      {prob.Variant.map((i, idx) => (
+      {orderWithAddons(prob.Variant).map((i) => (
         <VariantSelector
           key={i.id}
           id={i.id ?? 0}
           name={i.option_title}
           type={i.option_type}
-          idx={idx}
+          idx={prob.Variant?.indexOf(i) ?? 0}
           data={i.option_value}
           prob={prob}
           errormess={errormess}
@@ -198,16 +215,17 @@ export const ShowOptionandStock = (props: VariantSectionProps) => {
           setincart={setincart}
         />
       ))}
-      {(prob.Stock && prob.Stock.length !== 0) || qty > 0 ? (
+      {/* Quantity appears once a complete selection has stock */}
+      {qty > 0 ? (
         <StockSelector
           max={qty}
           errormess={errormess}
           setmess={setmess}
           isloading={isloading}
         />
-      ) : (
+      ) : !prob.Stock || prob.Stock.length === 0 ? (
         <ProductUnavailable />
-      )}
+      ) : null}
     </>
   ) : null;
 };

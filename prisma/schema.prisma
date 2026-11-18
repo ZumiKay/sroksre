@@ -259,6 +259,8 @@ model Orderproduct {
   status    String   @default("incart")
   quantity  Int
   details   Json?
+  /// Stock held for this line at checkout: [{ id: <Stockvalue id>, qty }]
+  stockAllocation Json?
   orderId   String?
   createdAt DateTime @default(now())
   user      User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
@@ -388,6 +390,9 @@ model Variant {
   price           Int?
   optional        Boolean?
   sectionId       Int?
+  /// Add-on condition: { variant: <trigger option_title>, values: [<trigger option vals>] }.
+  /// The variant is only selectable when one of those values is selected.
+  condition       Json?
   Varianttemplate Varianttemplate[]
   variantSection  VariantSection?   @relation(fields: [sectionId], references: [id])
 

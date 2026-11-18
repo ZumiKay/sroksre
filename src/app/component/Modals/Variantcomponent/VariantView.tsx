@@ -1,4 +1,8 @@
 "use client";
+import {
+  describeCondition,
+  parseCondition,
+} from "@/src/lib/variantCondition";
 import React, { useState } from "react";
 import { VariantList } from "./VariantList";
 import { EmptyState } from "./EmptyState";
@@ -321,6 +325,19 @@ export const VariantView: React.FC<VariantViewProps> = ({
                                   Optional
                                 </span>
                               )}
+                              {(() => {
+                                const condition = parseCondition(
+                                  variant.condition,
+                                );
+                                return condition ? (
+                                  <span
+                                    title={`Only available when ${describeCondition(condition, allVariants ?? [])}`}
+                                    className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-violet-100 text-violet-800 border border-violet-300"
+                                  >
+                                    Add-on · {condition.variant}
+                                  </span>
+                                ) : null;
+                              })()}
                               {isDisabled && (
                                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 border border-amber-300">
                                   <svg

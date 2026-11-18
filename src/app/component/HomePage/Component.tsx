@@ -4,6 +4,7 @@ import { AnimatePresence, motion, useScroll, useTransform } from "framer-motion"
 
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import Image from "next/image";
+import Link, { useLinkStatus } from "next/link";
 import { useRouter } from "next/navigation";
 import { Orderpricetype } from "@/src/types/order.type";
 import PrimaryButton from "../Button";
@@ -376,6 +377,21 @@ export const Banner: React.FC<BannerProps> = (props) => {
   );
 };
 
+/** Spinner over a product card while its page is loading */
+const ProductCardPending = () => {
+  const { pending } = useLinkStatus();
+  return (
+    <span
+      aria-hidden
+      className={`absolute inset-0 z-10 grid place-content-center bg-white/50 transition-opacity duration-200 ${
+        pending ? "opacity-100" : "opacity-0 pointer-events-none"
+      }`}
+    >
+      <span className="w-9 h-9 rounded-full border-3 border-gray-300 border-t-gray-900 animate-spin" />
+    </span>
+  );
+};
+
 interface ProductCardProps {
   id: number;
   img: {
@@ -386,20 +402,19 @@ interface ProductCardProps {
   price: Orderpricetype;
 }
 export const ProductCard = (props: ProductCardProps) => {
-  const router = useRouter();
   return (
-    <div
-      key={props.id}
-      className="card w-68 sm:w-80 md:w-87.5 shrink-0 h-fit flex flex-col bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden group cursor-pointer border border-gray-100"
-      onClick={() => router.push(`/product/detail/${props.id}`)}
+    <Link
+      href={`/product/detail/${props.id}`}
+      className="card relative w-68 sm:w-80 md:w-87.5 shrink-0 h-fit flex flex-col bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden group cursor-pointer border border-gray-100 outline-none focus-visible:ring-4 focus-visible:ring-blue-300"
     >
+      <ProductCardPending />
       <div className="relative overflow-hidden bg-gray-50">
         <Image
           src={props.img.url}
           alt={props.img.name}
-          preload={true}
-          width={"600"}
-          height={"600"}
+          width={600}
+          height={600}
+          sizes="(min-width: 768px) 350px, (min-width: 640px) 320px, 272px"
           loading="lazy"
           className="w-full h-80 sm:h-110 md:h-125 object-contain transition-transform duration-700 group-hover:scale-110"
         />
@@ -432,7 +447,7 @@ export const ProductCard = (props: ProductCardProps) => {
           )}`}</h3>
         )}
       </div>
-    </div>
+    </Link>
   );
 };
 

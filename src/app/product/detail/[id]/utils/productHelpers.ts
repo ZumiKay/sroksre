@@ -1,5 +1,6 @@
 import { ProductState, VariantValueObjType } from "@/src/types/product.type";
 import { Productorderdetailtype } from "@/src/types/order.type";
+import { isVariantActive } from "@/src/lib/variantCondition";
 
 /**
  * Calculate additional price from selected options
@@ -75,8 +76,13 @@ export const areRequiredVariantsSelected = (
       .map((i) => i.variant_id),
   );
 
+  // Add-ons whose trigger option isn't selected are not required
   const missingRequired = variants.filter(
-    (v) => v.id && !v.optional && !selectedOptionSet.has(v.id),
+    (v) =>
+      v.id &&
+      !v.optional &&
+      !selectedOptionSet.has(v.id) &&
+      isVariantActive(v, variants, details),
   );
 
   return missingRequired.length === 0;

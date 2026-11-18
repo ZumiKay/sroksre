@@ -7,11 +7,18 @@ import { ColorVariantEditor } from "./ColorVariantEditor";
 import { TextVariantEditor } from "./TextVariantEditor";
 import { ModalOpenState } from "../types";
 import {
+  VariantCondition,
   VariantTypeEnum,
   VariantSectionType,
   VariantValueObjType,
 } from "@/src/types/product.type";
 import { UseVariantManagerReturn } from "./hooks/useVariantManager";
+
+/** A variant an add-on can depend on, with its selectable options */
+export interface ConditionTrigger {
+  title: string;
+  options: Array<{ value: string; label: string; color?: string }>;
+}
 
 interface VariantInfoEditorProps {
   variantManager: UseVariantManagerReturn;
@@ -30,6 +37,9 @@ interface VariantInfoEditorProps {
   setPrice: React.Dispatch<React.SetStateAction<number | undefined>>;
   optional: boolean;
   setOptional: React.Dispatch<React.SetStateAction<boolean>>;
+  condition: VariantCondition | null;
+  setCondition: React.Dispatch<React.SetStateAction<VariantCondition | null>>;
+  conditionTriggers: ConditionTrigger[];
   setVariantSectionId: React.Dispatch<React.SetStateAction<number | undefined>>;
   variantSections?: Array<VariantSectionType>;
 }
@@ -48,6 +58,9 @@ export const VariantInfoEditor: React.FC<VariantInfoEditorProps> = ({
   setPrice,
   optional,
   setOptional,
+  condition,
+  setCondition,
+  conditionTriggers,
   variantSections,
 }) => {
   const [loading, setloading] = useState(false);
@@ -75,6 +88,7 @@ export const VariantInfoEditor: React.FC<VariantInfoEditorProps> = ({
     );
     setPrice(undefined);
     setOptional(false);
+    setCondition(null);
     setOpen((prev) => ({ ...prev, addcolor: false, addoption: false }));
   };
 
@@ -300,6 +314,12 @@ export const VariantInfoEditor: React.FC<VariantInfoEditorProps> = ({
         </label>
       </div>
 
+      <AddonConditionEditor
+        condition={condition}
+        setCondition={setCondition}
+        triggers={conditionTriggers}
+      />
+
       {variantManager.temp &&
       variantManager.temp.type === VariantTypeEnum.color ? (
         <ColorVariantEditor
@@ -359,6 +379,136 @@ export const VariantInfoEditor: React.FC<VariantInfoEditorProps> = ({
           height="100%"
         />
       </div>
+    </div>
+  );
+};
+
+/**
+ * "Add-on" setting: the variant is only selectable on the product page when
+ * one of the chosen options of another variant is selected.
+ */
+const AddonConditionEditor = ({
+  condition,
+  setCondition,
+  triggers,
+}: {
+  condition: VariantCondition | null;
+  setCondition: React.Dispatch<React.SetStateAction<VariantCondition | null>>;
+  triggers: ConditionTrigger[];
+}) => {
+  const enabled = condition !== null;
+  const trigger = triggers.find((t) => t.title === condition?.variant);
+  // A saved condition whose trigger can no longer be used
+  const isStale = enabled && !!condition.variant && !trigger;
+
+  const handleToggle = (checked: boolean) => {
+    setCondition(
+      checked
+        ? { variant: triggers.length === 1 ? triggers[0].title : "", values: [] }
+        : null,
+    );
+  };
+
+  return (
+    <div className="flex flex-col gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+      <div className="flex items-center gap-3">
+        <input
+          type="checkbox"
+          id="variant-addon"
+          checked={enabled}
+          disabled={!enabled && triggers.length === 0}
+          onChange={(e) => handleToggle(e.target.checked)}
+          className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded-sm focus:ring-blue-500 focus:ring-2 cursor-pointer disabled:cursor-not-allowed"
+        />
+        <label
+          htmlFor="variant-addon"
+          className="text-sm font-medium text-gray-700 cursor-pointer"
+        >
+          Add-on (only available when a specific option is selected)
+        </label>
+      </div>
+
+      {!enabled && triggers.length === 0 && (
+        <p className="text-xs text-gray-500 ml-7">
+          Create the variant this add-on depends on first.
+        </p>
+      )}
+
+      {enabled && (
+        <div className="flex flex-col gap-3 ml-7">
+          <Select
+            label="Depends on variant"
+            placeholder="Choose a variant"
+            selectedKeys={condition.variant && trigger ? [condition.variant] : []}
+            onSelectionChange={(keys) => {
+              const selected = Array.from(keys)[0];
+              setCondition({
+                variant: selected ? String(selected) : "",
+                values: [],
+              });
+            }}
+            size="sm"
+            className="w-full"
+            classNames={{ trigger: "bg-white border-gray-300" }}
+            errorMessage={
+              isStale
+                ? `"${condition.variant}" can't be used anymore. Choose another variant.`
+                : undefined
+            }
+            isInvalid={isStale}
+          >
+            {triggers.map((t) => (
+              <SelectItem key={t.title}>{t.title}</SelectItem>
+            ))}
+          </Select>
+
+          {trigger && (
+            <Select
+              label="Available when customer selects"
+              placeholder="Choose one or more options"
+              selectionMode="multiple"
+              selectedKeys={condition.values}
+              onSelectionChange={(keys) =>
+                setCondition({
+                  variant: trigger.title,
+                  values: Array.from(keys).map(String),
+                })
+              }
+              size="sm"
+              className="w-full"
+              classNames={{ trigger: "bg-white border-gray-300" }}
+              isInvalid={condition.values.length === 0}
+              errorMessage={
+                condition.values.length === 0
+                  ? "Pick at least one option"
+                  : undefined
+              }
+            >
+              {trigger.options.map((opt) => (
+                <SelectItem
+                  key={opt.value}
+                  textValue={opt.label}
+                  startContent={
+                    opt.color ? (
+                      <span
+                        className="w-3.5 h-3.5 rounded-full border border-gray-300"
+                        style={{ backgroundColor: opt.color }}
+                      />
+                    ) : undefined
+                  }
+                >
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </Select>
+          )}
+
+          <p className="text-xs text-gray-500">
+            On the product page this variant stays disabled until one of these
+            options is selected.
+          </p>
+        </div>
+      )}
     </div>
   );
 };

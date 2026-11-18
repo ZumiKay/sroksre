@@ -23,7 +23,8 @@ import {
 import { shippingtype } from "../component/Modals/User";
 import { VariantValueObjType } from "@/src/types/product.type";
 import {
-  buildStockAdjustments,
+  holdStock,
+  releaseHeldStock,
   isCheckoutSessionExpired,
   isValidOrderId,
   StockableItem,
@@ -50,8 +51,7 @@ export type Returntype<T = void, K = string> =
  * Hold stock for the given cart items (called at checkout start).
  */
 async function holdStockForItems(items: StockableItem[]) {
-  const ops = buildStockAdjustments(items, "decrement");
-  if (ops.length > 0) await Prisma.$transaction(ops);
+  await holdStock(items);
 }
 
 /**
@@ -61,7 +61,9 @@ async function releaseStock(orderId: string) {
   const orderProducts = await Prisma.orderproduct.findMany({
     where: { orderId },
     select: {
+      id: true,
       quantity: true,
+      stockAllocation: true,
       product: {
         select: {
           id: true,
@@ -72,8 +74,7 @@ async function releaseStock(orderId: string) {
     },
   });
 
-  const ops = buildStockAdjustments(orderProducts, "increment");
-  if (ops.length > 0) await Prisma.$transaction(ops);
+  await releaseHeldStock(orderProducts);
 }
 
 // Session expiration
@@ -204,6 +205,7 @@ export async function createOrder(data: {
               price: true,
               option_title: true,
               option_value: true,
+              optional: true,
             },
           },
         },

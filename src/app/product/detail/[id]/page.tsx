@@ -8,7 +8,6 @@ import {
   ShowPriceWithOptions,
 } from "./Component";
 import Link from "next/link";
-import ToggleMenu from "@/src/app/component/ToggleMenu";
 import { getRelatedProduct } from "./action";
 import Card from "@/src/app/component/Card";
 import { getUser } from "@/src/lib/session";
@@ -20,7 +19,8 @@ import {
   RelatedProductSkeleton,
   SimilarProductCardSkeleton,
 } from "./LoadingSkeleton";
-import { ProductCoverImage } from "./ProductCoverImage";
+import { ProductGallery } from "./components/ProductGallery";
+import { ProductInfoSections } from "./components/ProductInfoSections";
 import { Relatedproducttype } from "@/src/types/product.type";
 import { Orderpricetype } from "@/src/types/order.type";
 
@@ -50,7 +50,8 @@ export async function generateMetadata({
   });
 
   if (!product) return { title: "" };
-  const title = product.name ?? "" + `| SrokSre`;
+  // The root layout's title template appends the store name
+  const title = product.name;
   const description = `${product.name} ${
     product.parentcateogries?.name ?? ""
   } ${product.childcategories?.name ?? ""} at SrokSre online store`;
@@ -90,44 +91,40 @@ export default async function ProductDetailPage({
     return notFound();
   }
 
-  return (
-    <div className="productdetail__container w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-      <div className="product_section flex flex-col lg:flex-row w-full gap-8 lg:gap-12 items-start">
-        <div className="w-full lg:w-1/2 overflow-hidden">
-          <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-3 max-sm:flex max-sm:overflow-x-auto max-sm:snap-x max-sm:snap-mandatory max-sm:pb-4 scrollbar-hide">
-            {data?.data.covers.map((img, idx) => (
-              <ProductCoverImage
-                key={idx}
-                src={img.url}
-                alt={`${data.data.name} - Image ${idx + 1}`}
-                priority={idx === 0}
-              />
-            ))}
-          </div>
-        </div>
-        <div className="product_detail w-full lg:w-1/2 flex flex-col gap-y-6 sm:gap-y-8">
-          <h3 className="product_name text-2xl sm:text-3xl font-bold h-fit pt-1 wrap-break-word">
-            {data?.data.name}
-          </h3>
-          <p className="product_description text-lg font-normal w-full">
-            {data?.data.description ?? "No Description"}
-          </p>
-          {data?.data.Variant && data?.data.Variant.length > 0 ? (
-            <ShowPriceWithOptions
-              price={data?.data.price ?? 0}
-              discount={data?.data.discount}
-              Variant={data?.data.Variant}
-            />
-          ) : (
-            <ShowPrice
-              price={data?.data.price ?? 0}
-              discount={data?.data.discount}
-            />
-          )}
+  const product = data.data;
 
-          {data?.data.relatedproduct && data.data.relatedproduct.length > 0 && (
-            <>
-              <h3 className="text-lg font-bold">Other Version</h3>
+  return (
+    <div className="productdetail__container w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-10">
+      <div className="product_section grid w-full grid-cols-1 items-start gap-8 lg:grid-cols-2 lg:gap-14">
+        {/* Gallery stays in view while the details column scrolls */}
+        <div className="w-full lg:sticky lg:top-24">
+          <ProductGallery images={product.covers} name={product.name} />
+        </div>
+
+        <div className="product_detail flex w-full min-w-0 flex-col gap-y-6">
+          <div className="flex flex-col gap-y-3">
+            <h1 className="product_name text-2xl font-bold leading-tight tracking-tight text-gray-900 sm:text-3xl wrap-break-word">
+              {product.name}
+            </h1>
+            {product.Variant && product.Variant.length > 0 ? (
+              <ShowPriceWithOptions
+                price={product.price ?? 0}
+                discount={product.discount}
+                Variant={product.Variant}
+              />
+            ) : (
+              <ShowPrice
+                price={product.price ?? 0}
+                discount={product.discount}
+              />
+            )}
+          </div>
+
+          {product.relatedproduct && product.relatedproduct.length > 0 && (
+            <div className="flex flex-col gap-y-3">
+              <p className="text-sm font-semibold text-gray-900">
+                Other versions
+              </p>
               <Suspense
                 fallback={
                   <div className="w-full h-fit grid grid-cols-3 gap-y-5">
@@ -137,14 +134,14 @@ export default async function ProductDetailPage({
                   </div>
                 }
               >
-                <ShowRelated data={data.data.relatedproduct} />
+                <ShowRelated data={product.relatedproduct} />
               </Suspense>
-            </>
+            </div>
           )}
 
-          <div className="w-full h-fit flex flex-col gap-y-5">
+          <div className="border-t border-gray-200 pt-6">
             <OptionSection
-              data={data.data}
+              data={product}
               isAdmin={user?.role === "ADMIN"}
               isInWishlist={
                 data.isInWishlist ? data.isInWishlist.isExist : false
@@ -153,26 +150,15 @@ export default async function ProductDetailPage({
             />
           </div>
 
-          <div className="w-full h-full flex flex-col justify-start gap-y-2 ">
-            <ToggleMenu
-              name="Product Detail"
-              isAdmin={false}
-              data={data?.data.details.filter((i) => i.info_type !== "SIZE")}
-            />
-
-            {data?.policy.map((pol) => (
-              <ToggleMenu
-                key={pol.id}
-                name={pol.title}
-                isAdmin={false}
-                paragraph={pol.Paragraph}
-              />
-            ))}
-          </div>
+          <ProductInfoSections
+            description={product.description}
+            details={product.details.filter((i) => i.info_type !== "SIZE")}
+            policies={data.policy}
+          />
         </div>
       </div>
       {data.data.relatedproduct && (
-        <div className="relatedproduct__section w-full h-full mt-10 flex flex-col gap-y-10">
+        <div className="relatedproduct__section w-full h-full">
           <Suspense
             fallback={
               <div className="flex flex-col gap-y-5">
@@ -204,7 +190,7 @@ const ShowRelated = ({ data }: { data: Relatedproducttype[] }) => {
     <div className="w-full h-fit grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4">
       {data.map((related) => (
         <Link key={related.id} href={`/product/detail/${related.id}`}>
-          <div className="w-full h-fit flex flex-col gap-y-2 items-center justify-center p-3 rounded-xl border border-gray-200 hover:border-black transition-all duration-200 hover:bg-black hover:text-white cursor-pointer group">
+          <div className="w-full h-fit flex flex-col gap-y-2 items-center justify-center p-2 rounded-xl border border-gray-200 hover:border-gray-900 transition-colors duration-200 cursor-pointer">
             <Image
               src={related.covers[0].url}
               alt={related.name}
@@ -253,27 +239,28 @@ const ShowSimilarProduct = async ({
   return (
     data.data &&
     data.data.length > 0 && (
-      <>
-        <h3 className="text-lg font-bold w-full h-fit text-left pl-2">
-          You might also like:
-        </h3>
+      <section className="mt-16 flex flex-col gap-y-6 border-t border-gray-200 pt-10">
+        <h2 className="text-xl font-bold w-full h-fit text-left text-gray-900">
+          You might also like
+        </h2>
 
-        <div className="w-full h-fit flex flex-row overflow-x-auto gap-x-5">
+        <div className="w-full h-fit flex flex-row overflow-x-auto gap-x-5 pb-2 snap-x">
           {relatedproduct?.map((prod, idx) => (
-            <Card
-              key={idx}
-              name={prod.name}
-              price={prod.price.toFixed(2)}
-              img={prod.covers}
-              index={idx}
-              discount={prod.discount as Orderpricetype}
-              id={prod.id}
-            />
+            <div key={prod.id} className="w-60 sm:w-72 shrink-0 snap-start">
+              <Card
+                name={prod.name}
+                price={prod.price.toFixed(2)}
+                img={prod.covers}
+                index={idx}
+                discount={prod.discount as Orderpricetype}
+                id={prod.id}
+              />
+            </div>
           ))}
         </div>
 
         {!isLimit && <ButtonForSimilarProd lt={limit} />}
-      </>
+      </section>
     )
   );
 };

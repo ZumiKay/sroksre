@@ -67,6 +67,7 @@ export type OrderproductCountAggregateOutputType = {
   status: number
   quantity: number
   details: number
+  stockAllocation: number
   orderId: number
   createdAt: number
   _all: number
@@ -114,6 +115,7 @@ export type OrderproductCountAggregateInputType = {
   status?: true
   quantity?: true
   details?: true
+  stockAllocation?: true
   orderId?: true
   createdAt?: true
   _all?: true
@@ -212,6 +214,7 @@ export type OrderproductGroupByOutputType = {
   status: string
   quantity: number
   details: runtime.JsonValue | null
+  stockAllocation: runtime.JsonValue | null
   orderId: string | null
   createdAt: Date
   _count: OrderproductCountAggregateOutputType | null
@@ -246,6 +249,7 @@ export type OrderproductWhereInput = {
   status?: Prisma.StringFilter<"Orderproduct"> | string
   quantity?: Prisma.IntFilter<"Orderproduct"> | number
   details?: Prisma.JsonNullableFilter<"Orderproduct">
+  stockAllocation?: Prisma.JsonNullableFilter<"Orderproduct">
   orderId?: Prisma.StringNullableFilter<"Orderproduct"> | string | null
   createdAt?: Prisma.DateTimeFilter<"Orderproduct"> | Date | string
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
@@ -260,6 +264,7 @@ export type OrderproductOrderByWithRelationInput = {
   status?: Prisma.SortOrder
   quantity?: Prisma.SortOrder
   details?: Prisma.SortOrderInput | Prisma.SortOrder
+  stockAllocation?: Prisma.SortOrderInput | Prisma.SortOrder
   orderId?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   user?: Prisma.UserOrderByWithRelationInput
@@ -277,6 +282,7 @@ export type OrderproductWhereUniqueInput = Prisma.AtLeast<{
   status?: Prisma.StringFilter<"Orderproduct"> | string
   quantity?: Prisma.IntFilter<"Orderproduct"> | number
   details?: Prisma.JsonNullableFilter<"Orderproduct">
+  stockAllocation?: Prisma.JsonNullableFilter<"Orderproduct">
   orderId?: Prisma.StringNullableFilter<"Orderproduct"> | string | null
   createdAt?: Prisma.DateTimeFilter<"Orderproduct"> | Date | string
   user?: Prisma.XOR<Prisma.UserScalarRelationFilter, Prisma.UserWhereInput>
@@ -291,6 +297,7 @@ export type OrderproductOrderByWithAggregationInput = {
   status?: Prisma.SortOrder
   quantity?: Prisma.SortOrder
   details?: Prisma.SortOrderInput | Prisma.SortOrder
+  stockAllocation?: Prisma.SortOrderInput | Prisma.SortOrder
   orderId?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   _count?: Prisma.OrderproductCountOrderByAggregateInput
@@ -310,6 +317,7 @@ export type OrderproductScalarWhereWithAggregatesInput = {
   status?: Prisma.StringWithAggregatesFilter<"Orderproduct"> | string
   quantity?: Prisma.IntWithAggregatesFilter<"Orderproduct"> | number
   details?: Prisma.JsonNullableWithAggregatesFilter<"Orderproduct">
+  stockAllocation?: Prisma.JsonNullableWithAggregatesFilter<"Orderproduct">
   orderId?: Prisma.StringNullableWithAggregatesFilter<"Orderproduct"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Orderproduct"> | Date | string
 }
@@ -318,6 +326,7 @@ export type OrderproductCreateInput = {
   status?: string
   quantity: number
   details?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stockAllocation?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutOrderproductInput
   order?: Prisma.OrdersCreateNestedOneWithoutOrderproductInput
@@ -331,6 +340,7 @@ export type OrderproductUncheckedCreateInput = {
   status?: string
   quantity: number
   details?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stockAllocation?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   orderId?: string | null
   createdAt?: Date | string
 }
@@ -339,6 +349,7 @@ export type OrderproductUpdateInput = {
   status?: Prisma.StringFieldUpdateOperationsInput | string
   quantity?: Prisma.IntFieldUpdateOperationsInput | number
   details?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stockAllocation?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutOrderproductNestedInput
   order?: Prisma.OrdersUpdateOneWithoutOrderproductNestedInput
@@ -352,6 +363,7 @@ export type OrderproductUncheckedUpdateInput = {
   status?: Prisma.StringFieldUpdateOperationsInput | string
   quantity?: Prisma.IntFieldUpdateOperationsInput | number
   details?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stockAllocation?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   orderId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -363,6 +375,7 @@ export type OrderproductCreateManyInput = {
   status?: string
   quantity: number
   details?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stockAllocation?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   orderId?: string | null
   createdAt?: Date | string
 }
@@ -371,6 +384,7 @@ export type OrderproductUpdateManyMutationInput = {
   status?: Prisma.StringFieldUpdateOperationsInput | string
   quantity?: Prisma.IntFieldUpdateOperationsInput | number
   details?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stockAllocation?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -381,6 +395,7 @@ export type OrderproductUncheckedUpdateManyInput = {
   status?: Prisma.StringFieldUpdateOperationsInput | string
   quantity?: Prisma.IntFieldUpdateOperationsInput | number
   details?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stockAllocation?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   orderId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -402,6 +417,7 @@ export type OrderproductCountOrderByAggregateInput = {
   status?: Prisma.SortOrder
   quantity?: Prisma.SortOrder
   details?: Prisma.SortOrder
+  stockAllocation?: Prisma.SortOrder
   orderId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
 }
@@ -570,6 +586,7 @@ export type OrderproductCreateWithoutUserInput = {
   status?: string
   quantity: number
   details?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stockAllocation?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   order?: Prisma.OrdersCreateNestedOneWithoutOrderproductInput
   product: Prisma.ProductsCreateNestedOneWithoutOrderproductInput
@@ -581,6 +598,7 @@ export type OrderproductUncheckedCreateWithoutUserInput = {
   status?: string
   quantity: number
   details?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stockAllocation?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   orderId?: string | null
   createdAt?: Date | string
 }
@@ -621,6 +639,7 @@ export type OrderproductScalarWhereInput = {
   status?: Prisma.StringFilter<"Orderproduct"> | string
   quantity?: Prisma.IntFilter<"Orderproduct"> | number
   details?: Prisma.JsonNullableFilter<"Orderproduct">
+  stockAllocation?: Prisma.JsonNullableFilter<"Orderproduct">
   orderId?: Prisma.StringNullableFilter<"Orderproduct"> | string | null
   createdAt?: Prisma.DateTimeFilter<"Orderproduct"> | Date | string
 }
@@ -629,6 +648,7 @@ export type OrderproductCreateWithoutProductInput = {
   status?: string
   quantity: number
   details?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stockAllocation?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutOrderproductInput
   order?: Prisma.OrdersCreateNestedOneWithoutOrderproductInput
@@ -640,6 +660,7 @@ export type OrderproductUncheckedCreateWithoutProductInput = {
   status?: string
   quantity: number
   details?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stockAllocation?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   orderId?: string | null
   createdAt?: Date | string
 }
@@ -674,6 +695,7 @@ export type OrderproductCreateWithoutOrderInput = {
   status?: string
   quantity: number
   details?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stockAllocation?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
   user: Prisma.UserCreateNestedOneWithoutOrderproductInput
   product: Prisma.ProductsCreateNestedOneWithoutOrderproductInput
@@ -686,6 +708,7 @@ export type OrderproductUncheckedCreateWithoutOrderInput = {
   status?: string
   quantity: number
   details?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stockAllocation?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
 }
 
@@ -721,6 +744,7 @@ export type OrderproductCreateManyUserInput = {
   status?: string
   quantity: number
   details?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stockAllocation?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   orderId?: string | null
   createdAt?: Date | string
 }
@@ -729,6 +753,7 @@ export type OrderproductUpdateWithoutUserInput = {
   status?: Prisma.StringFieldUpdateOperationsInput | string
   quantity?: Prisma.IntFieldUpdateOperationsInput | number
   details?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stockAllocation?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   order?: Prisma.OrdersUpdateOneWithoutOrderproductNestedInput
   product?: Prisma.ProductsUpdateOneRequiredWithoutOrderproductNestedInput
@@ -740,6 +765,7 @@ export type OrderproductUncheckedUpdateWithoutUserInput = {
   status?: Prisma.StringFieldUpdateOperationsInput | string
   quantity?: Prisma.IntFieldUpdateOperationsInput | number
   details?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stockAllocation?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   orderId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -750,6 +776,7 @@ export type OrderproductUncheckedUpdateManyWithoutUserInput = {
   status?: Prisma.StringFieldUpdateOperationsInput | string
   quantity?: Prisma.IntFieldUpdateOperationsInput | number
   details?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stockAllocation?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   orderId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -760,6 +787,7 @@ export type OrderproductCreateManyProductInput = {
   status?: string
   quantity: number
   details?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stockAllocation?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   orderId?: string | null
   createdAt?: Date | string
 }
@@ -768,6 +796,7 @@ export type OrderproductUpdateWithoutProductInput = {
   status?: Prisma.StringFieldUpdateOperationsInput | string
   quantity?: Prisma.IntFieldUpdateOperationsInput | number
   details?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stockAllocation?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutOrderproductNestedInput
   order?: Prisma.OrdersUpdateOneWithoutOrderproductNestedInput
@@ -779,6 +808,7 @@ export type OrderproductUncheckedUpdateWithoutProductInput = {
   status?: Prisma.StringFieldUpdateOperationsInput | string
   quantity?: Prisma.IntFieldUpdateOperationsInput | number
   details?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stockAllocation?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   orderId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -789,6 +819,7 @@ export type OrderproductUncheckedUpdateManyWithoutProductInput = {
   status?: Prisma.StringFieldUpdateOperationsInput | string
   quantity?: Prisma.IntFieldUpdateOperationsInput | number
   details?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stockAllocation?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   orderId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -800,6 +831,7 @@ export type OrderproductCreateManyOrderInput = {
   status?: string
   quantity: number
   details?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stockAllocation?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Date | string
 }
 
@@ -807,6 +839,7 @@ export type OrderproductUpdateWithoutOrderInput = {
   status?: Prisma.StringFieldUpdateOperationsInput | string
   quantity?: Prisma.IntFieldUpdateOperationsInput | number
   details?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stockAllocation?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   user?: Prisma.UserUpdateOneRequiredWithoutOrderproductNestedInput
   product?: Prisma.ProductsUpdateOneRequiredWithoutOrderproductNestedInput
@@ -819,6 +852,7 @@ export type OrderproductUncheckedUpdateWithoutOrderInput = {
   status?: Prisma.StringFieldUpdateOperationsInput | string
   quantity?: Prisma.IntFieldUpdateOperationsInput | number
   details?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stockAllocation?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -829,6 +863,7 @@ export type OrderproductUncheckedUpdateManyWithoutOrderInput = {
   status?: Prisma.StringFieldUpdateOperationsInput | string
   quantity?: Prisma.IntFieldUpdateOperationsInput | number
   details?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  stockAllocation?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
@@ -841,6 +876,7 @@ export type OrderproductSelect<ExtArgs extends runtime.Types.Extensions.Internal
   status?: boolean
   quantity?: boolean
   details?: boolean
+  stockAllocation?: boolean
   orderId?: boolean
   createdAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -855,6 +891,7 @@ export type OrderproductSelectCreateManyAndReturn<ExtArgs extends runtime.Types.
   status?: boolean
   quantity?: boolean
   details?: boolean
+  stockAllocation?: boolean
   orderId?: boolean
   createdAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -869,6 +906,7 @@ export type OrderproductSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.
   status?: boolean
   quantity?: boolean
   details?: boolean
+  stockAllocation?: boolean
   orderId?: boolean
   createdAt?: boolean
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
@@ -883,11 +921,12 @@ export type OrderproductSelectScalar = {
   status?: boolean
   quantity?: boolean
   details?: boolean
+  stockAllocation?: boolean
   orderId?: boolean
   createdAt?: boolean
 }
 
-export type OrderproductOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "productId" | "user_id" | "status" | "quantity" | "details" | "orderId" | "createdAt", ExtArgs["result"]["orderproduct"]>
+export type OrderproductOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "productId" | "user_id" | "status" | "quantity" | "details" | "stockAllocation" | "orderId" | "createdAt", ExtArgs["result"]["orderproduct"]>
 export type OrderproductInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   user?: boolean | Prisma.UserDefaultArgs<ExtArgs>
   order?: boolean | Prisma.Orderproduct$orderArgs<ExtArgs>
@@ -918,6 +957,10 @@ export type $OrderproductPayload<ExtArgs extends runtime.Types.Extensions.Intern
     status: string
     quantity: number
     details: runtime.JsonValue | null
+    /**
+     * Stock held for this line at checkout: [{ id: <Stockvalue id>, qty }]
+     */
+    stockAllocation: runtime.JsonValue | null
     orderId: string | null
     createdAt: Date
   }, ExtArgs["result"]["orderproduct"]>
@@ -1352,6 +1395,7 @@ export interface OrderproductFieldRefs {
   readonly status: Prisma.FieldRef<"Orderproduct", 'String'>
   readonly quantity: Prisma.FieldRef<"Orderproduct", 'Int'>
   readonly details: Prisma.FieldRef<"Orderproduct", 'Json'>
+  readonly stockAllocation: Prisma.FieldRef<"Orderproduct", 'Json'>
   readonly orderId: Prisma.FieldRef<"Orderproduct", 'String'>
   readonly createdAt: Prisma.FieldRef<"Orderproduct", 'DateTime'>
 }

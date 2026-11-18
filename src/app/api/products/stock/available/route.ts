@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Prisma from "@/src/lib/prisma";
 import { Stocktype } from "@/src/types/product.type";
 import { calculateAvailableQuantity } from "./helper";
+import { isVariantActive } from "@/src/lib/variantCondition";
 
 interface RequestBody {
   productId: number;
@@ -50,9 +51,12 @@ export async function POST(request: NextRequest) {
       select: {
         id: true,
         Variant: {
-          where: { optional: null },
           select: {
             id: true,
+            optional: true,
+            option_title: true,
+            option_value: true,
+            condition: true,
           },
         },
       },
@@ -69,8 +73,16 @@ export async function POST(request: NextRequest) {
     const selectedVariantIds = new Set(
       selectedVariants.map((v) => v.variant_id),
     );
+    // Required = not marked optional (stored as null) and, for add-ons,
+    // only while their trigger option is selected
+    const variants = product.Variant as unknown as Parameters<
+      typeof isVariantActive
+    >[1];
     const missingVariants = product.Variant.filter(
-      (v) => !selectedVariantIds.has(v.id),
+      (v, idx) =>
+        v.optional === null &&
+        !selectedVariantIds.has(v.id) &&
+        isVariantActive(variants[idx], variants, selectedVariants),
     );
 
     if (missingVariants.length > 0) {

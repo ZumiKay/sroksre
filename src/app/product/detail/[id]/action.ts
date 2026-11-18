@@ -13,6 +13,10 @@ import { calculateDiscountProductPrice } from "@/src/lib/utilities";
 import { revalidatePath } from "next/cache";
 import { ProductState } from "@/src/types/product.type";
 import { syncExpiredPromotions } from "@/src/lib/promotion";
+import {
+  clearInactiveSelections,
+  isVariantActive,
+} from "@/src/lib/variantCondition";
 
 interface returntype {
   success: boolean;
@@ -29,7 +33,6 @@ export async function Addtocart(data: Productordertype): Promise<returntype> {
   try {
     const { details, quantity, id } = data;
 
-    console.log(JSON.stringify(details));
     const user = await getUser();
 
     if (!user) {
@@ -42,12 +45,30 @@ export async function Addtocart(data: Productordertype): Promise<returntype> {
 
     const isProduct = await Prisma.products.findUnique({
       where: { id },
-      select: { id: true },
+      select: {
+        id: true,
+        Variant: {
+          select: {
+            id: true,
+            option_title: true,
+            option_value: true,
+            condition: true,
+          },
+        },
+      },
     });
 
     if (!isProduct) {
       return { success: false, message: "Product not found" };
     }
+
+    // Drop add-on selections whose trigger option isn't selected
+    const variants = isProduct.Variant as unknown as Parameters<
+      typeof isVariantActive
+    >[1];
+    const cartDetails = Array.isArray(details)
+      ? clearInactiveSelections(details, variants)
+      : details;
 
     //create in cart product
 
@@ -56,7 +77,7 @@ export async function Addtocart(data: Productordertype): Promise<returntype> {
         productId: id,
         user_id: user.userId,
         quantity: quantity,
-        details: details ?? "",
+        details: cartDetails ?? "",
         status: Allstatus.incart,
       },
     });

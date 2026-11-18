@@ -1,7 +1,6 @@
 "use client";
 
-import React, { useMemo, useCallback } from "react";
-import { Selection } from "@/src/app/component/Button";
+import React, { useCallback } from "react";
 import { Skeleton } from "@heroui/react";
 import { useGlobalStore } from "@/src/context/GlobalContext";
 import { Productordertype } from "@/src/types/order.type";
@@ -21,33 +20,17 @@ interface StockSelectorProps {
 }
 
 export const StockSelector = React.memo(
-  ({
-    max,
-    setmess,
-    incart,
-    isStock,
-    isloading,
-  }: StockSelectorProps) => {
-    const showLowStock = useMemo(() => max > 0 && max <= 5, [max]);
-    const setproductorderdetail = useGlobalStore((s) => s.setproductorderdetail);
-    const productorderdetail = useGlobalStore((s) => s.productorderdetail);
-
-    const quantityOptions = useMemo(
-      () =>
-        Array.from({ length: max }, (_, idx) => ({
-          label: idx + 1,
-          value: idx + 1,
-        })),
-      [max],
+  ({ max, setmess, incart, isStock, isloading }: StockSelectorProps) => {
+    const setproductorderdetail = useGlobalStore(
+      (s) => s.setproductorderdetail,
     );
+    const quantity = useGlobalStore((s) => s.productorderdetail?.quantity ?? 0);
+    const disabled = max === 0 || !!incart;
 
-    const handleChange = useCallback(
-      (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const setQuantity = useCallback(
+      (next: number) => {
         setmess({ qty: "", option: "" });
-        const { value, name } = e.target;
-        const val =
-          name === "quantity" && value !== "QTY" ? parseInt(value) : 0;
-
+        const val = Math.min(Math.max(next, 1), max);
         setproductorderdetail(
           (prev) =>
             ({
@@ -57,36 +40,55 @@ export const StockSelector = React.memo(
             }) as Productordertype,
         );
       },
-      [setmess, setproductorderdetail, isStock],
+      [setmess, setproductorderdetail, isStock, max],
     );
 
-    const warningMessage = useMemo(
-      () => (showLowStock && max > 0 ? "Low on stock" : ""),
-      [max, showLowStock],
-    );
+    const shown = quantity > 0 ? quantity : max > 0 ? 1 : 0;
 
     return (
-      <div className="flex flex-col gap-y-3">
-        <label htmlFor="qty" className="text-lg font-bold">
-          Quantity
-        </label>
+      <div className="flex flex-col gap-y-2">
+        <p className="text-sm font-semibold text-gray-900">Quantity</p>
         {isloading ? (
-          <Skeleton className="w-[90%] h-10 rounded-lg" />
+          <Skeleton className="h-11 w-36 rounded-xl" />
         ) : (
-          <Selection
-            default="QTY"
-            data={quantityOptions}
-            style={{ height: "50px", width: "200px", maxWidth: "250px" }}
-            onChange={handleChange}
-            disable={max === 0 || incart}
-            value={productorderdetail?.quantity}
-            name="quantity"
-          />
-        )}
-        {warningMessage && (
-          <h3 className="text-sm text-orange-500 w-full text-left font-medium">
-            {warningMessage}
-          </h3>
+          <div className="flex items-center gap-3">
+            <div
+              className={`inline-flex h-11 items-center rounded-xl border border-gray-300 bg-white ${
+                disabled ? "opacity-50" : ""
+              }`}
+            >
+              <StepButton
+                label="Decrease quantity"
+                onClick={() => setQuantity(shown - 1)}
+                disabled={disabled || shown <= 1}
+              >
+                −
+              </StepButton>
+              <input
+                aria-label="Quantity"
+                inputMode="numeric"
+                value={shown}
+                disabled={disabled}
+                onChange={(e) => {
+                  const n = parseInt(e.target.value.replace(/\D/g, ""), 10);
+                  if (!isNaN(n)) setQuantity(n);
+                }}
+                className="h-full w-12 bg-transparent text-center text-sm font-semibold text-gray-900 outline-none disabled:cursor-not-allowed"
+              />
+              <StepButton
+                label="Increase quantity"
+                onClick={() => setQuantity(shown + 1)}
+                disabled={disabled || shown >= max}
+              >
+                +
+              </StepButton>
+            </div>
+            {max > 0 && max <= 5 && (
+              <span className="text-sm font-medium text-orange-600">
+                Only {max} left
+              </span>
+            )}
+          </div>
         )}
       </div>
     );
@@ -94,3 +96,25 @@ export const StockSelector = React.memo(
 );
 
 StockSelector.displayName = "StockSelector";
+
+const StepButton = ({
+  label,
+  onClick,
+  disabled,
+  children,
+}: {
+  label: string;
+  onClick: () => void;
+  disabled: boolean;
+  children: React.ReactNode;
+}) => (
+  <button
+    type="button"
+    aria-label={label}
+    onClick={onClick}
+    disabled={disabled}
+    className="grid h-full w-11 place-content-center text-lg text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:text-gray-300 rounded-xl"
+  >
+    {children}
+  </button>
+);

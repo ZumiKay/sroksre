@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo, useCallback } from "react";
-import { SelectContainer } from "@/src/app/component/Button";
+import { OptionPicker } from "./OptionPicker";
 import { useGlobalStore } from "@/src/context/GlobalContext";
 import {
   ProductState,
@@ -25,6 +25,12 @@ import {
   getAllSelectedDetails,
 } from "../utils/productHelpers";
 import { ErrorMessageType } from "./StockSelector";
+import {
+  clearInactiveSelections,
+  describeCondition,
+  isVariantActive,
+  parseCondition,
+} from "@/src/lib/variantCondition";
 
 interface VariantSelectorProps {
   id: number;
@@ -73,6 +79,22 @@ export const VariantSelector = React.memo((props: VariantSelectorProps) => {
     return variant?.optional ?? false;
   }, [prob.Variant, id]);
 
+  // Add-on variants are only selectable while their trigger option is selected
+  const { isActive, conditionHint } = useMemo(() => {
+    const variants = prob.Variant ?? [];
+    const variant = variants.find((v) => v.id === id);
+    const condition = parseCondition(variant?.condition);
+    if (!variant || !condition) return { isActive: true, conditionHint: "" };
+    return {
+      isActive: isVariantActive(
+        variant,
+        variants,
+        productorderdetail?.details,
+      ),
+      conditionHint: describeCondition(condition, variants),
+    };
+  }, [prob.Variant, id, productorderdetail?.details]);
+
   // Check if the currently selected option for an optional variant is out of stock
   const isSelectedOptionalOutOfStock = useMemo(() => {
     if (!isOptionalVariant || !selected) return false;
@@ -89,7 +111,7 @@ export const VariantSelector = React.memo((props: VariantSelectorProps) => {
   const handleSelectVariant = useCallback(
     async (idx: number, value: string) => {
       const variant = prob.Variant?.[idx];
-      if (!variant || !productorderdetail?.details) return;
+      if (!variant || !productorderdetail?.details || !isActive) return;
 
       // Check if the selected option is available
       const selectedOption = (
@@ -106,13 +128,20 @@ export const VariantSelector = React.memo((props: VariantSelectorProps) => {
         return;
       }
 
-      // Update order details
+      // Update order details, clearing add-ons whose trigger is no longer
+      // selected
       const updatedOrderDetail = updateOrderDetail(
         productorderdetail,
         id,
         idx,
         value,
       );
+      if (updatedOrderDetail.details) {
+        updatedOrderDetail.details = clearInactiveSelections(
+          updatedOrderDetail.details,
+          prob.Variant ?? [],
+        );
+      }
 
       // Check if any selection exists after update
       const filteredDetails = updatedOrderDetail?.details?.filter(
@@ -141,7 +170,8 @@ export const VariantSelector = React.memo((props: VariantSelectorProps) => {
       );
 
       if (!allRequiredSelected) {
-        setmess({ qty: "", option: "Please select all required option" });
+        // Not an error: OptionSection shows which options are still needed
+        setmess({ qty: "", option: "" });
         // Still update quantity based on current selections, even if incomplete
         setqty(0);
         // Reset quantity in the order detail as well
@@ -169,36 +199,77 @@ export const VariantSelector = React.memo((props: VariantSelectorProps) => {
           computeOptionQty,
         );
 
-        // When no DB stock records and qty was auto-defaulted to 1,
-        // auto-select quantity = 1 so Add to Cart is immediately enabled.
-        const hasNoStockRecords = !prob.Stock || prob.Stock.length === 0;
-        if (hasNoStockRecords && finalQty === 1) {
-          setproductorderdetail((prev) => ({ ...prev, quantity: 1 }));
-        }
+        // Once the selection is complete, default the quantity to 1 and
+        // keep an earlier choice within what is available, so Add to Cart
+        // works without an extra step
+        setproductorderdetail((prev) => ({
+          ...prev,
+          quantity:
+            finalQty > 0
+              ? Math.min(Math.max(prev.quantity || 1, 1), finalQty)
+              : 0,
+        }));
       }, 0);
     },
-    [prob, productorderdetail, id, isOptionalVariant, setincart, setloading, setmess, setqty, setproductorderdetail, fetchAvailableQuantity, checkInCart, computeOptionQty],
+    [prob, productorderdetail, id, isOptionalVariant, isActive, setincart, setloading, setmess, setqty, setproductorderdetail, fetchAvailableQuantity, checkInCart, computeOptionQty],
   );
 
+  const selectedLabel = useMemo(() => {
+    if (!selected) return "";
+    const opt = data.find((o) =>
+      typeof o === "string" ? o === selected : o.val === selected,
+    );
+    return opt && typeof opt !== "string" ? (opt.name ?? opt.val) : selected;
+  }, [data, selected]);
+
   return (
-    <div className="w-full h-fit flex flex-col gap-y-5">
-      <label htmlFor={name} className="text-lg font-bold w-fit h-fit">
-        {name}
-      </label>
-      <SelectContainer
-        type={type}
-        data={data}
-        onSelect={(val) => handleSelectVariant(idx, val)}
-        isSelected={selected}
-        allowOutOfStock={isOptionalVariant}
-      />
+    <fieldset
+      className={`w-full flex flex-col gap-y-3 ${
+        conditionHint ? "pl-4 border-l-2 border-gray-200" : ""
+      }`}
+    >
+      <legend className="sr-only">{name}</legend>
+      <div className="flex flex-col gap-y-0.5">
+        <p
+          className={`text-sm font-semibold ${isActive ? "text-gray-900" : "text-gray-400"}`}
+        >
+          {name}
+          {selectedLabel && (
+            <span className="font-normal text-gray-600">: {selectedLabel}</span>
+          )}
+          {isOptionalVariant && (
+            <span className="ml-2 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">
+              Optional
+            </span>
+          )}
+        </p>
+        {conditionHint && (
+          <p className={`text-xs ${isActive ? "text-gray-500" : "text-gray-400"}`}>
+            {isActive ? "Add-on for" : "Available when"} {conditionHint}
+          </p>
+        )}
+      </div>
+      <div
+        inert={!isActive}
+        aria-disabled={!isActive}
+        className={isActive ? "" : "opacity-40 grayscale"}
+      >
+        <OptionPicker
+          label={name}
+          type={type}
+          data={data}
+          selected={selected}
+          onSelect={(val) => handleSelectVariant(idx, val)}
+          allowOutOfStock={isOptionalVariant}
+        />
+      </div>
       {isSelectedOptionalOutOfStock && (
-        <p className="text-sm text-orange-500 font-medium mt-1">
-          ⚠ Selected option is out of stock — it will not affect available
-          quantity
+        <p className="text-xs text-orange-600 font-medium">
+          Selected option is out of stock. It won&apos;t change the available
+          quantity.
         </p>
       )}
-    </div>
+    </fieldset>
   );
 });
 

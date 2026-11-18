@@ -37,7 +37,15 @@ import {
   VariantValueObjType,
   VariantTypeEnum,
   Varianttype,
+  VariantCondition,
 } from "@/src/types/product.type";
+import {
+  allowedTriggerTitles,
+  optionValue,
+  parseCondition,
+  removeConditionsOn,
+  updateConditionsAfterEdit,
+} from "@/src/lib/variantCondition";
 import VariantSectionEditor from "./Variantcomponent/VariantSectionEditor";
 
 export { Colorinitalize, ArraysAreEqualSets };
@@ -91,6 +99,9 @@ export const Variantcontainer = ({
     undefined,
   );
   const [variantOptional, setVariantOptional] = useState(false);
+  // Add-on condition for the variant being created/edited
+  const [variantCondition, setVariantCondition] =
+    useState<VariantCondition | null>(null);
 
   // Search and filter state for large data handling
   const [searchQuery, setSearchQuery] = useState("");
@@ -188,6 +199,11 @@ export const Variantcontainer = ({
         return;
       }
 
+      if (variantCondition && variantCondition.values.length === 0) {
+        errorToast("Pick at least one option that unlocks this add-on");
+        return;
+      }
+
       // Generate temp ID only once if needed
       const tempId =
         !isEditing && !product.id
@@ -216,16 +232,36 @@ export const Variantcontainer = ({
         price: variantPrice,
         optional: variantOptional,
         sectionId: sectionId ?? undefined,
+        condition: variantCondition,
       };
 
       let updatedVariants: typeof currentVariants;
       let updatedStock: Stocktype[] | undefined;
+      // Add-ons whose condition follows this variant's rename/value edits
+      let changedDependents: Varianttype[] = [];
 
       // Handle editing mode
       if (isEditing && currentVariants) {
         updatedVariants = currentVariants.map((v, idx) =>
           idx === variantManager.added ? variantData : v,
         );
+
+        const previous = currentVariants[variantManager.added];
+        if (previous) {
+          const result = updateConditionsAfterEdit(
+            updatedVariants,
+            {
+              title: previous.option_title,
+              values: previous.option_value.map(optionValue),
+            },
+            {
+              title: variantData.option_title,
+              values: variantData.option_value.map(optionValue),
+            },
+          );
+          updatedVariants = result.variants;
+          changedDependents = result.changed;
+        }
 
         // Update stock if exists
         if (product.Stock?.length) {
@@ -252,7 +288,9 @@ export const Variantcontainer = ({
             "JSON",
             {
               id: product.id,
-              Variant: variantData,
+              Variant: changedDependents.length
+                ? [variantData, ...changedDependents]
+                : variantData,
               type: "editvariant",
             },
           );
@@ -296,6 +334,7 @@ export const Variantcontainer = ({
       variantManager.setName("");
       setVariantPrice(undefined);
       setVariantOptional(false);
+      setVariantCondition(null);
 
       // Show success message
       setSuccessMessage(
@@ -315,6 +354,7 @@ export const Variantcontainer = ({
       setproduct,
       variantPrice,
       variantOptional,
+      variantCondition,
       sectionId,
     ],
   );
@@ -387,6 +427,7 @@ export const Variantcontainer = ({
         variantManager.setAdded(idx);
         setVariantPrice(variantToEdit.price);
         setVariantOptional(variantToEdit.optional ?? false);
+        setVariantCondition(parseCondition(variantToEdit.condition));
         setNew("info");
       }
     },
@@ -398,7 +439,11 @@ export const Variantcontainer = ({
       const { Variant: variants, Stock: varaintstock } = product;
       if (!variants || idx < 0 || idx >= variants.length) return;
 
-      const updatedVariants = variants.filter((_, i) => i !== idx);
+      // Add-ons that depended on the deleted variant become always available
+      const updatedVariants = removeConditionsOn(
+        variants.filter((_, i) => i !== idx),
+        [variants[idx].option_title],
+      ).variants;
 
       setproduct((prev) => ({
         ...prev,
@@ -428,10 +473,15 @@ export const Variantcontainer = ({
       if (!variants || variantIds.length === 0) return;
 
       // Filter out the variants with the given IDs
-      const updatedVariants = variants.filter((v) => {
+      const isDeleted = (v: Varianttype) => {
         const vId = v.id ?? v.tempId;
-        return !vId || !variantIds.includes(vId);
-      });
+        return !!vId && variantIds.includes(vId);
+      };
+      // Add-ons that depended on a deleted variant become always available
+      const updatedVariants = removeConditionsOn(
+        variants.filter((v) => !isDeleted(v)),
+        variants.filter(isDeleted).map((v) => v.option_title),
+      ).variants;
 
       setproduct((prev) => ({
         ...prev,
@@ -749,6 +799,27 @@ export const Variantcontainer = ({
 
   const hasVariants = !!product.Variant && product.Variant.length > 0;
 
+  // Variants the one being edited can depend on (excludes itself and any
+  // variant that already depends on it)
+  const conditionTriggers = useMemo(() => {
+    const variants = product.Variant ?? [];
+    const editing =
+      variantManager.added !== -1 ? variants[variantManager.added] : undefined;
+    const title = editing?.option_title ?? variantManager.name;
+    const allowed = new Set(allowedTriggerTitles(title, variants));
+    return variants
+      .filter((v) => v !== editing && allowed.has(v.option_title))
+      .map((v) => ({
+        title: v.option_title,
+        options: v.option_value.map((o) => ({
+          value: optionValue(o),
+          label: typeof o === "string" ? o : (o.name ?? o.val),
+          color:
+            v.option_type === VariantTypeEnum.color ? optionValue(o) : undefined,
+        })),
+      }));
+  }, [product.Variant, variantManager.added, variantManager.name]);
+
   const handleVariantSectionSelect = () => {
     //Generate Temp id for variant section
     const isVariantSection =
@@ -868,6 +939,7 @@ export const Variantcontainer = ({
               variantManager.setEdit(-1);
               setVariantPrice(undefined);
               setVariantOptional(false);
+              setVariantCondition(null);
               setNew("type");
             }}
             searchQuery={searchQuery}
@@ -935,6 +1007,9 @@ export const Variantcontainer = ({
             setPrice={setVariantPrice}
             optional={variantOptional}
             setOptional={setVariantOptional}
+            condition={variantCondition}
+            setCondition={setVariantCondition}
+            conditionTriggers={conditionTriggers}
             variantSections={product.Variantsection}
           />
         )}

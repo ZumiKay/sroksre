@@ -18,7 +18,6 @@ import type { ChipProps } from "@mui/material";
 import { Allstatus } from "@/src/types/order.type";
 import { Mutiselectstatuscolor } from "../dashboard/order/Theme";
 import { useRouter, useSearchParams } from "next/navigation";
-import { VariantValueObjType } from "@/src/types/product.type";
 
 interface buttonpros {
   type: "submit" | "reset" | "button" | undefined;
@@ -244,110 +243,6 @@ export const InputFileUpload = React.forwardRef<
   );
 });
 InputFileUpload.displayName = "InputFileUpload";
-
-interface Selectcontainerprops {
-  data: Array<string | VariantValueObjType>;
-  type: "TEXT" | "COLOR";
-  onSelect: (value: string) => void;
-  isSelected?: string;
-  /** When true, clicking an out-of-stock option is still allowed (used for optional variants) */
-  allowOutOfStock?: boolean;
-}
-const isSelectedStyle: CSSProperties = {
-  outline: "2px solid black",
-  outlineOffset: "2px",
-  color: "black",
-};
-
-export const SelectContainer = (props: Selectcontainerprops) => {
-  return (
-    <div className="w-fit max-w-[80%]  min-h-12.5 h-fit p-2 flex flex-row flex-wrap items-center gap-x-3 rounded-lg outline-1 outline-solid outline-gray-400 outline-offset-2">
-      {props.data.map((i, idx) => {
-        // Check if option has qty and if it's out of stock
-        const isOutOfStock =
-          typeof i !== "string" &&
-          i.qty !== undefined &&
-          (typeof i.qty === "number" ? i.qty : parseInt(i.qty || "0")) <= 0;
-        // For optional variants, out-of-stock options are still clickable
-        const isClickable = !isOutOfStock || props.allowOutOfStock;
-
-        return (
-          <div key={idx} className="w-fit h-fit relative">
-            {typeof i === "string" ? (
-              <div
-                key={idx}
-                onClick={() => {
-                  props.onSelect(i);
-                }}
-                style={props.isSelected === i ? isSelectedStyle : {}}
-                className={`select_item cursor-pointer w-fit h-fit p-2 max-w-50 wrap-break-word rounded-lg transition-all duration-30 hover:bg-black hover:text-white`}
-              >
-                {i as string}
-              </div>
-            ) : (
-              <div
-                style={{
-                  ...(props.isSelected === i.val ? isSelectedStyle : {}),
-                  ...(isOutOfStock
-                    ? {
-                        opacity: props.allowOutOfStock ? 0.65 : 0.4,
-                        cursor: props.allowOutOfStock
-                          ? "pointer"
-                          : "not-allowed",
-                        position: "relative",
-                      }
-                    : {}),
-                }}
-                onClick={() => {
-                  if (isClickable) {
-                    props.onSelect(i.val);
-                  }
-                }}
-                className={`w-fit h-fit flex flex-row gap-x-3 p-2 items-center rounded-lg ${
-                  !isClickable
-                    ? "cursor-not-allowed"
-                    : "cursor-pointer hover:outline-2 hover:outline-solid hover:outline-gray-500 hover:outline-offset-2 active:outline-1 active:outline-solid active:outline-gray-300 active:outline-offset-2"
-                } justify-center`}
-              >
-                {props.type === "COLOR" ? (
-                  <>
-                    <div
-                      className="rounded-full"
-                      style={{
-                        backgroundColor: i.val,
-                        width: "30px",
-                        height: "30px",
-                      }}
-                    ></div>
-                    {i.name && (
-                      <div className="w-fit h-fit text-lg font-bold">
-                        {i.name}
-                        {isOutOfStock && (
-                          <span className="text-xs text-red-500 ml-1">
-                            (Out of stock)
-                          </span>
-                        )}
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <div className="w-fit h-fit text-lg font-bold">
-                    {i.name || i.val}
-                    {isOutOfStock && (
-                      <span className="text-xs text-red-500 ml-1">
-                        (Out of stock)
-                      </span>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
-};
 
 const ITEM_HEIGHT = 50;
 const ITEM_PADDING_TOP = 8;

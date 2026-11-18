@@ -23,6 +23,11 @@ import {
   VariantValueObjType,
 } from "@/src/types/product.type";
 import { getVariantDetail } from "@/src/app/checkout/helper";
+import {
+  availableStockQuantity,
+  splitSelectedValues,
+  type StockEntry,
+} from "@/src/lib/stockMatch";
 import { syncExpiredPromotions } from "@/src/lib/promotion";
 
 const buildFinalCartPrice = (
@@ -236,10 +241,20 @@ export async function GET(req: NextRequest) {
         .reduce((sum, v) => sum + (v.price ?? 0), 0);
       const finalCartPrice = buildFinalCartPrice(discount, variantExtraPrice);
 
-      let maxqty = getmaxqtybaseStockType(
-        item.product as unknown as ProductState,
-        detail.map((i) => i.value),
-      );
+      // Same rule as the product page: required selections decide the
+      // matching stock entries, optional picks don't narrow them
+      let maxqty =
+        item.product.stocktype === "variant"
+          ? availableStockQuantity(
+              item.product.Stock.flatMap(
+                (s) => s.Stockvalue as unknown as StockEntry[],
+              ),
+              splitSelectedValues(detail, item.product.Variant).required,
+            )
+          : getmaxqtybaseStockType(
+              item.product as unknown as ProductState,
+              detail.map((i) => i.value),
+            );
 
       // For products with no DB Stock records, derive maxqty from option-level qty fields.
       if (maxqty === 0 && !item.product.Stock?.length) {
