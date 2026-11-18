@@ -45,6 +45,7 @@ import {
   generateExpirationDate,
   logout,
 } from "@/src/lib/userlib";
+import type { NextRequest } from "next/server";
 import * as bcryptjs from "bcryptjs";
 import * as utilities from "@/src/lib/utilities";
 import Prisma from "@/src/lib/prisma.ts";
@@ -102,15 +103,6 @@ describe("Testing Authentication && Authorization", () => {
 
   // ─── userlogin ────────────────────────────────────────────────────────────
   describe("userlogin", () => {
-    const mockReq = {
-      headers: {
-        "user-agent":
-          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
-        "x-forwarded-for": "127.0.0.1",
-        "x-real-ip": "127.0.0.1",
-      },
-    };
-
     it("should successfully login a user with valid credentials", async () => {
       (mockPrisma.loginAttempt.findUnique as jest.Mock).mockResolvedValue(null);
       (mockPrisma.user.findUnique as jest.Mock).mockResolvedValue({
@@ -126,7 +118,6 @@ describe("Testing Authentication && Authorization", () => {
           password: "ValidPassword123!",
           recapcha: null,
         },
-        mockReq,
       );
 
       expect(result.success).toBe(true);
@@ -137,7 +128,6 @@ describe("Testing Authentication && Authorization", () => {
     it("should return error when email is missing", async () => {
       const result = await userlogin(
         { email: "", password: "ValidPassword123!", recapcha: null },
-        mockReq,
       );
 
       expect(result.success).toBe(false);
@@ -156,7 +146,6 @@ describe("Testing Authentication && Authorization", () => {
           password: "Password123!",
           recapcha: null,
         },
-        mockReq,
       );
 
       expect(result.success).toBe(false);
@@ -180,7 +169,6 @@ describe("Testing Authentication && Authorization", () => {
           password: "WrongPassword!",
           recapcha: null,
         },
-        mockReq,
       );
 
       expect(result.success).toBe(false);
@@ -205,7 +193,6 @@ describe("Testing Authentication && Authorization", () => {
           password: "ValidPassword123!",
           recapcha: null,
         },
-        mockReq,
       );
 
       expect(result.success).toBe(false);
@@ -369,9 +356,11 @@ describe("Testing Authentication && Authorization", () => {
 
   // ─── extractDeviceInfo ────────────────────────────────────────────────────
   describe("extractDeviceInfo", () => {
-    const makeReq = (ua: string, ip = "1.2.3.4") => ({
-      headers: { "user-agent": ua, "x-forwarded-for": ip },
-    });
+    // extractDeviceInfo also accepts NextAuth-style plain header objects.
+    const makeReq = (ua: string, ip = "1.2.3.4") =>
+      ({
+        headers: { "user-agent": ua, "x-forwarded-for": ip },
+      }) as unknown as NextRequest;
 
     it("should detect iPhone", () => {
       const result = extractDeviceInfo(

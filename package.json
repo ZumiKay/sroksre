@@ -39,7 +39,7 @@
     "@mui/styled-engine-sc": "^7.3.8",
     "@mui/x-date-pickers": "^8.27.0",
     "@next-auth/prisma-adapter": "^1.0.7",
-    "@next/bundle-analyzer": "^15.1.6",
+    "@next/bundle-analyzer": "^16.4.6",
     "@paypal/react-paypal-js": "^8.1.4",
     "@prisma/adapter-pg": "^7.2.0",
     "@vercel/blob": "^2.0.0",
@@ -52,7 +52,7 @@
     "framer-motion": "^11.18.2",
     "jose": "^5.1.1",
     "lodash": "^4.17.23",
-    "next": ">=15.5.18",
+    "next": "^16.4.6",
     "next-auth": "^4.24.14",
     "nodemailer": "^10.3.1",
     "nodemon": "^3.1.0",
@@ -97,7 +97,7 @@
     "@types/react-dom": "^19",
     "@types/tinycolor2": "^1.4.6",
     "eslint": "^9.39.5",
-    "eslint-config-next": "^16.4.1",
+    "eslint-config-next": "^16.4.6",
     "jest": "^30.4.1",
     "jest-environment-jsdom": "^30.4.1",
     "jest-mock-extended": "^4.0.0",
@@ -128,5 +128,9 @@
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
+  },
+  "allowScripts": {
+    "prisma@7.10.1": true,
+    "@prisma/engines@7.10.1": true
   }
 }

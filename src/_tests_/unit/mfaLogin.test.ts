@@ -34,7 +34,6 @@ const mockCompare = (bcryptjs as unknown as { compare: jest.Mock }).compare;
 const login = (otp?: string) =>
   userlogin(
     { email: "admin@example.com", password: "Passw0rd!", otp, recapcha: null },
-    { headers: {} },
   );
 
 beforeEach(() => {
