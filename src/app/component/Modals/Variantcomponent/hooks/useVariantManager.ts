@@ -91,6 +91,19 @@ export const useVariantManager = (): UseVariantManagerReturn => {
       return false;
     }
 
+    // Stock and the product page identify a color by its hex value, so two
+    // colors with the same hex can't be told apart
+    const isDuplicate = temp?.value.some(
+      (v, idx) =>
+        idx !== edit &&
+        (typeof v === "string" ? v : v.val).toLowerCase() ===
+          color.hex.toLowerCase(),
+    );
+    if (isDuplicate) {
+      errorToast("This color is already added. Pick a different color.");
+      return false;
+    }
+
     setTemp((prev) => {
       if (!prev) return prev;
       const newColor: VariantValueObjType = {
@@ -126,7 +139,7 @@ export const useVariantManager = (): UseVariantManagerReturn => {
     });
     setEdit(-1);
     return true;
-  }, [colorData, edit]);
+  }, [colorData, edit, temp]);
 
   const deleteValue = useCallback((idx: number) => {
     setTemp((prev) => {

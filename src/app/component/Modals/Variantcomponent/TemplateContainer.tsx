@@ -241,8 +241,18 @@ export const AddTemplateModal = ({
     if (templatetype === "TEXT" && option.length === 0) {
       return;
     }
-    if (updatevariant.includes(option)) {
-      errorToast("Option exist");
+    // Compare by value (hex for colors), skipping the option being edited
+    const newVal = typeof value === "string" ? value : value.val;
+    const isDuplicate = updatevariant.some(
+      (v, idx) =>
+        idx !== edit &&
+        (typeof v === "string" ? v : v.val).toLowerCase() ===
+          newVal.toLowerCase(),
+    );
+    if (isDuplicate) {
+      errorToast(
+        templatetype === "COLOR" ? "Color already added" : "Option exist",
+      );
       return;
     }
 

@@ -725,7 +725,9 @@ export function ManageStockContainer({
                 {product.Variant?.map((item, idx) => {
                   return (
                     <Multiselect
-                      key={item.id}
+                      // Variants added before the product is saved have no
+                      // id yet, only a tempId
+                      key={item.id ?? `temp-${item.tempId ?? idx}`}
                       id={idx}
                       type={item.option_type}
                       isOptional={item.optional}
