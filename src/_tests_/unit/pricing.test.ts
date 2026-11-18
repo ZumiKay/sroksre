@@ -153,34 +153,34 @@ describe("Pricing and Discount Unit Tests", () => {
   describe("Validation Helpers: hasValidProductPrice, hasValidQuantities, hasValidPrice", () => {
     it("validates product prices properly", () => {
       // Valid normal price
-      expect(hasValidProductPrice({ price: { price: 20 } } as any)).toBe(true);
+      expect(hasValidProductPrice({ price: { price: 20 } } as never)).toBe(true);
 
       // Invalid <= 0 price
-      expect(hasValidProductPrice({ price: { price: 0 } } as any)).toBe(false);
-      expect(hasValidProductPrice({ price: { price: -5 } } as any)).toBe(false);
+      expect(hasValidProductPrice({ price: { price: 0 } } as never)).toBe(false);
+      expect(hasValidProductPrice({ price: { price: -5 } } as never)).toBe(false);
 
       // Invalid discount percentage
       expect(
         hasValidProductPrice({
           price: { price: 20, discount: { percent: 110, newprice: 15 } },
-        } as any)
+        } as never)
       ).toBe(false);
       expect(
         hasValidProductPrice({
           price: { price: 20, discount: { percent: -5, newprice: 15 } },
-        } as any)
+        } as never)
       ).toBe(false);
 
       // Invalid discount newprice (greater than or equal to original price)
       expect(
         hasValidProductPrice({
           price: { price: 20, discount: { percent: 10, newprice: 25 } },
-        } as any)
+        } as never)
       ).toBe(false);
       expect(
         hasValidProductPrice({
           price: { price: 20, discount: { percent: 10, newprice: 20 } },
-        } as any)
+        } as never)
       ).toBe(false);
     });
 
@@ -210,15 +210,15 @@ describe("Pricing and Discount Unit Tests", () => {
     });
 
     it("validates order price totals (total must be >= subtotal and both > 0)", () => {
-      expect(hasValidPrice({ price: { subtotal: 50, total: 60 } } as any)).toBe(true);
-      expect(hasValidPrice({ price: { subtotal: 50, total: 50 } } as any)).toBe(true);
+      expect(hasValidPrice({ price: { subtotal: 50, total: 60 } } as never)).toBe(true);
+      expect(hasValidPrice({ price: { subtotal: 50, total: 50 } } as never)).toBe(true);
 
       // Total less than subtotal
-      expect(hasValidPrice({ price: { subtotal: 50, total: 40 } } as any)).toBe(false);
+      expect(hasValidPrice({ price: { subtotal: 50, total: 40 } } as never)).toBe(false);
 
       // Zero or negative
-      expect(hasValidPrice({ price: { subtotal: 0, total: 0 } } as any)).toBe(false);
-      expect(hasValidPrice({ price: { subtotal: -10, total: 10 } } as any)).toBe(false);
+      expect(hasValidPrice({ price: { subtotal: 0, total: 0 } } as never)).toBe(false);
+      expect(hasValidPrice({ price: { subtotal: -10, total: 10 } } as never)).toBe(false);
     });
   });
 });

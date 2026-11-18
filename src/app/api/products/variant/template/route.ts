@@ -1,5 +1,6 @@
 "use server";
 
+import type { InputJsonValue } from "@/prisma/generated/prisma/internal/prismaNamespace";
 import { VariantTemplateType } from "@/src/app/component/Modals/Variantcomponent/Action";
 import Prisma from "@/src/lib/prisma";
 import { NextRequest } from "next/server";
@@ -55,7 +56,7 @@ export async function PUT(req: NextRequest) {
           data: {
             option_title: variant.option_title,
             option_type: variant.option_type,
-            option_value: variant.option_value as any,
+            option_value: variant.option_value as InputJsonValue,
           },
         });
       }

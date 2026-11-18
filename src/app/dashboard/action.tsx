@@ -15,10 +15,22 @@ import {
 } from "@/src/lib/emailVerification";
 import { sendVerificationCodeEmail } from "@/src/lib/verificationEmail";
 
+const ADDRESS_FIELDS = [
+  "firstname",
+  "lastname",
+  "street",
+  "houseId",
+  "province",
+  "district",
+  "songkhat",
+  "postalcode",
+] as const;
+type AddressField = (typeof ADDRESS_FIELDS)[number];
+
 interface returntype {
   success: boolean;
   message?: string;
-  data?: any;
+  data?: unknown;
 }
 
 export async function Editprofileaction(
@@ -113,20 +125,21 @@ export async function Addaddress(
     if (!user) {
       return { success: false, message: "Unauthenticated" };
     }
-    const alldata = Array.from(data.entries());
-
-    const address: any = {};
-    let message: string = "";
-
-    for (const [name, value] of alldata) {
-      address[name] = value;
+    // Only address columns are taken from the form, so a request cannot set
+    // the owner (userId) or the row id.
+    const fields: Partial<Record<AddressField, string>> = {};
+    for (const field of ADDRESS_FIELDS) {
+      const value = data.get(field);
+      if (typeof value === "string") fields[field] = value;
     }
+    const address = fields as Record<AddressField, string>;
+    let message: string = "";
 
     if (!isEdit) {
       const created = await Prisma.address.create({
         data: {
-          userId: user.userId,
           ...address,
+          userId: user.userId,
         },
       });
       id = created.id;
@@ -160,7 +173,7 @@ export const Deleteaddress = async (id: number): Promise<returntype> => {
     });
 
     return { success: true, message: "Address Deleted" };
-  } catch (error) {
+  } catch {
     return { success: false, message: "Failed To Delete" };
   }
 };

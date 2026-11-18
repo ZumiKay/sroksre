@@ -24,7 +24,7 @@ export const ArraysAreEqualSets = (
 };
 
 export const checkVariantExists = (
-  variants: any[] | undefined,
+  variants: Varianttype[] | undefined,
   name: string,
 ): boolean => {
   return !!variants?.some((i) => i.option_title === name);
@@ -33,7 +33,7 @@ export const checkVariantExists = (
 export const updateStockOnVariantEdit = (
   varaintstock: Stocktype[],
   variants: Varianttype[],
-): any[] => {
+): Stocktype[] => {
   return varaintstock.map((stockItem) => ({
     ...stockItem,
     Stockvalue: stockItem.Stockvalue.map((stockValue) => ({
@@ -53,7 +53,7 @@ export const updateStockOnVariantEdit = (
   }));
 };
 
-export const cleanEmptyStock = (varaintstock: any[] | undefined) => {
+export const cleanEmptyStock = (varaintstock: Stocktype[] | undefined) => {
   if (!varaintstock) return [];
   const isStockEmpty = varaintstock.findIndex((i) => i.Stockvalue.length === 0);
   if (isStockEmpty !== -1) {

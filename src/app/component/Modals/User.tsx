@@ -1,5 +1,5 @@
 import { useGlobalStore, Userinitialize } from "@/src/context/GlobalContext";
-import React, { ChangeEvent, SubmitEvent, useEffect, useState } from "react";
+import React, { ChangeEvent, SubmitEvent, useEffect, useState, useEffectEvent } from "react";
 import { errorToast, successToast } from "../Loading";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faUserPlus, faTrash, faPlus, faSave } from "@fortawesome/free-solid-svg-icons";
@@ -29,30 +29,25 @@ export const Createusermodal = ({
   const setglobalindex = useGlobalStore((s) => s.setglobalindex);
   const openmodal = useGlobalStore((s) => s.openmodal);
   const setopenmodal = useGlobalStore((s) => s.setopenmodal);
-  const [data, setdata] = useState<userdata>(Userinitialize);
+  // Editing starts from the chosen user, with empty fields as ""
+  const [data, setdata] = useState<userdata>(() => {
+    const editing =
+      globalindex.useredit !== -1
+        ? allData?.user?.[globalindex.useredit]
+        : undefined;
+    if (!editing) return Userinitialize;
+    return Object.fromEntries(
+      Object.entries({ ...editing }).map(([key, value]) => [
+        key,
+        value ? value : key === "id" ? 0 : "",
+      ]),
+    ) as userdata;
+  });
   const [showpass, setshowpass] = useState({
     passowrd: false,
   });
   const [loading, setloading] = useState(false);
   const router = useRouter();
-
-  useEffect(() => {
-    if (globalindex.useredit !== -1) {
-      if (allData?.user) {
-        const data = Object.entries({
-          ...allData?.user?.[globalindex.useredit],
-        }).map(([i, value]) => {
-          if (!value) {
-            return [i, i === "id" ? 0 : ""];
-          }
-          return [i, value];
-        });
-        const dataObj = Object.fromEntries(data);
-
-        setdata(dataObj);
-      }
-    }
-  }, []);
 
   const handleSubmit = async (e: SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -61,14 +56,16 @@ export const Createusermodal = ({
     const URL = "/api/auth/register";
     const method = editindex === -1 ? "POST" : "PUT";
 
+    // An edit never sends the password fields
+    const payload = { ...data };
     if (editindex !== -1) {
-      delete data.password;
-      delete data.confirmpassword;
+      delete payload.password;
+      delete payload.confirmpassword;
     }
 
     //register User
     setloading(true);
-    const register = await ApiRequest(URL, undefined, method, "JSON", data);
+    const register = await ApiRequest(URL, undefined, method, "JSON", payload);
     setloading(false);
     if (!register.success) {
       errorToast(register.error ?? "Failed to register");
@@ -76,7 +73,7 @@ export const Createusermodal = ({
     }
 
     successToast(`User ${editindex === -1 ? "Created" : "Updated"} Successfully`);
-    editindex === -1 && setdata(Userinitialize);
+    if (editindex === -1) setdata(Userinitialize);
     setglobalindex((prev) => ({ ...prev, useredit: -1 }));
     setopenmodal((prev) => ({ ...prev, createUser: false }));
 
@@ -386,10 +383,14 @@ export const EditProfile = ({
     }
   };
 
-  useEffect(() => {
+  const loadShipping = useEffectEvent(() => {
     if (type === "shipping") {
       fetchdata(type);
     }
+  });
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- starts a request; the loading flag is set as it begins
+    loadShipping();
   }, [type]);
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -405,14 +406,17 @@ export const EditProfile = ({
   const handleUpdateuser = async () => {
     setloading((prev) => ({ ...prev, post: true }));
     const formeddata = new FormData();
-    data.password = {
-      newpassword: userinfo.newpassword as string,
-      oldpassword: userinfo.oldpassword as string,
+    const payload = {
+      ...data,
+      password: {
+        newpassword: userinfo.newpassword as string,
+        oldpassword: userinfo.oldpassword as string,
+      },
     };
-    Object.entries(data).forEach(([key, val]) =>
+    Object.entries(payload).forEach(([key, val]) =>
       key === "name" || key === "password"
         ? formeddata.set(key, JSON.stringify(val))
-        : formeddata.set(key, val),
+        : formeddata.set(key, val as unknown as string),
     );
     const updaterequest = Editprofileaction.bind(null, formeddata, type);
     const update = await updaterequest();

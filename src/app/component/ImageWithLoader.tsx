@@ -1,6 +1,6 @@
 "use client";
 import Image, { ImageProps, StaticImageData } from "next/image";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { Skeleton } from "@heroui/react";
 import DefaultImage from "../../../public/Image/default.png";
 
@@ -25,7 +25,7 @@ export const ImageWithLoader = ({
   ...props
 }: ImageWithLoaderProps) => {
   // Check if src is valid (not empty string, null, or undefined)
-  const isValidSrc = (source: any): boolean => {
+  const isValidSrc = (source: unknown): boolean => {
     if (!source) return false;
     if (typeof source === "string" && source.trim() === "") return false;
     return true;
@@ -39,14 +39,16 @@ export const ImageWithLoader = ({
   const [hasError, setHasError] = useState(!initialSrc);
   const [currentSrc, setCurrentSrc] = useState(initialSrc);
 
-  useEffect(() => {
-    const newSrc = isValidSrc(src) ? src : fallbackSrc || null;
-    if (currentSrc !== newSrc) {
-      setCurrentSrc(newSrc);
-      setImageLoading(!!newSrc);
-      setHasError(!newSrc);
+  // Start over when the caller passes a different image
+  const [syncedSrc, setSyncedSrc] = useState(initialSrc);
+  if (syncedSrc !== initialSrc) {
+    setSyncedSrc(initialSrc);
+    if (currentSrc !== initialSrc) {
+      setCurrentSrc(initialSrc);
+      setImageLoading(!!initialSrc);
+      setHasError(!initialSrc);
     }
-  }, [src, fallbackSrc]);
+  }
 
   const handleError = () => {
     setImageLoading(false);

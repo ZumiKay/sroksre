@@ -50,14 +50,15 @@ export const ScrollableContainerModal = memo(function ScrollableContainerModal({
         amountofitem: undefined,
         daterange: undefined,
         item: [],
-        scrollabletype: e.target.value as any,
+        scrollabletype: e.target.value as Containertype["scrollabletype"],
       }));
     },
     [setdata],
   );
 
   const handleDateChange = useCallback(
-    (date: any) => {
+    (date: { start: { toString(): string }; end: { toString(): string } } | null) => {
+      if (!date) return;
       setdata((prev) => ({
         ...prev,
         daterange: {
@@ -196,7 +197,7 @@ export const ScrollableContainerModal = memo(function ScrollableContainerModal({
                   ? ({
                       start: parseDate(data.daterange.start ?? ""),
                       end: parseDate(data.daterange.end),
-                    } as any)
+                    })
                   : undefined
               }
               onChange={handleDateChange}

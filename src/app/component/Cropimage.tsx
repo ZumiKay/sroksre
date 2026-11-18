@@ -94,7 +94,7 @@ export default function CropImage({
 }: {
   open: boolean;
   img: string;
-  setclose: any;
+  setclose: (open: boolean) => void;
   ratio: number;
   index: number;
   imgurl: Imgurl[];
@@ -691,6 +691,7 @@ export default function CropImage({
                   imageLoading || imageError ? "hidden" : ""
                 }`}
               >
+                {/* eslint-disable-next-line @next/next/no-img-element -- ReactCrop needs a native <img> to measure and crop */}
                 <img
                   ref={imgRef}
                   alt="Cropping Image"

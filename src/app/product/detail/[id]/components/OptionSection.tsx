@@ -49,11 +49,29 @@ export const OptionSection = ({
       ...prev,
       id: data.id as number,
     }));
+  }, [data.id, data.stocktype, data.Variant, setproductorderdetail]);
+
+  // A different product clears any leftover error text
+  const [syncedProduct, setSyncedProduct] = useState({
+    id: data.id,
+    stocktype: data.stocktype,
+    Variant: data.Variant,
+  });
+  if (
+    syncedProduct.id !== data.id ||
+    syncedProduct.stocktype !== data.stocktype ||
+    syncedProduct.Variant !== data.Variant
+  ) {
+    setSyncedProduct({
+      id: data.id,
+      stocktype: data.stocktype,
+      Variant: data.Variant,
+    });
     seterrormess({
       option: "",
       qty: "",
     });
-  }, [data.id, data.stocktype, data.Variant]);
+  }
 
   const handleWishlist = useCallback(async () => {
     setloading(true);
@@ -143,7 +161,7 @@ export const OptionSection = ({
       option: "",
       qty: "",
     });
-  }, [data.stocktype, data.Variant, setproductorderdetail]);
+  }, [data.Variant, setproductorderdetail]);
 
   const hasSelections = useMemo(() => {
     const hasQty =
@@ -178,7 +196,7 @@ export const OptionSection = ({
     }
 
     return "";
-  }, [data.stocktype, productorderdetail, errormess]);
+  }, [errormess.qty, errormess.option, data, productorderdetail]);
 
   return (
     <div className="w-full h-fit flex flex-col gap-y-5">

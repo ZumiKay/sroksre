@@ -4,7 +4,7 @@ import Modal from "../Modals";
 import { useGlobalStore } from "@/src/context/GlobalContext";
 import { motion } from "framer-motion";
 import { Orderpricetype } from "@/src/types/order.type";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useEffectEvent } from "react";
 import { ApiRequest } from "@/src/context/CustomHook";
 import { errorToast } from "../Loading";
 import Image from "next/image";
@@ -46,26 +46,6 @@ export default function SearchContainer({ isMobile }: { isMobile: boolean }) {
     return () => clearTimeout(t);
   }, []);
 
-  // Close on Escape
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") handleClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
-
-  // Debounced live search — fires 380 ms after the user stops typing
-  useEffect(() => {
-    if (!search.trim()) {
-      setProducts([]);
-      setHasSearched(false);
-      return;
-    }
-    const t = setTimeout(() => runSearch(search.trim()), 380);
-    return () => clearTimeout(t);
-  }, [search]);
-
   const runSearch = async (query: string) => {
     setLoading(true);
     const response = await ApiRequest(
@@ -84,6 +64,34 @@ export default function SearchContainer({ isMobile }: { isMobile: boolean }) {
 
   const handleClose = () =>
     setopenmodal((prev) => ({ ...prev, searchcon: false }));
+
+  // Close on Escape
+  const closeOnEscape = useEffectEvent((e: KeyboardEvent) => {
+    if (e.key === "Escape") handleClose();
+  });
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => closeOnEscape(e);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  // An emptied search box clears the results straight away
+  const handleSearchChange = (value: string) => {
+    setSearch(value);
+    if (!value.trim()) {
+      setProducts([]);
+      setHasSearched(false);
+    }
+  };
+
+  // Debounced live search — fires 380 ms after the user stops typing
+  const searchNow = useEffectEvent((query: string) => runSearch(query));
+  useEffect(() => {
+    const query = search.trim();
+    if (!query) return;
+    const t = setTimeout(() => searchNow(query), 380);
+    return () => clearTimeout(t);
+  }, [search]);
 
   const handleNavigate = (id: number) => {
     handleClose();
@@ -121,13 +129,13 @@ export default function SearchContainer({ isMobile }: { isMobile: boolean }) {
                 ref={inputRef}
                 type="text"
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => handleSearchChange(e.target.value)}
                 placeholder="Search products…"
                 className="flex-1 bg-transparent text-sm text-gray-800 placeholder-gray-400 outline-none min-w-0"
               />
               {search && (
                 <button
-                  onClick={() => setSearch("")}
+                  onClick={() => handleSearchChange("")}
                   className="w-5 h-5 rounded-full flex items-center justify-center bg-gray-200 hover:bg-gray-300 text-gray-500 hover:text-gray-700 transition-colors shrink-0"
                 >
                   <FontAwesomeIcon icon={faXmark} className="text-[10px]" />

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useEffectEvent } from "react";
 import PrimaryButton from "../component/Button";
 import { ToggleDownMenu } from "../component/ToggleMenu";
 import Card from "../component/Card";
@@ -52,22 +52,25 @@ export default function UserDashboard() {
       );
 
       if (userreq.success) {
-        type === "userinfo"
-          ? setuserinfo(userreq.data)
-          : setwishlist(userreq.data);
+        if (type === "userinfo") setuserinfo(userreq.data);
+        else setwishlist(userreq.data);
       }
     };
 
     await Delayloading(asyncfetch, setloading, 1000);
   };
 
+  const loadUser = useEffectEvent((type: "userinfo" | "wishlist") =>
+    fetchuser(type),
+  );
+
   useEffect(() => {
-    fetchuser("userinfo");
+    loadUser("userinfo");
   }, [data]);
 
   useEffect(() => {
     if (userdata.open.whilist) {
-      fetchuser("wishlist");
+      loadUser("wishlist");
     }
   }, [userdata.open.whilist, data]);
 
@@ -274,7 +277,7 @@ export default function UserDashboard() {
             <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
               <button
                 onClick={() => {
-                  userdata.open.whilist && setwishlist(null);
+                  if (userdata.open.whilist) setwishlist(null);
                   setdata({
                     ...userdata,
                     open: {

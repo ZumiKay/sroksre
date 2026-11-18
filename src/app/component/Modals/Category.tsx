@@ -47,7 +47,7 @@ export const GetPromotionSelection = async (search: string, limit: number = 1) =
   return {
     success: true,
     isLimit: request.isLimit,
-    data: request.data.map((i: any) => ({
+    data: request.data.map((i: { id: number; name: string }) => ({
       label: i.name,
       value: i.id,
     })),
@@ -91,13 +91,13 @@ export const Category = () => {
 
     setcategory(CateogoryInitailizestate);
     successToast("Category Created");
-  }, [allData?.category, category, catetype]);
+  }, [allData?.category, category, catetype, setcategory]);
 
   const handleNavbar = useCallback((show: "Create" | "Edit") => {
     setshow(show);
     setopenmodal((prev) => ({ ...prev, addsubcategory: false }));
     setcategory(CateogoryInitailizestate);
-  }, []);
+  }, [setcategory, setopenmodal]);
 
   const handleSelectPromotion = useCallback((value: Array<SelectType>) => {
     const subcategories =
@@ -111,12 +111,12 @@ export const Category = () => {
         : [];
 
     setcategory((prev) => ({ ...prev, subcategories }));
-  }, []);
+  }, [setcategory]);
 
   const handleChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setcategory((prev) => ({ ...prev, [name]: value }));
-  }, []);
+  }, [setcategory]);
 
   const canCreate = category.name.length > 0 && !loading;
 
@@ -368,7 +368,7 @@ function CategoryDateRange() {
           ? ({
               start: parseDate(category.daterange.start),
               end: parseDate(category.daterange.end),
-            } as any)
+            })
           : undefined
       }
       onChange={(val) => {
@@ -434,7 +434,7 @@ const EditCategory = ({
         setcategory(allData.category[index]);
       }
     },
-    [allData?.category],
+    [allData, setcategory],
   );
   const handleDelete = useCallback(async () => {
     setloading(true);
@@ -458,7 +458,7 @@ const EditCategory = ({
       setglobalindex((prev) => ({ ...prev, categoryeditindex: [] }));
       errorToast(deleterequest.error as string);
     }
-  }, [globalindex.categoryeditindex, tempcate, allData?.category]);
+  }, [setloading, globalindex.categoryeditindex, setglobalindex, tempcate, allData?.category, setalldata]);
 
   const handleConfirm = useCallback(async () => {
     if (!category.name || !category.description) {
@@ -485,7 +485,7 @@ const EditCategory = ({
     };
 
     await Delayloading(updateRequest, setloading, 1000);
-  }, [category, editindex, allData?.category]);
+  }, [category, setloading, allData?.category, editindex, setalldata]);
   const handleReset = useCallback(() => {
     const resetcate = tempcate.filter((obj) =>
       globalindex.categoryeditindex.includes(obj.id as number),
@@ -494,7 +494,7 @@ const EditCategory = ({
     setalldata((prev) => ({ ...prev, category: allcate }));
     settempcate([]);
     setglobalindex((prev) => ({ ...prev, categoryeditindex: [] }));
-  }, [tempcate, allData?.category, globalindex.categoryeditindex]);
+  }, [tempcate, allData?.category, setalldata, setglobalindex, globalindex.categoryeditindex]);
 
   const handleSelectPromotion = useCallback((value: Array<SelectType>) => {
     const subcategories =
@@ -507,12 +507,12 @@ const EditCategory = ({
         : [];
 
     setcategory((prev) => ({ ...prev, subcategories }));
-  }, []);
+  }, [setcategory]);
 
   const handleEditChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setcategory((prev) => ({ ...prev, [name]: value }));
-  }, []);
+  }, [setcategory]);
 
   const categories = allData?.category ?? [];
   const pendingCount = globalindex.categoryeditindex.length;

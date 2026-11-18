@@ -47,7 +47,7 @@ export const PasswordInput = ({
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
 
-    type === "userinfo" && setuserinfo((prev) => ({ ...prev, [name]: value }));
+    if (type === "userinfo") setuserinfo((prev) => ({ ...prev, [name]: value }));
   };
 
   return (

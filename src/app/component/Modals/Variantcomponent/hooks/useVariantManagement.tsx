@@ -1,3 +1,5 @@
+import type { Variantcontainertype } from "../../types";
+import type { accessFromSectionType } from "../../VariantModal";
 import { useCallback, useState } from "react";
 import { useGlobalStore } from "@/src/context/GlobalContext";
 import { ApiRequest } from "@/src/context/CustomHook";
@@ -5,8 +7,8 @@ import { errorToast } from "../../../Loading";
 
 interface UseVariantManagementProps {
   setVariantSectionId: (id: number | undefined) => void;
-  setNew: (value: any) => void;
-  setaccessFromSection: (value: any) => void;
+  setNew: (value: Variantcontainertype) => void;
+  setaccessFromSection: (value: accessFromSectionType) => void;
   setSuccessMessage: (message: string) => void;
 }
 
@@ -88,7 +90,7 @@ export const useVariantManagement = ({
 
         setSuccessMessage("Variant deleted successfully");
         setTimeout(() => setSuccessMessage(""), 3000);
-      } catch (error) {
+      } catch {
         errorToast("An error occurred while deleting variant");
       } finally {
         setLoading(false);

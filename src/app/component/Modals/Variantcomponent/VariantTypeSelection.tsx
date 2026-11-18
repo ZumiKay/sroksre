@@ -1,4 +1,5 @@
 "use client";
+import type { Variantcontainertype } from "../types";
 import React from "react";
 import { Button } from "@heroui/react";
 import { Selection } from "../../Button";
@@ -14,7 +15,7 @@ interface VariantTypeSelectionProps {
   templateManager: UseTemplateManagerReturn;
   open: ModalOpenState;
   setOpen: React.Dispatch<React.SetStateAction<ModalOpenState>>;
-  setNew: React.Dispatch<React.SetStateAction<any>>;
+  setNew: React.Dispatch<React.SetStateAction<Variantcontainertype>>;
   onSelectTemplate: (id: number) => void;
   setSuccessMessage?: React.Dispatch<React.SetStateAction<string>>;
 }
@@ -83,7 +84,7 @@ export const VariantTypeSelection: React.FC<VariantTypeSelectionProps> = ({
             <NormalSkeleton width="100%" height="50px" count={3} />
           ) : (
             <TemplateContainer
-              data={templateManager.templates.map((item: any) => ({
+              data={templateManager.templates.map((item) => ({
                 id: item.id,
                 val: item.variant?.option_title ?? "",
                 type: item.variant?.option_type ?? "",

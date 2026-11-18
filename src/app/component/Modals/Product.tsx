@@ -8,10 +8,10 @@ import {
 } from "@/src/context/GlobalContext";
 import React, {
   ChangeEvent,
-  useCallback,
   useEffect,
   useRef,
   useState,
+  useEffectEvent,
 } from "react";
 import { ContainerLoading, errorToast, successToast } from "../Loading";
 import PrimaryButton from "../Button";
@@ -72,7 +72,7 @@ export function CreateProducts({
     undefined,
   );
 
-  const fetchcate = useCallback(
+  const fetchcate = useEffectEvent(
     async (products?: ProductState) => {
       setCategoriesLoading(true);
       const asyncfunc = async () => {
@@ -97,7 +97,6 @@ export function CreateProducts({
       };
       await Delayloading(asyncfunc, setloading, 1000);
     },
-    [ApiRequest],
   );
 
   /**Initialize Process */
@@ -132,9 +131,10 @@ export function CreateProducts({
 
       setloading(false);
 
-      request.data.stocktype && setstocktype(request.data.stocktype);
+      if (request.data.stocktype) setstocktype(request.data.stocktype);
     };
     if (globalindex.producteditindex && globalindex.producteditindex !== -1) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- starts a request; the loading flag is set as it begins
       setloading(true);
     }
     CreateProductsInitailize([
@@ -145,13 +145,12 @@ export function CreateProducts({
     ]);
 
     console.log("Create product useEffect Run");
-  }, [globalindex.producteditindex, fetchcate]);
+  }, [globalindex.producteditindex, setproduct]);
 
   useEffect(() => {
-    detailref.current &&
-      detailref.current.scrollIntoView({
-        behavior: "smooth",
-      });
+    detailref.current?.scrollIntoView({
+      behavior: "smooth",
+    });
   }, [openmodal.productdetail]);
 
   // When the virtual keyboard opens it shrinks the visual viewport.

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import PaginationCustom from "@/src/app/component/Pagination_Component";
 import { errorToast } from "@/src/app/component/Loading";
@@ -20,11 +20,14 @@ export const PaginationSSR = ({ total, pages, limit }: PaginationSSRProps) => {
   const searchParams = useSearchParams();
   const { handleCheckSession } = useCheckSession();
 
-  useEffect(() => {
+  // The server sent a new page: follow it and stop the spinner
+  const [synced, setSynced] = useState({ pages, limit });
+  if (synced.pages !== pages || synced.limit !== limit) {
+    setSynced({ pages, limit });
     setpage(pages ?? 1);
     setshow(limit ?? "1");
     setIsLoading(false);
-  }, [pages, limit]);
+  }
 
   const handleSelectPage = async (value: number | string) => {
     setIsLoading(true);

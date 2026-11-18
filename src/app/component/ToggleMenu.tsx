@@ -6,6 +6,7 @@ import {
   useCallback,
   useEffect,
   useState,
+  useEffectEvent,
 } from "react";
 import "../globals.css";
 import { useGlobalStore } from "@/src/context/GlobalContext";
@@ -237,8 +238,12 @@ export const AddSubCategoryMenu = React.memo(function AddSubCategoryMenu({
   const [name, setname] = useState("");
   const [editIdx, setedit] = useState(-1);
 
+  // On open, load the category being edited
+  const loadCategory = useEffectEvent(() => {
+    if (index !== -1 && allData?.category) setcategory(allData.category[index]);
+  });
   useEffect(() => {
-    index !== -1 && allData?.category && setcategory(allData.category[index]);
+    loadCategory();
   }, []);
 
   const handleAdd = (e: SubmitEvent) => {
@@ -271,7 +276,7 @@ export const AddSubCategoryMenu = React.memo(function AddSubCategoryMenu({
     const subcate = [...category.subcategories];
     subcate.splice(idx, 1);
     setcategory((prev) => ({ ...prev, subcategories: subcate }));
-  }, []);
+  }, [category.subcategories, setcategory]);
   return (
     <div className="AddSubCategory_menu w-full h-fit p-6 flex flex-col justify-center gap-y-6 transition rounded-2xl bg-linear-to-br from-white to-indigo-50 border-2 border-indigo-200 shadow-lg">
       <div className="flex items-center gap-3 pb-2 border-b-2 border-indigo-200">
@@ -480,7 +485,7 @@ export const ToggleSelect = React.memo(function ToggleSelect({
           ) && (
             <Button
               onPress={() => {
-                onClear && onClear(data, selected, promo, type);
+                onClear?.(data, selected, promo, type);
               }}
               size="sm"
               variant="bordered"
@@ -515,7 +520,7 @@ export const ToggleSelect = React.memo(function ToggleSelect({
                     : "bg-white border-gray-300 hover:border-indigo-400"
                 }`}
                 onClick={() => {
-                  clickfunction && clickfunction(idx, type);
+                  clickfunction?.(idx, type);
                 }}
               >
                 {" "}
@@ -580,7 +585,12 @@ export const SearchAndMultiSelect = React.memo(function SearchAndMultiSelect() {
 
   const [selected, setselected] = useState<SelectType[] | undefined>(undefined);
 
-  useEffect(() => {
+  // Show the product's related items whenever that list changes
+  const [syncedRelated, setSyncedRelated] = useState<
+    typeof product.relatedproduct | null
+  >(null);
+  if (syncedRelated !== product.relatedproduct) {
+    setSyncedRelated(product.relatedproduct);
     if (product.relatedproduct) {
       const selectedrelated = product.relatedproduct.map((i) => ({
         label: i.name,
@@ -588,7 +598,7 @@ export const SearchAndMultiSelect = React.memo(function SearchAndMultiSelect() {
       }));
       setselected(selectedrelated.length === 0 ? undefined : selectedrelated);
     }
-  }, [product.relatedproduct]);
+  }
 
   const handleSelectChange = (val: SelectType[] | null) => {
     const selected = val ?? [];
@@ -608,7 +618,7 @@ export const SearchAndMultiSelect = React.memo(function SearchAndMultiSelect() {
         getOptions(
           value,
           selected?.map((i) => i.value as string),
-        ) as any
+        )
       }
       onChange={(val) => handleSelectChange(val as SelectType[] | null)}
       isMulti

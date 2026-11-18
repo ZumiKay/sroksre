@@ -85,12 +85,14 @@ export const CategorySection = ({
   }, []);
 
   // Sync local state when parent passes updated category IDs (e.g. edit mode)
-  useEffect(() => {
+  const [syncedIds, setSyncedIds] = useState({ parentId, childId });
+  if (syncedIds.parentId !== parentId || syncedIds.childId !== childId) {
+    setSyncedIds({ parentId, childId });
     setcategoriesState({
       parent_id: parentId ? parentId.toString() : "",
       child_id: childId ? childId.toString() : "",
     });
-  }, [parentId, childId]);
+  }
 
   if (categoriesLoading) return <CategorySkeleton />;
 

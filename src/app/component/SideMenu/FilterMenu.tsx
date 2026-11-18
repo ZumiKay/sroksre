@@ -145,7 +145,7 @@ export const FilterMenu = ({
       return;
     }
 
-    type === "product" && fetchcate();
+    if (type === "product") fetchcate();
   });
 
   const fetchPromo = useCallback(async (promoids: string) => {
@@ -161,17 +161,22 @@ export const FilterMenu = ({
 
   useEffect(() => {
     if (param?.promoids) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- starts a request; state is set when it answers
       fetchPromo(param.promoids);
     }
   }, [param?.promoids, fetchPromo]);
 
   const fetchSubcategory = useCallback(async (parentId: string) => {
     const data = await fetchsubcate(parentId);
-    setcategory((prev) => ({ ...prev, childcate: data.data }) as any);
+    setcategory((prev) => ({
+      parentcates: prev?.parentcates ?? [],
+      childcate: data.data,
+    }));
   }, []);
 
   useEffect(() => {
     if (filtervalue.parentcate) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- starts a request; state is set when it answers
       fetchSubcategory(filtervalue.parentcate.toString());
     }
   }, [filtervalue.parentcate, fetchSubcategory]);
@@ -216,13 +221,13 @@ export const FilterMenu = ({
 
     params.set("p", "1");
 
-    setfilterdata && setfilterdata(applied as InventoryParamType);
+    setfilterdata?.(applied as InventoryParamType);
 
     router.push(`?${params}`);
 
-    setisFilter && setisFilter(true);
+    setisFilter?.(true);
 
-    reloadData && reloadData();
+    reloadData?.();
 
     setopenmodal((prev) => ({ ...prev, filteroption: false }));
   }, [
@@ -250,7 +255,7 @@ export const FilterMenu = ({
 
   const handleClear = useCallback(() => {
     const params = new URLSearchParams(searchParams);
-    Object.entries(filtervalue).map(([key, _]) => {
+    Object.entries(filtervalue).map(([key]) => {
       if (key !== "p") {
         params.delete(key);
       }
@@ -262,11 +267,12 @@ export const FilterMenu = ({
 
     params.set("p", "1");
 
-    setfilterdata && setfilterdata({});
+    setfilterdata?.({});
 
     router.push(`?${params}`);
 
-    reloadData ? reloadData() : router.refresh();
+    if (reloadData) reloadData();
+    else router.refresh();
 
     setopenmodal((prev) => ({ ...prev, filteroption: false }));
   }, [
@@ -287,11 +293,11 @@ export const FilterMenu = ({
     setfilter((prev) => ({ ...prev, search: e.target.value }));
   }, []);
 
-  const handleDateChange = useCallback((e: any) => {
+  const handleDateChange = useCallback((e: unknown) => {
     if (e) {
       setfilter((prev) => ({
         ...prev,
-        expiredate: dayjs(e).toISOString(),
+        expiredate: dayjs(e as dayjs.ConfigType).toISOString(),
       }));
     }
   }, []);
@@ -347,8 +353,8 @@ export const FilterMenu = ({
             ? "users"
             : "items";
 
-  const Footer = useMemo(() => {
-    const FilterFooter = () => (
+  const renderFooter = useCallback(
+    () => (
       <div className="w-full flex flex-row items-center justify-between gap-3">
         <button
           type="button"
@@ -377,10 +383,9 @@ export const FilterMenu = ({
           </button>
         )}
       </div>
-    );
-    FilterFooter.displayName = "FilterFooter";
-    return FilterFooter;
-  }, [type, totalproduct, handleFilter, handleClear, setopenmodal]);
+    ),
+    [type, totalproduct, handleFilter, handleClear, setopenmodal],
+  );
 
   const isPickingPromotionProducts =
     type === "product" && promotion.selectproduct;
@@ -397,7 +402,7 @@ export const FilterMenu = ({
       placement="top"
       scroll="inside"
       closebtn
-      footer={Footer}
+      footer={renderFooter}
     >
       <div
         className="filtermenu w-full flex flex-col gap-y-5 py-2 transition-opacity"

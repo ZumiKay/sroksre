@@ -62,14 +62,17 @@ export default async function PrivacyandPolicy({
   let policy: Addpolicytype | Addquestiontype[] | null = null;
 
   if (pageId || pageId === 0) {
-    policy = (await getPolicyById(pageId)) as any;
+    policy = (await getPolicyById(pageId)) as
+      | Addpolicytype
+      | Addquestiontype[]
+      | null;
 
     if (!policy) {
       return notFound();
     }
   }
 
-  const ShowTitle = () => {
+  const renderTitle = () => {
     const title =
       pageId === 0
         ? "FAQs"
@@ -139,7 +142,7 @@ export default async function PrivacyandPolicy({
         ) : (
           <div className="w-full flex flex-col gap-y-8">
             <div className="w-full flex flex-col gap-y-4">
-              <ShowTitle />
+              {renderTitle()}
               {pageId !== 0 && user && user.role === "ADMIN" && (
                 <div className="w-full overflow-x-auto">
                   <div className="w-fit min-w-[280px] flex flex-row gap-3 items-center px-4 py-2.5 bg-white rounded-xl border border-gray-200 shadow-sm">

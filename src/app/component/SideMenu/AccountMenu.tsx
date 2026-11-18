@@ -5,6 +5,7 @@ import React, {
   useEffect,
   useMemo,
   useState,
+  useEffectEvent,
 } from "react";
 import { signOut, useSession } from "next-auth/react";
 import { usePathname, useRouter } from "next/navigation";
@@ -111,25 +112,30 @@ export default function AccountMenu({ setProfile }: AccountMenuProps) {
     } finally {
       setloading(false);
     }
-  }, []);
+  }, [handleCheckSession]);
 
-  useEffect(() => {
+  // Only the login status re-runs this; the latest session is read when it does
+  const verifyOnOpen = useEffectEvent(() => {
     if (memorizedStatus === "authenticated" && session) {
       verifyUserSession();
     }
+  });
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- starts a request; the loading flag is set as it begins
+    verifyOnOpen();
 
     document.body.style.overflowY = "hidden";
     return () => {
       document.body.style.overflowY = "auto";
     };
-  }, [memorizedStatus, verifyUserSession]);
+  }, [memorizedStatus]);
 
   const handleSignOut = useCallback(async () => {
     setloading(true);
     await signOut();
     router.replace("/account");
     setloading(false);
-  }, []);
+  }, [router]);
 
   const handleEdit = useCallback(async () => {
     if (!isEdit) {
@@ -221,7 +227,7 @@ export default function AccountMenu({ setProfile }: AccountMenuProps) {
     (link: string) => {
       router.push(link);
       router.refresh();
-      isMobile && setProfile(false);
+      if (isMobile) setProfile(false);
     },
     [router, isMobile, setProfile],
   );

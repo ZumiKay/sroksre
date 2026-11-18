@@ -189,10 +189,17 @@ interface AddTemplateModalProps {
   setSuccessMessage?: React.Dispatch<React.SetStateAction<string>>;
 }
 
-const VariantInitialize = {
+type TemplateKind = "COLOR" | "TEXT" | "";
+type TemplateVariant = Pick<
+  Varianttype,
+  "id" | "option_title" | "option_value" | "option_type"
+>;
+
+const VariantInitialize: TemplateVariant = {
   id: 0,
   option_title: "",
-  option_type: "" as any,
+  // No type is picked yet; it is set from the template type on save.
+  option_type: "" as unknown as TemplateVariant["option_type"],
   option_value: [],
 };
 export const AddTemplateModal = ({
@@ -204,17 +211,17 @@ export const AddTemplateModal = ({
   const [option, setoption] = useState("");
   const [loading, setloading] = useState(false);
   const [step, setstep] = useState("");
-  const [templatetype, settemplatetype] = useState<"COLOR" | "TEXT" | "">(
-    data ? (data.variant?.option_type as any) : "",
+  const [templatetype, settemplatetype] = useState<TemplateKind>(
+    data ? ((data.variant?.option_type ?? "") as TemplateKind) : "",
   );
   const [open, setopen] = useState(false);
   const [opencolor, setopencolor] = useState(false);
   const [color, setcolor] = useState<colortype>(colorinitalize);
   const [colorname, setcolorname] = useState("");
   const [edit, setedit] = useState(-1);
-  const [variant, setvariant] = useState<
-    Pick<Varianttype, "id" | "option_title" | "option_value" | "option_type">
-  >(data ? (data.variant as any) : VariantInitialize);
+  const [variant, setvariant] = useState<TemplateVariant>(
+    data?.variant ?? VariantInitialize,
+  );
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -223,7 +230,7 @@ export const AddTemplateModal = ({
 
   const handleChangeType = (val: string) => {
     setvariant((prev) => ({ ...prev, option_value: [] }));
-    settemplatetype(val as any);
+    settemplatetype(val as TemplateKind);
   };
 
   const handleAddOption = () => {
@@ -285,13 +292,16 @@ export const AddTemplateModal = ({
           setSuccessMessage(`${variant.option_title} updated`);
           setTimeout(() => setSuccessMessage(""), 3000);
         }
-        refresh && refresh();
+        refresh?.();
         close();
         return;
       }
       const res = CreateVariantTemplate.bind(null, {
         name: variant.option_title,
-        variant: { ...variant, option_type: templatetype as any },
+        variant: {
+          ...variant,
+          option_type: templatetype as TemplateVariant["option_type"],
+        },
       });
 
       const create = await res();
@@ -309,7 +319,7 @@ export const AddTemplateModal = ({
       setstep("");
       setopen(false);
       setedit(-1);
-      refresh && refresh();
+      refresh?.();
     }
   };
 
@@ -345,7 +355,9 @@ export const AddTemplateModal = ({
               placeholder=""
               label="Type"
               value={templatetype}
-              setvalue={settemplatetype as any}
+              setvalue={
+                settemplatetype as React.Dispatch<React.SetStateAction<string>>
+              }
               onChange={(val) => handleChangeType(val as string)}
             />
           </>
@@ -360,11 +372,11 @@ export const AddTemplateModal = ({
                 </div>
               ) : (
                 <TemplateContainer
-                  data={variant.option_value.map((i: any, idx) => ({
+                  data={variant.option_value.map((i, idx) => ({
                     id: idx,
                     type: templatetype,
-                    val: templatetype === "TEXT" ? i : i.val,
-                    name: i?.name,
+                    val: typeof i === "string" ? i : i.val,
+                    name: typeof i === "string" ? undefined : i.name,
                   }))}
                   color={templatetype === "COLOR"}
                   onItemsDelete={handleDeleteOption}
@@ -463,10 +475,10 @@ export const AddTemplateModal = ({
                       <SketchPicker
                         width="15vw"
                         color={color.hex}
-                        onChange={(value, _) => {
+                        onChange={(value) => {
                           setcolor({
                             hex: value.hex,
-                            rgb: value.rgb as any,
+                            rgb: value.rgb,
                           });
                         }}
                       />{" "}

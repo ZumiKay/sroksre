@@ -247,7 +247,7 @@ const ShowSimilarProduct = async ({
 
   if (data.success) {
     relatedproduct = data.data;
-    data.maxprod && (isLimit = data.maxprod);
+    if (data.maxprod) isLimit = data.maxprod;
   }
 
   return (

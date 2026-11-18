@@ -6,10 +6,11 @@ import {
   useGlobalStore,
 } from "@/src/context/GlobalContext";
 import { useRouter, useSearchParams } from "next/navigation";
-import React, { ChangeEvent, SubmitEvent, useEffect, useState } from "react";
+import React, { ChangeEvent, SubmitEvent, useEffect, useState, useEffectEvent } from "react";
 import { BlurLoading, errorToast, infoToast, successToast } from "../Loading";
 import { SecondaryModal } from "../Modals";
 import dayjs from "dayjs";
+import type { ProductState } from "@/src/types/product.type";
 import { parseAbsoluteToLocal } from "@internationalized/date";
 import { ImageUpload } from "./Image";
 import { DatePicker, NumberInput, Switch } from "@heroui/react";
@@ -75,12 +76,17 @@ export const CreatePromotionModal = ({
       errorToast("Error Connection");
     }
   };
-  useEffect(() => {
+  // On open: load the promotion being edited, or mark this one as new
+  const initPromotion = useEffectEvent(() => {
     if (globalindex.promotioneditindex !== -1) {
       fetchdata(globalindex.promotioneditindex);
     } else {
       setpromotion((prev) => ({ ...prev, id: -1 }));
     }
+  });
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- starts a request; the loading flag is set as it begins
+    initPromotion();
   }, []);
 
   const handleSubmit = async (e: SubmitEvent<HTMLFormElement>) => {
@@ -131,7 +137,9 @@ export const CreatePromotionModal = ({
     setopenmodal((prev) => ({ ...prev, createPromotion: false }));
     setreloaddata(true);
   };
-  const handleChange = (e: ChangeEvent<any>) => {
+  const handleChange = (
+    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
+  ) => {
     setpromotion((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
   const handleCancel = async () => {
@@ -433,24 +441,20 @@ export const DiscountModals = () => {
   const setglobalindex = useGlobalStore((s) => s.setglobalindex);
   const openmodal = useGlobalStore((s) => s.openmodal);
   const setopenmodal = useGlobalStore((s) => s.setopenmodal);
-  const [discount, setdiscount] = useState<number>(0);
+  // Editing one product starts from its current percent
+  const [discount, setdiscount] = useState<number>(() => {
+    if (globalindex.promotionproductedit === -1) return 0;
+    const editing = promotion.Products.find(
+      (i) => i.id === globalindex.promotionproductedit,
+    );
+    return editing?.discount?.percent ?? 0;
+  });
 
   // Forget which card opened the modal, so the next open starts clean
   const closeModal = () => {
     setopenmodal((prev) => ({ ...prev, discount: false }));
     setglobalindex((prev) => ({ ...prev, promotionproductedit: -1 }));
   };
-
-  useEffect(() => {
-    if (globalindex.promotionproductedit !== -1) {
-      const idx = promotion.Products.findIndex(
-        (i) => i.id === globalindex.promotionproductedit,
-      );
-      const promo = promotion.Products[idx].discount;
-      const percent = promo?.percent;
-      setdiscount(percent ?? 0);
-    }
-  }, []);
 
   const handleDiscount = (e: SubmitEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -491,7 +495,7 @@ export const DiscountModals = () => {
               percent: percent as number,
               newprice: newprice as string,
             },
-          } as any,
+          } as unknown as ProductState["discount"],
         };
       }
 

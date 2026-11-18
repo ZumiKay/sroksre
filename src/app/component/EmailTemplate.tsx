@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element -- email HTML is rendered to a string; mail clients need plain <img> */
 import {
   Orderpricetype,
   OrderSelectedVariantType,
@@ -31,7 +32,7 @@ const AllOrderStatusColor: { [key: string]: string } = {
 
 export function formatDate(date: Date) {
   // Ensure date is valid
-  if (!(date instanceof Date && !isNaN(date as any))) {
+  if (!(date instanceof Date && !isNaN(date.getTime()))) {
     throw new Error("Invalid Date object");
   }
 

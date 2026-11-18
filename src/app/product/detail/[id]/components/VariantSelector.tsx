@@ -3,7 +3,11 @@
 import React, { useMemo, useCallback } from "react";
 import { SelectContainer } from "@/src/app/component/Button";
 import { useGlobalStore } from "@/src/context/GlobalContext";
-import { ProductState, VariantValueObjType } from "@/src/types/product.type";
+import {
+  ProductState,
+  Varianttype,
+  VariantValueObjType,
+} from "@/src/types/product.type";
 import {
   Productorderdetailtype,
   Productordertype,
@@ -108,7 +112,6 @@ export const VariantSelector = React.memo((props: VariantSelectorProps) => {
         id,
         idx,
         value,
-        selected,
       );
 
       // Check if any selection exists after update
@@ -174,21 +177,7 @@ export const VariantSelector = React.memo((props: VariantSelectorProps) => {
         }
       }, 0);
     },
-    [
-      prob,
-      productorderdetail,
-      selected,
-      id,
-      isOptionalVariant,
-      setincart,
-      setloading,
-      setmess,
-      setqty,
-      setproductorderdetail,
-      fetchAvailableQuantity,
-      checkInCart,
-      computeOptionQty,
-    ],
+    [prob, productorderdetail, id, isOptionalVariant, setincart, setloading, setmess, setqty, setproductorderdetail, fetchAvailableQuantity, checkInCart, computeOptionQty],
   );
 
   return (
@@ -223,7 +212,6 @@ function updateOrderDetail(
   variantId: number,
   idx: number,
   value: string,
-  currentSelected: string | undefined,
 ): Productordertype {
   const orderDetail = { ...productorderdetail } as Productordertype;
   const validDetails = orderDetail?.details?.filter((i) => i);
@@ -285,7 +273,7 @@ async function fetchAndUpdateQuantity(
   ) => Promise<{ success: boolean; incart: boolean }>,
   computeOptionQty: (
     selectedDetails: Productorderdetailtype[],
-    variants: any[],
+    variants: Varianttype[],
   ) => number,
 ): Promise<number> {
   setloading(true);
@@ -336,7 +324,7 @@ async function fetchAndUpdateQuantity(
         );
         // Optional variants do not gate product availability
         if (!variant || variant.optional) return false;
-        const opt = (variant.option_value as any[]).find((o: any) =>
+        const opt = variant.option_value.find((o) =>
           typeof o === "string" ? o === detail.value : o.val === detail.value,
         );
         return opt && typeof opt !== "string" && opt.qty !== undefined;

@@ -1,4 +1,5 @@
 import { ProductState } from "@/src/types/product.type";
+import type { Orderpricetype } from "@/src/types/order.type";
 import Card from "../../component/Card";
 import Link from "next/link";
 
@@ -78,9 +79,9 @@ export const ProductGrid = ({ products, categoryName }: ProductGridProps) => {
           id={product.id}
           name={product.name}
           price={product.price.toString()}
-          img={product.covers as any}
+          img={product.covers}
           index={idx}
-          discount={product.discount as any}
+          discount={product.discount as Orderpricetype | undefined}
           stock={product.stock || undefined}
           isAdmin={false}
         />

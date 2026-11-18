@@ -128,7 +128,11 @@ export const toCardDiscount = (
   };
 };
 
-export const transformProductData = (item: any) => ({
+// One row of an inventory list response; the shape depends on the endpoint.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- product, banner and promotion rows share these transforms
+export type ApiItem = Record<string, any>;
+
+export const transformProductData = (item: ApiItem) => ({
   ...item,
   category: {
     parent_id: item.parentcategory_id,
@@ -138,13 +142,13 @@ export const transformProductData = (item: any) => ({
   childcategory_id: undefined,
 });
 
-export const transformBannerData = (item: any) => ({
+export const transformBannerData = (item: ApiItem) => ({
   ...item,
   createdAt: undefined,
   updatedAt: undefined,
 });
 
-export const transformPromotionData = (item: any) => ({
+export const transformPromotionData = (item: ApiItem) => ({
   ...item,
   products: item.Products,
   expiredAt: dayjs(item.expireAt),

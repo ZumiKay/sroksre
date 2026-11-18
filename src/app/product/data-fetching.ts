@@ -3,21 +3,30 @@ import { calculateDiscountProductPrice } from "@/src/lib/utilities";
 import { format } from "date-fns";
 import { categorytype } from "../api/categories/route";
 import { syncExpiredPromotions } from "@/src/lib/promotion";
+import type { Banner } from "@/prisma/generated/prisma/client";
+import type { Orderpricetype } from "@/src/types/order.type";
 
 export interface PromotionProduct {
   id: number;
   name: string;
   price: number;
-  discount: number | null;
+  // A plain percent from the database, or the worked-out discount.
+  discount: number | NonNullable<Orderpricetype["discount"]> | null;
   covers: { name: string; url: string }[];
   stock: number | null;
 }
+
+// A promotion's banner. Only id, name and image are always loaded.
+export type PromotionBanner = Pick<Banner, "id" | "name"> &
+  Partial<Omit<Banner, "id" | "name" | "image">> & {
+    image: { url: string; name: string };
+  };
 
 export interface Promotion {
   id: number;
   name: string;
   description?: string | null;
-  banner?: any | null;
+  banner?: PromotionBanner | null;
   Products: PromotionProduct[];
   expireAt?: string;
   createdAt?: Date;
@@ -83,7 +92,7 @@ export const fetchPromotion = async (
 
         return {
           ...prod,
-          discount: (discount.discount as any) ?? prod.discount,
+          discount: (discount.discount) ?? prod.discount,
         };
       }
       return prod;
@@ -91,7 +100,7 @@ export const fetchPromotion = async (
     banner: promotion.banner
       ? {
           ...promotion.banner,
-          image: promotion.banner.image as any,
+          image: promotion.banner.image as PromotionBanner["image"],
         }
       : null,
   };
@@ -140,7 +149,10 @@ export const getAllPromotions = async (): Promise<Promotion[]> => {
   return promotions.map((promotion) => ({
     ...promotion,
     banner: promotion.banner
-      ? { ...promotion.banner, image: promotion.banner.image as any }
+      ? {
+          ...promotion.banner,
+          image: promotion.banner.image as PromotionBanner["image"],
+        }
       : null,
     Products: promotion.Products.map((prod) => {
       if (prod.discount) {
@@ -151,7 +163,7 @@ export const getAllPromotions = async (): Promise<Promotion[]> => {
 
         return {
           ...prod,
-          discount: (discount.discount as any) ?? prod.discount,
+          discount: (discount.discount) ?? prod.discount,
           stock: null,
         };
       }
@@ -172,7 +184,16 @@ export const fetchCategoryData = async (
   ppid?: string,
 ) => {
   let subcate = undefined;
-  let cate: any = undefined;
+  let cate:
+    | {
+        id: number;
+        name: string;
+        type?: string | null;
+        description?: string | null;
+        sub?: { id: number; name: string } | null;
+      }
+    | null
+    | undefined = undefined;
 
   if (!pid && cid) {
     // Fetch subcategory only
@@ -268,7 +289,13 @@ export const fetchCategoryBanner = async (
   return { url: image.url, name: image.name ?? banner.name };
 };
 export const generateProductListSchema = async (
-  products: any[],
+  products: Array<{
+    name: string;
+    price: number;
+    discount?: number | Orderpricetype | null;
+    stock?: number | null;
+    covers?: Array<{ url: string }>;
+  }>,
   categoryName?: string,
 ) => {
   if (!products || products.length === 0) return null;
@@ -282,9 +309,10 @@ export const generateProductListSchema = async (
       image: product.covers?.[0]?.url || "",
       offers: {
         "@type": "Offer",
-        price: product.discount
-          ? product.price - (product.price * product.discount) / 100
-          : product.price,
+        price:
+          typeof product.discount === "number"
+            ? product.price - (product.price * product.discount) / 100
+            : (product.discount?.discount?.newprice ?? product.price),
         priceCurrency: "USD",
         availability: product.stock
           ? "https://schema.org/InStock"
@@ -389,7 +417,10 @@ export const fetchCategoryMetadata = async (
       keywords.push(promotion.name.toLowerCase(), "promotion", "sale", "deals");
 
       // Get image from banner or first product
-      const bannerImage = promotion.banner?.image as any;
+      const bannerImage = promotion.banner?.image as
+        | { url?: string }
+        | null
+        | undefined;
       if (bannerImage?.url) {
         imageUrl = bannerImage.url;
       } else if (promotion.Products[0]?.covers[0]?.url) {

@@ -237,22 +237,22 @@ const generateProductDetails = (): ProductInfo[] => {
     {
       info_title: "Brand",
       info_value: [brands[Math.floor(Math.random() * brands.length)]],
-      info_type: "text" as any,
+      info_type: "text" as unknown as ProductInfo["info_type"],
     },
     {
       info_title: "Material",
       info_value: [materials[Math.floor(Math.random() * materials.length)]],
-      info_type: "text" as any,
+      info_type: "text" as unknown as ProductInfo["info_type"],
     },
     {
       info_title: "Color",
       info_value: [colors[Math.floor(Math.random() * colors.length)]],
-      info_type: "text" as any,
+      info_type: "text" as unknown as ProductInfo["info_type"],
     },
     {
       info_title: "Warranty",
       info_value: ["1 Year"],
-      info_type: "text" as any,
+      info_type: "text" as unknown as ProductInfo["info_type"],
     },
   ];
 };

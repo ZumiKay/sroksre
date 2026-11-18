@@ -29,12 +29,12 @@ if (typeof global.Request === "undefined") {
     global.FormData = FormData;
     global.File = File;
     global.Blob = Blob;
-  } catch (error) {
+  } catch {
     // Fallback to minimal mocks if undici is not available
-    global.Request = class Request {} as any;
-    global.Response = class Response {} as any;
-    global.Headers = class Headers {} as any;
-    global.fetch = jest.fn() as any;
-    global.FormData = class FormData {} as any;
+    global.Request = class Request {} as unknown as typeof global.Request;
+    global.Response = class Response {} as unknown as typeof global.Response;
+    global.Headers = class Headers {} as unknown as typeof global.Headers;
+    global.fetch = jest.fn() as unknown as typeof global.fetch;
+    global.FormData = class FormData {} as unknown as typeof global.FormData;
   }
 }

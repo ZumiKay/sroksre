@@ -9,7 +9,7 @@ import { UserSessionStatusEnum } from "@/src/types/user.type";
 
 const mockUpdate = jest.fn();
 
-const setupSession = (overrides: { status?: string; data?: any } = {}) => {
+const setupSession = (overrides: { status?: string; data?: unknown } = {}) => {
   (useSession as jest.Mock).mockReturnValue({
     status: overrides.status ?? UserSessionStatusEnum.unauthenticated,
     data: overrides.data ?? null,

@@ -1,7 +1,7 @@
 import { ApiRequest, Delayloading, useScreenSize } from "@/src/context/CustomHook";
 import { useGlobalStore } from "@/src/context/GlobalContext";
 import { productcoverstype } from "@/src/types/product.type";
-import { ChangeEvent, useRef, useState, useCallback, useEffect } from "react";
+import { ChangeEvent, useRef, useState, useCallback } from "react";
 import { ContainerLoading, errorToast, infoToast, successToast } from "../Loading";
 import { InputFileUpload } from "../Button";
 import CropImage from "../Cropimage";
@@ -104,9 +104,19 @@ export const ImageUpload = (props: imageuploadprops) => {
   const openmodal = useGlobalStore((s) => s.openmodal);
   const setopenmodal = useGlobalStore((s) => s.setopenmodal);
   const globalindex = useGlobalStore((s) => s.globalindex);
-  const [Imgurl, seturl] = useState<Imgurl[]>([]);
+  // Start from the images already saved on the product or banner
+  const [Imgurl, seturl] = useState<Imgurl[]>(() =>
+    product.covers.length > 0
+      ? product.covers.map((i) => ({ ...i, isSave: true }))
+      : banner.image?.url.length > 0
+        ? [banner.image]
+        : [],
+  );
   const [Imgurltemp, seturltemp] = useState<Imgurl[]>([]);
-  const [Files, setfiles] = useState<File[]>([]);
+  // One empty slot per saved image, so file and image indexes line up
+  const [Files, setfiles] = useState<File[]>(() =>
+    Array(Imgurl.length).fill(null),
+  );
   const [Tempfiles, settempfiles] = useState<File[]>([]);
   const [crop, setcrop] = useState(false);
   const [selectedImg, setselected] = useState(-1);
@@ -120,29 +130,6 @@ export const ImageUpload = (props: imageuploadprops) => {
   const [imageDimensions, setImageDimensions] = useState<{
     [key: number]: { width: number; height: number; ratio: number };
   }>({});
-
-  //Initialize
-  useEffect(() => {
-    //Initialize Img URL
-    const updatedImages =
-      product.covers.length > 0
-        ? product.covers.map((i) => ({ ...i, isSave: true }))
-        : banner.image?.url.length > 0
-          ? [banner.image]
-          : [];
-
-    seturl([...updatedImages]);
-    //Initailize File
-    setfiles((prevFiles) => {
-      const newLength = updatedImages.length;
-
-      const newFiles = Array(newLength).fill(null);
-
-      newFiles.splice(0, prevFiles.length, ...prevFiles);
-
-      return newFiles;
-    });
-  }, []);
 
   //Change Event
   const handleFile = useCallback(async (e: ChangeEvent<HTMLInputElement>) => {
@@ -209,7 +196,7 @@ export const ImageUpload = (props: imageuploadprops) => {
       setfiles((prev) => [...prev, ...filteredFile]);
       setisEdit(true);
     }
-  }, []);
+  }, [Imgurl, Imgurltemp, props.limit, props.type]);
 
   //Delete Image
   const handleDelete = useCallback(
@@ -252,7 +239,7 @@ export const ImageUpload = (props: imageuploadprops) => {
     if (!update.success) {
       return null;
     }
-    props.setreloaddata && props.setreloaddata(true);
+    props.setreloaddata?.(true);
     return true;
   };
 
@@ -268,7 +255,7 @@ export const ImageUpload = (props: imageuploadprops) => {
       }
 
       //Upload Multiple Files in Parallel with unique names
-      const uploadPromises = Files.map((file, index) => {
+      const uploadPromises = Files.map((file) => {
         const uniqueFileName = generateUniqueFileName(file.name);
         return uploadToVercel(file, uniqueFileName, (percentage) => {
           setUploadProgress((prev) => ({
@@ -371,7 +358,7 @@ export const ImageUpload = (props: imageuploadprops) => {
       errorToast("Failed To Save");
     } finally {
       setloading(false);
-      props.setreloaddata && props.setreloaddata(true);
+      props.setreloaddata?.(true);
     }
   };
   const handleCancel = () => {
@@ -416,17 +403,20 @@ export const ImageUpload = (props: imageuploadprops) => {
   };
 
   // Handle image load to get dimensions
-  const handleImageLoad = useCallback((index: number, event: any) => {
-    const img = event.target;
-    setImageDimensions((prev) => ({
-      ...prev,
-      [index]: {
-        width: img.naturalWidth,
-        height: img.naturalHeight,
-        ratio: img.naturalWidth / img.naturalHeight,
-      },
-    }));
-  }, []);
+  const handleImageLoad = useCallback(
+    (index: number, event: React.SyntheticEvent<HTMLImageElement>) => {
+      const img = event.currentTarget;
+      setImageDimensions((prev) => ({
+        ...prev,
+        [index]: {
+          width: img.naturalWidth,
+          height: img.naturalHeight,
+          ratio: img.naturalWidth / img.naturalHeight,
+        },
+      }));
+    },
+    [],
+  );
   return (
     <SecondaryModal
       onPageChange={() => handleCancel()}

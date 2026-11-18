@@ -96,14 +96,14 @@ mockPrisma.products = { updateMany: jest.fn() };
 mockPrisma.stockvalue = { updateMany: jest.fn() };
 mockPrisma.$transaction = jest.fn();
 
-const makeUser = (overrides: Record<string, any> = {}) => ({
+const makeUser = (overrides: Record<string, unknown> = {}) => ({
   userId: 1,
   user: { buyer_id: "buyer-001" },
   ...overrides,
 });
 
 /** A single cart item with no variants and no discount */
-const makeCartItem = (id: number, overrides: Record<string, any> = {}) => ({
+const makeCartItem = (id: number, overrides: Record<string, unknown> = {}) => ({
   id,
   orderId: null,
   quantity: 1,
@@ -146,7 +146,7 @@ describe("createOrder", () => {
       mockGetUser.mockResolvedValue(null);
 
       const result = await createOrder({
-        price: {} as any,
+        price: {} as never,
         incartProduct: [1],
       });
 
@@ -158,7 +158,7 @@ describe("createOrder", () => {
       mockGetUser.mockResolvedValue({ userId: 1, user: {} });
 
       const result = await createOrder({
-        price: {} as any,
+        price: {} as never,
         incartProduct: [1],
       });
 
@@ -169,7 +169,7 @@ describe("createOrder", () => {
   describe("cart validation", () => {
     it("returns No valid cart items when incartProduct is empty", async () => {
       const result = await createOrder({
-        price: {} as any,
+        price: {} as never,
         incartProduct: [],
       });
 
@@ -181,7 +181,7 @@ describe("createOrder", () => {
 
     it("filters out invalid IDs before validating", async () => {
       const result = await createOrder({
-        price: {} as any,
+        price: {} as never,
         incartProduct: [0, -1, -99],
       });
 
@@ -193,7 +193,7 @@ describe("createOrder", () => {
 
     it("filters out not int IDs", async () => {
       const result = await createOrder({
-        price: {} as any,
+        price: {} as never,
         incartProduct: [1.5, 2.9],
       });
 
@@ -207,7 +207,7 @@ describe("createOrder", () => {
       mockPrisma.orderproduct.findMany.mockResolvedValue([makeCartItem(1)]);
 
       const result = await createOrder({
-        price: {} as any,
+        price: {} as never,
         incartProduct: [1, 1, 1],
       });
 
@@ -219,7 +219,7 @@ describe("createOrder", () => {
       mockPrisma.orderproduct.findMany.mockResolvedValue([makeCartItem(1)]);
 
       const result = await createOrder({
-        price: {} as any,
+        price: {} as never,
         incartProduct: [1, 2],
       });
 
@@ -233,7 +233,7 @@ describe("createOrder", () => {
   describe("new order", () => {
     it("creates a new order and returns success with orderId and encrypt", async () => {
       const result = await createOrder({
-        price: {} as any,
+        price: {} as never,
         incartProduct: [1],
       });
 
@@ -266,7 +266,7 @@ describe("createOrder", () => {
       mockEncrypt.mockReturnValue("enc-999");
 
       const result = await createOrder({
-        price: {} as any,
+        price: {} as never,
         incartProduct: [1],
       });
 
@@ -279,7 +279,7 @@ describe("createOrder", () => {
     });
 
     it("links cart items to the new order", async () => {
-      await createOrder({ price: {} as any, incartProduct: [1] });
+      await createOrder({ price: {} as never, incartProduct: [1] });
 
       expect(mockPrisma.orderproduct.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -290,7 +290,7 @@ describe("createOrder", () => {
     });
 
     it("holds stock for newly linked cart items", async () => {
-      await createOrder({ price: {} as any, incartProduct: [1] });
+      await createOrder({ price: {} as never, incartProduct: [1] });
 
       // holdStockForItems → buildStockAdjustments → Prisma.$transaction
       expect(mockPrisma.$transaction).toHaveBeenCalledTimes(1);
@@ -317,7 +317,7 @@ describe("createOrder", () => {
 
     it("updates the existing order price instead of creating a new one", async () => {
       const result = await createOrder({
-        price: {} as any,
+        price: {} as never,
         incartProduct: [1],
       });
 
@@ -330,7 +330,7 @@ describe("createOrder", () => {
     });
 
     it("does NOT hold stock again for items already linked to the existing order", async () => {
-      await createOrder({ price: {} as any, incartProduct: [1] });
+      await createOrder({ price: {} as never, incartProduct: [1] });
 
       expect(mockPrisma.$transaction).not.toHaveBeenCalled();
     });
@@ -342,7 +342,7 @@ describe("createOrder", () => {
       ]);
       mockPrisma.orderproduct.updateMany.mockResolvedValue({ count: 1 });
 
-      await createOrder({ price: {} as any, incartProduct: [1, 2] });
+      await createOrder({ price: {} as never, incartProduct: [1, 2] });
 
       expect(mockPrisma.$transaction).toHaveBeenCalledTimes(1);
     });
@@ -366,7 +366,7 @@ describe("createOrder", () => {
       mockPrisma.orderproduct.updateMany.mockResolvedValue({ count: 0 });
 
       const result = await createOrder({
-        price: {} as any,
+        price: {} as never,
         incartProduct: [1],
       });
 
@@ -399,7 +399,7 @@ describe("createOrder", () => {
       // calculateDiscountProductPrice returns newprice: 80
       mockCalculateDiscount.mockReturnValue({ discount: { newprice: 80 } });
 
-      await createOrder({ price: {} as any, incartProduct: [1] });
+      await createOrder({ price: {} as never, incartProduct: [1] });
 
       expect(mockPrisma.orders.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -414,7 +414,7 @@ describe("createOrder", () => {
       const plainItem = makeCartItem(1, { quantity: 3 }); // price = 10
       mockPrisma.orderproduct.findMany.mockResolvedValue([plainItem]);
 
-      await createOrder({ price: {} as any, incartProduct: [1] });
+      await createOrder({ price: {} as never, incartProduct: [1] });
 
       expect(mockPrisma.orders.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -442,7 +442,7 @@ describe("createOrder", () => {
       });
       mockPrisma.orderproduct.findMany.mockResolvedValue([itemWithVariant]);
 
-      await createOrder({ price: {} as any, incartProduct: [1] });
+      await createOrder({ price: {} as never, incartProduct: [1] });
 
       expect(mockPrisma.orders.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -461,7 +461,7 @@ describe("createOrder", () => {
       mockPrisma.orders.create.mockRejectedValue(new Error("DB down"));
 
       const result = await createOrder({
-        price: {} as any,
+        price: {} as never,
         incartProduct: [1],
       });
 
@@ -474,7 +474,7 @@ describe("createOrder", () => {
       );
 
       const result = await createOrder({
-        price: {} as any,
+        price: {} as never,
         incartProduct: [1],
       });
 

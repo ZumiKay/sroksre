@@ -5,7 +5,6 @@ import {
   useCallback,
   useMemo,
   useState,
-  useEffect,
   memo,
 } from "react";
 import { CloseVector } from "../Asset";
@@ -34,7 +33,6 @@ const AddressItem = memo(
     onChange,
     onSave,
     onDelete,
-    isLoading,
   }: {
     address: shippingtype;
     index: number;
@@ -286,9 +284,12 @@ export const AddressModal = memo(
       useState<shippingtype[]>(addresses);
     const [openIndex, setOpenIndex] = useState<number>(-1);
 
-    useEffect(() => {
+    // Take the parent's list whenever it sends a new one
+    const [lastAddresses, setLastAddresses] = useState(addresses);
+    if (lastAddresses !== addresses) {
+      setLastAddresses(addresses);
       setLocalAddresses(addresses);
-    }, [addresses]);
+    }
 
     const handleToggle = useCallback((index: number) => {
       setOpenIndex((prev) => (prev === index ? -1 : index));
@@ -347,7 +348,7 @@ export const AddressModal = memo(
           if (!selectedAddress.isSaved) {
             updated[index] = {
               ...updated[index],
-              id: result.data.id,
+              id: (result.data as { id: number }).id,
               isSaved: true,
             };
           }

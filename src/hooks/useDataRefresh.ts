@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useRef } from "react";
 import { ApiRequest } from "../context/CustomHook";
 
-interface UseDataRefreshProps {
-  onRefresh: (data: any) => void;
+interface UseDataRefreshProps<T> {
+  onRefresh: (data: T) => void;
   enabled: boolean;
   endpoint: string;
   interval?: number; // Optional polling interval in ms
@@ -14,12 +14,12 @@ interface UseDataRefreshProps {
  * Hook for managing data refresh with deduplication
  * Prevents multiple simultaneous requests and provides polling option
  */
-export function useDataRefresh({
+export function useDataRefresh<T = unknown>({
   onRefresh,
   enabled,
   endpoint,
   interval,
-}: UseDataRefreshProps) {
+}: UseDataRefreshProps<T>) {
   const isRefreshingRef = useRef(false);
   const lastFetchRef = useRef(0);
   const MIN_FETCH_INTERVAL = 1000; // Minimum 1 second between requests
@@ -39,7 +39,7 @@ export function useDataRefresh({
     try {
       const request = await ApiRequest(endpoint, undefined, "GET");
       if (request.success) {
-        onRefresh(request.data);
+        onRefresh(request.data as T);
       }
     } finally {
       isRefreshingRef.current = false;

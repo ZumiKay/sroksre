@@ -2,7 +2,7 @@
 
 import { Stepindicatortype } from "@/src/context/Checkoutcontext";
 import { AnimationControls, motion, useAnimation } from "framer-motion";
-import { ReactNode, useEffect, useState } from "react";
+import { ReactNode, useEffect, useEffectEvent, useMemo } from "react";
 
 // -----------------------------------------------------------------------------
 // Internal SVG primitives
@@ -10,7 +10,6 @@ import { ReactNode, useEffect, useState } from "react";
 
 const LineSvg = ({
   control,
-  active,
 }: {
   control: AnimationControls;
   active: boolean;
@@ -70,7 +69,6 @@ export const Checkmarksvg = () => (
 
 const CircleSvg = ({
   step,
-  children,
   control,
   active,
   handleClick,
@@ -148,8 +146,9 @@ export const StepComponent = ({
     });
   };
 
+  const runAnimation = useEffectEvent(() => animate());
   useEffect(() => {
-    animate();
+    runAnimation();
   }, [isActive]);
 
   return (
@@ -185,11 +184,10 @@ const STEPS_INITIAL: Stepindicatortype[] = [
 ];
 
 export const StepIndicator = ({ step }: { step: number }) => {
-  const [stepdata, setStepdata] = useState<Stepindicatortype[]>(STEPS_INITIAL);
-
-  useEffect(() => {
-    setStepdata(STEPS_INITIAL.map((s) => ({ ...s, active: s.step === step })));
-  }, [step]);
+  const stepdata = useMemo<Stepindicatortype[]>(
+    () => STEPS_INITIAL.map((s) => ({ ...s, active: s.step === step })),
+    [step],
+  );
 
   return (
     <div className="w-full max-w-2xl mx-auto flex flex-row justify-between items-center gap-1 sm:gap-2 px-1 sm:px-4">

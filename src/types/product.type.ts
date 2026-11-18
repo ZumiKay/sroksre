@@ -50,7 +50,7 @@ export interface Varianttype {
   sectionId?: number;
   product_id?: number;
   variantSection?: VariantSectionType;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface SubStockType {

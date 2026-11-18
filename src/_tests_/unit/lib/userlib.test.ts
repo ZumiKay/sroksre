@@ -26,7 +26,7 @@ jest.mock("zod", () => {
       number: jest.fn(() => createZodChain()),
       boolean: jest.fn(() => createZodChain()),
       email: jest.fn(() => createZodChain()),
-      object: jest.fn((_schema) => ({
+      object: jest.fn(() => ({
         parse: jest.fn((data) => data),
         safeParse: jest.fn(),
       })),

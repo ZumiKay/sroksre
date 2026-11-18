@@ -36,6 +36,7 @@ export const CheckoutSessionTimer = ({
   const [isRenewing, setIsRenewing] = useState(false);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- first tick; the clock is only read in the browser so server and client HTML match
     setRemainingMs(getRemainingMs(timerBase));
 
     const intervalId = setInterval(() => {

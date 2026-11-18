@@ -14,7 +14,7 @@ export const SectionItem = memo(
     isDeleting,
   }: SectionItemProps) => {
     const variantCount =
-      product.Variant.filter((i: any) => i.sectionId === section.id)?.length ||
+      product.Variant?.filter((i) => i.sectionId === section.id)?.length ||
       0;
 
     return (

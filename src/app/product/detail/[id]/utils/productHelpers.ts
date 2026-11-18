@@ -136,10 +136,14 @@ export const separateVariantsBySections = (
 /**
  * Sort variants in section by required first, then optional
  */
-export const sortVariantsByRequired = (section: any) => {
+export const sortVariantsByRequired = <
+  T extends { Variants?: Array<{ optional?: boolean }> },
+>(
+  section: T,
+) => {
   return {
     ...section,
-    Variants: [...(section.Variants || [])].sort((a: any, b: any) => {
+    Variants: [...(section.Variants || [])].sort((a, b) => {
       // Required (not optional) comes before optional
       if (!a.optional && b.optional) return -1;
       if (a.optional && !b.optional) return 1;

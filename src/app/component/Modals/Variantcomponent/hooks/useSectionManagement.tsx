@@ -1,3 +1,4 @@
+import type { Variantcontainertype } from "../../types";
 import { useState, useCallback, useMemo } from "react";
 import { VariantSectionType } from "@/src/types/product.type";
 import { useGlobalStore } from "@/src/context/GlobalContext";
@@ -11,7 +12,7 @@ interface UseSectionManagementProps {
   setSuccessMessage: (message: string) => void;
   setSectionName: (name: string) => void;
   seteditSectonId: (id: number | undefined) => void;
-  setNew: (value: any) => void;
+  setNew: (value: Variantcontainertype) => void;
   settempVariantSectionId: (id: number) => void;
 }
 
@@ -99,19 +100,7 @@ export const useSectionManagement = ({
     settempVariantSectionId(tempVariantSectionId + 1);
     //Auto close success message
     setTimeout(() => setSuccessMessage(""), 3000);
-  }, [
-    currentVariants,
-    tempVariantSectionId,
-    sectionName,
-    product.id,
-    product.Variant,
-    product.Variantsection,
-    setproduct,
-    setSuccessMessage,
-    setSectionName,
-    settempVariantSectionId,
-    setNew,
-  ]);
+  }, [currentVariants, tempVariantSectionId, sectionName, product.id, setproduct, setSuccessMessage, setSectionName, settempVariantSectionId]);
 
   const handleUpdateVariantSection = useCallback(async () => {
     if (!editSectionId) {
@@ -255,7 +244,7 @@ export const useSectionManagement = ({
             : `${selectedSections?.size} sections deleted successfully`;
         setSuccessMessage(message);
         setTimeout(() => setSuccessMessage(""), 3000);
-      } catch (error) {
+      } catch {
         errorToast("An error occurred while deleting sections");
       } finally {
         setIsDeleting(false);

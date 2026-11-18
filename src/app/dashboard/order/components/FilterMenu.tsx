@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, useEffect, useState } from "react";
+import { ChangeEvent, useEffect, useState, useEffectEvent } from "react";
 import { SecondaryModal } from "@/src/app/component/Modals";
 import { useGlobalStore } from "@/src/context/GlobalContext";
 import { DateTimePicker, LocalizationProvider } from "@mui/x-date-pickers";
@@ -35,6 +35,17 @@ interface FilterMenuProps {
   open: boolean;
 }
 
+// URL params that mean the list is already filtered
+const FILTER_PARAMS = [
+  "q",
+  "orderdate",
+  "startprice",
+  "endprice",
+  "fromdate",
+  "todate",
+  "show",
+];
+
 export const FilterMenu = ({
   type,
   close,
@@ -45,30 +56,19 @@ export const FilterMenu = ({
   const [pickdate, setpickdate] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [filterdata, setfilterdata] = useState<Filterdatatype>({});
+  // Start from the filters already in the URL
+  const [filterdata, setfilterdata] = useState<Filterdatatype>(() =>
+    FILTER_PARAMS.some((key) => searchParams.has(key))
+      ? Object.fromEntries(searchParams.entries())
+      : {},
+  );
   const setopenmodal = useGlobalStore((s) => s.setopenmodal);
   const { isMobile } = useScreenSize();
   const { handleCheckSession } = useCheckSession();
 
+  const checkSession = useEffectEvent(() => handleCheckSession());
   useEffect(() => {
-    handleCheckSession();
-  }, []);
-
-  useEffect(() => {
-    const hasFilterParam =
-      searchParams.has("q") ||
-      searchParams.has("orderdate") ||
-      searchParams.has("startprice") ||
-      searchParams.has("endprice") ||
-      searchParams.has("fromdate") ||
-      searchParams.has("todate") ||
-      searchParams.has("show");
-
-    if (hasFilterParam) {
-      searchParams.forEach((val, key) => {
-        setfilterdata((prev) => ({ ...prev, [key]: val }));
-      });
-    }
+    checkSession();
   }, []);
 
   const handleFilter = () => {

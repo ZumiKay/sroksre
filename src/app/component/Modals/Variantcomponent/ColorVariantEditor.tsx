@@ -5,10 +5,11 @@ import { Badge } from "@heroui/react";
 import { ColorSelectModal } from "../VariantModalComponent";
 import { VariantValueObjType } from "@/src/types/product.type";
 import { ModalOpenState } from "../types";
+import { UseVariantManagerReturn } from "./hooks/useVariantManager";
 import { ColorSelectIcon } from "../../svg/icons";
 
 interface ColorVariantEditorProps {
-  variantManager: any;
+  variantManager: UseVariantManagerReturn;
   open: ModalOpenState;
   localGlobalPrice?: number;
   setOpen: React.Dispatch<React.SetStateAction<ModalOpenState>>;
@@ -36,34 +37,34 @@ export const ColorVariantEditor: React.FC<ColorVariantEditorProps> = ({
         qty={variantManager.colorData.qty}
         setcolor={(val) => {
           if (typeof val === "string") {
-            variantManager.setColorData((prev: any) => ({
+            variantManager.setColorData((prev) => ({
               ...prev,
               name: val,
             }));
           } else {
-            variantManager.setColorData((prev: any) => ({
+            variantManager.setColorData((prev) => ({
               ...prev,
               color: val,
             }));
           }
         }}
         setprice={(val) => {
-          variantManager.setColorData((prev: any) => ({
+          variantManager.setColorData((prev) => ({
             ...prev,
-            price: val,
+            price: typeof val === "function" ? val(prev.price) : val,
           }));
         }}
         setqty={(val) => {
-          variantManager.setColorData((prev: any) => ({
+          variantManager.setColorData((prev) => ({
             ...prev,
-            qty: val,
+            qty: typeof val === "function" ? val(prev.qty) : val,
           }));
         }}
       />
 
       <div className="listcolor flex flex-row flex-wrap gap-4 w-full">
-        {variantManager.temp?.value?.some((i: any) => i !== "") ? (
-          variantManager.temp?.value?.map((color: any, idx: number) => {
+        {variantManager.temp?.value?.some((i) => i !== "") ? (
+          variantManager.temp?.value?.map((color, idx) => {
             const val = color as VariantValueObjType;
             return (
               <motion.div

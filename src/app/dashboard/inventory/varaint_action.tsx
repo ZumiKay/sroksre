@@ -7,13 +7,7 @@ import {
   removeSpaceAndToLowerCase,
 } from "@/src/lib/utilities";
 
-const INVENTORYENUM = {
-  SIZE: "SIZE",
-  NORMAL: "NORMAL",
-  COLOR: "COLOR",
-  TEXT: "TEXT",
-};
-export type InventoryType = keyof typeof INVENTORYENUM;
+export type InventoryType = "SIZE" | "NORMAL" | "COLOR" | "TEXT";
 
 export const GetProductName = async (productname: string) => {
   const product = await Prisma.products.findMany({

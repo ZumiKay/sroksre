@@ -1,5 +1,5 @@
 "use client";
-import React, { SetStateAction, useEffect, useMemo, useState } from "react";
+import React, { SetStateAction, useEffect, useMemo, useState, useEffectEvent } from "react";
 import { StaticImageData } from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import PrimaryButton from "../Button";
@@ -74,8 +74,12 @@ export function CartMenu({ img, setcart, setcarttotal }: CartMenuProps) {
     setreloaddata(false);
   };
 
-  useEffect(() => {
+  const reloadCart = useEffectEvent(() => {
     if (reloaddata) fetchcart();
+  });
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- starts a request; the loading flag is set as it begins
+    reloadCart();
   }, [reloaddata]);
 
   const removecart = async (id: number) => {

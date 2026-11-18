@@ -16,7 +16,7 @@ export const ShowPrice = React.memo(({ price, discount }: ShowPriceProps) => {
   const discountPrice = useMemo(
     () =>
       isDiscount && isDiscount.newprice ? isDiscount.newprice.toFixed(2) : null,
-    [discount],
+    [isDiscount],
   );
 
   if (isDiscount) {
@@ -62,7 +62,7 @@ export const ShowPriceWithOptions = React.memo(
         return isDiscount.newprice + additionalPrice;
       }
       return null;
-    }, [discount, additionalPrice, isDiscount]);
+    }, [additionalPrice, isDiscount]);
 
     const basePriceString = useMemo(() => basePrice.toFixed(2), [basePrice]);
     const totalPriceString = useMemo(() => totalPrice.toFixed(2), [totalPrice]);

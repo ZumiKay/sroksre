@@ -6,7 +6,7 @@ import { CSSProperties } from "react";
 import Modal from "./Modals";
 import { CircularProgress } from "@heroui/react";
 
-export default function LoadingIcon({ style }: { style?: CSSProperties }) {
+export default function LoadingIcon() {
   return (
     <div className="loadingio-spinner-double-ring-op62hjn5ktc w-fit h-fit pl-10">
       <div className="ldio-jhvhak8eufc">
@@ -80,7 +80,7 @@ export const infoToast = (message: string, onClose?: () => void) => {
 
     toast.onChange((action) => {
       if (action.status === "removed") {
-        onClose && onClose();
+        onClose?.();
       }
     });
   }

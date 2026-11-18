@@ -52,8 +52,6 @@ export const GetListProduct = async (
     promoid: promoid ? parseInt(promoid) : undefined,
   };
 
-  let filterproduct = [];
-
   // Calculate the offset
   const skip = (data.page - 1) * data.show;
 
@@ -188,7 +186,7 @@ export const GetListProduct = async (
           .map((i) => i.product)
           .filter((prod): prod is NonNullable<typeof prod> =>
             Boolean(prod),
-          ) as any) ?? [];
+          ) as typeof products | undefined) ?? [];
       totalproduct = products.length;
       products = caculateArrayPagination(
         products,
@@ -196,6 +194,8 @@ export const GetListProduct = async (
         parseInt(show),
       );
     }
+
+    let filterproduct: typeof products = [];
 
     if (isFilter) {
       //filter base on color & size & other (custom variants)
@@ -234,10 +234,8 @@ export const GetListProduct = async (
           ? matchesVariant("TEXT", filtervalue.other)
           : false;
 
-        const prodPromotion = (prod as any).promotion as
-          | { name: string }
-          | null
-          | undefined;
+        const prodPromotion = (prod as { promotion?: { name: string } | null })
+          .promotion;
         const isPromo = filtervalue.promo
           ? prodPromotion &&
             filtervalue.promo.some(
@@ -310,7 +308,7 @@ export const GetListProduct = async (
                 },
           );
 
-    isFilter && (products = filterproduct);
+    if (isFilter) products = filterproduct;
 
     const safeProducts = products.filter(
       (prod): prod is NonNullable<typeof prod> => Boolean(prod),
@@ -550,7 +548,7 @@ export const getFilterValue = async (
     const uniquePromoIds = [
       ...new Set(
         result
-          .map((i) => (i as any).promotion_id)
+          .map((i) => i.promotion_id)
           .filter((id): id is number => id != null),
       ),
     ];
@@ -581,7 +579,7 @@ export const GetBannerLink = cache(async (id: number) => {
     });
 
     return banner;
-  } catch (error) {
+  } catch {
     return null;
   }
 });

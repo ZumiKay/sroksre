@@ -1,8 +1,19 @@
 "use client";
 import { useGlobalStore } from "@/src/context/GlobalContext";
 import { ApiRequest, Delayloading } from "@/src/context/CustomHook";
-import { ContainerLoading, errorToast, successToast } from "../../component/Loading";
-import { useCallback, useEffect, useState, useMemo, memo } from "react";
+import {
+  ContainerLoading,
+  errorToast,
+  successToast,
+} from "../../component/Loading";
+import {
+  useCallback,
+  useEffect,
+  useState,
+  useMemo,
+  memo,
+  useSyncExternalStore,
+} from "react";
 import { FilterMenu } from "../../component/SideMenu";
 import { Createusermodal } from "../../component/Modals/User";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -59,48 +70,6 @@ export default function UsermanagementPage() {
   // Bumped after a create, edit or delete to load the list again.
   const [reloadKey, setReloadKey] = useState(0);
   const reload = useCallback(() => setReloadKey((k) => k + 1), []);
-  const [stats, setStats] = useState({
-    totalUsers: 0,
-    adminUsers: 0,
-    regularUsers: 0,
-    newThisMonth: 0,
-  });
-
-  // Optimize useEffect to only call fetchdata when necessary
-  useEffect(() => {
-    fetchdata();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, showperpage, search, role, sort, reloadKey]);
-
-  const calculateStats = useCallback(() => {
-    if (allData?.user) {
-      const users = allData.user as UserState[];
-      const admins = users.filter((u) => u.role === "ADMIN").length;
-      const currentMonth = new Date().getMonth();
-      const newUsers = users.filter((u) => {
-        const userMonth = new Date(u.createdAt as never).getMonth();
-        return userMonth === currentMonth;
-      }).length;
-
-      setStats({
-        totalUsers: itemlength.total,
-        adminUsers: admins,
-        regularUsers: users.length - admins,
-        newThisMonth: newUsers,
-      });
-    }
-  }, [allData?.user, itemlength.total]);
-
-  useEffect(() => {
-    calculateStats();
-  }, [calculateStats]);
-
-  // Cleanup selected users when component unmounts or data changes
-  useEffect(() => {
-    return () => {
-      setSelectedUsers([]);
-    };
-  }, []);
 
   const fetchdata = useCallback(async () => {
     const asyncfetch = async () => {
@@ -143,7 +112,49 @@ export default function UsermanagementPage() {
       setalldata({ user: user.data });
     };
     await Delayloading(asyncfetch, setloading, 150);
-  }, [search, page, showperpage, role, sort, setitemlength, setalldata, router]);
+  }, [
+    search,
+    page,
+    showperpage,
+    role,
+    sort,
+    setitemlength,
+    setalldata,
+    router,
+  ]);
+
+  useEffect(() => {
+    fetchdata();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, showperpage, search, role, sort, reloadKey]);
+
+  const usersList = useMemo(
+    () => (allData?.user as UserState[]) || [],
+    [allData?.user],
+  );
+
+  // Derived from the loaded users; no state or effect needed.
+  const stats = useMemo(() => {
+    const admins = usersList.filter((u) => u.role === "ADMIN").length;
+    const currentMonth = new Date().getMonth();
+    const newUsers = usersList.filter(
+      (u) => new Date(u.createdAt as never).getMonth() === currentMonth,
+    ).length;
+
+    return {
+      totalUsers: itemlength.total,
+      adminUsers: admins,
+      regularUsers: usersList.length - admins,
+      newThisMonth: newUsers,
+    };
+  }, [usersList, itemlength.total]);
+
+  // Cleanup selected users when component unmounts or data changes
+  useEffect(() => {
+    return () => {
+      setSelectedUsers([]);
+    };
+  }, []);
 
   const handleSelectShow = useCallback(
     (value: string) => {
@@ -196,7 +207,9 @@ export default function UsermanagementPage() {
 
   const handleSelectUser = useCallback((userId: number) => {
     setSelectedUsers((prev) =>
-      prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId],
+      prev.includes(userId)
+        ? prev.filter((id) => id !== userId)
+        : [...prev, userId],
     );
   }, []);
 
@@ -247,15 +260,12 @@ export default function UsermanagementPage() {
         // Handle role change
         successToast("Role update feature coming soon");
       }
-    } catch (error) {
+    } catch {
       errorToast("An error occurred");
     }
     setloading(false);
     setBulkAction("");
-  }, [bulkAction, selectedUsers, reload, setopenmodal]);
-
-  // Memoize users list to avoid recalculating on every render
-  const usersList = useMemo(() => (allData?.user as UserState[]) || [], [allData?.user]);
+  }, [bulkAction, selectedUsers, reload, setopenmodal, handleCheckSession]);
 
   const handleExportUsers = useCallback(() => {
     if (!usersList || usersList.length === 0) {
@@ -357,7 +367,9 @@ export default function UsermanagementPage() {
                   title={title}
                   aria-pressed={viewMode === mode}
                   className={`w-9 h-9 rounded-lg flex items-center justify-center transition-colors ${
-                    viewMode === mode ? "bg-gray-900 text-white" : "text-gray-500 hover:bg-gray-100"
+                    viewMode === mode
+                      ? "bg-gray-900 text-white"
+                      : "text-gray-500 hover:bg-gray-100"
                   }`}
                 >
                   <FontAwesomeIcon icon={icon} className="text-sm" />
@@ -376,12 +388,17 @@ export default function UsermanagementPage() {
                 <div
                   className={`w-10 h-10 rounded-xl bg-${card.color}  flex items-center justify-center mb-3 shadow-sm`}
                 >
-                  <FontAwesomeIcon icon={card.icon} className="text-white text-base" />
+                  <FontAwesomeIcon
+                    icon={card.icon}
+                    className="text-white text-base"
+                  />
                 </div>
                 <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-0.5">
                   {card.label}
                 </p>
-                <p className={`text-2xl font-extrabold ${card.textColor}`}>{card.value}</p>
+                <p className={`text-2xl font-extrabold ${card.textColor}`}>
+                  {card.value}
+                </p>
               </div>
             ))}
           </div>
@@ -393,7 +410,10 @@ export default function UsermanagementPage() {
             {/* Search Input */}
             <div className="flex-1 flex gap-2">
               <div className="flex-1 flex items-center gap-2 h-10 bg-white border border-gray-200 rounded-lg px-3 transition-colors hover:border-gray-300 focus-within:border-gray-900 focus-within:ring-2 focus-within:ring-gray-200">
-                <FontAwesomeIcon icon={faSearch} className="text-gray-400 text-sm shrink-0" />
+                <FontAwesomeIcon
+                  icon={faSearch}
+                  className="text-gray-400 text-sm shrink-0"
+                />
                 <input
                   type="text"
                   placeholder="Search by name or email..."
@@ -520,10 +540,15 @@ export default function UsermanagementPage() {
           {!allData || !allData.user || allData.user.length === 0 ? (
             <div className="w-full flex flex-col items-center justify-center gap-3 py-24 bg-white rounded-2xl shadow-xs border border-gray-100">
               <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center">
-                <FontAwesomeIcon icon={faUsers} className="text-gray-300 text-2xl" />
+                <FontAwesomeIcon
+                  icon={faUsers}
+                  className="text-gray-300 text-2xl"
+                />
               </div>
               <div className="text-center">
-                <p className="text-base font-semibold text-gray-500">No users found</p>
+                <p className="text-base font-semibold text-gray-500">
+                  No users found
+                </p>
                 <p className="text-xs text-gray-400 mt-0.5">
                   Try adjusting your filters or add a new user
                 </p>
@@ -568,8 +593,11 @@ export default function UsermanagementPage() {
         {itemlength.totalpage ? (
           <div className="w-full flex flex-col sm:flex-row items-center justify-between gap-3 mt-6 px-1">
             <p className="text-xs text-gray-400 font-medium">
-              Page <span className="font-semibold text-gray-600">{page}</span> of{" "}
-              <span className="font-semibold text-gray-600">{itemlength.totalpage}</span>
+              Page <span className="font-semibold text-gray-600">{page}</span>{" "}
+              of{" "}
+              <span className="font-semibold text-gray-600">
+                {itemlength.totalpage}
+              </span>
             </p>
             <div className="bg-white rounded-xl shadow-xs border border-gray-100 px-4 py-2">
               <PaginationCustom
@@ -590,10 +618,7 @@ export default function UsermanagementPage() {
       </main>
 
       {openmodal.createUser && (
-        <Createusermodal
-          setpage={setpage}
-          onSuccess={reload}
-        />
+        <Createusermodal setpage={setpage} onSuccess={reload} />
       )}
       {openmodal.filteroption && <FilterMenu type="usermanagement" />}
     </>
@@ -626,10 +651,14 @@ function SelectBox({
           : "bg-white border-gray-300 hover:border-indigo-400"
       }`}
     >
-      {checked && <FontAwesomeIcon icon={faCheck} className="text-white text-[10px]" />}
+      {checked && (
+        <FontAwesomeIcon icon={faCheck} className="text-white text-[10px]" />
+      )}
     </button>
   );
 }
+
+const subscribeNoop = () => () => {};
 
 // Enhanced User Card Component - Memoized for performance
 const EnhancedUserCard = memo(
@@ -656,12 +685,13 @@ const EnhancedUserCard = memo(
   }) => {
     const setopenmodal = useGlobalStore((s) => s.setopenmodal);
     const setglobalindex = useGlobalStore((s) => s.setglobalindex);
-    const [isMounted, setIsMounted] = useState(false);
-
-    // Prevent hydration mismatch for date formatting
-    useEffect(() => {
-      setIsMounted(true);
-    }, []);
+    // Prevent hydration mismatch for date formatting: false on the server and
+    // during hydration, true afterwards.
+    const isMounted = useSyncExternalStore(
+      subscribeNoop,
+      () => true,
+      () => false,
+    );
 
     const handleEdit = useCallback(() => {
       setglobalindex((prev) => ({ ...prev, useredit: index }));
@@ -670,8 +700,14 @@ const EnhancedUserCard = memo(
 
     const roleColor = ROLE_STYLES[role]?.color ?? ROLE_STYLES.USER.color;
     const roleIcon = ROLE_STYLES[role]?.icon ?? ROLE_STYLES.USER.icon;
-    const firstLetter = useMemo(() => firstname.charAt(0).toUpperCase(), [firstname]);
-    const fullName = useMemo(() => `${firstname} ${lastname || ""}`, [firstname, lastname]);
+    const firstLetter = useMemo(
+      () => firstname.charAt(0).toUpperCase(),
+      [firstname],
+    );
+    const fullName = useMemo(
+      () => `${firstname} ${lastname || ""}`,
+      [firstname, lastname],
+    );
     const formattedDate = useMemo(
       () => (isMounted && createdAt ? createdAt.toLocaleDateString() : ""),
       [createdAt, isMounted],
@@ -713,10 +749,14 @@ const EnhancedUserCard = memo(
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3 flex-1 min-w-0">
               <div className="w-10 h-10 rounded-xl bg-linear-to-br from-blue-500 to-purple-600 flex items-center justify-center shrink-0 shadow-sm">
-                <span className="text-white font-bold text-base">{firstLetter}</span>
+                <span className="text-white font-bold text-base">
+                  {firstLetter}
+                </span>
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="text-sm font-semibold text-gray-900 truncate">{fullName}</h3>
+                <h3 className="text-sm font-semibold text-gray-900 truncate">
+                  {fullName}
+                </h3>
                 <p className="text-xs text-gray-500 truncate">{email}</p>
               </div>
             </div>
@@ -724,11 +764,16 @@ const EnhancedUserCard = memo(
               {roleBadge}
               {phonenumber && (
                 <span className="text-xs text-gray-500 hidden lg:block">
-                  <FontAwesomeIcon icon={faPhone} className="mr-1.5 text-gray-400" />
+                  <FontAwesomeIcon
+                    icon={faPhone}
+                    className="mr-1.5 text-gray-400"
+                  />
                   {phonenumber}
                 </span>
               )}
-              <span className="text-xs text-gray-400 hidden xl:block">{formattedDate}</span>
+              <span className="text-xs text-gray-400 hidden xl:block">
+                {formattedDate}
+              </span>
               {editButton}
             </div>
           </div>
@@ -746,14 +791,19 @@ const EnhancedUserCard = memo(
             <span className="text-white font-bold text-2xl">{firstLetter}</span>
           </div>
           <div className="text-center w-full">
-            <h3 className="text-base font-semibold text-gray-900 truncate mb-0.5">{fullName}</h3>
+            <h3 className="text-base font-semibold text-gray-900 truncate mb-0.5">
+              {fullName}
+            </h3>
             <p className="text-xs text-gray-500 truncate mb-2.5">{email}</p>
             {roleBadge}
           </div>
           {phonenumber && (
             <div className="w-full pt-3 border-t border-gray-100">
               <p className="text-xs text-gray-500 text-center">
-                <FontAwesomeIcon icon={faPhone} className="mr-1.5 text-gray-400" />
+                <FontAwesomeIcon
+                  icon={faPhone}
+                  className="mr-1.5 text-gray-400"
+                />
                 {phonenumber}
               </p>
             </div>

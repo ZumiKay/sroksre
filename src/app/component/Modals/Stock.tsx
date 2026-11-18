@@ -22,7 +22,6 @@ import { methodtype } from "@/src/lib/middlewareaction";
 
 export const UpdateStockModal = ({
   closename,
-  productId,
 }: {
   closename: string;
   productId?: number;

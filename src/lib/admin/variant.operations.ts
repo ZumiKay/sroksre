@@ -1,5 +1,9 @@
 import Prisma from "../prisma";
-import { Varianttype, VariantValueObjType } from "../../types/product.type";
+import {
+  VariantSectionType,
+  Varianttype,
+  VariantValueObjType,
+} from "../../types/product.type";
 
 export const handleUpdateProductVariant = async (
   id: number,
@@ -37,9 +41,9 @@ export const handleUpdateProductVariant = async (
 
         const existingVariant = existingVariantsMap.get(variant.id);
         if (existingVariant) {
-          const oldValues = (existingVariant.option_value as any[]).map((v) =>
-            typeof v === "string" ? v : v.val,
-          );
+          const oldValues = (
+            existingVariant.option_value as VariantValueObjType[]
+          ).map((v) => (typeof v === "string" ? v : v.val));
           const newValues = variant.option_value.map((v) =>
             typeof v === "string" ? v : (v as VariantValueObjType).val,
           );
@@ -97,23 +101,21 @@ export const handleUpdateProductVariant = async (
           ),
         );
         // Add back used options that were removed from the incoming data
-        const existingOpt = existingVariantsMap.get(
-          val.id as number,
-        );
+        const existingOpt = existingVariantsMap.get(val.id as number);
         if (existingOpt) {
-          (existingOpt.option_value as (string | VariantValueObjType)[]).forEach(
-            (existing) => {
-              const existVal =
-                typeof existing === "string" ? existing : existing.val;
-              if (
-                usedVariantValues.has(existVal) &&
-                !incomingVals.has(existVal)
-              ) {
-                // Preserve the existing option so stock entries remain valid
-                optionValue = [...optionValue, existing];
-              }
-            },
-          );
+          (
+            existingOpt.option_value as (string | VariantValueObjType)[]
+          ).forEach((existing) => {
+            const existVal =
+              typeof existing === "string" ? existing : existing.val;
+            if (
+              usedVariantValues.has(existVal) &&
+              !incomingVals.has(existVal)
+            ) {
+              // Preserve the existing option so stock entries remain valid
+              optionValue = [...optionValue, existing];
+            }
+          });
         }
       }
 
@@ -248,7 +250,7 @@ export const handleDeleteVariant = async (
     const valuesToRemove = new Set<string>();
     isVariant.forEach((variant) => {
       if (variant.option_value && Array.isArray(variant.option_value)) {
-        (variant.option_value as any[]).forEach((v) => {
+        (variant.option_value as VariantValueObjType[]).forEach((v) => {
           const valStr = typeof v === "string" ? v : v.val;
           valuesToRemove.add(valStr);
         });
@@ -300,4 +302,69 @@ export const handleDeleteVariant = async (
     console.log("Delete Variant", error);
     throw Error("Error Occured");
   }
+};
+
+/** Create a variant section, rename it, or change which variants belong to it. */
+export const handleUpdateVariantSection = async (
+  data: VariantSectionType,
+): Promise<{ success: boolean; error?: string; id?: number }> => {
+  const {
+    id: sectionId,
+    productsId: productId,
+    name: sectionName,
+    Variants: sectionVariants,
+    varaintId,
+  } = data;
+
+  if (!sectionVariants || !sectionName) {
+    return { success: false, error: "Missing Required" };
+  }
+
+  // Create mode
+  if (!sectionId) {
+    const created = await Prisma.variantSection.create({
+      data: { name: sectionName, productsId: productId },
+    });
+    await Prisma.variant.updateMany({
+      where: { id: { in: sectionVariants.map((i) => i.id) as number[] } },
+      data: { sectionId: created.id },
+    });
+    return { success: true, id: created.id };
+  }
+
+  const existingSection = await Prisma.variantSection.findUnique({
+    where: { id: sectionId },
+  });
+  if (!existingSection) {
+    return { success: false, error: "Variant section not found" };
+  }
+
+  // Remove a single variant from the section
+  if (varaintId) {
+    await Prisma.variant.update({
+      where: { id: varaintId },
+      data: { sectionId: null },
+    });
+    return { success: true };
+  }
+
+  const variantIds = sectionVariants.map((i) => i.id) as number[];
+  await Prisma.$transaction(async (tx) => {
+    await Promise.all([
+      tx.variant.updateMany({
+        where: { sectionId, id: { notIn: variantIds } },
+        data: { sectionId: null },
+      }),
+      tx.variant.updateMany({
+        where: { sectionId: null, id: { in: variantIds } },
+        data: { sectionId },
+      }),
+      tx.variantSection.update({
+        where: { id: sectionId },
+        data: { name: sectionName },
+      }),
+    ]);
+  });
+
+  return { success: true };
 };

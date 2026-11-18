@@ -565,11 +565,12 @@ export const registerUser = async (
     await Prisma.user.create({ data: userData });
 
     return { success: true };
-  } catch (error: any) {
+  } catch (error) {
     console.log("Register user error:", error);
+    const issues = (error as { issues?: Array<{ message?: string }> }).issues;
     return {
       success: false,
-      message: error.issues?.[0]?.message || "Registration failed",
+      message: issues?.[0]?.message || "Registration failed",
     };
   }
 };

@@ -83,7 +83,7 @@ export interface LoadingState {
   POST: boolean;
   PUT: boolean;
   DELETE: boolean;
-  IMAGE: any;
+  IMAGE: object;
 }
 
 //Initail State

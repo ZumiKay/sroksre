@@ -17,7 +17,7 @@ import { syncExpiredPromotions } from "@/src/lib/promotion";
 interface returntype {
   success: boolean;
   message?: string;
-  data?: any;
+  data?: unknown;
   user?: boolean;
   total?: totalpricetype;
   maxqty?: number;

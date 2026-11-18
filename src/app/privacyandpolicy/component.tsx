@@ -8,7 +8,7 @@ import { faTrash, faPlus, faChevronDown } from "@fortawesome/free-solid-svg-icon
 import { TextField } from "@mui/material";
 
 import { useGlobalStore } from "@/src/context/GlobalContext";
-import { ChangeEvent, useEffect, useState } from "react";
+import { ChangeEvent, useState } from "react";
 import {
   AddPolicyOrQuestion,
   Addpolicytype,
@@ -211,24 +211,16 @@ export const AddPolicyModal = ({ qa, plc, edit, openstate }: Policydata) => {
   const setopenmodal = useGlobalStore((s) => s.setopenmodal);
   const [loading, setloading] = useState({ post: false, delete: false });
   const [isEdit, setisEdit] = useState<{ [key: string]: boolean }>({});
-  const [state, setstate] = useState<Addpolicytype>({
-    title: "",
-    Paragraph: [{ content: "" }],
-  });
-  const [question, setquestion] = useState<Array<Addquestiontype> | undefined>(
-    undefined,
+  // Editing starts from the policy or the questions passed in
+  const [state, setstate] = useState<Addpolicytype>(
+    () => plc ?? { title: "", Paragraph: [{ content: "" }] },
   );
-  const [type, settype] = useState<"Policy" | "Question">("Policy");
-
-  useEffect(() => {
-    if (plc) {
-      setstate(plc);
-      settype("Policy");
-    } else if (qa) {
-      setquestion(qa);
-      settype("Question");
-    }
-  }, []);
+  const [question, setquestion] = useState<Array<Addquestiontype> | undefined>(
+    () => (plc ? undefined : qa),
+  );
+  const [type, settype] = useState<"Policy" | "Question">(() =>
+    !plc && qa ? "Question" : "Policy",
+  );
 
   const AddMoreParagraph = () => {
     const updateparagraph = [...state.Paragraph];
@@ -270,9 +262,12 @@ export const AddPolicyModal = ({ qa, plc, edit, openstate }: Policydata) => {
       setloading((prev) => ({ ...prev, delete: true }));
     }
     if (type === "Policy") {
-      setstate((prev) => ({ ...prev, Paragraph: updatestate }) as any);
+      setstate((prev) => ({
+        ...prev,
+        Paragraph: updatestate as Addpolicytype["Paragraph"],
+      }));
     } else {
-      setquestion(updatestate as any);
+      setquestion(updatestate as Addquestiontype[]);
     }
   };
 
@@ -316,7 +311,7 @@ export const AddPolicyModal = ({ qa, plc, edit, openstate }: Policydata) => {
     setloading((prev) => ({ ...prev, post: false }));
     setstate({ title: "", Paragraph: [{ content: "" }] });
     setquestion([{ question: "", answer: "" }]);
-    openstate && setopenmodal((prev) => ({ ...prev, [openstate]: false }));
+    if (openstate) setopenmodal((prev) => ({ ...prev, [openstate]: false }));
     router.refresh();
   };
 

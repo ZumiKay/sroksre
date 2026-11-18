@@ -7,6 +7,10 @@ import { useGlobalStore } from "@/src/context/GlobalContext";
 import { SubInventoryMenu } from "@/src/app/component/Navbar";
 import Checkmark from "../../../../../public/Image/Checkmark.svg";
 import { ProductState } from "@/src/types/product.type";
+import type {
+  BannerState,
+  PromotionState,
+} from "@/src/types/productAction.type";
 import { errorToast } from "@/src/app/component/Loading";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -32,13 +36,13 @@ interface ProductListItemProps extends SelectionProps {
 }
 
 interface BannerListItemProps extends SelectionProps {
-  banner: any;
+  banner: BannerState;
   index: number;
   reloaddata?: () => void;
 }
 
 interface PromotionListItemProps extends SelectionProps {
-  promotion: any;
+  promotion: PromotionState;
   index: number;
   reloaddata?: () => void;
 }
@@ -151,7 +155,7 @@ export const ProductListItem: React.FC<ProductListItemProps> = ({
       } else {
         if (isProduct) {
           const isExist = promotion.tempproduct?.includes(product.id);
-          !isExist && temp.push(product.id);
+          if (!isExist) temp.push(product.id);
           let allproduct = [...(allData?.product ?? [])];
           allproduct = allproduct.map((i) => {
             if (i.id === product.id) {

@@ -254,8 +254,8 @@ export default async function ProductsPage({
             name={promo.name}
             description={promo.description ?? ""}
             expiredDate={promo.expireAt ?? ""}
-            banner={promo.banner?.image as any}
-            product={promo.Products as any}
+            banner={promo.banner?.image}
+            product={promo.Products}
           />
         ))
       )}

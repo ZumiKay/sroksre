@@ -13,6 +13,8 @@ import {
 import { ProductState } from "@/src/types/product.type";
 import { calculatePopularityScore } from "../categories/route";
 import { Homecontainer } from "@/prisma/generated/prisma/client";
+import { DbNull } from "@/prisma/generated/prisma/internal/prismaNamespace";
+import type { HomecontainerUncheckedUpdateInput } from "@/prisma/generated/prisma/models";
 import { syncExpiredPromotions } from "@/src/lib/promotion";
 
 interface Paramtype {
@@ -22,12 +24,12 @@ interface Paramtype {
 
 export function SortProductByPopularScore(
   product: Array<
-    Record<
+    { id: number } & Record<
       keyof Pick<
         ProductState,
-        "id" | "amount_incart" | "amount_sold" | "amount_wishlist"
+        "amount_incart" | "amount_sold" | "amount_wishlist"
       >,
-      number
+      number | null
     >
   >,
 ) {
@@ -42,8 +44,8 @@ export function SortProductByPopularScore(
     })
     .sort((a, b) => b.score - a.score);
 }
-export function SortProductByLatestAddDate(
-  product: Array<Record<keyof Pick<ProductState, "createdAt">, Date>>,
+export function SortProductByLatestAddDate<T extends { createdAt: Date }>(
+  product: Array<T>,
 ) {
   return product.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 }
@@ -193,7 +195,7 @@ export function formatContainer(result: formatContainerType) {
     id: result.id,
     idx: result.idx,
     amountofitem: result.amountofitem || undefined,
-    scrollabletype: result.scrollabletype as any,
+    scrollabletype: result.scrollabletype,
     name: result.name ?? "",
     daterange: result.daterange,
     type: result.type as ContainerType,
@@ -247,12 +249,16 @@ export async function GET(request: NextRequest) {
           { status: 500 },
         );
       }
-      const res = formatContainer(result as any);
+      const res = formatContainer(result as unknown as formatContainerType);
       return Response.json({ data: res }, { status: 200 });
     } else {
       const results = await fetchContainers(ty as string);
       const res =
-        ty === "detail" ? results.map(formatContainer as any) : results;
+        ty === "detail"
+          ? (results as unknown as formatContainerType[]).map((i) =>
+              formatContainer(i),
+            )
+          : results;
       return Response.json({ data: res }, { status: 200 });
     }
   } catch (error) {
@@ -306,7 +312,7 @@ export async function PUT(req: Request) {
       );
     }
 
-    const updates: any = {};
+    const updates: HomecontainerUncheckedUpdateInput = {};
 
     // Check and update the name if it has changed
     if (container.name !== data.name) {
@@ -325,7 +331,10 @@ export async function PUT(req: Request) {
       updates.name = data.name;
     }
 
-    const existdaterange = container.daterange as any;
+    const existdaterange = container.daterange as {
+      start?: string;
+      end?: string;
+    } | null;
 
     // Update the items when the amount of items or date range changes
     if (
@@ -334,8 +343,8 @@ export async function PUT(req: Request) {
       data.amountofitem &&
       data.daterange &&
       (data.amountofitem !== container.amountofitem ||
-        data.daterange.start !== existdaterange.start ||
-        data.daterange.end !== existdaterange.end)
+        data.daterange.start !== existdaterange?.start ||
+        data.daterange.end !== existdaterange?.end)
     ) {
       updates.amountofitem = parseInt(data.amountofitem.toString());
       updates.daterange = {
@@ -361,10 +370,10 @@ export async function PUT(req: Request) {
 
       const sortedProduct =
         data.scrollabletype === "popular"
-          ? SortProductByPopularScore(product as any)
+          ? SortProductByPopularScore(product)
           : SortProductByLatestAddDate(product);
 
-      const cutProduct = caculateArrayPagination(
+      const cutProduct = caculateArrayPagination<{ id: number }>(
         sortedProduct,
         1,
         data.amountofitem,
@@ -403,10 +412,10 @@ export async function PUT(req: Request) {
 
         const sortedProduct =
           data.scrollabletype === "popular"
-            ? SortProductByPopularScore(product as any)
+            ? SortProductByPopularScore(product)
             : SortProductByLatestAddDate(product);
 
-        const cutProduct = caculateArrayPagination(
+        const cutProduct = caculateArrayPagination<{ id: number }>(
           sortedProduct,
           1,
           data.amountofitem,
@@ -426,7 +435,7 @@ export async function PUT(req: Request) {
     // Check and update the type if it has changed
     if (container.type !== data.type) {
       if (container.type === "scrollable" && container.daterange) {
-        updates.daterange = null;
+        updates.daterange = DbNull;
       }
       updates.type = data.type;
     }

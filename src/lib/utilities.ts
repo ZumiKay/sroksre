@@ -65,8 +65,8 @@ export const calculatePagination = (
   };
 };
 
-export const caculateArrayPagination = (
-  arr: Array<any>,
+export const caculateArrayPagination = <T>(
+  arr: Array<T>,
   page: number,
   limit: number,
 ) => {
@@ -181,10 +181,10 @@ export const encrypt = (text: string, key: string) => {
   ) as unknown as CipherKey;
 
   const iv = randomBytes(16); // Initialization vector
-  const cipher = createCipheriv(algorithm, keyBuffer, iv as any);
+  const cipher = createCipheriv(algorithm, keyBuffer, iv);
 
   let encrypted = cipher.update(text, "utf-8");
-  encrypted = Buffer.concat([encrypted as any, cipher.final()]);
+  encrypted = Buffer.concat([encrypted, cipher.final()]);
 
   return iv.toString("hex") + ":" + encrypted.toString("hex");
 };
@@ -202,16 +202,16 @@ export const decrypt = (text: string, key: string) => {
     "utf-8",
   ) as unknown as CipherKey;
 
-  const decipher = createDecipheriv(algorithm, keyBuffer, iv as any);
+  const decipher = createDecipheriv(algorithm, keyBuffer, iv);
 
-  let decrypted = decipher.update(encryptedText as any);
-  decrypted = Buffer.concat([decrypted as any, decipher.final()]);
+  let decrypted = decipher.update(encryptedText);
+  decrypted = Buffer.concat([decrypted, decipher.final()]);
 
   return decrypted.toString("utf-8");
 };
 
-export const isObjectEmpty = (data: Record<string, any>) =>
-  Object.entries(data).every(([_, val]) => !val);
+export const isObjectEmpty = (data: Record<string, unknown>) =>
+  Object.entries(data).every(([, val]) => !val);
 
 export const calculateDiscountProductPrice = (data: {
   price: number;

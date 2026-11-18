@@ -36,6 +36,7 @@ import {
   useEffect,
   useRef,
   useState,
+  useEffectEvent,
 } from "react";
 import { useRouter } from "next/navigation";
 import { AccountMenu, CartMenu } from "./SideMenu";
@@ -108,16 +109,20 @@ export default function Navbar({
   }, [initialCartCount]);
 
   // Use optimized data refresh hook for cart
-  const { refresh: refreshCart } = useDataRefresh({
+  const { refresh: refreshCart } = useDataRefresh<number>({
     onRefresh: (data) => setcarttotal(data),
     enabled: !!session && session.role !== "ADMIN",
     endpoint: "/api/order/cart?count=1",
   });
 
   // The initial count arrives after the first render; keep the dot in sync.
-  useEffect(() => {
+  const [syncedInitialCount, setSyncedInitialCount] = useState(
+    initialNotificationCount,
+  );
+  if (syncedInitialCount !== initialNotificationCount) {
+    setSyncedInitialCount(initialNotificationCount);
     setchecknotify(initialNotificationCount);
-  }, [initialNotificationCount]);
+  }
 
   // Poll for unread notifications every 30 seconds (admins and customers)
   useDataRefresh({
@@ -351,6 +356,7 @@ const CategoriesContainer = (props: {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- starts a request; the loading flag is set as it begins
     fetchcate();
     document.body.style.overflow = "hidden";
     const handleKey = (e: KeyboardEvent) => {
@@ -630,39 +636,48 @@ export const SubInventoryMenu = memo((props: Subinventorymenuprops) => {
   const setbanner = useGlobalStore((s) => s.setbanner);
   const setpromotion = useGlobalStore((s) => s.setpromotion);
 
+  const {
+    index: itemIndex,
+    type,
+    stock,
+    stocktype,
+    stockaction,
+    reloaddata,
+  } = props;
+
   const handleClick = useCallback(
     (obj: { value: string; opencon: string }) => {
-      const index = props.index as number;
+      const index = itemIndex as number;
 
       if (
-        props.type === "product" ||
-        props.type === "banner" ||
-        props.type === "promotion"
+        type === "product" ||
+        type === "banner" ||
+        type === "promotion"
       ) {
         if (obj.value === actiontype.EDIT) {
           setglobalindex((previndex) => ({
             ...previndex,
-            [props.type === "product"
+            [type === "product"
               ? "producteditindex"
-              : props.type === "banner"
+              : type === "banner"
                 ? "bannereditindex"
                 : "promotioneditindex"]: index,
           }));
           setopenmodal((prev) => ({ ...prev, [obj.opencon]: true }));
-        } else if (obj.value === actiontype.STOCK && props.stockaction) {
-          props.stocktype?.includes("stock") &&
-            setproduct((prev) => ({ ...prev, stock: props.stock, id: index }));
-          props.stockaction();
+        } else if (obj.value === actiontype.STOCK && stockaction) {
+          if (stocktype?.includes("stock"))
+            setproduct((prev) => ({ ...prev, stock: stock, id: index }));
+          stockaction();
         } else {
           setopenmodal((prev) => ({
             ...prev,
             confirmmodal: {
               ...prev.confirmmodal,
               index: index,
-              type: props.type,
+              type: type,
               open: true,
               onDelete: () => {
-                props.reloaddata && props.reloaddata();
+                reloaddata?.();
               },
             },
           }));
@@ -682,12 +697,12 @@ export const SubInventoryMenu = memo((props: Subinventorymenuprops) => {
       }
     },
     [
-      props.index,
-      props.type,
-      props.stock,
-      props.stocktype,
-      props.stockaction,
-      props.reloaddata,
+      itemIndex,
+      type,
+      stock,
+      stocktype,
+      stockaction,
+      reloaddata,
       setglobalindex,
       setopenmodal,
       setproduct,
@@ -790,7 +805,7 @@ export const NotificationMenu = forwardRef(
     const notioffset = 3;
     const checkedIds = useRef<Set<number>>(new Set());
 
-    useEffect(() => {
+    const loadNotifications = useEffectEvent(() => {
       const getAllNotification = async () => {
         setloading(true);
         const result = await ApiRequest(
@@ -813,6 +828,9 @@ export const NotificationMenu = forwardRef(
         setloading(false);
       };
       getAllNotification();
+    });
+    useEffect(() => {
+      loadNotifications();
     }, [page]);
 
     useEffect(() => {
@@ -823,9 +841,9 @@ export const NotificationMenu = forwardRef(
     }, []);
 
     const handleScroll = () => {
-      const containerRef = ref as any;
+      const containerRef = ref as React.RefObject<HTMLDivElement | null> | null;
 
-      if (!containerRef.current || loading || !loadmore) return;
+      if (!containerRef?.current || loading || !loadmore) return;
       const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
 
       if (scrollTop + clientHeight >= scrollHeight - 5) {

@@ -44,7 +44,7 @@ export const ContactForm = ({
   ) => {
     const { value, name } = e.target;
 
-    setcontact((prev) => ({ ...prev, [name]: value }) as any);
+    setcontact((prev) => ({ ...prev, [name]: value }));
   };
   return (
     <form onSubmit={handleSubmit} className="w-full h-fit grid gap-y-10">

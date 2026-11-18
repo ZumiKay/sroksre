@@ -1,6 +1,6 @@
 import Prisma from "@/src/lib/prisma";
 import { Role, VerificationPurpose } from "@/prisma/generated/prisma/enums";
-import { registerUser } from "@/src/lib/userlib";
+import { registerUser, type RegisterUser } from "@/src/lib/userlib";
 import { getUser } from "@/src/lib/session";
 import { verifyTurnstile } from "@/src/lib/turnstile";
 import {
@@ -11,7 +11,8 @@ import {
 import { NextRequest } from "next/server";
 
 export async function POST(req: NextRequest) {
-  const userdata: any = await req.json();
+  const userdata: RegisterUser & { recapcha?: string; cid?: string } =
+    await req.json();
 
   // Public sign-ups must pass Turnstile and prove they own the email with
   // the code from /api/users/vfy. Admins creating users from the dashboard

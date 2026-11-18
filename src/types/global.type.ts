@@ -14,7 +14,7 @@ export interface AllDataState {
     id: number;
     show: boolean;
   }[];
-  [x: string]: any;
+  [x: string]: unknown;
 }
 
 export interface ActionReturnType<t = string> {
@@ -22,7 +22,7 @@ export interface ActionReturnType<t = string> {
   message?: string;
   data?: t;
 
-  [x: string]: any;
+  [x: string]: unknown;
 }
 
 export interface ItemLength {

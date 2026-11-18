@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, ReactNode, useContext, useEffect, useState } from "react";
-import { io, Socket } from "socket.io-client";
+import type { Socket } from "socket.io-client";
 import { NotificationType } from "../types/user.type";
 
 const SocketContext = createContext<Socket | null>(null);
@@ -11,7 +11,7 @@ export const useSocket = () => {
 };
 
 export const SocketProvider = ({ children }: { children: ReactNode }) => {
-  const [sockset, setsocket] = useState<Socket | null>(null);
+  const [sockset] = useState<Socket | null>(null);
 
   useEffect(() => {
     //    const socketIo = io(process.env.NEXT_PUBLIC_SOCKET_URL as string);

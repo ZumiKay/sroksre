@@ -14,6 +14,7 @@ import FormControl from "@mui/material/FormControl";
 import Select, { SelectChangeEvent } from "@mui/material/Select";
 
 import { Box, Chip, OutlinedInput, ThemeProvider } from "@mui/material";
+import type { ChipProps } from "@mui/material";
 import { Allstatus } from "@/src/types/order.type";
 import { Mutiselectstatuscolor } from "../dashboard/order/Theme";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -110,20 +111,26 @@ export default function PrimaryButton(props: buttonpros) {
     </button>
   );
 }
+// An option is a plain value, or a value with its own label.
+type SelectionOption =
+  | string
+  | number
+  | { label: string | number; value: string | number };
+
 interface selectprops {
   label?: string;
   style?: CSSProperties;
   option?: HTMLOptionElement;
   default?: string;
   defaultValue?: string | number;
-  data?: string[] | number[] | any[];
+  data?: Array<SelectionOption>;
   subcategory?:
     | []
     | {
         id?: number | undefined;
         name: string;
       }[];
-  state?: any;
+  state?: unknown;
   onChange?: React.ChangeEventHandler<HTMLSelectElement>;
   required?: boolean;
   name?: string;
@@ -187,9 +194,9 @@ export function Selection(props: selectprops) {
           : props.data?.map((data, index) => (
               <option
                 key={index}
-                value={data.value !== undefined ? data.value : data}
+                value={typeof data === "object" ? data.value : data}
               >
-                {data.label ?? data}
+                {typeof data === "object" ? data.label : data}
               </option>
             ))}
       </select>
@@ -353,19 +360,23 @@ const MenuProps = {
   },
 };
 
-const names = Object.entries(Allstatus).map(([_, val]) => val);
+const names = Object.entries(Allstatus).map(([, val]) => val);
 
 export function MultipleSelect() {
   const [selectedData, setselectedData] = useState<string[]>([]);
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  React.useEffect(() => {
+  // On first show, drop any status filter left in the URL
+  const clearStatusParam = React.useEffectEvent(() => {
     const params = new URLSearchParams(searchParams);
     if (params.has("status")) {
       params.delete("status");
       router.push(`?${params}`);
     }
+  });
+  React.useEffect(() => {
+    clearStatusParam();
   }, []);
 
   const handleChange = (event: SelectChangeEvent<typeof selectedData>) => {
@@ -405,7 +416,7 @@ export function MultipleSelect() {
                   <Chip
                     key={value}
                     label={value}
-                    color={value.toLowerCase() as any}
+                    color={value.toLowerCase() as ChipProps["color"]}
                   />
                 ))}
               </Box>

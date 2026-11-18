@@ -132,7 +132,7 @@ export const BannerModal = memo(function BannerModal({
         errorToast("Error Connection");
       }
     };
-    globalindex.bannereditindex !== -1 && fetchdata();
+    if (globalindex.bannereditindex !== -1) fetchdata();
   });
 
   const handleCreate = useCallback(async () => {
@@ -170,7 +170,7 @@ export const BannerModal = memo(function BannerModal({
         }
         setbanner(BannerInitialize);
         successToast("Banner Created");
-        setreloaddata && setreloaddata(true);
+        setreloaddata?.(true);
       } else {
         const update = await ApiRequest(URL, undefined, "PUT", "JSON", banner);
         setloading(false);
@@ -186,7 +186,7 @@ export const BannerModal = memo(function BannerModal({
         setglobalindex((prev) => ({ ...prev, bannereditindex: -1 }));
 
         successToast("Banner Updated");
-        setreloaddata && setreloaddata(true);
+        setreloaddata?.(true);
       }
       setbanner(BannerInitialize);
     } else {
@@ -230,7 +230,7 @@ export const BannerModal = memo(function BannerModal({
       if (type === "parentcate")
         setbanner((prev) => ({
           ...prev,
-          parentcate: value as any,
+          parentcate: value as SelectType,
           childcate: undefined,
         }));
       else

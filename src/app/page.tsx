@@ -27,7 +27,8 @@ export async function generateMetadata(): Promise<Metadata> {
 const fetchhomeitems = async () => {
   try {
     const data = await fetchContainers("detail");
-    const res = data.map((i) => formatContainer(i as any));
+    const res = data.map((i) => formatContainer(i as unknown as Parameters<typeof formatContainer>[0]),
+    );
     return res;
   } catch (error) {
     console.log("Failed to fetch home items:", error);

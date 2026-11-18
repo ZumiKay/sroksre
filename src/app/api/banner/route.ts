@@ -142,7 +142,16 @@ export function extractQueryParams(url: string) {
   return queryParams;
 }
 
-const getBannerData = async (id: Array<number>, model: any) => {
+type NamedRow = { id: number; name: string };
+// Any Prisma model that has an id and a name (categories, products, promotions).
+type NamedModel = {
+  findMany: (args: {
+    where: { id: { in: number[] } };
+    select: { id: true; name: true };
+  }) => PromiseLike<NamedRow[]>;
+};
+
+const getBannerData = async (id: Array<number>, model: NamedModel) => {
   const data = await model.findMany({
     where: {
       id: {
@@ -154,7 +163,7 @@ const getBannerData = async (id: Array<number>, model: any) => {
       name: true,
     },
   });
-  return data ? data.map((i: any) => ({ value: i.id, label: i.name })) : null;
+  return data.map((i) => ({ value: i.id, label: i.name }));
 };
 export async function GET(request: NextRequest) {
   const params = request.url.toString();
@@ -200,8 +209,8 @@ export async function GET(request: NextRequest) {
         result = {
           ...result,
           name: result.name,
-          type: result.type as any,
-          image: result.image as any,
+          type: result.type,
+          image: result.image,
 
           parentcate: result.parentcate_id
             ? (

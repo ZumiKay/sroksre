@@ -1,4 +1,4 @@
-import { VariantSectionType } from "@/src/types/product.type";
+import { VariantSectionType, Varianttype } from "@/src/types/product.type";
 import { Variantcontainertype } from "../types";
 import { accessFromSectionType } from "../VariantModal";
 
@@ -20,7 +20,7 @@ export interface VariantSectionEditorProps {
 export interface SectionItemProps {
   section: VariantSectionType;
   idx: number;
-  product: any;
+  product: { Variant?: Varianttype[] };
   isSelected: boolean;
   onToggleSelection: (id: number) => void;
   onEdit: (id: number) => void;

@@ -8,6 +8,7 @@ import {
   useMemo,
   useCallback,
   useId,
+  useEffectEvent,
 } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Skeleton } from "@heroui/react";
@@ -97,8 +98,12 @@ export const SelectAndSearchProduct = ({
   );
 
   // Load options whenever the picker opens
-  useEffect(() => {
+  const loadOnOpen = useEffectEvent(() => {
     if (focus) fetchData(inputValue, limit);
+  });
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- starts a request; the loading flag is set as it begins
+    loadOnOpen();
   }, [focus]);
 
   useEffect(() => {

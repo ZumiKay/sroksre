@@ -1,4 +1,5 @@
 "use client";
+import type { VariantValueObjType } from "@/src/types/product.type";
 import React, { SubmitEvent, useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Badge, Button, Input } from "@heroui/react";
@@ -191,7 +192,7 @@ const LOW_STOCK_THRESHOLD = 5;
 
 // Memoized option item component
 const OptionItem = React.memo<{
-  item: any;
+  item: string | VariantValueObjType;
   qty?: number;
   idx: number;
   onDelete: (idx: number) => void;

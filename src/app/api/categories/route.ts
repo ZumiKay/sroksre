@@ -141,7 +141,7 @@ const CreateAutoCategory = async (data: Categorydata) => {
 
     return { success: true, id: created.id };
   } catch (error) {
-    return { success: false };
+    return { success: false, error };
   }
 };
 

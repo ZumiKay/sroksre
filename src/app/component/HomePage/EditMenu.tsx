@@ -86,7 +86,7 @@ const SortableItem = ({
         <div className="mr-3">
           <Checkbox
             size="lg"
-            onChange={(e) => onEdit()}
+            onChange={() => onEdit()}
             radius="md"
             classNames={{
               wrapper: "group-hover:border-blue-500",

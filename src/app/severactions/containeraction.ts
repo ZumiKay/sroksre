@@ -8,13 +8,7 @@ import {
   SortProductByPopularScore,
 } from "../api/home/route";
 
-const containerTypeOptions = {
-  slide: "slide",
-  category: "category",
-  scrollable: "scrollable",
-  banner: "banner",
-} as const;
-export type ContainerType = keyof typeof containerTypeOptions;
+export type ContainerType = "slide" | "category" | "scrollable" | "banner";
 
 export interface Homeitemtype {
   id: string;
@@ -99,7 +93,7 @@ export async function CreateContainer(data: Containertype) {
         },
       });
       if (data.scrollabletype === "popular") {
-        const productsWithScores = SortProductByPopularScore(product as any);
+        const productsWithScores = SortProductByPopularScore(product);
 
         productsWithScores.forEach((prod) => {
           itemsIds.push(prod.id);

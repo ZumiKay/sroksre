@@ -1,3 +1,4 @@
+import type { InputJsonValue } from "@/prisma/generated/prisma/internal/prismaNamespace";
 import {
   OrderInfoParamTyType,
   ShippingTypeEnum,
@@ -138,7 +139,7 @@ export async function PUT(req: NextRequest) {
       await Prisma.orders.update({
         where: { id },
         data: {
-          price: updateprice as any,
+          price: updateprice as unknown as InputJsonValue,
           shippingtype: ShippingTypeEnum.pickup,
           shipping_id: null,
         },

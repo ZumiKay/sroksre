@@ -58,7 +58,7 @@ export const DetailModal = ({
     shipping: "Shipping Address",
   };
 
-  const DetailContent = () => {
+  const renderDetailContent = () => {
     if (view === "user" && data?.user) {
       return (
         <div className="bg-blue-50 rounded-2xl p-4 space-y-0">
@@ -78,7 +78,7 @@ export const DetailModal = ({
           <InfoRow label="Email" value={data.user.email} />
           <InfoRow
             label="Phone"
-            value={(data.user as any).phonenumber ?? undefined}
+            value={data.user.phonenumber ?? undefined}
           />
         </div>
       );
@@ -150,7 +150,7 @@ export const DetailModal = ({
         {/* ── Body ── */}
         <div className="px-5 py-4 flex flex-col gap-3">
           {view !== "none" ? (
-            <DetailContent />
+            renderDetailContent()
           ) : (
             <>
               {/* Navigation cards */}
@@ -258,11 +258,11 @@ export const DetailModal = ({
                     ${orderdata.price?.shipping?.toFixed(2) ?? "0.00"}
                   </span>
                 </div>
-                {(orderdata.price as any)?.vat > 0 && (
+                {(orderdata.price?.vat ?? 0) > 0 && (
                   <div className="flex justify-between py-2 border-b border-gray-200">
                     <span className="text-sm text-gray-500">VAT</span>
                     <span className="text-sm font-semibold text-orange-600">
-                      ${(orderdata.price as any).vat.toFixed(2)}
+                      ${orderdata.price?.vat?.toFixed(2)}
                     </span>
                   </div>
                 )}

@@ -1,4 +1,4 @@
-import { CSSProperties, useCallback, useEffect, useState } from "react";
+import { CSSProperties, useCallback, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faMagnifyingGlassPlus,
@@ -46,8 +46,10 @@ export const PrimaryPhoto = (props: Primaryphotoprops) => {
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
 
   // Track loading state for images
-  const [isImageLoading, setIsImageLoading] =
-    useState<Record<string, boolean>>();
+  // Every image starts as loading
+  const [isImageLoading, setIsImageLoading] = useState<
+    Record<string, boolean> | undefined
+  >(() => Object.fromEntries(props.data.map((data) => [data.url, true])));
 
   // Zoom modal state
   const [isZoomed, setIsZoomed] = useState(false);
@@ -55,19 +57,12 @@ export const PrimaryPhoto = (props: Primaryphotoprops) => {
   const [zoomScale, setZoomScale] = useState(1);
   const [zoomPosition, setZoomPosition] = useState({ x: 0, y: 0 });
 
-  useEffect(() => {
-    const imgState: Record<string, boolean> = {};
-
-    props.data.forEach((data) => {
-      imgState[data.url] = true;
-    });
-
-    setIsImageLoading(imgState);
-  }, []);
-
-  useEffect(() => {
+  // Keep the last index in step with the image list
+  const [syncedData, setSyncedData] = useState<typeof props.data | null>(null);
+  if (syncedData !== props.data) {
+    setSyncedData(props.data);
     setindex({ ...index, end: props.data?.length - 1 });
-  }, [props.data]);
+  }
 
   const handleClick = (pos: string) => {
     const { start, end, current } = index;
@@ -143,9 +138,13 @@ export const PrimaryPhoto = (props: Primaryphotoprops) => {
     }
   };
 
-  const handlePhotoPreview = useCallback((val: boolean) => {
-    props?.setPreviewHover?.(val);
-  }, []);
+  const { setPreviewHover } = props;
+  const handlePhotoPreview = useCallback(
+    (val: boolean) => {
+      setPreviewHover?.(val);
+    },
+    [setPreviewHover],
+  );
 
   return (
     <div
@@ -228,11 +227,11 @@ export const PrimaryPhoto = (props: Primaryphotoprops) => {
           <>
             <button
               onMouseEnter={() => {
-                props.setclick && props.setclick(true);
+                props.setclick?.(true);
                 handlePhotoPreview(true);
               }}
               onMouseLeave={() => {
-                props.setclick && props.setclick(false);
+                props.setclick?.(false);
                 handlePhotoPreview(false);
               }}
               onClick={() => handleClick("left")}
@@ -256,11 +255,11 @@ export const PrimaryPhoto = (props: Primaryphotoprops) => {
 
             <button
               onMouseEnter={() => {
-                props.setclick && props.setclick(true);
+                props.setclick?.(true);
                 handlePhotoPreview(true);
               }}
               onMouseLeave={() => {
-                props.setclick && props.setclick(false);
+                props.setclick?.(false);
                 handlePhotoPreview(false);
               }}
               onClick={() => handleClick("right")}

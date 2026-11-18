@@ -68,7 +68,7 @@ const makeUser = () => ({
 });
 
 /** Correct paypal order structure */
-const makeOrder = (overrides: Record<string, any> = {}) => ({
+const makeOrder = (overrides: Record<string, unknown> = {}) => ({
   id: ORDER_ID,
   buyer_id: "buyer-001",
   status: Allstatus.unpaid,

@@ -1,8 +1,9 @@
 import { PlusIcon } from "../../../svg/icons";
+import type { Varianttype } from "@/src/types/product.type";
 
 interface VariantListDisplayProps {
   loading: boolean;
-  variants: any[];
+  variants: Varianttype[];
   onAdd: () => void;
   onEdit: (variantId: number) => void;
   onDelete: (editId: number, variantId: number) => void;
@@ -60,7 +61,7 @@ export const VariantListDisplay = ({
                   <div className="flex flex-wrap gap-1 mt-1">
                     {variant.option_value
                       .slice(0, 5)
-                      .map((val: any, vIdx: number) => (
+                      .map((val, vIdx) => (
                         <span
                           key={vIdx}
                           className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-sm"

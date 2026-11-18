@@ -13,7 +13,7 @@ export {
   CreateProduct,
   EditProduct,
   DeleteProduct,
-  GetAllProduct,
   type updateProductData,
 } from "./admin/product.operations";
+export { GetAllProduct } from "./admin/product.queries";
 

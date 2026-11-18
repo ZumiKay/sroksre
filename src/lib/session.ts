@@ -154,7 +154,9 @@ export async function getCartCount() {
  */
 export async function getNotificationCount() {
   try {
-    const session = (await getServerSession(authOptions)) as any;
+    const session = (await getServerSession(authOptions)) as {
+      user?: { role?: string };
+    } | null;
     if (!session || session.user?.role !== "ADMIN") return 0;
 
     const response = await fetch(

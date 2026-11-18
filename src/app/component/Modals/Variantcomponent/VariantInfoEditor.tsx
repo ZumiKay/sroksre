@@ -1,4 +1,5 @@
 "use client";
+import type { Variantcontainertype } from "../types";
 import React, { useState } from "react";
 import { Input, Select, SelectItem } from "@heroui/react";
 import PrimaryButton from "../../Button";
@@ -17,7 +18,7 @@ interface VariantInfoEditorProps {
   variantSectionId?: number;
   open: ModalOpenState;
   setOpen: React.Dispatch<React.SetStateAction<ModalOpenState>>;
-  setNew: React.Dispatch<React.SetStateAction<any>>;
+  setNew: React.Dispatch<React.SetStateAction<Variantcontainertype>>;
   onColorSelect: (idx: number, selectType: "color" | "text") => void;
   onUpdateOption: (e: React.SubmitEvent<HTMLFormElement>) => void;
   onCreate: ({

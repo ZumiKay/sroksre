@@ -52,12 +52,16 @@ export const AddBannerContainer = memo(function AddBannerContainer({
     sub?: Array<SelectType>;
   }>({ parent: [] });
 
-  const [filter, setfilter] = useState({
+  const [filter, setfilter] = useState<{
+    q: string;
+    ty: string;
+    limit: number;
+    parentcate?: string;
+    subcate?: string;
+  }>({
     q: "",
     ty: AddProductType[0].value,
     limit: 3,
-    parentcate: undefined,
-    subcate: undefined,
   });
 
   useEffect(() => {
@@ -181,7 +185,7 @@ export const AddBannerContainer = memo(function AddBannerContainer({
 
       if (name === "parentcate") {
         setfilter(
-          (prev) => ({ ...prev, parentcate: value, subcate: "" }) as any,
+          (prev) => ({ ...prev, parentcate: value, subcate: "" }),
         );
 
         if (value) {

@@ -1,7 +1,7 @@
 "use client";
 
 import { Chip, Select, SelectedItems, SelectItem } from "@heroui/react";
-import React, { ReactNode, useEffect, useMemo } from "react";
+import React, { ReactNode, useMemo } from "react";
 
 interface Multiselectprops {
   id?: number;
@@ -22,13 +22,9 @@ export default function Multiselect({
   type,
   isOptional,
 }: Multiselectprops) {
-  const [values, setValues] = React.useState(new Set([""]));
-
-  useEffect(() => {
-    if (value) {
-      setValues(new Set(value));
-    }
-  }, []);
+  const [values, setValues] = React.useState(
+    () => new Set(value ? value : [""]),
+  );
 
   const handleSelectionChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const val = new Set(e.target.value.split(","));

@@ -1,5 +1,4 @@
 /** @type {import('next').NextConfig} */
-import withBundleAnalyzer from "@next/bundle-analyzer";
 import path from "path";
 import { fileURLToPath } from "url";
 

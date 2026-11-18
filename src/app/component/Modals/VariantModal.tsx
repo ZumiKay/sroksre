@@ -4,7 +4,7 @@ import {
   useGlobalStore,
 } from "@/src/context/GlobalContext";
 import { errorToast } from "../Loading";
-import { SubmitEvent, useEffect, useState, useCallback, useMemo } from "react";
+import { SubmitEvent, useEffect, useState, useCallback, useMemo, useEffectEvent } from "react";
 import { ApiRequest, Delayloading } from "@/src/context/CustomHook";
 import tinycolor from "tinycolor2";
 import { SecondaryModal } from "../Modals";
@@ -36,6 +36,7 @@ import {
   Stocktype,
   VariantValueObjType,
   VariantTypeEnum,
+  Varianttype,
 } from "@/src/types/product.type";
 import VariantSectionEditor from "./Variantcomponent/VariantSectionEditor";
 
@@ -155,14 +156,17 @@ export const Variantcontainer = ({
     }
   }, [reloaddata, editindex, type, fetchstock, closename, openmodal]);
 
+  const loadTemplates = useEffectEvent(() => templateManager.fetchTemplates());
   useEffect(() => {
-    templateManager.fetchTemplates();
+    loadTemplates();
   }, [templateManager.reloadTemp]);
 
   // Reset to first page when search query changes
-  useEffect(() => {
+  const [lastQuery, setLastQuery] = useState(searchQuery);
+  if (lastQuery !== searchQuery) {
+    setLastQuery(searchQuery);
     setCurrentPage(1);
-  }, [searchQuery]);
+  }
 
   // Handler functions
   const handleCreate = useCallback(
@@ -271,7 +275,7 @@ export const Variantcontainer = ({
               idx === updatedVariants!.length - 1 ? variantData : v,
             );
           }
-        } catch (error) {
+        } catch {
           errorToast("Network error occurred");
           setLoading?.(false);
           return;
@@ -484,13 +488,43 @@ export const Variantcontainer = ({
         variantManager.setName(selectedTemp.variant?.option_title ?? "");
         variantManager.setTemp({
           name: selectedTemp.variant?.option_title ?? "",
-          type: selectedTemp.variant?.option_type as any,
-          value: selectedTemp.variant?.option_value as any,
+          type: selectedTemp.variant?.option_type as Varianttype["option_type"],
+          value: selectedTemp.variant?.option_value as Varianttype["option_value"],
         });
         setNew("info");
       }
     },
     [templateManager, variantManager],
+  );
+
+  const handleSaveUpdateSubStock = useCallback(
+    async (Stock: Array<Stocktype>) => {
+      setMainLoading(true);
+      const res = await ApiRequest(
+        "/api/products/crud",
+        undefined,
+        "PUT",
+        "JSON",
+        {
+          id: editindex,
+          Stock,
+          type: "editvariantstock",
+        },
+      );
+      setMainLoading(false);
+
+      if (!res.success) {
+        errorToast("Error occurred");
+        return;
+      }
+
+      setSuccessMessage("Stock updated successfully");
+      setTimeout(() => setSuccessMessage(""), 3000);
+      stockManager.setEditStockIdx(-1);
+      stockManager.resetStockState();
+      setNew("stock");
+    },
+    [editindex, stockManager],
   );
 
   const handleCreateAndUpdateVariantStock = useCallback(
@@ -546,47 +580,7 @@ export const Variantcontainer = ({
         setNew("stock");
       }
     },
-    [
-      product.Stock,
-      product.Variant,
-      stockManager,
-      variantManager,
-      editindex,
-      closename,
-      setproduct,
-      setopenmodal,
-      setSuccessMessage,
-    ],
-  );
-
-  const handleSaveUpdateSubStock = useCallback(
-    async (Stock: Array<Stocktype>) => {
-      setMainLoading(true);
-      const res = await ApiRequest(
-        "/api/products/crud",
-        undefined,
-        "PUT",
-        "JSON",
-        {
-          id: editindex,
-          Stock,
-          type: "editvariantstock",
-        },
-      );
-      setMainLoading(false);
-
-      if (!res.success) {
-        errorToast("Error occurred");
-        return;
-      }
-
-      setSuccessMessage("Stock updated successfully");
-      setTimeout(() => setSuccessMessage(""), 3000);
-      stockManager.setEditStockIdx(-1);
-      stockManager.resetStockState();
-      setNew("stock");
-    },
-    [editindex, stockManager],
+    [product.Stock, product.Variant, stockManager, editindex, setproduct, variantManager, closename, setopenmodal, handleSaveUpdateSubStock],
   );
 
   /**
@@ -694,17 +688,7 @@ export const Variantcontainer = ({
 
     // Default: Return to home screen
     setNew("none");
-  }, [
-    newadd,
-    editindex,
-    editSectionId,
-    accessFromSection,
-    product.Variant,
-    product.Variantsection,
-    closeModal,
-    resetSectionState,
-    handleCreateAndUpdateVariantStock,
-  ]);
+  }, [newadd, editindex, editSectionId, accessFromSection, product.Variant, closeModal, resetSectionState, handleCreateAndUpdateVariantStock]);
 
   // Title + one-line explanation for the current screen
   const screen = useMemo(() => {

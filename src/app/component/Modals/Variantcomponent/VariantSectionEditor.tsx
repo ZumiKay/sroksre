@@ -1,4 +1,4 @@
-import { Key, useEffect, useState } from "react";
+import { Key, useEffect, useState, useEffectEvent } from "react";
 import { Tabs, Tab, Card, CardBody } from "@heroui/react";
 import { PlusIcon } from "../../svg/icons";
 import PrimaryButton from "../../Button";
@@ -93,12 +93,13 @@ const VariantSectionEditor = ({
       product.Variantsection &&
       product.Variantsection.length > 0
     ) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- the id lives in the parent modal, so it cannot be worked out during this render
       settempVariantSectionId(product.Variantsection.length + 1);
     }
   }, [editSectionId, product.Variantsection]);
 
   // Load section data in edit mode
-  useEffect(() => {
+  const loadSectionName = useEffectEvent(() => {
     if (editSectionId) {
       const sectionToEdit = product.Variantsection?.find(
         (section) => section.id === editSectionId,
@@ -107,16 +108,21 @@ const VariantSectionEditor = ({
         setSectionName(sectionToEdit.name);
       }
     }
+  });
+  useEffect(() => {
+    loadSectionName();
   }, [editSectionId]);
 
   // Sync selectedTab with newadd prop changes
-  useEffect(() => {
+  const [syncedNewadd, setSyncedNewadd] = useState<typeof newadd | null>(null);
+  if (syncedNewadd !== newadd) {
+    setSyncedNewadd(newadd);
     if (newadd === "section-list") {
       setSelectedTab("list");
     } else if (newadd === "section-edit" || newadd === "section") {
       setSelectedTab("create");
     }
-  }, [newadd]);
+  }
 
   // Handler functions
   const handleEditVariantSection = (editId: number) => {

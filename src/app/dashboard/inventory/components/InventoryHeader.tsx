@@ -98,7 +98,7 @@ export const InventoryHeader: React.FC<InventoryHeaderProps> = ({
           </div>
 
           <div className="shrink-0">
-            <SubInventoryMenu data={createMenu as any} open="subcreatemenu_ivt" />
+            <SubInventoryMenu data={createMenu} open="subcreatemenu_ivt" />
           </div>
 
           <StatBadge icon={faBox} label="Total" value={itemTotal} color="bg-slate-600" />

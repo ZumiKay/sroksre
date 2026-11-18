@@ -123,7 +123,7 @@ const Card = memo(function Card(props: cardprops) {
         } else {
           if (isProduct) {
             const isExist = promotion.tempproduct?.includes(id);
-            !isExist && temp.push(id);
+            if (!isExist) temp.push(id);
             let allproduct = [...(allData?.product ?? [])];
             allproduct = allproduct.map((i) => {
               if (i.id === id) {
@@ -161,17 +161,7 @@ const Card = memo(function Card(props: cardprops) {
         setopenmodal((prev) => ({ ...prev, discount: true }));
       }
     },
-    [
-      promotion.Products,
-      props.discount,
-      isProduct,
-      promotion.tempproduct,
-      allData?.product,
-      setpromotion,
-      setalldata,
-      setglobalindex,
-      setopenmodal,
-    ],
+    [promotion.Products, promotion.tempproduct, props.discount, props.name, props.img, props.price, setpromotion, isProduct, allData?.product, setalldata, setglobalindex, setopenmodal],
   );
 
   // Condition
@@ -512,6 +502,8 @@ export const SecondayCard = memo(function SecondayCard(
     [props.maxqty],
   );
 
+  const { id: cartItemId, setreloadcart, removecart } = props;
+
   const handleEditQty = useCallback(
     async (value: string) => {
       const val = parseInt(`${value}`);
@@ -521,7 +513,7 @@ export const SecondayCard = memo(function SecondayCard(
         undefined,
         "PUT",
         "JSON",
-        { id: props.id, qty: val },
+        { id: cartItemId, qty: val },
       );
       setloading(false);
 
@@ -530,16 +522,16 @@ export const SecondayCard = memo(function SecondayCard(
         return;
       }
       seteditqty(value !== "" ? val : 0);
-      props.setreloadcart(true);
+      setreloadcart(true);
     },
-    [props.id, props.setreloadcart],
+    [cartItemId, setreloadcart],
   );
 
   const handleDelete = useCallback(async () => {
     setloading(true);
-    await props.removecart();
+    await removecart();
     setloading(false);
-  }, [props.removecart]);
+  }, [removecart]);
 
   return (
     <div className="w-full flex flex-col gap-y-3 p-2">

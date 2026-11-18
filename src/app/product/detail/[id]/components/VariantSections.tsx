@@ -62,7 +62,7 @@ export const ShowVariantSections = (props: VariantSectionProps) => {
             {section.name}
           </h3>
           <div className="flex flex-col gap-y-5">
-            {section.Variants?.map((variant: any, idx: number) => {
+            {section.Variants?.map((variant, idx) => {
               const globalIdx =
                 prob.Variant?.findIndex((v) => v.id === variant.id) ?? idx;
               return (

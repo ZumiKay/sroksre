@@ -27,5 +27,5 @@ export interface Filterdatatype {
   startprice?: number | string;
   endprice?: number | string;
   filename?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }

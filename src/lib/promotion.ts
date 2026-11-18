@@ -1,16 +1,14 @@
 import Prisma from "@/src/lib/prisma";
 import { revalidatePath } from "next/cache";
 
+//Max interval promotion checker in millisecond
 const MAX_CHECK_INTERVAL_MS = 60_000;
 
 let nextCheckAt = 0;
 let inFlight: Promise<void> | null = null;
 
 /**
- * Ends every expired promotion that is still attached to something:
- * products go back to their normal price and are released from the
- * promotion, the banner is unlinked and the auto-created sale category is
- * removed. The promotion record itself is kept for the admin list.
+ * Cleanup expired promotion as well as unlink products return to the normal price and also banner
  */
 export async function revertExpiredPromotions(now = new Date()) {
   return Prisma.$transaction(async (tx) => {

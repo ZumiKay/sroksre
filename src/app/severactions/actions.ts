@@ -10,18 +10,21 @@ interface returnType {
   data?: Array<SelectType>;
 }
 
-const BannerType = {
-  normal: "normal",
-  product: "product",
-  category: "category",
-};
+export type BannerType = "normal" | "product" | "category";
 
-export type BannerType = keyof typeof BannerType;
+// Any Prisma model that can be searched by name (products, promotions).
+type NamedModel = {
+  findMany: (args: {
+    where: { name: { contains: string; mode: "insensitive" } };
+    take: number;
+    select: { id: true; name: true };
+  }) => PromiseLike<Array<{ id: number; name: string }>>;
+};
 
 const getDataForBanner = async (
   limit: number,
   value: string,
-  model: any,
+  model: NamedModel,
 ): Promise<returnType> => {
   try {
     const data = await model.findMany({
@@ -41,7 +44,7 @@ const getDataForBanner = async (
     return {
       success: true,
       isLimit: data.length <= limit,
-      data: data.map((item: any) => ({ label: item.name, value: item.id })),
+      data: data.map((item) => ({ label: item.name, value: item.id })),
     };
   } catch (error) {
     console.log(`Get data for banner error:`, error);

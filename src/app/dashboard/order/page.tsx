@@ -656,7 +656,7 @@ function TableFooter({
 
 // Cache helper function
 const checkparam = cache((ty: string): string | undefined => {
-  return Object.entries(AllorderType).find(([_, val]) => val === ty)?.[1];
+  return Object.entries(AllorderType).find(([, val]) => val === ty)?.[1];
 });
 
 // Cached order data fetching

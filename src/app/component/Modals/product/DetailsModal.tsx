@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, useEffect, useState } from "react";
+import { ChangeEvent, useState } from "react";
 import { Input, Textarea } from "@heroui/react";
 import PrimaryButton from "@/src/app/component/Button";
 import { errorToast } from "@/src/app/component/Loading";
@@ -24,7 +24,10 @@ const NormalDetail = () => {
   const [index, setindex] = useState(-1);
   const [normaldetail, setnormal] = useState(normalDetailInitial);
 
-  useEffect(() => {
+  // Load the detail being edited whenever the chosen row changes
+  const [syncedIndex, setSyncedIndex] = useState<number | null>(null);
+  if (syncedIndex !== globalindex.productdetailindex) {
+    setSyncedIndex(globalindex.productdetailindex);
     const isEdit = globalindex.productdetailindex !== -1;
     if (isEdit) {
       setnormal({
@@ -34,7 +37,7 @@ const NormalDetail = () => {
       });
     }
     setindex(globalindex.productdetailindex);
-  }, [globalindex.productdetailindex]);
+  }
 
   const handleChange = (
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,

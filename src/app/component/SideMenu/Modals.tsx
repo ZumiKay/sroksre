@@ -131,7 +131,7 @@ export const ConfirmModal = () => {
       }
        
     },
-    [openmodal, globalindex, product, banner],
+    [openmodal, globalindex, product.covers, banner.image.name, setproduct, setglobalindex, setopenmodal, setisLoading, setbanner],
   );
 
   const handleConfirmDelete = useCallback(
@@ -191,9 +191,9 @@ export const ConfirmModal = () => {
             param.set("p", "1");
             router.push(`?${param}`, { scroll: false });
           }
-          openmodal.confirmmodal.onAsyncDelete &&
-            (await openmodal.confirmmodal.onAsyncDelete());
-          openmodal.confirmmodal.onDelete && openmodal.confirmmodal.onDelete();
+          if (openmodal.confirmmodal.onAsyncDelete)
+            await openmodal.confirmmodal.onAsyncDelete();
+          openmodal.confirmmodal.onDelete?.();
         }
       }
 
@@ -213,7 +213,7 @@ export const ConfirmModal = () => {
       }));
        
     },
-    [openmodal, searchParam, identity],
+    [openmodal.confirmmodal, searchParam, setopenmodal, setpromotion, setinventoryfilter, setglobalindex, identity, setisLoading, router],
   );
 
   const onConfirm = useCallback(
@@ -366,7 +366,7 @@ export const Alertmodal = () => {
   const openmodal = useGlobalStore((s) => s.openmodal);
   const setopenmodal = useGlobalStore((s) => s.setopenmodal);
   const handleClose = async () => {
-    openmodal.alert.action && (await openmodal.alert.action());
+    if (openmodal.alert.action) await openmodal.alert.action();
     setopenmodal((prev) => ({
       ...prev,
       alert: { ...prev.alert, open: false },
@@ -397,8 +397,8 @@ export const Alertmodal = () => {
 
 interface PrimaryConfirmModalProps {
   actions: {
-    yes: (...arg: any) => Promise<void>;
-    no: (...arg: any) => void;
+    yes: () => Promise<void>;
+    no: () => void;
   };
   loading: boolean;
 }

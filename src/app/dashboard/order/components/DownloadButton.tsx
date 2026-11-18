@@ -27,7 +27,7 @@ export const DownloadButton = () => {
   const [loading, setloading] = useState(false);
   const [downloaddata, setdata] = useState<{
     filename: string;
-    filedata: any[];
+    filedata: Record<string, unknown>[];
   }>({ filename: "", filedata: [] });
 
   const handleGetData = async (filterdata: Filterdatatype) => {
@@ -46,7 +46,7 @@ export const DownloadButton = () => {
       return;
     }
 
-    const exporteddata: any[] = [];
+    const exporteddata: Record<string, unknown>[] = [];
     orderdata.data.forEach((order) => {
       order.Orderproduct.forEach((item) => {
         const price = order.price as unknown as totalpricetype;

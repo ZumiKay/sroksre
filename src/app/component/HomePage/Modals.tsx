@@ -19,7 +19,7 @@ import { ContainerTypeSelection } from "./modals/ContainerTypeSelection";
 import { AddBannerContainer } from "./modals/AddBannerContainer";
 
 interface HomeContainerModalProps {
-  setprofile: any;
+  setprofile: (open: boolean) => void;
   isPhone: boolean;
 }
 
@@ -67,15 +67,15 @@ const Homecontainermodal = ({
           } else {
             errorToast("Failed to load container data");
           }
-        } catch (error: any) {
-          errorToast(error?.message ?? "Error loading data");
+        } catch (error) {
+          errorToast((error as Error)?.message ?? "Error loading data");
         } finally {
           setloading(false);
         }
       };
       fetcheditdetail();
     }
-  }, []);
+  }, [globalindex.homeeditindex]);
 
   const handleCancel = useCallback(() => {
     const updatedata = { ...data };
@@ -169,8 +169,8 @@ const Homecontainermodal = ({
         setglobalindex((prev) => ({ ...prev, homeeditindex: undefined }));
       }
       setdata(HomecontainerdataInitialize);
-    } catch (error: any) {
-      errorToast(error?.message ?? "Error occurred");
+    } catch (error) {
+      errorToast((error as Error)?.message ?? "Error occurred");
     } finally {
       setloading(false);
     }

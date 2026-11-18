@@ -5,6 +5,7 @@ import {
   useEffect,
   DependencyList,
   useRef,
+  useEffectEvent,
 } from "react";
 import { LoadingState } from "./GlobalContext";
 import Error from "next/error";
@@ -16,12 +17,13 @@ export const ApiRequest = async (
   setloading?: React.Dispatch<SetStateAction<LoadingState>>,
   method: RequestMethod = "DELETE",
   datatype: "JSON" | "FILE" = "JSON",
-  data?: any,
+  data?: unknown,
   revalidate?: string,
   retry: number = 0,
 ): Promise<{
   success: boolean;
   error?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- every endpoint returns a different shape; callers narrow it
   data?: any;
   subtotal?: number;
   total?: number;
@@ -35,13 +37,13 @@ export const ApiRequest = async (
   isLimit?: boolean;
 }> => {
   const maxRetries = retry;
-  let lastError: any = null;
+  let lastError: { props?: string; message?: string } | null = null;
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       // Set loading state on first attempt
       if (attempt === 0) {
-        setloading && setloading((prev) => ({ ...prev, [method]: true }));
+        setloading?.((prev) => ({ ...prev, [method]: true }));
       }
 
       const requestOptions: RequestInit = {
@@ -49,7 +51,7 @@ export const ApiRequest = async (
         next: { tags: [revalidate ?? ""] },
       };
       if (data) {
-        requestOptions.body = datatype === "JSON" ? JSON.stringify(data) : data;
+        requestOptions.body = datatype === "JSON" ? JSON.stringify(data) : (data as BodyInit);
       }
 
       const response = await fetch(url, requestOptions);
@@ -61,7 +63,7 @@ export const ApiRequest = async (
       }
 
       // Success - clear loading state
-      setloading && setloading((prev) => ({ ...prev, [method]: false }));
+      setloading?.((prev) => ({ ...prev, [method]: false }));
 
       if (method === "GET" || method === "POST" || method === "PUT") {
         return {
@@ -81,12 +83,13 @@ export const ApiRequest = async (
       } else {
         return { success: true, message: responseJson.message };
       }
-    } catch (error: any) {
+    } catch (caught) {
+      const error = caught as { props?: string; message?: string };
       lastError = error;
 
       // If this was the last attempt, handle failure
       if (attempt >= maxRetries) {
-        setloading && setloading((prev) => ({ ...prev, [method]: false }));
+        setloading?.((prev) => ({ ...prev, [method]: false }));
         return {
           success: false,
           error: error.props ?? "Error Occured",
@@ -102,7 +105,7 @@ export const ApiRequest = async (
   }
 
   // Fallback (should never reach here)
-  setloading && setloading((prev) => ({ ...prev, [method]: false }));
+  setloading?.((prev) => ({ ...prev, [method]: false }));
   return {
     success: false,
     error: lastError?.props ?? "Error Occured",
@@ -115,47 +118,47 @@ export function useDebounceEffect(
   waitTime: number,
   deps?: DependencyList,
 ) {
+  const run = useEffectEvent(fn);
   useEffect(() => {
     const t = setTimeout(() => {
-      fn();
+      run();
     }, waitTime);
 
     return () => {
       clearTimeout(t);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the caller passes the list that restarts the timer
   }, deps);
 }
 
+/**
+ * Runs an effect once per mounted component, also in React's development
+ * Strict Mode, which mounts, unmounts and mounts every component again.
+ */
 export const useEffectOnce = (effect: () => void | (() => void)) => {
   const destroyFunc = useRef<void | (() => void)>(undefined);
   const effectCalled = useRef(false);
-  const renderAfterCalled = useRef(false);
-  // Only the setter is needed: it forces one extra render
-  const [, setVal] = useState<number>(0);
-
-  if (effectCalled.current) {
-    renderAfterCalled.current = true;
-  }
+  const pendingDestroy = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
+  const runEffect = useEffectEvent(effect);
 
   useEffect(() => {
+    // Mounted again straight away (Strict Mode): keep the first run alive
+    clearTimeout(pendingDestroy.current);
+    pendingDestroy.current = undefined;
+
     // only execute the effect first time around
     if (!effectCalled.current) {
-      destroyFunc.current = effect();
       effectCalled.current = true;
+      destroyFunc.current = runEffect();
     }
 
-    // this forces one render after the effect is run
-    setVal((val) => val + 1);
-
     return () => {
-      // if the comp didn't render since the useEffect was called,
-      // we know it's the dummy React cycle
-      if (!renderAfterCalled.current) {
-        return;
-      }
-      if (destroyFunc.current) {
-        destroyFunc.current();
-      }
+      // Clean up one tick later, unless the component mounts again first
+      pendingDestroy.current = setTimeout(() => {
+        destroyFunc.current?.();
+      }, 0);
     };
   }, []);
 };
@@ -163,10 +166,12 @@ export const useEffectOnce = (effect: () => void | (() => void)) => {
 export const useClickOutside = (callback: () => void) => {
   const ref = useRef<HTMLDivElement | null>(null);
 
+  const onOutside = useEffectEvent(callback);
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (ref.current && !ref.current.contains(event.target as Node)) {
-        callback();
+        onOutside();
       }
     };
 

@@ -86,7 +86,7 @@ export function ShippingForm({ orderid }: { orderid: string }) {
           setSelectedAddress(ADDRESS_INITIAL);
           setAddresses([]);
         }
-      } catch (error) {
+      } catch {
         errorToast("Unable to load addresses");
       } finally {
         setIsHydrating(false);
@@ -123,7 +123,7 @@ export function ShippingForm({ orderid }: { orderid: string }) {
         if (!res.success) {
           errorToast("Can't Update Address");
         }
-      } catch (error) {
+      } catch {
         errorToast("Can't Update Address");
       } finally {
         setIsUpdatingAddress(false);

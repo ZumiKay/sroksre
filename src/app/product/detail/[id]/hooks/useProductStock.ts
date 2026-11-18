@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { ApiRequest } from "@/src/context/CustomHook";
 import { Productorderdetailtype } from "@/src/types/order.type";
+import type { Varianttype } from "@/src/types/product.type";
 
 let stockCheckTimeout: NodeJS.Timeout | null = null;
 let cartCheckTimeout: NodeJS.Timeout | null = null;
@@ -114,14 +115,14 @@ export const useCartCheck = () => {
  */
 export const useOptionQuantity = () => {
   const computeOptionQty = useCallback(
-    (selectedDetails: Productorderdetailtype[], variants: any[]) => {
+    (selectedDetails: Productorderdetailtype[], variants: Varianttype[]) => {
       let maxQty = Infinity;
 
       for (const detail of selectedDetails) {
         const variant = variants.find((v) => v.id === detail.variant_id);
         if (!variant) continue;
 
-        const selectedOption = (variant.option_value as any[]).find((opt) =>
+        const selectedOption = variant.option_value.find((opt) =>
           typeof opt === "string"
             ? opt === detail.value
             : opt.val === detail.value,

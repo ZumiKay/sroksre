@@ -10,6 +10,7 @@ import {
 import { errorToast, successToast } from "../Loading";
 import { SecondaryModal } from "../Modals";
 import { CirclePicker, ChromePicker } from "react-color";
+import type { ColorResult } from "react-color";
 import { Button, Chip, Input } from "@heroui/react";
 import { HasPartialOverlap } from "@/src/lib/utilities";
 import { ApiRequest, useScreenSize } from "@/src/context/CustomHook";
@@ -457,7 +458,7 @@ export function ManageStockContainer({
     if (product.Stock && product.Variant) {
       const createdstock = groupSelectedValue(
         product.Stock[idx] as unknown as Stocktype,
-        product.Variant as any,
+        product.Variant as Parameters<typeof groupSelectedValue>[1],
       );
 
       setselectedstock(createdstock);
@@ -1107,14 +1108,14 @@ export const ColorSelectModal = React.memo(
     }, []);
 
     const handleCirclePickerChange = React.useCallback(
-      (value: any) => {
-        setcolor({ hex: value.hex, rgb: value.rgb as any });
+      (value: ColorResult) => {
+        setcolor({ hex: value.hex, rgb: value.rgb });
       },
       [setcolor],
     );
 
     const handleChromePickerChange = React.useCallback(
-      (val: any) => {
+      (val: ColorResult) => {
         setcolor({ hex: val.hex, rgb: val.rgb });
       },
       [setcolor],

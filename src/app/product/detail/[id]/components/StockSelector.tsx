@@ -23,7 +23,6 @@ interface StockSelectorProps {
 export const StockSelector = React.memo(
   ({
     max,
-    errormess,
     setmess,
     incart,
     isStock,

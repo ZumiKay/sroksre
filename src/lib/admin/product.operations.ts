@@ -1,19 +1,22 @@
 import Prisma from "../prisma";
-import {
-  DeleteImageFromStorage,
-  caculateArrayPagination,
-  removeSpaceAndToLowerCase,
-} from "../utilities";
+import { DeleteImageFromStorage } from "../utilities";
 import { DeleteImageTempForCurrentUser } from "../../app/api/products/cover/helper/Cleanup";
 import {
   ProductInfo,
   ProductState,
   StockTypeEnum,
   VariantSectionType,
-  VariantValueObjType,
 } from "../../types/product.type";
-import { handleUpdateProductVariant } from "./variant.operations";
+import {
+  handleUpdateProductVariant,
+  handleUpdateVariantSection,
+} from "./variant.operations";
 import { updateProductVariantStock } from "./stock.operations";
+import type { InputJsonValue } from "@/prisma/generated/prisma/internal/prismaNamespace";
+import type {
+  InfoCreateManyProductInput,
+  ProductsUncheckedUpdateInput,
+} from "@/prisma/generated/prisma/models";
 
 interface ReturnType {
   success: boolean;
@@ -31,14 +34,6 @@ export interface updateProductData extends ProductState {
     | "updateVariantSection";
   sectionId?: number;
 }
-
-type GetProductReturnType = {
-  success: boolean;
-  data?: any;
-  total?: number;
-  lowstock?: number;
-  totalfilter?: number;
-};
 
 // ─── Private helpers ──────────────────────────────────────────────────────────
 
@@ -76,7 +71,7 @@ const updateDetails = async (details: [] | ProductInfo[], id: number) => {
               where: { id: detail.id },
               data: {
                 info_title: detail.info_title,
-                info_value: detail.info_value as any,
+                info_value: detail.info_value as InputJsonValue,
               },
             }),
           ),
@@ -88,7 +83,7 @@ const updateDetails = async (details: [] | ProductInfo[], id: number) => {
           data: detailsToCreate.map((detail) => ({
             info_title: detail.info_title,
             info_type: detail.info_type,
-            info_value: detail.info_value as any,
+            info_value: detail.info_value as InputJsonValue,
             product_id: id,
           })),
         });
@@ -100,70 +95,6 @@ const updateDetails = async (details: [] | ProductInfo[], id: number) => {
     console.error("Failed to update product details:", error);
     throw new Error("Failed to update product details");
   }
-};
-
-const handleUpdateVariantSection = async (
-  data: updateProductData,
-): Promise<ReturnType> => {
-  const {
-    id: sectionId,
-    productsId: productId,
-    name: sectionName,
-    Variants: sectionVariants,
-    varaintId,
-  } = data as unknown as VariantSectionType;
-
-  if (!sectionVariants || !sectionName) {
-    return { success: false, error: "Missing Required" };
-  }
-
-  // Create mode
-  if (!sectionId) {
-    const created = await Prisma.variantSection.create({
-      data: { name: sectionName, productsId: productId },
-    });
-    await Prisma.variant.updateMany({
-      where: { id: { in: sectionVariants.map((i) => i.id) as number[] } },
-      data: { sectionId: created.id },
-    });
-    return { success: true, id: created.id };
-  }
-
-  const existingSection = await Prisma.variantSection.findUnique({
-    where: { id: sectionId },
-  });
-  if (!existingSection) {
-    return { success: false, error: "Variant section not found" };
-  }
-
-  // Remove a single variant from the section
-  if (varaintId) {
-    await Prisma.variant.update({
-      where: { id: varaintId },
-      data: { sectionId: null },
-    });
-    return { success: true };
-  }
-
-  const variantIds = sectionVariants.map((i) => i.id) as number[];
-  await Prisma.$transaction(async (tx) => {
-    await Promise.all([
-      tx.variant.updateMany({
-        where: { sectionId, id: { notIn: variantIds } },
-        data: { sectionId: null },
-      }),
-      tx.variant.updateMany({
-        where: { sectionId: null, id: { in: variantIds } },
-        data: { sectionId },
-      }),
-      tx.variantSection.update({
-        where: { id: sectionId },
-        data: { name: sectionName },
-      }),
-    ]);
-  });
-
-  return { success: true };
 };
 
 const handleRelatedProductsUpdate = async (
@@ -215,77 +146,6 @@ const handleRelatedProductsUpdate = async (
   }
 };
 
-type FilterableProduct = {
-  name: string;
-  parentcategory_id: number | null;
-  childcategory_id: number | null;
-  stock: number | null;
-  Stock?: Array<{ Stockvalue: Array<{ qty: number }> }>;
-};
-
-/** Variant products use per-variant stock; normal products use `stock`. */
-const isLowStockProduct = (prod: FilterableProduct): boolean => {
-  if (prod.Stock && prod.Stock.length > 0) {
-    return prod.Stock.some((stock) => stock.Stockvalue.some((v) => v.qty <= 5));
-  }
-  return prod.stock !== null && prod.stock !== undefined && prod.stock <= 5;
-};
-
-/** Name / category / low-stock filters used by the inventory product list. */
-const matchesInventoryFilters = (
-  prod: FilterableProduct,
-  filters: {
-    query?: string;
-    parent_cate?: number;
-    child_cate?: number;
-    sk?: string;
-  },
-): boolean => {
-  const { query, parent_cate, child_cate, sk } = filters;
-  if (
-    query &&
-    !removeSpaceAndToLowerCase(prod.name).includes(
-      removeSpaceAndToLowerCase(query.toString()),
-    )
-  ) {
-    return false;
-  }
-  if (parent_cate && prod.parentcategory_id !== parent_cate) return false;
-  if (child_cate && prod.childcategory_id !== child_cate) return false;
-  if (sk === "Low" && !isLowStockProduct(prod)) return false;
-  return true;
-};
-
-/**
- * Moves the products picked for a promotion to the front (in pick order),
- * keeping everything else in its original order.
- */
-const putSelectedFirst = <T extends { id: number }>(
-  items: T[],
-  ids?: number[],
-): T[] => {
-  if (!ids || ids.length === 0) return items;
-  const rank = new Map(ids.map((id, idx) => [id, idx]));
-  const picked = items
-    .filter((item) => rank.has(item.id))
-    .sort((a, b) => (rank.get(a.id) ?? 0) - (rank.get(b.id) ?? 0));
-  return [...picked, ...items.filter((item) => !rank.has(item.id))];
-};
-
-const mapWithDiscount = (products: any[]): any[] =>
-  products.map((i) => ({
-    ...i,
-    ...(i.discount && {
-      discount: {
-        percent: i.discount,
-        newprice: (
-          parseFloat(i.price.toString()) -
-          (parseFloat(i.price.toString()) * i.discount) / 100
-        ).toFixed(2),
-      },
-    }),
-  }));
-
 // ─── Exported operations ──────────────────────────────────────────────────────
 
 export const CreateProduct = async (
@@ -313,7 +173,7 @@ export const CreateProduct = async (
       let relatedproduct = null;
       if (data.relatedproductid) {
         relatedproduct = await tx.producttype.create({
-          data: { productId: data.relatedproductid as any },
+          data: { productId: data.relatedproductid },
         });
       }
 
@@ -335,7 +195,11 @@ export const CreateProduct = async (
               })),
             },
           },
-          details: { createMany: { data: data.details as any } },
+          details: {
+            createMany: {
+              data: data.details as unknown as InfoCreateManyProductInput[],
+            },
+          },
           relatedproductId: relatedproduct?.id,
         },
         include: { relatedproduct: true },
@@ -480,7 +344,9 @@ export const EditProduct = async (
         }
 
         case "updateVariantSection":
-          return handleUpdateVariantSection(data);
+          return handleUpdateVariantSection(
+            data as unknown as VariantSectionType,
+          );
 
         default: {
           if (stock !== undefined) {
@@ -502,7 +368,7 @@ export const EditProduct = async (
     }
 
     await Prisma.$transaction(async (tx) => {
-      const productUpdates: any = {};
+      const productUpdates: ProductsUncheckedUpdateInput = {};
 
       if (stocktype !== undefined && existProduct.stocktype !== stocktype) {
         productUpdates.stocktype = stocktype;
@@ -567,7 +433,7 @@ export const EditProduct = async (
     });
 
     //Clean up methods after operations
-    const postTransactionOps: Promise<any>[] = [];
+    const postTransactionOps: Promise<unknown>[] = [];
 
     if (covers?.length) {
       postTransactionOps.push(DeleteImageTempForCurrentUser());
@@ -600,7 +466,8 @@ export const EditProduct = async (
         handleRelatedProductsUpdate(
           id,
           relatedproductid,
-          (existProduct as any).relatedproduct ?? null,
+          (existProduct as { relatedproduct?: { productId: unknown } | null })
+            .relatedproduct ?? null,
         ),
       );
     }
@@ -637,7 +504,7 @@ export const DeleteProduct = async (id: number) => {
     }
 
     await Prisma.$transaction(async (tx) => {
-      const deleteOps: Promise<any>[] = [
+      const deleteOps: Promise<unknown>[] = [
         tx.variant.deleteMany({ where: { product_id: id } }),
         tx.productcover.deleteMany({ where: { productId: id } }),
         tx.info.deleteMany({ where: { product_id: id } }),
@@ -682,242 +549,5 @@ export const DeleteProduct = async (id: number) => {
   } catch (error) {
     console.error("Delete Product", error);
     throw new Error("Failed To Delete");
-  }
-};
-
-export const GetAllProduct = async (
-  limit: number,
-  ty: string,
-  page: number,
-  query?: string,
-  parent_cate?: number,
-  sk?: string,
-  child_cate?: number,
-  promotionid?: number,
-  priceorder?: number,
-  detailcolor?: string,
-  detailtext?: string,
-  selectpromo?: number,
-  promotionids?: string,
-  selectedids?: number[],
-): Promise<GetProductReturnType> => {
-  try {
-    let totalproduct: number = 0;
-    let allproduct: any = [];
-    let lowstock = 0;
-
-    if (!promotionid || promotionid === -1) {
-      if (ty === "filter" || ty === "all") {
-        let products = await Prisma.products.findMany({
-          where: {
-            ...(!promotionids && selectpromo === 1
-              ? { promotion_id: null }
-              : {}),
-            ...(promotionids
-              ? {
-                  promotion: {
-                    id:
-                      promotionids.length > 1
-                        ? {
-                            in: promotionids
-                              .split(",")
-                              .map((i) => parseInt(i, 10)),
-                          }
-                        : { equals: parseInt(promotionids, 10) },
-                  },
-                }
-              : {}),
-          },
-          select: {
-            id: true,
-            name: true,
-            covers: {
-              orderBy: {
-                id: "asc",
-              },
-            },
-            price: true,
-            stock: true,
-            discount: true,
-            Stock: {
-              select: {
-                id: true,
-                Stockvalue: {
-                  select: {
-                    id: true,
-                    qty: true,
-                  },
-                },
-              },
-            },
-            stocktype: true,
-            details: true,
-            parentcategory_id: true,
-            childcategory_id: true,
-            promotion_id: true,
-            promotion: true,
-          },
-          orderBy: {
-            price: priceorder === 1 ? "asc" : "desc",
-          },
-        });
-
-        products = products
-          .filter((prod) =>
-            matchesInventoryFilters(prod, {
-              query,
-              parent_cate,
-              child_cate,
-              sk,
-            }),
-          )
-          .map((prod) => ({ ...prod, lowstock: isLowStockProduct(prod) }));
-
-        products = putSelectedFirst(products, selectedids);
-
-        lowstock = products.filter((p) => (p as any).lowstock).length;
-        totalproduct = products.length;
-        allproduct = caculateArrayPagination(products, page, limit);
-      } else if (ty === "detail") {
-        const colors =
-          detailcolor && detailcolor.includes(",")
-            ? detailcolor?.split(",")
-            : [detailcolor];
-        const texts =
-          detailtext && detailtext.includes(",")
-            ? detailtext.split(",")
-            : [detailtext];
-
-        const product = await Prisma.products.findMany({
-          where: {
-            parentcategory_id: parent_cate ?? undefined,
-            childcategory_id: child_cate ?? undefined,
-          },
-          include: {
-            details: true,
-            Variant: true,
-            covers: true,
-          },
-        });
-
-        const filteredproduct = product.filter((i) => {
-          const color = i.Variant.find((j) => j.option_type === "COLOR");
-          const text = i.Variant.find((j) => j.option_type === "TEXT");
-
-          if (color) {
-            const opt_val = color?.option_value as
-              | string[]
-              | VariantValueObjType[];
-            const productColors = opt_val
-              .filter((k: any) => k.val !== "")
-              .map((l: any) => {
-                return l.val.replace("#", "");
-              });
-
-            const text_value = text?.option_value as string[];
-            const otherFilter = text_value?.map((l) => {
-              return removeSpaceAndToLowerCase(l);
-            });
-
-            const hasSelectedColor =
-              colors &&
-              colors?.some((item) => productColors?.includes(item as string));
-
-            const hasSeletecFilter =
-              otherFilter &&
-              texts?.some((item) => otherFilter.includes(item as string));
-            return hasSelectedColor || hasSeletecFilter;
-          }
-          return false;
-        });
-
-        totalproduct = filteredproduct.length;
-        allproduct = caculateArrayPagination(filteredproduct, page, limit);
-      }
-    } else {
-      const product = await Prisma.products.findMany({
-        where: {
-          ...(promotionid !== -1
-            ? { OR: [{ promotion_id: null }, { promotion_id: promotionid }] }
-            : {}),
-          ...(promotionids ? { promotion_id: parseInt(promotionids, 10) } : {}),
-        },
-        select: {
-          id: true,
-          discount: true,
-          price: true,
-          name: true,
-          covers: {
-            orderBy: {
-              id: "asc",
-            },
-          },
-          promotion_id: true,
-          stock: true,
-          parentcategory_id: true,
-          childcategory_id: true,
-          Stock: {
-            select: { Stockvalue: { select: { qty: true } } },
-          },
-        },
-        orderBy: {
-          id: "asc",
-        },
-      });
-
-      const filtered = product
-        .filter((prod) =>
-          matchesInventoryFilters(prod, { query, parent_cate, child_cate, sk }),
-        )
-        .map((prod) => ({ ...prod, lowstock: isLowStockProduct(prod) }));
-
-      lowstock = filtered.filter((prod) => prod.lowstock).length;
-      totalproduct = filtered.length;
-      allproduct = caculateArrayPagination(
-        putSelectedFirst(filtered, selectedids),
-        page,
-        limit,
-      );
-    }
-
-    return {
-      success: true,
-      data: mapWithDiscount(allproduct),
-      lowstock: lowstock,
-      total: Math.ceil(totalproduct / limit),
-      totalfilter: totalproduct,
-    };
-  } catch (error) {
-    console.error("Get Allproduct", error);
-    return { success: false };
-  }
-};
-
-export const GetProductByCategory = async ({
-  limit,
-  skip,
-  category,
-}: {
-  limit: number;
-  skip: number;
-  category: { parent: number; child: number };
-}): Promise<GetProductReturnType> => {
-  try {
-    const products = await Prisma.products.findMany({
-      where: {
-        parentcategory_id: category.parent,
-        childcategory_id: category.child,
-      },
-      skip: skip,
-      take: limit,
-      include: {
-        details: true,
-        covers: true,
-      },
-    });
-    return { success: true, data: products };
-  } catch (error) {
-    console.error("GetProductByCategory", error);
-    return { success: false };
   }
 };

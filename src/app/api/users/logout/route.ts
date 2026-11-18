@@ -15,7 +15,6 @@ export async function DELETE() {
         userId: user.userId,
       },
     });
-
     return Response.json({ success: true }, { status: 200 });
   } catch (error) {
     console.log("Delete Session", error);

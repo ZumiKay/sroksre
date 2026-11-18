@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState, useCallback, useMemo } from "react";
+import React, { useEffect, useState, useCallback, useMemo, useEffectEvent } from "react";
 import { redirect, useRouter, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import { motion } from "framer-motion";
@@ -42,6 +42,7 @@ import {
   transformBannerData,
   transformPromotionData,
   toCardDiscount,
+  type ApiItem,
 } from "./utils/apiBuilder";
 import useCheckSession from "@/src/hooks/useCheckSession";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -152,11 +153,15 @@ export default function Inventory() {
     [filtervalue],
   );
 
-  const currentData = useMemo(() => allData?.[type as string] || [], [allData, type]);
+  const currentData = useMemo(
+    () => (allData?.[type as string] as ApiItem[] | undefined) || [],
+    [allData, type],
+  );
 
   //Check user session
+  const checkSession = useEffectEvent(() => handleCheckSession());
   useEffect(() => {
-    handleCheckSession();
+    checkSession();
   }, [reloaddata, ty, page, viewMode, filtervalue, openmodal]);
 
   // Fetch category names to display in filter chips
@@ -177,33 +182,11 @@ export default function Inventory() {
     });
   }, [filtervalue.parentcate]);
 
-  // Validation searchParams
-  useEffect(() => {
-    if (!type) {
-      return redirect(`/dashboard/inventory${DEFAULT_PARAMS(type || "product")}`);
-    }
-
-    const isValid =
-      (p && !IsNumber(p)) ||
-      (limit && !IsNumber(limit)) ||
-      (parentcate && !IsNumber(parentcate)) ||
-      (childcate && !IsNumber(childcate)) ||
-      (expired && !IsNumber(expired));
-
-    if (isValid) {
-      return redirect(`/dashboard/inventory?ty=${type}&p=1&limit=1`);
-    }
-
-    if (reloaddata) {
-      fetchdata(promotion.id);
-    }
-  }, [reloaddata, type, p, limit, parentcate, childcate, expired, promotion.id]);
-
   const fetchdata = useCallback(
     async (pid?: number) => {
       try {
         let apiUrl: string = "";
-        let transformFunction: (item: any) => any = (item) => item;
+        let transformFunction: (item: ApiItem) => ApiItem = (item) => item;
 
         // Build API URL based on type
         if (ty === "product") {
@@ -248,7 +231,7 @@ export default function Inventory() {
               );
               const removedIds = new Set(isPicking ? (promotion.tempproduct ?? []) : []);
 
-              modifieddata = modifieddata.map((item: any) => {
+              modifieddata = modifieddata.map((item: ApiItem) => {
                 const percent = pickedPercent.has(item.id)
                   ? pickedPercent.get(item.id)
                   : removedIds.has(item.id)
@@ -263,7 +246,7 @@ export default function Inventory() {
               setpromoexpire(response?.expirecount ?? 0);
 
               let tempromoproduct = [...(promotion.tempproductstate ?? [])];
-              tempromoproduct = modifieddata.map((i: any) => i.products);
+              tempromoproduct = modifieddata.map((i: ApiItem) => i.products);
               setpromotion((prev) => ({
                 ...prev,
                 tempproductstate: tempromoproduct,
@@ -302,6 +285,29 @@ export default function Inventory() {
     ],
   );
 
+  // Validation searchParams
+  const loadList = useEffectEvent(() => fetchdata(promotion.id));
+  useEffect(() => {
+    if (!type) {
+      return redirect(`/dashboard/inventory${DEFAULT_PARAMS(type || "product")}`);
+    }
+
+    const isValid =
+      (p && !IsNumber(p)) ||
+      (limit && !IsNumber(limit)) ||
+      (parentcate && !IsNumber(parentcate)) ||
+      (childcate && !IsNumber(childcate)) ||
+      (expired && !IsNumber(expired));
+
+    if (isValid) {
+      return redirect(`/dashboard/inventory?ty=${type}&p=1&limit=1`);
+    }
+
+    if (reloaddata) {
+      loadList();
+    }
+  }, [reloaddata, type, p, limit, parentcate, childcate, expired, promotion.id]);
+
   const handleShowPerPage = useCallback(
     (value: number | string) => {
       if (!value) return;
@@ -312,7 +318,7 @@ export default function Inventory() {
       router.push(`?${param}`);
       setreloaddata(true);
     },
-    [searchParam, router],
+    [searchParam, router, setpage, setreloaddata],
   );
 
   const handleUpdateProductBannerPromotion = useCallback(
@@ -390,7 +396,7 @@ export default function Inventory() {
       router.push(`?${params}`, { scroll: false });
       setreloaddata(true);
     },
-    [searchParam, filtervalue, router, handleCheckSession],
+    [searchParam, filtervalue, router, setpage, setshow, setSearchInput, setreloaddata],
   );
 
   const handleLowStockFilter = useCallback(() => {
@@ -400,7 +406,7 @@ export default function Inventory() {
     setfiltervalue((prev) => ({ ...prev, status: "Low" }));
     router.push(`?${params}`, { scroll: false });
     setreloaddata(true);
-  }, [searchParam, router]);
+  }, [searchParam, router, setreloaddata]);
 
   const handleInlineSearch = useCallback(
     (e: React.FormEvent) => {
@@ -419,7 +425,7 @@ export default function Inventory() {
       router.push(`?${params}`, { scroll: false });
       setreloaddata(true);
     },
-    [searchInput, searchParam, router],
+    [searchInput, searchParam, router, setreloaddata],
   );
 
   const handleRemoveFilter = useCallback(
@@ -431,14 +437,14 @@ export default function Inventory() {
       params.set("p", "1");
       setfiltervalue((prev) => {
         const next = { ...prev };
-        keys.forEach((k) => delete (next as any)[k]);
+        keys.forEach((k) => delete next[k as keyof typeof next]);
         return next;
       });
       if (key === "name") setSearchInput("");
       router.push(`?${params}`, { scroll: false });
       setreloaddata(true);
     },
-    [searchParam, router],
+    [searchParam, router, setSearchInput, setreloaddata],
   );
 
   const handleClearAllFilters = useCallback(() => {
@@ -449,7 +455,7 @@ export default function Inventory() {
     setSearchInput("");
     router.push(`?${params}`, { scroll: false });
     setreloaddata(true);
-  }, [searchParam, filtervalue, router]);
+  }, [searchParam, filtervalue, router, setSearchInput, setreloaddata]);
 
   // Active chips: only keys that have a value and are relevant to current type
   const activeFilterChips = useMemo(() => {
@@ -461,11 +467,11 @@ export default function Inventory() {
     const keys = relevantKeys[type as string] ?? Object.keys(FILTER_CHIP_LABELS);
     return keys
       .filter((key) => {
-        const val = (filtervalue as any)[key];
+        const val = filtervalue[key as keyof InventoryParamType];
         return val !== undefined && val !== "" && val !== null;
       })
       .map((key) => {
-        const raw = (filtervalue as any)[key];
+        const raw = filtervalue[key as keyof InventoryParamType];
         let displayVal = String(raw);
         if (key === "parentcate") {
           displayVal = parentCateNameMap[String(raw)] ?? String(raw);
@@ -492,7 +498,7 @@ export default function Inventory() {
   const exitSelectMode = useCallback(() => {
     setIsSelectMode(false);
     setSelectedIds(new Set());
-  }, []);
+  }, [setIsSelectMode]);
 
   const toggleSelectId = useCallback((id: number) => {
     setSelectedIds((prev) => {
@@ -504,7 +510,9 @@ export default function Inventory() {
   }, []);
 
   const toggleSelectAll = useCallback(() => {
-    const ids: number[] = (currentData as any[]).map((item) => item.id).filter(Boolean);
+    const ids = (currentData as Array<{ id?: number }>)
+      .map((item) => item.id)
+      .filter((id): id is number => Boolean(id));
     setSelectedIds((prev) => (prev.size === ids.length ? new Set() : new Set(ids)));
   }, [currentData]);
 
@@ -526,7 +534,7 @@ export default function Inventory() {
     }
     exitSelectMode();
     setreloaddata(true);
-  }, [selectedIds, type, setisLoading, exitSelectMode]);
+  }, [selectedIds, type, setisLoading, exitSelectMode, setreloaddata]);
 
   const openBulkDeleteConfirm = useCallback(() => {
     setopenmodal((prev) => ({
@@ -541,9 +549,12 @@ export default function Inventory() {
     }));
   }, [selectedIds, setopenmodal, handleBulkDelete]);
 
-  useEffect(() => {
+  // A new list clears the selection
+  const [syncedData, setSyncedData] = useState<typeof currentData | null>(null);
+  if (syncedData !== currentData) {
+    setSyncedData(currentData);
     setSelectedIds(new Set());
-  }, [currentData]);
+  }
 
   const renderCardView = () => {
     if (type === "product") {
@@ -639,7 +650,7 @@ export default function Inventory() {
           )}
           <BannerCard
             data={{ name: obj.name, url: obj.image.url }}
-            bannersize={obj.size as any}
+            bannersize={obj.size as "small" | "normal"}
             index={idx}
             id={obj.id ?? 0}
             type="banner"
@@ -797,7 +808,11 @@ export default function Inventory() {
             expired={expired}
             param={filtervalue}
             reloadData={reloadData}
-            setfilterdata={setfiltervalue as any}
+            setfilterdata={
+              setfiltervalue as React.Dispatch<
+                React.SetStateAction<InventoryParamType | undefined>
+              >
+            }
             isSetPromotion={promotion.selectproduct}
             selectedFirst={selectedFirst}
             onSelectedFirstChange={setSelectedFirst}

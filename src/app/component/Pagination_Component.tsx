@@ -46,7 +46,7 @@ const renderItem = ({
       key={key}
       ref={ref}
       className={cn(className, isActive && "text-white bg-slate-600 font-bold")}
-      onClick={() => setPage(value as any)}
+      onClick={() => setPage(value as number)}
     >
       {value}
     </button>
@@ -67,9 +67,9 @@ export default function PaginationCustom({
   const handlePage = (p: number) => {
     const params = new URLSearchParams(searchParam);
     params.set("p", `${p}`);
-    setpage && setpage(p);
+    setpage?.(p);
     router.push(`?${params}`);
-    onPageChange && onPageChange();
+    onPageChange?.();
   };
 
   return (
@@ -171,11 +171,11 @@ export const SelectionCustom = ({
       disableAnimation
       style={style}
       isLoading={!!isLoading}
-      popoverProps={popoverProps as any}
+      popoverProps={popoverProps}
       onChange={(e) => {
         const { value } = e.target;
-        setvalue && setvalue(value);
-        onChange && onChange(IsNumber(value) ? parseInt(value) : value);
+        setvalue?.(value);
+        onChange?.(IsNumber(value) ? parseInt(value) : value);
       }}
     >
       {selectItems}

@@ -6,13 +6,17 @@ import { useGlobalStore } from "@/src/context/GlobalContext";
 import { SecondaryModal } from "../component/Modals";
 import { useRouter, useSearchParams } from "next/navigation";
 import { filtervaluetype, getFilterValue } from "./action";
+import type { PromotionProduct } from "./data-fetching";
 import { ToggleSelect } from "../component/ToggleMenu";
 import Image from "next/image";
 import Card from "../component/Card";
 import { Input, Spacer } from "@heroui/react";
 import { ApiRequest, useEffectOnce } from "@/src/context/CustomHook";
 import { NormalSkeleton } from "../component/Banner";
-import { ProductState, VariantValueObjType } from "@/src/types/product.type";
+import {
+  productcoverstype,
+  VariantValueObjType,
+} from "@/src/types/product.type";
 import { Orderpricetype } from "@/src/types/order.type";
 
 export const ProductFilterButton = ({
@@ -148,8 +152,10 @@ export const FilterContainer = ({
   const searchParams = useSearchParams();
 
   useEffectOnce(() => {
-    selected?.search &&
-      setfiltervalue((prev) => ({ ...prev, search: selected.search }) as any);
+    if (selected?.search)
+      setfiltervalue(
+        (prev) => ({ ...prev, search: selected.search }) as filtervaluetype,
+      );
 
     const getFiltervalue = async () => {
       if (!pid && !cid) {
@@ -190,7 +196,9 @@ export const FilterContainer = ({
         if (!res.success) {
           return;
         }
-        setfiltervalue((prev) => ({ ...prev, category: res.data }) as any);
+        setfiltervalue(
+          (prev) => ({ ...prev, category: res.data }) as filtervaluetype,
+        );
       };
       fetchcate();
     }
@@ -236,7 +244,7 @@ export const FilterContainer = ({
 
     if (selected) {
       const selectedval = Object.entries(selected);
-      selectedval.forEach(([key, _]) => {
+      selectedval.forEach(([key]) => {
         if (param.has(key)) {
           param.delete(key);
         }
@@ -308,11 +316,14 @@ export const FilterContainer = ({
             defaultValue={selected?.search}
             onChange={(e) =>
               setfiltervalue(
-                (prev) => ({ ...prev, search: e.target.value }) as any,
+                (prev) =>
+                  ({ ...prev, search: e.target.value }) as filtervaluetype,
               )
             }
             onClear={() =>
-              setfiltervalue((prev) => ({ ...prev, search: "" }) as any)
+              setfiltervalue(
+                (prev) => ({ ...prev, search: "" }) as filtervaluetype,
+              )
             }
             size="lg"
           />
@@ -394,7 +405,7 @@ export const FilterContainer = ({
                     selected={selected?.promo}
                     data={filtervalue?.promotion}
                     promo
-                    clickfunction={(idx, _) => {
+                    clickfunction={(idx) => {
                       handleClick(idx, "promo");
                     }}
                     onClear={handleClearSpecific}
@@ -438,9 +449,9 @@ interface PromotionProductlistContainerProps {
   name: string;
   description: string;
   expiredDate: string;
-  banner: { url: string; name: string };
+  banner?: { url: string; name: string };
   product: Array<
-    Pick<ProductState, "id" | "name" | "price" | "discount" | "covers">
+    Pick<PromotionProduct, "id" | "name" | "price" | "discount" | "covers">
   >;
 }
 
@@ -477,7 +488,7 @@ export const PromotionProductListContainer = ({
             id={prod.id}
             name={prod.name}
             price={prod.price.toFixed(2)}
-            img={prod.covers}
+            img={prod.covers as productcoverstype[]}
             discount={prod.discount as Orderpricetype}
           />
         ))}

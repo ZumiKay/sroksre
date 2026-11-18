@@ -22,7 +22,7 @@ export class HomeErrorBoundary extends Component<Props, State> {
     return { hasError: true, error };
   }
 
-  componentDidCatch(error: Error, errorInfo: any) {
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.log("Home page error:", error, errorInfo);
   }
 

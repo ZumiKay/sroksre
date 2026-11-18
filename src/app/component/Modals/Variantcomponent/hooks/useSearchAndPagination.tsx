@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 
 export const useSearchAndPagination = <T extends { name: string }>(
   items: T[] | undefined,
@@ -29,9 +29,11 @@ export const useSearchAndPagination = <T extends { name: string }>(
   );
 
   // Reset page when search changes
-  useEffect(() => {
+  const [lastQuery, setLastQuery] = useState(searchQuery);
+  if (lastQuery !== searchQuery) {
+    setLastQuery(searchQuery);
     setCurrentPage(1);
-  }, [searchQuery]);
+  }
 
   return {
     searchQuery,

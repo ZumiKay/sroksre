@@ -17,7 +17,7 @@ const API_ENDPOINTS = {
 } as const;
 
 export default function NavbarWrapper() {
-  const { handleCheckSession, sessionExpired, data, status } = useCheckSession();
+  const { sessionExpired, data, status } = useCheckSession();
   const [initialCartCount, setInitialCartCount] = useState(0);
   const [initialNotificationCount, setInitialNotificationCount] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -72,10 +72,11 @@ export default function NavbarWrapper() {
       setLoading(false);
       isFetchingRef.current = false;
     }
-  }, [data, userSession, handleCheckSession]);
+  }, [userSession]);
 
   useEffect(() => {
     if (status === "authenticated" && data) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- starts a request; the loading flag is set as it begins
       fetchInitialData();
     }
 

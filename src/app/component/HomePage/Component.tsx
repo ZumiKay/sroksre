@@ -386,11 +386,12 @@ interface ProductCardProps {
   price: Orderpricetype;
 }
 export const ProductCard = (props: ProductCardProps) => {
+  const router = useRouter();
   return (
     <div
       key={props.id}
       className="card w-68 sm:w-80 md:w-87.5 shrink-0 h-fit flex flex-col bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-500 overflow-hidden group cursor-pointer border border-gray-100"
-      onClick={() => (window.location.href = `/product/detail/${props.id}`)}
+      onClick={() => router.push(`/product/detail/${props.id}`)}
     >
       <div className="relative overflow-hidden bg-gray-50">
         <Image

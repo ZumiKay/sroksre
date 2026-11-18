@@ -20,7 +20,7 @@ export const addToWishlistService = async (productId: number) => {
 
     successToast(added.message);
     return { success: true, message: added.message };
-  } catch (error) {
+  } catch {
     const message = "Failed to add to wishlist";
     errorToast(message);
     return { success: false, message };
@@ -44,7 +44,7 @@ export const addToCartService = async (
 
     successToast("Added to cart");
     return { success: true, message: "Added to cart" };
-  } catch (error) {
+  } catch {
     const message = "Failed to add to cart";
     errorToast(message);
     return { success: false, message };
