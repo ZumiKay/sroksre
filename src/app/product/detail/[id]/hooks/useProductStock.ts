@@ -1,7 +1,6 @@
 import { useState, useCallback } from "react";
 import { ApiRequest } from "@/src/context/CustomHook";
 import { Productorderdetailtype } from "@/src/types/order.type";
-import type { Varianttype } from "@/src/types/product.type";
 
 let stockCheckTimeout: NodeJS.Timeout | null = null;
 let cartCheckTimeout: NodeJS.Timeout | null = null;
@@ -108,43 +107,4 @@ export const useCartCheck = () => {
   );
 
   return { checkInCart, isLoading };
-};
-
-/**
- * Hook for computing option-level quantity constraints from selected variants
- */
-export const useOptionQuantity = () => {
-  const computeOptionQty = useCallback(
-    (selectedDetails: Productorderdetailtype[], variants: Varianttype[]) => {
-      let maxQty = Infinity;
-
-      for (const detail of selectedDetails) {
-        const variant = variants.find((v) => v.id === detail.variant_id);
-        if (!variant) continue;
-
-        const selectedOption = variant.option_value.find((opt) =>
-          typeof opt === "string"
-            ? opt === detail.value
-            : opt.val === detail.value,
-        );
-
-        if (
-          selectedOption &&
-          typeof selectedOption !== "string" &&
-          selectedOption.qty !== undefined
-        ) {
-          const optionQty =
-            typeof selectedOption.qty === "number"
-              ? selectedOption.qty
-              : parseInt(selectedOption.qty || "0");
-          maxQty = Math.min(maxQty, optionQty);
-        }
-      }
-
-      return maxQty === Infinity ? 0 : maxQty;
-    },
-    [],
-  );
-
-  return { computeOptionQty };
 };

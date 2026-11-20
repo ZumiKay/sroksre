@@ -8,7 +8,6 @@ import {
   VariantValueObjType,
 } from "@/src/types/product.type";
 
-const LOW_STOCK_THRESHOLD = 5;
 
 interface VariantListProps {
   variants: Array<Varianttype>;
@@ -92,39 +91,18 @@ const VariantItem = memo(
           {obj.option_type === "TEXT" &&
             obj.option_value.map((item, idx) => {
               const val = typeof item === "string" ? item : item.val;
-              const qty = typeof item === "string" ? undefined : item.qty;
-              const isLowStock =
-                qty !== undefined && qty <= LOW_STOCK_THRESHOLD;
               return (
                 <div
                   key={idx}
-                  className={`relative min-w-[40px] h-fit max-w-full wrap-break-word font-normal text-base px-3 py-1.5 rounded-lg border transition-colors duration-200 ${
-                    isLowStock
-                      ? "bg-orange-50 border-orange-300 text-orange-800"
-                      : "bg-gray-100 border-gray-200 hover:bg-gray-200"
-                  }`}
+                  className="relative min-w-[40px] h-fit max-w-full wrap-break-word font-normal text-base px-3 py-1.5 rounded-lg border transition-colors duration-200 bg-gray-100 border-gray-200 hover:bg-gray-200"
                 >
                   <span>{val}</span>
-                  {qty !== undefined && (
-                    <span
-                      className={`ml-1.5 text-xs font-semibold ${isLowStock ? "text-orange-600" : "text-gray-500"}`}
-                    >
-                      ×{qty}
-                    </span>
-                  )}
-                  {isLowStock && (
-                    <span className="absolute -top-2 -right-1 text-[10px] font-bold bg-orange-500 text-white px-1 rounded-full leading-4">
-                      Low
-                    </span>
-                  )}
                 </div>
               );
             })}
           {obj.option_type === "COLOR" &&
             obj.option_value.map((item, idx) => {
               const data = item as VariantValueObjType;
-              const isLowStock =
-                data.qty !== undefined && data.qty <= LOW_STOCK_THRESHOLD;
               return (
                 <div
                   key={idx}
@@ -132,18 +110,11 @@ const VariantItem = memo(
                 >
                   <div
                     style={{ backgroundColor: data.val }}
-                    className={`w-[36px] h-[36px] rounded-full border-2 shadow-md group-hover:scale-110 transition-transform duration-200 ${
-                      isLowStock ? "border-orange-400" : "border-white"
-                    }`}
+                    className="w-[36px] h-[36px] rounded-full border-2 border-white shadow-md group-hover:scale-110 transition-transform duration-200"
                   ></div>
                   {data.name && (
                     <span className="text-xs text-gray-600 font-medium">
                       {data.name}
-                    </span>
-                  )}
-                  {isLowStock && (
-                    <span className="absolute -top-1 -right-1 text-[10px] font-bold bg-orange-500 text-white px-1 rounded-full leading-4">
-                      Low
                     </span>
                   )}
                 </div>

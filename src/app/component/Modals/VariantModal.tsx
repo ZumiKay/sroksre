@@ -369,7 +369,6 @@ export const Variantcontainer = ({
           name: data.name ?? "",
           color: { hex: data.val as string, rgb: rgb },
           price: data.price ? parseFloat(data.price) : undefined,
-          qty: data.qty,
         });
         setOpen((prev) => ({ ...prev, addcolor: true }));
       } else {
@@ -380,14 +379,12 @@ export const Variantcontainer = ({
         if (typeof data === "string") {
           variantManager.setOption(data);
           variantManager.setOptionPrice(undefined);
-          variantManager.setOptionQty(undefined);
         } else {
           const objData = data as VariantValueObjType;
           variantManager.setOption(objData.val);
           variantManager.setOptionPrice(
             objData.price ? parseFloat(objData.price) : undefined,
           );
-          variantManager.setOptionQty(objData.qty);
         }
 
         setOpen((prev) => ({ ...prev, addoption: true }));

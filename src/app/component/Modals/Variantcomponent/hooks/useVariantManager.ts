@@ -22,8 +22,6 @@ export interface UseVariantManagerReturn {
   setOption: React.Dispatch<React.SetStateAction<string>>;
   optionPrice: number | undefined;
   setOptionPrice: React.Dispatch<React.SetStateAction<number | undefined>>;
-  optionQty: number | undefined;
-  setOptionQty: React.Dispatch<React.SetStateAction<number | undefined>>;
   edit: number;
   setEdit: React.Dispatch<React.SetStateAction<number>>;
   added: number;
@@ -32,14 +30,12 @@ export interface UseVariantManagerReturn {
     color: typeof Colorinitalize;
     name: string;
     price?: number;
-    qty?: number;
   };
   setColorData: React.Dispatch<
     React.SetStateAction<{
       color: typeof Colorinitalize;
       name: string;
       price?: number;
-      qty?: number;
     }>
   >;
   resetState: () => void;
@@ -53,19 +49,16 @@ export const useVariantManager = (): UseVariantManagerReturn => {
   const [name, setName] = useState("");
   const [option, setOption] = useState("");
   const [optionPrice, setOptionPrice] = useState<number | undefined>();
-  const [optionQty, setOptionQty] = useState<number | undefined>();
   const [edit, setEdit] = useState(-1);
   const [added, setAdded] = useState(-1);
   const [colorData, setColorData] = useState<{
     color: typeof Colorinitalize;
     name: string;
     price?: number;
-    qty?: number;
   }>({
     color: Colorinitalize,
     name: "",
     price: undefined,
-    qty: undefined,
   });
 
   const resetState = useCallback(() => {
@@ -75,17 +68,15 @@ export const useVariantManager = (): UseVariantManagerReturn => {
     setAdded(-1);
     setOption("");
     setOptionPrice(undefined);
-    setOptionQty(undefined);
     setColorData({
       color: Colorinitalize,
       name: "",
       price: undefined,
-      qty: undefined,
     });
   }, []);
 
   const addColor = useCallback(() => {
-    const { color, name: colorName, price, qty } = colorData;
+    const { color, name: colorName, price } = colorData;
     if (color?.hex === "" || !colorName) {
       errorToast(color.hex === "" ? "Please Select Color" : "Name is Required");
       return false;
@@ -110,7 +101,6 @@ export const useVariantManager = (): UseVariantManagerReturn => {
         val: color.hex,
         name: colorName,
         ...(price !== undefined && { price: price.toString() }),
-        ...(qty !== undefined && { qty }),
       };
 
       if (edit === -1) {
@@ -135,7 +125,6 @@ export const useVariantManager = (): UseVariantManagerReturn => {
       color: Colorinitalize,
       name: "",
       price: undefined,
-      qty: undefined,
     });
     setEdit(-1);
     return true;
@@ -165,14 +154,8 @@ export const useVariantManager = (): UseVariantManagerReturn => {
         if (!prev) return prev;
 
         const newOption: string | VariantValueObjType =
-          optionPrice !== undefined || optionQty !== undefined
-            ? {
-                val: option,
-                ...(optionPrice !== undefined && {
-                  price: optionPrice.toString(),
-                }),
-                ...(optionQty !== undefined && { qty: optionQty }),
-              }
+          optionPrice !== undefined
+            ? { val: option, price: optionPrice.toString() }
             : option;
 
         if (edit === -1) {
@@ -196,10 +179,9 @@ export const useVariantManager = (): UseVariantManagerReturn => {
       setEdit(-1);
       setOption(""); // Reset the option input after adding
       setOptionPrice(undefined);
-      setOptionQty(undefined);
       return true;
     },
-    [option, optionPrice, optionQty, edit],
+    [option, optionPrice, edit],
   );
 
   return {
@@ -211,8 +193,6 @@ export const useVariantManager = (): UseVariantManagerReturn => {
     setOption,
     optionPrice,
     setOptionPrice,
-    optionQty,
-    setOptionQty,
     edit,
     setEdit,
     added,

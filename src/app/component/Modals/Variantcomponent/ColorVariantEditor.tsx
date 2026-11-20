@@ -34,7 +34,6 @@ export const ColorVariantEditor: React.FC<ColorVariantEditorProps> = ({
         color={variantManager.colorData.color}
         name={variantManager.colorData.name}
         price={localGlobalPrice ?? variantManager.colorData.price}
-        qty={variantManager.colorData.qty}
         setcolor={(val) => {
           if (typeof val === "string") {
             variantManager.setColorData((prev) => ({
@@ -52,12 +51,6 @@ export const ColorVariantEditor: React.FC<ColorVariantEditorProps> = ({
           variantManager.setColorData((prev) => ({
             ...prev,
             price: typeof val === "function" ? val(prev.price) : val,
-          }));
-        }}
-        setqty={(val) => {
-          variantManager.setColorData((prev) => ({
-            ...prev,
-            qty: typeof val === "function" ? val(prev.qty) : val,
           }));
         }}
       />

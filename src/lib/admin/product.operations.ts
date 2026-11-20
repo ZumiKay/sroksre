@@ -410,7 +410,20 @@ export const EditProduct = async (
 
       if (covers?.length) {
         const existingCovers = covers.filter((c) => c.id);
-        const newCovers = covers.filter((c) => !c.id);
+        // A cover can arrive without an id even though it is already stored
+        // (e.g. saved from the image modal, then sent again with the product
+        // form). Blob URLs are unique, so skip any URL the product already has.
+        const storedUrls = new Set(
+          (
+            await tx.productcover.findMany({
+              where: { productId: id },
+              select: { url: true },
+            })
+          ).map((c) => c.url),
+        );
+        const newCovers = covers.filter(
+          (c) => !c.id && !storedUrls.has(c.url),
+        );
         await Promise.all([
           ...existingCovers.map((cover) =>
             tx.productcover.update({

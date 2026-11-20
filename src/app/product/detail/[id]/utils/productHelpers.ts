@@ -45,23 +45,6 @@ export const calculateAdditionalPrice = (
 };
 
 /**
- * Check if an option is available (has stock)
- */
-export const isOptionAvailable = (
-  option: string | VariantValueObjType,
-): boolean => {
-  if (typeof option === "string") return true;
-
-  if (option.qty !== undefined) {
-    const qty =
-      typeof option.qty === "number" ? option.qty : parseInt(option.qty || "0");
-    return qty > 0;
-  }
-
-  return true;
-};
-
-/**
  * Check if all required variants are selected
  */
 export const areRequiredVariantsSelected = (

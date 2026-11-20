@@ -42,14 +42,6 @@ export const TextVariantEditor: React.FC<TextVariantEditorProps> = React.memo(
       [variantManager],
     );
 
-    const handleQtyChange = useCallback(
-      (e: React.ChangeEvent<HTMLInputElement>) => {
-        const value = e.target.value;
-        variantManager.setOptionQty(value ? parseInt(value, 10) : undefined);
-      },
-      [variantManager],
-    );
-
     const handleAddOption = useCallback(() => {
       variantManager.setEdit(-1);
       variantManager.setOptionPrice(localGlobalPrice);
@@ -77,11 +69,6 @@ export const TextVariantEditor: React.FC<TextVariantEditorProps> = React.memo(
     const buttonText = useMemo(
       () => (variantManager.edit === -1 ? "Create" : "Update"),
       [variantManager.edit],
-    );
-
-    const qtyValue = useMemo(
-      () => variantManager.optionQty?.toString() ?? "",
-      [variantManager.optionQty],
     );
 
     const priceStartContent = useMemo(
@@ -125,15 +112,6 @@ export const TextVariantEditor: React.FC<TextVariantEditorProps> = React.memo(
                   onChange={handlePriceChange}
                   startContent={priceStartContent}
                 />
-                <Input
-                  type="number"
-                  size="lg"
-                  label="Quantity (Optional)"
-                  placeholder="0"
-                  value={qtyValue}
-                  onChange={handleQtyChange}
-                  min="0"
-                />
               </div>
               <div className="action-btn flex flex-row w-full gap-x-3">
                 <Button
@@ -173,7 +151,6 @@ export const TextVariantEditor: React.FC<TextVariantEditorProps> = React.memo(
                 <OptionItem
                   key={`${idx}-${typeof i === "string" ? i : i.val}`}
                   item={typeof i === "string" ? i : i.val}
-                  qty={typeof i === "string" ? undefined : i.qty}
                   idx={idx}
                   onDelete={variantManager.deleteValue}
                   onSelect={onTextSelect}
@@ -188,23 +165,19 @@ export const TextVariantEditor: React.FC<TextVariantEditorProps> = React.memo(
 );
 TextVariantEditor.displayName = "TextVariantEditor";
 
-const LOW_STOCK_THRESHOLD = 5;
-
 // Memoized option item component
 const OptionItem = React.memo<{
   item: string | VariantValueObjType;
-  qty?: number;
   idx: number;
   onDelete: (idx: number) => void;
   onSelect: (idx: number, type: "text") => void;
-}>(({ item, qty, idx, onDelete, onSelect }) => {
+}>(({ item, idx, onDelete, onSelect }) => {
   const handleDelete = useCallback(() => onDelete(idx), [idx, onDelete]);
   const handleSelect = useCallback(
     () => onSelect(idx, "text"),
     [idx, onSelect],
   );
   const displayValue = useMemo(() => item.toString(), [item]);
-  const isLowStock = qty !== undefined && qty <= LOW_STOCK_THRESHOLD;
 
   return (
     <motion.div
@@ -220,25 +193,9 @@ const OptionItem = React.memo<{
       >
         <div
           onClick={handleSelect}
-          className={`relative option text-sm cursor-pointer px-4 py-2.5 rounded-lg border-2 font-medium transition-all duration-200 hover:shadow-md active:scale-95 w-fit h-fit flex items-center gap-1.5 ${
-            isLowStock
-              ? "bg-orange-50 border-orange-300 text-orange-800 hover:border-orange-400"
-              : "bg-blue-50 border-blue-200 text-gray-700 hover:border-blue-400"
-          }`}
+          className="relative option text-sm cursor-pointer px-4 py-2.5 rounded-lg border-2 font-medium transition-all duration-200 hover:shadow-md active:scale-95 w-fit h-fit flex items-center gap-1.5 bg-blue-50 border-blue-200 text-gray-700 hover:border-blue-400"
         >
           <span>{displayValue}</span>
-          {qty !== undefined && (
-            <span
-              className={`text-xs font-semibold ${isLowStock ? "text-orange-500" : "text-gray-400"}`}
-            >
-              ×{qty}
-            </span>
-          )}
-          {isLowStock && (
-            <span className="absolute -top-2 -right-1 text-[10px] font-bold bg-orange-500 text-white px-1 rounded-full leading-4">
-              Low
-            </span>
-          )}
         </div>
       </Badge>
     </motion.div>

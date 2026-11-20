@@ -20,7 +20,6 @@ import { JsonObject } from "@/prisma/generated/prisma/internal/prismaNamespace";
 import {
   ProductState,
   Varianttype,
-  VariantValueObjType,
 } from "@/src/types/product.type";
 import { getVariantDetail } from "@/src/app/checkout/helper";
 import {
@@ -256,32 +255,9 @@ export async function GET(req: NextRequest) {
               detail.map((i) => i.value),
             );
 
-      // For products with no DB Stock records, derive maxqty from option-level qty fields.
+      // Products without stock records aren't stock-tracked: allow one
       if (maxqty === 0 && !item.product.Stock?.length) {
-        let optionQty = Infinity;
-        for (const d of detail) {
-          const variant = item.product.Variant?.find(
-            (v) => v.id === d.variant_id,
-          );
-          if (!variant) continue;
-          const option = (
-            variant.option_value as (string | VariantValueObjType)[]
-          ).find((opt) =>
-            typeof opt === "string" ? opt === d.value : opt.val === d.value,
-          );
-          if (
-            option &&
-            typeof option !== "string" &&
-            option.qty !== undefined
-          ) {
-            const oQty =
-              typeof option.qty === "number"
-                ? option.qty
-                : parseInt((option.qty as string) || "0");
-            optionQty = Math.min(optionQty, oQty);
-          }
-        }
-        maxqty = optionQty === Infinity ? 1 : optionQty;
+        maxqty = 1;
       }
       return {
         id: item.id,

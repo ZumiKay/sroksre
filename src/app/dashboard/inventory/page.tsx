@@ -1,23 +1,35 @@
 "use client";
-import React, { useEffect, useState, useCallback, useMemo, useEffectEvent } from "react";
+import React, {
+  useEffect,
+  useState,
+  useCallback,
+  useMemo,
+  useEffectEvent,
+} from "react";
 import { redirect, useRouter, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import { motion } from "framer-motion";
 import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs from "dayjs";
-
 // Components
 import Card, { BannerCard } from "../../component/Card";
 import { FilterMenu } from "../../component/SideMenu";
 import { CreateProducts } from "../../component/Modals/Product";
 import { Category } from "../../component/Modals/Category";
 import { BannerModal } from "../../component/Modals/Banner";
-import { CreatePromotionModal, DiscountModals } from "../../component/Modals/Promotion";
+import {
+  CreatePromotionModal,
+  DiscountModals,
+} from "../../component/Modals/Promotion";
 import { PromotionProductsPanel } from "./components/PromotionProductsPanel";
 import PaginationCustom from "../../component/Pagination_Component";
 import { InventoryHeader } from "./components/InventoryHeader";
-import { ProductListItem, BannerListItem, PromotionListItem } from "./components/ListViewItems";
+import {
+  ProductListItem,
+  BannerListItem,
+  PromotionListItem,
+} from "./components/ListViewItems";
 import {
   PRODUCT_STOCK_MODAL,
   StockEditTarget,
@@ -109,7 +121,9 @@ export default function Inventory() {
   const [loaded, setloaded] = useState(false);
   const [showPromoProducts, setShowPromoProducts] = useState(false);
   // While picking promotion products, list the picked ones first (on unless turned off)
-  const [selectedFirst, setSelectedFirst] = useState(searchParam.get("selectedfirst") !== "0");
+  const [selectedFirst, setSelectedFirst] = useState(
+    searchParam.get("selectedfirst") !== "0",
+  );
   const [show, setshow] = useState(limit ?? "1");
   const [page, setpage] = useState(p ? parseInt(p) : 1);
   const [itemscount, setitemcount] = useState(0);
@@ -145,8 +159,12 @@ export default function Inventory() {
 
   const [searchInput, setSearchInput] = useState(name ?? "");
   // Maps category/subcategory IDs → names for chip display (kept separate to avoid ID collisions)
-  const [parentCateNameMap, setParentCateNameMap] = useState<Record<string, string>>({});
-  const [childCateNameMap, setChildCateNameMap] = useState<Record<string, string>>({});
+  const [parentCateNameMap, setParentCateNameMap] = useState<
+    Record<string, string>
+  >({});
+  const [childCateNameMap, setChildCateNameMap] = useState<
+    Record<string, string>
+  >({});
 
   const hasActiveFilters = useMemo(
     () => Object.values(filtervalue).some((value) => value !== undefined),
@@ -199,12 +217,19 @@ export default function Inventory() {
             // From state, not the URL: the URL updates a moment after Apply
             filtervalue.promoids,
             selectedFirst
-              ? promotion.Products.map((product) => product.id).filter((id) => id !== 0)
+              ? promotion.Products.map((product) => product.id).filter(
+                  (id) => id !== 0,
+                )
               : undefined,
           );
           transformFunction = transformProductData;
         } else if (ty === "banner") {
-          apiUrl = buildBannerApiUrl(page, show, filtervalue, !!promotion.selectbanner);
+          apiUrl = buildBannerApiUrl(
+            page,
+            show,
+            filtervalue,
+            !!promotion.selectbanner,
+          );
           transformFunction = transformBannerData;
         } else if (ty === "promotion") {
           apiUrl = buildPromotionApiUrl(page, show, filtervalue);
@@ -212,7 +237,14 @@ export default function Inventory() {
         }
 
         const makerequest = async () => {
-          const response = await ApiRequest(apiUrl, undefined, "GET", undefined, undefined, ty);
+          const response = await ApiRequest(
+            apiUrl,
+            undefined,
+            "GET",
+            undefined,
+            undefined,
+            ty,
+          );
 
           if (response.success) {
             let modifieddata = response.data?.map(transformFunction);
@@ -226,10 +258,15 @@ export default function Inventory() {
               const isPicking = !!promotion.selectproduct && type === "product";
               const pickedPercent = new Map(
                 isPicking
-                  ? promotion.Products.map((product) => [product.id, product.discount?.percent])
+                  ? promotion.Products.map((product) => [
+                      product.id,
+                      product.discount?.percent,
+                    ])
                   : [],
               );
-              const removedIds = new Set(isPicking ? (promotion.tempproduct ?? []) : []);
+              const removedIds = new Set(
+                isPicking ? (promotion.tempproduct ?? []) : [],
+              );
 
               modifieddata = modifieddata.map((item: ApiItem) => {
                 const percent = pickedPercent.has(item.id)
@@ -237,7 +274,10 @@ export default function Inventory() {
                   : removedIds.has(item.id)
                     ? undefined
                     : item.discount?.percent;
-                return { ...item, discount: toCardDiscount(item.price, percent) };
+                return {
+                  ...item,
+                  discount: toCardDiscount(item.price, percent),
+                };
               });
             }
 
@@ -289,7 +329,9 @@ export default function Inventory() {
   const loadList = useEffectEvent(() => fetchdata(promotion.id));
   useEffect(() => {
     if (!type) {
-      return redirect(`/dashboard/inventory${DEFAULT_PARAMS(type || "product")}`);
+      return redirect(
+        `/dashboard/inventory${DEFAULT_PARAMS(type || "product")}`,
+      );
     }
 
     const isValid =
@@ -306,7 +348,16 @@ export default function Inventory() {
     if (reloaddata) {
       loadList();
     }
-  }, [reloaddata, type, p, limit, parentcate, childcate, expired, promotion.id]);
+  }, [
+    reloaddata,
+    type,
+    p,
+    limit,
+    parentcate,
+    childcate,
+    expired,
+    promotion.id,
+  ]);
 
   const handleShowPerPage = useCallback(
     (value: number | string) => {
@@ -337,7 +388,13 @@ export default function Inventory() {
               type: updateType,
             };
 
-      const updatereq = await ApiRequest("/api/promotion", setisLoading, "PUT", "JSON", data);
+      const updatereq = await ApiRequest(
+        "/api/promotion",
+        setisLoading,
+        "PUT",
+        "JSON",
+        data,
+      );
 
       if (updatereq.success) {
         return true;
@@ -352,7 +409,10 @@ export default function Inventory() {
   const handleDoneButton = useCallback(async () => {
     if (promotion.selectbanner || promotion.selectproduct) {
       if (promotion.selectproduct && promotion.tempproduct) {
-        const success = await handleUpdateProductBannerPromotion(promotion, "product");
+        const success = await handleUpdateProductBannerPromotion(
+          promotion,
+          "product",
+        );
         if (!success) {
           errorToast("Failed to update");
           return;
@@ -362,7 +422,10 @@ export default function Inventory() {
         promotion.banner_id &&
         globalindex.promotioneditindex !== -1
       ) {
-        const success = await handleUpdateProductBannerPromotion(promotion, "banner");
+        const success = await handleUpdateProductBannerPromotion(
+          promotion,
+          "banner",
+        );
         if (!success) {
           errorToast("Error Occurred");
           return;
@@ -370,7 +433,12 @@ export default function Inventory() {
       }
     }
     setopenmodal((prev) => ({ ...prev, createPromotion: true }));
-  }, [promotion, globalindex, handleUpdateProductBannerPromotion, setopenmodal]);
+  }, [
+    promotion,
+    globalindex,
+    handleUpdateProductBannerPromotion,
+    setopenmodal,
+  ]);
 
   const handleFilter = useCallback(
     async (value: string) => {
@@ -396,7 +464,15 @@ export default function Inventory() {
       router.push(`?${params}`, { scroll: false });
       setreloaddata(true);
     },
-    [searchParam, filtervalue, router, setpage, setshow, setSearchInput, setreloaddata],
+    [
+      searchParam,
+      filtervalue,
+      router,
+      setpage,
+      setshow,
+      setSearchInput,
+      setreloaddata,
+    ],
   );
 
   const handleLowStockFilter = useCallback(() => {
@@ -464,7 +540,8 @@ export default function Inventory() {
       banner: ["name", "bannersize", "bannertype"],
       promotion: ["name", "expired", "expiredate"],
     };
-    const keys = relevantKeys[type as string] ?? Object.keys(FILTER_CHIP_LABELS);
+    const keys =
+      relevantKeys[type as string] ?? Object.keys(FILTER_CHIP_LABELS);
     return keys
       .filter((key) => {
         const val = filtervalue[key as keyof InventoryParamType];
@@ -485,7 +562,8 @@ export default function Inventory() {
           const count = String(raw).split(",").filter(Boolean).length;
           displayVal = `${count} selected`;
         } else if (key === "bannertype" || key === "bannersize") {
-          displayVal = String(raw).charAt(0).toUpperCase() + String(raw).slice(1);
+          displayVal =
+            String(raw).charAt(0).toUpperCase() + String(raw).slice(1);
         } else if (key === "expired") {
           displayVal = "";
         }
@@ -513,7 +591,9 @@ export default function Inventory() {
     const ids = (currentData as Array<{ id?: number }>)
       .map((item) => item.id)
       .filter((id): id is number => Boolean(id));
-    setSelectedIds((prev) => (prev.size === ids.length ? new Set() : new Set(ids)));
+    setSelectedIds((prev) =>
+      prev.size === ids.length ? new Set() : new Set(ids),
+    );
   }, [currentData]);
 
   const handleBulkDelete = useCallback(async () => {
@@ -587,7 +667,11 @@ export default function Inventory() {
                       stroke="currentColor"
                       strokeWidth={3}
                     >
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M5 13l4 4L19 7"
+                      />
                     </svg>
                   )}
                 </div>
@@ -641,7 +725,11 @@ export default function Inventory() {
                       stroke="currentColor"
                       strokeWidth={3}
                     >
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M5 13l4 4L19 7"
+                      />
                     </svg>
                   )}
                 </div>
@@ -696,7 +784,11 @@ export default function Inventory() {
                       stroke="currentColor"
                       strokeWidth={3}
                     >
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M5 13l4 4L19 7"
+                      />
                     </svg>
                   )}
                 </div>
@@ -773,12 +865,16 @@ export default function Inventory() {
       {/* Day JS Provider  */}
       <LocalizationProvider dateAdapter={AdapterDayjs}>
         {/* Action modals */}
-        {openmodal.createProduct && <CreateProducts setreloaddata={setreloaddata} />}
+        {openmodal.createProduct && (
+          <CreateProducts setreloaddata={setreloaddata} />
+        )}
         {openmodal[PRODUCT_STOCK_MODAL] && stockTarget && (
           <ProductStockModal key={stockTarget.id} target={stockTarget} />
         )}
         {openmodal.createCategory && <Category />}
-        {openmodal.createBanner && <BannerModal setreloaddata={setreloaddata} />}
+        {openmodal.createBanner && (
+          <BannerModal setreloaddata={setreloaddata} />
+        )}
         {openmodal.createPromotion && (
           <CreatePromotionModal
             searchparams={{
@@ -842,14 +938,20 @@ export default function Inventory() {
               isPromotionSelection={!!promotion.selectproduct}
               isBannerSelection={!!promotion.selectbanner}
               isManagingBanner={!!openmodal.managebanner}
-              promotionProductCount={promotion.Products.filter((p) => p.id !== 0).length}
+              promotionProductCount={
+                promotion.Products.filter((p) => p.id !== 0).length
+              }
               isLoadingUpdate={isLoading.PUT}
               viewMode={viewMode}
               onFilterChange={handleFilter}
-              onFilterClick={() => setopenmodal((prev) => ({ ...prev, filteroption: true }))}
+              onFilterClick={() =>
+                setopenmodal((prev) => ({ ...prev, filteroption: true }))
+              }
               onLowStockClick={handleLowStockFilter}
               onDiscountClick={() => setShowPromoProducts(true)}
-              onAddBannerClick={() => setopenmodal((prev) => ({ ...prev, createBanner: true }))}
+              onAddBannerClick={() =>
+                setopenmodal((prev) => ({ ...prev, createBanner: true }))
+              }
               onDoneClick={handleDoneButton}
               onViewModeChange={setViewMode}
             />
@@ -858,9 +960,15 @@ export default function Inventory() {
           {/* Search + Filter chips */}
           <div className="w-[95%] max-smallest_phone:w-full mt-6 flex flex-col gap-3">
             {/* Inline search bar */}
-            <form onSubmit={handleInlineSearch} className="flex items-center gap-2">
+            <form
+              onSubmit={handleInlineSearch}
+              className="flex items-center gap-2"
+            >
               <div className="flex-1 flex items-center gap-2 h-10 bg-white border border-slate-300 rounded-lg px-3 transition-colors hover:border-slate-400 focus-within:border-slate-900 focus-within:ring-2 focus-within:ring-slate-200">
-                <FontAwesomeIcon icon={faSearch} className="text-slate-400 text-sm shrink-0" />
+                <FontAwesomeIcon
+                  icon={faSearch}
+                  className="text-slate-400 text-sm shrink-0"
+                />
                 <input
                   type="search"
                   value={searchInput}
@@ -894,7 +1002,9 @@ export default function Inventory() {
             {/* Active filter chips */}
             {activeFilterChips.length > 0 && (
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-xs font-medium text-slate-500">Filters:</span>
+                <span className="text-xs font-medium text-slate-500">
+                  Filters:
+                </span>
                 {activeFilterChips.map(({ key, label, displayVal }) => (
                   <span
                     key={key}
@@ -903,7 +1013,9 @@ export default function Inventory() {
                     <span>
                       <span className="text-slate-500">{label}</span>
                       {displayVal ? (
-                        <span className="font-semibold text-slate-900">: {displayVal}</span>
+                        <span className="font-semibold text-slate-900">
+                          : {displayVal}
+                        </span>
                       ) : null}
                     </span>
                     <button
@@ -961,15 +1073,21 @@ export default function Inventory() {
                           onClick={toggleSelectAll}
                           className="px-3 py-1.5 text-sm font-medium rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors"
                         >
-                          {selectedIds.size === currentData.length ? "Deselect All" : "Select All"}
+                          {selectedIds.size === currentData.length
+                            ? "Deselect All"
+                            : "Select All"}
                         </button>
-                        <span className="text-sm text-gray-500">{selectedIds.size} selected</span>
+                        <span className="text-sm text-gray-500">
+                          {selectedIds.size} selected
+                        </span>
                         <button
                           disabled={selectedIds.size === 0 || isLoading.DELETE}
                           onClick={openBulkDeleteConfirm}
                           className="px-3 py-1.5 text-sm font-medium rounded-lg bg-red-500 hover:bg-red-600 disabled:opacity-40 disabled:cursor-not-allowed text-white transition-colors"
                         >
-                          {isLoading.DELETE ? "Deleting…" : `Delete (${selectedIds.size})`}
+                          {isLoading.DELETE
+                            ? "Deleting…"
+                            : `Delete (${selectedIds.size})`}
                         </button>
                         <button
                           onClick={exitSelectMode}

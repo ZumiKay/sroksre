@@ -8,14 +8,7 @@ interface OptionPickerProps {
   data: Array<string | VariantValueObjType>;
   selected?: string;
   onSelect: (value: string) => void;
-  /** Optional variants may still pick an out-of-stock option */
-  allowOutOfStock?: boolean;
 }
-
-const isOutOfStock = (opt: string | VariantValueObjType) =>
-  typeof opt !== "string" &&
-  opt.qty !== undefined &&
-  Number(opt.qty) <= 0;
 
 /** Option buttons for one variant (radio group; click again to unselect). */
 export function OptionPicker({
@@ -24,7 +17,6 @@ export function OptionPicker({
   data,
   selected,
   onSelect,
-  allowOutOfStock,
 }: OptionPickerProps) {
   return (
     <div role="radiogroup" aria-label={label} className="flex flex-wrap gap-2">
@@ -33,8 +25,6 @@ export function OptionPicker({
         const name = typeof opt === "string" ? opt : (opt.name ?? opt.val);
         const price =
           typeof opt !== "string" && opt.price ? parseFloat(opt.price) : 0;
-        const oos = isOutOfStock(opt);
-        const disabled = oos && !allowOutOfStock;
         const isSelected = selected === value;
 
         return (
@@ -43,21 +33,15 @@ export function OptionPicker({
             type="button"
             role="radio"
             aria-checked={isSelected}
-            aria-disabled={disabled}
-            disabled={disabled}
             onClick={() => onSelect(value)}
-            title={oos ? `${name} – out of stock` : name}
+            title={name}
             className={`relative inline-flex min-h-11 items-center gap-2 rounded-xl border px-4 py-2 text-sm font-medium transition-colors outline-none focus-visible:ring-4 focus-visible:ring-gray-300 ${
               isSelected
                 ? type === "COLOR"
                   ? "border-gray-900 ring-1 ring-gray-900 bg-white text-gray-900"
                   : "border-gray-900 bg-gray-900 text-white"
                 : "border-gray-300 bg-white text-gray-800 hover:border-gray-500"
-            } ${
-              oos
-                ? "border-dashed text-gray-400 line-through decoration-gray-300"
-                : ""
-            } ${disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}
+            } cursor-pointer`}
           >
             {type === "COLOR" && (
               <span

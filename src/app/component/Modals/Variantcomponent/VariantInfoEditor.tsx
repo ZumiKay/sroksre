@@ -82,7 +82,6 @@ export const VariantInfoEditor: React.FC<VariantInfoEditorProps> = ({
     variantManager.setName("");
     variantManager.setOption("");
     variantManager.setOptionPrice(undefined);
-    variantManager.setOptionQty(undefined);
     variantManager.setTemp(
       currentType ? { name: "", type: currentType, value: [] } : undefined,
     );

@@ -99,8 +99,8 @@ export default function CropImage({
   index: number;
   imgurl: Imgurl[];
   setimgurl: Dispatch<SetStateAction<Imgurl[]>>;
-  setfile: Dispatch<SetStateAction<File[]>>;
-  Files: File[];
+  setfile: Dispatch<SetStateAction<(File | null)[]>>;
+  Files: (File | null)[];
   type: "createproduct" | "createbanner" | "createpromotion";
   /** Banner size ("small" | "normal" | undefined for large/hero) — only used when type is "createbanner" */
   bannerSubtype?: string;

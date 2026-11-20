@@ -5,21 +5,14 @@ import { OptionPicker } from "./OptionPicker";
 import { useGlobalStore } from "@/src/context/GlobalContext";
 import {
   ProductState,
-  Varianttype,
   VariantValueObjType,
 } from "@/src/types/product.type";
 import {
   Productorderdetailtype,
   Productordertype,
 } from "@/src/types/order.type";
-import { errorToast } from "@/src/app/component/Loading";
+import { useStockCheck, useCartCheck } from "../hooks/useProductStock";
 import {
-  useStockCheck,
-  useCartCheck,
-  useOptionQuantity,
-} from "../hooks/useProductStock";
-import {
-  isOptionAvailable,
   areRequiredVariantsSelected,
   getRequiredVariantDetails,
   getAllSelectedDetails,
@@ -64,7 +57,6 @@ export const VariantSelector = React.memo((props: VariantSelectorProps) => {
   const setproductorderdetail = useGlobalStore((s) => s.setproductorderdetail);
   const { fetchAvailableQuantity } = useStockCheck();
   const { checkInCart } = useCartCheck();
-  const { computeOptionQty } = useOptionQuantity();
 
   const selected = useMemo(() => {
     const detail = productorderdetail?.details
@@ -95,38 +87,10 @@ export const VariantSelector = React.memo((props: VariantSelectorProps) => {
     };
   }, [prob.Variant, id, productorderdetail?.details]);
 
-  // Check if the currently selected option for an optional variant is out of stock
-  const isSelectedOptionalOutOfStock = useMemo(() => {
-    if (!isOptionalVariant || !selected) return false;
-    const variant = prob.Variant?.find((v) => v.id === id);
-    if (!variant) return false;
-    const option = (
-      variant.option_value as (string | VariantValueObjType)[]
-    ).find((opt) =>
-      typeof opt === "string" ? opt === selected : opt.val === selected,
-    );
-    return !isOptionAvailable(option ?? selected);
-  }, [isOptionalVariant, selected, prob.Variant, id]);
-
   const handleSelectVariant = useCallback(
     async (idx: number, value: string) => {
       const variant = prob.Variant?.[idx];
       if (!variant || !productorderdetail?.details || !isActive) return;
-
-      // Check if the selected option is available
-      const selectedOption = (
-        variant.option_value as (string | VariantValueObjType)[]
-      ).find((opt) =>
-        typeof opt === "string" ? opt === value : opt.val === value,
-      );
-
-      // For required variants, block selection of out-of-stock options.
-      // For optional variants, allow selection even if out of stock
-      // (qty impact is ignored; an indicator is shown in the UI instead).
-      if (!isOptionalVariant && !isOptionAvailable(selectedOption || value)) {
-        errorToast("This option is out of stock");
-        return;
-      }
 
       // Update order details, clearing add-ons whose trigger is no longer
       // selected
@@ -196,7 +160,6 @@ export const VariantSelector = React.memo((props: VariantSelectorProps) => {
           setincart,
           fetchAvailableQuantity,
           checkInCart,
-          computeOptionQty,
         );
 
         // Once the selection is complete, default the quantity to 1 and
@@ -211,7 +174,7 @@ export const VariantSelector = React.memo((props: VariantSelectorProps) => {
         }));
       }, 0);
     },
-    [prob, productorderdetail, id, isOptionalVariant, isActive, setincart, setloading, setmess, setqty, setproductorderdetail, fetchAvailableQuantity, checkInCart, computeOptionQty],
+    [prob, productorderdetail, id, isActive, setincart, setloading, setmess, setqty, setproductorderdetail, fetchAvailableQuantity, checkInCart],
   );
 
   const selectedLabel = useMemo(() => {
@@ -260,15 +223,8 @@ export const VariantSelector = React.memo((props: VariantSelectorProps) => {
           data={data}
           selected={selected}
           onSelect={(val) => handleSelectVariant(idx, val)}
-          allowOutOfStock={isOptionalVariant}
         />
       </div>
-      {isSelectedOptionalOutOfStock && (
-        <p className="text-xs text-orange-600 font-medium">
-          Selected option is out of stock. It won&apos;t change the available
-          quantity.
-        </p>
-      )}
     </fieldset>
   );
 });
@@ -342,10 +298,6 @@ async function fetchAndUpdateQuantity(
     selecteddetail: Productorderdetailtype[],
     pid: number,
   ) => Promise<{ success: boolean; incart: boolean }>,
-  computeOptionQty: (
-    selectedDetails: Productorderdetailtype[],
-    variants: Varianttype[],
-  ) => number,
 ): Promise<number> {
   setloading(true);
   try {
@@ -358,54 +310,13 @@ async function fetchAndUpdateQuantity(
       ? await fetchAvailableQuantity(prob.id, requiredVariantDetails)
       : 0;
 
-    // Check option-level qty for ALL selected variants (collect all for cart-check)
     const allSelectedDetails = getAllSelectedDetails(orderDetail?.details);
 
-    // Only use REQUIRED variant options for product QTY calculation.
-    // Optional variants only affect price — their out-of-stock status does not
-    // reduce the available quantity shown to the buyer.
-    const requiredSelectedDetails = allSelectedDetails.filter((detail) => {
-      const v = (prob.Variant || []).find((v) => v.id === detail.variant_id);
-      return v && !v.optional;
-    });
-    const optionQty = computeOptionQty(
-      requiredSelectedDetails,
-      prob.Variant || [],
-    );
-
-    // Take the minimum of stock qty and option qty
-    if (optionQty > 0) {
-      maxqty = Math.min(maxqty > 0 ? maxqty : Infinity, optionQty);
-    }
-
-    // If maxqty is still Infinity, it means we only have option-level qty
-    if (maxqty === Infinity) {
-      maxqty = 0;
-    }
-
-    // Products with Variants/VariantSections but no DB Stock records:
-    // default qty to 1 when no option explicitly defines a qty field.
-    // (If an option has qty:0 it is already blocked in isOptionAvailable,
-    //  and if it has qty>0 the optionQty branch above already handled it.)
+    // Products with Variants/VariantSections but no stock records aren't
+    // stock-tracked: allow one at a time
     const hasNoStockRecords = !prob.Stock || prob.Stock.length === 0;
     if (hasNoStockRecords && maxqty === 0) {
-      const hasExplicitOptionQty = allSelectedDetails.some((detail) => {
-        const variant = (prob.Variant || []).find(
-          (v) => v.id === detail.variant_id,
-        );
-        // Optional variants do not gate product availability
-        if (!variant || variant.optional) return false;
-        const opt = variant.option_value.find((o) =>
-          typeof o === "string" ? o === detail.value : o.val === detail.value,
-        );
-        return opt && typeof opt !== "string" && opt.qty !== undefined;
-      });
-
-      if (!hasExplicitOptionQty) {
-        // No stock tracking at any level — treat as available with qty 1
-        maxqty = 1;
-      }
-      // hasExplicitOptionQty && maxqty === 0 → option explicitly has qty 0 → truly OOS
+      maxqty = 1;
     }
 
     const mess: ErrorMessageType = {

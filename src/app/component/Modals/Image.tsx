@@ -1,4 +1,4 @@
-import { ApiRequest, Delayloading, useScreenSize } from "@/src/context/CustomHook";
+import { ApiRequest, useScreenSize } from "@/src/context/CustomHook";
 import { useGlobalStore } from "@/src/context/GlobalContext";
 import { productcoverstype } from "@/src/types/product.type";
 import { ChangeEvent, useRef, useState, useCallback } from "react";
@@ -114,10 +114,10 @@ export const ImageUpload = (props: imageuploadprops) => {
   );
   const [Imgurltemp, seturltemp] = useState<Imgurl[]>([]);
   // One empty slot per saved image, so file and image indexes line up
-  const [Files, setfiles] = useState<File[]>(() =>
+  const [Files, setfiles] = useState<(File | null)[]>(() =>
     Array(Imgurl.length).fill(null),
   );
-  const [Tempfiles, settempfiles] = useState<File[]>([]);
+  const [Tempfiles, settempfiles] = useState<(File | null)[]>([]);
   const [crop, setcrop] = useState(false);
   const [selectedImg, setselected] = useState(-1);
   const [isEdit, setisEdit] = useState(false);
@@ -172,31 +172,11 @@ export const ImageUpload = (props: imageuploadprops) => {
         })),
       ];
 
-      if (filteredFileUrl.length > 0) {
-        if (Imgurltemp.length > 0 && Imgurltemp.every((i) => i.isSave)) {
-          const asyncdeleteimage = async () => {
-            const deleteImage = await ApiRequest(
-              "/api/products/cover",
-              undefined,
-              "DELETE",
-              "JSON",
-              { covers: Imgurltemp, type: props.type },
-            );
-            if (!deleteImage.success) {
-              errorToast("Error Occured");
-              return;
-            }
-          };
-          await Delayloading(asyncdeleteimage, setloading, 1000);
-        }
-        seturltemp([]);
-      }
-
       seturl(updateUrl);
       setfiles((prev) => [...prev, ...filteredFile]);
       setisEdit(true);
     }
-  }, [Imgurl, Imgurltemp, props.limit, props.type]);
+  }, [Imgurl, props.limit]);
 
   //Delete Image
   const handleDelete = useCallback(
@@ -249,13 +229,20 @@ export const ImageUpload = (props: imageuploadprops) => {
       setloading(true);
       setUploadProgress({});
 
-      if (Files.length === 0) {
+      if (Imgurl.length === 0) {
         errorToast("Please Upload Image");
         return;
       }
 
+      // Only images with a pending File need uploading; the rest are already
+      // stored (saved covers have an empty file slot)
+      const pending = Imgurl.flatMap((_, index) => {
+        const file = Files[index];
+        return file ? [{ index, file }] : [];
+      });
+
       //Upload Multiple Files in Parallel with unique names
-      const uploadPromises = Files.map((file) => {
+      const uploadPromises = pending.map(({ file }) => {
         const uniqueFileName = generateUniqueFileName(file.name);
         return uploadToVercel(file, uniqueFileName, (percentage) => {
           setUploadProgress((prev) => ({
@@ -267,40 +254,50 @@ export const ImageUpload = (props: imageuploadprops) => {
 
       const results = await Promise.allSettled(uploadPromises);
 
-      // Process results
-      const uploadImages: PutBlobResult[] = [];
+      // Process results, keyed by position in Imgurl
+      const uploadImages = new Map<number, PutBlobResult>();
       const errors: string[] = [];
 
-      results.forEach((result, index) => {
+      results.forEach((result, i) => {
+        const { index, file } = pending[i];
         if (result.status === "fulfilled" && result.value.success && result.value.data) {
-          uploadImages.push(result.value.data);
+          uploadImages.set(index, result.value.data);
         } else if (result.status === "fulfilled" && !result.value.success) {
-          errors.push(result.value.error || `Failed to upload ${Files[index].name}`);
+          errors.push(result.value.error || `Failed to upload ${file.name}`);
         } else if (result.status === "rejected") {
-          errors.push(`Upload rejected: ${Files[index].name}`);
+          errors.push(`Upload rejected: ${file.name}`);
         }
       });
 
       // Handle errors
       if (errors.length > 0) {
-        if (uploadImages.length === 0) {
+        if (uploadImages.size === 0) {
           errorToast("All uploads failed");
           return;
         } else {
-          infoToast(`${errors.length} upload(s) failed, ${uploadImages.length} succeeded`);
+          infoToast(`${errors.length} upload(s) failed, ${uploadImages.size} succeeded`);
         }
       }
 
-      const savedUrl: productcoverstype[] = uploadImages.map((i) => ({
-        type: i.contentType,
-        name: i.pathname,
-        url: i.url,
-      }));
+      // Keep already-stored images in place and swap in the new uploads;
+      // drop pending images whose upload failed
+      const savedUrl: (productcoverstype & { isSave?: boolean })[] = Imgurl.flatMap(
+        (img, index) => {
+          const uploaded = uploadImages.get(index);
+          if (uploaded) {
+            return [{ type: uploaded.contentType, name: uploaded.pathname, url: uploaded.url }];
+          }
+          if (Files[index]) return [];
+          const { url, name, type, id, isSave } = img;
+          return [{ url, name, type, ...(id ? { id } : {}), ...(isSave ? { isSave } : {}) }];
+        },
+      );
+      const newUploads = savedUrl.filter((c) => !c.id && !c.isSave);
 
-      // Verify all URLs are accessible before proceeding
-      infoToast("Verifying uploaded images...");
+      // Verify all new URLs are accessible before proceeding
+      if (newUploads.length > 0) infoToast("Verifying uploaded images...");
       const verificationResults = await Promise.all(
-        savedUrl.map(async (urlObj) => {
+        newUploads.map(async (urlObj) => {
           const isAccessible = await verifyBlobUrl(urlObj.url);
           return { url: urlObj.url, isAccessible };
         }),
@@ -315,6 +312,7 @@ export const ImageUpload = (props: imageuploadprops) => {
         return;
       }
 
+      let finalCovers = savedUrl;
       if (props.type === "createproduct") {
         if (globalindex.producteditindex !== -1) {
           const update = await handleUpdateCover(savedUrl, "product");
@@ -323,8 +321,42 @@ export const ImageUpload = (props: imageuploadprops) => {
             errorToast("Error Occured");
             return;
           }
+
+          // Delete covers the user removed in this modal
+          const removed = Imgurltemp.filter(
+            (c) => c.id && !savedUrl.some((s) => s.id === c.id),
+          );
+          if (removed.length > 0) {
+            const deleted = await ApiRequest(
+              "/api/products/cover",
+              undefined,
+              "DELETE",
+              "JSON",
+              { covers: removed, type: "createproduct" },
+            );
+            if (!deleted.success) errorToast("Failed to remove deleted images");
+          }
+
+          // Pick up the ids of newly created covers, so a later save updates
+          // them instead of creating them again
+          const fresh = await ApiRequest(
+            `/api/products?ty=info&pid=${product.id}`,
+            undefined,
+            "GET",
+          );
+          if (fresh.success) {
+            const idByUrl = new Map<string, number>(
+              (fresh.data?.covers ?? []).map(
+                (c: { id: number; url: string }) => [c.url, c.id],
+              ),
+            );
+            finalCovers = savedUrl.map((c) => {
+              const id = c.id ?? idByUrl.get(c.url);
+              return id ? { ...c, id } : c;
+            });
+          }
         }
-        setproduct({ ...product, covers: savedUrl });
+        setproduct({ ...product, covers: finalCovers });
       } else if (props.type === "createbanner") {
         if (globalindex.bannereditindex !== -1) {
           const update = await handleUpdateCover(savedUrl, "banner");
@@ -337,16 +369,10 @@ export const ImageUpload = (props: imageuploadprops) => {
       }
 
       seturltemp([]);
-      seturl(savedUrl);
-      setfiles((prevFiles) => {
-        const newLength = savedUrl.length;
-
-        const newFiles = Array(newLength).fill(null);
-
-        newFiles.splice(0, prevFiles.length, ...prevFiles);
-
-        return newFiles;
-      });
+      settempfiles([]);
+      // Everything is stored now: mark it saved and clear the file slots
+      seturl(finalCovers.map((c) => ({ ...c, isSave: true })));
+      setfiles(Array(finalCovers.length).fill(null));
       setisEdit(false);
       setopenmodal({
         ...openmodal,

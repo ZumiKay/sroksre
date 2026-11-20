@@ -736,7 +736,9 @@ export function ManageStockContainer({
                         if (typeof i === "string") {
                           return { label: i, value: i };
                         } else {
-                          return { label: i.name ?? "", value: i.val };
+                          // Text options are stored without a name; show the
+                          // value itself rather than an empty label
+                          return { label: i.name || i.val, value: i.val };
                         }
                       })}
                       label={item.option_title}
@@ -1038,9 +1040,7 @@ interface ColorSelectModal {
   name: string;
   setcolor: (value: Colortype | string) => void;
   price?: number;
-  qty?: number;
   setprice?: React.Dispatch<React.SetStateAction<number | undefined>>;
-  setqty?: React.Dispatch<React.SetStateAction<number | undefined>>;
 }
 
 export const ColorSelectModal = React.memo(
@@ -1054,9 +1054,7 @@ export const ColorSelectModal = React.memo(
     open,
     setopen,
     price,
-    qty,
     setprice,
-    setqty,
   }: ColorSelectModal) => {
     const [colorpicker, setcolorpicker] = useState(false);
     const { isMobile } = useScreenSize();
@@ -1091,14 +1089,6 @@ export const ColorSelectModal = React.memo(
         setprice?.(value ? parseFloat(value) : undefined);
       },
       [setprice],
-    );
-
-    const handleQtyChange = React.useCallback(
-      (e: React.ChangeEvent<HTMLInputElement>) => {
-        const value = e.target.value;
-        setqty?.(value ? parseInt(value, 10) : undefined);
-      },
-      [setqty],
     );
 
     const openColorPickerModal = React.useCallback(() => {
@@ -1158,8 +1148,6 @@ export const ColorSelectModal = React.memo(
     );
 
     const priceValue = React.useMemo(() => price?.toString() ?? "", [price]);
-
-    const qtyValue = React.useMemo(() => qty?.toString() ?? "", [qty]);
 
     const priceStartContent = React.useMemo(
       () => (
@@ -1224,16 +1212,6 @@ export const ColorSelectModal = React.memo(
                   value={priceValue}
                   onChange={handlePriceChange}
                   startContent={priceStartContent}
-                />
-                <Input
-                  type="number"
-                  fullWidth
-                  size="lg"
-                  label="Quantity (Optional)"
-                  placeholder="0"
-                  value={qtyValue}
-                  onChange={handleQtyChange}
-                  min="0"
                 />
               </div>
 

@@ -48,14 +48,12 @@ Created `useProductStock.ts` with:
 
 - `useStockCheck()`: Debounced stock availability checking
 - `useCartCheck()`: Debounced cart status checking
-- `useOptionQuantity()`: Option-level quantity computation
 
 ### 4. **Utility Functions**
 
 Created `productHelpers.ts` with pure functions:
 
 - `calculateAdditionalPrice()`: Compute price from selected options
-- `isOptionAvailable()`: Check option stock status
 - `getOptionQuantity()`: Extract option quantity
 - `areRequiredVariantsSelected()`: Validate required selections
 - `getRequiredVariantDetails()`: Filter required variants
