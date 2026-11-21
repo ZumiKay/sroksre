@@ -53,13 +53,30 @@ const matchesInventoryFilters = (
   return true;
 };
 
+/**
+ * Units in stock. Variant products keep their quantities per combination and
+ * leave the product's own `stock` column at 0, so sum the combinations.
+ */
+const totalStock = (prod: FilterableProduct): number | null =>
+  prod.Stock && prod.Stock.length > 0
+    ? prod.Stock.reduce(
+        (sum, stock) =>
+          sum + stock.Stockvalue.reduce((sub, v) => sub + v.qty, 0),
+        0,
+      )
+    : prod.stock;
+
 const filterAndFlag = <T extends FilterableProduct>(
   products: T[],
   filters: InventoryFilters,
 ) =>
   products
     .filter((prod) => matchesInventoryFilters(prod, filters))
-    .map((prod) => ({ ...prod, lowstock: isLowStockProduct(prod) }));
+    .map((prod) => ({
+      ...prod,
+      stock: totalStock(prod),
+      lowstock: isLowStockProduct(prod),
+    }));
 
 const putSelectedFirst = <T extends { id: number }>(
   items: T[],
