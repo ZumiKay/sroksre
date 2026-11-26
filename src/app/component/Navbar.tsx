@@ -64,6 +64,10 @@ import {
   DropdownItem,
   DropdownMenu,
   DropdownTrigger,
+  Modal,
+  ModalBody,
+  ModalContent,
+  ModalHeader,
 } from "@heroui/react";
 import { useSocket } from "@/src/context/SocketContext";
 import React from "react";
@@ -649,11 +653,7 @@ export const SubInventoryMenu = memo((props: Subinventorymenuprops) => {
     (obj: { value: string; opencon: string }) => {
       const index = itemIndex as number;
 
-      if (
-        type === "product" ||
-        type === "banner" ||
-        type === "promotion"
-      ) {
+      if (type === "product" || type === "banner" || type === "promotion") {
         if (obj.value === actiontype.EDIT) {
           setglobalindex((previndex) => ({
             ...previndex,
@@ -710,44 +710,103 @@ export const SubInventoryMenu = memo((props: Subinventorymenuprops) => {
       setpromotion,
     ],
   );
+  const { isMobile } = useScreenSize();
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  const trigger = (
+    <Button
+      color={props.type ? "default" : "success"}
+      variant="solid"
+      onPress={isMobile ? () => setMobileOpen(true) : undefined}
+      endContent={
+        !props.type ? (
+          <FontAwesomeIcon
+            icon={faPlus}
+            className="text-xs md:text-sm font-bold text-white drop-shadow-xs"
+          />
+        ) : undefined
+      }
+      style={props.type ? TRIGGER_STYLE_TYPE : undefined}
+      className={props.type ? BUTTON_CLASS_TYPE : BUTTON_CLASS_CREATE}
+    >
+      {props.type ? (
+        <FontAwesomeIcon
+          icon={faEllipsisVertical}
+          className="text-lg md:text-xl text-gray-600 group-hover:text-indigo-600 transition-all duration-200 group-hover:scale-110"
+        />
+      ) : (
+        <div className="flex items-center gap-2 relative z-10">
+          <FontAwesomeIcon
+            icon={faWandMagicSparkles}
+            className="text-[10px] md:text-xs animate-pulse"
+          />
+          <span className="hidden md:inline font-extrabold tracking-wide uppercase text-xs">
+            Action
+          </span>
+          <span className="md:hidden font-extrabold tracking-wide uppercase text-xs">
+            New
+          </span>
+        </div>
+      )}
+    </Button>
+  );
+
+  // On phones, show the actions in a sheet centered on the screen
+  if (isMobile) {
+    return (
+      <>
+        {trigger}
+        <Modal
+          isOpen={mobileOpen}
+          onOpenChange={setMobileOpen}
+          placement="center"
+          backdrop="opaque"
+          size="xs"
+          hideCloseButton
+          classNames={{ base: "mx-4 rounded-2xl" }}
+        >
+          <ModalContent>
+            {(onClose) => (
+              <>
+                <ModalHeader className="pb-1 text-sm font-bold uppercase tracking-wide text-gray-500">
+                  Actions
+                </ModalHeader>
+                <ModalBody className="gap-1 px-3 pb-3">
+                  {props.data.map((item) => (
+                    <button
+                      key={item.opencon}
+                      type="button"
+                      onClick={() => {
+                        onClose();
+                        handleClick(item);
+                      }}
+                      className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm font-semibold tracking-wide transition-colors active:bg-gray-100 ${
+                        item.value === "DELETE"
+                          ? "text-red-600 active:bg-red-50"
+                          : "text-gray-800"
+                      }`}
+                    >
+                      <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-50">
+                        <FontAwesomeIcon
+                          icon={ICON_MAP[item.value] ?? faCircle}
+                          className={`text-base ${COLOR_MAP[item.value] ?? "text-gray-500"}`}
+                        />
+                      </span>
+                      {item.value}
+                    </button>
+                  ))}
+                </ModalBody>
+              </>
+            )}
+          </ModalContent>
+        </Modal>
+      </>
+    );
+  }
+
   return (
     <Dropdown classNames={DROPDOWN_CLASSNAMES} disableAnimation>
-      <DropdownTrigger>
-        <Button
-          color={props.type ? "default" : "success"}
-          variant="solid"
-          endContent={
-            !props.type ? (
-              <FontAwesomeIcon
-                icon={faPlus}
-                className="text-xs md:text-sm font-bold text-white drop-shadow-xs"
-              />
-            ) : undefined
-          }
-          style={props.type ? TRIGGER_STYLE_TYPE : undefined}
-          className={props.type ? BUTTON_CLASS_TYPE : BUTTON_CLASS_CREATE}
-        >
-          {props.type ? (
-            <FontAwesomeIcon
-              icon={faEllipsisVertical}
-              className="text-lg md:text-xl text-gray-600 group-hover:text-indigo-600 transition-all duration-200 group-hover:scale-110"
-            />
-          ) : (
-            <div className="flex items-center gap-2 relative z-10">
-              <FontAwesomeIcon
-                icon={faWandMagicSparkles}
-                className="text-[10px] md:text-xs animate-pulse"
-              />
-              <span className="hidden md:inline font-extrabold tracking-wide uppercase text-xs">
-                Action
-              </span>
-              <span className="md:hidden font-extrabold tracking-wide uppercase text-xs">
-                New
-              </span>
-            </div>
-          )}
-        </Button>
-      </DropdownTrigger>
+      <DropdownTrigger>{trigger}</DropdownTrigger>
       <DropdownMenu
         aria-label="Dynamic Actions"
         items={props.data}

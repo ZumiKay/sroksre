@@ -1,8 +1,5 @@
 "use client";
-import {
-  BannerInitialize,
-  useGlobalStore,
-} from "@/src/context/GlobalContext";
+import { BannerInitialize, useGlobalStore } from "@/src/context/GlobalContext";
 import { useCallback, useState, memo } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -30,7 +27,7 @@ import {
 import { ApiRequest, useEffectOnce } from "@/src/context/CustomHook";
 import { errorToast, successToast } from "../Loading";
 import { SecondaryModal } from "../Modals";
-import { SelectAndSearchProduct } from "../Banner";
+import { SelectField, pagedResult } from "../SelectField";
 import { ImageUpload } from "./Image";
 import { DeleteTempImage } from "../../dashboard/inventory/varaint_action";
 import { Input } from "@heroui/react";
@@ -396,12 +393,22 @@ export const BannerModal = memo(function BannerModal({
               label="Products"
               hint="Customers see these products when they open the banner."
             >
-              <SelectAndSearchProduct
-                getdata={(take, value) => getSelectItems(take, value, "prod")}
-                onSelect={(value) =>
-                  handleSelectProduct("selectedproduct", value)
+              <SelectField
+                selectionMode="multiple"
+                ariaLabel="Products"
+                placeholder="Search products"
+                searchOnEmpty
+                isClearable
+                loadOptions={async (query, limit) =>
+                  pagedResult(await getSelectItems(limit, query, "prod"), limit)
                 }
-                value={banner.selectedproduct}
+                value={banner.selectedproduct ?? []}
+                onChange={(value) =>
+                  handleSelectProduct(
+                    "selectedproduct",
+                    value.length > 0 ? value : undefined,
+                  )
+                }
               />
             </Field>
           )}
@@ -415,33 +422,45 @@ export const BannerModal = memo(function BannerModal({
                 onChange={(value) => setField("linktype", value)}
               />
               <Field label="Parent category">
-                <SelectAndSearchProduct
-                  getdata={(_, value) => getCategory("parent", value, 0)}
-                  onSelect={(value) => handleSelectProduct("parentcate", value)}
-                  value={banner.parentcate ? [banner.parentcate] : undefined}
+                <SelectField
+                  ariaLabel="Parent category"
                   placeholder="Search parent categories"
-                  singleselect
+                  searchOnEmpty
+                  isClearable
+                  loadOptions={async (query) =>
+                    (await getCategory("parent", query, 0))?.data ?? []
+                  }
+                  value={banner.parentcate ?? null}
+                  onChange={(_, option) =>
+                    handleSelectProduct("parentcate", option)
+                  }
                 />
               </Field>
               {banner.linktype === "sub" &&
                 (banner.parentcate ? (
                   <Field label="Sub category">
-                    <SelectAndSearchProduct
+                    <SelectField
                       // Remount when the parent changes so old results clear
                       key={banner.parentcate.value}
-                      getdata={(_, value) =>
-                        getCategory(
-                          "child",
-                          value,
-                          parseInt(banner.parentcate?.value.toString() ?? "0"),
-                        )
-                      }
-                      onSelect={(value) =>
-                        handleSelectProduct("childcate", value)
-                      }
-                      value={banner.childcate ? [banner.childcate] : undefined}
+                      ariaLabel="Sub category"
                       placeholder="Search sub categories"
-                      singleselect
+                      searchOnEmpty
+                      isClearable
+                      loadOptions={async (query) =>
+                        (
+                          await getCategory(
+                            "child",
+                            query,
+                            parseInt(
+                              banner.parentcate?.value.toString() ?? "0",
+                            ),
+                          )
+                        )?.data ?? []
+                      }
+                      value={banner.childcate ?? null}
+                      onChange={(_, option) =>
+                        handleSelectProduct("childcate", option)
+                      }
                     />
                   </Field>
                 ) : (

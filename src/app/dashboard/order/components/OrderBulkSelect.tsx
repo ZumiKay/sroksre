@@ -18,6 +18,7 @@ import {
 import { Allstatus } from "@/src/types/order.type";
 import { errorToast, successToast } from "@/src/app/component/Loading";
 import { bulkDeleteOrders, bulkUpdateOrderStatus } from "../action";
+import { SelectField } from "@/src/app/component/SelectField";
 
 // ─── Context ──────────────────────────────────────────────────────────────────
 
@@ -60,7 +61,9 @@ export function OrderBulkSelectProvider({
 }: OrderBulkSelectProviderProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkStatus, setBulkStatus] = useState("");
-  const [loadingAction, setLoadingAction] = useState<"status" | "delete" | null>(null);
+  const [loadingAction, setLoadingAction] = useState<
+    "status" | "delete" | null
+  >(null);
   const router = useRouter();
 
   const toggle = useCallback((id: string) => {
@@ -83,9 +86,15 @@ export function OrderBulkSelectProvider({
   const handleBulkUpdateStatus = async () => {
     if (!bulkStatus || selectedIds.size === 0) return;
     setLoadingAction("status");
-    const result = await bulkUpdateOrderStatus(Array.from(selectedIds), bulkStatus);
+    const result = await bulkUpdateOrderStatus(
+      Array.from(selectedIds),
+      bulkStatus,
+    );
     setLoadingAction(null);
-    if (!result.success) { errorToast(result.message); return; }
+    if (!result.success) {
+      errorToast(result.message);
+      return;
+    }
     successToast(result.message);
     setBulkStatus("");
     clearSelection();
@@ -97,17 +106,27 @@ export function OrderBulkSelectProvider({
     setLoadingAction("delete");
     const result = await bulkDeleteOrders(Array.from(selectedIds));
     setLoadingAction(null);
-    if (!result.success) { errorToast(result.message); return; }
+    if (!result.success) {
+      errorToast(result.message);
+      return;
+    }
     successToast(result.message);
     clearSelection();
     router.refresh();
   };
 
-  const allSelected = orderIds.length > 0 && selectedIds.size === orderIds.length;
+  const allSelected =
+    orderIds.length > 0 && selectedIds.size === orderIds.length;
 
   return (
     <BulkSelectContext.Provider
-      value={{ selectedIds, toggle, toggleAll, allSelected, isEnabled: isAdmin }}
+      value={{
+        selectedIds,
+        toggle,
+        toggleAll,
+        allSelected,
+        isEnabled: isAdmin,
+      }}
     >
       {/* Sticky bulk-action bar, shown above the table while rows are selected */}
       {isAdmin && selectedIds.size > 0 && (
@@ -118,16 +137,18 @@ export function OrderBulkSelectProvider({
           <div className="hidden sm:block h-4 w-px bg-indigo-200 shrink-0" />
 
           {/* Status selector */}
-          <select
+          <SelectField
+            ariaLabel="Set status"
+            placeholder="Set status…"
+            size="sm"
+            className="flex-1 sm:flex-initial sm:w-40 min-w-27.5"
             value={bulkStatus}
-            onChange={(e) => setBulkStatus(e.target.value)}
-            className="h-8 sm:h-9 px-2 sm:px-3 text-xs sm:text-sm border border-indigo-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400 flex-1 sm:flex-initial min-w-[110px]"
-          >
-            <option value="">Set status…</option>
-            {Object.values(Allstatus).map((s) => (
-              <option key={s} value={s}>{s}</option>
-            ))}
-          </select>
+            options={Object.values(Allstatus).map((s) => ({
+              label: s,
+              value: s,
+            }))}
+            onChange={setBulkStatus}
+          />
 
           <button
             disabled={!bulkStatus || !!loadingAction}
@@ -138,7 +159,10 @@ export function OrderBulkSelectProvider({
               <Spinner />
             ) : (
               <>
-                <FontAwesomeIcon icon={faRotate} className="text-[10px] sm:text-xs" />
+                <FontAwesomeIcon
+                  icon={faRotate}
+                  className="text-[10px] sm:text-xs"
+                />
                 Update
               </>
             )}
@@ -153,7 +177,10 @@ export function OrderBulkSelectProvider({
               <Spinner />
             ) : (
               <>
-                <FontAwesomeIcon icon={faTrash} className="text-[10px] sm:text-xs" />
+                <FontAwesomeIcon
+                  icon={faTrash}
+                  className="text-[10px] sm:text-xs"
+                />
                 Delete ({selectedIds.size})
               </>
             )}
@@ -163,7 +190,10 @@ export function OrderBulkSelectProvider({
             onClick={clearSelection}
             className="ml-auto inline-flex items-center gap-1 h-8 sm:h-9 px-2 sm:px-3 rounded-lg border border-indigo-200 hover:bg-indigo-100 text-indigo-600 text-xs sm:text-sm font-medium transition-colors shrink-0"
           >
-            <FontAwesomeIcon icon={faXmark} className="text-[10px] sm:text-xs" />
+            <FontAwesomeIcon
+              icon={faXmark}
+              className="text-[10px] sm:text-xs"
+            />
             Clear
           </button>
         </div>

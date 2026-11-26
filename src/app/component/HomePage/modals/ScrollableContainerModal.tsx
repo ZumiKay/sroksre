@@ -5,7 +5,8 @@ import React from "react";
 import { useGlobalStore } from "@/src/context/GlobalContext";
 import { Containertype } from "../../../severactions/containeraction";
 import { AddIcon } from "../../Asset";
-import PrimaryButton, { Selection } from "../../Button";
+import PrimaryButton from "../../Button";
+import { SelectField } from "../../SelectField";
 import { TextInput } from "../../FormComponent";
 import { DateRangePicker } from "@heroui/react";
 import { parseDate } from "@internationalized/date";
@@ -44,20 +45,25 @@ export const ScrollableContainerModal = memo(function ScrollableContainerModal({
   );
 
   const handleTypeChange = useCallback(
-    (e: ChangeEvent<HTMLSelectElement>) => {
+    (value: string) => {
       setdata((prev) => ({
         ...prev,
         amountofitem: undefined,
         daterange: undefined,
         item: [],
-        scrollabletype: e.target.value as Containertype["scrollabletype"],
+        scrollabletype: value as Containertype["scrollabletype"],
       }));
     },
     [setdata],
   );
 
   const handleDateChange = useCallback(
-    (date: { start: { toString(): string }; end: { toString(): string } } | null) => {
+    (
+      date: {
+        start: { toString(): string };
+        end: { toString(): string };
+      } | null,
+    ) => {
       if (!date) return;
       setdata((prev) => ({
         ...prev,
@@ -128,11 +134,12 @@ export const ScrollableContainerModal = memo(function ScrollableContainerModal({
               </svg>
               Template Type
             </label>
-            <Selection
-              onChange={handleTypeChange}
-              style={{ color: "black" }}
+            <SelectField
+              ariaLabel="Template Type"
+              placeholder="Choose a template"
               value={data.scrollabletype}
-              data={ScrollableTemplate}
+              options={ScrollableTemplate}
+              onChange={handleTypeChange}
             />
             {templateDescription && (
               <p className="text-xs text-gray-300 bg-gray-800/50 px-3 py-2 rounded-lg border border-gray-700">
@@ -194,10 +201,10 @@ export const ScrollableContainerModal = memo(function ScrollableContainerModal({
               aria-label="Date Range Picker"
               value={
                 data.daterange
-                  ? ({
+                  ? {
                       start: parseDate(data.daterange.start ?? ""),
                       end: parseDate(data.daterange.end),
-                    })
+                    }
                   : undefined
               }
               onChange={handleDateChange}

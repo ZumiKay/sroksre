@@ -14,7 +14,7 @@ import type { ColorResult } from "react-color";
 import { Button, Chip, Input } from "@heroui/react";
 import { HasPartialOverlap } from "@/src/lib/utilities";
 import { ApiRequest, useScreenSize } from "@/src/context/CustomHook";
-import Multiselect from "../MutiSelect";
+import { SelectField } from "../SelectField";
 import { NormalSkeleton } from "../Banner";
 import RenderStockCards, {
   LOW_STOCK_LIMIT,
@@ -723,27 +723,45 @@ export function ManageStockContainer({
             {showSelector ? (
               <div className="variantlist flex flex-col gap-y-5 w-full max-h-[50vh] overflow-y-auto p-5 rounded-xl bg-gray-50 border border-gray-200">
                 {product.Variant?.map((item, idx) => {
+                  const isColor = item.option_type === "COLOR";
+                  const options = item.option_value.map((i) =>
+                    typeof i === "string"
+                      ? { label: i, value: i, color: isColor ? i : undefined }
+                      : {
+                          // Text options are stored without a name; show the
+                          // value itself rather than an empty label
+                          label: i.name || i.val,
+                          value: i.val,
+                          color: isColor ? i.val : undefined,
+                        },
+                  );
+                  const picked = selectedstock[item.option_title] ?? [];
                   return (
-                    <Multiselect
+                    <SelectField
                       // Variants added before the product is saved have no
                       // id yet, only a tempId
                       key={item.id ?? `temp-${item.tempId ?? idx}`}
-                      id={idx}
-                      type={item.option_type}
-                      isOptional={item.optional}
-                      value={selectedstock[item.option_title]}
-                      data={item.option_value.map((i) => {
-                        if (typeof i === "string") {
-                          return { label: i, value: i };
-                        } else {
-                          // Text options are stored without a name; show the
-                          // value itself rather than an empty label
-                          return { label: i.name || i.val, value: i.val };
-                        }
-                      })}
+                      selectionMode="multiple"
                       label={item.option_title}
-                      onSelect={(val) =>
-                        handleSelectVariant(val, item.option_title)
+                      labelEnd={
+                        item.optional ? (
+                          <Chip
+                            size="sm"
+                            variant="flat"
+                            className="bg-blue-50 text-blue-600 border border-blue-200 text-xs font-medium px-2 py-0"
+                          >
+                            Optional
+                          </Chip>
+                        ) : undefined
+                      }
+                      placeholder="Select options"
+                      options={options}
+                      value={options.filter((o) => picked.includes(o.value))}
+                      onChange={(selected) =>
+                        handleSelectVariant(
+                          new Set(selected.map((o) => String(o.value))),
+                          item.option_title,
+                        )
                       }
                     />
                   );

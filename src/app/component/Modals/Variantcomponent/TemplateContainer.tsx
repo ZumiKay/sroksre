@@ -2,7 +2,7 @@
 
 import { Badge, Button, Input } from "@heroui/react";
 import Modal from "../../Modals";
-import { SelectionCustom } from "../../Pagination_Component";
+import { SelectField } from "../../SelectField";
 import { ChangeEvent, useState } from "react";
 import { RGBColor, SketchPicker } from "react-color";
 import PrimaryButton from "../../Button";
@@ -349,9 +349,7 @@ export const AddTemplateModal = ({
       customheight="600px"
     >
       <div className="w-full h-full bg-white flex flex-col gap-y-6 p-6 relative rounded-2xl">
-        <h3 className="text-xl font-bold text-gray-900">
-          Template
-        </h3>
+        <h3 className="text-xl font-bold text-gray-900">Template</h3>
         {step === "" ? (
           <>
             <Input
@@ -360,15 +358,12 @@ export const AddTemplateModal = ({
               value={variant.option_title}
               onChange={handleChange}
             />
-            <SelectionCustom
-              data={Templatetypedata}
-              placeholder=""
+            <SelectField
               label="Type"
+              placeholder="Select a type"
+              options={Templatetypedata}
               value={templatetype}
-              setvalue={
-                settemplatetype as React.Dispatch<React.SetStateAction<string>>
-              }
-              onChange={(val) => handleChangeType(val as string)}
+              onChange={handleChangeType}
             />
           </>
         ) : (

@@ -2,11 +2,9 @@
 
 import { ChangeEvent } from "react";
 import { Input } from "@heroui/react";
-import {
-  ProductStockType,
-  useGlobalStore,
-} from "@/src/context/GlobalContext";
-import PrimaryButton, { Selection } from "@/src/app/component/Button";
+import { ProductStockType, useGlobalStore } from "@/src/context/GlobalContext";
+import PrimaryButton from "@/src/app/component/Button";
+import { SelectField } from "@/src/app/component/SelectField";
 import { VariantIcon } from "@/src/app/component/Asset";
 
 const stockTypeData = [
@@ -31,12 +29,13 @@ export const StockSection = ({
 
   return (
     <>
-      <Selection
+      <SelectField
         label="Stock Type"
+        placeholder="Select stock type"
         value={product.stocktype}
-        data={stockTypeData}
-        onChange={(e) => onStocktypeChange(e.target.value)}
-        required
+        options={stockTypeData}
+        onChange={onStocktypeChange}
+        isRequired
       />
 
       {stocktype === ProductStockType.stock ? (

@@ -1,17 +1,14 @@
 "use client";
 
-import React, { CSSProperties, useMemo } from "react";
+import React from "react";
 import {
   Pagination,
   PaginationItemRenderProps,
   PaginationItemType,
   cn,
-  Select,
-  SelectItem,
 } from "@heroui/react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { IsNumber } from "@/src/lib/utilities";
-import { SelectType } from "@/src/types/productAction.type";
+import { SelectField } from "./SelectField";
 
 interface PaginationCustomProps {
   page?: number;
@@ -85,100 +82,22 @@ export default function PaginationCustom({
       />
       {count && (
         <div className="w-70">
-          <SelectionCustom
-            data={numberperpage.map((i) => ({
-              label: `${i === 1 ? "1 item" : `${i} item`}`,
+          <SelectField
+            label="Show Per Page"
+            placeholder="Items per page"
+            size="md"
+            options={numberperpage.map((i) => ({
+              label: i === 1 ? "1 item" : `${i} items`,
               value: i.toString(),
             }))}
-            label="Show Per Page"
-            placeholder=""
             value={show}
-            allowNone={false}
-            setvalue={setshow}
-            onChange={(val) => onSelectShowPerPage && onSelectShowPerPage(val)}
+            onChange={(val) => {
+              setshow(val);
+              onSelectShowPerPage?.(parseInt(val));
+            }}
           />
         </div>
       )}
     </div>
   );
 }
-
-interface SelectionCustomProps {
-  data: Array<SelectType>;
-  label: string;
-  placeholder: string;
-  setvalue?: React.Dispatch<React.SetStateAction<string>>;
-  value?: number | string;
-  onChange?: (value: number | string) => void;
-  style?: CSSProperties;
-  textplacement?: "outside" | "outside-left" | "inside";
-  isLoading?: boolean;
-  size?: "sm" | "md" | "lg";
-  defaultValue?: string;
-  popoverProps?: Record<string, unknown>;
-  /** Show a "-- None --" option for clearing the value. Defaults to true. */
-  allowNone?: boolean;
-}
-
-export const SelectionCustom = ({
-  data,
-  label,
-  placeholder,
-  style,
-  value,
-  setvalue,
-  onChange,
-  textplacement,
-  isLoading,
-  size,
-  popoverProps,
-  allowNone = true,
-}: SelectionCustomProps) => {
-  const items = useMemo(
-    () => [
-      ...(allowNone ? [{ label: "-- None --", value: "" }] : []),
-      ...data.map((item) => ({
-        label: item.label,
-        value: item.value.toString(),
-      })),
-    ],
-    [data, allowNone],
-  );
-
-  const selectedKeys = useMemo(
-    () => [value !== undefined && value !== "" ? value.toString() : ""],
-    [value],
-  );
-
-  const selectItems = useMemo(
-    () =>
-      items.map((item) => (
-        <SelectItem key={item.value}>{item.label}</SelectItem>
-      )),
-    [items],
-  );
-
-  return (
-    <Select
-      label={label}
-      placeholder={placeholder}
-      className="w-full"
-      size={size ?? "md"}
-      labelPlacement={textplacement}
-      selectedKeys={selectedKeys}
-      disallowEmptySelection={!allowNone}
-      // The popup's open/close animation flickers; open it instantly instead.
-      disableAnimation
-      style={style}
-      isLoading={!!isLoading}
-      popoverProps={popoverProps}
-      onChange={(e) => {
-        const { value } = e.target;
-        setvalue?.(value);
-        onChange?.(IsNumber(value) ? parseInt(value) : value);
-      }}
-    >
-      {selectItems}
-    </Select>
-  );
-};

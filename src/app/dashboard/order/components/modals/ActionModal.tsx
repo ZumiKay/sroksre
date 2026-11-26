@@ -1,7 +1,7 @@
 "use client";
 
-import { ChangeEvent, useState } from "react";
-import { Selection } from "@/src/app/component/Button";
+import { useState } from "react";
+import { SelectField } from "@/src/app/component/SelectField";
 import Modal, { SecondaryModal } from "@/src/app/component/Modals";
 import { useGlobalStore } from "@/src/context/GlobalContext";
 import { Allstatus } from "@/src/types/order.type";
@@ -38,7 +38,10 @@ const SUB_TITLES: Record<string, string> = {
   settings: "Edit order settings",
   delete: "Confirm deletion",
 };
-const STATUS_OPTIONS = Object.values(Allstatus);
+const STATUS_OPTIONS = Object.values(Allstatus).map((s) => ({
+  label: s,
+  value: s,
+}));
 const SHIPPING_OPTIONS = Shippingservice.map((s) => ({
   label: `${s.type} — $${s.price.toFixed(2)}`,
   value: s.value,
@@ -68,12 +71,7 @@ export const ActionModal = ({
   const handleClose = () => setclose();
 
   return (
-    <SecondaryModal
-      size="lg"
-      open={isOpen}
-      onPageChange={handleClose}
-      closebtn
-    >
+    <SecondaryModal size="lg" open={isOpen} onPageChange={handleClose} closebtn>
       <div className="w-full flex flex-col">
         {/* ── Header ── */}
         <div className="flex items-center gap-3 px-5 pt-5 pb-4 border-b border-gray-100">
@@ -215,8 +213,8 @@ const UpdateStatus = ({ setactiontype, oid, order }: UpdateStatusProps) => {
   const [loading, setloading] = useState(false);
   const { handleCheckSession } = useCheckSession();
 
-  const handleSelect = (e: ChangeEvent<HTMLSelectElement>) => {
-    setstatus(e.target.value as typeof order.status);
+  const handleSelect = (value: string) => {
+    setstatus(value as typeof order.status);
   };
 
   const handleUpdate = async () => {
@@ -261,10 +259,12 @@ const UpdateStatus = ({ setactiontype, oid, order }: UpdateStatusProps) => {
         <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
           New Status
         </label>
-        <Selection
-          default="Select status"
+        <SelectField
+          ariaLabel="New Status"
+          placeholder="Select status"
+          size="md"
           value={status}
-          data={STATUS_OPTIONS}
+          options={STATUS_OPTIONS}
           onChange={handleSelect}
         />
       </div>
@@ -371,13 +371,13 @@ const EditSettings = ({ setactiontype, oid, order }: EditSettingsProps) => {
         <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">
           Shipping Service
         </label>
-        <Selection
-          default="Select shipping"
+        <SelectField
+          ariaLabel="Shipping Service"
+          placeholder="Select shipping"
+          size="md"
           value={shippingtype}
-          data={SHIPPING_OPTIONS}
-          onChange={(e: ChangeEvent<HTMLSelectElement>) =>
-            setShippingtype(e.target.value)
-          }
+          options={SHIPPING_OPTIONS}
+          onChange={setShippingtype}
         />
         {selectedShipping && (
           <p className="text-xs text-gray-400">

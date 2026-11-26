@@ -2,7 +2,7 @@
 import type { Variantcontainertype } from "../types";
 import React from "react";
 import { Button } from "@heroui/react";
-import { Selection } from "../../Button";
+import { SelectField } from "../../SelectField";
 import TemplateContainer, { AddTemplateModal } from "./TemplateContainer";
 import { NormalSkeleton } from "../../Banner";
 import { ModalOpenState } from "../types";
@@ -32,18 +32,18 @@ export const VariantTypeSelection: React.FC<VariantTypeSelectionProps> = ({
   return (
     <>
       <div className="w-[90%]">
-        <Selection
-          default="Choose Variant Type"
-          style={{ width: "100%" }}
-          onChange={(e) => {
+        <SelectField
+          placeholder="Choose Variant Type"
+          value=""
+          onChange={(value) => {
             variantManager.setTemp({
               name: "",
               value: [],
-              type: e.target.value as VariantTypeEnum,
+              type: value as VariantTypeEnum,
             });
             setNew("info");
           }}
-          data={[
+          options={[
             {
               label: "Color",
               value: VariantTypeEnum.color,

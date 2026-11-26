@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import { SelectionCustom } from "../../../component/Pagination_Component";
+import { SelectField } from "../../../component/SelectField";
 import { SubInventoryMenu } from "../../../component/Navbar";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -73,7 +73,8 @@ export const InventoryHeader: React.FC<InventoryHeaderProps> = ({
   onDoneClick,
   onViewModeChange,
 }) => {
-  const showNormalMode = !isPromotionSelection && !isBannerSelection && !isManagingBanner;
+  const showNormalMode =
+    !isPromotionSelection && !isBannerSelection && !isManagingBanner;
 
   return (
     <div className="w-full flex flex-row items-center gap-2 overflow-x-auto scrollbar-hide pb-1">
@@ -85,14 +86,14 @@ export const InventoryHeader: React.FC<InventoryHeaderProps> = ({
                 icon={faLayerGroup}
                 className="text-indigo-500 text-sm md:text-base"
               />
-              <SelectionCustom
-                label="Filter"
-                data={filterOptions}
+              <SelectField
+                ariaLabel="Filter"
                 placeholder="Item"
+                size="sm"
+                className="w-35"
+                options={filterOptions}
                 value={type}
-                allowNone={false}
-                onChange={(val) => onFilterChange(val.toString().toLowerCase())}
-                style={{ width: "140px" }}
+                onChange={(val) => onFilterChange(val.toLowerCase())}
               />
             </div>
           </div>
@@ -101,7 +102,12 @@ export const InventoryHeader: React.FC<InventoryHeaderProps> = ({
             <SubInventoryMenu data={createMenu} open="subcreatemenu_ivt" />
           </div>
 
-          <StatBadge icon={faBox} label="Total" value={itemTotal} color="bg-slate-600" />
+          <StatBadge
+            icon={faBox}
+            label="Total"
+            value={itemTotal}
+            color="bg-slate-600"
+          />
 
           {type === "product" && (
             <StatBadge
@@ -114,7 +120,12 @@ export const InventoryHeader: React.FC<InventoryHeaderProps> = ({
           )}
 
           {type === "promotion" && (
-            <StatBadge icon={faClock} label="Expired" value={promoexpire} color="bg-orange-600" />
+            <StatBadge
+              icon={faClock}
+              label="Expired"
+              value={promoexpire}
+              color="bg-orange-600"
+            />
           )}
         </>
       ) : (
@@ -152,12 +163,18 @@ export const InventoryHeader: React.FC<InventoryHeaderProps> = ({
         >
           {isLoadingUpdate ? (
             <>
-              <FontAwesomeIcon icon={faSpinner} className="text-sm md:text-base" />
+              <FontAwesomeIcon
+                icon={faSpinner}
+                className="text-sm md:text-base"
+              />
               <span className="whitespace-nowrap">Processing...</span>
             </>
           ) : (
             <>
-              <FontAwesomeIcon icon={faCheck} className="text-sm md:text-base" />
+              <FontAwesomeIcon
+                icon={faCheck}
+                className="text-sm md:text-base"
+              />
               <span className="whitespace-nowrap">Done</span>
             </>
           )}
@@ -223,7 +240,9 @@ const ViewModeToggle: React.FC<{
       type="button"
       onClick={() => onChange("card")}
       className={`px-2.5 md:px-3 py-1.5 md:py-2 transition-all ${
-        viewMode === "card" ? "bg-slate-600 text-white" : "text-gray-600 hover:bg-gray-100"
+        viewMode === "card"
+          ? "bg-slate-600 text-white"
+          : "text-gray-600 hover:bg-gray-100"
       }`}
       title="Card View"
     >
@@ -233,7 +252,9 @@ const ViewModeToggle: React.FC<{
       type="button"
       onClick={() => onChange("list")}
       className={`px-2.5 md:px-3 py-1.5 md:py-2 transition-all ${
-        viewMode === "list" ? "bg-slate-600 text-white" : "text-gray-600 hover:bg-gray-100"
+        viewMode === "list"
+          ? "bg-slate-600 text-white"
+          : "text-gray-600 hover:bg-gray-100"
       }`}
       title="List View"
     >

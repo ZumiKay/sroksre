@@ -1,17 +1,13 @@
 "use client";
 
-import {
-  ChangeEvent,
-  useCallback,
-  useMemo,
-  useState,
-  memo,
-} from "react";
+import { ChangeEvent, useCallback, useMemo, useState, memo } from "react";
 import { CloseVector } from "../Asset";
-import { Selection } from "../Button";
+import { SelectField } from "../SelectField";
 import { TextInput } from "../FormComponent";
 import PrimaryButton from "../Button";
 import { listofprovinces } from "@/src/lib/utilities";
+
+const PROVINCE_OPTIONS = listofprovinces.map((p) => ({ label: p, value: p }));
 import { Addaddress, Deleteaddress } from "../../dashboard/action";
 import { errorToast, successToast } from "../Loading";
 import { Skeleton } from "@heroui/react";
@@ -126,21 +122,18 @@ const AddressItem = memo(
                     <label className="block text-sm font-semibold text-gray-700 mb-2">
                       Province / City *
                     </label>
-                    <Selection
-                      style={{ width: "100%", height: "50px" }}
-                      default="Select Province"
+                    <SelectField
+                      ariaLabel="Province / City"
+                      placeholder="Select Province"
                       name="province"
                       value={address.province}
-                      onChange={(e) => {
+                      onChange={(value) => {
                         const syntheticEvent = {
-                          target: {
-                            name: e.target.name,
-                            value: e.target.value,
-                          },
+                          target: { name: "province", value },
                         } as ChangeEvent<HTMLInputElement>;
                         onChange(syntheticEvent, index);
                       }}
-                      data={listofprovinces}
+                      options={PROVINCE_OPTIONS}
                     />
                   </div>
 

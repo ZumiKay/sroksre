@@ -11,14 +11,12 @@ import {
 import "../globals.css";
 import { useGlobalStore } from "@/src/context/GlobalContext";
 import { AnimatePresence, motion } from "framer-motion";
-import ReactSelect from "react-select/async";
-import makeAnimated from "react-select/animated";
 import { GetProductName } from "../dashboard/inventory/varaint_action";
 import { errorToast } from "./Loading";
 import { Button, Input } from "@heroui/react";
 import React from "react";
 import { ProductInfo, VariantValueObjType } from "@/src/types/product.type";
-import { SelectType } from "@/src/types/productAction.type";
+import { SelectField, SelectOption } from "./SelectField";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faCheck,
@@ -272,11 +270,14 @@ export const AddSubCategoryMenu = React.memo(function AddSubCategoryMenu({
     setcategory(deletesub);
     setopenmodal((prev) => ({ ...prev, addsubcategory: false }));
   }, [category, setcategory, setopenmodal]);
-  const handleDelete = useCallback((idx: number) => {
-    const subcate = [...category.subcategories];
-    subcate.splice(idx, 1);
-    setcategory((prev) => ({ ...prev, subcategories: subcate }));
-  }, [category.subcategories, setcategory]);
+  const handleDelete = useCallback(
+    (idx: number) => {
+      const subcate = [...category.subcategories];
+      subcate.splice(idx, 1);
+      setcategory((prev) => ({ ...prev, subcategories: subcate }));
+    },
+    [category.subcategories, setcategory],
+  );
   return (
     <div className="AddSubCategory_menu w-full h-fit p-6 flex flex-col justify-center gap-y-6 transition rounded-2xl bg-linear-to-br from-white to-indigo-50 border-2 border-indigo-200 shadow-lg">
       <div className="flex items-center gap-3 pb-2 border-b-2 border-indigo-200">
@@ -561,29 +562,21 @@ export const ToggleSelect = React.memo(function ToggleSelect({
   );
 });
 
-const animatedComponents = makeAnimated();
-
-const getOptions = async (value: string, selectedvalue?: string[]) => {
-  const product = GetProductName.bind(null, value);
-  const searchreq = await product();
-
-  const filterd = selectedvalue
-    ? searchreq.data.filter((i) => !selectedvalue.includes(i.id.toString()))
-    : searchreq.data;
-
-  const result = filterd.map((i) => ({
-    label: i.name,
-    value: i.id,
-  }));
-
-  return result;
+const searchProducts = async (
+  query: string,
+  excludeId?: number,
+): Promise<SelectOption[]> => {
+  const searchreq = await GetProductName(query);
+  return (searchreq.data ?? [])
+    .filter((i) => i.id !== excludeId)
+    .map((i) => ({ label: i.name, value: i.id.toString() }));
 };
 
 export const SearchAndMultiSelect = React.memo(function SearchAndMultiSelect() {
   const product = useGlobalStore((s) => s.product);
   const setproduct = useGlobalStore((s) => s.setproduct);
 
-  const [selected, setselected] = useState<SelectType[] | undefined>(undefined);
+  const [selected, setselected] = useState<SelectOption[]>([]);
 
   // Show the product's related items whenever that list changes
   const [syncedRelated, setSyncedRelated] = useState<
@@ -592,36 +585,30 @@ export const SearchAndMultiSelect = React.memo(function SearchAndMultiSelect() {
   if (syncedRelated !== product.relatedproduct) {
     setSyncedRelated(product.relatedproduct);
     if (product.relatedproduct) {
-      const selectedrelated = product.relatedproduct.map((i) => ({
-        label: i.name,
-        value: i.id.toString(),
-      }));
-      setselected(selectedrelated.length === 0 ? undefined : selectedrelated);
+      setselected(
+        product.relatedproduct.map((i) => ({
+          label: i.name,
+          value: i.id.toString(),
+        })),
+      );
     }
   }
 
-  const handleSelectChange = (val: SelectType[] | null) => {
-    const selected = val ?? [];
-    const productId = selected.map((i) => parseInt(i.value.toString()));
-
-    setselected(selected);
-    setproduct((prev) => ({ ...prev, relatedproductid: productId }));
+  const handleSelectChange = (val: SelectOption[]) => {
+    setselected(val);
+    setproduct((prev) => ({
+      ...prev,
+      relatedproductid: val.map((i) => Number(i.value)),
+    }));
   };
 
   return (
-    <ReactSelect
-      closeMenuOnSelect={false}
-      components={animatedComponents}
-      placeholder={"Product name"}
-      value={selected?.filter((i) => i.value !== product.id?.toString())}
-      loadOptions={(value) =>
-        getOptions(
-          value,
-          selected?.map((i) => i.value as string),
-        )
-      }
-      onChange={(val) => handleSelectChange(val as SelectType[] | null)}
-      isMulti
+    <SelectField
+      selectionMode="multiple"
+      placeholder="Search product name"
+      value={selected.filter((i) => i.value !== product.id?.toString())}
+      loadOptions={(query) => searchProducts(query, product.id)}
+      onChange={handleSelectChange}
     />
   );
 });

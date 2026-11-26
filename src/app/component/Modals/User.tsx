@@ -1,22 +1,49 @@
 import { useGlobalStore, Userinitialize } from "@/src/context/GlobalContext";
-import React, { ChangeEvent, SubmitEvent, useEffect, useState, useEffectEvent } from "react";
+import React, {
+  ChangeEvent,
+  SubmitEvent,
+  useEffect,
+  useState,
+  useEffectEvent,
+} from "react";
 import { errorToast, successToast } from "../Loading";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faUserPlus, faTrash, faPlus, faSave } from "@fortawesome/free-solid-svg-icons";
-import { ApiRequest, useDetectKeyboardOpen, useScreenSize } from "@/src/context/CustomHook";
+import {
+  faUserPlus,
+  faTrash,
+  faPlus,
+  faSave,
+} from "@fortawesome/free-solid-svg-icons";
+import {
+  ApiRequest,
+  useDetectKeyboardOpen,
+  useScreenSize,
+} from "@/src/context/CustomHook";
 import { SecondaryModal } from "../Modals";
 
-import { FormControl, IconButton, InputAdornment, InputLabel, OutlinedInput } from "@mui/material";
+import {
+  FormControl,
+  IconButton,
+  InputAdornment,
+  InputLabel,
+  OutlinedInput,
+} from "@mui/material";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
 import Visibility from "@mui/icons-material/Visibility";
 import PrimaryButton from "../Button";
 import { Editprofileaction, VerifyEmail } from "../../dashboard/action";
 import { signOut } from "next-auth/react";
+import { SelectField } from "../SelectField";
 import { PasswordInput, TextInput } from "../FormComponent";
 import { useRouter } from "next/navigation";
 import { userdata } from "../../account/actions";
 import { AddressModal } from "./AddressModal";
 
+const ROLE_OPTIONS = [
+  { label: "User - Regular Customer", value: "USER" },
+  { label: "Editor - Content Manager", value: "EDITOR" },
+  { label: "Admin - Full Access", value: "ADMIN" },
+];
 export const Createusermodal = ({
   setpage,
   onSuccess,
@@ -72,7 +99,9 @@ export const Createusermodal = ({
       return;
     }
 
-    successToast(`User ${editindex === -1 ? "Created" : "Updated"} Successfully`);
+    successToast(
+      `User ${editindex === -1 ? "Created" : "Updated"} Successfully`,
+    );
     if (editindex === -1) setdata(Userinitialize);
     setglobalindex((prev) => ({ ...prev, useredit: -1 }));
     setopenmodal((prev) => ({ ...prev, createUser: false }));
@@ -154,7 +183,9 @@ export const Createusermodal = ({
           </div>
 
           <div className="w-full">
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Last Name</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Last Name
+            </label>
             <TextInput
               type="text"
               name="lastname"
@@ -182,18 +213,18 @@ export const Createusermodal = ({
             <label className="block text-sm font-semibold text-gray-700 mb-2">
               User Role <span className="text-red-500">*</span>
             </label>
-            <select
+            <SelectField
+              ariaLabel="User Role"
+              placeholder="Select a role"
               name="role"
+              isRequired
               value={data.role || "USER"}
-              onChange={(e) => setdata((prev) => ({ ...prev, role: e.target.value }) as never)}
-              disabled={globalindex.useredit !== -1 && data.role === "ADMIN"}
-              className="w-full h-12.5 px-4 py-2 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-hidden transition-all bg-white text-gray-800 font-medium disabled:opacity-60 disabled:cursor-not-allowed disabled:bg-gray-100"
-              required
-            >
-              <option value="USER">User - Regular Customer</option>
-              <option value="EDITOR">Editor - Content Manager</option>
-              <option value="ADMIN">Admin - Full Access</option>
-            </select>
+              options={ROLE_OPTIONS}
+              onChange={(value) =>
+                setdata((prev) => ({ ...prev, role: value }) as never)
+              }
+              isDisabled={globalindex.useredit !== -1 && data.role === "ADMIN"}
+            />
             <p className="text-xs text-gray-500 mt-1.5">
               {data.role === "ADMIN" && globalindex.useredit !== -1
                 ? "🔒 Admin role cannot be changed"
@@ -207,7 +238,9 @@ export const Createusermodal = ({
 
           {data.phonenumber !== undefined && (
             <div className="w-full">
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Phone Number</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Phone Number
+              </label>
               <TextInput
                 type="tel"
                 name="phonenumber"
@@ -234,7 +267,10 @@ export const Createusermodal = ({
                 }}
                 variant="outlined"
               >
-                <InputLabel className="font-semibold" htmlFor="outlined-adornment-password">
+                <InputLabel
+                  className="font-semibold"
+                  htmlFor="outlined-adornment-password"
+                >
                   Password
                 </InputLabel>
                 <OutlinedInput
@@ -290,7 +326,10 @@ export const Createusermodal = ({
                 text="Delete User"
                 type="button"
                 textcolor="white"
-                disable={allData?.user && allData.user[globalindex.useredit].role === "ADMIN"}
+                disable={
+                  allData?.user &&
+                  allData.user[globalindex.useredit].role === "ADMIN"
+                }
                 onClick={() => handleDelete(data.id as number)}
                 width="100%"
                 height="54px"
@@ -371,7 +410,14 @@ export const EditProfile = ({
   const fetchdata = async (ty: typeof type) => {
     if (ty === "shipping") {
       const url = `/api/users/info?ty=${type}`;
-      const request = await ApiRequest(url, undefined, "GET", undefined, undefined, "userinfo");
+      const request = await ApiRequest(
+        url,
+        undefined,
+        "GET",
+        undefined,
+        undefined,
+        "userinfo",
+      );
       setloading((prev) => ({ ...prev, get: false }));
       if (request.success) {
         const addresses = request.data.map((addr: shippingtype) => ({
@@ -494,13 +540,17 @@ export const EditProfile = ({
     <SecondaryModal
       size={isMobile ? "full" : "2xl"}
       open={openmodal.editprofile}
-      onPageChange={(val) => setopenmodal((prev) => ({ ...prev, editprofile: val }))}
+      onPageChange={(val) =>
+        setopenmodal((prev) => ({ ...prev, editprofile: val }))
+      }
       placement="top"
       closebtn
     >
       <div
         style={
-          isKeyboardOpen && type === "shipping" ? { minHeight: "100vh" } : { minHeight: "100%" }
+          isKeyboardOpen && type === "shipping"
+            ? { minHeight: "100vh" }
+            : { minHeight: "100%" }
         }
         className="editprofile_container relative flex flex-col items-center gap-y-5 w-full h-full bg-white rounded-lg p-6"
       >
@@ -552,8 +602,16 @@ export const EditProfile = ({
         )}
         {type === "password" && (
           <>
-            <PasswordInput type="userinfo" name="oldpassword" label="Old Password" />{" "}
-            <PasswordInput type="userinfo" name="newpassword" label="New Password" />{" "}
+            <PasswordInput
+              type="userinfo"
+              name="oldpassword"
+              label="Old Password"
+            />{" "}
+            <PasswordInput
+              type="userinfo"
+              name="newpassword"
+              label="New Password"
+            />{" "}
           </>
         )}
         {type === "shipping" && (

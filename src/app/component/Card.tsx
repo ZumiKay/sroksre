@@ -26,7 +26,7 @@ import {
 import { StockEditTarget } from "./Modals/productStockTarget";
 import { Chip, Skeleton } from "@heroui/react";
 import { ApiRequest, useScreenSize } from "@/src/context/CustomHook";
-import { SelectionCustom } from "./Pagination_Component";
+import { SelectField } from "./SelectField";
 import {
   productcoverstype,
   VariantValueObjType,
@@ -175,7 +175,20 @@ const Card = memo(function Card(props: cardprops) {
         setopenmodal((prev) => ({ ...prev, discount: true }));
       }
     },
-    [promotion.Products, promotion.tempproduct, props.discount, props.name, props.img, props.price, setpromotion, isProduct, allData?.product, setalldata, setglobalindex, setopenmodal],
+    [
+      promotion.Products,
+      promotion.tempproduct,
+      props.discount,
+      props.name,
+      props.img,
+      props.price,
+      setpromotion,
+      isProduct,
+      allData?.product,
+      setalldata,
+      setglobalindex,
+      setopenmodal,
+    ],
   );
 
   // Condition
@@ -596,15 +609,16 @@ export const SecondayCard = memo(function SecondayCard(
               <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
                 Quantity
               </label>
-              <SelectionCustom
-                label="QTY"
-                placeholder="Select"
+              <SelectField
+                ariaLabel="Quantity"
+                placeholder="Qty"
                 size="sm"
-                style={{ width: "130px" }}
+                className="w-32.5"
                 value={editqty.toString()}
                 isLoading={loading}
-                onChange={(value) => handleEditQty(value as string)}
-                data={qtyOptions}
+                isDisabled={loading}
+                onChange={handleEditQty}
+                options={qtyOptions}
               />
             </div>
 

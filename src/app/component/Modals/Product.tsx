@@ -72,32 +72,30 @@ export function CreateProducts({
     undefined,
   );
 
-  const fetchcate = useEffectEvent(
-    async (products?: ProductState) => {
-      setCategoriesLoading(true);
-      const asyncfunc = async () => {
-        const categories = await ApiRequest(
-          "/api/categories?ty=create",
-          undefined,
-          "GET",
+  const fetchcate = useEffectEvent(async (products?: ProductState) => {
+    setCategoriesLoading(true);
+    const asyncfunc = async () => {
+      const categories = await ApiRequest(
+        "/api/categories?ty=create",
+        undefined,
+        "GET",
+      );
+      if (categories.success) {
+        setcate(categories.data);
+        const { parent_id } = products
+          ? { ...products.category }
+          : { ...product.category };
+
+        const subcates: CateogoryState = categories.data.find(
+          (i: CateogoryState) => i.id === parent_id,
         );
-        if (categories.success) {
-          setcate(categories.data);
-          const { parent_id } = products
-            ? { ...products.category }
-            : { ...product.category };
 
-          const subcates: CateogoryState = categories.data.find(
-            (i: CateogoryState) => i.id === parent_id,
-          );
-
-          setsubcate(subcates?.subcategories ?? []);
-        }
-        setCategoriesLoading(false);
-      };
-      await Delayloading(asyncfunc, setloading, 1000);
-    },
-  );
+        setsubcate(subcates?.subcategories ?? []);
+      }
+      setCategoriesLoading(false);
+    };
+    await Delayloading(asyncfunc, setloading, 1000);
+  });
 
   /**Initialize Process */
   useEffect(() => {
@@ -254,9 +252,14 @@ export function CreateProducts({
       setsubcate(subcates ?? []);
     }
 
+    const id = value ? parseInt(value) : undefined;
     setproduct({
       ...product,
-      category: { ...product.category, [name]: parseInt(value) },
+      category:
+        name === "parent_id"
+          ? // A new category invalidates the previous sub category
+            { parent_id: id as number, child_id: undefined }
+          : { ...product.category, child_id: id },
     });
   };
 
@@ -381,7 +384,7 @@ export function CreateProducts({
             <ProductInfoFields handleChange={handleChange} loading={loading} />
 
             <div
-              className="w-full h-fit flex flex-col gap-y-3 z-50 
+              className="w-full h-fit flex flex-col gap-y-3
                 bg-linear-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200"
             >
               <label className="font-semibold text-sm text-gray-700">

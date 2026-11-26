@@ -27,17 +27,31 @@ import {
   faTriangleExclamation,
 } from "@fortawesome/free-solid-svg-icons";
 import { errorToast, successToast } from "../Loading";
-import { ApiRequest, Delayloading, useScreenSize } from "@/src/context/CustomHook";
+import {
+  ApiRequest,
+  Delayloading,
+  useScreenSize,
+} from "@/src/context/CustomHook";
 import { SecondaryModal } from "../Modals";
 import { AddSubCategoryMenu } from "../ToggleMenu";
 import { Categorytype } from "../../api/categories/route";
 import { DateRangePicker, Input } from "@heroui/react";
 import { parseDate } from "@internationalized/date";
-import { SelectAndSearchProduct } from "../Banner";
+import { SelectField, pagedResult } from "../SelectField";
 import { SelectType } from "@/src/types/productAction.type";
-import { ACCENTS, IconTile, ModalTitle, Option, OptionGroup, SectionCard } from "./FormSection";
+import {
+  ACCENTS,
+  IconTile,
+  ModalTitle,
+  Option,
+  OptionGroup,
+  SectionCard,
+} from "./FormSection";
 
-export const GetPromotionSelection = async (search: string, limit: number = 1) => {
+export const GetPromotionSelection = async (
+  search: string,
+  limit: number = 1,
+) => {
   const url = `/api/promotion?ty=selection&lt=${limit}${search !== "" ? `&q=${search}` : ""}`;
   const request = await ApiRequest(url, undefined, "GET");
 
@@ -71,17 +85,25 @@ export const Category = () => {
     }
 
     // Check if category name already exists
-    const isExist = allData?.category?.some((obj) => obj.name === category.name);
+    const isExist = allData?.category?.some(
+      (obj) => obj.name === category.name,
+    );
     if (isExist) {
       errorToast("Category Existed");
       return;
     }
 
     setloading(true);
-    const saved = await ApiRequest("/api/categories", undefined, "POST", "JSON", {
-      ...category,
-      type: catetype,
-    });
+    const saved = await ApiRequest(
+      "/api/categories",
+      undefined,
+      "POST",
+      "JSON",
+      {
+        ...category,
+        type: catetype,
+      },
+    );
     setloading(false);
 
     if (!saved.success) {
@@ -93,30 +115,39 @@ export const Category = () => {
     successToast("Category Created");
   }, [allData?.category, category, catetype, setcategory]);
 
-  const handleNavbar = useCallback((show: "Create" | "Edit") => {
-    setshow(show);
-    setopenmodal((prev) => ({ ...prev, addsubcategory: false }));
-    setcategory(CateogoryInitailizestate);
-  }, [setcategory, setopenmodal]);
+  const handleNavbar = useCallback(
+    (show: "Create" | "Edit") => {
+      setshow(show);
+      setopenmodal((prev) => ({ ...prev, addsubcategory: false }));
+      setcategory(CateogoryInitailizestate);
+    },
+    [setcategory, setopenmodal],
+  );
 
-  const handleSelectPromotion = useCallback((value: Array<SelectType>) => {
-    const subcategories =
-      value?.length > 0
-        ? value.map((i) => ({
-            name: i.label,
-            type: "promo" as const,
-            pid: i.value as number,
-            id: i.value as number,
-          }))
-        : [];
+  const handleSelectPromotion = useCallback(
+    (value: Array<SelectType>) => {
+      const subcategories =
+        value?.length > 0
+          ? value.map((i) => ({
+              name: i.label,
+              type: "promo" as const,
+              pid: i.value as number,
+              id: i.value as number,
+            }))
+          : [];
 
-    setcategory((prev) => ({ ...prev, subcategories }));
-  }, [setcategory]);
+      setcategory((prev) => ({ ...prev, subcategories }));
+    },
+    [setcategory],
+  );
 
-  const handleChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setcategory((prev) => ({ ...prev, [name]: value }));
-  }, [setcategory]);
+  const handleChange = useCallback(
+    (e: ChangeEvent<HTMLInputElement>) => {
+      const { name, value } = e.target;
+      setcategory((prev) => ({ ...prev, [name]: value }));
+    },
+    [setcategory],
+  );
 
   const canCreate = category.name.length > 0 && !loading;
 
@@ -124,7 +155,9 @@ export const Category = () => {
     <SecondaryModal
       open={openmodal.createCategory}
       size="4xl"
-      onPageChange={(val) => setopenmodal((prev) => ({ ...prev, createCategory: val }))}
+      onPageChange={(val) =>
+        setopenmodal((prev) => ({ ...prev, createCategory: val }))
+      }
       placement={isMobile ? "top-center" : isTablet ? "center" : undefined}
     >
       <div className="category w-full flex flex-col gap-y-5 py-4">
@@ -193,14 +226,23 @@ export const Category = () => {
                 title="Promotions"
                 hint="Products from these promotions are listed in this category."
               >
-                <SelectAndSearchProduct
-                  getdata={(take, value) => GetPromotionSelection(value, take)}
+                <SelectField
+                  selectionMode="multiple"
+                  ariaLabel="Promotions"
                   placeholder="Search promotions"
+                  searchOnEmpty
+                  isClearable
+                  loadOptions={async (query, limit) =>
+                    pagedResult(
+                      await GetPromotionSelection(query, limit),
+                      limit,
+                    )
+                  }
                   value={category.subcategories.map((sub) => ({
                     label: sub.name,
                     value: sub.id ?? 0,
                   }))}
-                  onSelect={(value) => handleSelectPromotion(value as Array<SelectType>)}
+                  onChange={handleSelectPromotion}
                 />
               </SectionCard>
             )}
@@ -230,7 +272,10 @@ export const Category = () => {
                     type="button"
                     onClick={() =>
                       category.name.length > 0 &&
-                      setopenmodal((prev) => ({ ...prev, addsubcategory: true }))
+                      setopenmodal((prev) => ({
+                        ...prev,
+                        addsubcategory: true,
+                      }))
                     }
                     disabled={category.name.length === 0}
                     className={`w-full h-11 rounded-lg text-sm font-semibold border flex items-center justify-center gap-2 transition-colors disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400 disabled:border-slate-200 ${ACCENTS.neutral.soft}`}
@@ -263,7 +308,11 @@ export const Category = () => {
                 disabled={!canCreate}
                 className="inline-flex items-center justify-center gap-2 h-10 px-5 rounded-lg text-sm font-semibold primary__button text-white shadow-sm hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed max-small_phone:w-full"
               >
-                {loading ? <Spinner /> : <FontAwesomeIcon icon={faCheck} className="text-xs" />}
+                {loading ? (
+                  <Spinner />
+                ) : (
+                  <FontAwesomeIcon icon={faCheck} className="text-xs" />
+                )}
                 {loading ? "Creating..." : "Create Category"}
               </button>
             </div>
@@ -307,8 +356,15 @@ const TYPE_ACCENT: Record<string, Option> = Object.fromEntries(
   TYPE_OPTIONS.map((o) => [o.value, o]),
 );
 
-const Spinner = ({ className = "border-white/40 border-t-white" }: { className?: string }) => (
-  <span aria-hidden="true" className={`w-4 h-4 rounded-full border-2 animate-spin ${className}`} />
+const Spinner = ({
+  className = "border-white/40 border-t-white",
+}: {
+  className?: string;
+}) => (
+  <span
+    aria-hidden="true"
+    className={`w-4 h-4 rounded-full border-2 animate-spin ${className}`}
+  />
 );
 
 function DetailsFields({
@@ -365,10 +421,10 @@ function CategoryDateRange() {
       variant="bordered"
       value={
         category.daterange
-          ? ({
+          ? {
               start: parseDate(category.daterange.start),
               end: parseDate(category.daterange.end),
-            })
+            }
           : undefined
       }
       onChange={(val) => {
@@ -458,7 +514,14 @@ const EditCategory = ({
       setglobalindex((prev) => ({ ...prev, categoryeditindex: [] }));
       errorToast(deleterequest.error as string);
     }
-  }, [setloading, globalindex.categoryeditindex, setglobalindex, tempcate, allData?.category, setalldata]);
+  }, [
+    setloading,
+    globalindex.categoryeditindex,
+    setglobalindex,
+    tempcate,
+    allData?.category,
+    setalldata,
+  ]);
 
   const handleConfirm = useCallback(async () => {
     if (!category.name || !category.description) {
@@ -494,25 +557,37 @@ const EditCategory = ({
     setalldata((prev) => ({ ...prev, category: allcate }));
     settempcate([]);
     setglobalindex((prev) => ({ ...prev, categoryeditindex: [] }));
-  }, [tempcate, allData?.category, setalldata, setglobalindex, globalindex.categoryeditindex]);
+  }, [
+    tempcate,
+    allData?.category,
+    setalldata,
+    setglobalindex,
+    globalindex.categoryeditindex,
+  ]);
 
-  const handleSelectPromotion = useCallback((value: Array<SelectType>) => {
-    const subcategories =
-      value?.length > 0
-        ? value.map((i) => ({
-            name: i.label,
-            type: "promo" as const,
-            pid: i.value as number,
-          }))
-        : [];
+  const handleSelectPromotion = useCallback(
+    (value: Array<SelectType>) => {
+      const subcategories =
+        value?.length > 0
+          ? value.map((i) => ({
+              name: i.label,
+              type: "promo" as const,
+              pid: i.value as number,
+            }))
+          : [];
 
-    setcategory((prev) => ({ ...prev, subcategories }));
-  }, [setcategory]);
+      setcategory((prev) => ({ ...prev, subcategories }));
+    },
+    [setcategory],
+  );
 
-  const handleEditChange = useCallback((e: ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setcategory((prev) => ({ ...prev, [name]: value }));
-  }, [setcategory]);
+  const handleEditChange = useCallback(
+    (e: ChangeEvent<HTMLInputElement>) => {
+      const { name, value } = e.target;
+      setcategory((prev) => ({ ...prev, [name]: value }));
+    },
+    [setcategory],
+  );
 
   const categories = allData?.category ?? [];
   const pendingCount = globalindex.categoryeditindex.length;
@@ -523,12 +598,15 @@ const EditCategory = ({
         {!edit ? (
           <>
             <div className="w-full flex items-center justify-between">
-              <h4 className="text-sm font-semibold text-slate-900">All categories</h4>
+              <h4 className="text-sm font-semibold text-slate-900">
+                All categories
+              </h4>
               {!loading && categories.length > 0 && (
                 <span
                   className={`text-xs font-semibold px-2.5 py-1 rounded-full ${ACCENTS.neutral.tile}`}
                 >
-                  {categories.length} {categories.length === 1 ? "category" : "categories"}
+                  {categories.length}{" "}
+                  {categories.length === 1 ? "category" : "categories"}
                 </span>
               )}
             </div>
@@ -549,7 +627,9 @@ const EditCategory = ({
               <div className="w-full py-12 flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 text-center">
                 <IconTile icon={faFolderOpen} size="lg" />
                 <div>
-                  <h3 className="text-base font-semibold text-slate-900">No categories yet</h3>
+                  <h3 className="text-base font-semibold text-slate-900">
+                    No categories yet
+                  </h3>
                   <p className="text-sm text-slate-500 mt-0.5">
                     Switch to &ldquo;Create new&rdquo; to add your first one.
                   </p>
@@ -558,7 +638,8 @@ const EditCategory = ({
             ) : (
               <div className="flex flex-col gap-2">
                 {categories.map((obj, idx) => {
-                  const typeInfo = TYPE_ACCENT[obj.type ?? "normal"] ?? TYPE_OPTIONS[0];
+                  const typeInfo =
+                    TYPE_ACCENT[obj.type ?? "normal"] ?? TYPE_OPTIONS[0];
                   return (
                     <div
                       key={obj.id ?? idx}
@@ -585,7 +666,10 @@ const EditCategory = ({
                         onClick={() => handleClick(idx)}
                         className={`actions shrink-0 h-9 px-3 rounded-lg text-sm font-semibold border flex items-center gap-2 transition-colors ${ACCENTS.neutral.soft}`}
                       >
-                        <FontAwesomeIcon icon={faPenToSquare} className="text-xs" />
+                        <FontAwesomeIcon
+                          icon={faPenToSquare}
+                          className="text-xs"
+                        />
                         <span className="max-small_phone:hidden">Edit</span>
                       </button>
                       <button
@@ -595,11 +679,17 @@ const EditCategory = ({
                           const allcate = [...categories];
                           const deletedItem = allcate.splice(idx, 1)[0];
 
-                          setalldata((prev) => ({ ...prev, category: allcate }));
+                          setalldata((prev) => ({
+                            ...prev,
+                            category: allcate,
+                          }));
                           settempcate((prev) => [...prev, deletedItem]);
                           setglobalindex((prev) => ({
                             ...prev,
-                            categoryeditindex: [...prev.categoryeditindex, obj.id as number],
+                            categoryeditindex: [
+                              ...prev.categoryeditindex,
+                              obj.id as number,
+                            ],
                           }));
                         }}
                         className={`actions shrink-0 h-9 px-3 rounded-lg text-sm font-semibold border flex items-center gap-2 transition-colors ${ACCENTS.danger.soft}`}
@@ -665,14 +755,23 @@ const EditCategory = ({
                 title="Promotions"
                 hint="Products from these promotions are listed in this category."
               >
-                <SelectAndSearchProduct
-                  getdata={(take, value) => GetPromotionSelection(value, take)}
+                <SelectField
+                  selectionMode="multiple"
+                  ariaLabel="Promotions"
                   placeholder="Search promotions"
+                  searchOnEmpty
+                  isClearable
+                  loadOptions={async (query, limit) =>
+                    pagedResult(
+                      await GetPromotionSelection(query, limit),
+                      limit,
+                    )
+                  }
                   value={category.subcategories.map((sub) => ({
                     label: sub.name,
                     value: sub.pid ?? 0,
                   }))}
-                  onSelect={(value) => handleSelectPromotion(value as Array<SelectType>)}
+                  onChange={handleSelectPromotion}
                 />
               </SectionCard>
             )}
@@ -727,10 +826,12 @@ const EditCategory = ({
             <IconTile icon={faTriangleExclamation} accent="danger" size="sm" />
             <div className="flex-1">
               <h4 className="text-sm font-semibold text-red-800">
-                {pendingCount} {pendingCount === 1 ? "category" : "categories"} marked for deletion
+                {pendingCount} {pendingCount === 1 ? "category" : "categories"}{" "}
+                marked for deletion
               </h4>
               <p className="text-xs text-red-700 mt-0.5">
-                Nothing is deleted until you confirm. This can&apos;t be undone afterwards.
+                Nothing is deleted until you confirm. This can&apos;t be undone
+                afterwards.
               </p>
             </div>
           </div>
@@ -750,7 +851,11 @@ const EditCategory = ({
               disabled={loading}
               className="inline-flex items-center justify-center gap-2 h-10 px-4 rounded-lg text-sm font-semibold bg-red-600 text-white shadow-sm hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed max-small_phone:flex-1"
             >
-              {loading ? <Spinner /> : <FontAwesomeIcon icon={faTrashCan} className="text-xs" />}
+              {loading ? (
+                <Spinner />
+              ) : (
+                <FontAwesomeIcon icon={faTrashCan} className="text-xs" />
+              )}
               {loading ? "Deleting..." : `Delete ${pendingCount}`}
             </button>
           </div>

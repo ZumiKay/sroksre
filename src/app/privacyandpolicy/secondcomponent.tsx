@@ -1,7 +1,8 @@
 "use client";
-import { Button, Select, SelectItem } from "@heroui/react";
+import { Button } from "@heroui/react";
+import { SelectField } from "../component/SelectField";
 import Modal from "../component/Modals";
-import React, { ChangeEvent, useState, useMemo } from "react";
+import React, { useState } from "react";
 import { showtype } from "../api/policy/route";
 import { ApiRequest, useScreenSize } from "@/src/context/CustomHook";
 import { errorToast } from "../component/Loading";
@@ -28,10 +29,6 @@ export const Showtypemodal = ({
   const [loading, setloading] = useState(false);
   const { isTablet, isMobile } = useScreenSize();
 
-  const handleSelectionChange = (e: ChangeEvent<HTMLSelectElement>) => {
-    setValues(new Set(e.target.value.split(",")));
-  };
-
   const handleUpdatePolicy = async () => {
     setloading(true);
     const value = Array.from(values)
@@ -51,16 +48,6 @@ export const Showtypemodal = ({
     router.refresh();
   };
 
-  const items = useMemo(() => showtypedata, []);
-
-  const selectItems = useMemo(
-    () =>
-      items.map((data) => (
-        <SelectItem key={data.value}>{data.label}</SelectItem>
-      )),
-    [items],
-  );
-
   return (
     <Modal
       customwidth={isMobile ? "100vw" : isTablet ? "90vw" : ""}
@@ -69,17 +56,16 @@ export const Showtypemodal = ({
     >
       <div className="w-full h-full bg-white rounded-lg p-3 flex flex-col gap-y-5">
         <h3 className="text-2xl font-bold">Set Policy For Display</h3>
-        <Select
-          fullWidth
-          label="Show Type"
+        <SelectField
           selectionMode="multiple"
+          label="Show Type"
           placeholder="Select Type"
-          selectedKeys={values}
-          size="lg"
-          onChange={handleSelectionChange}
-        >
-          {selectItems}
-        </Select>
+          options={showtypedata}
+          value={showtypedata.filter((o) => values.has(o.value))}
+          onChange={(selected) =>
+            setValues(new Set(selected.map((o) => String(o.value))))
+          }
+        />
         <Button
           fullWidth
           isLoading={loading}

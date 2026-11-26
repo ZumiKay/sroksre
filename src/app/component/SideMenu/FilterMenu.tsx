@@ -24,10 +24,10 @@ import {
   InventoryParamType,
 } from "../../dashboard/inventory/varaint_action";
 import { BannerSize, BannerType } from "../Modals/Banner";
-import { SelectAndSearchProduct } from "../Banner";
 import { GetPromotionSelection } from "../Modals/Category";
 import { FilterValue } from "@/src/types/product.type";
 import { SelectType } from "@/src/types/productAction.type";
+import { SelectField, pagedResult } from "../SelectField";
 
 interface FilterCategoryType {
   id: number;
@@ -243,8 +243,7 @@ export const FilterMenu = ({
     onSelectedFirstChange,
   ]);
 
-  const handleSelect = useCallback((e: ChangeEvent<HTMLSelectElement>) => {
-    const { name, value } = e.target;
+  const handleSelect = useCallback((name: string, value: string) => {
     setfilter((prev) => ({
       ...prev,
       [name]: value,
@@ -477,18 +476,22 @@ export const FilterMenu = ({
         {type === "banner" && (
           <div className="grid grid-cols-2 gap-4 max-small_phone:grid-cols-1">
             <SelectField
+              size="md"
+              allowNone
+              noneLabel="Any type"
               label="Type"
-              name="bannertype"
               value={filtervalue.bannertype}
-              onChange={handleSelect}
+              onChange={(value) => handleSelect("bannertype", value)}
               placeholder="Any type"
               options={BannerType}
             />
             <SelectField
+              size="md"
+              allowNone
+              noneLabel="Any size"
               label="Size"
-              name="bannersize"
               value={filtervalue.bannersize}
-              onChange={handleSelect}
+              onChange={(value) => handleSelect("bannersize", value)}
               placeholder="Any size"
               options={BannerSize}
             />
@@ -514,10 +517,12 @@ export const FilterMenu = ({
               />
             </FilterField>
             <SelectField
+              size="md"
+              allowNone
+              noneLabel="Any status"
               label="Status"
-              name="expired"
               value={filtervalue.expired}
-              onChange={(e) => handleExpiredChange(e.target.value)}
+              onChange={handleExpiredChange}
               placeholder="Any status"
               options={[{ label: "Expired only", value: "1" }]}
             />
@@ -528,33 +533,43 @@ export const FilterMenu = ({
           <>
             <div className="grid grid-cols-2 gap-4 max-small_phone:grid-cols-1">
               <SelectField
+                size="md"
+                allowNone
+                noneLabel={loading ? "Loading..." : "Any category"}
                 label="Category"
-                name="parentcate"
                 value={filtervalue.parentcate}
-                onChange={handleSelect}
+                onChange={(value) => handleSelect("parentcate", value)}
                 placeholder={loading ? "Loading..." : "Any category"}
                 options={parentCategoryOptions}
               />
               <SelectField
+                size="md"
+                allowNone
+                noneLabel={
+                  filtervalue.parentcate
+                    ? "Any subcategory"
+                    : "Choose a category first"
+                }
                 label="Subcategory"
-                name="childcate"
                 value={filtervalue.childcate}
-                onChange={handleSelect}
+                onChange={(value) => handleSelect("childcate", value)}
                 placeholder={
                   filtervalue.parentcate
                     ? "Any subcategory"
                     : "Choose a category first"
                 }
                 options={filtervalue.parentcate ? subCategoryOptions : []}
-                disabled={!filtervalue.parentcate}
+                isDisabled={!filtervalue.parentcate}
               />
             </div>
 
             <SelectField
+              size="md"
+              allowNone
+              noneLabel="Any stock level"
               label="Stock"
-              name="status"
               value={filtervalue.status}
-              onChange={handleSelect}
+              onChange={(value) => handleSelect("status", value)}
               placeholder="Any stock level"
               options={[{ label: "Low stock (5 or fewer)", value: "Low" }]}
             />
@@ -583,11 +598,23 @@ export const FilterMenu = ({
               </div>
             ) : (
               <FilterField label="Promotion">
-                <SelectAndSearchProduct
-                  getdata={(take, value) => GetPromotionSelection(value, take)}
+                <SelectField
+                  selectionMode="multiple"
+                  ariaLabel="Promotion"
                   placeholder="Search promotions"
-                  value={promoval}
-                  onSelect={handlePromotionSelect}
+                  searchOnEmpty
+                  isClearable
+                  loadOptions={async (query, limit) =>
+                    pagedResult(
+                      await GetPromotionSelection(query, limit),
+                      limit,
+                    )
+                  }
+                  value={promoval ?? []}
+                  onChange={(value) => {
+                    setpromoval(value);
+                    handlePromotionSelect(value);
+                  }}
                 />
               </FilterField>
             )}
@@ -612,42 +639,6 @@ const FilterField = ({
     <span className="text-sm font-medium text-slate-700">{label}</span>
     {children}
   </div>
-);
-
-const SelectField = ({
-  label,
-  name,
-  value,
-  onChange,
-  options,
-  placeholder,
-  disabled,
-}: {
-  label: string;
-  name: string;
-  value?: string | number;
-  onChange: (e: ChangeEvent<HTMLSelectElement>) => void;
-  options: Array<{ label: string; value: string | number }>;
-  placeholder: string;
-  disabled?: boolean;
-}) => (
-  <label className="flex flex-col gap-1.5">
-    <span className="text-sm font-medium text-slate-700">{label}</span>
-    <select
-      name={name}
-      value={value ?? ""}
-      onChange={onChange}
-      disabled={disabled}
-      className={`${inputClass} disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed`}
-    >
-      <option value="">{placeholder}</option>
-      {options.map((option) => (
-        <option key={option.value} value={option.value}>
-          {option.label}
-        </option>
-      ))}
-    </select>
-  </label>
 );
 
 const CheckboxField = ({

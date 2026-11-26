@@ -1,7 +1,8 @@
 "use client";
 
-import { ChangeEvent, useEffect, useState } from "react";
-import PrimaryButton, { Selection } from "../component/Button";
+import { useEffect, useState } from "react";
+import PrimaryButton from "../component/Button";
+import { SelectField } from "../component/SelectField";
 import { useGlobalStore } from "@/src/context/GlobalContext";
 import { SecondaryModal } from "../component/Modals";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -87,8 +88,7 @@ export const SortSelect = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [sort, setsort] = useState(searchParams.get("sort") ?? "");
-  const handleSelect = (e: ChangeEvent<HTMLSelectElement>) => {
-    const { value } = e.target;
+  const handleSelect = (value: string) => {
     const param = new URLSearchParams(searchParams);
     setsort(value);
 
@@ -97,20 +97,17 @@ export const SortSelect = () => {
     router.push(`?${param}`, { scroll: false });
   };
   return (
-    <Selection
-      onChange={handleSelect}
+    <SelectField
+      ariaLabel="Sort by price"
+      placeholder="Sort"
+      size="md"
+      className="w-37.5 min-w-37.5"
       value={sort}
-      data={[
-        {
-          label: "Low To High",
-          value: 1,
-        },
-        {
-          label: "High To Low",
-          value: 2,
-        },
+      options={[
+        { label: "Low To High", value: "1" },
+        { label: "High To Low", value: "2" },
       ]}
-      style={{ height: "100%", width: "150px", minWidth: "150px" }}
+      onChange={handleSelect}
     />
   );
 };

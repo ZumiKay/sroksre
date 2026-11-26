@@ -1,7 +1,8 @@
 "use client";
 import type { Variantcontainertype } from "../types";
 import React, { useState } from "react";
-import { Input, Select, SelectItem } from "@heroui/react";
+import { Input } from "@heroui/react";
+import { SelectField } from "../../SelectField";
 import PrimaryButton from "../../Button";
 import { ColorVariantEditor } from "./ColorVariantEditor";
 import { TextVariantEditor } from "./TextVariantEditor";
@@ -198,26 +199,20 @@ export const VariantInfoEditor: React.FC<VariantInfoEditorProps> = ({
       )}
 
       {variantSections && variantSections.length > 0 && (
-        <Select
+        <SelectField
           label="Variant Section (Optional)"
           placeholder="Select a variant section or leave empty"
-          selectedKeys={variantSectionId ? [variantSectionId.toString()] : []}
-          onSelectionChange={(keys) => {
-            const selected = Array.from(keys)[0];
-            setVariantSectionId(selected ? Number(selected) : undefined);
-          }}
-          size="lg"
-          className="w-full"
-          classNames={{
-            trigger: "bg-white border-gray-300",
-          }}
-        >
-          {variantSections.map((section) => (
-            <SelectItem key={section.id?.toString() ?? ""}>
-              {section.name}
-            </SelectItem>
-          ))}
-        </Select>
+          allowNone
+          noneLabel="No section"
+          value={variantSectionId ? variantSectionId.toString() : ""}
+          options={variantSections
+            .filter((section) => section.id)
+            .map((section) => ({
+              label: section.name,
+              value: section.id!.toString(),
+            }))}
+          onChange={(val) => setVariantSectionId(val ? Number(val) : undefined)}
+        />
       )}
 
       <Input
@@ -403,7 +398,10 @@ const AddonConditionEditor = ({
   const handleToggle = (checked: boolean) => {
     setCondition(
       checked
-        ? { variant: triggers.length === 1 ? triggers[0].title : "", values: [] }
+        ? {
+            variant: triggers.length === 1 ? triggers[0].title : "",
+            values: [],
+          }
         : null,
     );
   };
@@ -435,71 +433,34 @@ const AddonConditionEditor = ({
 
       {enabled && (
         <div className="flex flex-col gap-3 ml-7">
-          <Select
+          <SelectField
             label="Depends on variant"
             placeholder="Choose a variant"
-            selectedKeys={condition.variant && trigger ? [condition.variant] : []}
-            onSelectionChange={(keys) => {
-              const selected = Array.from(keys)[0];
-              setCondition({
-                variant: selected ? String(selected) : "",
-                values: [],
-              });
-            }}
-            size="sm"
-            className="w-full"
-            classNames={{ trigger: "bg-white border-gray-300" }}
-            errorMessage={
-              isStale
-                ? `"${condition.variant}" can't be used anymore. Choose another variant.`
-                : undefined
-            }
+            value={condition.variant && trigger ? condition.variant : ""}
+            options={triggers.map((t) => ({ label: t.title, value: t.title }))}
+            onChange={(val) => setCondition({ variant: val, values: [] })}
             isInvalid={isStale}
-          >
-            {triggers.map((t) => (
-              <SelectItem key={t.title}>{t.title}</SelectItem>
-            ))}
-          </Select>
+            errorMessage={`"${condition.variant}" can't be used anymore. Choose another variant.`}
+          />
 
           {trigger && (
-            <Select
+            <SelectField
+              selectionMode="multiple"
               label="Available when customer selects"
               placeholder="Choose one or more options"
-              selectionMode="multiple"
-              selectedKeys={condition.values}
-              onSelectionChange={(keys) =>
+              options={trigger.options}
+              value={trigger.options.filter((opt) =>
+                condition.values.includes(opt.value),
+              )}
+              onChange={(selected) =>
                 setCondition({
                   variant: trigger.title,
-                  values: Array.from(keys).map(String),
+                  values: selected.map((opt) => String(opt.value)),
                 })
               }
-              size="sm"
-              className="w-full"
-              classNames={{ trigger: "bg-white border-gray-300" }}
               isInvalid={condition.values.length === 0}
-              errorMessage={
-                condition.values.length === 0
-                  ? "Pick at least one option"
-                  : undefined
-              }
-            >
-              {trigger.options.map((opt) => (
-                <SelectItem
-                  key={opt.value}
-                  textValue={opt.label}
-                  startContent={
-                    opt.color ? (
-                      <span
-                        className="w-3.5 h-3.5 rounded-full border border-gray-300"
-                        style={{ backgroundColor: opt.color }}
-                      />
-                    ) : undefined
-                  }
-                >
-                  {opt.label}
-                </SelectItem>
-              ))}
-            </Select>
+              errorMessage="Pick at least one option"
+            />
           )}
 
           <p className="text-xs text-gray-500">

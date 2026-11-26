@@ -8,7 +8,7 @@ import {
   SelectAllCheckbox,
   PaginationSSR,
 } from "./OrderComponent";
-import { MultipleSelect } from "../../component/Button";
+import { StatusFilterSelect } from "./components/StatusFilterSelect";
 import { getFilterOrder, GetOrder, purgeExpiredUnpaidOrders } from "./data";
 import {
   Ordertype,
@@ -383,7 +383,7 @@ function FilterSection({
       <div className="filter_container w-full p-3 sm:p-4 flex flex-col md:flex-row items-stretch md:items-center gap-3">
         {/* Status multi-select */}
         <div className="w-full md:w-72 shrink-0">
-          <MultipleSelect />
+          <StatusFilterSelect />
         </div>
 
         <div className="hidden md:block h-10 w-px bg-gray-200 shrink-0" />

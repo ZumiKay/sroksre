@@ -9,7 +9,8 @@ import {
 } from "../../../severactions/containeraction";
 import { SelectType } from "@/src/types/productAction.type";
 import { CloseVector } from "../../Asset";
-import PrimaryButton, { Selection } from "../../Button";
+import PrimaryButton from "../../Button";
+import { SelectField } from "../../SelectField";
 import { TextInput } from "../../FormComponent";
 import { BannerSkeleton } from "../Component";
 import { Button } from "@heroui/react";
@@ -180,13 +181,9 @@ export const AddBannerContainer = memo(function AddBannerContainer({
   );
 
   const handleSelect = useCallback(
-    async (event: ChangeEvent<HTMLSelectElement>) => {
-      const { name, value } = event.target;
-
+    async (name: "parentcate" | "subcate", value: string) => {
       if (name === "parentcate") {
-        setfilter(
-          (prev) => ({ ...prev, parentcate: value, subcate: "" }),
-        );
+        setfilter((prev) => ({ ...prev, parentcate: value, subcate: "" }));
 
         if (value) {
           setloading(true);
@@ -383,14 +380,14 @@ export const AddBannerContainer = memo(function AddBannerContainer({
                   </svg>
                   Parent Category
                 </label>
-                <Selection
-                  name="parentcate"
-                  defaultValue={""}
+                <SelectField
+                  ariaLabel="Parent Category"
+                  placeholder="None"
+                  allowNone
+                  noneLabel="None"
                   value={filter.parentcate}
-                  data={cate.parent}
-                  style={{ height: "48px", color: "black" }}
-                  default="None"
-                  onChange={handleSelect}
+                  options={cate.parent}
+                  onChange={(value) => handleSelect("parentcate", value)}
                 />
               </div>
               {cate.sub && (
@@ -411,14 +408,14 @@ export const AddBannerContainer = memo(function AddBannerContainer({
                     </svg>
                     Sub Category
                   </label>
-                  <Selection
-                    style={{ height: "48px", color: "black" }}
-                    name="subcate"
-                    default="None"
-                    defaultValue={""}
-                    data={cate.sub}
+                  <SelectField
+                    ariaLabel="Sub Category"
+                    placeholder="None"
+                    allowNone
+                    noneLabel="None"
                     value={filter.subcate}
-                    onChange={handleSelect}
+                    options={cate.sub}
+                    onChange={(value) => handleSelect("subcate", value)}
                   />
                 </div>
               )}

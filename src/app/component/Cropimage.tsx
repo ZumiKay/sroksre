@@ -3,7 +3,6 @@ import React, {
   useRef,
   Dispatch,
   SetStateAction,
-  ChangeEvent,
   useCallback,
 } from "react";
 
@@ -18,7 +17,7 @@ import { canvasPreview } from "./CanvasPreview";
 import { useDebounceEffect } from "../../context/CustomHook";
 
 import "react-image-crop/dist/ReactCrop.css";
-import { Selection } from "./Button";
+import { SelectField } from "./SelectField";
 import { SecondaryModal } from "./Modals";
 import { errorToast } from "./Loading";
 import { Imgurl } from "./Modals/Image";
@@ -292,8 +291,8 @@ export default function CropImage({
       errorToast("Failed to crop image");
     }
   }, [completedCrop, imgurl, Files, index, setimgurl, setfile, setclose]);
-  const handleAspectRatio = useCallback((e: ChangeEvent<HTMLSelectElement>) => {
-    const ratio = parseFloat(e.target.value);
+  const handleAspectRatio = useCallback((value: string) => {
+    const ratio = parseFloat(value);
     setAspect(ratio);
 
     if (imgRef.current) {
@@ -467,12 +466,12 @@ export default function CropImage({
                   </svg>
                   Aspect Ratio
                 </label>
-                <Selection
-                  name="aspect"
+                <SelectField
+                  ariaLabel="Aspect Ratio"
+                  placeholder="Choose a ratio"
                   value={aspect}
-                  style={{ height: "48px" }}
-                  data={apsectratio}
-                  onChange={(e) => handleAspectRatio(e)}
+                  options={apsectratio}
+                  onChange={handleAspectRatio}
                 />
               </div>
             )}
@@ -554,8 +553,8 @@ export default function CropImage({
                         and clean
                       </p>
                       <p className="text-gray-600 italic mt-2">
-                        Keep the image tight — small banners don&apos;t need wide
-                        formats
+                        Keep the image tight — small banners don&apos;t need
+                        wide formats
                       </p>
                     </>
                   )}

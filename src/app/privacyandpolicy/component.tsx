@@ -1,10 +1,15 @@
 "use client";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSearchParams, useRouter } from "next/navigation";
-import PrimaryButton, { Selection } from "../component/Button";
+import PrimaryButton from "../component/Button";
+import { SelectField } from "../component/SelectField";
 import { SecondaryModal } from "../component/Modals";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faTrash, faPlus, faChevronDown } from "@fortawesome/free-solid-svg-icons";
+import {
+  faTrash,
+  faPlus,
+  faChevronDown,
+} from "@fortawesome/free-solid-svg-icons";
 import { TextField } from "@mui/material";
 
 import { useGlobalStore } from "@/src/context/GlobalContext";
@@ -365,12 +370,16 @@ export const AddPolicyModal = ({ qa, plc, edit, openstate }: Policydata) => {
       )}
     >
       <div className="w-full h-fit max-small_phone:max-h-[50vh] overflow-x-hidden max-small_phone:h-full flex flex-col gap-y-5">
-        <Selection
-          data={["Policy", "Question"]}
-          value={type}
-          onChange={(e) => settype(e.target.value as typeof type)}
+        <SelectField
           label="Type"
-          disable={edit}
+          placeholder="Select a type"
+          value={type}
+          options={[
+            { label: "Policy", value: "Policy" },
+            { label: "Question", value: "Question" },
+          ]}
+          onChange={(value) => settype(value as typeof type)}
+          isDisabled={edit}
         />
 
         {type === "Policy" ? (
@@ -397,7 +406,9 @@ export const AddPolicyModal = ({ qa, plc, edit, openstate }: Policydata) => {
                   variant="flat"
                   color="primary"
                   size="sm"
-                  startContent={<FontAwesomeIcon icon={faPlus} className="text-xs" />}
+                  startContent={
+                    <FontAwesomeIcon icon={faPlus} className="text-xs" />
+                  }
                 >
                   Add Paragraph
                 </Button>
@@ -438,9 +449,7 @@ export const AddPolicyModal = ({ qa, plc, edit, openstate }: Policydata) => {
                         </button>
                         <button
                           type="button"
-                          onClick={() =>
-                            handleDelete(idx, par.id, "paragraph")
-                          }
+                          onClick={() => handleDelete(idx, par.id, "paragraph")}
                           className="w-7 h-7 flex items-center justify-center rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
                         >
                           <FontAwesomeIcon icon={faTrash} className="text-xs" />
@@ -523,7 +532,9 @@ export const AddPolicyModal = ({ qa, plc, edit, openstate }: Policydata) => {
                 type="button"
                 variant="flat"
                 color="primary"
-                startContent={<FontAwesomeIcon icon={faPlus} className="text-xs" />}
+                startContent={
+                  <FontAwesomeIcon icon={faPlus} className="text-xs" />
+                }
               >
                 Add Question
               </Button>

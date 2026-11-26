@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { Checkbox, FormControlLabel } from "@mui/material";
 import { ApiRequest } from "@/src/context/CustomHook";
 import { errorToast } from "../Loading";
+import { SelectField } from "../SelectField";
 
 // -----------------------------------------------------------------------------
 // Types
@@ -41,9 +42,6 @@ const ADDRESS_INITIAL: Addresstype = {
 
 const INPUT_CLASS =
   "w-full h-12 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 font-medium text-sm placeholder:text-gray-400";
-
-const SELECT_CLASS =
-  "w-full h-12 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 font-medium text-sm bg-white text-gray-700 appearance-none cursor-pointer";
 
 // -----------------------------------------------------------------------------
 // ShippingForm
@@ -175,7 +173,9 @@ export function ShippingForm({ orderid }: { orderid: string }) {
       <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-4 sm:p-6 md:p-8">
         <div className="flex items-center gap-3 mb-6 sm:mb-8">
           <div className="w-1 h-8 bg-linear-to-b from-purple-600 to-purple-400 rounded-full" />
-          <h3 className="text-2xl sm:text-3xl font-bold text-gray-800">Shipping Address</h3>
+          <h3 className="text-2xl sm:text-3xl font-bold text-gray-800">
+            Shipping Address
+          </h3>
         </div>
 
         <div className="shippingform w-full space-y-6">
@@ -183,25 +183,15 @@ export function ShippingForm({ orderid }: { orderid: string }) {
             <label className="block text-sm font-semibold text-gray-700 mb-2">
               Address
             </label>
-            <select
+            <SelectField
+              ariaLabel="Address"
+              placeholder="Choose an address"
               value={selected}
-              onChange={(e) => handleSelect(parseInt(e.target.value, 10))}
-              disabled={isLoading}
-              className={`${SELECT_CLASS} ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
-              style={{
-                backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`,
-                backgroundRepeat: "no-repeat",
-                backgroundPosition: "right 0.5rem center",
-                backgroundSize: "1.5em 1.5em",
-                paddingRight: "2.5rem",
-              }}
-            >
-              {addressOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+              options={addressOptions}
+              isDisabled={isLoading}
+              isLoading={isLoading}
+              onChange={(value) => handleSelect(parseInt(value, 10))}
+            />
           </div>
 
           <input

@@ -20,6 +20,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import PaginationCustom from "../../component/Pagination_Component";
 import { UserState } from "@/src/types/user.type";
 import useCheckSession from "@/src/hooks/useCheckSession";
+import { SelectField } from "../../component/SelectField";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faSearch,
@@ -38,6 +39,25 @@ import {
   faXmark,
   IconDefinition,
 } from "@fortawesome/free-solid-svg-icons";
+
+const SORT_OPTIONS = [
+  { label: "Newest First", value: "newest" },
+  { label: "Oldest First", value: "oldest" },
+  { label: "Name (A-Z)", value: "name" },
+  { label: "Name (Z-A)", value: "name-desc" },
+];
+
+const ROLE_FILTER_OPTIONS = [
+  { label: "All Roles", value: "all" },
+  { label: "Admin", value: "ADMIN" },
+  { label: "User", value: "USER" },
+  { label: "Editor", value: "EDITOR" },
+];
+
+const BULK_ACTION_OPTIONS = [
+  { label: "Delete", value: "delete" },
+  { label: "Change Role", value: "role" },
+];
 export default function UsermanagementPage() {
   const router = useRouter();
   const searchParam = useSearchParams();
@@ -434,28 +454,24 @@ export default function UsermanagementPage() {
 
             <div className="flex flex-wrap items-center gap-2">
               {/* Sort Dropdown */}
-              <select
+              <SelectField
+                ariaLabel="Sort users"
+                size="md"
+                className="w-40"
                 value={sort || "newest"}
-                onChange={(e) => handleSort(e.target.value)}
-                className="h-10 px-3 text-sm text-gray-700 border border-gray-200 rounded-lg bg-white hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-200 transition-colors"
-              >
-                <option value="newest">Newest First</option>
-                <option value="oldest">Oldest First</option>
-                <option value="name">Name (A-Z)</option>
-                <option value="name-desc">Name (Z-A)</option>
-              </select>
+                options={SORT_OPTIONS}
+                onChange={handleSort}
+              />
 
               {/* Role Filter */}
-              <select
+              <SelectField
+                ariaLabel="Filter by role"
+                size="md"
+                className="w-36"
                 value={role || "all"}
-                onChange={(e) => handleRoleFilter(e.target.value)}
-                className="h-10 px-3 text-sm text-gray-700 border border-gray-200 rounded-lg bg-white hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-200 transition-colors"
-              >
-                <option value="all">All Roles</option>
-                <option value="ADMIN">Admin</option>
-                <option value="USER">User</option>
-                <option value="EDITOR">Editor</option>
-              </select>
+                options={ROLE_FILTER_OPTIONS}
+                onChange={handleRoleFilter}
+              />
 
               {/* Divider */}
               <div className="hidden md:block h-10 w-px bg-gray-200 mx-1" />
@@ -488,15 +504,15 @@ export default function UsermanagementPage() {
               {selectedUsers.length} selected
             </span>
             <div className="h-4 w-px bg-indigo-200 shrink-0" />
-            <select
+            <SelectField
+              ariaLabel="Bulk action"
+              placeholder="Select action…"
+              size="sm"
+              className="w-40"
               value={bulkAction}
-              onChange={(e) => setBulkAction(e.target.value)}
-              className="h-9 px-3 text-sm border border-indigo-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400"
-            >
-              <option value="">Select action…</option>
-              <option value="delete">Delete</option>
-              <option value="role">Change Role</option>
-            </select>
+              options={BULK_ACTION_OPTIONS}
+              onChange={setBulkAction}
+            />
             <button
               type="button"
               disabled={!bulkAction}

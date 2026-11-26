@@ -4,8 +4,7 @@ import {
   CateogoryState,
   SubcategoriesState,
 } from "@/src/context/GlobalContext";
-import { SelectionCustom } from "@/src/app/component/Pagination_Component";
-import { useEffect, useRef, useState } from "react";
+import { SelectField } from "@/src/app/component/SelectField";
 
 const CategorySkeleton = () => (
   <div className="w-full flex flex-col gap-4">
@@ -64,69 +63,30 @@ export const CategorySection = ({
   categoriesLoading,
   onSelect,
 }: CategorySectionProps) => {
-  //state
-  const [categoriesState, setcategoriesState] = useState<
-    Record<CateType, string>
-  >({
-    parent_id: parentId ? parentId.toString() : "",
-    child_id: childId ? childId.toString() : "",
-  });
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [portalContainer, setPortalContainer] = useState<
-    HTMLElement | undefined
-  >(undefined);
-
-  useEffect(() => {
-    if (containerRef.current) {
-      const dialog =
-        containerRef.current.closest<HTMLElement>('[role="dialog"]');
-      setPortalContainer(dialog ?? undefined);
-    }
-  }, []);
-
-  // Sync local state when parent passes updated category IDs (e.g. edit mode)
-  const [syncedIds, setSyncedIds] = useState({ parentId, childId });
-  if (syncedIds.parentId !== parentId || syncedIds.childId !== childId) {
-    setSyncedIds({ parentId, childId });
-    setcategoriesState({
-      parent_id: parentId ? parentId.toString() : "",
-      child_id: childId ? childId.toString() : "",
-    });
-  }
-
   if (categoriesLoading) return <CategorySkeleton />;
 
-  const handleSelect = (val: string, type: CateType) => {
-    onSelect(val, type);
-    setcategoriesState((prev) => ({ ...prev, [type]: val }));
-  };
-
-  //Eleement
   return (
-    <div
-      ref={containerRef}
-      className="category_sec flex flex-col gap-y-4 w-full h-fit"
-    >
-      <SelectionCustom
-        textplacement="outside"
+    <div className="category_sec flex flex-col gap-y-4 w-full h-fit">
+      <SelectField
         label="Category"
-        defaultValue="Please Select"
-        placeholder="Select"
-        value={categoriesState.parent_id}
-        data={cate?.map((i) => ({ label: i.name, value: `${i.id}` })) ?? []}
-        onChange={(val) => handleSelect(val.toString(), "parent_id")}
-        popoverProps={portalContainer ? { portalContainer } : undefined}
+        placeholder="Select a category"
+        isRequired
+        value={parentId ? `${parentId}` : ""}
+        options={cate?.map((i) => ({ label: i.name, value: `${i.id}` })) ?? []}
+        onChange={(val) => onSelect(val, "parent_id")}
       />
       {parentId ? (
-        <SelectionCustom
+        <SelectField
           label="Sub Category"
-          textplacement="outside"
-          value={categoriesState.child_id}
-          data={subcate.map((sub) => ({ label: sub.name, value: `${sub.id}` }))}
-          defaultValue="None"
-          placeholder="Select"
-          onChange={(val) => handleSelect(val.toString(), "child_id")}
-          popoverProps={portalContainer ? { portalContainer } : undefined}
+          placeholder="Select a sub category"
+          allowNone
+          noneLabel="None"
+          value={childId ? `${childId}` : ""}
+          options={subcate.map((sub) => ({
+            label: sub.name,
+            value: `${sub.id}`,
+          }))}
+          onChange={(val) => onSelect(val, "child_id")}
         />
       ) : null}
     </div>
